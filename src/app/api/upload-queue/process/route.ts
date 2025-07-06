@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { getSystemSetting } from '@/lib/settings';
 import { Buffer } from 'buffer';
 import { logAudit } from '@/lib/auditLog';
+import os from 'os';
 
 /**
  * @openapi
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
     }
     
     // 3. POST to the configured webhook endpoint (any compatible service)
+    // Priority: Database setting first, then environment variable as fallback
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
@@ -182,19 +184,44 @@ export async function POST(request: NextRequest) {
         console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
         
-        webhookRes = await fetch(resumeWebhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(jsonPayload),
-          // Add timeout and other fetch options for better error handling
-          signal: AbortSignal.timeout(120000), // 2 minute timeout
-        });
-        console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
-        webhookResStatus = webhookRes.status;
+        // Add retry logic for network failures
+        let retryCount = 0;
+        const maxRetries = 3;
+        let lastError = null;
         
-        if (webhookResStatus === 200) {
+        while (retryCount < maxRetries) {
+          try {
+            webhookRes = await fetch(resumeWebhookUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(jsonPayload),
+              // Add timeout and other fetch options for better error handling
+              signal: AbortSignal.timeout(120000), // 2 minute timeout
+            });
+            console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
+            webhookResStatus = webhookRes.status;
+            break; // Success, exit retry loop
+          } catch (fetchError) {
+            lastError = fetchError;
+            retryCount++;
+            console.error(`[Webhook] Attempt ${retryCount} failed:`, fetchError);
+            
+            if (retryCount < maxRetries) {
+              // Wait before retrying (exponential backoff)
+              const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+              console.log(`[Webhook] Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        
+        if (retryCount >= maxRetries && lastError) {
+          throw lastError; // Re-throw the last error for proper handling
+        }
+
+        if (webhookRes && webhookResStatus === 200) {
           // Handle different response modes
-          const contentType = webhookRes.headers.get('content-type') || '';
+          const contentType = webhookRes?.headers.get('content-type') || '';
           
           if (contentType.includes('application/json')) {
             // JSON response (blocking mode)
@@ -219,7 +246,7 @@ export async function POST(request: NextRequest) {
           } else if (contentType.includes('text/plain') || contentType.includes('text/event-stream')) {
             // Text/streaming response
             try {
-              webhookResponseText = await webhookRes.text();
+              webhookResponseText = webhookRes ? await webhookRes.text() : '';
               
               // Try to parse as JSON if it looks like JSON
               if (webhookResponseText.trim().startsWith('{') || webhookResponseText.trim().startsWith('[')) {
@@ -252,32 +279,39 @@ export async function POST(request: NextRequest) {
           } else {
             // Unknown content type, try to get text
             try {
-              webhookResponseText = await webhookRes.text();
+              webhookResponseText = webhookRes ? await webhookRes.text() : '';
               error_details = webhookResponseText;
             } catch (textErr) {
               console.warn('Failed to read response:', textErr);
             }
           }
-        }
-        
-        // Determine final status
-        if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
-          status = 'success';
-        } else if (status !== 'fail') {
-          status = 'fail';
-          webhookError = `Webhook responded with status ${webhookRes.status}`;
-          // Use already captured error_details or try to get text
-          if (!error_details) {
-            try {
-              error_details = await webhookRes.text();
-            } catch {
-              error_details = webhookError;
+          
+          // Determine final status based on webhook response
+          if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
+            status = 'success';
+          } else if (status !== 'fail') {
+            status = 'fail';
+            webhookError = `Webhook responded with status ${webhookResStatus}`;
+            if (!error_details) {
+              try {
+                error_details = webhookRes ? await webhookRes.text() : '';
+              } catch {
+                error_details = webhookError;
+              }
             }
+            error = webhookError;
           }
+        } else {
+          // Webhook not set, set status to error
+          status = 'error';
+          webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
           error = webhookError;
+          error_details = webhookError;
+          payload = { error: webhookError };
+          console.warn('[Webhook Skipped]', webhookError);
         }
       } catch (err) {
-        status = 'inprocess';
+        status = 'fail';
         
         // Enhanced error logging for fetch failures
         console.error(`[Webhook] Fetch failed for URL: ${resumeWebhookUrl}`);
@@ -317,7 +351,9 @@ export async function POST(request: NextRequest) {
         webhookResStatus, 
         webhookResJson,
         webhookResponseText,
-        responseMode: jsonPayload.response_mode 
+        responseMode: jsonPayload.response_mode,
+        webhookUrlUsed: resumeWebhookUrl,
+        applicationHostname: process.env.NEXTAUTH_URL || os.hostname(),
       };
     } else {
       // Webhook not set, set status to error
@@ -423,6 +459,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
     let fileBuffer: Buffer = Buffer.concat(chunks);
     // 3. POST to the configured webhook endpoint (any compatible service)
+    // Priority: Database setting first, then environment variable as fallback
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
@@ -475,19 +512,44 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
         
-        webhookRes = await fetch(resumeWebhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(jsonPayload),
-          // Add timeout and other fetch options for better error handling
-          signal: AbortSignal.timeout(120000), // 2 minute timeout
-        });
-        console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
-        webhookResStatus = webhookRes.status;
+        // Add retry logic for network failures
+        let retryCount = 0;
+        const maxRetries = 3;
+        let lastError = null;
         
-        if (webhookResStatus === 200) {
+        while (retryCount < maxRetries) {
+          try {
+            webhookRes = await fetch(resumeWebhookUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(jsonPayload),
+              // Add timeout and other fetch options for better error handling
+              signal: AbortSignal.timeout(120000), // 2 minute timeout
+            });
+            console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
+            webhookResStatus = webhookRes.status;
+            break; // Success, exit retry loop
+          } catch (fetchError) {
+            lastError = fetchError;
+            retryCount++;
+            console.error(`[Webhook] Attempt ${retryCount} failed:`, fetchError);
+            
+            if (retryCount < maxRetries) {
+              // Wait before retrying (exponential backoff)
+              const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
+              console.log(`[Webhook] Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        
+        if (retryCount >= maxRetries && lastError) {
+          throw lastError; // Re-throw the last error for proper handling
+        }
+
+        if (webhookRes && webhookResStatus === 200) {
           // Handle different response modes
-          const contentType = webhookRes.headers.get('content-type') || '';
+          const contentType = webhookRes?.headers.get('content-type') || '';
           
           if (contentType.includes('application/json')) {
             // JSON response (blocking mode)
@@ -512,7 +574,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           } else if (contentType.includes('text/plain') || contentType.includes('text/event-stream')) {
             // Text/streaming response
             try {
-              webhookResponseText = await webhookRes.text();
+              webhookResponseText = webhookRes ? await webhookRes.text() : '';
               
               // Try to parse as JSON if it looks like JSON
               if (webhookResponseText.trim().startsWith('{') || webhookResponseText.trim().startsWith('[')) {
@@ -545,32 +607,39 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           } else {
             // Unknown content type, try to get text
             try {
-              webhookResponseText = await webhookRes.text();
+              webhookResponseText = webhookRes ? await webhookRes.text() : '';
               error_details = webhookResponseText;
             } catch (textErr) {
               console.warn('Failed to read response:', textErr);
             }
           }
-        }
-        
-        // Determine final status
-        if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
-          status = 'success';
-        } else if (status !== 'fail') {
-          status = 'fail';
-          webhookError = `Webhook responded with status ${webhookRes.status}`;
-          // Use already captured error_details or try to get text
-          if (!error_details) {
-            try {
-              error_details = await webhookRes.text();
-            } catch {
-              error_details = webhookError;
+          
+          // Determine final status based on webhook response
+          if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
+            status = 'success';
+          } else if (status !== 'fail') {
+            status = 'fail';
+            webhookError = `Webhook responded with status ${webhookResStatus}`;
+            if (!error_details) {
+              try {
+                error_details = webhookRes ? await webhookRes.text() : '';
+              } catch {
+                error_details = webhookError;
+              }
             }
+            error = webhookError;
           }
+        } else {
+          // Webhook not set, set status to error
+          status = 'error';
+          webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
           error = webhookError;
+          error_details = webhookError;
+          payload = { error: webhookError };
+          console.warn('[Webhook Skipped]', webhookError);
         }
       } catch (err) {
-        status = 'inprocess';
+        status = 'fail';
         
         // Enhanced error logging for fetch failures
         console.error(`[Webhook] Fetch failed for URL: ${resumeWebhookUrl}`);
@@ -610,7 +679,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         webhookResStatus, 
         webhookResJson,
         webhookResponseText,
-        responseMode: jsonPayload.response_mode 
+        responseMode: jsonPayload.response_mode,
+        webhookUrlUsed: resumeWebhookUrl,
+        applicationHostname: process.env.NEXTAUTH_URL || os.hostname(),
       };
     } else {
       // Webhook not set, set status to error

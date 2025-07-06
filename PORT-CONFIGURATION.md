@@ -8,12 +8,12 @@ This document outlines all port configurations for the Studio-5 application cont
 
 | Service | Internal Port | External Port | Environment Variable | Description |
 |---------|---------------|---------------|---------------------|-------------|
-| **app** | 9846 | 9846 | `APP_PORT` | Main application (Next.js) |
-| **postgres** | 5432 | 5432 | `POSTGRES_PORT` | PostgreSQL database |
-| **minio** | 9000 | 9847 | `MINIO_API_PORT` | MinIO API server |
-| **minio** | 9001 | 9848 | `MINIO_CONSOLE_PORT` | MinIO web console |
-| **redis** | 6379 | 9850 | `REDIS_EXTERNAL_PORT` | Redis cache |
-| **upload-queue-processor** | 8080 | 8080 | `PROCESSOR_PORT` | Upload queue processor |
+| **app** | 9846 | 8021 | `APP_PORT` | Main application (Next.js) |
+| **postgres** | 5432 | 8521 | `POSTGRES_PORT` | PostgreSQL database |
+| **minio** | 9000 | 8621 | `MINIO_API_PORT` | MinIO API server |
+| **minio** | 9001 | 8721 | `MINIO_CONSOLE_PORT` | MinIO web console |
+| **redis** | 6379 | 8921 | `REDIS_EXTERNAL_PORT` | Redis cache |
+| **upload-queue-processor** | 8080 | 8821 | `PROCESSOR_PORT` | Upload queue processor |
 
 ### Default Port Configuration
 
@@ -22,24 +22,24 @@ This document outlines all port configurations for the Studio-5 application cont
 services:
   app:
     ports:
-      - "${APP_PORT:-9846}:9846"
+      - "${APP_PORT:-8021}:9846"
   
   postgres:
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-8521}:5432"
   
   minio:
     ports:
-      - "${MINIO_API_PORT:-9847}:9000"      # API
-      - "${MINIO_CONSOLE_PORT:-9848}:9001"  # Console
+      - "${MINIO_API_PORT:-8621}:9000"      # API
+      - "${MINIO_CONSOLE_PORT:-8721}:9001"  # Console
   
   redis:
     ports:
-      - "${REDIS_EXTERNAL_PORT:-9850}:6379"
+      - "${REDIS_EXTERNAL_PORT:-8921}:6379"
   
   upload-queue-processor:
     ports:
-      - "${PROCESSOR_PORT:-8080}:8080"
+      - "${PROCESSOR_PORT:-8821}:8080"
 ```
 
 ## 8021 Application (docker-compose.8021.yml)
@@ -115,12 +115,12 @@ EXPOSE 8821
 ### Main Application
 ```bash
 # Port Configuration
-APP_PORT=9846                    # Main application port
-POSTGRES_PORT=5432              # PostgreSQL port
-MINIO_API_PORT=9847             # MinIO API port
-MINIO_CONSOLE_PORT=9848         # MinIO console port
-REDIS_EXTERNAL_PORT=9850        # Redis port
-PROCESSOR_PORT=8080             # Processor port
+APP_PORT=8021                   # Main application port
+POSTGRES_PORT=8521              # PostgreSQL port
+MINIO_API_PORT=8621             # MinIO API port
+MINIO_CONSOLE_PORT=8721         # MinIO console port
+REDIS_EXTERNAL_PORT=8921        # Redis port
+PROCESSOR_PORT=8821             # Processor port
 ```
 
 ### 8021 Application
@@ -137,12 +137,12 @@ PROCESSOR_PORT=8821             # Processor port
 ## Access URLs
 
 ### Main Application
-- **Application**: http://localhost:9846
-- **PostgreSQL**: localhost:5432
-- **MinIO API**: http://localhost:9847
-- **MinIO Console**: http://localhost:9848
-- **Redis**: localhost:9850
-- **Processor Health**: http://localhost:8080
+- **Application**: http://localhost:8021
+- **PostgreSQL**: localhost:8521
+- **MinIO API**: http://localhost:8621
+- **MinIO Console**: http://localhost:8721
+- **Redis**: localhost:8921
+- **Processor Health**: http://localhost:8821
 
 ### 8021 Application
 - **Application**: http://localhost:8021
@@ -157,7 +157,7 @@ PROCESSOR_PORT=8821             # Processor port
 ### Application Health Checks
 ```bash
 # Main application
-curl -f http://localhost:9846/api/health
+curl -f http://localhost:8021/api/health
 
 # 8021 application
 curl -f http://localhost:8021/api/health
@@ -178,10 +178,10 @@ docker exec <redis-container> redis-cli ping
 ### MinIO Health Checks
 ```bash
 # MinIO API
-curl -f http://localhost:9847/minio/health/live
+curl -f http://localhost:8621/minio/health/live
 
 # MinIO Console
-curl -f http://localhost:9848/
+curl -f http://localhost:8721/
 ```
 
 ## Network Configuration
@@ -208,13 +208,13 @@ curl -f http://localhost:9848/
 ### Port Conflicts
 ```bash
 # Check port usage
-netstat -tulpn | grep :9846
+netstat -tulpn | grep :8021
 
 # Stop conflicting services
 sudo systemctl stop conflicting-service
 
 # Change ports in environment variables
-export APP_PORT=9847
+export APP_PORT=8022
 ```
 
 ### Container Connectivity
@@ -238,7 +238,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 docker inspect <container-name> | grep -A 10 Health
 
 # Manual health check
-curl -f http://localhost:9846/api/health
+curl -f http://localhost:8021/api/health
 ```
 
 ## Deployment Notes

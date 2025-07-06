@@ -39,7 +39,6 @@ export async function getRedisClient() {
           return Math.min(retries * 100, 3000);
         },
         connectTimeout: 10000,
-        commandTimeout: 5000,
       },
     });
 
@@ -66,7 +65,7 @@ export async function getRedisClient() {
 
   if (!redisClient.isOpen) {
     isConnecting = true;
-    connectionPromise = redisClient.connect().catch((error) => {
+    connectionPromise = redisClient.connect().then(() => {}).catch((error) => {
       console.error('Failed to connect to Redis:', error);
       isConnecting = false;
       connectionPromise = null;

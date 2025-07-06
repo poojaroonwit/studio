@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
 /**
@@ -214,6 +214,9 @@ export async function POST(request: NextRequest) {
       ...newUser,
       groups: newUser.userGroups.map((ug: any) => ug.group)
     };
+
+    // Clear user validation cache for the new user
+    clearUserValidationCache(newUser.id);
 
     const { getRedisClient, CACHE_KEY_USERS } = await import('@/lib/redis');
     const redisClient = await getRedisClient();

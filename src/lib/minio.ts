@@ -3,6 +3,14 @@ import { Client as Minio } from 'minio';
 export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'uploads';
 export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9000';
 
+// Log MinIO configuration for debugging
+console.log('[MINIO CONFIG]', {
+  endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+  port: process.env.MINIO_PORT || '9000',
+  bucket: MINIO_BUCKET,
+  useSSL: process.env.MINIO_USE_SSL === 'true'
+});
+
 export const minioClient = new Minio({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000', 10),
@@ -14,10 +22,14 @@ export const minioClient = new Minio({
 // Function to ensure bucket exists with enhanced configuration
 export async function ensureBucketExists() {
   try {
+    console.log(`[MINIO] Checking if bucket '${MINIO_BUCKET}' exists...`);
     const exists = await minioClient.bucketExists(MINIO_BUCKET);
+    console.log(`[MINIO] Bucket '${MINIO_BUCKET}' exists: ${exists}`);
     
     if (!exists) {
+      console.log(`[MINIO] Creating bucket '${MINIO_BUCKET}'...`);
       await minioClient.makeBucket(MINIO_BUCKET);
+      console.log(`[MINIO] Bucket '${MINIO_BUCKET}' created successfully`);
       
       // Set bucket policy for public read access (optional)
       try {
@@ -34,19 +46,25 @@ export async function ensureBucketExists() {
         };
         
         await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
+        console.log(`[MINIO] Bucket policy set for '${MINIO_BUCKET}'`);
       } catch (policyError) {
+        console.warn(`[MINIO] Failed to set bucket policy for '${MINIO_BUCKET}':`, policyError);
       }
       
       // Set bucket versioning (optional)
       try {
         await minioClient.setBucketVersioning(MINIO_BUCKET, { Status: 'Enabled' });
+        console.log(`[MINIO] Bucket versioning enabled for '${MINIO_BUCKET}'`);
       } catch (versioningError) {
+        console.warn(`[MINIO] Failed to enable bucket versioning for '${MINIO_BUCKET}':`, versioningError);
       }
       
     }
     
     // Test bucket access by listing objects
+    console.log(`[MINIO] Testing bucket access for '${MINIO_BUCKET}'...`);
     await minioClient.listObjects(MINIO_BUCKET, '', true);
+    console.log(`[MINIO] Bucket access test successful for '${MINIO_BUCKET}'`);
     
     return {
       status: 'success',
@@ -56,14 +74,17 @@ export async function ensureBucketExists() {
     };
     
   } catch (error) {
-    throw new Error('Failed to initialize MinIO bucket');
+    console.error(`[MINIO] Failed to initialize bucket '${MINIO_BUCKET}':`, error);
+    throw new Error(`Failed to initialize MinIO bucket: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 // Function to initialize MinIO with comprehensive setup
 export async function initializeMinIO() {
   try {
+    console.log('[MINIO] Initializing MinIO client...');
     await minioClient.listBuckets();
+    console.log('[MINIO] MinIO client initialized successfully');
     
     // Ensure bucket exists
     const result = await ensureBucketExists();
@@ -71,6 +92,7 @@ export async function initializeMinIO() {
     return result;
     
   } catch (error) {
+    console.error('[MINIO] Failed to initialize MinIO:', error);
     throw error;
   }
 }
@@ -97,6 +119,7 @@ export async function getBucketInfo() {
     };
     
   } catch (error) {
+    console.error(`[MINIO] Error getting bucket info for '${MINIO_BUCKET}':`, error);
     throw error;
   }
 }
@@ -104,10 +127,13 @@ export async function getBucketInfo() {
 // Startup initialization function - call this when the app starts
 export async function startupMinIOInitialization() {
   try {
+    console.log('[MINIO] Starting MinIO initialization...');
+    
     // Check if MinIO is available
     const isAvailable = await checkMinIOAvailability();
     
     if (!isAvailable) {
+      console.warn('[MINIO] MinIO is not available. File uploads will not work.');
       return {
         status: 'warning',
         message: 'MinIO is not available. File uploads will not work.',
@@ -117,10 +143,12 @@ export async function startupMinIOInitialization() {
     
     // Initialize MinIO
     const result = await initializeMinIO();
+    console.log('[MINIO] MinIO initialization completed successfully');
     
     return result;
     
   } catch (error) {
+    console.error('[MINIO] Failed to initialize MinIO during startup:', error);
     return {
       status: 'error',
       message: 'Failed to initialize MinIO during startup',
@@ -133,10 +161,13 @@ export async function startupMinIOInitialization() {
 // Function to check if MinIO is available
 async function checkMinIOAvailability(): Promise<boolean> {
   try {
+    console.log('[MINIO] Checking MinIO availability...');
     // Try to list buckets (this will fail if MinIO is not available)
     await minioClient.listBuckets();
+    console.log('[MINIO] MinIO is available');
     return true;
   } catch (error) {
+    console.error('[MINIO] MinIO is not available:', error);
     return false;
   }
 }

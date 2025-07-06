@@ -4,7 +4,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { removeUserPresence } from '@/lib/redis';
 
@@ -167,6 +167,9 @@ export async function PUT(request: NextRequest) {
             }
         });
 
+        // Clear user validation cache for the updated user
+        clearUserValidationCache(id);
+
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });
         return NextResponse.json(updatedUser, { status: 200 });
 
@@ -240,6 +243,9 @@ export async function DELETE(request: NextRequest) {
                 name: true
             }
         });
+
+        // Clear user validation cache for the deleted user
+        clearUserValidationCache(id);
 
         // Cleanup sessions for the deleted user
         await invalidateUserSessions(id);

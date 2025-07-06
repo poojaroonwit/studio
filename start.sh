@@ -1,53 +1,84 @@
-#!/bin/sh
-set -e
+#!/bin/bash
 
-echo "🚀 Starting CandiTrack application..."
+# Application startup script with proper initialization
 
-# Validate environment variables
-echo "🔍 Validating environment variables..."
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ Error: DATABASE_URL environment variable is required"
-    exit 1
-fi
+set -e  # Exit on any error
 
-if [ -z "$NEXTAUTH_SECRET" ]; then
-    echo "❌ Error: NEXTAUTH_SECRET environment variable is required"
-    exit 1
-fi
+echo "🚀 Starting HR AI Screening Application..."
 
-if [ -z "$NEXTAUTH_URL" ]; then
-    echo "❌ Error: NEXTAUTH_URL environment variable is required"
-    exit 1
-fi
+# Function to check if a service is running
+check_service() {
+    local service_name=$1
+    local port=$2
+    local max_attempts=30
+    local attempt=1
+    
+    echo "⏳ Waiting for $service_name to be ready on port $port..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        if nc -z localhost $port 2>/dev/null; then
+            echo "✅ $service_name is ready on port $port"
+            return 0
+        fi
+        
+        echo "   Attempt $attempt/$max_attempts - $service_name not ready yet..."
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+    
+    echo "❌ $service_name failed to start within $((max_attempts * 2)) seconds"
+    return 1
+}
 
-echo "✅ Environment variables validated"
-
-# Wait for database to be ready
-echo "⏳ Waiting for database..."
-./wait-for-db.sh "$DB_HOST:$DB_PORT" -- echo "✅ Database is ready"
-
-# Generate Prisma client
-echo "🔧 Generating Prisma client..."
-npx prisma generate
-
-# Check if database schema is in sync
-echo "🔍 Checking database schema..."
-if npx prisma db push --accept-data-loss; then
-    echo "✅ Schema is in sync"
+# Check if we're in a Docker environment
+if [ -f /.dockerenv ]; then
+    echo "🐳 Running in Docker container"
+    
+    # Wait for database
+    check_service "PostgreSQL" 5432 || exit 1
+    
+    # Wait for MinIO
+    check_service "MinIO" 9000 || exit 1
+    
+    # Wait for Redis
+    check_service "Redis" 6379 || exit 1
+    
+    echo "✅ All services are ready"
 else
-    echo "⚠️  Schema mismatch detected, forcing reset..."
-    npx prisma db push --force-reset --accept-data-loss
-    echo "✅ Schema reset and synchronized"
+    echo "🖥️ Running in local environment"
+    echo "⚠️ Make sure PostgreSQL, MinIO, and Redis are running locally"
 fi
 
-# Seed database
-echo "🌱 Seeding database..."
-if npx tsx prisma/seed.ts; then
-    echo "✅ Database seeded successfully"
-else
-    echo "⚠️  Seeding failed or already seeded, continuing..."
-fi
+# Run database migrations
+echo "🗄️ Running database migrations..."
+npm run db:migrate || {
+    echo "❌ Database migration failed"
+    exit 1
+}
+
+# Initialize application
+echo "🔧 Initializing application..."
+node -e "
+const { initializeApplication } = require('./src/lib/startup');
+initializeApplication().then(result => {
+    console.log('Initialization result:', JSON.stringify(result, null, 2));
+    if (result.overall === 'failed') {
+        console.error('❌ Application initialization failed');
+        process.exit(1);
+    } else if (result.overall === 'partial') {
+        console.warn('⚠️ Application initialized with warnings');
+    } else {
+        console.log('✅ Application initialized successfully');
+    }
+}).catch(error => {
+    console.error('❌ Initialization error:', error);
+    process.exit(1);
+});
+" || {
+    echo "❌ Application initialization failed"
+    exit 1
+}
 
 # Start the application
-echo "🚀 Starting application..."
-exec npm run start
+echo "🌐 Starting main application..."
+exec npm start

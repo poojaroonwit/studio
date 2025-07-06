@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
+import { startupMinIOInitialization } from '@/lib/minio';
+import { getRedisClient } from '@/lib/redis';
 
 /**
  * @openapi
  * /api/health:
  *   get:
  *     summary: Health check endpoint
- *     description: Returns the health status of the application and its dependencies
+ *     description: Checks the health of all system components
  *     responses:
  *       200:
- *         description: Application is healthy
+ *         description: System health status
  *         content:
  *           application/json:
  *             schema:
@@ -17,63 +19,132 @@ import { getPool } from '@/lib/db';
  *               properties:
  *                 status:
  *                   type: string
- *                   example: "healthy"
+ *                   enum: ['healthy', 'degraded', 'unhealthy']
  *                 timestamp:
  *                   type: string
  *                   format: date-time
- *                 database:
+ *                 components:
  *                   type: object
  *                   properties:
- *                     status:
- *                       type: string
- *                       example: "connected"
- *                     userCount:
- *                       type: number
- *                       example: 5
- *                 uptime:
- *                   type: number
- *                   example: 3600
+ *                     database:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           enum: ['healthy', 'unhealthy']
+ *                         message:
+ *                           type: string
+ *                         userCount:
+ *                           type: number
+ *                     minio:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           enum: ['healthy', 'warning', 'unhealthy']
+ *                         message:
+ *                           type: string
+ *                         bucket:
+ *                           type: string
+ *                     redis:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           enum: ['healthy', 'unhealthy']
+ *                         message:
+ *                           type: string
+ *       500:
+ *         description: System unhealthy
  */
-export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-  
-  try {
-    // Test database connection
-    const client = await getPool().connect();
-    let dbStatus = 'connected';
-    let userCount = 0;
-    
-    try {
-      // Test a simple query
-      const result = await client.query('SELECT COUNT(*) as count FROM "User"');
-      userCount = parseInt(result.rows[0].count);
-    } catch (dbError) {
-      console.error('[HEALTH CHECK] Database query failed:', dbError);
-      dbStatus = 'error';
-    } finally {
-      client.release();
+export async function GET() {
+  const healthCheck = {
+    status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
+    timestamp: new Date().toISOString(),
+    components: {
+      database: { status: 'unhealthy' as 'healthy' | 'unhealthy', message: 'Not checked', userCount: 0 },
+      minio: { status: 'unhealthy' as 'healthy' | 'warning' | 'unhealthy', message: 'Not checked', bucket: '' },
+      redis: { status: 'unhealthy' as 'healthy' | 'unhealthy', message: 'Not checked' }
     }
+  };
 
-    const responseTime = Date.now() - startTime;
+  // Check database
+  try {
+    const pool = getPool();
+    const client = await pool.connect();
+    const result = await client.query('SELECT COUNT(*) as count FROM "User"');
+    const userCount = parseInt(result.rows[0].count);
+    client.release();
     
-    return NextResponse.json({
+    healthCheck.components.database = {
       status: 'healthy',
-      timestamp: new Date().toISOString(),
-      database: {
-        status: dbStatus,
-        userCount: userCount
-      },
-      uptime: process.uptime(),
-      responseTime: responseTime
-    });
+      message: 'Database connection successful',
+      userCount
+    };
   } catch (error) {
-    console.error('[HEALTH CHECK] Health check failed:', error);
-    
-    return NextResponse.json({
+    healthCheck.components.database = {
       status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-      uptime: process.uptime()
-    }, { status: 500 });
+      message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      userCount: 0
+    };
+    healthCheck.status = 'degraded';
   }
+
+  // Check MinIO
+  try {
+    const minioResult = await startupMinIOInitialization();
+    healthCheck.components.minio = {
+      status: minioResult.status as 'healthy' | 'warning' | 'unhealthy',
+      message: minioResult.message,
+      bucket: minioResult.bucket || ''
+    };
+    
+    if (minioResult.status === 'error') {
+      healthCheck.status = 'degraded';
+    }
+  } catch (error) {
+    healthCheck.components.minio = {
+      status: 'unhealthy',
+      message: `MinIO check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      bucket: ''
+    };
+    healthCheck.status = 'degraded';
+  }
+
+  // Check Redis
+  try {
+    const redisClient = await getRedisClient();
+    if (redisClient) {
+      await redisClient.ping();
+      healthCheck.components.redis = {
+        status: 'healthy',
+        message: 'Redis connection successful'
+      };
+    } else {
+      healthCheck.components.redis = {
+        status: 'unhealthy',
+        message: 'Redis client not available'
+      };
+      healthCheck.status = 'degraded';
+    }
+  } catch (error) {
+    healthCheck.components.redis = {
+      status: 'unhealthy',
+      message: `Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+    healthCheck.status = 'degraded';
+  }
+
+  // Determine overall status
+  const unhealthyComponents = Object.values(healthCheck.components).filter(
+    component => component.status === 'unhealthy'
+  ).length;
+
+  if (unhealthyComponents > 0) {
+    healthCheck.status = unhealthyComponents === Object.keys(healthCheck.components).length ? 'unhealthy' : 'degraded';
+  }
+
+  const statusCode = healthCheck.status === 'healthy' ? 200 : healthCheck.status === 'degraded' ? 200 : 503;
+  
+  return NextResponse.json(healthCheck, { status: statusCode });
 } 

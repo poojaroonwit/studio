@@ -7,6 +7,10 @@ import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import jwt from 'jsonwebtoken';
 
+// Cache for user validation to reduce database calls
+const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Check if Azure AD is configured
 const isAzureADConfigured = () => {
   return process.env.AZURE_AD_CLIENT_ID && 
@@ -18,7 +22,7 @@ const isAzureADConfigured = () => {
 };
 
 /**
- * Validates that a user exists in the database
+ * Validates that a user exists in the database with caching
  * @param userId - The user ID to validate
  * @returns Promise<boolean> - True if user exists, false otherwise
  */
@@ -28,10 +32,21 @@ export async function validateUserExists(userId: string): Promise<boolean> {
     return false;
   }
   
+  // Check cache first
+  const cached = userValidationCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log(`[USER VALIDATION] User ${userId} exists (cached): ${cached.exists}`);
+    return cached.exists;
+  }
+  
   const client = await getPool().connect();
   try {
     const result = await client.query('SELECT id FROM "User" WHERE id = $1', [userId]);
     const exists = result.rows.length > 0;
+    
+    // Update cache
+    userValidationCache.set(userId, { exists, timestamp: Date.now() });
+    
     console.log(`[USER VALIDATION] User ${userId} exists: ${exists}`);
     return exists;
   } catch (error) {
@@ -39,6 +54,20 @@ export async function validateUserExists(userId: string): Promise<boolean> {
     return false;
   } finally {
     client.release();
+  }
+}
+
+/**
+ * Clears the user validation cache (useful when users are updated/deleted)
+ * @param userId - Optional specific user ID to clear, or undefined to clear all
+ */
+export function clearUserValidationCache(userId?: string) {
+  if (userId) {
+    userValidationCache.delete(userId);
+    console.log(`[USER VALIDATION] Cleared cache for user ${userId}`);
+  } else {
+    userValidationCache.clear();
+    console.log('[USER VALIDATION] Cleared all user validation cache');
   }
 }
 

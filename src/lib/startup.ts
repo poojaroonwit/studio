@@ -1,5 +1,6 @@
 import { startupMinIOInitialization } from './minio';
 import { getPool } from './db';
+import { getRedisClient } from './redis';
 import { execSync } from 'child_process';
 
 export interface StartupResult {
@@ -14,6 +15,11 @@ export interface StartupResult {
     message: string;
     error?: string;
   };
+  redis: {
+    status: 'success' | 'error';
+    message: string;
+    error?: string;
+  };
   seeding: {
     status: 'success' | 'warning' | 'error';
     message: string;
@@ -23,15 +29,19 @@ export interface StartupResult {
 }
 
 export async function initializeApplication(): Promise<StartupResult> {
+  console.log('🚀 Starting application initialization...');
+  
   const result: StartupResult = {
     minio: { status: 'error', message: 'Not initialized' },
     database: { status: 'error', message: 'Not initialized' },
+    redis: { status: 'error', message: 'Not initialized' },
     seeding: { status: 'error', message: 'Not initialized' },
     overall: 'failed'
   };
   
   // Initialize MinIO
   try {
+    console.log('📦 Initializing MinIO...');
     const minioResult = await startupMinIOInitialization();
     result.minio = {
       status: minioResult.status as 'success' | 'warning' | 'error',
@@ -39,7 +49,9 @@ export async function initializeApplication(): Promise<StartupResult> {
       bucket: minioResult.bucket,
       error: 'error' in minioResult ? minioResult.error : undefined
     };
+    console.log(`✅ MinIO initialization: ${minioResult.status}`);
   } catch (error) {
+    console.error('❌ MinIO initialization failed:', error);
     result.minio = {
       status: 'error',
       message: 'Failed to initialize MinIO',
@@ -49,6 +61,7 @@ export async function initializeApplication(): Promise<StartupResult> {
   
   // Test database connection
   try {
+    console.log('🗄️ Testing database connection...');
     const pool = getPool();
     const client = await pool.connect();
     await client.query('SELECT 1');
@@ -57,7 +70,9 @@ export async function initializeApplication(): Promise<StartupResult> {
       status: 'success',
       message: 'Database connection successful'
     };
+    console.log('✅ Database connection successful');
   } catch (error) {
+    console.error('❌ Database connection failed:', error);
     result.database = {
       status: 'error',
       message: 'Failed to connect to database',
@@ -65,48 +80,82 @@ export async function initializeApplication(): Promise<StartupResult> {
     };
   }
 
-  // Check if database needs seeding
+  // Test Redis connection
   try {
-    const pool = getPool();
-    const client = await pool.connect();
-    
-    // Check if admin user exists
-    const adminCheck = await client.query('SELECT COUNT(*) as count FROM "User" WHERE email = $1', ['admin@ncc.com']);
-    const adminExists = parseInt(adminCheck.rows[0].count) > 0;
-    
-    // Check if recruitment stages exist
-    const stagesCheck = await client.query('SELECT COUNT(*) as count FROM "RecruitmentStage"');
-    const stagesExist = parseInt(stagesCheck.rows[0].count) > 0;
-    
-    client.release();
-    
-    if (adminExists && stagesExist) {
-      result.seeding = {
+    console.log('🔴 Testing Redis connection...');
+    const redisClient = await getRedisClient();
+    if (redisClient) {
+      await redisClient.ping();
+      result.redis = {
         status: 'success',
-        message: 'Database already seeded'
+        message: 'Redis connection successful'
       };
+      console.log('✅ Redis connection successful');
     } else {
-      result.seeding = {
-        status: 'warning',
-        message: 'Database needs seeding - run prisma db seed'
+      result.redis = {
+        status: 'error',
+        message: 'Redis client not available'
       };
+      console.log('⚠️ Redis client not available');
     }
   } catch (error) {
-    result.seeding = {
+    console.error('❌ Redis connection failed:', error);
+    result.redis = {
       status: 'error',
-      message: 'Failed to check seeding status',
+      message: 'Failed to connect to Redis',
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
   
+  // Run database seeding if database is available
+  if (result.database.status === 'success') {
+    try {
+      console.log('🌱 Running database seeding...');
+      // Run the seed script
+      execSync('npm run seed', { stdio: 'pipe' });
+      result.seeding = {
+        status: 'success',
+        message: 'Database seeded successfully'
+      };
+      console.log('✅ Database seeding completed');
+    } catch (error) {
+      console.error('❌ Database seeding failed:', error);
+      result.seeding = {
+        status: 'error',
+        message: 'Failed to seed database',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  } else {
+    result.seeding = {
+      status: 'error',
+      message: 'Cannot seed database - database connection failed'
+    };
+  }
+  
   // Determine overall status
-  if (result.database.status === 'success' && result.minio.status === 'success' && result.seeding.status === 'success') {
+  const successCount = [result.database, result.redis, result.minio].filter(
+    service => service.status === 'success'
+  ).length;
+  
+  const errorCount = [result.database, result.redis, result.minio].filter(
+    service => service.status === 'error'
+  ).length;
+  
+  if (errorCount === 0) {
     result.overall = 'ready';
-  } else if (result.database.status === 'success' && (result.minio.status === 'warning' || result.minio.status === 'error') && result.seeding.status === 'success') {
+  } else if (successCount > 0) {
     result.overall = 'partial';
   } else {
     result.overall = 'failed';
   }
+  
+  console.log(`🎯 Application initialization completed. Overall status: ${result.overall}`);
+  console.log('📊 Summary:');
+  console.log(`  Database: ${result.database.status}`);
+  console.log(`  Redis: ${result.redis.status}`);
+  console.log(`  MinIO: ${result.minio.status}`);
+  console.log(`  Seeding: ${result.seeding.status}`);
   
   return result;
 }

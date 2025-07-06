@@ -16,7 +16,7 @@ interface UploadResumeModalProps {
   onUploadSuccess: (updatedCandidate: Candidate) => void;
 }
 
-export function UploadResumeModal({ isOpen, onOpenChange, candidate, onUploadSuccess }: UploadResumeModalProps) {
+const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }: UploadResumeModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -147,4 +147,6 @@ export function UploadResumeModal({ isOpen, onOpenChange, candidate, onUploadSuc
       </DialogContent>
     </Dialog>
   );
-} 
+};
+
+export default UploadResumeModal; 

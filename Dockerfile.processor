@@ -27,4 +27,19 @@ RUN tsc process-upload-queue.ts --module NodeNext --target es2020 --esModuleInte
 RUN printf '#!/bin/sh\nnode process-upload-queue.mjs\n' > /app/start-processor.sh && \
     chmod +x /app/start-processor.sh
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Change ownership of the app directory
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+# Expose port for health checks (if needed)
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ps aux | grep "process-upload-queue.mjs" | grep -v grep || exit 1
+
 CMD ["/app/start-processor.sh"] 

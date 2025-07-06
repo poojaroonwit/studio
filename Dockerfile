@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Set build-time environment variables
 ENV NODE_ENV=production
 ENV NEXT_PHASE=phase-production-build

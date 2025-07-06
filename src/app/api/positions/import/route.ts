@@ -12,11 +12,8 @@ import fs from 'fs';
 
 export const dynamic = "force-dynamic";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Route segment config for handling multipart form data
+export const runtime = 'nodejs';
 
 /**
  * @openapi

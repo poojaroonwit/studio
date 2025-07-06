@@ -149,17 +149,32 @@ export async function POST(request: NextRequest) {
           try {
             webhookResJson = await webhookRes.json();
             candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+            // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
+            if (
+              (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+              (webhookResJson?.status === 'failed' && webhookResJson?.error)
+            ) {
+              status = 'fail';
+              webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+              error = webhookError;
+              error_details = JSON.stringify(webhookResJson);
+            }
           } catch (jsonErr) {
             candidateInfoPresent = false;
           }
         }
-        if (webhookResStatus === 200 && candidateInfoPresent) {
+        if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
           status = 'success';
-        } else {
+        } else if (status !== 'fail') {
           status = 'fail';
           webhookError = `Webhook responded with status ${webhookRes.status}`;
+          // Try to get text if not already set
+          try {
+            error_details = await webhookRes.text();
+          } catch {
+            error_details = webhookError;
+          }
           error = webhookError;
-          error_details = await webhookRes.text().catch(() => webhookError);
         }
       } catch (err) {
         status = 'inprocess';
@@ -305,17 +320,32 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           try {
             webhookResJson = await webhookRes.json();
             candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+            // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
+            if (
+              (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+              (webhookResJson?.status === 'failed' && webhookResJson?.error)
+            ) {
+              status = 'fail';
+              webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+              error = webhookError;
+              error_details = JSON.stringify(webhookResJson);
+            }
           } catch (jsonErr) {
             candidateInfoPresent = false;
           }
         }
-        if (webhookResStatus === 200 && candidateInfoPresent) {
+        if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
           status = 'success';
-        } else {
+        } else if (status !== 'fail') {
           status = 'fail';
           webhookError = `Webhook responded with status ${webhookRes.status}`;
+          // Try to get text if not already set
+          try {
+            error_details = await webhookRes.text();
+          } catch {
+            error_details = webhookError;
+          }
           error = webhookError;
-          error_details = await webhookRes.text().catch(() => webhookError);
         }
       } catch (err) {
         status = 'inprocess';

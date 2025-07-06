@@ -104,6 +104,25 @@ export async function POST(request: NextRequest) {
       chunks.push(chunk);
     }
     let fileBuffer: Buffer | null = Buffer.concat(chunks);
+    
+    // Update status to indicate file downloaded and ready for webhook
+    await client.query(
+      `UPDATE upload_queue SET status = 'inprocess', updated_at = now() WHERE id = $1`,
+      [job.id]
+    );
+    
+    // Broadcast file download completion
+    const redisClientDownload = await import('@/lib/redis').then(m => m.getRedisClient());
+    if (redisClientDownload) {
+      await redisClientDownload.publish('candidate_upload_queue', JSON.stringify({ 
+        type: 'queue_updated',
+        jobId: job.id,
+        status: 'inprocess',
+        step: 'file_downloaded',
+        timestamp: new Date().toISOString()
+      }));
+    }
+    
     // 3. POST to the configured webhook endpoint (any compatible service)
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
     if (!resumeWebhookUrl) {
@@ -160,11 +179,17 @@ export async function POST(request: NextRequest) {
       }
       
       try {
+        console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
+        console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
+        
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify(jsonPayload),
+          // Add timeout and other fetch options for better error handling
+          signal: AbortSignal.timeout(120000), // 2 minute timeout
         });
+        console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
         webhookResStatus = webhookRes.status;
         
         if (webhookResStatus === 200) {
@@ -253,9 +278,37 @@ export async function POST(request: NextRequest) {
         }
       } catch (err) {
         status = 'inprocess';
-        webhookError = (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') ? (err as any).message : 'Unknown error calling webhook';
+        
+        // Enhanced error logging for fetch failures
+        console.error(`[Webhook] Fetch failed for URL: ${resumeWebhookUrl}`);
+        console.error(`[Webhook] Error details:`, err);
+        
+        let errorMessage = 'Unknown error calling webhook';
+        let errorDetails = '';
+        
+        if (err && typeof err === 'object') {
+          if ('message' in err && typeof (err as any).message === 'string') {
+            errorMessage = (err as any).message;
+          }
+          
+          // Check for specific error types
+          if (err instanceof TypeError && errorMessage.includes('fetch')) {
+            errorMessage = `Network error: ${errorMessage}`;
+            errorDetails = 'This usually indicates a DNS resolution failure, network connectivity issue, or the webhook URL is not accessible.';
+          } else if (err instanceof Error && err.name === 'AbortError') {
+            errorMessage = 'Webhook request timed out (120 seconds)';
+            errorDetails = 'The webhook request took too long to complete and was aborted.';
+          } else if (err instanceof Error) {
+            errorDetails = `Error type: ${err.name}, Stack: ${err.stack}`;
+          }
+        }
+        
+        webhookError = errorMessage;
         error = webhookError;
-        error_details = webhookError;
+        error_details = errorDetails || webhookError;
+        
+        console.error(`[Webhook] Final error: ${webhookError}`);
+        console.error(`[Webhook] Error details: ${error_details}`);
       }
       // For logging/debugging, store a summary of the payload and error
       payload = { 
@@ -280,10 +333,16 @@ export async function POST(request: NextRequest) {
       `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
       [status, error, error_details, payload, job.id]
     );
-    // Publish queue update event
-    const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClient) {
-      await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+    
+    // Publish queue update event for real-time updates
+    const redisClientFinal = await import('@/lib/redis').then(m => m.getRedisClient());
+    if (redisClientFinal) {
+      await redisClientFinal.publish('candidate_upload_queue', JSON.stringify({ 
+        type: 'queue_updated',
+        jobId: job.id,
+        status: status,
+        timestamp: new Date().toISOString()
+      }));
     }
 
     // Explicitly nullify large objects to help GC
@@ -413,11 +472,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
       
       try {
+        console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
+        console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
+        
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify(jsonPayload),
+          // Add timeout and other fetch options for better error handling
+          signal: AbortSignal.timeout(120000), // 2 minute timeout
         });
+        console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
         webhookResStatus = webhookRes.status;
         
         if (webhookResStatus === 200) {
@@ -506,9 +571,37 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         }
       } catch (err) {
         status = 'inprocess';
-        webhookError = (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') ? (err as any).message : 'Unknown error calling webhook';
+        
+        // Enhanced error logging for fetch failures
+        console.error(`[Webhook] Fetch failed for URL: ${resumeWebhookUrl}`);
+        console.error(`[Webhook] Error details:`, err);
+        
+        let errorMessage = 'Unknown error calling webhook';
+        let errorDetails = '';
+        
+        if (err && typeof err === 'object') {
+          if ('message' in err && typeof (err as any).message === 'string') {
+            errorMessage = (err as any).message;
+          }
+          
+          // Check for specific error types
+          if (err instanceof TypeError && errorMessage.includes('fetch')) {
+            errorMessage = `Network error: ${errorMessage}`;
+            errorDetails = 'This usually indicates a DNS resolution failure, network connectivity issue, or the webhook URL is not accessible.';
+          } else if (err instanceof Error && err.name === 'AbortError') {
+            errorMessage = 'Webhook request timed out (120 seconds)';
+            errorDetails = 'The webhook request took too long to complete and was aborted.';
+          } else if (err instanceof Error) {
+            errorDetails = `Error type: ${err.name}, Stack: ${err.stack}`;
+          }
+        }
+        
+        webhookError = errorMessage;
         error = webhookError;
-        error_details = webhookError;
+        error_details = errorDetails || webhookError;
+        
+        console.error(`[Webhook] Final error: ${webhookError}`);
+        console.error(`[Webhook] Error details: ${error_details}`);
       }
       // For logging/debugging, store a summary of the payload and error
       payload = { 

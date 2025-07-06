@@ -156,7 +156,44 @@ export default function SystemSettingsPage() {
     
   
             <Label htmlFor="resume-processing-webhook">Resume Processing Webhook URL (Any Service)</Label>
-            <Input id="resume-processing-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-resume" value={resumeProcessingWebhookUrl} onChange={(e) => setResumeProcessingWebhookUrl(e.target.value)} className="mt-1" disabled={isSaving}/>
+            <div className="flex gap-2">
+              <Input id="resume-processing-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-resume" value={resumeProcessingWebhookUrl} onChange={(e) => setResumeProcessingWebhookUrl(e.target.value)} className="mt-1 flex-1" disabled={isSaving}/>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={async () => {
+                  if (!resumeProcessingWebhookUrl) {
+                    toast.error('Please enter a webhook URL first');
+                    return;
+                  }
+                  try {
+                    const response = await fetch('/api/settings/webhook-test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        webhookUrl: resumeProcessingWebhookUrl,
+                        webhookToken: resumeProcessingWebhookToken
+                      })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                      toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
+                    } else {
+                      toast.error(`Webhook test failed: ${result.error}`);
+                    }
+                    console.log('Webhook test result:', result);
+                  } catch (error) {
+                    toast.error('Failed to test webhook');
+                    console.error('Webhook test error:', error);
+                  }
+                }}
+                disabled={isSaving || !resumeProcessingWebhookUrl}
+                className="mt-1"
+              >
+                Test
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
       
             <Label htmlFor="resume-processing-webhook-token">Resume Processing Webhook Authentication Token (Optional)</Label>
@@ -178,7 +215,44 @@ export default function SystemSettingsPage() {
           <Separator />
    
             <Label htmlFor="general-pdf-webhook">New Candidate PDF Webhook URL</Label>
-            <Input id="general-pdf-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-pdf" value={generalPdfWebhookUrl} onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} className="mt-1" disabled={isSaving}/>
+            <div className="flex gap-2">
+              <Input id="general-pdf-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-pdf" value={generalPdfWebhookUrl} onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} className="mt-1 flex-1" disabled={isSaving}/>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={async () => {
+                  if (!generalPdfWebhookUrl) {
+                    toast.error('Please enter a webhook URL first');
+                    return;
+                  }
+                  try {
+                    const response = await fetch('/api/settings/webhook-test', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        webhookUrl: generalPdfWebhookUrl,
+                        webhookToken: generalPdfWebhookToken
+                      })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                      toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
+                    } else {
+                      toast.error(`Webhook test failed: ${result.error}`);
+                    }
+                    console.log('Webhook test result:', result);
+                  } catch (error) {
+                    toast.error('Failed to test webhook');
+                    console.error('Webhook test error:', error);
+                  }
+                }}
+                disabled={isSaving || !generalPdfWebhookUrl}
+                className="mt-1"
+              >
+                Test
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint. You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
          
             <Label htmlFor="general-pdf-webhook-token">General PDF Webhook Authentication Token (Optional)</Label>

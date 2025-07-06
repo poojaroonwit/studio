@@ -91,6 +91,7 @@ export const CandidateImportUploadQueue: React.FC = () => {
   const [bulkRetryLoading, setBulkRetryLoading] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const { success, error } = useToast();
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
     const end = new Date();
@@ -121,6 +122,15 @@ export const CandidateImportUploadQueue: React.FC = () => {
     await fetchJobs();
   }, [fetchJobs]);
 
+  // Real-time polling as fallback (every 5 seconds)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchJobs();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [fetchJobs]);
+
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
@@ -140,31 +150,65 @@ export const CandidateImportUploadQueue: React.FC = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/upload-queue/ws`;
     
-    const ws = new window.WebSocket(wsUrl);
+    let ws: WebSocket | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000; // 2 seconds
     
-    ws.onopen = () => {
-      
-    };
-    
-    ws.onerror = (error) => {
-      console.warn('WebSocket connection error:', error);
-    };
-    
-    ws.onmessage = (event) => {
+    const connectWebSocket = () => {
       try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'queue_updated') {
-          // Re-fetch jobs when the queue is updated
-          fetchJobs();
-        }
+        ws = new window.WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+          console.log('WebSocket connected for real-time queue updates');
+          setIsRealtimeActive(true);
+          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        };
+        
+        ws.onerror = (error) => {
+          console.warn('WebSocket connection error:', error);
+          setIsRealtimeActive(false);
+        };
+        
+        ws.onclose = (event) => {
+          console.log('WebSocket disconnected:', event.code, event.reason);
+          setIsRealtimeActive(false);
+          
+          // Attempt to reconnect if not a normal closure and under max attempts
+          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            console.log(`Attempting to reconnect WebSocket (${reconnectAttempts}/${maxReconnectAttempts})...`);
+            setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
+          }
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'queue_updated') {
+              // Immediately fetch updated data when queue is updated
+              fetchJobs();
+            } else if (msg.type === 'queue') {
+              // Handle full queue data updates
+              if (msg.data && Array.isArray(msg.data)) {
+                setJobs(msg.data);
+                setTotal(msg.data.length);
+              }
+            }
+          } catch (error) {
+            console.warn('Error parsing WebSocket message:', error);
+          }
+        };
       } catch (error) {
-        console.warn('Error parsing WebSocket message:', error);
+        console.error('Failed to create WebSocket connection:', error);
       }
     };
     
+    connectWebSocket();
+    
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close(1000, 'Component unmounting');
       }
     };
   }, [fetchJobs]);
@@ -405,7 +449,15 @@ export const CandidateImportUploadQueue: React.FC = () => {
           </Button>
         </div>
       </Card>
-      <div className="mb-2 font-semibold">All Upload Jobs: {totalBulkJobs}</div>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="font-semibold">All Upload Jobs: {totalBulkJobs}</div>
+        <div className="flex items-center gap-2 text-sm">
+          <div className={`flex items-center gap-1 ${isRealtimeActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            {isRealtimeActive ? 'Live Updates Active' : 'Polling Every 5s'}
+          </div>
+        </div>
+      </div>
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
@@ -758,8 +810,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       {/* Response Mode */}
                       {selectedCombinedJob.webhook_payload.responseMode && (
                         <div>
-                          <div className="font-medium text-sm mb-2 text-blue-700">Response Mode:</div>
-                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
+                          <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Mode:</div>
+                          <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
                             <Badge variant="outline">
                               {selectedCombinedJob.webhook_payload.responseMode}
                             </Badge>
@@ -769,8 +821,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
 
                       {/* Webhook Payload */}
                       <div>
-                        <div className="font-medium text-sm mb-2 text-blue-700">Payload Sent to Webhook:</div>
-                        <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 border border-blue-200 rounded p-3 text-xs">
+                        <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Payload Sent to Webhook:</div>
+                        <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-900 dark:text-blue-100">
                           {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
                         </pre>
                       </div>
@@ -778,8 +830,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       {/* Webhook Response Status */}
                       {selectedCombinedJob.webhook_payload.webhookResStatus && (
                         <div>
-                          <div className="font-medium text-sm mb-2 text-blue-700">Response Status:</div>
-                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
+                          <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Status:</div>
+                          <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
                             <Badge variant={selectedCombinedJob.webhook_payload.webhookResStatus === 200 ? 'default' : 'destructive'}>
                               {selectedCombinedJob.webhook_payload.webhookResStatus}
                             </Badge>
@@ -790,8 +842,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       {/* Webhook Response Text (for streaming) */}
                       {selectedCombinedJob.webhook_payload.webhookResponseText && (
                         <div>
-                          <div className="font-medium text-sm mb-2 text-purple-700">Raw Response Text:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 border border-purple-200 rounded p-3 text-xs">
+                          <div className="font-medium text-sm mb-2 text-purple-600 dark:text-purple-400">Raw Response Text:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded p-3 text-xs text-purple-900 dark:text-purple-100">
                             {selectedCombinedJob.webhook_payload.webhookResponseText}
                           </pre>
                         </div>
@@ -800,8 +852,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       {/* Webhook Error */}
                       {selectedCombinedJob.webhook_payload.webhookError && (
                         <div>
-                          <div className="font-medium text-sm mb-2 text-red-700">Webhook Error:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700">
+                          <div className="font-medium text-sm mb-2 text-red-600 dark:text-red-400">Webhook Error:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-300">
                             {selectedCombinedJob.webhook_payload.webhookError}
                           </pre>
                         </div>
@@ -810,8 +862,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       {/* Webhook Response JSON */}
                       {selectedCombinedJob.webhook_payload.webhookResJson && (
                         <div>
-                          <div className="font-medium text-sm mb-2 text-green-700">Webhook Response JSON:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 border border-green-200 rounded p-3 text-xs">
+                          <div className="font-medium text-sm mb-2 text-green-600 dark:text-green-400">Webhook Response JSON:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100">
                             {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
                           </pre>
                         </div>

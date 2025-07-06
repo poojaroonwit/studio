@@ -21,15 +21,15 @@ fi
 
 # Generate Prisma client
 echo "📦 Generating Prisma client..."
-npx prisma generate
+npx prisma generate --schema=prisma/schema.prisma
 
 # Push schema to database
 echo "🗄️  Pushing schema to database..."
-npx prisma db push --accept-data-loss
+npx prisma db push --schema=prisma/schema.prisma --accept-data-loss
 
 # Seed the database
 echo "🌱 Seeding database with initial data..."
-npx prisma db seed
+npx prisma db seed --schema=prisma/schema.prisma
 
 echo "✅ Database seeding completed successfully!"
 echo ""

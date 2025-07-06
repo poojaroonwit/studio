@@ -51,12 +51,6 @@ const nextConfig = {
   async generateStaticParams() {
     return [];
   },
-  // Handle build-time environment issues
-  env: {
-    // Ensure these are available during build
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    NEXT_PHASE: process.env.NEXT_PHASE || '',
-  },
   // Webpack configuration to handle build issues
   webpack: (config, { isServer, dev }) => {
     // Handle build-time connection issues

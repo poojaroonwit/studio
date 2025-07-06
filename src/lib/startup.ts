@@ -5,7 +5,7 @@ import { execSync } from 'child_process';
 
 export interface StartupResult {
   minio: {
-    status: 'success' | 'warning' | 'error';
+    status: 'success' | 'warning' | 'error' | 'skipped';
     message: string;
     bucket?: string;
     error?: string;
@@ -16,7 +16,7 @@ export interface StartupResult {
     error?: string;
   };
   redis: {
-    status: 'success' | 'error';
+    status: 'success' | 'warning' | 'error' | 'skipped';
     message: string;
     error?: string;
   };
@@ -26,6 +26,63 @@ export interface StartupResult {
     error?: string;
   };
   overall: 'ready' | 'partial' | 'failed';
+}
+
+export async function initializeServices() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    console.log('[STARTUP] Skipping service initialization during build');
+    return {
+      minio: { status: 'skipped', message: 'Build time - not initialized' },
+      redis: { status: 'skipped', message: 'Build time - not initialized' }
+    };
+  }
+
+  console.log('[STARTUP] Initializing services...');
+  
+  const results = {
+    minio: { status: 'unknown', message: 'Not initialized' },
+    redis: { status: 'unknown', message: 'Not initialized' }
+  };
+
+  // Initialize MinIO
+  try {
+    const minioResult = await startupMinIOInitialization();
+    results.minio = {
+      status: minioResult.status,
+      message: minioResult.message
+    };
+  } catch (error) {
+    results.minio = {
+      status: 'error',
+      message: `Failed to initialize MinIO: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+
+  // Initialize Redis
+  try {
+    const redisClient = await getRedisClient();
+    if (redisClient) {
+      await redisClient.ping();
+      results.redis = {
+        status: 'success',
+        message: 'Redis initialized successfully'
+      };
+    } else {
+      results.redis = {
+        status: 'warning',
+        message: 'Redis client not available'
+      };
+    }
+  } catch (error) {
+    results.redis = {
+      status: 'error',
+      message: `Failed to initialize Redis: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+
+  console.log('[STARTUP] Service initialization completed:', results);
+  return results;
 }
 
 export async function initializeApplication(): Promise<StartupResult> {
@@ -181,8 +238,10 @@ export async function seedDatabase(): Promise<boolean> {
   }
 }
 
-// Auto-initialization on module load (optional)
-// initializeApplication().catch(console.error); 
+// Auto-initialization on module load (only if not during build)
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  initializeServices().catch(console.error);
+}
 
 export function validateEnvironmentVariables() {
   const requiredVars = [

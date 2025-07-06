@@ -1,67 +1,109 @@
 // src/lib/redis.ts
-import { createClient, type RedisClientType } from 'redis';
+import { createClient } from 'redis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://redis:6379'; // Default to service name from docker-compose
+let redisClient: ReturnType<typeof createClient> | null = null;
+let isConnecting = false;
+let connectionPromise: Promise<void> | null = null;
 
-let redisClient: RedisClientType | null = null;
-let connectionPromise: Promise<RedisClientType | null> | null = null;
-
-function initializeRedisClient(): Promise<RedisClientType | null> {
-  // If we're already connected or connecting, return the existing promise/client
-  if (connectionPromise) {
-    return connectionPromise;
-  }
-
+// Skip Redis initialization during build time
+if (process.env.NEXT_PHASE === 'phase-production-build') {
+  console.log('[REDIS] Skipping Redis initialization during build');
+} else {
   console.log('Attempting to connect to Redis...');
-  const client = createClient({
-    url: redisUrl,
-    socket: {
-      connectTimeout: 5000, // 5 seconds
-      reconnectStrategy: (retries) => Math.min(retries * 500, 3000), // Exponential backoff
-    },
-  });
-
-  client.on('error', (err) => {
-    console.error('Redis Client Error:', err);
-    // When a persistent error occurs, reset the connection promise to allow for a fresh reconnect attempt
-    if (redisClient?.isOpen === false) {
-      redisClient = null;
-      connectionPromise = null;
-    }
-  });
-
-  client.on('connect', () => console.log('Connecting to Redis server...'));
-  client.on('ready', () => console.log('Redis client is ready.'));
-  client.on('reconnecting', () => console.log('Reconnecting to Redis server...'));
-  client.on('end', () => {
-    console.log('Redis connection closed.');
-    redisClient = null;
-    connectionPromise = null;
-  });
-  
-  connectionPromise = client.connect()
-    .then(() => {
-      console.log('Redis client connection established.');
-      redisClient = client as RedisClientType; // Cast after successful connect
-      return redisClient;
-    })
-    .catch((err) => {
-      console.error('Failed to connect to Redis during initialization:', err);
-      connectionPromise = null; // Reset promise on failure to allow retry
-      return null; 
-    });
-
-  return connectionPromise;
 }
 
-// getRedisClient is the single entry point to get a connected client.
-// It will lazily initialize the connection on the first call.
-export async function getRedisClient(): Promise<RedisClientType | null> {
+export async function getRedisClient() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return null;
+  }
+
   if (redisClient && redisClient.isOpen) {
     return redisClient;
   }
-  return initializeRedisClient();
+
+  if (isConnecting && connectionPromise) {
+    await connectionPromise;
+    return redisClient;
+  }
+
+  if (!redisClient) {
+    redisClient = createClient({
+      url: process.env.REDIS_URL || 'redis://redis:6379',
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 10) {
+            console.error('Redis connection failed after 10 retries');
+            return false;
+          }
+          return Math.min(retries * 100, 3000);
+        },
+        connectTimeout: 10000,
+        commandTimeout: 5000,
+      },
+    });
+
+    redisClient.on('error', (err) => {
+      console.error('Redis Client Error:', err);
+    });
+
+    redisClient.on('connect', () => {
+      console.log('Redis Client Connected');
+    });
+
+    redisClient.on('ready', () => {
+      console.log('Redis Client Ready');
+    });
+
+    redisClient.on('end', () => {
+      console.log('Redis Client Disconnected');
+    });
+
+    redisClient.on('reconnecting', () => {
+      console.log('Reconnecting to Redis server...');
+    });
+  }
+
+  if (!redisClient.isOpen) {
+    isConnecting = true;
+    connectionPromise = redisClient.connect().catch((error) => {
+      console.error('Failed to connect to Redis:', error);
+      isConnecting = false;
+      connectionPromise = null;
+      throw error;
+    });
+
+    try {
+      await connectionPromise;
+      isConnecting = false;
+      connectionPromise = null;
+    } catch (error) {
+      isConnecting = false;
+      connectionPromise = null;
+      throw error;
+    }
+  }
+
+  return redisClient;
 }
+
+export async function closeRedisConnection() {
+  if (redisClient && redisClient.isOpen) {
+    await redisClient.quit();
+    redisClient = null;
+  }
+}
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await closeRedisConnection();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await closeRedisConnection();
+  process.exit(0);
+});
 
 // Optional: Export a ready check or a function to ensure connection before critical ops
 export async function isRedisReady(): Promise<boolean> {

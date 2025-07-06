@@ -1,43 +1,71 @@
-# FROM 24ep/studio:uatmake sure login page can be setting
-FROM node:18-alpine
+# Use the official Node.js runtime as the base image
+FROM node:18-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY package*.json ./
-
-# Install dependencies
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
 RUN npm ci --only=production
 
-# Copy source code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Set build-time environment variables
+ENV NODE_ENV=production
+ENV NEXT_PHASE=phase-production-build
+ENV MINIO_ENDPOINT=localhost
+ENV MINIO_PORT=9000
+ENV MINIO_BUCKET=uploads
+ENV REDIS_URL=redis://localhost:6379
+ENV DATABASE_URL=postgresql://user:password@localhost:5432/db
 
-# Build the application
+# Build the application with increased timeout
 RUN npm run build
 
-# Compile process-upload-queue.ts to process-upload-queue.mjs
-RUN npx tsc process-upload-queue.ts --module NodeNext --target es2020 --esModuleInterop --moduleResolution nodenext --outDir . && \
-    mv process-upload-queue.js process-upload-queue.mjs
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-# Make entrypoint executable
+ENV NODE_ENV=production
+# Uncomment the following line in case you want to disable telemetry during runtime.
+# ENV NEXT_TELEMETRY_DISABLED 1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy the public folder
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy process-upload-queue.mjs
+COPY --from=builder /app/process-upload-queue.mjs ./
+
+# Copy entrypoint script
+COPY --from=builder /app/entrypoint.sh ./
 RUN chmod +x ./entrypoint.sh
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-# Change ownership of the app directory
-RUN chown -R nextjs:nodejs /app
 USER nextjs
 
-# Expose port 9846
-EXPOSE 9846
+EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9846/api/health || exit 1
+ENV PORT 3000
+# set hostname to localhost
+ENV HOSTNAME "0.0.0.0"
 
+# Use entrypoint script
 CMD ["./entrypoint.sh"]

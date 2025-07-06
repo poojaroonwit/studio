@@ -1,31 +1,33 @@
 #!/bin/sh
+
+# Exit on any error
 set -e
 
-echo "🔧 Fixing database schema mismatch..."
+echo "Starting application..."
 
-# Check if DATABASE_URL is set
-if [ -z "$DATABASE_URL" ]; then
-    echo "❌ ERROR: DATABASE_URL environment variable is not set"
-    exit 1
+# Set default environment variables if not provided
+export NODE_ENV=${NODE_ENV:-production}
+export PORT=${PORT:-3000}
+
+# Wait for database to be ready (if DATABASE_URL is set)
+if [ -n "$DATABASE_URL" ]; then
+    echo "Waiting for database to be ready..."
+    # You can add database wait logic here if needed
+    # For now, we'll just proceed
 fi
 
-echo "📊 Current DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
+# Generate Prisma client if needed
+if [ -f "prisma/schema.prisma" ]; then
+    echo "Generating Prisma client..."
+    npx prisma generate
+fi
 
-# Generate Prisma client
-echo "🔧 Generating Prisma client..."
-npx prisma generate
+# Run database migrations if needed
+if [ -n "$DATABASE_URL" ]; then
+    echo "Running database migrations..."
+    npx prisma migrate deploy
+fi
 
-# Force reset the database schema
-echo "🔄 Resetting database schema..."
-npx prisma db push --force-reset --accept-data-loss
-
-# Seed the database
-echo "🌱 Seeding database..."
-npx prisma db seed
-
-echo "✅ Database schema fixed and seeded successfully!"
-echo "🚀 Starting application..." 
-
-# Start the main application
-echo "🌐 Starting main application..."
-npm run start 
+# Start the application
+echo "Starting Next.js application on port $PORT..."
+exec node server.js 

@@ -3,13 +3,15 @@ import { Client as Minio } from 'minio';
 export const MINIO_BUCKET = process.env.MINIO_BUCKET_NAME || process.env.MINIO_BUCKET || 'uploads';
 export const MINIO_PUBLIC_BASE_URL = process.env.MINIO_PUBLIC_BASE_URL || 'http://localhost:9000';
 
-// Log MinIO configuration for debugging
-console.log('[MINIO CONFIG]', {
-  endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-  port: process.env.MINIO_PORT || '9000',
-  bucket: MINIO_BUCKET,
-  useSSL: process.env.MINIO_USE_SSL === 'true'
-});
+// Only log MinIO configuration if not during build
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  console.log('[MINIO CONFIG]', {
+    endPoint: process.env.MINIO_ENDPOINT || 'localhost',
+    port: process.env.MINIO_PORT || '9000',
+    bucket: MINIO_BUCKET,
+    useSSL: process.env.MINIO_USE_SSL === 'true'
+  });
+}
 
 export const minioClient = new Minio({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
@@ -21,6 +23,16 @@ export const minioClient = new Minio({
 
 // Function to ensure bucket exists with enhanced configuration
 export async function ensureBucketExists() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return {
+      status: 'success',
+      bucket: MINIO_BUCKET,
+      message: 'Bucket check skipped during build',
+      created: false
+    };
+  }
+
   try {
     console.log(`[MINIO] Checking if bucket '${MINIO_BUCKET}' exists...`);
     const exists = await minioClient.bucketExists(MINIO_BUCKET);
@@ -81,6 +93,16 @@ export async function ensureBucketExists() {
 
 // Function to initialize MinIO with comprehensive setup
 export async function initializeMinIO() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return {
+      status: 'success',
+      bucket: MINIO_BUCKET,
+      message: 'MinIO initialization skipped during build',
+      created: false
+    };
+  }
+
   try {
     console.log('[MINIO] Initializing MinIO client...');
     await minioClient.listBuckets();
@@ -99,6 +121,15 @@ export async function initializeMinIO() {
 
 // Function to get bucket info
 export async function getBucketInfo() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return {
+      exists: true,
+      bucket: MINIO_BUCKET,
+      message: 'Bucket info skipped during build'
+    };
+  }
+
   try {
     const exists = await minioClient.bucketExists(MINIO_BUCKET);
     if (!exists) {
@@ -126,6 +157,15 @@ export async function getBucketInfo() {
 
 // Startup initialization function - call this when the app starts
 export async function startupMinIOInitialization() {
+  // Skip during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return {
+      status: 'success',
+      message: 'MinIO initialization skipped during build',
+      bucket: MINIO_BUCKET
+    };
+  }
+
   try {
     console.log('[MINIO] Starting MinIO initialization...');
     

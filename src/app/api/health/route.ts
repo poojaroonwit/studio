@@ -3,6 +3,8 @@ import { getPool } from '@/lib/db';
 import { startupMinIOInitialization } from '@/lib/minio';
 import { getRedisClient } from '@/lib/redis';
 
+export const dynamic = "force-dynamic";
+
 /**
  * @openapi
  * /api/health:
@@ -58,6 +60,20 @@ import { getRedisClient } from '@/lib/redis';
  *         description: System unhealthy
  */
 export async function GET() {
+  // Skip health checks during build time
+  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
+    return NextResponse.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      message: 'Health check skipped during build',
+      components: {
+        database: { status: 'healthy', message: 'Build time - not checked', userCount: 0 },
+        minio: { status: 'healthy', message: 'Build time - not checked', bucket: 'uploads' },
+        redis: { status: 'healthy', message: 'Build time - not checked' }
+      }
+    });
+  }
+
   const healthCheck = {
     status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
     timestamp: new Date().toISOString(),

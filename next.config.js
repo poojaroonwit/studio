@@ -24,6 +24,61 @@ const nextConfig = {
     ];
   },
   // Add any custom Next.js config options here
+  output: 'standalone',
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+  },
+  images: {
+    domains: ['localhost', '127.0.0.1'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '9000',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+        port: '9000',
+        pathname: '/uploads/**',
+      },
+    ],
+  },
+  // Increase build timeout and handle static generation issues
+  staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
+  // Disable static generation for problematic routes during build
+  async generateStaticParams() {
+    return [];
+  },
+  // Handle build-time environment issues
+  env: {
+    // Ensure these are available during build
+    NODE_ENV: process.env.NODE_ENV || 'development',
+    NEXT_PHASE: process.env.NEXT_PHASE || '',
+  },
+  // Webpack configuration to handle build issues
+  webpack: (config, { isServer, dev }) => {
+    // Handle build-time connection issues
+    if (!dev && isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'minio': 'commonjs minio',
+        'redis': 'commonjs redis',
+      });
+    }
+    
+    return config;
+  },
+  // Disable static optimization for API routes that might cause issues
+  async rewrites() {
+    return [
+      {
+        source: '/api/health',
+        destination: '/api/health',
+      },
+    ];
+  },
 };
 
 export default nextConfig; 

@@ -153,7 +153,9 @@ AZURE_AD_TENANT_ID=your-tenant-id
 
 # Webhook Integration
 RESUME_PROCESSING_WEBHOOK_URL=https://your-webhook-endpoint
+RESUME_PROCESSING_WEBHOOK_TOKEN=your_bearer_token_here
 GENERAL_PDF_WEBHOOK_URL=https://your-pdf-processor
+GENERAL_PDF_WEBHOOK_TOKEN=your_bearer_token_here
 
 # AI Integration
 GOOGLE_API_KEY=your-google-ai-key

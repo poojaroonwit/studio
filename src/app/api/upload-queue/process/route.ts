@@ -138,10 +138,23 @@ export async function POST(request: NextRequest) {
       let webhookResStatus = null;
       let webhookResJson = null;
       let candidateInfoPresent = false;
+      
+      // Get webhook authentication token
+      let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
+      if (!webhookToken) {
+        webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
+      }
+      
+      // Prepare headers
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (webhookToken) {
+        headers['Authorization'] = `Bearer ${webhookToken}`;
+      }
+      
       try {
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(jsonPayload),
         });
         webhookResStatus = webhookRes.status;
@@ -309,10 +322,23 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       let webhookResStatus = null;
       let webhookResJson = null;
       let candidateInfoPresent = false;
+      
+      // Get webhook authentication token
+      let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
+      if (!webhookToken) {
+        webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
+      }
+      
+      // Prepare headers
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (webhookToken) {
+        headers['Authorization'] = `Bearer ${webhookToken}`;
+      }
+      
       try {
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(jsonPayload),
         });
         webhookResStatus = webhookRes.status;

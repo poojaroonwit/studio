@@ -203,6 +203,9 @@ networks:
 - `AZURE_AD_CLIENT_ID`: Azure AD integration
 - `GOOGLE_API_KEY`: Google services integration
 - `RESUME_PROCESSING_WEBHOOK_URL`: External webhook processing
+- `RESUME_PROCESSING_WEBHOOK_TOKEN`: Webhook authentication token
+- `GENERAL_PDF_WEBHOOK_URL`: PDF processing webhook
+- `GENERAL_PDF_WEBHOOK_TOKEN`: PDF webhook authentication token
 
 ## Management Commands
 

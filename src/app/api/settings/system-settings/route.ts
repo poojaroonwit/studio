@@ -41,9 +41,10 @@ import { Buffer } from 'buffer';
 const systemSettingKeyEnum = z.enum([
     'appName', 'appLogoDataUrl', 'appThemePreference',
     'primaryGradientStart', 'primaryGradientEnd',
-    'smtpHost', 'smtpPort', 'smtpUser', 'smtpSecure', 'smtpFromEmail',
-    'resumeProcessingWebhookUrl',
-    'generalPdfWebhookUrl', 'geminiApiKey',
+    'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'smtpSecure', 'smtpFromEmail',
+    'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
+    'generalPdfWebhookUrl', 'generalPdfWebhookToken',
+    'geminiApiKey',
     'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
     'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
     'loginPageLayoutType',

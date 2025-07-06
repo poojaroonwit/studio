@@ -31,7 +31,9 @@ export default function SystemSettingsPage() {
   const [smtpSecure, setSmtpSecure] = useState(true);
   const [smtpFromEmail, setSmtpFromEmail] = useState('');
   const [resumeProcessingWebhookUrl, setResumeProcessingWebhookUrl] = useState('');
+  const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
   const [generalPdfWebhookUrl, setGeneralPdfWebhookUrl] = useState('');
+  const [generalPdfWebhookToken, setGeneralPdfWebhookToken] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
 
   const fetchSystemSettings = useCallback(async () => {
@@ -51,7 +53,9 @@ export default function SystemSettingsPage() {
       setSmtpSecure(settings.smtpSecure === 'true');
       setSmtpFromEmail(settings.smtpFromEmail || '');
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
+      setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setGeneralPdfWebhookUrl(settings.generalPdfWebhookUrl || '');
+      setGeneralPdfWebhookToken(settings.generalPdfWebhookToken || '');
       setGeminiApiKey(settings.geminiApiKey || '');
     } catch (error) {
       setFetchError((error as Error).message);
@@ -70,21 +74,25 @@ export default function SystemSettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    const settingsToUpdate = [
-      { key: 'maxConcurrentProcessors', value: String(maxConcurrentProcessors) },
+    const settingsToSave = [
+      { key: 'maxConcurrentProcessors', value: maxConcurrentProcessors.toString() },
       { key: 'smtpHost', value: smtpHost },
       { key: 'smtpPort', value: smtpPort },
       { key: 'smtpUser', value: smtpUser },
-      { key: 'smtpSecure', value: String(smtpSecure) },
+      { key: 'smtpPassword', value: smtpPassword },
+      { key: 'smtpSecure', value: smtpSecure.toString() },
       { key: 'smtpFromEmail', value: smtpFromEmail },
+      { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl },
+      { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
       { key: 'generalPdfWebhookUrl', value: generalPdfWebhookUrl },
+      { key: 'generalPdfWebhookToken', value: generalPdfWebhookToken },
       { key: 'geminiApiKey', value: geminiApiKey },
     ];
     try {
       const response = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settingsToUpdate),
+        body: JSON.stringify(settingsToSave),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to save settings' }));
@@ -145,11 +153,19 @@ export default function SystemSettingsPage() {
             <Input id="resume-processing-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-resume" value={resumeProcessingWebhookUrl} onChange={(e) => setResumeProcessingWebhookUrl(e.target.value)} className="mt-1" disabled={isSaving}/>
             <p className="text-xs text-muted-foreground mt-1">This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
       
+            <Label htmlFor="resume-processing-webhook-token">Resume Processing Webhook Authentication Token (Optional)</Label>
+            <Input id="resume-processing-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={resumeProcessingWebhookToken} onChange={(e) => setResumeProcessingWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
+            <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
+      
           <Separator />
    
             <Label htmlFor="general-pdf-webhook">New Candidate PDF Webhook URL</Label>
             <Input id="general-pdf-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-pdf" value={generalPdfWebhookUrl} onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} className="mt-1" disabled={isSaving}/>
             <p className="text-xs text-muted-foreground mt-1">Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint. You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
+         
+            <Label htmlFor="general-pdf-webhook-token">General PDF Webhook Authentication Token (Optional)</Label>
+            <Input id="general-pdf-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={generalPdfWebhookToken} onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
+            <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
          
           <Separator />
      

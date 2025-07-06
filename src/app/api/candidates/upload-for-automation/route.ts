@@ -123,9 +123,21 @@ export async function POST(request: NextRequest) {
     // For now, set cv_url to null or the correct value if available
     // payload.inputs.cv_url = ...
 
+    // Get webhook authentication token
+    let webhookToken = await getSystemSetting('generalPdfWebhookToken');
+    if (!webhookToken) {
+      webhookToken = process.env.GENERAL_PDF_WEBHOOK_TOKEN || '';
+    }
+    
+    // Prepare headers
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (webhookToken) {
+      headers['Authorization'] = `Bearer ${webhookToken}`;
+    }
+
     const webhookResponse = await fetch(generalPdfWebhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(payload),
     });
 

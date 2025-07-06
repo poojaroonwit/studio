@@ -130,14 +130,22 @@ export async function POST(request: NextRequest) {
         filename: job.filename,
         mimetype: job.mimetype,
       };
+      
+      // Get response mode from system settings, default to 'blocking'
+      let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');
+      if (!responseMode) {
+        responseMode = 'blocking'; // Default to blocking mode
+      }
+      
       const jsonPayload = {
         inputs,
-        response_mode: 'blocking',
+        response_mode: responseMode, // Use configured response mode (blocking/streaming)
         user: 'abc-123',
       };
       let webhookResStatus = null;
       let webhookResJson = null;
       let candidateInfoPresent = false;
+      let webhookResponseText = null;
       
       // Get webhook authentication token
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
@@ -158,34 +166,88 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify(jsonPayload),
         });
         webhookResStatus = webhookRes.status;
+        
         if (webhookResStatus === 200) {
-          try {
-            webhookResJson = await webhookRes.json();
-            candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
-            // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
-            if (
-              (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
-              (webhookResJson?.status === 'failed' && webhookResJson?.error)
-            ) {
-              status = 'fail';
-              webhookError = webhookResJson?.data?.error || webhookResJson?.error;
-              error = webhookError;
-              error_details = JSON.stringify(webhookResJson);
+          // Handle different response modes
+          const contentType = webhookRes.headers.get('content-type') || '';
+          
+          if (contentType.includes('application/json')) {
+            // JSON response (blocking mode)
+            try {
+              webhookResJson = await webhookRes.json();
+              candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+              
+              // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
+              if (
+                (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                (webhookResJson?.status === 'failed' && webhookResJson?.error)
+              ) {
+                status = 'fail';
+                webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                error = webhookError;
+                error_details = JSON.stringify(webhookResJson);
+              }
+            } catch (jsonErr) {
+              candidateInfoPresent = false;
+              console.warn('Failed to parse JSON response:', jsonErr);
             }
-          } catch (jsonErr) {
-            candidateInfoPresent = false;
+          } else if (contentType.includes('text/plain') || contentType.includes('text/event-stream')) {
+            // Text/streaming response
+            try {
+              webhookResponseText = await webhookRes.text();
+              
+              // Try to parse as JSON if it looks like JSON
+              if (webhookResponseText.trim().startsWith('{') || webhookResponseText.trim().startsWith('[')) {
+                try {
+                  webhookResJson = JSON.parse(webhookResponseText);
+                  candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+                  
+                  // Check for error in streaming response
+                  if (
+                    (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                    (webhookResJson?.status === 'failed' && webhookResJson?.error)
+                  ) {
+                    status = 'fail';
+                    webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                    error = webhookError;
+                    error_details = webhookResponseText;
+                  }
+                } catch (parseErr) {
+                  // Not JSON, treat as plain text
+                  console.warn('Streaming response is not JSON:', parseErr);
+                  error_details = webhookResponseText;
+                }
+              } else {
+                // Plain text response
+                error_details = webhookResponseText;
+              }
+            } catch (textErr) {
+              console.warn('Failed to read text response:', textErr);
+            }
+          } else {
+            // Unknown content type, try to get text
+            try {
+              webhookResponseText = await webhookRes.text();
+              error_details = webhookResponseText;
+            } catch (textErr) {
+              console.warn('Failed to read response:', textErr);
+            }
           }
         }
+        
+        // Determine final status
         if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
           status = 'success';
         } else if (status !== 'fail') {
           status = 'fail';
           webhookError = `Webhook responded with status ${webhookRes.status}`;
-          // Try to get text if not already set
-          try {
-            error_details = await webhookRes.text();
-          } catch {
-            error_details = webhookError;
+          // Use already captured error_details or try to get text
+          if (!error_details) {
+            try {
+              error_details = await webhookRes.text();
+            } catch {
+              error_details = webhookError;
+            }
           }
           error = webhookError;
         }
@@ -196,7 +258,14 @@ export async function POST(request: NextRequest) {
         error_details = webhookError;
       }
       // For logging/debugging, store a summary of the payload and error
-      payload = { ...jsonPayload, webhookError, webhookResStatus, webhookResJson };
+      payload = { 
+        ...jsonPayload, 
+        webhookError, 
+        webhookResStatus, 
+        webhookResJson,
+        webhookResponseText,
+        responseMode: jsonPayload.response_mode 
+      };
     } else {
       // Webhook not set, set status to error
       status = 'error';
@@ -314,14 +383,22 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         filename: job.filename,
         mimetype: job.mimetype,
       };
+      
+      // Get response mode from system settings, default to 'blocking'
+      let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');
+      if (!responseMode) {
+        responseMode = 'blocking'; // Default to blocking mode
+      }
+      
       const jsonPayload = {
         inputs,
-        response_mode: 'blocking',
+        response_mode: responseMode, // Use configured response mode (blocking/streaming)
         user: 'abc-123',
       };
       let webhookResStatus = null;
       let webhookResJson = null;
       let candidateInfoPresent = false;
+      let webhookResponseText = null;
       
       // Get webhook authentication token
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
@@ -342,34 +419,88 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           body: JSON.stringify(jsonPayload),
         });
         webhookResStatus = webhookRes.status;
+        
         if (webhookResStatus === 200) {
-          try {
-            webhookResJson = await webhookRes.json();
-            candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
-            // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
-            if (
-              (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
-              (webhookResJson?.status === 'failed' && webhookResJson?.error)
-            ) {
-              status = 'fail';
-              webhookError = webhookResJson?.data?.error || webhookResJson?.error;
-              error = webhookError;
-              error_details = JSON.stringify(webhookResJson);
+          // Handle different response modes
+          const contentType = webhookRes.headers.get('content-type') || '';
+          
+          if (contentType.includes('application/json')) {
+            // JSON response (blocking mode)
+            try {
+              webhookResJson = await webhookRes.json();
+              candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+              
+              // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
+              if (
+                (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                (webhookResJson?.status === 'failed' && webhookResJson?.error)
+              ) {
+                status = 'fail';
+                webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                error = webhookError;
+                error_details = JSON.stringify(webhookResJson);
+              }
+            } catch (jsonErr) {
+              candidateInfoPresent = false;
+              console.warn('Failed to parse JSON response:', jsonErr);
             }
-          } catch (jsonErr) {
-            candidateInfoPresent = false;
+          } else if (contentType.includes('text/plain') || contentType.includes('text/event-stream')) {
+            // Text/streaming response
+            try {
+              webhookResponseText = await webhookRes.text();
+              
+              // Try to parse as JSON if it looks like JSON
+              if (webhookResponseText.trim().startsWith('{') || webhookResponseText.trim().startsWith('[')) {
+                try {
+                  webhookResJson = JSON.parse(webhookResponseText);
+                  candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
+                  
+                  // Check for error in streaming response
+                  if (
+                    (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                    (webhookResJson?.status === 'failed' && webhookResJson?.error)
+                  ) {
+                    status = 'fail';
+                    webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                    error = webhookError;
+                    error_details = webhookResponseText;
+                  }
+                } catch (parseErr) {
+                  // Not JSON, treat as plain text
+                  console.warn('Streaming response is not JSON:', parseErr);
+                  error_details = webhookResponseText;
+                }
+              } else {
+                // Plain text response
+                error_details = webhookResponseText;
+              }
+            } catch (textErr) {
+              console.warn('Failed to read text response:', textErr);
+            }
+          } else {
+            // Unknown content type, try to get text
+            try {
+              webhookResponseText = await webhookRes.text();
+              error_details = webhookResponseText;
+            } catch (textErr) {
+              console.warn('Failed to read response:', textErr);
+            }
           }
         }
+        
+        // Determine final status
         if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
           status = 'success';
         } else if (status !== 'fail') {
           status = 'fail';
           webhookError = `Webhook responded with status ${webhookRes.status}`;
-          // Try to get text if not already set
-          try {
-            error_details = await webhookRes.text();
-          } catch {
-            error_details = webhookError;
+          // Use already captured error_details or try to get text
+          if (!error_details) {
+            try {
+              error_details = await webhookRes.text();
+            } catch {
+              error_details = webhookError;
+            }
           }
           error = webhookError;
         }
@@ -380,7 +511,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         error_details = webhookError;
       }
       // For logging/debugging, store a summary of the payload and error
-      payload = { ...jsonPayload, webhookError, webhookResStatus, webhookResJson };
+      payload = { 
+        ...jsonPayload, 
+        webhookError, 
+        webhookResStatus, 
+        webhookResJson,
+        webhookResponseText,
+        responseMode: jsonPayload.response_mode 
+      };
     } else {
       // Webhook not set, set status to error
       status = 'error';

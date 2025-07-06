@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -673,76 +673,159 @@ export const CandidateImportUploadQueue: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!selectedCombinedJob} onOpenChange={open => !open && setShowCombinedDialogId(null)}>
-        <DialogContent className="max-w-2xl w-full">
+        <DialogContent className="max-w-6xl w-full">
           <DialogHeader>
             <DialogTitle>Job Details & Webhook Log</DialogTitle>
           </DialogHeader>
           {selectedCombinedJob ? (
-            <div className="space-y-6">
-              {/* Job Details Section */}
-              <div>
-                <h3 className="font-semibold mb-2">Job Info</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">File:</span> {selectedCombinedJob.file_name}</div>
-                  <div><span className="font-medium">Size:</span> {formatBytes(selectedCombinedJob.file_size)}</div>
-                  <div><span className="font-medium">Status:</span> {selectedCombinedJob.status}</div>
-                  <div><span className="font-medium">Source:</span> {selectedCombinedJob.source}</div>
-                  <div><span className="font-medium">Uploaded:</span> {selectedCombinedJob.upload_date ? format(new Date(selectedCombinedJob.upload_date), 'yyyy-MM-dd HH:mm') : '-'}</div>
-                  <div><span className="font-medium">Completed:</span> {selectedCombinedJob.completed_date ? format(new Date(selectedCombinedJob.completed_date), 'yyyy-MM-dd HH:mm') : '-'}</div>
-                  <div><span className="font-medium">Duration:</span> {selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</div>
-                  <div><span className="font-medium">ID:</span> {selectedCombinedJob.id}</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column - Job Details */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">Job Information</h3>
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">File Name:</span>
+                      <span className="font-mono text-xs break-all">{selectedCombinedJob.file_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">File Size:</span>
+                      <span>{formatBytes(selectedCombinedJob.file_size)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Status:</span>
+                      <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : selectedCombinedJob.status === 'fail' ? 'destructive' : 'secondary'}>
+                        {selectedCombinedJob.status}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Source:</span>
+                      <span>{selectedCombinedJob.source || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Upload Date:</span>
+                      <span>{selectedCombinedJob.upload_date ? format(new Date(selectedCombinedJob.upload_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Completed Date:</span>
+                      <span>{selectedCombinedJob.completed_date ? format(new Date(selectedCombinedJob.completed_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Duration:</span>
+                      <span>{selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-muted-foreground">Job ID:</span>
+                      <span className="font-mono text-xs">{selectedCombinedJob.id}</span>
+                    </div>
+                  </div>
+                  {selectedCombinedJob.file_path && (
+                    <div className="mt-4">
+                      <Button asChild variant="outline" size="sm">
+                        <a href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`} target="_blank" rel="noopener noreferrer">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download File
+                        </a>
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {selectedCombinedJob.file_path && (
-                  <div className="mt-2">
-                    <a href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`} target="_blank" rel="noopener noreferrer" className="text-primary underline">Download File</a>
+                
+                {/* Error Details */}
+                {selectedCombinedJob.error_details && (
+                  <div>
+                    <h3 className="font-semibold mb-2 text-destructive flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Error Details
+                    </h3>
+                    <pre className="bg-destructive/10 border border-destructive/20 rounded p-3 text-xs text-destructive max-h-40 overflow-auto whitespace-pre-wrap">
+                      {selectedCombinedJob.error_details}
+                    </pre>
                   </div>
                 )}
               </div>
-              {/* Error Log Section */}
-              {selectedCombinedJob.error_details && (
+
+              {/* Right Column - Webhook Log */}
+              <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2 text-destructive">Error Log</h3>
-                  <pre className="bg-destructive/10 border border-destructive rounded p-2 text-xs text-destructive max-h-40 overflow-auto whitespace-pre-wrap">{selectedCombinedJob.error_details}</pre>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center">
+                    <ExternalLink className="h-5 w-5 mr-2 text-blue-600" />
+                    Webhook Log
+                  </h3>
+                  
+                  {selectedCombinedJob.webhook_payload ? (
+                    <div className="space-y-4">
+                      {/* Response Mode */}
+                      {selectedCombinedJob.webhook_payload.responseMode && (
+                        <div>
+                          <div className="font-medium text-sm mb-2 text-blue-700">Response Mode:</div>
+                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
+                            <Badge variant="outline">
+                              {selectedCombinedJob.webhook_payload.responseMode}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Webhook Payload */}
+                      <div>
+                        <div className="font-medium text-sm mb-2 text-blue-700">Payload Sent to Webhook:</div>
+                        <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 border border-blue-200 rounded p-3 text-xs">
+                          {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
+                        </pre>
+                      </div>
+
+                      {/* Webhook Response Status */}
+                      {selectedCombinedJob.webhook_payload.webhookResStatus && (
+                        <div>
+                          <div className="font-medium text-sm mb-2 text-blue-700">Response Status:</div>
+                          <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
+                            <Badge variant={selectedCombinedJob.webhook_payload.webhookResStatus === 200 ? 'default' : 'destructive'}>
+                              {selectedCombinedJob.webhook_payload.webhookResStatus}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Webhook Response Text (for streaming) */}
+                      {selectedCombinedJob.webhook_payload.webhookResponseText && (
+                        <div>
+                          <div className="font-medium text-sm mb-2 text-purple-700">Raw Response Text:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 border border-purple-200 rounded p-3 text-xs">
+                            {selectedCombinedJob.webhook_payload.webhookResponseText}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Webhook Error */}
+                      {selectedCombinedJob.webhook_payload.webhookError && (
+                        <div>
+                          <div className="font-medium text-sm mb-2 text-red-700">Webhook Error:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700">
+                            {selectedCombinedJob.webhook_payload.webhookError}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Webhook Response JSON */}
+                      {selectedCombinedJob.webhook_payload.webhookResJson && (
+                        <div>
+                          <div className="font-medium text-sm mb-2 text-green-700">Webhook Response JSON:</div>
+                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 border border-green-200 rounded p-3 text-xs">
+                            {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ExternalLink className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No webhook data available</p>
+                      <p className="text-xs">This job may not have been processed by a webhook</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              {/* Webhook Log Section */}
-              {(selectedCombinedJob.webhook_payload) && (
-                <div>
-                  <h3 className="font-semibold mb-2 text-blue-800 flex items-center"><ExternalLink className="h-5 w-5 mr-2 text-blue-700" />Webhook Log</h3>
-                  {selectedCombinedJob.webhook_payload && (
-                    <div className="mb-2">
-                      <div className="font-medium text-xs mb-1">Payload Sent to Webhook:</div>
-                      <pre className="whitespace-pre-wrap break-all max-h-40 overflow-auto bg-background p-2 rounded border text-xs">
-                        {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                  {selectedCombinedJob.error_details && (
-                    <div className="mt-2">
-                      <div className="font-medium text-xs mb-1">Webhook Response/Error:</div>
-                      <pre className="whitespace-pre-wrap break-all max-h-40 overflow-auto bg-background p-2 rounded border text-xs">
-                        {selectedCombinedJob.error_details}
-                      </pre>
-                    </div>
-                  )}
-                  {selectedCombinedJob.webhook_payload.webhookError && (
-                    <div className="mt-2">
-                      <div className="font-medium text-xs mb-1">Webhook Error:</div>
-                      <pre className="whitespace-pre-wrap break-all max-h-40 overflow-auto bg-background p-2 rounded border text-xs">
-                        {selectedCombinedJob.webhook_payload.webhookError}
-                      </pre>
-                    </div>
-                  )}
-                  {selectedCombinedJob.webhook_payload.webhookResStatus && (
-                    <div className="mt-2">
-                      <div className="font-medium text-xs mb-1">Webhook Response Status:</div>
-                      <pre className="whitespace-pre-wrap break-all max-h-40 overflow-auto bg-background p-2 rounded border text-xs">
-                        {selectedCombinedJob.webhook_payload.webhookResStatus}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
+              </div>
             </div>
           ) : <div>Job not found.</div>}
           <DialogFooter>

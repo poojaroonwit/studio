@@ -90,6 +90,8 @@ const systemSettingKeyEnum = z.enum([
     'appFontFamily',
     'loginPageContent',
     'maxConcurrentProcessors',
+    // Webhook Configuration
+    'resumeProcessingWebhookResponseMode', 'generalPdfWebhookResponseMode',
 ]);
 
 

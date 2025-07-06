@@ -93,6 +93,17 @@ export async function POST(request: NextRequest) {
     // Convert file to base64
     const arrayBuffer = await file.arrayBuffer();
     const fileBase64 = Buffer.from(arrayBuffer).toString('base64');
+
+    // If you have a public URL for the uploaded PDF, set it here
+    // For now, set cv_url to null or the correct value if available
+    // payload.inputs.cv_url = ...
+
+    // Get response mode from system settings, default to 'blocking'
+    let responseMode = await getSystemSetting('generalPdfWebhookResponseMode');
+    if (!responseMode) {
+      responseMode = 'blocking'; // Default to blocking mode
+    }
+
     const payload = {
       inputs: {
         cv_url: null, // to be set below if needed
@@ -115,13 +126,9 @@ export async function POST(request: NextRequest) {
           level: targetPositionLevel
         }
       },
-      response_mode: 'blocking',
+      response_mode: responseMode, // Use configured response mode (blocking/streaming)
       user: actingUserName,
     };
-
-    // If you have a public URL for the uploaded PDF, set it here
-    // For now, set cv_url to null or the correct value if available
-    // payload.inputs.cv_url = ...
 
     // Get webhook authentication token
     let webhookToken = await getSystemSetting('generalPdfWebhookToken');
@@ -143,7 +150,31 @@ export async function POST(request: NextRequest) {
 
     if (webhookResponse.ok) {
       console.log(`Successfully sent PDF to webhook for candidate creation: ${file.name}`);
-      const webhookResponseBody = await webhookResponse.json().catch(() => ({ message: "Successfully sent to webhook, but no JSON response or webhook response was not JSON."}));
+      
+      // Handle different response types
+      const contentType = webhookResponse.headers.get('content-type') || '';
+      let webhookResponseBody;
+      
+      if (contentType.includes('application/json')) {
+        // JSON response
+        webhookResponseBody = await webhookResponse.json().catch(() => ({ 
+          message: "Successfully sent to webhook, but no JSON response or webhook response was not JSON."
+        }));
+      } else {
+        // Text/streaming response
+        const responseText = await webhookResponse.text().catch(() => "Successfully sent to webhook");
+        try {
+          // Try to parse as JSON if it looks like JSON
+          if (responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) {
+            webhookResponseBody = JSON.parse(responseText);
+          } else {
+            webhookResponseBody = { message: responseText };
+          }
+        } catch (parseErr) {
+          webhookResponseBody = { message: responseText };
+        }
+      }
+      
       await logAudit('AUDIT', `PDF resume '${file.name}' sent to webhook for candidate creation by ${actingUserName} (ID: ${actingUserId}). Target Position ID: ${targetPositionId || 'N/A'}.`, 'API:Candidates:Create', actingUserId, { fileName: file.name, targetPositionId });
       return NextResponse.json({ message: 'PDF successfully sent to workflow for candidate creation.', webhookResponse: webhookResponseBody }, { status: 200 });
     } else {

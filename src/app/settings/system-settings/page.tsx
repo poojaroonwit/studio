@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'react-hot-toast';
-import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -32,8 +32,10 @@ export default function SystemSettingsPage() {
   const [smtpFromEmail, setSmtpFromEmail] = useState('');
   const [resumeProcessingWebhookUrl, setResumeProcessingWebhookUrl] = useState('');
   const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
+  const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
   const [generalPdfWebhookUrl, setGeneralPdfWebhookUrl] = useState('');
   const [generalPdfWebhookToken, setGeneralPdfWebhookToken] = useState('');
+  const [generalPdfWebhookResponseMode, setGeneralPdfWebhookResponseMode] = useState('blocking');
   const [geminiApiKey, setGeminiApiKey] = useState('');
 
   const fetchSystemSettings = useCallback(async () => {
@@ -54,8 +56,10 @@ export default function SystemSettingsPage() {
       setSmtpFromEmail(settings.smtpFromEmail || '');
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
+      setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
       setGeneralPdfWebhookUrl(settings.generalPdfWebhookUrl || '');
       setGeneralPdfWebhookToken(settings.generalPdfWebhookToken || '');
+      setGeneralPdfWebhookResponseMode(settings.generalPdfWebhookResponseMode || 'blocking');
       setGeminiApiKey(settings.geminiApiKey || '');
     } catch (error) {
       setFetchError((error as Error).message);
@@ -84,8 +88,10 @@ export default function SystemSettingsPage() {
       { key: 'smtpFromEmail', value: smtpFromEmail },
       { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl },
       { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
+      { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode },
       { key: 'generalPdfWebhookUrl', value: generalPdfWebhookUrl },
       { key: 'generalPdfWebhookToken', value: generalPdfWebhookToken },
+      { key: 'generalPdfWebhookResponseMode', value: generalPdfWebhookResponseMode },
       { key: 'geminiApiKey', value: geminiApiKey },
     ];
     try {
@@ -157,6 +163,18 @@ export default function SystemSettingsPage() {
             <Input id="resume-processing-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={resumeProcessingWebhookToken} onChange={(e) => setResumeProcessingWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
             <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
       
+            <Label htmlFor="resume-processing-webhook-response-mode">Resume Processing Webhook Response Mode</Label>
+            <Select value={resumeProcessingWebhookResponseMode} onValueChange={(value) => setResumeProcessingWebhookResponseMode(value)} disabled={isSaving}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select response mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
+                <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
+      
           <Separator />
    
             <Label htmlFor="general-pdf-webhook">New Candidate PDF Webhook URL</Label>
@@ -166,6 +184,18 @@ export default function SystemSettingsPage() {
             <Label htmlFor="general-pdf-webhook-token">General PDF Webhook Authentication Token (Optional)</Label>
             <Input id="general-pdf-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={generalPdfWebhookToken} onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
             <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
+         
+            <Label htmlFor="general-pdf-webhook-response-mode">General PDF Webhook Response Mode</Label>
+            <Select value={generalPdfWebhookResponseMode} onValueChange={(value) => setGeneralPdfWebhookResponseMode(value)} disabled={isSaving}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select response mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
+                <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
          
           <Separator />
      

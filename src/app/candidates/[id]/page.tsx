@@ -801,7 +801,7 @@ export default function CandidateDetailPage() {
                       `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${candidate.resumePath}`,
                       "_blank"
                     )}
-                     {(candidate.parsedData?.associatedMatchDetails && !isEditing) && (
+                     {(candidate.parsedData && 'associatedMatchDetails' in candidate.parsedData && candidate.parsedData.associatedMatchDetails && !isEditing) && (
                       <Card className="mt-4 bg-muted/50 p-3">
                         <CardHeader className="p-0 pb-1">
                           <CardTitle className="text-sm font-semibold flex items-center"><Zap className="mr-2 h-4 w-4 text-orange-500" /> Initial Processed Match</CardTitle>

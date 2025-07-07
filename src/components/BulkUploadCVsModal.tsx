@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
+import { FileUploadArea } from "@/components/ui/FileUploadArea";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -66,8 +67,8 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         newBatchMap[file.name] = uuidv4();
       }
     }
-    setSelectedFiles(prev => [...prev, ...newFiles]);
-    setFileBatchMap(prev => ({ ...prev, ...newBatchMap }));
+    setSelectedFiles((prev: File[]) => [...prev, ...newFiles]);
+    setFileBatchMap((prev: { [fileName: string]: string }) => ({ ...prev, ...newBatchMap }));
     if (invalidFiles.length > 0) {
       toast.error(`${invalidFiles.length} file(s) were invalid and not added.`);
     }
@@ -90,8 +91,8 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     handleFiles(e.target.files);
   };
   const removeFile = (file: File) => {
-    setSelectedFiles(prev => prev.filter(f => f !== file));
-    setFileBatchMap(prev => {
+    setSelectedFiles((prev: File[]) => prev.filter((f: File) => f !== file));
+    setFileBatchMap((prev: { [fileName: string]: string }) => {
       const newMap = { ...prev };
       delete newMap[file.name];
       return newMap;
@@ -231,7 +232,6 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 </SelectContent>
               </Select>
             </div>
-            
             {/* File List - Show selected files in left column */}
             {totalFiles > 0 && (
               <div className="space-y-2">
@@ -252,34 +252,16 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
               </div>
             )}
           </div>
-
           {/* Right Column - File Upload Area */}
           <div className="space-y-4">
-            <div
-              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${
-                dragActive 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-border bg-muted/30'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onClick={() => document.getElementById('bulk-upload-cv-input')?.click()}
-              style={{ cursor: 'pointer' }}
-            >
-              <input
-                id="bulk-upload-cv-input"
-                type="file"
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={handleInputChange}
-              />
-              <UploadCloud className="mx-auto mb-4 h-12 w-12 text-primary" />
-              <p className="text-lg font-medium mb-2">Drag and drop PDF files here</p>
-              <p className="text-sm text-muted-foreground mb-4">or click to select files</p>
-              <p className="text-xs text-muted-foreground">Only PDF files are accepted. Max size: 500MB each.</p>
-            </div>
+            <FileUploadArea
+              accept="application/pdf"
+              multiple={true}
+              maxFileSize={MAX_FILE_SIZE}
+              onFilesChange={handleFiles}
+              dragActive={dragActive}
+              setDragActive={setDragActive}
+            />
           </div>
         </div>
         <DialogFooter>

@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import AutomationUploadModal from './AutomationUploadModal';
 
 
 interface CandidatesPageClientProps {
@@ -108,6 +109,7 @@ export function CandidatesPageClient({
   const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE');
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
 
   // Collapsible sidebar state
   const [showFilters, setShowFilters] = useState(true);
@@ -716,7 +718,7 @@ export function CandidatesPageClient({
               </DropdownMenu>
             )}
             {canManageCandidates && (
-                <Button onClick={() => setIsCreateViaAutomationModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Create via Resume </Button>
+                <Button onClick={() => setIsAutomationUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Create via Resume </Button>
             )}
             <DropdownMenu>
                <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
@@ -786,6 +788,11 @@ export function CandidatesPageClient({
         onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
       />}
       {selectedPositionForEdit && ( <EditPositionModal isOpen={isEditPositionModalOpen} onOpenChange={(isOpen) => { setIsEditPositionModalOpen(isOpen); if (!isOpen) setSelectedPositionForEdit(null); }} position={selectedPositionForEdit} onEditPosition={handlePositionEdited} /> )}
+      <AutomationUploadModal
+        isOpen={isAutomationUploadModalOpen}
+        onOpenChange={setIsAutomationUploadModalOpen}
+        onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
+      />
 
       <AlertDialog open={isBulkActionConfirmOpen} onOpenChange={setIsBulkActionConfirmOpen}>
         <AlertDialogContent>

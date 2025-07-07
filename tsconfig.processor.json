@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "nodenext",
+    "outDir": "dist"
+  },
+  "include": [
+    "process-upload-queue-with-server.ts",
+    "process-upload-queue.ts"
+  ]
+} 

@@ -591,13 +591,28 @@ export default function CandidateDetailPage() {
     );
   }
 
-  const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
-  const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
-  const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
-  const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
-  const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
-  const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
-  const jobApplied = candidate.parsedData?.job_applied || candidate.parsedData?.candidate_info?.job_applied;
+  // Use type guards for flat properties on parsedData
+  const personalInfo = (candidate.parsedData && 'personal_info' in candidate.parsedData)
+    ? candidate.parsedData.personal_info
+    : undefined;
+  const contactInfo = (candidate.parsedData && 'contact_info' in candidate.parsedData)
+    ? candidate.parsedData.contact_info
+    : undefined;
+  const education = (candidate.parsedData && 'education' in candidate.parsedData)
+    ? candidate.parsedData.education
+    : undefined;
+  const experience = (candidate.parsedData && 'experience' in candidate.parsedData)
+    ? candidate.parsedData.experience
+    : undefined;
+  const skills = (candidate.parsedData && 'skills' in candidate.parsedData)
+    ? candidate.parsedData.skills
+    : undefined;
+  const jobSuitable = (candidate.parsedData && 'job_suitable' in candidate.parsedData)
+    ? candidate.parsedData.job_suitable
+    : undefined;
+  const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
+    ? (candidate.parsedData as any).job_applied
+    : undefined;
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;

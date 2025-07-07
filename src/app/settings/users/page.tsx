@@ -225,7 +225,7 @@ export default function ManageUsersPage() {
   }
 
   return (
-        <div>
+        <div className="p-6">
           
           {session?.user?.role === 'Admin' && (
               <Button className="w-full sm:w-auto btn-primary-gradient" onClick={() => setIsAddUserModalOpen(true)}> 

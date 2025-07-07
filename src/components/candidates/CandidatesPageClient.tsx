@@ -372,14 +372,7 @@ export function CandidatesPageClient({
     setIsLoading(true);
     try {
       const apiPayload = {
-        name: `${formData.personal_info.firstname} ${formData.personal_info.lastname}`.trim(),
-        email: formData.contact_info.email,
-        phone: formData.contact_info.phone || null,
-        positionId: formData.positionId,
-        fitScore: formData.fitScore || 0,
-        status: formData.status,
-        parsedData: {
-          cv_language: formData.cv_language,
+        candidate_info: {
           personal_info: formData.personal_info,
           contact_info: formData.contact_info,
           education: formData.education,
@@ -392,7 +385,13 @@ export function CandidatesPageClient({
             skill: s.skill_string?.split(',').map(sk => sk.trim()).filter(sk => sk) || []
           })),
           job_suitable: formData.job_suitable,
-        }
+          cv_language: formData.cv_language,
+          status: formData.status,
+          // Add any other fields needed
+        },
+        // Add job_matches and job_applied if available in formData
+        ...(formData.job_matches ? { job_matches: formData.job_matches } : {}),
+        ...(formData.job_applied ? { job_applied: formData.job_applied } : {}),
       };
       const response = await fetch('/api/candidates', {
         method: 'POST',

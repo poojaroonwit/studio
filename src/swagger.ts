@@ -16,12 +16,12 @@ const swaggerSpec = {
   },
   servers: [
     { 
-      url: 'http://localhost:8021',
-      description: 'Development server'
+      url: 'http://159.89.193.226:8021',
+      description: 'Remote server'
     },
     { 
-      url: 'https://api.studio.com',
-      description: 'Production server'
+      url: 'http://localhost:8021',
+      description: 'Local development'
     }
   ],
   security: [

@@ -1124,7 +1124,7 @@ export default function CandidateDetailPage() {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
-              {(candidate.parsedData?.job_matches && candidate.parsedData.job_matches.length > 0 && !isEditing) && (
+              {(candidate.parsedData && 'job_matches' in candidate.parsedData && candidate.parsedData.job_matches && candidate.parsedData.job_matches.length > 0 && !isEditing) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle>

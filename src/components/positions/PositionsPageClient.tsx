@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 
 export default function PositionsPageClient() {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -43,6 +44,7 @@ export default function PositionsPageClient() {
   const [positionToDelete, setPositionToDelete] = useState<Position | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const { data: session } = useSession();
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
@@ -235,158 +237,156 @@ export default function PositionsPageClient() {
         </Card>
       </div>
       {/* Filters on top */}
- 
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search positions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter || ''} onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="open">Open Only</SelectItem>
-                  <SelectItem value="closed">Closed Only</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={departmentFilter || ''} onValueChange={setDepartmentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {canManagePositions && (
-              <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Position
-              </Button>
-            )}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search positions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-      
-      
+          <Select value={statusFilter || ''} onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open Only</SelectItem>
+              <SelectItem value="closed">Closed Only</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={departmentFilter || ''} onValueChange={setDepartmentFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.map(dept => (
+                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {canManagePositions && (
+          <div className="flex gap-2">
+            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Position
+            </Button>
+            <Button onClick={() => setIsImportModalOpen(true)} className="whitespace-nowrap">
+              Import Positions
+            </Button>
+          </div>
+        )}
+      </div>
       {/* Positions List */}
-      
-          {filteredPositions.length === 0 ? (
-            <div className="text-center py-12">
-              <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No positions found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
-                  ? 'Try adjusting your filters' 
-                  : 'Get started by adding your first position'}
-              </p>
-              {canManagePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && (
-                <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add First Position
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border bg-background">
-              {/* Bulk Action Bar */}
-              {selectedIds.length > 0 && (
-                <div className="flex items-center gap-4 p-3 bg-muted border-b border-border">
-                  <span className="font-medium">{selectedIds.length} selected</span>
-                  <Button variant="destructive" size="sm" onClick={() => setShowBulkDeleteConfirm(true)}>
-                    <Trash2 className="h-4 w-4 mr-1" /> Bulk Delete
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-                    Clear Selection
-                  </Button>
-                </div>
-              )}
-              <Table className="min-w-full divide-y divide-border">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        ref={el => { if (el) el.indeterminate = someSelected; }}
-                        onChange={e => handleSelectAll(e.target.checked)}
-                        aria-label="Select all positions"
-                      />
-                    </TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Level</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPositions.map((position) => (
-                    <TableRow key={position.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(position.id)}
-                          onChange={e => handleRowSelect(position.id, e.target.checked)}
-                          aria-label={`Select position ${position.title}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{position.title}</TableCell>
-                      <TableCell>{position.department}</TableCell>
-                      <TableCell>
-                        {position.isOpen ? (
-                          <Badge variant="default">Open</Badge>
-                        ) : (
-                          <Badge variant="destructive">Closed</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{position.position_level || '-'}</TableCell>
-                      <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>
-                        {canManagePositions && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedPosition(position);
-                                setIsEditModalOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setPositionToDelete(position)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+      {filteredPositions.length === 0 ? (
+        <div className="text-center py-12">
+          <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No positions found</h3>
+          <p className="text-muted-foreground mb-4">
+            {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
+              ? 'Try adjusting your filters' 
+              : 'Get started by adding your first position'}
+          </p>
+          {canManagePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && (
+            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add First Position
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border bg-background">
+          {/* Bulk Action Bar */}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-4 p-3 bg-muted border-b border-border">
+              <span className="font-medium">{selectedIds.length} selected</span>
+              <Button variant="destructive" size="sm" onClick={() => setShowBulkDeleteConfirm(true)}>
+                <Trash2 className="h-4 w-4 mr-1" /> Bulk Delete
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+                Clear Selection
+              </Button>
             </div>
           )}
-       
-      
-
+          <Table className="min-w-full divide-y divide-border">
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={el => { if (el) el.indeterminate = someSelected; }}
+                    onChange={e => handleSelectAll(e.target.checked)}
+                    aria-label="Select all positions"
+                  />
+                </TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Level</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPositions.map((position) => (
+                <TableRow key={position.id} className="hover:bg-muted/50">
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(position.id)}
+                      onChange={e => handleRowSelect(position.id, e.target.checked)}
+                      aria-label={`Select position ${position.title}`}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{position.title}</TableCell>
+                  <TableCell>{position.department}</TableCell>
+                  <TableCell>
+                    {position.isOpen ? (
+                      <Badge variant="default">Open</Badge>
+                    ) : (
+                      <Badge variant="destructive">Closed</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>{position.position_level || '-'}</TableCell>
+                  <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>
+                    {canManagePositions && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPosition(position);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPositionToDelete(position)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {/* Modals */}
       {canManagePositions && (
         <AddPositionModal 
@@ -395,7 +395,13 @@ export default function PositionsPageClient() {
           onAddPosition={handleAddPosition} 
         />
       )}
-      
+      {canManagePositions && (
+        <ImportPositionsModal
+          isOpen={isImportModalOpen}
+          onOpenChange={setIsImportModalOpen}
+          onImportSuccess={fetchPositions}
+        />
+      )}
       {canManagePositions && selectedPosition && (
         <EditPositionModal
           isOpen={isEditModalOpen}
@@ -407,7 +413,6 @@ export default function PositionsPageClient() {
           position={selectedPosition}
         />
       )}
-
       {/* Delete Confirmation */}
       <AlertDialog open={!!positionToDelete} onOpenChange={() => setPositionToDelete(null)}>
         <AlertDialogContent>
@@ -425,7 +430,6 @@ export default function PositionsPageClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* Bulk Delete Confirmation */}
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
         <AlertDialogContent>

@@ -95,7 +95,7 @@ export function CandidateDetailModal({ isOpen, onOpenChange, candidateSummary }:
 
   const displayCandidate = fullCandidate || candidateSummary;
   const parsedDetails = displayCandidate.parsedData as CandidateDetails | null;
-  const personalInfo = parsedDetails?.personal_info as PersonalInfo | undefined;
+  const personalInfo = (parsedDetails as any)?.candidate_info?.personal_info || parsedDetails?.personal_info;
 
 
   return (

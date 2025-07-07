@@ -137,7 +137,9 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     );
   }
 
-  const jobMatches = (candidate.parsedData as CandidateDetails)?.job_matches;
+  const jobMatches = candidate.parsedData?.job_matches
+    ?? candidate.parsedData?.candidate_info?.job_matches
+    ?? (candidate.parsedData as CandidateDetails)?.job_matches;
 
   if (!jobMatches || jobMatches.length === 0) {
     return (
@@ -587,8 +589,13 @@ export default function CandidateDetailPage() {
     );
   }
 
-  const parsed = candidate.parsedData as CandidateDetails | null;
-  const personalInfo = parsed?.personal_info as PersonalInfo | undefined;
+  const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
+  const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
+  const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
+  const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
+  const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
+  const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
+  const jobApplied = candidate.parsedData?.job_applied || candidate.parsedData?.candidate_info?.job_applied;
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;
@@ -764,7 +771,7 @@ export default function CandidateDetailPage() {
                         <>
                             {renderField("Applied for", candidate.position?.title || 'N/A - General Application', Briefcase)}
                             {renderField("Application Date", candidate.applicationDate ? format(parseISO(candidate.applicationDate), "PPP") : 'N/A', CalendarDays)}
-                            {renderField("CV Language", parsed?.cv_language, Tag)}
+                            {renderField("CV Language", candidate.parsedData?.cv_language, Tag)}
                         </>
                     )}
                     {candidate.resumePath && !isEditing && renderField(
@@ -775,14 +782,14 @@ export default function CandidateDetailPage() {
                       `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${candidate.resumePath}`,
                       "_blank"
                     )}
-                     {(parsed?.associatedMatchDetails && !isEditing) && (
+                     {(candidate.parsedData?.associatedMatchDetails && !isEditing) && (
                       <Card className="mt-4 bg-muted/50 p-3">
                         <CardHeader className="p-0 pb-1">
                           <CardTitle className="text-sm font-semibold flex items-center"><Zap className="mr-2 h-4 w-4 text-orange-500" /> Initial Processed Match</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0 text-xs space-y-0.5">
-                          {renderField("Matched Job", parsed.associatedMatchDetails.jobTitle)}
-                          {renderField("Processed Fit Score", `${parsed.associatedMatchDetails.fitScore}%`)}
+                          {renderField("Matched Job", candidate.parsedData?.associatedMatchDetails.jobTitle)}
+                          {renderField("Processed Fit Score", `${candidate.parsedData?.associatedMatchDetails.fitScore}%`)}
                         </CardContent>
                       </Card>
                     )}
@@ -871,9 +878,9 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            (parsed?.education && parsed.education.length > 0) ? (
+                            (education && education.length > 0) ? (
                                 <ul className="space-y-4">
-                                    {parsed.education.map((edu, index) => (
+                                    {education.map((edu, index) => (
                                     <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
                                         {renderField("University", edu.university)}
                                         {renderField("Major", edu.major)}
@@ -882,7 +889,7 @@ export default function CandidateDetailPage() {
                                         {renderField("Period", edu.period, CalendarDays)}
                                         {renderField("Duration", edu.duration)}
                                         {renderField("GPA", edu.GPA)}
-                                        {index < parsed.education!.length - 1 && <Separator className="my-3" />}
+                                        {index < education!.length - 1 && <Separator className="my-3" />}
                                     </li>
                                     ))}
                                 </ul>
@@ -936,9 +943,9 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            (parsed?.experience && parsed.experience.length > 0) ? (
+                            (experience && experience.length > 0) ? (
                                 <ul className="space-y-4">
-                                    {parsed.experience.map((exp, index) => (
+                                    {experience.map((exp, index) => (
                                     <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted/30">
                                         {renderField("Company", exp.company)}
                                         {renderField("Position", exp.position)}
@@ -952,7 +959,7 @@ export default function CandidateDetailPage() {
                                                 <p className="text-sm text-foreground whitespace-pre-wrap bg-background p-2 rounded">{exp.description}</p>
                                             </div>
                                         )}
-                                        {index < parsed.experience!.length - 1 && <Separator className="my-3" />}
+                                        {index < experience!.length - 1 && <Separator className="my-3" />}
                                     </li>
                                     ))}
                                 </ul>
@@ -982,9 +989,9 @@ export default function CandidateDetailPage() {
                             </Button>
                         </div>
                     ) : (
-                        (parsed?.skills && parsed.skills.length > 0) ? (
+                        (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
-                                {parsed.skills.map((skillEntry, index) => (
+                                {skills.map((skillEntry, index) => (
                                 <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
                                     {renderField("Segment", skillEntry.segment_skill)}
                                     {skillEntry.skill && skillEntry.skill.length > 0 && (
@@ -995,7 +1002,7 @@ export default function CandidateDetailPage() {
                                         </div>
                                     </div>
                                     )}
-                                    {index < parsed.skills!.length - 1 && <Separator className="my-3" />}
+                                    {index < skills!.length - 1 && <Separator className="my-3" />}
                                 </li>
                                 ))}
                             </ul>
@@ -1027,15 +1034,15 @@ export default function CandidateDetailPage() {
                             </Button>
                         </div>
                     ) : (
-                        (parsed?.job_suitable && parsed.job_suitable.length > 0) ? (
+                        (jobSuitable && jobSuitable.length > 0) ? (
                             <ul className="space-y-4">
-                                {parsed.job_suitable.map((job, index) => (
+                                {jobSuitable.map((job, index) => (
                                 <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted/30">
                                     {renderField("Career Path", job.suitable_career)}
                                     {renderField("Job Position", job.suitable_job_position)}
                                     {renderField("Job Level", job.suitable_job_level)}
                                     {renderField("Desired Salary (THB/Month)", job.suitable_salary_bath_month, DollarSign)}
-                                    {index < parsed.job_suitable!.length - 1 && <Separator className="my-3" />}
+                                    {index < jobSuitable!.length - 1 && <Separator className="my-3" />}
                                 </li>
                                 ))}
                             </ul>
@@ -1075,7 +1082,7 @@ export default function CandidateDetailPage() {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
-              {(parsed?.job_matches && parsed.job_matches.length > 0 && !isEditing) && (
+              {(candidate.parsedData?.job_matches && candidate.parsedData.job_matches.length > 0 && !isEditing) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle>
@@ -1084,7 +1091,7 @@ export default function CandidateDetailPage() {
                   <CardContent>
                     <ScrollArea className="h-[calc(100vh-240px)]">
                       <ul className="space-y-3">
-                        {parsed.job_matches.map((match, index) => (
+                        {candidate.parsedData.job_matches.map((match, index) => (
                           <li key={`match-${index}-${match.job_id || index}`} className="p-3 border rounded-md bg-muted/30">
                             <h4
                               className="font-semibold text-foreground hover:text-primary hover:underline cursor-pointer"
@@ -1111,7 +1118,7 @@ export default function CandidateDetailPage() {
                   </CardContent>
                 </Card>
               )}
-               {(!isEditing && (!parsed?.job_matches || parsed.job_matches.length === 0)) && (
+               {(!isEditing && (!candidate.parsedData?.job_matches || candidate.parsedData.job_matches.length === 0)) && (
                  <Card>
                     <CardHeader><CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle></CardHeader>
                     <CardContent><p className="text-sm text-muted-foreground text-center py-4">No automated job match data available.</p></CardContent>

@@ -131,6 +131,61 @@ export async function POST(req: NextRequest) {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
   }
+
+  // Support new format: { candidate_info, job_matches, job_applied }
+  let candidateData;
+  if (body.candidate_info && (body.job_matches !== undefined || body.job_applied !== undefined)) {
+    // Extract name/email from candidate_info
+    const ci = body.candidate_info;
+    const name = ci.personal_info && ci.personal_info.firstname && ci.personal_info.lastname ? `${ci.personal_info.firstname} ${ci.personal_info.lastname}` : undefined;
+    const email = ci.contact_info && ci.contact_info.email ? ci.contact_info.email : undefined;
+    if (!name || !email) {
+      return new Response(JSON.stringify({ error: 'Missing name or email in candidate_info' }), { status: 400, headers: handleCors(req) });
+    }
+    // Use 'new' as default status if not present
+    const status = ci.status || 'new';
+    // Compose parsedData as the whole body
+    const parsedData = { ...body };
+    // Validate minimal fields
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof status !== 'string') {
+      return new Response(JSON.stringify({ error: 'Invalid name, email, or status' }), { status: 400, headers: handleCors(req) });
+    }
+    // Insert into DB as before
+    const newCandidateId = uuidv4();
+    const client = await getPool().connect();
+    try {
+      await client.query('BEGIN');
+      const insertCandidateQuery = `
+        INSERT INTO "Candidate" (id, name, email, status, "parsedData", "applicationDate", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING *;
+      `;
+      const candidateResult = await client.query(insertCandidateQuery, [
+        newCandidateId, name, email, status, parsedData
+      ]);
+      const newCandidate = candidateResult.rows[0];
+      // Create initial transition record
+      const insertTransitionQuery = `
+        INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
+      `;
+      await client.query(insertTransitionQuery, [
+        uuidv4(), newCandidateId, status, 'Initial creation', user.id
+      ]);
+      await client.query('COMMIT');
+      return new Response(JSON.stringify({ message: 'Candidate created successfully', candidate: newCandidate }), { status: 201, headers: handleCors(req) });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if ((error as any).code === '23505' && (error as any).constraint === 'Candidate_email_key') {
+        return new Response(JSON.stringify({ error: `A candidate with the email "${email}" already exists.` }), { status: 409, headers: handleCors(req) });
+      }
+      return new Response(JSON.stringify({ error: 'Error creating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    } finally {
+      client.release();
+    }
+  }
+
+  // Fallback to old format
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });

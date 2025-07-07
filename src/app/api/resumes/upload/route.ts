@@ -60,9 +60,14 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('resume');
+    const positionId = formData.get('position_id') as string | null;
     if (!file || typeof file === 'string') {
       await logAudit('WARN', `Resume upload attempted without file by ${actingUserName} for candidate ${candidateId}`, 'API:Resumes:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
+    }
+    if (!positionId) {
+      await logAudit('ERROR', `Resume upload failed - missing position_id by ${actingUserName}`, 'API:Resumes:Upload', actingUserId, { candidateId, fileName: file.name });
+      return NextResponse.json({ message: 'position_id is required.' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -127,7 +132,7 @@ export async function POST(request: NextRequest) {
           actingUserId,
           objectName,
           JSON.stringify(webhookPayload),
-          candidate.positionid || candidate.positionId || null
+          positionId
         ]
       );
 

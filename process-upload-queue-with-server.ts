@@ -176,6 +176,7 @@ async function processJob(apiKey: string) {
 
 // HTTP Server for health checks and status
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { getPool } from './src/lib/db.js';
 
 function createHealthServer() {
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {

@@ -27,4 +27,4 @@ RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8021
 
-CMD ["./entrypoint.sh"]
+CMD ["./entrypoint.sh"] 

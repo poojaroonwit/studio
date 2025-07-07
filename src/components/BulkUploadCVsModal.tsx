@@ -245,7 +245,18 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 </SelectContent>
               </Select>
             </div>
-            {/* File List - Show selected files in left column */}
+          </div>
+          {/* Right Column - File Upload Area, Uploaded Files, and Preview */}
+          <div className="space-y-4">
+            <FileUploadArea
+              accept="application/pdf"
+              multiple={true}
+              maxFileSize={MAX_FILE_SIZE}
+              onFilesChange={handleFiles}
+              dragActive={dragActive}
+              setDragActive={setDragActive}
+            />
+            {/* Uploaded Files List - Show selected files in right column */}
             {totalFiles > 0 && (
               <div className="space-y-2">
                 <Label>Selected Files ({totalFiles})</Label>
@@ -264,17 +275,6 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 </div>
               </div>
             )}
-          </div>
-          {/* Right Column - File Upload Area */}
-          <div className="space-y-4">
-            <FileUploadArea
-              accept="application/pdf"
-              multiple={true}
-              maxFileSize={MAX_FILE_SIZE}
-              onFilesChange={handleFiles}
-              dragActive={dragActive}
-              setDragActive={setDragActive}
-            />
             {/* PDF Preview */}
             <div className="mt-4">
               <Label>Preview</Label>

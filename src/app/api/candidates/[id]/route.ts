@@ -103,6 +103,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const candidate = candidateResult.rows[0];
+    // Defensive: use correct property name for custom attributes
+    const customAttributes = candidate.custom_attributes || candidate.customAttributes || {};
 
     // Get job matches for this candidate
     const jobMatchesQuery = `
@@ -126,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
-      custom_attributes: candidate.customAttributes || {},
+      custom_attributes: customAttributes,
       position: candidate.positionId ? { 
         title: candidate.positionTitle,
         department: candidate.positionDepartment 
@@ -136,6 +138,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       resumeHistory: resumeHistoryResult.rows,
     });
   } catch (error: any) {
+    console.error('Error in GET /api/candidates/[id]:', error);
     return NextResponse.json({ message: 'Error fetching candidate', error: error.message }, { status: 500 });
   } finally {
     client.release();

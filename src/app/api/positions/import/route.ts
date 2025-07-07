@@ -100,53 +100,41 @@ export async function POST(request: NextRequest) {
   // Check if this is a file upload (multipart/form-data)
   const contentType = request.headers.get('content-type') || '';
   if (contentType.includes('multipart/form-data')) {
-    // Parse the form
-    const form = new IncomingForm({ keepExtensions: true });
-    console.log('[ImportPositions] Starting formidable parse');
-    // Add a timeout to the form.parse promise
-    const formData = await new Promise<{ fields: Fields; files: Files }>((resolve, reject) => {
-      let resolved = false;
-      const timeout = setTimeout(() => {
-        if (!resolved) {
-          console.error('[ImportPositions] Formidable parse timed out');
-          reject(new Error('File upload parsing timed out.'));
-        }
-      }, 30000); // 30 seconds
-      form.parse(request as any, (err: any, fields: Fields, files: Files) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeout);
-        if (err) {
-          console.error('[ImportPositions] Formidable parse error:', err);
-          reject(err);
-        } else {
-          console.log('[ImportPositions] Formidable parse success');
-          resolve({ fields, files });
-        }
-      });
-    });
-    // Find the file
-    const fileObj = formData.files?.file || formData.files?.[Object.keys(formData.files)[0]];
-    const file = Array.isArray(fileObj) ? fileObj[0] : fileObj as File | undefined;
-    if (!file) {
+    // Use the Web API formData() method
+    const formData = await request.formData();
+    const file = formData.get('file');
+    if (!file || typeof file === 'string') {
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
     }
-    // Read file contents
-    const fileBuffer = fs.readFileSync(file.filepath);
-    const fileName = file.originalFilename || file.newFilename || '';
+    // file is a Blob (or File)
+    // @ts-ignore
+    const fileName = file.name || '';
+    // @ts-ignore
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     let positions = [];
     if (fileName.endsWith('.csv')) {
       // Parse CSV
-      const csvString = fileBuffer.toString('utf-8');
+      const csvString = buffer.toString('utf-8');
       const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
-      positions = records.map((row: any) => ({
-        title: row.title,
-        department: row.department,
-        description: row.description || null,
-        isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
-        position_level: row.position_level || null,
-        custom_attributes: row.custom_attributes ? JSON.parse(row.custom_attributes) : {},
-      }));
+      positions = records.map((row: any) => {
+        let customAttributes = {};
+        if (row.custom_attributes && typeof row.custom_attributes === 'string' && row.custom_attributes.trim() !== '') {
+          try {
+            customAttributes = JSON.parse(row.custom_attributes);
+          } catch (e) {
+            customAttributes = {};
+          }
+        }
+        return {
+          title: row.title,
+          department: row.department,
+          description: row.description || null,
+          isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
+          position_level: row.position_level || null,
+          custom_attributes: customAttributes,
+        };
+      });
     } else {
       return NextResponse.json({ message: 'Only CSV import is currently supported via file upload.' }, { status: 400 });
     }
@@ -155,7 +143,6 @@ export async function POST(request: NextRequest) {
     if (!validationResult.success) {
       return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
-    // ... (insert logic as before, copy from below)
     const client = await getPool().connect();
     try {
       await client.query('BEGIN');

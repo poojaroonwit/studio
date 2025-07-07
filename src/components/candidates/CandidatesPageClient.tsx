@@ -12,7 +12,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
-import { CreateCandidateViaAutomationModal } from '@/components/candidates/CreateCandidateViaAutomationModal';
 import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -718,7 +717,7 @@ export function CandidatesPageClient({
               </DropdownMenu>
             )}
             {canManageCandidates && (
-                <Button onClick={() => setIsAutomationUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Create via Resume </Button>
+                <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
             )}
             <DropdownMenu>
                <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
@@ -781,7 +780,6 @@ export function CandidatesPageClient({
       </main>
 
       {canManageCandidates && <AddCandidateModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddCandidate={handleAddCandidateSubmit} availablePositions={availablePositions} availableStages={availableStages} />}
-      {canManageCandidates && <CreateCandidateViaAutomationModal isOpen={isCreateViaAutomationModalOpen} onOpenChange={setIsCreateViaAutomationModalOpen} onProcessingStart={handleAutomatedProcessingStart} />}
       {canManageCandidates && <BulkUploadCVsModal
         isOpen={isBulkUploadModalOpen}
         onOpenChange={setIsBulkUploadModalOpen}

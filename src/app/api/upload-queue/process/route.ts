@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
       const inputs = {
         cv_url: publicUrl,
-        applied_job_id: job.position_id,
+        applied_position_id: job.position_id,
         applied_job_level: job.position_level,
         applied_job_title: job.position_title,
         applied_job_description: job.position_description,
@@ -469,7 +469,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
       const inputs = {
         cv_url: publicUrl,
-        applied_job_id: job.position_id,
+        applied_position_id: job.position_id,
         applied_job_level: job.position_level,
         applied_job_title: job.position_title,
         applied_job_description: job.position_description,

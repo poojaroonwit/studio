@@ -66,12 +66,10 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
     if (!selectedFile) return;
     setUploading(true);
     try {
+      // Step 1: Upload file to MinIO
       const formData = new FormData();
-      formData.append('pdfFile', selectedFile);
-      if (selectedPositionId) {
-        formData.append('positionId', selectedPositionId);
-      }
-      const uploadRes = await fetch('/api/candidates/upload-for-automation', {
+      formData.append('files', selectedFile);
+      const uploadRes = await fetch('/api/upload-queue/upload-file', {
         method: 'POST',
         body: formData
       });
@@ -79,10 +77,48 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
         let errorMsg = 'File upload failed';
         try {
           const errorData = await uploadRes.json();
-          errorMsg = errorData.message || errorMsg;
-          console.error('Automation upload error:', errorData);
+          errorMsg = errorData.error || errorMsg;
+          console.error('File upload error:', errorData);
         } catch (parseErr) {
-          console.error('Automation upload error (non-JSON):', uploadRes);
+          console.error('File upload error (non-JSON):', uploadRes);
+        }
+        toast.error(errorMsg);
+        return;
+      }
+      const { results } = await uploadRes.json();
+      const result = results[0];
+      if (!result || result.status !== 'success') {
+        toast.error(result?.error || 'File upload failed');
+        return;
+      }
+      // Step 2: Add to upload queue with automation source
+      const now = new Date().toISOString();
+      const queueData = {
+        file_name: result.file_name,
+        file_size: selectedFile.size,
+        status: 'queued',
+        source: 'automation',
+        upload_id: result.file_name + '-' + now,
+        upload_date: now,
+        file_path: result.file_path,
+        webhook_payload: {
+          targetPositionId: selectedPositionId || null,
+          automation: true
+        },
+      };
+      const queueRes = await fetch('/api/upload-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(queueData)
+      });
+      if (!queueRes.ok) {
+        let errorMsg = 'Failed to add file to upload queue';
+        try {
+          const errorData = await queueRes.json();
+          errorMsg = errorData.error || errorMsg;
+          console.error('Upload queue POST error:', errorData);
+        } catch (parseErr) {
+          console.error('Upload queue POST error (non-JSON):', queueRes);
         }
         toast.error(errorMsg);
         return;

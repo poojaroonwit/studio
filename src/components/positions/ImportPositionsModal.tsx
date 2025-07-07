@@ -23,11 +23,7 @@ interface ImportPositionsModalProps {
 }
 
 const ACCEPTED_FILE_TYPES = [
-  '.xlsx',
-  '.xls',
   '.csv',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
   'text/csv'
 ].join(',');
 
@@ -42,10 +38,10 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       const fileName = file.name.toLowerCase();
       const acceptedMimeTypes = ACCEPTED_FILE_TYPES.split(',');
       
-      if (acceptedMimeTypes.includes(fileType) || fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      if (acceptedMimeTypes.includes(fileType) || fileName.endsWith('.csv')) {
         setSelectedFile(file);
       } else {
-        toast.error("Please select an Excel or CSV file (.xlsx, .xls, .csv).");
+        toast.error("Please select a CSV file (.csv). Only CSV files are supported.");
         setSelectedFile(null);
         event.target.value = '';
       }
@@ -56,7 +52,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
 
   const handleImport = async () => {
     if (!selectedFile) {
-      toast.error("Please select an Excel or CSV file to import.");
+      toast.error("Please select a CSV file to import. Only CSV files are supported.");
       return;
     }
     setIsImporting(true);
@@ -134,18 +130,18 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Briefcase className="mr-2 h-5 w-5 text-primary" /> Import Positions (Excel/CSV)
+            <Briefcase className="mr-2 h-5 w-5 text-primary" /> Import Positions (CSV Only)
           </DialogTitle>
           <DialogDescription>
-            Upload an Excel or CSV file (.xlsx, .xls, .csv) containing position data.<br />
+            Upload a CSV file (.csv) containing position data.<br />
             <Button variant="link" className="p-0 h-auto text-primary underline" onClick={handleDownloadCsvTemplate}>
               Download CSV Template
             </Button>
-            <br />Refer to the template for the expected structure.
+            <br />Refer to the template for the expected structure. <b>Only CSV files are supported.</b>
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-2">
-          <Label htmlFor="position-import-file">Select Excel or CSV File</Label>
+          <Label htmlFor="position-import-file">Select CSV File</Label>
           <Input
             id="position-import-file"
             type="file"

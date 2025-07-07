@@ -102,10 +102,27 @@ export async function POST(request: NextRequest) {
   if (contentType.includes('multipart/form-data')) {
     // Parse the form
     const form = new IncomingForm({ keepExtensions: true });
+    console.log('[ImportPositions] Starting formidable parse');
+    // Add a timeout to the form.parse promise
     const formData = await new Promise<{ fields: Fields; files: Files }>((resolve, reject) => {
+      let resolved = false;
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          console.error('[ImportPositions] Formidable parse timed out');
+          reject(new Error('File upload parsing timed out.'));
+        }
+      }, 30000); // 30 seconds
       form.parse(request as any, (err: any, fields: Fields, files: Files) => {
-        if (err) reject(err);
-        else resolve({ fields, files });
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timeout);
+        if (err) {
+          console.error('[ImportPositions] Formidable parse error:', err);
+          reject(err);
+        } else {
+          console.log('[ImportPositions] Formidable parse success');
+          resolve({ fields, files });
+        }
       });
     });
     // Find the file

@@ -181,8 +181,8 @@ export function CandidateTable({
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={(candidate.parsedData as any)?.personal_info?.avatar_url || `https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar" />
-                        <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} data-ai-hint="person avatar" />
+                        <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                       </Avatar>
                       <div>
                         <Link href={`/candidates/${candidate.id}`} passHref>

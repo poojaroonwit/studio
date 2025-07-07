@@ -118,8 +118,8 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: C
                       <Card className={`p-3 hover:shadow-lg transition-shadow bg-card flex flex-col gap-2 relative ${draggedCandidate?.id === candidate.id ? 'opacity-60' : ''}`}> 
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
-                            <AvatarImage src={(candidate.parsedData as any)?.personal_info?.avatar_url || `https://placehold.co/40x40.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar"/>
-                            <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                            <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate" title={candidate.name}>{candidate.name}</p>

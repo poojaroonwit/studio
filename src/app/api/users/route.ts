@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
   }
   
   try {
-    const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name.charAt(0).toUpperCase()}`;
+    const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name?.charAt(0)?.toUpperCase() || 'U'}`;
     const defaultDataAiHint = "profile person";
 
     const newUser = await prisma.user.create({

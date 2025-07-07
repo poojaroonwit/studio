@@ -216,6 +216,22 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               </div>
             </form>
           </ScrollArea>
+          {/* Right Column: Job Description Preview */}
+          <Card className="h-full overflow-auto">
+            <CardHeader>
+              <CardTitle>Current Job Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {position?.description ? (
+                <div
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: position.description }}
+                />
+              ) : (
+                <div className="text-muted-foreground italic">No job description available.</div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
         <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}

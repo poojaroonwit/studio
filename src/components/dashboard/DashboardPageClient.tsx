@@ -432,8 +432,8 @@ export default function DashboardPageClient({
                       <TableCell>
                         <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} />
-                            <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
+                            <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{candidate.name}</span>
                         </Link>
@@ -491,8 +491,8 @@ export default function DashboardPageClient({
                         <TableCell>
                           <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} />
-                              <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
+                              <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{candidate.name}</span>
                           </Link>
@@ -597,8 +597,8 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} />
-                                <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
+                                <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{candidate.name}</span>
                             </Link>
@@ -647,8 +647,8 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} />
-                                <AvatarFallback>{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
+                                <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{candidate.name}</span>
                             </Link>

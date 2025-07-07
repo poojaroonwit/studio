@@ -29,6 +29,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
   const [uploading, setUploading] = useState(false);
   const { data: session } = useSession();
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,6 +49,18 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     };
     fetchPositions();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (selectedFiles.length > 0) {
+      const url = URL.createObjectURL(selectedFiles[0]);
+      setPreviewUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [selectedFiles]);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -262,6 +275,20 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
               dragActive={dragActive}
               setDragActive={setDragActive}
             />
+            {/* PDF Preview */}
+            <div className="mt-4">
+              <Label>Preview</Label>
+              {previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  title="PDF Preview"
+                  className="w-full h-64 border rounded"
+                  style={{ minHeight: '16rem' }}
+                />
+              ) : (
+                <div className="text-muted-foreground italic">No file selected for preview.</div>
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>

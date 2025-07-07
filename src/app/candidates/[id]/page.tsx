@@ -725,8 +725,8 @@ export default function CandidateDetailPage() {
                       </div>
                     ) : (
                       <Avatar className="h-20 w-20 border-2 border-primary">
-                        <AvatarImage src={personalInfo?.avatar_url || `https://placehold.co/80x80.png?text=${candidate.name.charAt(0)}`} alt={candidate.name} data-ai-hint="person avatar" />
-                        <AvatarFallback className="text-3xl">{candidate.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={personalInfo?.avatar_url || `https://placehold.co/80x80.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} data-ai-hint="person avatar" />
+                        <AvatarFallback className="text-3xl">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                       </Avatar>
                     )}
                     <div>

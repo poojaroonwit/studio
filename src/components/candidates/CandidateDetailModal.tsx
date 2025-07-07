@@ -105,7 +105,7 @@ export function CandidateDetailModal({ isOpen, onOpenChange, candidateSummary }:
           <DialogTitle className="text-2xl flex items-center">
              <Avatar className="h-10 w-10 mr-3 border-2 border-primary">
                 <AvatarImage src={personalInfo?.avatar_url || `https://placehold.co/40x40.png?text=${displayCandidate.name?.charAt(0) || 'C'}`} alt={displayCandidate.name || "Candidate"} data-ai-hint="person avatar" />
-                <AvatarFallback>{displayCandidate.name?.charAt(0).toUpperCase() || 'C'}</AvatarFallback>
+                <AvatarFallback>{displayCandidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
             </Avatar>
             {displayCandidate.name || "Candidate Details"}
           </DialogTitle>

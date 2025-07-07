@@ -1,4 +1,3 @@
-
 import type { Candidate, Position, UserProfile } from './types';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs for mock data
 
@@ -47,7 +46,7 @@ export const addUserToMockData = (user: Omit<UserProfile, 'id' | 'avatarUrl' | '
   const newUser: UserProfile = {
     id: uuidv4(),
     ...user,
-    avatarUrl: `https://placehold.co/100x100.png?text=${user.name.charAt(0)}`, 
+    avatarUrl: `https://placehold.co/100x100.png?text=${user.name?.charAt(0) || 'U'}`, 
     dataAiHint: "profile person"
   };
   mockAppUsers.push(newUser);

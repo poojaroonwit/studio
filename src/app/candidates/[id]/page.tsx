@@ -558,6 +558,7 @@ export default function CandidateDetailPage() {
   };
 
   const jobMatches =
+    candidate &&
     candidate.parsedData &&
     'job_matches' in candidate.parsedData &&
     candidate.parsedData.job_matches &&

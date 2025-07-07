@@ -40,9 +40,8 @@ import { v4 as uuidv4 } from 'uuid';
  *               $ref: '#/components/schemas/Candidate'
  */
 
-// Candidate details schema (flattened for clarity)
-const candidateDetailsSchema = z.object({
-  cv_language: z.string().optional().nullable(),
+// Define the new schema for candidate creation
+const candidateInfoSchema = z.object({
   personal_info: z.object({
     title_honorific: z.string().optional().nullable(),
     firstname: z.string().min(1),
@@ -60,20 +59,15 @@ const candidateDetailsSchema = z.object({
   experience: z.array(z.any()).optional(),
   skills: z.array(z.any()).optional(),
   job_suitable: z.array(z.any()).optional(),
-  job_matches: z.array(z.any()).optional(),
+  cv_language: z.string().optional().nullable(),
+  status: z.string().optional(),
 });
 
 const createCandidateSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional().nullable(),
-  positionId: z.string().uuid().optional().nullable(),
-  recruiterId: z.string().uuid().optional().nullable(),
-  fitScore: z.number().min(0).max(100).optional(),
-  status: z.string().min(1),
-  parsedData: candidateDetailsSchema.optional().nullable(),
-  custom_attributes: z.record(z.any()).optional().nullable(),
-  resumePath: z.string().optional().nullable(),
+  candidate_info: candidateInfoSchema,
+  job_matches: z.array(z.any()).optional(),
+  job_applied: z.any().optional(),
+  // You can add more fields if needed
 });
 
 export async function POST(request: NextRequest) {
@@ -98,33 +92,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  // Only accept the new format
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath } = validationResult.data;
+  const { candidate_info, job_matches, job_applied } = validationResult.data;
+  const name = candidate_info.personal_info && candidate_info.personal_info.firstname && candidate_info.personal_info.lastname
+    ? `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`
+    : undefined;
+  const email = candidate_info.contact_info && candidate_info.contact_info.email ? candidate_info.contact_info.email : undefined;
+  if (!name || !email) {
+    return NextResponse.json({ message: 'Missing name or email in candidate_info' }, { status: 400 });
+  }
+  const status = candidate_info.status || 'new';
+  const parsedData = { candidate_info, job_matches, job_applied };
   const newCandidateId = uuidv4();
 
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "parsedData", "customAttributes", "resumePath", "applicationDate", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      INSERT INTO "Candidate" (id, name, email, status, "parsedData", "applicationDate", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *;
     `;
     const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath
+      newCandidateId, name, email, status, parsedData
     ]);
     const newCandidate = candidateResult.rows[0];
     // Create initial transition record
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
+      INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
     `;
     await client.query(insertTransitionQuery, [
-      uuidv4(), newCandidateId, positionId, status, 'Initial creation', actingUserId
+      uuidv4(), newCandidateId, status, 'Initial creation', actingUserId
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });

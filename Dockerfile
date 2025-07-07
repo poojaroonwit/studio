@@ -21,6 +21,7 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
+
 # Build the processor scripts
 RUN npm run build:processor
 

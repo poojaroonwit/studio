@@ -899,18 +899,30 @@ export default function CandidateDetailPage() {
                         ) : (
                             (education && education.length > 0) ? (
                                 <ul className="space-y-4">
-                                    {education.map((edu, index) => (
-                                    <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
-                                        {renderField("University", edu.university)}
-                                        {renderField("Major", edu.major)}
-                                        {renderField("Field", edu.field)}
-                                        {renderField("Campus", edu.campus)}
-                                        {renderField("Period", edu.period, CalendarDays)}
-                                        {renderField("Duration", edu.duration)}
-                                        {renderField("GPA", edu.GPA)}
-                                        {index < education!.length - 1 && <Separator className="my-3" />}
-                                    </li>
-                                    ))}
+                                    {education.map((edu, index) => {
+                                        if (typeof edu === 'string') {
+                                            // Render string-only education entry
+                                            return (
+                                                <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted/30">
+                                                    {renderField("Education", edu)}
+                                                </li>
+                                            );
+                                        } else {
+                                            // Render EducationEntry object
+                                            return (
+                                                <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                    {renderField("University", edu.university)}
+                                                    {renderField("Major", edu.major)}
+                                                    {renderField("Field", edu.field)}
+                                                    {renderField("Campus", edu.campus)}
+                                                    {renderField("Period", edu.period, CalendarDays)}
+                                                    {renderField("Duration", edu.duration)}
+                                                    {renderField("GPA", edu.GPA)}
+                                                    {index < education!.length - 1 && <Separator className="my-3" />}
+                                                </li>
+                                            );
+                                        }
+                                    })}
                                 </ul>
                             ) : <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                         )}

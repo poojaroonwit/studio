@@ -735,7 +735,7 @@ export default function SystemPreferencesPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="w-full max-w-4xl mx-auto shadow-lg">
+      <Card className="w-full mx-auto shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center">
             <Palette className="mr-2 h-6 w-6 text-primary" /> System Preferences

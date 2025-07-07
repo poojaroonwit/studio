@@ -18,9 +18,8 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
-# Compile process-upload-queue.ts to process-upload-queue.mjs
-RUN npx tsc process-upload-queue.ts --module NodeNext --target es2020 --esModuleInterop --moduleResolution nodenext --outDir . && \
-    mv process-upload-queue.js process-upload-queue.mjs
+# Build the processor scripts
+RUN npm run build:processor
 
 # Make entrypoint executable
 RUN chmod +x ./entrypoint.sh

@@ -137,9 +137,11 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     );
   }
 
-  const jobMatches = candidate.parsedData?.job_matches
-    ?? candidate.parsedData?.candidate_info?.job_matches
-    ?? (candidate.parsedData as CandidateDetails)?.job_matches;
+  // Use a type guard to safely access job_matches
+  const jobMatches =
+    candidate.parsedData && 'job_matches' in candidate.parsedData
+      ? candidate.parsedData.job_matches
+      : undefined;
 
   if (!jobMatches || jobMatches.length === 0) {
     return (

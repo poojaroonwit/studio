@@ -132,7 +132,7 @@ export async function getAllPositions() {
   const result = await pool.query('SELECT * FROM "Position" ORDER BY title ASC');
   return result.rows.map(row => ({
     ...row,
-    custom_attributes: row.customAttributes || {},
+    customAttributes: row.customAttributes || {},
   }));
 }
 
@@ -154,7 +154,7 @@ export async function getAllCandidates() {
   `);
   return result.rows.map(row => ({
     ...row,
-    custom_attributes: row.customAttributes || {},
+    customAttributes: row.customAttributes || {},
     position: row.positionId ? { title: row.positionTitle } : null,
     recruiter: row.recruiterId ? { name: row.recruiterName } : null,
   }));

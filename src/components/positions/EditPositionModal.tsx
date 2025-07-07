@@ -152,54 +152,6 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                 <Input id="position_level-edit" {...form.register('position_level')} className="mt-1" placeholder="e.g., Senior, Mid-Level, L3"/>
                 {form.formState.errors.position_level && <p className="text-sm text-destructive mt-1">{form.formState.errors.position_level.message}</p>}
               </div>
-              <div>
-                <Label htmlFor="description-edit">Job Description</Label>
-                <Controller
-                  name="description"
-                  control={form.control}
-                  render={({ field }) => (
-                    <div className="mt-1">
-                      <ReactQuill
-                        id="description-edit"
-                        theme="snow"
-                        value={field.value || ''}
-                        onChange={(content, delta, source, editor) => {
-                          if (source === 'user') {
-                            field.onChange(content);
-                          }
-                        }}
-                        className="bg-background border border-input rounded-md"
-                        placeholder="Enter job description"
-                        style={{ height: '200px' }}
-                        modules={{
-                          toolbar: [
-                            [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            [{ 'color': [] }, { 'background': [] }],
-                            ['link'],
-                            ['clean']
-                          ],
-                          clipboard: {
-                            matchVisual: false
-                          }
-                        }}
-                        formats={[
-                          'header',
-                          'bold', 'italic', 'underline', 'strike',
-                          'list', 'bullet',
-                          'color', 'background',
-                          'link'
-                        ]}
-                        preserveWhitespace={true}
-                      />
-                      {form.formState.errors.description && (
-                        <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
-                      )}
-                    </div>
-                  )}
-                />
-              </div>
               <div className="flex items-center space-x-2 pt-2">
                 <Controller
                     name="isOpen"
@@ -216,20 +168,57 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               </div>
             </form>
           </ScrollArea>
-          {/* Right Column: Job Description Preview */}
-          <Card className="h-full overflow-auto">
+          {/* Right Column: WYSIWYG Editor */}
+          <Card className="h-full overflow-auto flex flex-col">
             <CardHeader>
-              <CardTitle>Current Job Description</CardTitle>
+              <CardTitle>Edit Job Description</CardTitle>
             </CardHeader>
-            <CardContent>
-              {position?.description ? (
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: position.description }}
-                />
-              ) : (
-                <div className="text-muted-foreground italic">No job description available.</div>
-              )}
+            <CardContent className="flex-1 flex flex-col">
+              <Controller
+                name="description"
+                control={form.control}
+                render={({ field }) => (
+                  <div className="mt-1 flex-1 flex flex-col">
+                    <ReactQuill
+                      id="description-edit"
+                      theme="snow"
+                      value={field.value || ''}
+                      onChange={(content, delta, source, editor) => {
+                        if (source === 'user') {
+                          field.onChange(content);
+                        }
+                      }}
+                      className="bg-background border border-input rounded-md flex-1"
+                      placeholder="Enter job description"
+                      style={{ height: '200px', minHeight: '200px', flex: 1 }}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'color': [] }, { 'background': [] }],
+                          ['link'],
+                          ['clean']
+                        ],
+                        clipboard: {
+                          matchVisual: false
+                        }
+                      }}
+                      formats={[
+                        'header',
+                        'bold', 'italic', 'underline', 'strike',
+                        'list', 'bullet',
+                        'color', 'background',
+                        'link'
+                      ]}
+                      preserveWhitespace={true}
+                    />
+                    {form.formState.errors.description && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
+                    )}
+                  </div>
+                )}
+              />
             </CardContent>
           </Card>
         </div>

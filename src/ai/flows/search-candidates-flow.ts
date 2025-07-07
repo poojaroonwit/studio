@@ -21,14 +21,14 @@ export type SearchCandidatesInput = z.infer<typeof SearchCandidatesInputSchema>;
 
 // Output Schema
 const SearchCandidatesOutputSchema = z.object({
-  matchedCandidateIds: z.array(z.string().uuid()).describe("An array of UUIDs of candidates that match the search query."),
+  matchedCandidateIds: z.array(z.string()).describe("An array of UUIDs of candidates that match the search query."),
   aiReasoning: z.string().optional().describe("A brief explanation from the AI on why these candidates were matched or if no matches were found."),
 });
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
 // Enhanced helper to create a more comprehensive summary for a candidate
 function createCandidateSummary(candidate: Candidate): string {
-  const { id, name, email, phone, status, fitScore, position, parsedData, custom_attributes, applicationDate, recruiter, transitionHistory } = candidate;
+  const { id, name, email, phone, status, fitScore, position, parsedData, customAttributes, applicationDate, recruiter, transitionHistory } = candidate;
   const details = parsedData as CandidateDetails | null;
 
   let summaryParts: string[] = [];
@@ -120,9 +120,9 @@ function createCandidateSummary(candidate: Candidate): string {
     }
   }
   
-  if (custom_attributes && Object.keys(custom_attributes).length > 0) {
+  if (customAttributes && Object.keys(customAttributes).length > 0) {
     summaryParts.push("Custom Attributes:");
-    for (const [key, value] of Object.entries(custom_attributes)) {
+    for (const [key, value] of Object.entries(customAttributes)) {
         summaryParts.push(`  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
     }
   }
@@ -189,7 +189,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         position: row.positionId ? { id: row.positionId, title: row.positionTitle } : null,
         recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName, email: null } : null,
         transitionHistory: (row.transitionHistory || []) as TransitionRecord[],
-        custom_attributes: row.custom_attributes || {},
+        customAttributes: row.customAttributes || {},
     })) as Candidate[];
 
     if (allCandidates.length === 0) {

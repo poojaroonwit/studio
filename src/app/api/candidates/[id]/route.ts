@@ -103,8 +103,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const candidate = candidateResult.rows[0];
-    // Defensive: use correct property name for custom attributes
-    const customAttributes = candidate.custom_attributes || candidate.customAttributes || {};
 
     // Get job matches for this candidate
     const jobMatchesQuery = `
@@ -126,20 +124,31 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
 
+    // Defensive: always provide customAttributes as an object
+    let customAttributes = {};
+    try {
+      customAttributes = candidate.customAttributes || {};
+      if (typeof customAttributes === 'string') {
+        customAttributes = JSON.parse(customAttributes);
+      }
+    } catch (e) {
+      customAttributes = {};
+    }
+
     return NextResponse.json({
       ...candidate,
-      custom_attributes: customAttributes,
-      position: candidate.positionId ? { 
-        title: candidate.positionTitle,
-        department: candidate.positionDepartment 
+      customAttributes,
+      position: candidate.positionId ? {
+        title: candidate.positionTitle || null,
+        department: candidate.positionDepartment || null
       } : null,
-      recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
-      jobMatches: jobMatchesResult.rows,
-      resumeHistory: resumeHistoryResult.rows,
+      recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
+      jobMatches: jobMatchesResult.rows || [],
+      resumeHistory: resumeHistoryResult.rows || [],
     });
   } catch (error: any) {
-    console.error('Error in GET /api/candidates/[id]:', error);
-    return NextResponse.json({ message: 'Error fetching candidate', error: error.message }, { status: 500 });
+    console.error('Error fetching candidate', error); // Add server-side log
+    return NextResponse.json({ message: 'Error fetching candidate', error: error?.message || String(error) }, { status: 500 });
   } finally {
     client.release();
   }

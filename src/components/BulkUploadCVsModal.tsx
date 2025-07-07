@@ -229,7 +229,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2">
-          {/* Left Column - Position Selection */}
+          {/* Left Column - Position Selection and File Upload Area */}
           <div className="space-y-4">
             <div>
               <Label htmlFor="position-select">Assign to Position (optional)</Label>
@@ -245,9 +245,6 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          {/* Right Column - File Upload Area, Uploaded Files, and Preview */}
-          <div className="space-y-4">
             <FileUploadArea
               accept="application/pdf"
               multiple={true}
@@ -256,6 +253,9 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
               dragActive={dragActive}
               setDragActive={setDragActive}
             />
+          </div>
+          {/* Right Column - Uploaded Files List and Preview */}
+          <div className="space-y-4">
             {/* Uploaded Files List - Show selected files in right column */}
             {totalFiles > 0 && (
               <div className="space-y-2">

@@ -228,7 +228,7 @@ export interface Position {
   description?: string | null;
   isOpen: boolean;
   position_level?: string | null;
-  custom_attributes?: Record<string, any> | null;
+  customAttributes?: Record<string, any> | null;
   createdAt?: string;
   updatedAt?: string;
   candidates?: Candidate[];
@@ -264,7 +264,7 @@ export interface Candidate {
   applicationDate: string;
   recruiterId?: string | null;
   recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;
-  custom_attributes?: Record<string, any> | null;
+  customAttributes?: Record<string, any> | null;
   createdAt?: string;
   updatedAt?: string;
   transitionHistory: TransitionRecord[];

@@ -128,7 +128,7 @@ const swaggerSpec = {
                   description: { type: 'string', nullable: true },
                   isOpen: { type: 'boolean' },
                   position_level: { type: 'string', nullable: true },
-                  custom_attributes: { type: 'object', additionalProperties: true, nullable: true }
+                  customAttributes: { type: 'object', additionalProperties: true, nullable: true }
                 },
                 required: ['title', 'department', 'isOpen']
               }
@@ -188,7 +188,7 @@ const swaggerSpec = {
                   description: { type: 'string', nullable: true },
                   isOpen: { type: 'boolean' },
                   position_level: { type: 'string', nullable: true },
-                  custom_attributes: { type: 'object', additionalProperties: true, nullable: true }
+                  customAttributes: { type: 'object', additionalProperties: true, nullable: true }
                 }
               }
             }
@@ -374,7 +374,7 @@ const swaggerSpec = {
           fitScore: { type: 'number', minimum: 0, maximum: 100 },
           status: { type: 'string' },
           parsedData: { type: 'object', additionalProperties: true, nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true },
           resumePath: { type: 'string', nullable: true },
           applicationDate: { type: 'string', format: 'date-time' },
           createdAt: { type: 'string', format: 'date-time' },
@@ -395,7 +395,7 @@ const swaggerSpec = {
           fitScore: { type: 'number', minimum: 0, maximum: 100 },
           status: { type: 'string', minLength: 1 },
           parsedData: { type: 'object', additionalProperties: true, nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true },
           resumePath: { type: 'string', nullable: true }
         }
       },
@@ -408,7 +408,7 @@ const swaggerSpec = {
           description: { type: 'string', nullable: true },
           isOpen: { type: 'boolean' },
           position_level: { type: 'string', nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' }
         },
@@ -422,7 +422,7 @@ const swaggerSpec = {
           description: { type: 'string', nullable: true },
           isOpen: { type: 'boolean' },
           position_level: { type: 'string', nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true }
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true }
         },
         required: ['title', 'department', 'isOpen']
       },
@@ -434,7 +434,7 @@ const swaggerSpec = {
           description: { type: 'string', nullable: true },
           isOpen: { type: 'boolean' },
           position_level: { type: 'string', nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true }
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true }
         }
       },
       User: {
@@ -706,7 +706,7 @@ const swaggerSpec = {
           fitScore: { type: 'number', minimum: 0, maximum: 100 },
           status: { type: 'string' },
           parsedData: { type: 'object', additionalProperties: true, nullable: true },
-          custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+          customAttributes: { type: 'object', additionalProperties: true, nullable: true },
           resumePath: { type: 'string', nullable: true }
         },
         required: ['name', 'email', 'status']

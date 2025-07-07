@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const actingUserId = validation.userId!;
   const actingUserName = validation.userName!;
   const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path, webhook_payload } = data;
+  const { file_name, file_size, status, source, upload_id, file_path, webhook_payload, position_id } = data;
   if (!file_path) {
     await logAudit('WARN', `Blocking upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:BlockingPost', actingUserId, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
   try {
     // Insert job into upload_queue
     const res = await client.query(
-      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null]
+      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, position_id]
     );
     const job = res.rows[0];
     await logAudit('AUDIT', `File '${file_name}' added to upload queue (blocking) by ${actingUserName}`, 'API:UploadQueue:BlockingPost', actingUserId, {

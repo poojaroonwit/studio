@@ -170,9 +170,9 @@ export async function POST(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path } = data;
+  const { file_name, file_size, status, source, upload_id, file_path, position_id } = data;
   console.log('Upload queue POST received:', data);
-  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path });
+  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id });
   if (!file_path) {
     await logAudit('WARN', `Upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
@@ -182,10 +182,10 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const res = await client.query(
-      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, position_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path]
+      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, position_id]
     );
     
     await logAudit('AUDIT', `File '${file_name}' added to upload queue by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { 

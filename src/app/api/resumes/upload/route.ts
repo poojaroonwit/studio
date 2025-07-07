@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
       // Add to upload queue for webhook processing
       const queueId = randomUUID();
       await client.query(
-        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           queueId,
           originalName,
@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
           null,
           actingUserId,
           objectName,
-          JSON.stringify(webhookPayload)
+          JSON.stringify(webhookPayload),
+          candidate.positionid || candidate.positionId || null
         ]
       );
 

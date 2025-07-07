@@ -3,6 +3,12 @@ set -e
 
 echo "🔧 Fixing database schema mismatch..."
 
+
+
+# Set default environment variables if not provided
+export NODE_ENV=${NODE_ENV:-production}
+export PORT=${PORT:-8021}
+
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ ERROR: DATABASE_URL environment variable is not set"

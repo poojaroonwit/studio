@@ -24,7 +24,6 @@ const nextConfig = {
     ];
   },
   // Add any custom Next.js config options here
-  output: 'standalone',
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
@@ -47,10 +46,6 @@ const nextConfig = {
   },
   // Increase build timeout and handle static generation issues
   staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
-  // Disable static generation for problematic routes during build
-  async generateStaticParams() {
-    return [];
-  },
   // Webpack configuration to handle build issues
   webpack: (config, { isServer, dev }) => {
     // Handle build-time connection issues

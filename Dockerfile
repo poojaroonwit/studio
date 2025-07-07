@@ -12,6 +12,9 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
+# Debug: check if src/lib/db.ts exists
+RUN ls -l src/lib/db.ts || (echo 'src/lib/db.ts not found!' && exit 1)
+
 # Generate Prisma client
 RUN npx prisma generate
 

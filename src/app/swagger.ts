@@ -6,7 +6,7 @@ const swaggerSpec = {
     description: "API documentation for CandiTrack"
   },
   servers: [
-    { url: "http://localhost:3000", description: "Local server" }
+    { url: "http://localhost:8012", description: "Local server" }
   ],
   paths: {
     // Add your endpoint definitions here

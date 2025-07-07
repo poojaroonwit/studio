@@ -557,6 +557,13 @@ export default function CandidateDetailPage() {
     setIsEditing(false);
   };
 
+  const jobMatches =
+    candidate.parsedData &&
+    'job_matches' in candidate.parsedData &&
+    candidate.parsedData.job_matches &&
+    candidate.parsedData.job_matches.length > 0
+      ? candidate.parsedData.job_matches
+      : undefined;
 
   if (isLoading && !fetchError) {
     return (
@@ -1124,7 +1131,7 @@ export default function CandidateDetailPage() {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
-              {(candidate.parsedData && 'job_matches' in candidate.parsedData && candidate.parsedData.job_matches && candidate.parsedData.job_matches.length > 0 && !isEditing) && (
+              {jobMatches && !isEditing && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle>
@@ -1133,7 +1140,7 @@ export default function CandidateDetailPage() {
                   <CardContent>
                     <ScrollArea className="h-[calc(100vh-240px)]">
                       <ul className="space-y-3">
-                        {candidate.parsedData.job_matches.map((match, index) => (
+                        {jobMatches.map((match, index) => (
                           <li key={`match-${index}-${match.job_id || index}`} className="p-3 border rounded-md bg-muted/30">
                             <h4
                               className="font-semibold text-foreground hover:text-primary hover:underline cursor-pointer"
@@ -1160,7 +1167,7 @@ export default function CandidateDetailPage() {
                   </CardContent>
                 </Card>
               )}
-               {(!isEditing && !(
+               {(jobMatches && !isEditing && !(
                  candidate.parsedData &&
                  'job_matches' in candidate.parsedData &&
                  candidate.parsedData.job_matches &&

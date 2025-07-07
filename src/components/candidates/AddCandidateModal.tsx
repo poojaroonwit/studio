@@ -91,6 +91,8 @@ const addCandidateFormSchema = z.object({
   positionId: z.union([z.string().uuid(), z.null()]).optional(),
   status: z.string().min(1, "Status is required").default('Applied'), // Changed from enum
   fitScore: z.number().min(0).max(100).optional().default(0),
+  job_matches: z.any().optional(),
+  job_applied: z.any().optional(),
 });
 
 export type AddCandidateFormValues = z.infer<typeof addCandidateFormSchema>;

@@ -132,7 +132,7 @@ export default function SystemSettingsPage() {
   }
 
   return (
-    <div className="space-y-12 pb-32 p-6">
+    <div className="space-y-6 pb-32 p-6">
       {/* AI Configuration (Gemini) */}
   
         <div className="flex items-center text-2xl gap-2">

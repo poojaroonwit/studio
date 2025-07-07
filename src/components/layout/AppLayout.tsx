@@ -40,8 +40,9 @@ function getPageTitle(pathname: string): string {
   }
   if (pathname.startsWith("/users")) return "Manage Users";
   if (pathname.startsWith("/my-tasks")) return "My Task Board";
-  if (pathname.startsWith("/settings/preferences")) return "Preferences";
-      if (pathname.startsWith("/settings/system-settings")) return "Integrations";
+  if (pathname.startsWith("/settings/my-preferences")) return "My Preferences";
+  if (pathname.startsWith("/settings/appearance")) return "Appearance";
+  if (pathname.startsWith("/settings/system-settings")) return "Integrations";
   if (pathname.startsWith("/settings/stages")) return "Recruitment Stages";
   if (pathname.startsWith("/settings/data-models")) return "Data Model Preferences";
   if (pathname.startsWith("/settings/custom-fields")) return "Custom Field Definitions";

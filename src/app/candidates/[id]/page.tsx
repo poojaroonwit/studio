@@ -1160,7 +1160,12 @@ export default function CandidateDetailPage() {
                   </CardContent>
                 </Card>
               )}
-               {(!isEditing && (!candidate.parsedData?.job_matches || candidate.parsedData.job_matches.length === 0)) && (
+               {(!isEditing && !(
+                 candidate.parsedData &&
+                 'job_matches' in candidate.parsedData &&
+                 candidate.parsedData.job_matches &&
+                 candidate.parsedData.job_matches.length > 0
+               )) && (
                  <Card>
                     <CardHeader><CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle></CardHeader>
                     <CardContent><p className="text-sm text-muted-foreground text-center py-4">No automated job match data available.</p></CardContent>

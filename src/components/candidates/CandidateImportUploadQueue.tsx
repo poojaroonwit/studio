@@ -122,11 +122,11 @@ export const CandidateImportUploadQueue: React.FC = () => {
     await fetchJobs();
   }, [fetchJobs]);
 
-  // Real-time polling as fallback (every 5 seconds)
+  // Fallback polling (less frequent since we have SSE)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchJobs();
-    }, 5000);
+    }, 30000); // Poll every 30 seconds as fallback
     
     return () => clearInterval(interval);
   }, [fetchJobs]);
@@ -145,73 +145,70 @@ export const CandidateImportUploadQueue: React.FC = () => {
     };
   }, [fetchJobs]);
 
+  // Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
-    // Determine WebSocket URL based on environment
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/upload-queue/ws`;
-    
-    let ws: WebSocket | null = null;
+    let eventSource: EventSource | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
-    const reconnectDelay = 2000; // 2 seconds
+    const reconnectDelay = 2000;
     
-    const connectWebSocket = () => {
+    const connectSSE = () => {
       try {
-        ws = new window.WebSocket(wsUrl);
+        const sseUrl = '/api/upload-queue/sse';
+        eventSource = new EventSource(sseUrl);
         
-        ws.onopen = () => {
-          console.log('WebSocket connected for real-time queue updates');
+        eventSource.onopen = () => {
+          console.log('SSE connected for real-time queue updates');
           setIsRealtimeActive(true);
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
         };
         
-        ws.onerror = (error) => {
-          console.warn('WebSocket connection error:', error);
-          setIsRealtimeActive(false);
-        };
-        
-        ws.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.code, event.reason);
+        eventSource.onerror = (error) => {
+          console.warn('SSE connection error:', error);
           setIsRealtimeActive(false);
           
-          // Attempt to reconnect if not a normal closure and under max attempts
-          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+          // Attempt to reconnect if under max attempts
+          if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            console.log(`Attempting to reconnect WebSocket (${reconnectAttempts}/${maxReconnectAttempts})...`);
-            setTimeout(connectWebSocket, reconnectDelay * reconnectAttempts);
+            console.log(`Attempting to reconnect SSE (${reconnectAttempts}/${maxReconnectAttempts})...`);
+            setTimeout(() => {
+              if (eventSource) {
+                eventSource.close();
+                connectSSE();
+              }
+            }, reconnectDelay * reconnectAttempts);
           }
         };
         
-        ws.onmessage = (event) => {
+        eventSource.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
-            if (msg.type === 'queue_updated') {
-              // Immediately fetch updated data when queue is updated
-              fetchJobs();
-            } else if (msg.type === 'queue') {
+            if (msg.type === 'queue') {
               // Handle full queue data updates
               if (msg.data && Array.isArray(msg.data)) {
                 setJobs(msg.data);
                 setTotal(msg.data.length);
               }
+            } else if (msg.type === 'error') {
+              console.error('SSE error:', msg.message);
             }
           } catch (error) {
-            console.warn('Error parsing WebSocket message:', error);
+            console.warn('Error parsing SSE message:', error);
           }
         };
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        console.error('Failed to create SSE connection:', error);
       }
     };
     
-    connectWebSocket();
+    connectSSE();
     
     return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, 'Component unmounting');
+      if (eventSource) {
+        eventSource.close();
       }
     };
-  }, [fetchJobs]);
+  }, []);
 
   function formatBytes(bytes: number) {
     if (bytes === 0) return "0 Bytes";

@@ -207,64 +207,79 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         setSelectedPositionId("");
       }
     }}>
-      <DialogContent className="max-w-lg w-full">
+      <DialogContent className="max-w-4xl w-full">
         <DialogHeader>
           <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
           <DialogDescription>
             Upload multiple PDF resumes and (optionally) assign them to a position.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <Label htmlFor="position-select">Assign to Position (optional)</Label>
-            <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
-              <SelectTrigger id="position-select" className="mt-2">
-                <SelectValue placeholder="Select a position..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__NONE__">None (General Application)</SelectItem>
-                {availablePositions.map(pos => (
-                  <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
-              dragActive 
-                ? 'border-primary bg-primary/10' 
-                : 'border-border bg-muted/30'
-            }`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => document.getElementById('bulk-upload-cv-input')?.click()}
-            style={{ cursor: 'pointer' }}
-          >
-            <input
-              id="bulk-upload-cv-input"
-              type="file"
-              accept="application/pdf"
-              multiple
-              className="hidden"
-              onChange={handleInputChange}
-            />
-            <UploadCloud className="mx-auto mb-2 h-8 w-8 text-primary" />
-            <p className="text-base font-medium mb-2">Drag and drop PDF files here, or click to select files</p>
-            <p className="text-xs text-muted-foreground">Only PDF files are accepted. Max size: 500MB each.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2">
+          {/* Left Column - Position Selection */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="position-select">Assign to Position (optional)</Label>
+              <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
+                <SelectTrigger id="position-select" className="mt-2">
+                  <SelectValue placeholder="Select a position..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__NONE__">None (General Application)</SelectItem>
+                  {availablePositions.map(pos => (
+                    <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* File List - Show selected files in left column */}
             {totalFiles > 0 && (
-              <div className="mt-4 flex flex-col gap-2">
-                {selectedFiles.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-background rounded px-2 py-1 border border-border">
-                    <span className="truncate max-w-xs">{file.name}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>
-                    <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(file); }}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <Label>Selected Files ({totalFiles})</Label>
+                <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
+                  {selectedFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-background rounded px-3 py-2 border border-border">
+                      <div className="flex-1 min-w-0">
+                        <span className="truncate block text-sm font-medium">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>
+                      </div>
+                      <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(file); }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+          </div>
+
+          {/* Right Column - File Upload Area */}
+          <div className="space-y-4">
+            <div
+              className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${
+                dragActive 
+                  ? 'border-primary bg-primary/10' 
+                  : 'border-border bg-muted/30'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => document.getElementById('bulk-upload-cv-input')?.click()}
+              style={{ cursor: 'pointer' }}
+            >
+              <input
+                id="bulk-upload-cv-input"
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleInputChange}
+              />
+              <UploadCloud className="mx-auto mb-4 h-12 w-12 text-primary" />
+              <p className="text-lg font-medium mb-2">Drag and drop PDF files here</p>
+              <p className="text-sm text-muted-foreground mb-4">or click to select files</p>
+              <p className="text-xs text-muted-foreground">Only PDF files are accepted. Max size: 500MB each.</p>
+            </div>
           </div>
         </div>
         <DialogFooter>

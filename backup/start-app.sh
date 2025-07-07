@@ -13,7 +13,7 @@ echo "Ensuring .env.local exists or providing a warning..."
 if [ ! -f .env.local ]; then
     echo "WARNING: .env.local file not found. Using default environment variables from docker-compose.yml."
     echo "It's HIGHLY recommended to create a .env.local file from .env.example and customize it."
-    echo "Pay special attention to NEXTAUTH_URL - it should be http://localhost:9846 if using default docker-compose port mapping."
+    echo "Pay special attention to NEXTAUTH_URL - it should be http://localhost:8021 if using default docker-compose port mapping."
     echo "The default admin credentials are admin@ncc.com / nccadmin (defined in pg-init-scripts/init-db.sql)."
     echo "Make sure to update the bcrypt hash in init-db.sql if you change the default admin password BEFORE first run."
     echo "" # Adding a blank line for readability
@@ -52,7 +52,7 @@ if [ $? -eq 0 ]; then
     if [ "$REINIT_DB" = true ]; then
         echo "Database has been re-initialized."
     fi
-    echo "Application should be available at http://localhost:9846 (or your configured NEXTAUTH_URL)."
+    echo "Application should be available at http://localhost:8021 (or your configured NEXTAUTH_URL)."
     echo "MinIO Console (if defaults used): http://localhost:9848"
 else
     echo "Failed to start Candidate Matching services. Check Docker Compose logs."

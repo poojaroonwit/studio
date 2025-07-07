@@ -101,7 +101,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
    ```
 
 4. **Access the application:**
-   - **Main App**: http://localhost:9846
+   - **Main App**: http://localhost:8021
    - **MinIO Console**: http://localhost:9848
    - **Default Login**: admin@ncc.com / nccadmin
 
@@ -128,7 +128,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 ```env
 # Application
 NODE_ENV=production
-NEXTAUTH_URL=http://your-domain:9846
+NEXTAUTH_URL=http://your-domain:8021
 NEXTAUTH_SECRET=your-secret-key
 
 # Database
@@ -165,7 +165,7 @@ GOOGLE_API_KEY=your-google-ai-key
 
 | Service | Internal Port | External Port | Description |
 |---------|---------------|---------------|-------------|
-| **Main App** | 9846 | 9846 | Next.js application |
+| **Main App** | 8021 | 8021 | Next.js application |
 | **MinIO API** | 9000 | 9847 | Object storage API |
 | **MinIO Console** | 9001 | 9848 | Storage management UI |
 | **PostgreSQL** | 5432 | 5432 | Database |
@@ -227,7 +227,7 @@ docker build -t candidatrack .
 # Run with environment variables
 docker run -d \
   --name candidatrack \
-  -p 9846:9846 \
+  -p 8021:8021 \
   --env-file .env \
   candidatrack
 ```

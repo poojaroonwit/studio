@@ -8,7 +8,7 @@ This document outlines all port configurations for the Studio-5 application cont
 
 | Service | Internal Port | External Port | Environment Variable | Description |
 |---------|---------------|---------------|---------------------|-------------|
-| **app** | 9846 | 8021 | `APP_PORT` | Main application (Next.js) |
+| **app** | 8021 | 8021 | `APP_PORT` | Main application (Next.js) |
 | **postgres** | 5432 | 8521 | `POSTGRES_PORT` | PostgreSQL database |
 | **minio** | 9000 | 8621 | `MINIO_API_PORT` | MinIO API server |
 | **minio** | 9001 | 8721 | `MINIO_CONSOLE_PORT` | MinIO web console |
@@ -22,7 +22,7 @@ This document outlines all port configurations for the Studio-5 application cont
 services:
   app:
     ports:
-      - "${APP_PORT:-8021}:9846"
+      - "${APP_PORT:-8021}:8021"
   
   postgres:
     ports:
@@ -86,9 +86,9 @@ services:
 
 ### Main Application (Dockerfile)
 ```dockerfile
-EXPOSE 9846
+EXPOSE 8021
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9846/api/health || exit 1
+    CMD curl -f http://localhost:8021/api/health || exit 1
 ```
 
 ### 8021 Application (Dockerfile.8021)

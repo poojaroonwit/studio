@@ -95,7 +95,7 @@ setup_environment_files() {
         cat > .env.local << EOF
 # Local Development Environment
 NODE_ENV=development
-APP_PORT=9846
+APP_PORT=8021
 
 # Database Configuration
 DATABASE_URL=postgresql://postgres:password@localhost:5432/studio5_local
@@ -115,7 +115,7 @@ MINIO_USE_SSL=false
 REDIS_URL=redis://localhost:6379
 
 # Authentication Configuration
-NEXTAUTH_URL=http://localhost:9846
+NEXTAUTH_URL=http://localhost:8021
 NEXTAUTH_SECRET=your-local-secret-key
 
 # Processor Configuration

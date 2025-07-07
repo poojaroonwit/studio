@@ -13,7 +13,7 @@ if (BASE_INTERVAL_MS_RAW) {
   }
 }
 const MAX_BACKOFF_MS = 60000; // 1 minute max
-const PROCESS_URL = process.env.PROCESSOR_URL || 'http://app:9846/api/upload-queue/process';
+const PROCESS_URL = process.env.PROCESSOR_URL || 'http://app:8021/api/upload-queue/process';
 
 // Exit if API key is not set
 if (!process.env.PROCESSOR_API_KEY) {
@@ -84,7 +84,7 @@ async function getMaxConcurrentProcessors(): Promise<number> {
     else console.warn('Invalid MAX_CONCURRENT_PROCESSORS, using default 5');
   }
   try {
-    const res = await fetch('http://app:9846/api/settings/system-settings');
+    const res = await fetch('http://app:8021/api/settings/system-settings');
     if (!res.ok) throw new Error('Failed to fetch system settings');
     const settings = await res.json();
     const found = Array.isArray(settings)

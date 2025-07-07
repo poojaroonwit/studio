@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
       address: false,
       telephone: false,
     },
-    metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:9846'),
+    metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:8021'),
     alternates: {
       canonical: '/',
     },

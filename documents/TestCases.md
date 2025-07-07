@@ -24,7 +24,7 @@
 
 ## 2. Test Environment Setup
 
-*   **Application URL:** `http://localhost:9846` (or production URL)
+*   **Application URL:** `http://localhost:8021` (or production URL)
 *   **Browser:** Latest stable version of Chrome/Firefox/Edge
 *   **Database:** PostgreSQL instance populated with initial data (via updated `init-db.sql`)
 *   **File Storage:** MinIO instance configured

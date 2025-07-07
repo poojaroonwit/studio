@@ -221,7 +221,7 @@ deploy_remote() {
         docker-compose -f "$COMPOSE_FILE" ps
         
         echo "Checking application health..."
-        if curl -f http://localhost:${APP_PORT:-9846}/api/health; then
+        if curl -f http://localhost:${APP_PORT:-8021}/api/health; then
             echo "Application is healthy"
         else
             echo "Application health check failed"

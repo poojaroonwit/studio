@@ -55,12 +55,12 @@ The Studio-5 application uses a comprehensive GitLab CI/CD pipeline that include
 
 All containers now expose their ports for external access:
 
-#### Main Application (Port 9846)
+#### Main Application (Port 8021)
 ```yaml
 # Dockerfile
-EXPOSE 9846
+EXPOSE 8021
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:9846/api/health || exit 1
+    CMD curl -f http://localhost:8021/api/health || exit 1
 ```
 
 #### 8021 Application (Port 8021)
@@ -89,7 +89,7 @@ EXPOSE 8821
 services:
   app:
     ports:
-      - "${APP_PORT:-9846}:9846"
+      - "${APP_PORT:-8021}:8021"
   
   postgres:
     ports:
@@ -235,7 +235,7 @@ docker ps
 docker inspect <container-name> | grep -A 10 Health
 
 # Manual health check
-curl -f http://localhost:9846/api/health
+curl -f http://localhost:8021/api/health
 ```
 
 ### Logs
@@ -290,7 +290,7 @@ ssh user@host "ls -la /var/www/studio-5"
 #### 3. Port Conflicts
 ```bash
 # Check port usage
-netstat -tulpn | grep :9846
+netstat -tulpn | grep :8021
 
 # Stop conflicting services
 sudo systemctl stop conflicting-service

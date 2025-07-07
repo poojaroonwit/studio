@@ -7,7 +7,7 @@ Write-Host ""
 # Check if we can connect to the health endpoint
 Write-Host "1. Testing application health..." -ForegroundColor Yellow
 try {
-    $healthResponse = Invoke-RestMethod -Uri "http://localhost:9846/api/health" -Method GET -TimeoutSec 10
+    $healthResponse = Invoke-RestMethod -Uri "http://localhost:8021/api/health" -Method GET -TimeoutSec 10
     Write-Host "   ✓ Application is responding" -ForegroundColor Green
     Write-Host "   Overall Status: $($healthResponse.status)" -ForegroundColor Cyan
     Write-Host "   Database Status: $($healthResponse.components.database.status)" -ForegroundColor Cyan
@@ -23,7 +23,7 @@ Write-Host ""
 # Check if we can access the signin page
 Write-Host "2. Testing signin page accessibility..." -ForegroundColor Yellow
 try {
-    $signinResponse = Invoke-WebRequest -Uri "http://localhost:9846/auth/signin" -Method GET -TimeoutSec 10
+    $signinResponse = Invoke-WebRequest -Uri "http://localhost:8021/auth/signin" -Method GET -TimeoutSec 10
     Write-Host "   ✓ Signin page is accessible (Status: $($signinResponse.StatusCode))" -ForegroundColor Green
 } catch {
     Write-Host "   ✗ Signin page access failed: $($_.Exception.Message)" -ForegroundColor Red
@@ -34,7 +34,7 @@ Write-Host ""
 # Check if we can access the validate-session endpoint
 Write-Host "3. Testing session validation endpoint..." -ForegroundColor Yellow
 try {
-    $validateResponse = Invoke-WebRequest -Uri "http://localhost:9846/api/auth/validate-session" -Method GET -TimeoutSec 10
+    $validateResponse = Invoke-WebRequest -Uri "http://localhost:8021/api/auth/validate-session" -Method GET -TimeoutSec 10
     Write-Host "   ✓ Session validation endpoint is accessible (Status: $($validateResponse.StatusCode))" -ForegroundColor Green
     $validateContent = $validateResponse.Content | ConvertFrom-Json
     Write-Host "   Response: $($validateContent | ConvertTo-Json -Compress)" -ForegroundColor Cyan

@@ -7,7 +7,7 @@ Write-Host ""
 # Check if we can connect to the health endpoint
 Write-Host "1. Testing application health..." -ForegroundColor Yellow
 try {
-    $healthResponse = Invoke-RestMethod -Uri "http://localhost:9846/api/health" -Method GET -TimeoutSec 10
+    $healthResponse = Invoke-RestMethod -Uri "http://localhost:8021/api/health" -Method GET -TimeoutSec 10
     Write-Host "   ✓ Application is responding" -ForegroundColor Green
     Write-Host "   Overall Status: $($healthResponse.status)" -ForegroundColor Cyan
     Write-Host "   Database Status: $($healthResponse.components.database.status)" -ForegroundColor Cyan
@@ -22,7 +22,7 @@ Write-Host ""
 # Check MinIO connectivity specifically
 Write-Host "2. Testing MinIO connectivity..." -ForegroundColor Yellow
 try {
-    $minioResponse = Invoke-RestMethod -Uri "http://localhost:9846/api/setup/check-minio-bucket" -Method GET -TimeoutSec 10
+    $minioResponse = Invoke-RestMethod -Uri "http://localhost:8021/api/setup/check-minio-bucket" -Method GET -TimeoutSec 10
     Write-Host "   ✓ MinIO bucket check successful" -ForegroundColor Green
     Write-Host "   Status: $($minioResponse.status)" -ForegroundColor Cyan
     Write-Host "   Message: $($minioResponse.message)" -ForegroundColor Cyan
@@ -48,7 +48,7 @@ try {
         files = Get-Item $testFile
     }
     
-    $uploadResponse = Invoke-RestMethod -Uri "http://localhost:9846/api/upload-queue/upload-file" -Method POST -Form $form -TimeoutSec 30
+    $uploadResponse = Invoke-RestMethod -Uri "http://localhost:8021/api/upload-queue/upload-file" -Method POST -Form $form -TimeoutSec 30
     Write-Host "   ✓ File upload test successful" -ForegroundColor Green
     Write-Host "   Results: $($uploadResponse.results | ConvertTo-Json -Compress)" -ForegroundColor Cyan
     if ($uploadResponse.summary) {
@@ -73,7 +73,7 @@ Write-Host ""
 Write-Host "4. Testing WebSocket connectivity..." -ForegroundColor Yellow
 try {
     # Note: PowerShell doesn't have native WebSocket support, so we'll test the endpoint
-    $wsResponse = Invoke-WebRequest -Uri "http://localhost:9846/api/upload-queue/ws" -Method GET -TimeoutSec 10
+    $wsResponse = Invoke-WebRequest -Uri "http://localhost:8021/api/upload-queue/ws" -Method GET -TimeoutSec 10
     Write-Host "   ✓ WebSocket endpoint is accessible (Status: $($wsResponse.StatusCode))" -ForegroundColor Green
     if ($wsResponse.StatusCode -eq 426) {
         Write-Host "   Expected: WebSocket upgrade required" -ForegroundColor Yellow

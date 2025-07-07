@@ -788,7 +788,9 @@ export default function CandidateDetailPage() {
                         <>
                             {renderField("Applied for", candidate.position?.title || 'N/A - General Application', Briefcase)}
                             {renderField("Application Date", candidate.applicationDate ? format(parseISO(candidate.applicationDate), "PPP") : 'N/A', CalendarDays)}
-                            {renderField("CV Language", candidate.parsedData?.cv_language, Tag)}
+                            {renderField("CV Language", candidate.parsedData && 'cv_language' in candidate.parsedData
+                                ? candidate.parsedData.cv_language
+                                : undefined, Tag)}
                         </>
                     )}
                     {candidate.resumePath && !isEditing && renderField(

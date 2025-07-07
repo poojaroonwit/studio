@@ -1022,20 +1022,31 @@ export default function CandidateDetailPage() {
                     ) : (
                         (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
-                                {skills.map((skillEntry, index) => (
-                                <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
-                                    {renderField("Segment", skillEntry.segment_skill)}
-                                    {skillEntry.skill && skillEntry.skill.length > 0 && (
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                        {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
-                                        </div>
-                                    </div>
-                                    )}
-                                    {index < skills!.length - 1 && <Separator className="my-3" />}
-                                </li>
-                                ))}
+                                {skills.map((skillEntry, index) => {
+                                    if (typeof skillEntry === 'string') {
+                                        // Render string-only skill entry
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted/30">
+                                                {renderField("Skill", skillEntry)}
+                                            </li>
+                                        );
+                                    } else {
+                                        // Render SkillEntry object
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                {renderField("Segment", skillEntry.segment_skill)}
+                                                {skillEntry.skill && skillEntry.skill.length > 0 && (
+                                                    <div>
+                                                        <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
+                                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                                            {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    }
+                                })}
                             </ul>
                         ) : <div className="text-sm text-muted-foreground text-center py-4">No skill details provided.</div>
                     )}

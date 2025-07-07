@@ -228,7 +228,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
             Upload multiple PDF resumes and (optionally) assign them to a position.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2 p-4">
           {/* Left Column - Position Selection and File Upload Area */}
           <div className="space-y-4">
             <div>

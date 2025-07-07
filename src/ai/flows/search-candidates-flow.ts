@@ -153,7 +153,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
   if (dbApiKey) {
     console.log("AI Search: Using Gemini API Key from database for this flow instance.");
     const customGoogleAI = googleAI({ apiKey: dbApiKey });
-    activeAi = globalGenkit({ plugins: [customGoogleAI], model: 'googleai/gemini-pro' });
+    activeAi = globalGenkit({ plugins: [customGoogleAI], model: 'googleai/gemini-flash-2.0' });
   } else if (process.env.GOOGLE_API_KEY) {
     console.log("AI Search: Using GOOGLE_API_KEY environment variable (global Genkit instance).");
   } else {

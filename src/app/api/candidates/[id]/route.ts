@@ -86,6 +86,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 
   const { id } = params;
+  // Validate UUID
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    console.error('Invalid candidate ID format:', id);
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
+  }
+
   const client = await getPool().connect();
   try {
     // Get candidate with position and recruiter info
@@ -94,9 +101,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
-      WHERE c.id = $1;
+      WHERE c.id = $1::uuid;
     `;
     const candidateResult = await client.query(candidateQuery, [id]);
+    console.log('Candidate query result for ID', id, candidateResult.rows);
     
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
@@ -109,7 +117,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT jm.*, p.title as "positionTitle"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1
+      WHERE jm."candidateId" = $1::uuid
       ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
@@ -119,7 +127,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT rh.*, u.name as "uploadedByUserName"
       FROM "ResumeHistory" rh
       LEFT JOIN "User" u ON rh."uploadedByUserId" = u.id
-      WHERE rh."candidateId" = $1
+      WHERE rh."candidateId" = $1::uuid
       ORDER BY rh."uploadedAt" DESC;
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
@@ -129,9 +137,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     try {
       customAttributes = candidate.customAttributes || {};
       if (typeof customAttributes === 'string') {
-        customAttributes = JSON.parse(customAttributes);
+        try {
+          customAttributes = JSON.parse(customAttributes);
+        } catch (parseErr) {
+          console.error('Failed to parse customAttributes for candidate', id, parseErr, customAttributes);
+          customAttributes = {};
+        }
       }
     } catch (e) {
+      console.error('Error handling customAttributes for candidate', id, e);
       customAttributes = {};
     }
 
@@ -147,7 +161,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       resumeHistory: resumeHistoryResult.rows || [],
     });
   } catch (error: any) {
-    console.error('Error fetching candidate', error); // Add server-side log
+    console.error('Error fetching candidate', id, error); // Add server-side log with ID
     return NextResponse.json({ message: 'Error fetching candidate', error: error?.message || String(error) }, { status: 500 });
   } finally {
     client.release();
@@ -183,7 +197,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await client.query('BEGIN');
     
     // Check if candidate exists
-    const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
+    const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1::uuid', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
@@ -198,7 +212,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       SET name = $1, email = $2, phone = $3, "positionId" = $4, "recruiterId" = $5, 
           "fitScore" = $6, status = $7, "parsedData" = $8, "customAttributes" = $9, 
           "resumePath" = $10, "updatedAt" = NOW()
-      WHERE id = $11
+      WHERE id = $11::uuid
       RETURNING *;
     `;
     const updateResult = await client.query(updateQuery, [
@@ -254,7 +268,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await client.query('BEGIN');
     
     // Get candidate name for audit log
-    const result = await client.query('DELETE FROM "Candidate" WHERE id = $1 RETURNING name', [id]);
+    const result = await client.query('DELETE FROM "Candidate" WHERE id = $1::uuid RETURNING name', [id]);
     
     if (result.rows.length === 0) {
       await client.query('ROLLBACK');

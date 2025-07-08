@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { broadcastCandidateUpdate } from './sse/route';
+import { broadcastCandidateUpdate } from '@/lib/candidateSse';
 
 /**
  * @openapi

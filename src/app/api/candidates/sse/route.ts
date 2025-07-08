@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { addSseController, removeSseController } from '@/lib/candidateSse';
 
 export async function GET() {

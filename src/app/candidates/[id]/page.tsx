@@ -1238,7 +1238,7 @@ export default function CandidateDetailPage() {
 
             <div className="lg:col-span-1 space-y-6">
               {!isEditing && candidate && allDbPositions.length > 0 && (
-                <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
                   {/* Applied Position Card */}
                   <Card>
                     <CardHeader>
@@ -1247,7 +1247,10 @@ export default function CandidateDetailPage() {
                     <CardContent>
                       {(() => {
                         const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                        const appliedMatch = candidate.parsedData?.job_matches?.find(
+                        const jobMatches = 'job_matches' in (candidate.parsedData ?? {}) && Array.isArray((candidate.parsedData as any).job_matches)
+                          ? (candidate.parsedData as any).job_matches
+                          : [];
+                        const appliedMatch = jobMatches.find(
                           (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
                         );
                         return appliedPosition ? (
@@ -1277,30 +1280,36 @@ export default function CandidateDetailPage() {
                       <CardTitle>Other Job Matches</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {candidate.parsedData?.job_matches && candidate.parsedData.job_matches.length > 0 ? (
-                        <ul className="space-y-4">
-                          {candidate.parsedData.job_matches.filter((jm: any) => {
-                            const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                            return !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase();
-                          }).map((jm: any, idx: number) => (
-                            <li key={`other-match-${idx}`} className="border-b pb-2 last:border-b-0">
-                              <div className="font-semibold">{jm.job_title} <span className="ml-2 text-xs text-muted-foreground">Fit Score: <span className="font-bold">{jm.fit_score}%</span></span></div>
-                              {jm.match_reasons?.length > 0 && (
-                                <ul className="list-disc list-inside text-xs text-muted-foreground mt-1">
-                                  {jm.match_reasons.map((reason: string, i: number) => (
-                                    <li key={`other-reason-${idx}-${i}`}>{reason}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="text-muted-foreground">No other job matches found.</div>
-                      )}
+                      {(() => {
+                        const jobMatches = 'job_matches' in (candidate.parsedData ?? {}) && Array.isArray((candidate.parsedData as any).job_matches)
+                          ? (candidate.parsedData as any).job_matches
+                          : [];
+                        const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                        const otherMatches = jobMatches.filter((jm: any) => {
+                          return !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase();
+                        });
+                        return otherMatches.length > 0 ? (
+                          <ul className="space-y-4">
+                            {otherMatches.map((jm: any, idx: number) => (
+                              <li key={`other-match-${idx}`} className="border-b pb-2 last:border-b-0">
+                                <div className="font-semibold">{jm.job_title} <span className="ml-2 text-xs text-muted-foreground">Fit Score: <span className="font-bold">{jm.fit_score}%</span></span></div>
+                                {jm.match_reasons?.length > 0 && (
+                                  <ul className="list-disc list-inside text-xs text-muted-foreground mt-1">
+                                    {jm.match_reasons.map((reason: string, i: number) => (
+                                      <li key={`other-reason-${idx}-${i}`}>{reason}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-muted-foreground">No other job matches found.</div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
-                </>
+                </div>
               )}
                {(jobMatches && !isEditing && !(
                  candidate.parsedData &&

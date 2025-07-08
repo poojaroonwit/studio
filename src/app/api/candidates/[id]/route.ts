@@ -211,6 +211,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
+
+    // Existence checks for foreign keys
+    if (positionId) {
+      const posCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [positionId]);
+      if (posCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Position not found.' }, { status: 400 });
+      }
+    }
+    if (recruiterId) {
+      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid', [recruiterId]);
+      if (recCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Recruiter not found.' }, { status: 400 });
+      }
+    }
     
     // Check if candidate exists
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1::uuid', [id]);

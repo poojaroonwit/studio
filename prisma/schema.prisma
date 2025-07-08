@@ -36,7 +36,6 @@ model User {
   candidates        Candidate[] @relation("RecruiterCandidates")
   userGroups        User_UserGroup[]
   transitionRecords TransitionRecord[] @relation("ActingUserTransitions")
-  resumeHistory     ResumeHistory[] @relation("UserResumeHistory")
   logEntries        LogEntry[] @relation("UserLogEntries")
   uploadQueue       UploadQueue[] @relation("UserUploadQueue")
   accounts          Account[]
@@ -91,7 +90,6 @@ model Candidate {
   recruiter       User?     @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
   transitionRecords TransitionRecord[]
   jobMatches      JobMatch[]
-  resumeHistory   ResumeHistory[]
   
   // Indexes
   @@index([email])

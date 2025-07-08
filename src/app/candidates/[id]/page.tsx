@@ -808,9 +808,9 @@ export default function CandidateDetailPage() {
           </Button>
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 border border-border rounded-xl shadow-md bg-card overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 border border-border bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-card border-r border-border sticky top-6 h-fit p-6 rounded-xl shadow-sm">
+            <div className="lg:col-span-2 bg-card sticky top-6 h-fit p-3">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <StagePipeline
@@ -837,11 +837,9 @@ export default function CandidateDetailPage() {
             {/* MAIN CONTENT (50%) with Tabs */}
             <div className="lg:col-span-5 space-y-8 bg-background border-r border-border p-8">
               {/* Tabs for main content */}
-              <Tabs defaultValue="info" className="w-full">
-                <TabsList className="mb-6 w-full flex rounded-full bg-muted p-1 shadow-sm">
-                  <TabsTrigger value="info" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Information</TabsTrigger>
-                </TabsList>
-                <TabsContent value="info">
+             
+            
+               
                    {/* Candidate Header */}
                    {candidate && (
                      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 bg-card border border-border rounded-xl shadow-sm p-6">
@@ -1232,7 +1230,7 @@ export default function CandidateDetailPage() {
                               </div>
                             )}
                   </section>
-                </TabsContent>
+                <Tabs defaultValue="info" className="w-full">
                 <TabsContent value="comments">
                   {/* Candidate Comments Section (editable, add/delete) */}
                   <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 /**
  * Check existing database schema and determine what needs to be created

@@ -170,10 +170,10 @@ export async function POST(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id } = data;
+  const { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;
   const finalPositionId = position_id || applied_position_id || null;
   console.log('Upload queue POST received:', data);
-  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id });
+  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload });
   if (!file_path) {
     await logAudit('WARN', `Upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
@@ -183,10 +183,10 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const res = await client.query(
-      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, position_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, finalPositionId]
+      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
     );
     
     await logAudit('AUDIT', `File '${file_name}' added to upload queue by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { 

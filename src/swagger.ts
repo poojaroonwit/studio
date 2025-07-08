@@ -351,6 +351,143 @@ const swaggerSpec = {
         }
       }
     },
+    '/api/v1/candidates/{id}/resumes': {
+      get: {
+        summary: 'Get all resumes for a candidate (v1 API)',
+        description: 'Returns a list of resumes for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Resumes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': {
+            description: 'List of resumes',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Resume' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' }
+        }
+      },
+      post: {
+        summary: 'Upload a resume for a candidate (v1 API)',
+        description: 'Uploads a new resume file for the specified candidate. Requires Bearer token authentication. Accepts multipart/form-data.',
+        tags: ['V1 Candidates', 'Resumes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  resume: { type: 'string', format: 'binary', description: 'Resume file (PDF, DOC, DOCX, RTF)' }
+                },
+                required: ['resume']
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Resume uploaded successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: { $ref: '#/components/schemas/Resume' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'No file uploaded' },
+          '401': { description: 'Unauthorized' }
+        }
+      },
+      put: {
+        summary: 'Set a resume as primary (v1 API)',
+        description: 'Sets the specified resume as the primary resume for the candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Resumes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  resumeId: { type: 'string', format: 'uuid', description: 'Resume ID to set as primary' }
+                },
+                required: ['resumeId']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Resume set as primary',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: { $ref: '#/components/schemas/Resume' }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' }
+        }
+      },
+      delete: {
+        summary: 'Delete a resume for a candidate (v1 API)',
+        description: 'Deletes the specified resume for the candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Resumes'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  resumeId: { type: 'string', format: 'uuid', description: 'Resume ID to delete' }
+                },
+                required: ['resumeId']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': { description: 'Resume deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Resume not found' }
+        }
+      }
+    },
   },
   components: {
     securitySchemes: {
@@ -721,6 +858,28 @@ const swaggerSpec = {
           updatedAt: { type: 'string', format: 'date-time' }
         },
         required: ['jobId', 'matchScore']
+      },
+      Resume: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          candidateId: { type: 'string', format: 'uuid' },
+          uploadedById: { type: 'string', format: 'uuid' },
+          filePath: { type: 'string' },
+          fileName: { type: 'string' },
+          isPrimary: { type: 'boolean' },
+          uploadedAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+          url: { type: 'string', description: 'Public URL to access the resume file' },
+          uploadedBy: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string', nullable: true },
+              email: { type: 'string', nullable: true }
+            }
+          }
+        }
       }
     }
   },

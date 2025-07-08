@@ -139,9 +139,19 @@ export async function POST(request: NextRequest) {
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       // Build JSON payload as required
       const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
+      
+      // Get targetPositionId from webhook_payload if available
+      let targetPositionId = null;
+      if (job.webhook_payload && typeof job.webhook_payload === 'object') {
+        targetPositionId = job.webhook_payload.targetPositionId || null;
+      }
+      
+      // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
+      const finalPositionId = targetPositionId || job.position_id;
+      
       const inputs = {
         cv_url: publicUrl,
-        applied_position_id: job.position_id,
+        applied_position_id: finalPositionId,
         applied_job_level: job.position_level,
         applied_job_title: job.position_title,
         applied_job_description: job.position_description,
@@ -467,9 +477,19 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       // Build JSON payload as required
       const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
+      
+      // Get targetPositionId from webhook_payload if available
+      let targetPositionId = null;
+      if (job.webhook_payload && typeof job.webhook_payload === 'object') {
+        targetPositionId = job.webhook_payload.targetPositionId || null;
+      }
+      
+      // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
+      const finalPositionId = targetPositionId || job.position_id;
+      
       const inputs = {
         cv_url: publicUrl,
-        applied_position_id: job.position_id,
+        applied_position_id: finalPositionId,
         applied_job_level: job.position_level,
         applied_job_title: job.position_title,
         applied_job_description: job.position_description,

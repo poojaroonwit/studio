@@ -17,6 +17,9 @@
     "clean": "rimraf dist src/**/*.js src/**/*.jsx prisma/seed.js tailwind.config.js",
     "optimize": "node scripts/optimize-build.js",
     "db:migrate": "prisma migrate deploy --schema=prisma/schema.prisma",
+    "db:setup": "node scripts/setup-db-with-postgres-user.js",
+    "db:setup:ps": "powershell -ExecutionPolicy Bypass -File scripts/setup-db-with-postgres-user.ps1",
+    "db:check": "node scripts/check-database-schema.js",
     "build:processor": "tsc --project tsconfig.processor.json"
   },
   "dependencies": {

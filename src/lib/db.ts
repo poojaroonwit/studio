@@ -4,13 +4,21 @@ import { Pool } from 'pg';
 let pool: Pool | null = null;
 
 export function getPool() {
-  if (!process.env.DATABASE_URL) {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
     throw new Error('FATAL: DATABASE_URL environment variable is not set.');
   }
+  
   if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
+    const poolConfig = {
+      connectionString: databaseUrl,
+      ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10'),
+      idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'),
+      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '2000')
+    };
+    
+    pool = new Pool(poolConfig);
     pool.on('error', (err, client) => {
       console.error('Unexpected error on idle PostgreSQL client', err);
       process.exit(-1);

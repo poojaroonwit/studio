@@ -11,6 +11,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Note: This configuration works with the postgres user
+  // Make sure your DATABASE_URL uses: postgresql://postgres:secure_password@postgres:5432/studio5_production
 }
 
 model User {

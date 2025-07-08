@@ -1,4 +1,5 @@
 -- Initialize CandiTrack database with default data
+-- This script works with the postgres user and studio5_production database
 
 -- Create default admin user (password: nccadmin)
 INSERT INTO "User" (id, name, email, password, role, "modulePermissions", "authenticationMethod", "forcePasswordChange", "createdAt", "updatedAt") 

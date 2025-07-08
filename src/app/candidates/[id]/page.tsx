@@ -32,8 +32,8 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CandidateCommentsSection from '@/components/candidates/CandidateCommentsSection';
-import CandidateResumesSection from '@/components/candidates/CandidateResumesSection';
+import CandidateCommentsSection from '../../../components/candidates/CandidateCommentsSection';
+import CandidateResumesSection from '../../../components/candidates/CandidateResumesSection';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -338,6 +338,44 @@ export default function CandidateDetailPage() {
   const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
 
+  const [comments, setComments] = useState([]);
+  const [resumes, setResumes] = useState([]);
+
+  useEffect(() => {
+    if (!candidateId) return;
+    const fetchComments = async () => {
+      const res = await fetch(`/api/candidates/${candidateId}/comments`);
+      if (res.ok) {
+        setComments(await res.json());
+      } else {
+        setComments([]);
+      }
+    };
+    fetchComments();
+  }, [candidateId]);
+
+  useEffect(() => {
+    if (!candidateId) return;
+    const fetchResumes = async () => {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`);
+      if (res.ok) {
+        setResumes(await res.json());
+      } else {
+        setResumes([]);
+      }
+    };
+    fetchResumes();
+  }, [candidateId]);
+
+  const handleCommentsChange = () => {
+    // re-fetch comments after add/edit/delete
+    fetch(`/api/candidates/${candidateId}/comments`).then(res => res.ok ? res.json() : []).then(setComments);
+  };
+
+  const handleResumesChange = () => {
+    // re-fetch resumes after add/edit/delete
+    fetch(`/api/candidates/${candidateId}/resumes`).then(res => res.ok ? res.json() : []).then(setResumes);
+  };
 
   const fetchCandidateDetails = useCallback(async () => {
     if (!candidateId) return;
@@ -1230,11 +1268,11 @@ export default function CandidateDetailPage() {
                 </TabsContent>
                 <TabsContent value="comments">
                   {/* Candidate Comments Section (editable, add/delete) */}
-                  <CandidateCommentsSection candidateId={candidateId} comments={candidate.comments || []} isEditing={isEditing} onCommentsChange={fetchCandidateDetails} />
+                  <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />
                 </TabsContent>
                 <TabsContent value="resumes">
                   {/* Candidate Resume Files Section (sortable, set primary, add/delete) */}
-                  <CandidateResumesSection candidate={candidate} isEditing={isEditing} onResumesChange={fetchCandidateDetails} />
+                  <CandidateResumesSection candidate={{ id: candidateId, resumes }} isEditing={isEditing} onResumesChange={handleResumesChange} />
                 </TabsContent>
               </Tabs>
             </div>

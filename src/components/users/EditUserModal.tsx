@@ -38,12 +38,12 @@ import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
-const platformModuleIds = Array.isArray(PLATFORM_MODULES) ? PLATFORM_MODULES.map(m => m.id) : [];
+const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
 
 const editUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(['Admin', 'Recruiter', 'Hiring Manager'] as [string, ...string[]], { required_error: "Role is required" }),
+  role: z.enum(userRoleOptions as [UserProfile['role'], ...UserProfile['role'][]], { required_error: "Role is required" }),
   newPassword: z.string().min(6, "New password must be at least 6 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
@@ -63,7 +63,7 @@ interface EditUserModalProps {
 
 const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => ({
   category,
-  permissions: Array.isArray(PLATFORM_MODULES) ? PLATFORM_MODULES.filter(p => p.category === category) : []
+  permissions: PLATFORM_MODULES.filter(p => p.category === category)
 }));
 
 
@@ -97,7 +97,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
         forcePasswordChange: false,
         authenticationMethod: user.authenticationMethod || 'basic',
         modulePermissions: user.modulePermissions || [],
-        groupIds: Array.isArray(user.groups) ? user.groups.map(g => g.id) : [],
+        groupIds: user.groups?.map(g => g.id) || [],
       });
       setActiveTab(isSelfEdit ? 'general' : 'general');
 
@@ -183,7 +183,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Navigation</h3>
               </div>
-              {Array.isArray(navItems) ? navItems.map(item => (
+              {navItems.map(item => (
                 <Button
                   key={item.id}
                   variant={activeTab === item.id ? "default" : "ghost"}
@@ -248,7 +248,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {Array.isArray(userRoleOptions) ? userRoleOptions.map(roleValue => (
+                                  {userRoleOptions.map(roleValue => (
                                     <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -403,7 +403,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                               <ScrollArea className="max-h-60">
                                 {availableGroups.length === 0 && <p className="p-4 text-sm text-muted-foreground text-center">No groups available.</p>}
                                 {filteredGroups.length === 0 && groupSearchQuery && <p className="p-4 text-sm text-muted-foreground text-center">No group found.</p>}
-                                {Array.isArray(filteredGroups) ? filteredGroups.map(group => (
+                                {filteredGroups.map(group => (
                                   <FormField key={group.id} control={form.control} name="groupIds"
                                     render={({ field }) => (
                                       <FormItem className="flex flex-row items-center space-x-3 space-y-0 px-3 py-2 hover:bg-accent rounded-sm">
@@ -450,11 +450,11 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                         </div>
                         
                         <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
-                          {Array.isArray(groupedPermissions) ? groupedPermissions.map(group => (
+                          {groupedPermissions.map(group => (
                             <div key={group.category}>
                               <h4 className="font-semibold text-lg text-primary mb-4 border-b pb-2">{group.category}</h4>
                               <div className="space-y-4">
-                                {Array.isArray(group.permissions) ? group.permissions.map((module: any) => (
+                                {group.permissions.map((module) => (
                                   <FormField key={module.id} control={form.control} name="modulePermissions"
                                     render={({ field }) => {
                                       const checked = field.value?.includes(module.id);

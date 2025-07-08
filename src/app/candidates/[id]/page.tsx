@@ -896,8 +896,8 @@ export default function CandidateDetailPage() {
                           })()}
                         </tbody>
                       </table>
+                      </div>
                     </div>
-                  </div>
                   {/* Collapsible Candidate Info Sections */}
                   <section className="mb-8">
                     <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setInfoOpen(o => !o)}>
@@ -907,8 +907,8 @@ export default function CandidateDetailPage() {
                     </button>
                     {infoOpen && (
                       <div className="space-y-4 transition-all duration-200">
-                        {isEditing ? (
-                          <>
+                     {isEditing ? (
+                        <>
                             <Label htmlFor="parsedData.personal_info.title_honorific" className="mb-2">Title</Label>
                             <Input id="parsedData.personal_info.title_honorific" {...register('parsedData.personal_info.title_honorific')} className="mb-4" />
                             <Label htmlFor="parsedData.personal_info.firstname" className="mb-2">First Name *</Label>
@@ -923,20 +923,20 @@ export default function CandidateDetailPage() {
                             <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
                             <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
                             <Textarea id="parsedData.personal_info.introduction_aboutme" {...register('parsedData.personal_info.introduction_aboutme')} className="mb-4" />
-                          </>
-                        ) : (
+                        </>
+                      ) : (
                           <div className="space-y-4">
-                            {renderField("Title", personalInfo?.title_honorific)}
-                            {renderField("First Name", personalInfo?.firstname)}
-                            {renderField("Last Name", personalInfo?.lastname)}
-                            {renderField("Nickname", personalInfo?.nickname)}
-                            {renderField("Location", personalInfo?.location, MapPin)}
+                                {renderField("Title", personalInfo?.title_honorific)}
+                                {renderField("First Name", personalInfo?.firstname)}
+                                {renderField("Last Name", personalInfo?.lastname)}
+                                {renderField("Nickname", personalInfo?.nickname)}
+                                {renderField("Location", personalInfo?.location, MapPin)}
                             {personalInfo?.introduction_aboutme && (
-                              <div>
-                                <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
-                                <p className="text-sm text-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
-                              </div>
-                            )}
+                                    <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
+                                    </div>
+                                )}
                           </div>
                         )}
                       </div>
@@ -951,54 +951,54 @@ export default function CandidateDetailPage() {
                     {educationOpen && (
                       <div className="space-y-4 transition-all duration-200">
                         {isEditing ? (
-                          <div className="space-y-4">
-                            {educationFields.map((field, index) => (
-                              <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                                <Input placeholder="University" {...register(`parsedData.education.${index}.university`)} />
-                                <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
-                                <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
-                                <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                                <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
-                                <Input placeholder="Duration" {...register(`parsedData.education.${index}.duration`)} />
-                                <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                            <div className="space-y-4">
+                                {educationFields.map((field, index) => (
+                                    <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                                        <Input placeholder="University" {...register(`parsedData.education.${index}.university`)} />
+                                        <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
+                                        <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
+                                        <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
+                                        <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
+                                        <Input placeholder="Duration" {...register(`parsedData.education.${index}.duration`)} />
+                                        <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                 <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Education
                                 </Button>
-                              </div>
-                            ))}
-                            <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add Education
-                            </Button>
-                          </div>
+                            </div>
                         ) : (
-                          (education && education.length > 0) ? (
-                            <ul className="space-y-4">
-                              {education.map((edu, index) => {
-                                if (typeof edu === 'string') {
-                                  // Render string-only education entry
-                                  return (
-                                    <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted/30">
-                                      {renderField("Education", edu)}
-                                    </li>
-                                  );
-                                } else {
-                                  // Render EducationEntry object
-                                  return (
-                                    <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
-                                      {renderField("University", edu.university)}
-                                      {renderField("Major", edu.major)}
-                                      {renderField("Field", edu.field)}
-                                      {renderField("Campus", edu.campus)}
-                                      {renderField("Period", edu.period, CalendarDays)}
-                                      {renderField("Duration", edu.duration)}
-                                      {renderField("GPA", edu.GPA)}
-                                      {index < education!.length - 1 && <Separator className="my-3" />}
-                                    </li>
-                                  );
-                                }
-                              })}
-                            </ul>
-                          ) : <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
+                            (education && education.length > 0) ? (
+                                <ul className="space-y-4">
+                                    {education.map((edu, index) => {
+                                        if (typeof edu === 'string') {
+                                            // Render string-only education entry
+                                            return (
+                                                <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted/30">
+                                                    {renderField("Education", edu)}
+                                                </li>
+                                            );
+                                        } else {
+                                            // Render EducationEntry object
+                                            return (
+                                                <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                    {renderField("University", edu.university)}
+                                                    {renderField("Major", edu.major)}
+                                                    {renderField("Field", edu.field)}
+                                                    {renderField("Campus", edu.campus)}
+                                                    {renderField("Period", edu.period, CalendarDays)}
+                                                    {renderField("Duration", edu.duration)}
+                                                    {renderField("GPA", edu.GPA)}
+                                                    {index < education!.length - 1 && <Separator className="my-3" />}
+                                                </li>
+                                            );
+                                        }
+                                    })}
+                                </ul>
+                            ) : <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                         )}
                       </div>
                     )}
@@ -1011,67 +1011,67 @@ export default function CandidateDetailPage() {
                     </button>
                     {experienceOpen && (
                       <div className="space-y-4 transition-all duration-200">
-                        {isEditing ? (
-                          <div className="space-y-4">
-                            {experienceFields.map((field, index) => (
-                              <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                                <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
-                                <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
-                                <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                                <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
-                                <Input placeholder="Duration" {...register(`parsedData.experience.${index}.duration`)} />
-                                <Controller
-                                  name={`parsedData.experience.${index}.postition_level`}
-                                  control={control}
-                                  render={({ field: controllerField }) => (
-                                    <Input {...controllerField} value={controllerField.value || ''} placeholder="Position Level" />
-                                  )}
-                                />
-                                <div className="flex items-center space-x-2">
-                                  <Controller
-                                    name={`parsedData.experience.${index}.is_current_position`}
-                                    control={control}
-                                    render={({ field: controllerField }) => (
-                                      <Checkbox
-                                        id={`experience.${index}.is_current_position`}
-                                        checked={Boolean(controllerField.value)}
-                                        onCheckedChange={(checked) => controllerField.onChange(checked)}
-                                      />
-                                    )}
-                                  />
-                                  <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
-                                </div>
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            ))}
-                            <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null })}>
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
-                            </Button>
-                          </div>
-                        ) : (
-                          (experience && experience.length > 0) ? (
-                            <ul className="space-y-4">
-                              {experience.map((exp, index) => (
-                                <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted/30">
-                                  {renderField("Company", exp.company)}
-                                  {renderField("Position", exp.position)}
-                                  {renderField("Level", String(exp.postition_level))}
-                                  {renderField("Period", exp.period, CalendarDays)}
-                                  {renderField("Duration", exp.duration)}
-                                  {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
-                                  {exp.description && (
-                                    <div>
-                                      <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
-                                      <p className="text-sm text-foreground whitespace-pre-wrap bg-background p-2 rounded">{exp.description}</p>
+                      {isEditing ? (
+                            <div className="space-y-4">
+                                {experienceFields.map((field, index) => (
+                                    <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                                        <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
+                                        <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
+                                        <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
+                                        <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
+                                        <Input placeholder="Duration" {...register(`parsedData.experience.${index}.duration`)} />
+                                         <Controller
+                                            name={`parsedData.experience.${index}.postition_level`}
+                                            control={control}
+                                            render={({ field: controllerField }) => (
+                                                <Input {...controllerField} value={controllerField.value || ''} placeholder="Position Level" />
+                                            )}
+                                        />
+                                        <div className="flex items-center space-x-2">
+                                            <Controller
+                                                name={`parsedData.experience.${index}.is_current_position`}
+                                                control={control}
+                                                render={({ field: controllerField }) => (
+                                                    <Checkbox
+                                                        id={`experience.${index}.is_current_position`}
+                                                        checked={Boolean(controllerField.value)}
+                                                        onCheckedChange={(checked) => controllerField.onChange(checked)}
+                                                    />
+                                                )}
+                                            />
+                                            <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
                                     </div>
-                                  )}
-                                  {index < experience!.length - 1 && <Separator className="my-3" />}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
+                                ))}
+                                <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
+                                </Button>
+                            </div>
+                        ) : (
+                            (experience && experience.length > 0) ? (
+                                <ul className="space-y-4">
+                                    {experience.map((exp, index) => (
+                                    <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted/30">
+                                        {renderField("Company", exp.company)}
+                                        {renderField("Position", exp.position)}
+                                        {renderField("Level", String(exp.postition_level))}
+                                        {renderField("Period", exp.period, CalendarDays)}
+                                        {renderField("Duration", exp.duration)}
+                                        {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
+                                        {exp.description && (
+                                            <div>
+                                                <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
+                                                <p className="text-sm text-foreground whitespace-pre-wrap bg-background p-2 rounded">{exp.description}</p>
+                                            </div>
+                                        )}
+                                        {index < experience!.length - 1 && <Separator className="my-3" />}
+                                    </li>
+                                    ))}
+                                </ul>
+                            ) : <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                         )}
                       </div>
                     )}
@@ -1084,52 +1084,52 @@ export default function CandidateDetailPage() {
                     </button>
                     {skillsOpen && (
                       <div className="space-y-4 transition-all duration-200">
-                        {isEditing ? (
-                          <div className="space-y-4">
+                    {isEditing ? (
+                        <div className="space-y-4">
                             {skillsFields.map((field, index) => (
-                              <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                                <Input placeholder="Skill Segment" {...register(`parsedData.skills.${index}.segment_skill`)} />
-                                <Textarea placeholder="Skills (comma-separated)" {...register(`parsedData.skills.${index}.skill_string`)} />
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
+                                <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                                    <Input placeholder="Skill Segment" {...register(`parsedData.skills.${index}.segment_skill`)} />
+                                    <Textarea placeholder="Skills (comma-separated)" {...register(`parsedData.skills.${index}.skill_string`)} />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
                             ))}
                             <Button type="button" variant="outline" className="mt-2" onClick={() => appendSkill({ segment_skill: '', skill_string: '' })}>
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Segment
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Segment
                             </Button>
-                          </div>
-                        ) : (
-                          (skills && skills.length > 0) ? (
+                        </div>
+                    ) : (
+                        (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
-                              {skills.map((skillEntry, index) => {
-                                if (typeof skillEntry === 'string') {
-                                  // Render string-only skill entry
-                                  return (
-                                    <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted/30">
-                                      {renderField("Skill", skillEntry)}
-                                    </li>
-                                  );
-                                } else {
-                                  // Render SkillEntry object
-                                  return (
-                                    <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
-                                      {renderField("Segment", skillEntry.segment_skill)}
-                                      {skillEntry.skill && skillEntry.skill.length > 0 && (
-                                        <div>
-                                          <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
-                                          <div className="flex flex-wrap gap-1.5 mt-1">
-                                            {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </li>
-                                  );
-                                }
-                              })}
+                                {skills.map((skillEntry, index) => {
+                                    if (typeof skillEntry === 'string') {
+                                        // Render string-only skill entry
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted/30">
+                                                {renderField("Skill", skillEntry)}
+                                            </li>
+                                        );
+                                    } else {
+                                        // Render SkillEntry object
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                {renderField("Segment", skillEntry.segment_skill)}
+                                                {skillEntry.skill && skillEntry.skill.length > 0 && (
+                                                    <div>
+                                                        <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
+                                                        <div className="flex flex-wrap gap-1.5 mt-1">
+                                                            {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    }
+                                })}
                             </ul>
-                          ) : <div className="text-sm text-muted-foreground text-center py-4">No skill details provided.</div>
-                        )}
+                        ) : <div className="text-sm text-muted-foreground text-center py-4">No skill details provided.</div>
+                    )}
                       </div>
                     )}
                   </section>
@@ -1141,40 +1141,40 @@ export default function CandidateDetailPage() {
                     </button>
                     {jobSuitableOpen && (
                       <div className="space-y-4 transition-all duration-200">
-                        {isEditing ? (
-                          <div className="space-y-4">
+                     {isEditing ? (
+                        <div className="space-y-4">
                             {jobSuitableFields.map((field, index) => (
-                              <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                                <Input placeholder="Suitable Career Path" {...register(`parsedData.job_suitable.${index}.suitable_career`)} />
-                                <Input placeholder="Suitable Job Position" {...register(`parsedData.job_suitable.${index}.suitable_job_position`)} />
-                                <Input placeholder="Suitable Job Level" {...register(`parsedData.job_suitable.${index}.suitable_job_level`)} />
-                                <Input placeholder="Desired Salary (THB/Month)" {...register(`parsedData.job_suitable.${index}.suitable_salary_bath_month`)} />
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeJobSuitable(index)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
+                                <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                                    <Input placeholder="Suitable Career Path" {...register(`parsedData.job_suitable.${index}.suitable_career`)} />
+                                    <Input placeholder="Suitable Job Position" {...register(`parsedData.job_suitable.${index}.suitable_job_position`)} />
+                                    <Input placeholder="Suitable Job Level" {...register(`parsedData.job_suitable.${index}.suitable_job_level`)} />
+                                    <Input placeholder="Desired Salary (THB/Month)" {...register(`parsedData.job_suitable.${index}.suitable_salary_bath_month`)} />
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeJobSuitable(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
                             ))}
                             <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobSuitable({ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: '' })}>
-                              <PlusCircle className="mr-2 h-4 w-4" /> Add Job Suitability
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add Job Suitability
                             </Button>
-                          </div>
-                        ) : (
-                          (jobSuitable && jobSuitable.length > 0) ? (
+                        </div>
+                    ) : (
+                        (jobSuitable && jobSuitable.length > 0) ? (
                             <ul className="space-y-4">
-                              {jobSuitable.map((job, index) => (
+                                {jobSuitable.map((job, index) => (
                                 <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted/30">
-                                  {renderField("Career Path", job.suitable_career)}
-                                  {renderField("Job Position", job.suitable_job_position)}
-                                  {renderField("Job Level", job.suitable_job_level)}
-                                  {renderField("Desired Salary (THB/Month)", job.suitable_salary_bath_month, DollarSign)}
-                                  {index < jobSuitable!.length - 1 && <Separator className="my-3" />}
+                                    {renderField("Career Path", job.suitable_career)}
+                                    {renderField("Job Position", job.suitable_job_position)}
+                                    {renderField("Job Level", job.suitable_job_level)}
+                                    {renderField("Desired Salary (THB/Month)", job.suitable_salary_bath_month, DollarSign)}
+                                    {index < jobSuitable!.length - 1 && <Separator className="my-3" />}
                                 </li>
-                              ))}
+                                ))}
                             </ul>
-                          ) : <div className="text-sm text-muted-foreground text-center py-4">No job suitability details provided.</div>
-                        )}
-                      </div>
+                        ) : <div className="text-sm text-muted-foreground text-center py-4">No job suitability details provided.</div>
                     )}
+                              </div>
+                            )}
                   </section>
                 </TabsContent>
                 <TabsContent value="comments">
@@ -1187,7 +1187,7 @@ export default function CandidateDetailPage() {
                   <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
                 </TabsContent>
               </Tabs>
-            </div>
+                </div>
             {/* JOB MATCHED (20%) */}
             <div className="lg:col-span-2 space-y-6 bg-white">
               <UITabs defaultValue="comments" className="w-full">

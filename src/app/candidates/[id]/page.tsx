@@ -360,7 +360,9 @@ export default function CandidateDetailPage() {
     const fetchResumes = async () => {
       const res = await fetch(`/api/candidates/${candidateId}/resumes`);
       if (res.ok) {
-        setResumes(await res.json());
+        const data = await res.json();
+        // If API returns { data: [...] }, extract data
+        setResumes(Array.isArray(data) ? data : (data.data || []));
       } else {
         setResumes([]);
       }
@@ -374,8 +376,9 @@ export default function CandidateDetailPage() {
   };
 
   const handleResumesChange = () => {
-    // re-fetch resumes after add/edit/delete
-    fetch(`/api/candidates/${candidateId}/resumes`).then(res => res.ok ? res.json() : []).then(setResumes);
+    fetch(`/api/candidates/${candidateId}/resumes`).then(res => res.ok ? res.json() : []).then(data => {
+      setResumes(Array.isArray(data) ? data : (data.data || []));
+    });
   };
 
   const fetchCandidateDetails = useCallback(async () => {

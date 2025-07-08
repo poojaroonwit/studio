@@ -62,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         filePath: objectName,
         fileName: file.name,
         isPrimary,
+        label: 'resume', // Added label field as required
       },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });

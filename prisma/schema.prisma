@@ -40,6 +40,8 @@ model User {
   uploadQueue       UploadQueue[] @relation("UserUploadQueue")
   accounts          Account[]
   userPreferences   UserUIDisplayPreference[]
+  candidateComments CandidateComment[] @relation("UserComments")
+  attachments       Attachment[] @relation("UserAttachments")
   
   // Indexes
   @@index([email])
@@ -90,6 +92,8 @@ model Candidate {
   recruiter       User?     @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
   transitionRecords TransitionRecord[]
   jobMatches      JobMatch[]
+  candidateComments CandidateComment[]
+  attachments     Attachment[]
   
   // Indexes
   @@index([email])
@@ -409,30 +413,33 @@ model CandidateComment {
   content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  attachmentIds String[] // Array of Attachment IDs
 
   // Relations
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author      User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
   @@index([authorId])
 }
 
-model Resume {
+model Attachment {
   id          String   @id @default(uuid()) @db.Uuid
   candidateId String   @db.Uuid
   uploadedById String  @db.Uuid
   filePath    String
   fileName    String
+  label       String   // e.g. "resume", "certificate", "other"
   isPrimary   Boolean  @default(false)
   uploadedAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  uploadedBy  User      @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy  User      @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
   @@index([uploadedById])
+  @@index([label])
   @@index([isPrimary])
 }

@@ -351,18 +351,18 @@ const swaggerSpec = {
         }
       }
     },
-    '/api/v1/candidates/{id}/resumes': {
+    '/api/v1/candidates/{id}/attachments': {
       get: {
-        summary: 'Get all resumes for a candidate (v1 API)',
-        description: 'Returns a list of resumes for the specified candidate. Requires Bearer token authentication.',
-        tags: ['V1 Candidates', 'Resumes'],
+        summary: 'Get all attachments for a candidate (v1 API)',
+        description: 'Returns a list of attachments for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Attachments'],
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
         ],
         responses: {
           '200': {
-            description: 'List of resumes',
+            description: 'List of attachments',
             content: {
               'application/json': {
                 schema: {
@@ -370,7 +370,7 @@ const swaggerSpec = {
                   properties: {
                     data: {
                       type: 'array',
-                      items: { $ref: '#/components/schemas/Resume' }
+                      items: { $ref: '#/components/schemas/Attachment' }
                     }
                   }
                 }
@@ -381,9 +381,9 @@ const swaggerSpec = {
         }
       },
       post: {
-        summary: 'Upload a resume for a candidate (v1 API)',
-        description: 'Uploads a new resume file for the specified candidate. Requires Bearer token authentication. Accepts multipart/form-data.',
-        tags: ['V1 Candidates', 'Resumes'],
+        summary: 'Upload an attachment for a candidate (v1 API)',
+        description: 'Uploads a new attachment file for the specified candidate. Requires Bearer token authentication. Accepts multipart/form-data.',
+        tags: ['V1 Candidates', 'Attachments'],
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
@@ -395,22 +395,22 @@ const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
-                  resume: { type: 'string', format: 'binary', description: 'Resume file (PDF, DOC, DOCX, RTF)' }
+                  attachment: { type: 'string', format: 'binary', description: 'Attachment file (PDF, DOC, DOCX, RTF, TXT, JPG, PNG, GIF)' }
                 },
-                required: ['resume']
+                required: ['attachment']
               }
             }
           }
         },
         responses: {
           '201': {
-            description: 'Resume uploaded successfully',
+            description: 'Attachment uploaded successfully',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    data: { $ref: '#/components/schemas/Resume' }
+                    data: { $ref: '#/components/schemas/Attachment' }
                   }
                 }
               }
@@ -421,9 +421,9 @@ const swaggerSpec = {
         }
       },
       put: {
-        summary: 'Set a resume as primary (v1 API)',
-        description: 'Sets the specified resume as the primary resume for the candidate. Requires Bearer token authentication.',
-        tags: ['V1 Candidates', 'Resumes'],
+        summary: 'Set an attachment as primary (v1 API)',
+        description: 'Sets the specified attachment as the primary attachment for the candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Attachments'],
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
@@ -435,22 +435,22 @@ const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
-                  resumeId: { type: 'string', format: 'uuid', description: 'Resume ID to set as primary' }
+                  attachmentId: { type: 'string', format: 'uuid', description: 'Attachment ID to set as primary' }
                 },
-                required: ['resumeId']
+                required: ['attachmentId']
               }
             }
           }
         },
         responses: {
           '200': {
-            description: 'Resume set as primary',
+            description: 'Attachment set as primary',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    data: { $ref: '#/components/schemas/Resume' }
+                    data: { $ref: '#/components/schemas/Attachment' }
                   }
                 }
               }
@@ -460,9 +460,9 @@ const swaggerSpec = {
         }
       },
       delete: {
-        summary: 'Delete a resume for a candidate (v1 API)',
-        description: 'Deletes the specified resume for the candidate. Requires Bearer token authentication.',
-        tags: ['V1 Candidates', 'Resumes'],
+        summary: 'Delete an attachment for a candidate (v1 API)',
+        description: 'Deletes the specified attachment for the candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Attachments'],
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
@@ -474,17 +474,17 @@ const swaggerSpec = {
               schema: {
                 type: 'object',
                 properties: {
-                  resumeId: { type: 'string', format: 'uuid', description: 'Resume ID to delete' }
+                  attachmentId: { type: 'string', format: 'uuid', description: 'Attachment ID to delete' }
                 },
-                required: ['resumeId']
+                required: ['attachmentId']
               }
             }
           }
         },
         responses: {
-          '200': { description: 'Resume deleted successfully' },
+          '200': { description: 'Attachment deleted successfully' },
           '401': { description: 'Unauthorized' },
-          '404': { description: 'Resume not found' }
+          '404': { description: 'Attachment not found' }
         }
       }
     },
@@ -859,7 +859,7 @@ const swaggerSpec = {
         },
         required: ['jobId', 'matchScore']
       },
-      Resume: {
+      Attachment: {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid' },
@@ -870,7 +870,8 @@ const swaggerSpec = {
           isPrimary: { type: 'boolean' },
           uploadedAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
-          url: { type: 'string', description: 'Public URL to access the resume file' },
+          url: { type: 'string', description: 'Public URL to access the attachment file' },
+          label: { type: 'string', enum: ['resume', 'certificate', 'other'] },
           uploadedBy: {
             type: 'object',
             properties: {

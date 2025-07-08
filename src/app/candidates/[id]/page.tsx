@@ -440,6 +440,8 @@ export default function CandidateDetailPage() {
   }, [fetchError]);
 
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
+    console.log('handleUploadSuccess called', updatedCandidate);
+    if (!updatedCandidate || !updatedCandidate.id) return;
     setCandidate(updatedCandidate);
     setIsUploadModalOpen(false);
     toast("Resume has been uploaded and candidate details updated.");
@@ -557,7 +559,7 @@ export default function CandidateDetailPage() {
 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
-
+    console.log('handleSaveDetails called', data);
     const processedData = {
         ...data,
         parsedData: {
@@ -572,7 +574,6 @@ export default function CandidateDetailPage() {
             }))
         }
     };
-
     try {
         const response = await fetch(`/api/candidates/${candidate.id}`, {
             method: 'PUT',
@@ -584,7 +585,9 @@ export default function CandidateDetailPage() {
         }
         await fetchCandidateDetails();
         setIsEditing(false);
-        toast("Candidate details updated successfully.");
+        if (data && Object.keys(data).length > 0) {
+          toast("Candidate details updated successfully.");
+        }
     } catch (error) {
         toast((error as Error).message);
     }
@@ -941,27 +944,6 @@ export default function CandidateDetailPage() {
               )}
               {!isLoading && availableStages.length === 0 && (
                 <div className="text-yellow-600 mb-4">No recruitment stages configured. Please add stages in Settings.</div>
-              )}
-              {/* Stage Pipeline */}
-              {availableStages.length > 0 && candidate && (
-                <StagePipeline
-                  stages={availableStages}
-                  transitionHistory={candidate.transitionHistory || []}
-                  currentStatus={candidate.status}
-                  onStageClick={(stageName) => {
-                    setPreselectedStage(stageName);
-                    setIsTransitionsModalOpen(true);
-                  }}
-                  editableNotes={true}
-                  onNoteEdit={async (transitionId, newNote) => {
-                    await fetch(`/api/transitions/${transitionId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ notes: newNote }),
-                    });
-                    await fetchCandidateDetails();
-                  }}
-                />
               )}
 
 

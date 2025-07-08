@@ -68,6 +68,7 @@ export function ManageTransitionsModal({
   const [transitionToDelete, setTransitionToDelete] = useState<TransitionRecord | null>(null);
   const [statusSearchOpen, setStatusSearchOpen] = useState(false);
   const [statusSearchQuery, setStatusSearchQuery] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
@@ -97,12 +98,16 @@ export function ManageTransitionsModal({
         toast("Please select a new status or add notes to create a transition.");
         return;
     }
+    setIsSaving(true);
     try {
         await onUpdateCandidate(candidate.id, data.newStatus, data.notes); 
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
+        setIsSaving(false);
+        onOpenChange(false); // Close modal on success
     } catch (error) {
-        // Error is already toasted by onUpdateCandidate caller in CandidateDetailPage
+        setIsSaving(false);
+        toast("Failed to save transition. Please try again.");
     }
   };
 
@@ -273,9 +278,9 @@ export function ManageTransitionsModal({
                     className="mt-1 min-h-[80px]"
                   />
                 </div>
-                <Button type="submit" className="w-full btn-primary-gradient" disabled={form.formState.isSubmitting || availableStages.length === 0}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  {form.formState.isSubmitting ? 'Saving...' : 'Add Transition & Update Status'}
+                <Button type="submit" variant="default" disabled={isSaving}>
+                  {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {isSaving ? 'Saving...' : 'Save Transition'}
                 </Button>
               </form>
             </div>

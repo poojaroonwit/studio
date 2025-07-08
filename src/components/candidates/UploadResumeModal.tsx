@@ -19,6 +19,7 @@ interface UploadResumeModalProps {
 const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }: UploadResumeModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadTriggered, setUploadTriggered] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -43,25 +44,26 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
       toast.error('Please select a file to upload');
       return;
     }
-
     setIsUploading(true);
+    setUploadTriggered(false);
     try {
+      console.log('Upload started for candidate:', candidate.id, 'file:', file.name);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('candidateId', candidate.id);
-
       const response = await fetch('/api/resumes/upload', {
         method: 'POST',
         body: formData,
       });
-
       if (!response.ok) {
         throw new Error('Upload failed');
       }
-
       const result = await response.json();
       toast.success('Resume uploaded successfully');
-      onUploadSuccess(result.candidate);
+      setUploadTriggered(true);
+      if (typeof onUploadSuccess === 'function' && result.candidate) {
+        onUploadSuccess(result.candidate);
+      }
       onOpenChange(false);
       setFile(null);
     } catch (error) {
@@ -75,6 +77,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
   const handleClose = () => {
     if (!isUploading) {
       setFile(null);
+      setUploadTriggered(false);
       onOpenChange(false);
     }
   };

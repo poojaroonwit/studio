@@ -190,7 +190,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath } = validationResult.data;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -226,7 +226,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
       await client.query(insertTransitionQuery, [
-        uuidv4(), id, positionId, status, `Status changed from ${oldStatus} to ${status}`, actingUserId
+        uuidv4(), id, positionId, status, transitionNotes || `Status changed from ${oldStatus} to ${status}`, actingUserId
       ]);
     }
 

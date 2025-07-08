@@ -29,6 +29,7 @@ import * as z from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'react-hot-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -217,6 +218,54 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     </Card>
   );
 };
+
+function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick }: { stages: RecruitmentStage[], transitionHistory: TransitionRecord[], currentStatus: string, onStageClick: (stageName: string) => void }) {
+  // Map stage name to latest transition record
+  const stageToRecord: Record<string, TransitionRecord | undefined> = {};
+  transitionHistory.forEach(record => {
+    stageToRecord[record.stage] = record;
+  });
+  return (
+    <div className="flex flex-col gap-0.5 mb-6">
+      {stages.map((stage, idx) => {
+        const record = stageToRecord[stage.name];
+        const isCompleted = transitionHistory.some(r => r.stage === stage.name);
+        const isCurrent = currentStatus === stage.name;
+        return (
+          <Popover key={stage.id}>
+            <PopoverTrigger asChild>
+              <div
+                className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors
+                  ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-muted/40' : 'bg-muted/10 text-muted-foreground'}
+                `}
+                tabIndex={0}
+                onClick={() => {
+                  if (!isCompleted) onStageClick(stage.name);
+                }}
+              >
+                <div className={`w-3 h-3 rounded-full border ${isCurrent ? 'bg-primary border-primary' : isCompleted ? 'bg-green-500 border-green-500' : 'bg-gray-300 border-gray-300'}`}></div>
+                <span>{stage.name}</span>
+                {isCurrent && <span className="ml-2 text-xs text-primary">(Current)</span>}
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-64">
+              <div className="mb-1 font-semibold">{stage.name}</div>
+              {record ? (
+                <>
+                  <div className="text-xs text-muted-foreground mb-1">{record.date ? new Date(record.date).toLocaleString() : ''}</div>
+                  {record.actingUserName && <div className="text-xs mb-1">By: <span className="font-medium">{record.actingUserName}</span></div>}
+                  {record.notes && <div className="text-sm mt-2 whitespace-pre-wrap">{record.notes}</div>}
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
+              )}
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+    </div>
+  );
+}
 
 
 export default function CandidateDetailPage() {
@@ -566,6 +615,9 @@ export default function CandidateDetailPage() {
       ? candidate.parsedData.job_matches
       : undefined;
 
+  const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
+  const [selectedJobMatch, setSelectedJobMatch] = useState<any | null>(null);
+
   if (isLoading && !fetchError) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
@@ -837,8 +889,16 @@ export default function CandidateDetailPage() {
                 onUploadSuccess={handleUploadSuccess}
               />
 
-              {!isEditing && (
-                 <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
+              {availableStages.length > 0 && candidate && (
+                <StagePipeline
+                  stages={availableStages}
+                  transitionHistory={candidate.transitionHistory || []}
+                  currentStatus={candidate.status}
+                  onStageClick={(stageName) => {
+                    setPreselectedStage(stageName);
+                    setIsTransitionsModalOpen(true);
+                  }}
+                />
               )}
 
 
@@ -1132,41 +1192,90 @@ export default function CandidateDetailPage() {
             </div>
 
             <div className="lg:col-span-1 space-y-6">
-              {jobMatches && !isEditing && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Suggested Jobs</CardTitle>
-                    <CardDescription>Full list of job matches from automated processing for this candidate.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[calc(100vh-240px)]">
-                      <ul className="space-y-3">
-                        {jobMatches.map((match, index) => (
-                          <li key={`match-${index}-${match.job_id || index}`} className="p-3 border rounded-md bg-muted/30">
-                            <h4
-                              className="font-semibold text-foreground hover:text-primary hover:underline cursor-pointer"
-                              onClick={() => handleJobMatchClick(match.job_title)}
-                            >
-                              {match.job_title || 'Job Title Missing'} <ExternalLink className="inline h-3 w-3 ml-1 opacity-70" />
-                            </h4>
-                            <div className="text-sm text-muted-foreground">
-                              Fit Score: <span className="font-medium text-foreground">{match.fit_score}%</span>
-                              {match.job_id && ` (Match ID: ${match.job_id})`}
+              {!isEditing && candidate && allDbPositions.length > 0 && (
+                <>
+                  {/* Applied Job Scoring and Justification */}
+                  {candidate.positionId && (
+                    (() => {
+                      const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                      const jobMatches = candidate.parsedData && 'job_matches' in candidate.parsedData ? candidate.parsedData.job_matches : [];
+                      const appliedMatch = jobMatches?.find(jm => jm.job_id === candidate.positionId || jm.job_title === appliedPosition?.title);
+                      return (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary" />Applied Job</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="mb-2">
+                              <span className="font-semibold">{appliedPosition?.title || 'N/A'}</span>
+                              {appliedMatch && (
+                                <span className="ml-2 text-sm text-muted-foreground">Fit Score: <span className="font-bold text-foreground">{appliedMatch.fit_score}%</span></span>
+                              )}
                             </div>
-                            {match.match_reasons && match.match_reasons.length > 0 && (
+                            {appliedMatch && appliedMatch.match_reasons && appliedMatch.match_reasons.length > 0 && (
                               <div className="mt-1.5">
-                                <p className="text-xs font-medium text-muted-foreground">Reasons:</p>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">Justification:</p>
                                 <ul className="list-disc list-inside pl-3 text-xs text-foreground">
-                                  {match.match_reasons.map((reason, i) => <li key={`reason-${index}-${i}`}>{reason}</li>)}
+                                  {appliedMatch.match_reasons.map((reason, i) => <li key={`applied-reason-${i}`}>{reason}</li>)}
                                 </ul>
                               </div>
                             )}
-                          </li>
-                        ))}
-                      </ul>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
+                            {!appliedMatch && <p className="text-xs text-muted-foreground">No automated scoring or justification available for this job.</p>}
+                          </CardContent>
+                        </Card>
+                      );
+                    })()
+                  )}
+                  {/* Job Matches (excluding applied job) */}
+                  {(() => {
+                    const jobMatches = candidate.parsedData && 'job_matches' in candidate.parsedData ? candidate.parsedData.job_matches : [];
+                    // Exclude applied job and sort by fit_score descending
+                    const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                    const filteredMatches = jobMatches
+                      ? jobMatches.filter(jm => jm.job_id !== candidate.positionId && jm.job_title !== appliedPosition?.title)
+                      : [];
+                    const sortedMatches = filteredMatches.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
+                    if (sortedMatches.length === 0) return null;
+                    return (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Job Matches</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ScrollArea className="h-[calc(100vh-340px)]">
+                            <ul className="space-y-3">
+                              {sortedMatches.map((match, index) => (
+                                <li key={`match-${index}-${match.job_id || index}`} className="p-3 border rounded-md bg-muted/30">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-semibold text-foreground">{match.job_title || 'Job Title Missing'}</h4>
+                                    <span className="text-sm font-medium text-foreground">{match.fit_score}%</span>
+                                  </div>
+                                  {match.match_reasons && match.match_reasons.length > 0 && (
+                                    <div className="mt-1.5">
+                                      <p className="text-xs font-medium text-muted-foreground mb-1">Justification:</p>
+                                      <ul className="list-disc list-inside pl-3 text-xs text-foreground">
+                                        {match.match_reasons.map((reason, i) => <li key={`reason-${index}-${i}`}>{reason}</li>)}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  <div className="mt-3 flex justify-end">
+                                    {match.job_id ? (
+                                      <a href={`/positions/${match.job_id}`} target="_blank" rel="noopener noreferrer">
+                                        <button className="btn-primary-gradient px-3 py-1 rounded text-white font-medium hover:opacity-90 transition">View Job</button>
+                                      </a>
+                                    ) : (
+                                      <button className="px-3 py-1 rounded bg-muted text-muted-foreground cursor-not-allowed" disabled>View Job</button>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+                </>
               )}
                {(jobMatches && !isEditing && !(
                  candidate.parsedData &&
@@ -1188,10 +1297,14 @@ export default function CandidateDetailPage() {
             <ManageTransitionsModal
                 candidate={candidate}
                 isOpen={isTransitionsModalOpen}
-                onOpenChange={setIsTransitionsModalOpen}
+                onOpenChange={(open) => {
+                  setIsTransitionsModalOpen(open);
+                  if (!open) setPreselectedStage(null);
+                }}
                 onUpdateCandidate={handleUpdateCandidateStatus}
                 onRefreshCandidateData={fetchCandidateDetails}
                 availableStages={availableStages}
+                preselectedStage={preselectedStage}
             />
           </>
         )}

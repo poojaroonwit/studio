@@ -51,6 +51,7 @@ interface ManageTransitionsModalProps {
   onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string) => Promise<void>; // Modified to accept notes
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
+  preselectedStage?: string | null;
 }
 
 export function ManageTransitionsModal({
@@ -60,6 +61,7 @@ export function ManageTransitionsModal({
   onUpdateCandidate,
   onRefreshCandidateData,
   availableStages,
+  preselectedStage,
 }: ManageTransitionsModalProps) {
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string>('');
@@ -78,13 +80,13 @@ export function ManageTransitionsModal({
   useEffect(() => {
     if (candidate && isOpen) {
       form.reset({
-        newStatus: candidate.status,
+        newStatus: preselectedStage || candidate.status,
         notes: '',
       });
       setEditingTransitionId(null);
       setStatusSearchQuery('');
     }
-  }, [candidate, isOpen, form, availableStages]);
+  }, [candidate, isOpen, form, availableStages, preselectedStage]);
 
   if (!candidate) return null;
 
@@ -195,65 +197,69 @@ export function ManageTransitionsModal({
               <form onSubmit={form.handleSubmit(handleAddTransitionSubmit)} className="space-y-4">
                 <div>
                   <Label htmlFor="newStatus" className="text-sm font-medium text-muted-foreground">New Stage</Label>
-                  <Controller
-                    name="newStatus"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Popover open={statusSearchOpen} onOpenChange={setStatusSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={statusSearchOpen}
-                            className="w-full justify-between mt-1"
-                          >
-                            {field.value
-                              ? availableStages.find((stage) => stage.name === field.value)?.name
-                              : "Select new stage"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
-                          <div className="p-2">
-                            <Input
-                              placeholder="Search stage..."
-                              value={statusSearchQuery}
-                              onChange={(e) => setStatusSearchQuery(e.target.value)}
-                              className="h-9"
-                            />
-                          </div>
-                          <ScrollArea className="max-h-60">
-                            {filteredStages.length === 0 && statusSearchQuery && (
-                              <p className="p-2 text-sm text-muted-foreground text-center">No stage found.</p>
-                            )}
-                            {filteredStages.map((stage) => (
-                              <Button
-                                key={stage.id}
-                                variant="ghost"
-                                className={cn(
-                                  "w-full justify-start px-2 py-1 text-sm font-normal h-auto", // Reduced py
-                                  field.value === stage.name && "bg-accent text-accent-foreground"
-                                )}
-                                onClick={() => {
-                                  field.onChange(stage.name);
-                                  setStatusSearchOpen(false);
-                                  setStatusSearchQuery('');
-                                }}
-                              >
-                                <Check
+                  {availableStages.length === 0 ? (
+                    <div className="text-sm text-destructive mt-2 mb-4">No stages available. Please configure recruitment stages in settings.</div>
+                  ) : (
+                    <Controller
+                      name="newStatus"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Popover open={statusSearchOpen} onOpenChange={setStatusSearchOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={statusSearchOpen}
+                              className="w-full justify-between mt-1"
+                            >
+                              {field.value
+                                ? availableStages.find((stage) => stage.name === field.value)?.name
+                                : "Select new stage"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
+                            <div className="p-2">
+                              <Input
+                                placeholder="Search stage..."
+                                value={statusSearchQuery}
+                                onChange={(e) => setStatusSearchQuery(e.target.value)}
+                                className="h-9"
+                              />
+                            </div>
+                            <ScrollArea className="max-h-60">
+                              {filteredStages.length === 0 && statusSearchQuery && (
+                                <p className="p-2 text-sm text-muted-foreground text-center">No stage found.</p>
+                              )}
+                              {filteredStages.map((stage) => (
+                                <Button
+                                  key={stage.id}
+                                  variant="ghost"
                                   className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === stage.name ? "opacity-100" : "opacity-0"
+                                    "w-full justify-start px-2 py-1 text-sm font-normal h-auto",
+                                    field.value === stage.name && "bg-accent text-accent-foreground"
                                   )}
-                                />
-                                {stage.name}
-                              </Button>
-                            ))}
-                          </ScrollArea>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />
+                                  onClick={() => {
+                                    field.onChange(stage.name);
+                                    setStatusSearchOpen(false);
+                                    setStatusSearchQuery('');
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === stage.name ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {stage.name}
+                                </Button>
+                              ))}
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    />
+                  )}
                   {form.formState.errors.newStatus && (
                     <p className="text-xs text-destructive mt-1">{form.formState.errors.newStatus.message}</p>
                   )}
@@ -267,7 +273,7 @@ export function ManageTransitionsModal({
                     className="mt-1 min-h-[80px]"
                   />
                 </div>
-                <Button type="submit" className="w-full btn-primary-gradient" disabled={form.formState.isSubmitting}>
+                <Button type="submit" className="w-full btn-primary-gradient" disabled={form.formState.isSubmitting || availableStages.length === 0}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   {form.formState.isSubmitting ? 'Saving...' : 'Add Transition & Update Status'}
                 </Button>

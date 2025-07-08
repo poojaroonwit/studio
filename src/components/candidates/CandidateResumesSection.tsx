@@ -28,11 +28,13 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  console.log('CandidateResumesSection resumes prop:', resumes);
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime();
     const dateB = new Date(b.updatedAt).getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
   }) : [];
+  console.log('CandidateResumesSection sortedAttachments:', sortedAttachments);
 
   const handleSetPrimary = async (attachmentId: string) => {
     await fetch(`/api/candidates/${candidateId}/attachments/${attachmentId}/primary`, { method: 'PUT' });
@@ -94,7 +96,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       )}
       <div className="space-y-3">
         {sortedAttachments.length === 0 && <div className="text-muted-foreground text-sm">No resumes uploaded.</div>}
-        {sortedAttachments.map(attachment => (
+        {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
           <div key={attachment.id} className="border rounded p-3 bg-muted/30 flex items-center justify-between gap-4">
             <div>
               <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">{attachment.fileName}</a>

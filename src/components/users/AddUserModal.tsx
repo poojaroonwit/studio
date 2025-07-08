@@ -38,7 +38,7 @@ import { toast } from 'react-hot-toast';
 
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
-const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
+const platformModuleIds = Array.isArray(PLATFORM_MODULES) ? PLATFORM_MODULES.map(m => m.id) : [];
 
 const addUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -62,7 +62,7 @@ interface AddUserModalProps {
 const groupedPermissions: { category: PlatformModuleCategory, permissions: PlatformModule[] }[] =
   Object.values(PLATFORM_MODULE_CATEGORIES).map(category => ({
     category,
-    permissions: PLATFORM_MODULES.filter(p => p.category === category) as PlatformModule[]
+    permissions: Array.isArray(PLATFORM_MODULES) ? PLATFORM_MODULES.filter(p => p.category === category) : []
   }));
 
 export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalProps) {
@@ -154,7 +154,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                   <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel htmlFor="name-add">Full Name *</FormLabel><FormControl><Input id="name-add" {...field} className="mt-1" /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel htmlFor="email-add">Email Address *</FormLabel><FormControl><Input id="email-add" type="email" {...field} className="mt-1" /></FormControl><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel htmlFor="password-add">Password *</FormLabel><FormControl><Input id="password-add" type="password" {...field} className="mt-1" /></FormControl><FormMessage /></FormItem>)} />
-                  <FormField control={form.control} name="role" render={({ field }) => (<FormItem><FormLabel htmlFor="role-add">System Role *</FormLabel><Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}><FormControl><SelectTrigger id="role-add" className="mt-1"><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl><SelectContent>{userRoleOptions.map(role => (
+                  <FormField control={form.control} name="role" render={({ field }) => (<FormItem><FormLabel htmlFor="role-add">System Role *</FormLabel><Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}><FormControl><SelectTrigger id="role-add" className="mt-1"><SelectValue placeholder="Select a role" /></SelectTrigger></FormControl><SelectContent>{Array.isArray(userRoleOptions) ? userRoleOptions.map(role => (
                     <SelectItem key={role} value={role}>{typeof role === 'object' ? JSON.stringify(role) : role}</SelectItem>
                   ))}</SelectContent></Select><FormMessage /></FormItem>)} />
                   <FormField control={form.control} name="authenticationMethod" render={({ field }) => (<FormItem><FormLabel htmlFor="auth-method-add">Authentication Method *</FormLabel><Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}><FormControl><SelectTrigger id="auth-method-add" className="mt-1"><SelectValue placeholder="Select authentication method" /></SelectTrigger></FormControl><SelectContent><SelectItem value="basic">Basic (Email/Password)</SelectItem><SelectItem value="azure">Azure AD</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
@@ -177,7 +177,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                             <ScrollArea className="max-h-40">
                               {availableGroups.length === 0 && <p className="p-2 text-xs text-muted-foreground text-center">No groups available.</p>}
                               {filteredGroups.length === 0 && groupSearchQuery && <p className="p-2 text-xs text-muted-foreground text-center">No group found.</p>}
-                              {filteredGroups.map(group => (
+                              {Array.isArray(filteredGroups) ? filteredGroups.map(group => (
                                 <FormField key={group.id} control={form.control} name="groupIds"
                                   render={({ field }) => (
                                     <FormItem className="flex flex-row items-center space-x-3 space-y-0 px-2 py-1.5 hover:bg-accent rounded-sm">
@@ -199,10 +199,10 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                     <div className="space-y-2">
                         <Label className="flex items-center text-md font-medium"><ShieldCheck className="mr-2 h-5 w-5 text-primary" /> Direct Module Permissions</Label>
                         <div className="space-y-4 rounded-md border p-4 max-h-60 overflow-y-auto">
-                          {groupedPermissions.map((group: { category: PlatformModuleCategory, permissions: PlatformModule[] }) => (
+                          {Array.isArray(groupedPermissions) ? groupedPermissions.map((group: { category: PlatformModuleCategory, permissions: PlatformModule[] }) => (
                             <div key={group.category}>
                               <h4 className="font-medium text-sm text-muted-foreground mb-1.5">{typeof group.category === 'object' ? JSON.stringify(group.category) : group.category}</h4>
-                              {group.permissions.map((module: PlatformModule) => (
+                              {Array.isArray(group.permissions) ? group.permissions.map((module: PlatformModule) => (
                                 <FormField key={module.id} control={form.control} name="modulePermissions"
                                   render={({ field }) => {
                                     const checked = field.value?.includes(module.id);

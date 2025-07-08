@@ -1183,6 +1183,7 @@ export default function CandidateDetailPage() {
                 </TabsContent>
                 <TabsContent value="resumes">
                   {/* Candidate Resume Files Section (sortable, set primary, add/delete) */}
+                  console.log('CandidateDetailPage resumes state:', resumes);
                   <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
                 </TabsContent>
               </Tabs>

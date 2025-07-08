@@ -167,7 +167,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           ) : logs.length === 0 ? (
             <div className="text-muted-foreground text-sm">No activity logs found.</div>
           ) : (
-            logs.map(log => (
+            (Array.isArray(logs) ? logs : []).map(log => (
               <div key={log.id} className="border rounded p-2 bg-muted/20 flex flex-col md:flex-row md:items-center md:justify-between text-xs md:text-sm">
                 <div>
                   <span className="font-medium">{log.action}</span> by <span className="text-blue-700">{log.user}</span>
@@ -211,9 +211,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           <div className="text-xs text-muted-foreground mt-1">Supported: images, PDF, DOC, etc.</div>
         </div>
         {/* File previews */}
-        {files.length > 0 && (
+        {(Array.isArray(files) ? files : []).length > 0 && (
           <div className="space-y-2">
-            {files.map((file, idx) => (
+            {(Array.isArray(files) ? files : []).map((file, idx) => (
               <div key={idx} className="flex items-center gap-3 border rounded p-2 bg-muted/30">
                 {/* Preview */}
                 {file.type.startsWith('image/') ? (
@@ -236,7 +236,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                   value={labels[idx]}
                   onChange={e => handleLabelChange(idx, e.target.value)}
                 >
-                  {LABEL_OPTIONS.map(opt => (
+                  {(Array.isArray(LABEL_OPTIONS) ? LABEL_OPTIONS : []).map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -260,8 +260,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       </form>
       {/* Comments List */}
       <div className="space-y-3">
-        {comments.length === 0 && <div className="text-muted-foreground text-sm">No comments yet.</div>}
-        {comments.map(comment => (
+        {(Array.isArray(comments) ? comments : []).length === 0 && <div className="text-muted-foreground text-sm">No comments yet.</div>}
+        {(Array.isArray(comments) ? comments : []).map(comment => (
           <div key={comment.id} className="border rounded p-3 bg-muted/30">
             <div className="flex justify-between items-center mb-1">
               <span className="font-semibold text-sm">{comment.author?.name || comment.author || 'Unknown'}</span>
@@ -269,9 +269,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             </div>
             <div className="text-sm mb-2 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: comment.content }} />
             {/* Attachments under comment */}
-            {comment.attachments && comment.attachments.length > 0 && (
+            {(Array.isArray(comment.attachments) ? comment.attachments : []).length > 0 && (
               <div className="flex flex-wrap gap-3 mt-2">
-                {comment.attachments.map((att: any, idx: number) => (
+                {(Array.isArray(comment.attachments) ? comment.attachments : []).map((att: any, idx: number) => (
                   <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-white">
                     {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
                       <img src={att.url} alt={att.fileName} className="w-8 h-8 object-cover rounded" />

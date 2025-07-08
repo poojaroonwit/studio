@@ -168,7 +168,7 @@ model AuditLog {
   user_id     String?  @db.Uuid
   action      String?
   entity      String?
-  entity_id   String?
+  entity_id   String?  @db.Uuid
   
   // Indexes
   @@index([timestamp])
@@ -298,7 +298,7 @@ model CustomFieldDefinition {
 model JobMatch {
   id                    String   @id @default(uuid()) @db.Uuid
   candidateId           String   @db.Uuid
-  jobId                 String?
+  jobId                 String?  @db.Uuid
   jobTitle              String?  @map("job_title")
   fitScore              Int?     @map("fit_score")
   matchReasons          String[] @map("match_reasons")
@@ -384,7 +384,7 @@ model UserUIDisplayPreference {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(uuid())
   userId            String  @db.Uuid
   type              String
   provider          String
@@ -404,7 +404,7 @@ model Account {
 }
 
 model DataModel {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @db.Uuid
   name        String
   modelType   String
   description String?
@@ -415,7 +415,10 @@ model DataModel {
 }
 
 model SystemPreference {
-  key       String   @id
-  value     String?
-  updatedAt DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  key         String
+  value       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

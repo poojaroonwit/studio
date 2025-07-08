@@ -132,6 +132,10 @@ export async function POST(request: NextRequest) {
       });
 
       if (positionsToDelete.length > 0) {
+        const positionIdsSchema = z.string().uuid().array();
+        if (!positionIdsSchema.safeParse(positionsToDelete).success) {
+          throw new Error('Invalid positionsToDelete array: must be array of UUID strings');
+        }
         const deleteResult = await client.query('DELETE FROM "Position" WHERE id = ANY($1::uuid[]) RETURNING id', [positionsToDelete]);
         successCount = deleteResult.rowCount ?? 0;
         if (successCount > 0) cacheInvalidated = true;
@@ -141,6 +145,10 @@ export async function POST(request: NextRequest) {
       if (newIsOpenStatus === undefined) {
         await client.query('ROLLBACK');
         return NextResponse.json({ message: "New 'isOpen' status is required for 'change_status' action." }, { status: 400 });
+      }
+      const positionIdsSchema = z.string().uuid().array();
+      if (!positionIdsSchema.safeParse(positionIds).success) {
+        throw new Error('Invalid positionIds array: must be array of UUID strings');
       }
       const updateResult = await client.query(
         'UPDATE "Position" SET "isOpen" = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',

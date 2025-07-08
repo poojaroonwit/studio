@@ -99,6 +99,12 @@ export async function POST(request: NextRequest) {
 
   const { action, candidateIds, newStatus, newRecruiterId } = validationResult.data;
 
+  // Before using candidateIds in queries, validate:
+  const candidateIdsSchema = z.string().uuid().array();
+  if (!candidateIdsSchema.safeParse(candidateIds).success) {
+    throw new Error('Invalid candidateIds array: must be array of UUID strings');
+  }
+
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

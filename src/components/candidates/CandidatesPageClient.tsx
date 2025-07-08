@@ -287,6 +287,35 @@ export function CandidatesPageClient({
     }
   }, [initialFetchError]);
 
+  useEffect(() => {
+    const eventSource = new EventSource('/api/candidates/sse');
+    eventSource.onmessage = (event) => {
+      try {
+        const updatedCandidate = JSON.parse(event.data);
+        if (updatedCandidate.deleted && updatedCandidate.id) {
+          // Remove candidate from list
+          setAllCandidates(prev => prev.filter(c => c.id !== updatedCandidate.id));
+        } else {
+          setAllCandidates(prev => {
+            const idx = prev.findIndex(c => c.id === updatedCandidate.id);
+            if (idx !== -1) {
+              // Update existing candidate
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], ...updatedCandidate };
+              return updated;
+            } else {
+              // Insert new candidate at the top
+              return [updatedCandidate, ...prev];
+            }
+          });
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    };
+    return () => eventSource.close();
+  }, []);
+
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
     const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };

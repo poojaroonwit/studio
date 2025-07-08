@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastCandidateUpdate } from '../sse/route';
 
 /**
  * @openapi
@@ -232,8 +233,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status });
-    
     const updatedCandidate = updateResult.rows[0];
+    broadcastCandidateUpdate({ ...updatedCandidate, custom_attributes: updatedCandidate.customAttributes || {} }); // Broadcast update
     return NextResponse.json({ 
       message: 'Candidate updated successfully', 
       candidate: {
@@ -278,7 +279,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const candidateName = result.rows[0].name;
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${candidateName}' deleted by ${actingUserName}.`, 'API:Candidates:Delete', actingUserId, { candidateId: id });
-    
+    broadcastCandidateUpdate({ id, deleted: true }); // Broadcast removal
     return NextResponse.json({ message: 'Candidate deleted successfully' });
   } catch (error: any) {
     await client.query('ROLLBACK');

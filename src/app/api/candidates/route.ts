@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastCandidateUpdate } from './sse/route';
 
 /**
  * @openapi
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
+    broadcastCandidateUpdate(newCandidate); // Broadcast to SSE clients
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
     await client.query('ROLLBACK');

@@ -69,6 +69,7 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
       // Step 1: Upload file to MinIO
       const formData = new FormData();
       formData.append('files', selectedFile);
+      formData.append('file', selectedFile); // fallback for server compatibility
       const uploadRes = await fetch('/api/upload-queue/upload-file', {
         method: 'POST',
         body: formData

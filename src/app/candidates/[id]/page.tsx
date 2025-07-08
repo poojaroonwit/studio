@@ -30,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'react-hot-toast';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import Link from 'next/link';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -219,7 +220,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
   );
 };
 
-function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick }: { stages: RecruitmentStage[], transitionHistory: TransitionRecord[], currentStatus: string, onStageClick: (stageName: string) => void }) {
+function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick, editableNotes, onNoteEdit }: { stages: RecruitmentStage[], transitionHistory: TransitionRecord[], currentStatus: string, onStageClick: (stageName: string) => void, editableNotes: boolean, onNoteEdit: (transitionId: string, newNote: string) => Promise<void> }) {
   // Map stage name to latest transition record
   const stageToRecord: Record<string, TransitionRecord | undefined> = {};
   transitionHistory.forEach(record => {
@@ -254,7 +255,28 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick 
                 <>
                   <div className="text-xs text-muted-foreground mb-1">{record.date ? new Date(record.date).toLocaleString() : ''}</div>
                   {record.actingUserName && <div className="text-xs mb-1">By: <span className="font-medium">{record.actingUserName}</span></div>}
-                  {record.notes && <div className="text-sm mt-2 whitespace-pre-wrap">{record.notes}</div>}
+                  {record.notes && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Info className="h-3 w-3" />
+                      <span>{record.notes}</span>
+                      {editableNotes && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const newNote = prompt("Edit note:", record.notes);
+                            if (newNote && newNote.trim() !== '') {
+                              onNoteEdit(record.id, newNote.trim());
+                            }
+                          }}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
@@ -392,7 +414,7 @@ export default function CandidateDetailPage() {
 
       if (stagesResponse.ok) {
         const stagesData = await stagesResponse.json();
-        setAvailableStages(stagesData.stages || []);
+        setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
       } else {
         console.error("Failed to fetch recruitment stages");
         toast("Could not load recruitment stages.");
@@ -728,6 +750,30 @@ export default function CandidateDetailPage() {
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT SIDEBAR: Stage Pipeline */}
+            <div className="lg:col-span-1">
+              {availableStages.length > 0 && candidate && (
+                <StagePipeline
+                  stages={availableStages}
+                  transitionHistory={candidate.transitionHistory || []}
+                  currentStatus={candidate.status}
+                  onStageClick={(stageName) => {
+                    setPreselectedStage(stageName);
+                    setIsTransitionsModalOpen(true);
+                  }}
+                  editableNotes={true}
+                  onNoteEdit={async (transitionId, newNote) => {
+                    await fetch(`/api/transitions/${transitionId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ notes: newNote }),
+                    });
+                    await fetchCandidateDetails();
+                  }}
+                />
+              )}
+            </div>
+            {/* MAIN CONTENT */}
             <div className="lg:col-span-2 space-y-6">
               <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
@@ -889,6 +935,14 @@ export default function CandidateDetailPage() {
                 onUploadSuccess={handleUploadSuccess}
               />
 
+              {/* Error and fallback UI for stage pipeline */}
+              {fetchError && (
+                <div className="text-red-500 mb-4">Error: {fetchError}</div>
+              )}
+              {!isLoading && availableStages.length === 0 && (
+                <div className="text-yellow-600 mb-4">No recruitment stages configured. Please add stages in Settings.</div>
+              )}
+              {/* Stage Pipeline */}
               {availableStages.length > 0 && candidate && (
                 <StagePipeline
                   stages={availableStages}
@@ -897,6 +951,15 @@ export default function CandidateDetailPage() {
                   onStageClick={(stageName) => {
                     setPreselectedStage(stageName);
                     setIsTransitionsModalOpen(true);
+                  }}
+                  editableNotes={true}
+                  onNoteEdit={async (transitionId, newNote) => {
+                    await fetch(`/api/transitions/${transitionId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ notes: newNote }),
+                    });
+                    await fetchCandidateDetails();
                   }}
                 />
               )}
@@ -1260,9 +1323,11 @@ export default function CandidateDetailPage() {
                                   )}
                                   <div className="mt-3 flex justify-end">
                                     {match.job_id ? (
-                                      <a href={`/positions/${match.job_id}`} target="_blank" rel="noopener noreferrer">
-                                        <button className="btn-primary-gradient px-3 py-1 rounded text-white font-medium hover:opacity-90 transition">View Job</button>
-                                      </a>
+                                      <Link href={`/positions/${match.job_id}`} legacyBehavior>
+                                        <a target="_blank" rel="noopener noreferrer">
+                                          <button className="btn-primary-gradient px-3 py-1 rounded text-white font-medium hover:opacity-90 transition">View Job</button>
+                                        </a>
+                                      </Link>
                                     ) : (
                                       <button className="px-3 py-1 rounded bg-muted text-muted-foreground cursor-not-allowed" disabled>View Job</button>
                                     )}

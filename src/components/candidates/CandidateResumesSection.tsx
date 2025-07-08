@@ -28,11 +28,11 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const sortedAttachments = [...(resumes || [])].sort((a, b) => {
+  const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime();
     const dateB = new Date(b.updatedAt).getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
-  });
+  }) : [];
 
   const handleSetPrimary = async (attachmentId: string) => {
     await fetch(`/api/candidates/${candidateId}/attachments/${attachmentId}/primary`, { method: 'PUT' });

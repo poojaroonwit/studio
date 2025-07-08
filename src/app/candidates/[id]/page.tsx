@@ -1183,7 +1183,7 @@ export default function CandidateDetailPage() {
                 </TabsContent>
                 <TabsContent value="resumes">
                   {/* Candidate Resume Files Section (sortable, set primary, add/delete) */}
-                  <CandidateResumesSection candidateId={candidateId} resumes={resumes} isEditing={isEditing} onResumesChange={handleResumesChange} />
+                  <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
                 </TabsContent>
               </Tabs>
             </div>
@@ -1198,7 +1198,7 @@ export default function CandidateDetailPage() {
                   <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />
                 </UITabsContent>
                 <UITabsContent value="files">
-                  <CandidateResumesSection candidateId={candidateId} resumes={resumes} isEditing={isEditing} onResumesChange={handleResumesChange} />
+                  <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
                 </UITabsContent>
               </UITabs>
             </div>

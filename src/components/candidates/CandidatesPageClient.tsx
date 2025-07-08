@@ -433,7 +433,8 @@ export function CandidatesPageClient({
         throw new Error(errorData.message || `Failed to add candidate: ${response.statusText || `Status: ${response.status}`}`);
       }
       const { candidate } = await response.json();
-      setAllCandidates(prev => [candidate, ...prev].sort((a,b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+      // Instead of manually adding the candidate, refetch the list from the backend
+      await fetchPaginatedCandidates(filters, page, pageSize);
       setIsAddModalOpen(false);
       toast.success(`${candidate.name} has been successfully added.`);
     } catch (error) {

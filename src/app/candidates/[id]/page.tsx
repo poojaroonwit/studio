@@ -235,11 +235,11 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
         return (
           <Popover key={stage.id}>
             <PopoverTrigger asChild>
-              <div
+              <button
+                type="button"
                 className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors
                   ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-muted/40' : 'bg-muted/10 text-muted-foreground'}
                 `}
-                tabIndex={0}
                 onClick={() => {
                   if (!isCompleted) onStageClick(stage.name);
                 }}
@@ -247,7 +247,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 <div className={`w-3 h-3 rounded-full border ${isCurrent ? 'bg-primary border-primary' : isCompleted ? 'bg-green-500 border-green-500' : 'bg-gray-300 border-gray-300'}`}></div>
                 <span>{stage.name}</span>
                 {isCurrent && <span className="ml-2 text-xs text-primary">(Current)</span>}
-              </div>
+              </button>
             </PopoverTrigger>
             <PopoverContent className="w-64">
               <div className="mb-1 font-semibold">{stage.name}</div>
@@ -756,24 +756,26 @@ export default function CandidateDetailPage() {
             {/* LEFT SIDEBAR: Stage Pipeline */}
             <div className="lg:col-span-1">
               {availableStages.length > 0 && candidate && (
-                <StagePipeline
-                  stages={availableStages}
-                  transitionHistory={candidate.transitionHistory || []}
-                  currentStatus={candidate.status}
-                  onStageClick={(stageName) => {
-                    setPreselectedStage(stageName);
-                    setIsTransitionsModalOpen(true);
-                  }}
-                  editableNotes={true}
-                  onNoteEdit={async (transitionId, newNote) => {
-                    await fetch(`/api/transitions/${transitionId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ notes: newNote }),
-                    });
-                    await fetchCandidateDetails();
-                  }}
-                />
+                <div className="max-w-xs w-full">
+                  <StagePipeline
+                    stages={availableStages}
+                    transitionHistory={candidate.transitionHistory || []}
+                    currentStatus={candidate.status}
+                    onStageClick={(stageName) => {
+                      setPreselectedStage(stageName);
+                      setIsTransitionsModalOpen(true);
+                    }}
+                    editableNotes={true}
+                    onNoteEdit={async (transitionId, newNote) => {
+                      await fetch(`/api/transitions/${transitionId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notes: newNote }),
+                      });
+                      await fetchCandidateDetails();
+                    }}
+                  />
+                </div>
               )}
             </div>
             {/* MAIN CONTENT */}
@@ -1207,33 +1209,7 @@ export default function CandidateDetailPage() {
                   </CardContent>
                 </Card>
 
-              <Card>
-                <CardHeader><CardTitle className="flex items-center"><MessageSquare className="mr-2 h-5 w-5 text-primary"/>Transition History</CardTitle></CardHeader>
-                <CardContent>
-                  {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
-                    <ScrollArea className="h-[300px]">
-                    <ul className="space-y-0">
-                      {candidate.transitionHistory.sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((record, index) => (
-                        <li key={record.id} className="p-3 hover:bg-muted/50 transition-colors">
-                          <div className="flex items-start space-x-3">
-                            <CalendarDays className="h-4 w-4 text-muted-foreground mt-1" />
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold text-foreground">{record.stage}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {format(parseISO(record.date), "MMM d, yyyy 'at' h:mm a")}
-                                {record.actingUserName && <span className="italic"> by {record.actingUserName}</span>}
-                              </p>
-                              {record.notes && <p className="text-sm text-foreground mt-1.5 whitespace-pre-wrap">{record.notes}</p>}
-                            </div>
-                          </div>
-                           {index < candidate.transitionHistory.length - 1 && <Separator className="my-3" />}
-                        </li>
-                      ))}
-                    </ul>
-                    </ScrollArea>
-                  ) : <div className="text-sm text-muted-foreground text-center py-4">No transition history available.</div>}
-                </CardContent>
-              </Card>
+              {/* Remove the Transition History Card from the main detail page */}
             </div>
 
             <div className="lg:col-span-1 space-y-6">

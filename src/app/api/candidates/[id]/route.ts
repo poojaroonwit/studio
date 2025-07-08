@@ -222,12 +222,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Create transition record if status changed
     if (oldStatus !== status) {
+      const safePositionId = positionId ?? null; // Default to null if undefined
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
       await client.query(insertTransitionQuery, [
-        uuidv4(), id, positionId, status, transitionNotes || `Status changed from ${oldStatus} to ${status}`, actingUserId
+        uuidv4(), id, safePositionId, status, transitionNotes || `Status changed from ${oldStatus} to ${status}`, actingUserId
       ]);
     }
 

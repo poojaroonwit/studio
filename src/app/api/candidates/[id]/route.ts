@@ -118,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fitScore" DESC;
+      ORDER BY jm."fit_score" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
 

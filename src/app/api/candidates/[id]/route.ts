@@ -128,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       FROM "ResumeHistory" rh
       LEFT JOIN "User" u ON rh."uploaded_by_user_id" = u.id
       WHERE rh."candidateId" = $1::uuid
-      ORDER BY rh."uploadedAt" DESC;
+      ORDER BY rh."uploaded_at" DESC;
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
 

@@ -262,7 +262,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                     <li key={record.id} className="border-b pb-2 last:border-b-0 last:pb-0">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                         <Info className="h-3 w-3" />
-                        <span>{record.notes || <span className='italic text-gray-400'>No note</span>}</span>
+                        <span>{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
                         {editableNotes && (
                           <Button
                             variant="ghost"
@@ -282,7 +282,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
-                        <span className="text-gray-400">|</span>
+                        <span className="text-muted-foreground">|</span>
                         <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
                       </div>
                     </li>
@@ -339,8 +339,8 @@ export default function CandidateDetailPage() {
   const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
 
-  const [comments, setComments] = useState([]);
-  const [resumes, setResumes] = useState([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [resumes, setResumes] = useState<any[]>([]);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -372,7 +372,14 @@ export default function CandidateDetailPage() {
 
   const handleCommentsChange = () => {
     // re-fetch comments after add/edit/delete
-    fetch(`/api/candidates/${candidateId}/comments`).then(res => res.ok ? res.json() : []).then(setComments);
+    fetch(`/api/candidates/${candidateId}/comments`)
+      .then(res => res.ok ? res.json() : [])
+      .then(data => {
+        // Handle both array and object { data: [...] }
+        if (Array.isArray(data)) setComments(data);
+        else if (data && Array.isArray(data.data)) setComments(data.data);
+        else setComments([]);
+      });
   };
 
   const handleResumesChange = () => {
@@ -509,7 +516,12 @@ export default function CandidateDetailPage() {
   const handleUpdateCandidateStatus = async (id: string, newStatus: string, notes?: string) => {
     setIsLoading(true);
     try {
-      const payload: { status: string; transitionNotes?: string } = { status: newStatus };
+      // Always send null for optional fields if not present
+      const payload: { status: string; transitionNotes?: string; positionId: string | null; recruiterId: string | null } = {
+        status: newStatus || '',
+        positionId: candidate?.positionId ?? null,
+        recruiterId: candidate?.recruiterId ?? null,
+      };
       if (notes) {
         payload.transitionNotes = notes;
       }
@@ -519,15 +531,16 @@ export default function CandidateDetailPage() {
         body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to update status.');
+        toast(result?.message || 'Failed to update status.');
+        return;
       }
 
-      const updatedCandidate = await response.json();
-      setCandidate(updatedCandidate.candidate);
+      setCandidate(result.candidate);
       toast("Candidate details updated successfully.");
     } catch (error: any) {
-      toast(error.message);
+      toast(error?.message || 'Failed to update status.');
     } finally {
       setIsLoading(false);
     }
@@ -788,30 +801,16 @@ export default function CandidateDetailPage() {
 
   return (
     <FormProvider {...form}>
-      <div className="space-y-6 p-6">
+      <div className="space-y-6">
         <div className="flex justify-between items-center mb-4">
-          <Button variant="outline" onClick={() => router.push('/candidates')}>
+          <Button variant="secondary" onClick={() => router.push('/candidates')}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Candidates
           </Button>
-          {!isEditing && (
-              <Button onClick={() => setIsEditing(true)}><Edit3 className="mr-2 h-4 w-4"/> Edit Details</Button>
-          )}
-          {isEditing && (
-              <div className="flex gap-2">
-                  <Button onClick={handleSubmit(handleSaveDetails)} variant="default" disabled={isSubmitting} className="btn-primary-gradient">
-                      {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-                      {isSubmitting ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                  <Button variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
-                      <X className="mr-2 h-4 w-4"/> Cancel
-                  </Button>
-              </div>
-          )}
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 border border-gray-200 rounded-lg overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 border border-border rounded-xl shadow-md bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-white border-r border-gray-200">
+            <div className="lg:col-span-2 bg-card border-r border-border sticky top-6 h-fit p-6 rounded-xl shadow-sm">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <StagePipeline
@@ -835,22 +834,79 @@ export default function CandidateDetailPage() {
                 </div>
               )}
             </div>
-            {/* MAIN CONTENT (60%) with Tabs */}
-            <div className="lg:col-span-6 space-y-6 bg-white border-r border-gray-200">
+            {/* MAIN CONTENT (50%) with Tabs */}
+            <div className="lg:col-span-5 space-y-8 bg-background border-r border-border p-8">
               {/* Tabs for main content */}
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="info">Information</TabsTrigger>
-                  <TabsTrigger value="comments">Comments</TabsTrigger>
-                  <TabsTrigger value="resumes">Resumes</TabsTrigger>
+                <TabsList className="mb-6 w-full flex rounded-full bg-muted p-1 shadow-sm">
+                  <TabsTrigger value="info" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Information</TabsTrigger>
                 </TabsList>
                 <TabsContent value="info">
+                   {/* Candidate Header */}
+                   {candidate && (
+                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 bg-card border border-border rounded-xl shadow-sm p-6">
+                       {/* Avatar */}
+                       <div className="flex-shrink-0">
+                         <Avatar className="w-20 h-20 text-3xl">
+                           {candidate.avatarUrl ? (
+                             <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
+                           ) : (
+                             <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
+                           )}
+                         </Avatar>
+                       </div>
+                       {/* Info */}
+                       <div className="flex-1 min-w-0">
+                         <div className="flex flex-wrap items-center gap-3 mb-2">
+                           <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{candidate.name}</span>
+                           {candidate.status && (
+                             <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
+                           )}
+                           {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                             <span className="ml-2 text-sm font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">Fit Score: {candidate.fitScore}%</span>
+                           )}
+                         </div>
+                         <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
+                           {candidate.positionId && allDbPositions.length > 0 && (
+                             <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
+                           )}
+                           {candidate.recruiterId && recruiters.length > 0 && (
+                             <span>Recruiter: <span className="font-medium text-foreground">{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}</span></span>
+                           )}
+                         </div>
+                         <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
+                           {candidate.email && (
+                             <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
+                           )}
+                           {candidate.phone && (
+                             <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                   <div className="flex justify-end mb-6">
+                    {!isEditing && (
+                      <Button onClick={() => setIsEditing(true)}><Edit3 className="mr-2 h-4 w-4"/> Edit Details</Button>
+                    )}
+                    {isEditing && (
+                      <div className="flex gap-2">
+                        <Button onClick={handleSubmit(handleSaveDetails)} variant="default" disabled={isSubmitting} className="btn-primary-gradient">
+                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
+                          {isSubmitting ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
+                          <X className="mr-2 h-4 w-4"/> Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   {/* Job Match Table (pivot style) */}
-                  <div className="mb-8">
-                    <h2 className="text-lg font-semibold mb-2 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Job Matches</h2>
+                  <div className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center"><ListChecks className="mr-2 h-6 w-6 text-blue-600" />Job Matches</h2>
                     <div className="overflow-x-auto">
                       <table className="min-w-full border text-sm">
-                        <thead className="bg-muted/40">
+                        <thead className="bg-muted">
                           <tr>
                             <th className="px-4 py-2 text-left">Title</th>
                             <th className="px-4 py-2 text-left">Score</th>
@@ -899,10 +955,10 @@ export default function CandidateDetailPage() {
                       </div>
                     </div>
                   {/* Collapsible Candidate Info Sections */}
-                  <section className="mb-8">
-                    <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setInfoOpen(o => !o)}>
-                      <UserCircle className="mr-2 h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold flex-1 text-left">Personal Information</h2>
+                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setInfoOpen(o => !o)}>
+                      <UserCircle className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
                       {infoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {infoOpen && (
@@ -934,7 +990,7 @@ export default function CandidateDetailPage() {
                             {personalInfo?.introduction_aboutme && (
                                     <div>
                                     <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
-                                    <p className="text-sm text-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
                                     </div>
                                 )}
                           </div>
@@ -942,10 +998,10 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8">
-                    <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setEducationOpen(o => !o)}>
-                      <GraduationCap className="mr-2 h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold flex-1 text-left">Education</h2>
+                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
+                      <GraduationCap className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
                       {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {educationOpen && (
@@ -977,14 +1033,14 @@ export default function CandidateDetailPage() {
                                         if (typeof edu === 'string') {
                                             // Render string-only education entry
                                             return (
-                                                <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted/30">
+                                                <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted">
                                                     {renderField("Education", edu)}
                                                 </li>
                                             );
                                         } else {
                                             // Render EducationEntry object
                                             return (
-                                                <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted">
                                                     {renderField("University", edu.university)}
                                                     {renderField("Major", edu.major)}
                                                     {renderField("Field", edu.field)}
@@ -1003,10 +1059,10 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8">
-                    <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setExperienceOpen(o => !o)}>
-                      <Briefcase className="mr-2 h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold flex-1 text-left">Experience</h2>
+                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
+                      <Briefcase className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
                       {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {experienceOpen && (
@@ -1054,7 +1110,7 @@ export default function CandidateDetailPage() {
                             (experience && experience.length > 0) ? (
                                 <ul className="space-y-4">
                                     {experience.map((exp, index) => (
-                                    <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted/30">
+                                    <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted">
                                         {renderField("Company", exp.company)}
                                         {renderField("Position", exp.position)}
                                         {renderField("Level", String(exp.postition_level))}
@@ -1064,7 +1120,7 @@ export default function CandidateDetailPage() {
                                         {exp.description && (
                                             <div>
                                                 <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
-                                                <p className="text-sm text-foreground whitespace-pre-wrap bg-background p-2 rounded">{exp.description}</p>
+                                                <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
                                             </div>
                                         )}
                                         {index < experience!.length - 1 && <Separator className="my-3" />}
@@ -1076,10 +1132,10 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8">
-                    <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setSkillsOpen(o => !o)}>
-                      <Star className="mr-2 h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold flex-1 text-left">Skills</h2>
+                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
+                      <Star className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
                       {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {skillsOpen && (
@@ -1106,14 +1162,14 @@ export default function CandidateDetailPage() {
                                     if (typeof skillEntry === 'string') {
                                         // Render string-only skill entry
                                         return (
-                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted/30">
+                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
                                                 {renderField("Skill", skillEntry)}
                                             </li>
                                         );
                                     } else {
                                         // Render SkillEntry object
                                         return (
-                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
+                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted">
                                                 {renderField("Segment", skillEntry.segment_skill)}
                                                 {skillEntry.skill && skillEntry.skill.length > 0 && (
                                                     <div>
@@ -1133,10 +1189,10 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8">
-                    <button type="button" className="flex items-center mb-4 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
-                      <UserCog className="mr-2 h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold flex-1 text-left">Job Suitability</h2>
+                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
+                      <UserCog className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
                       {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {jobSuitableOpen && (
@@ -1162,7 +1218,7 @@ export default function CandidateDetailPage() {
                         (jobSuitable && jobSuitable.length > 0) ? (
                             <ul className="space-y-4">
                                 {jobSuitable.map((job, index) => (
-                                <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted/30">
+                                <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
                                     {renderField("Career Path", job.suitable_career)}
                                     {renderField("Job Position", job.suitable_job_position)}
                                     {renderField("Job Level", job.suitable_job_level)}
@@ -1188,12 +1244,12 @@ export default function CandidateDetailPage() {
                 </TabsContent>
               </Tabs>
                 </div>
-            {/* JOB MATCHED (20%) */}
-            <div className="lg:col-span-2 space-y-6 bg-white">
+            {/* JOB MATCHED (30%) */}
+            <div className="lg:col-span-3 space-y-8 bg-card p-6 rounded-xl shadow-sm">
               <UITabs defaultValue="comments" className="w-full">
-                <UITabsList className="mb-4">
-                  <UITabsTrigger value="comments">Comments</UITabsTrigger>
-                  <UITabsTrigger value="files">Files</UITabsTrigger>
+                <UITabsList className="mb-6 w-full flex rounded-full bg-muted p-1 shadow-sm">
+                  <UITabsTrigger value="comments" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Comments</UITabsTrigger>
+                  <UITabsTrigger value="files" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Files</UITabsTrigger>
                 </UITabsList>
                 <UITabsContent value="comments">
                   <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />

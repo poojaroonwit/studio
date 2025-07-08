@@ -76,24 +76,22 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
           Sort by Date {sortDesc ? '↓' : '↑'}
         </Button>
       </div>
-      {isEditing && (
-        <div className="mb-2 flex items-center gap-2">
-          <input
-            type="file"
-            accept="application/pdf,.doc,.docx,.rtf"
-            id="resume-upload"
-            style={{ display: 'none' }}
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-          <label htmlFor="resume-upload">
-            <Button asChild size="sm" disabled={uploading}>
-              <span>{uploading ? 'Uploading...' : 'Upload Resume'}</span>
-            </Button>
-          </label>
-          {uploadError && <span className="text-destructive text-xs ml-2">{uploadError}</span>}
-        </div>
-      )}
+      <div className="mb-2 flex items-center gap-2">
+        <input
+          type="file"
+          accept="application/pdf,.doc,.docx,.rtf"
+          id="resume-upload"
+          style={{ display: 'none' }}
+          onChange={handleUpload}
+          disabled={uploading}
+        />
+        <label htmlFor="resume-upload">
+          <Button asChild size="sm" disabled={uploading}>
+            <span>{uploading ? 'Uploading...' : 'Upload Resume'}</span>
+          </Button>
+        </label>
+        {uploadError && <span className="text-destructive text-xs ml-2">{uploadError}</span>}
+      </div>
       <div className="space-y-3">
         {sortedAttachments.length === 0 && <div className="text-muted-foreground text-sm">No resumes uploaded.</div>}
         {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (

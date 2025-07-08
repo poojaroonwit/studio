@@ -432,10 +432,10 @@ export function CandidatesPageClient({
         const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
         throw new Error(errorData.message || `Failed to add candidate: ${response.statusText || `Status: ${response.status}`}`);
       }
-      const newCandidate: Candidate = await response.json();
-      setAllCandidates(prev => [newCandidate, ...prev].sort((a,b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+      const { candidate } = await response.json();
+      setAllCandidates(prev => [candidate, ...prev].sort((a,b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
       setIsAddModalOpen(false);
-      toast.success(`${newCandidate.name} has been successfully added.`);
+      toast.success(`${candidate.name} has been successfully added.`);
     } catch (error) {
         console.error("Error adding candidate:", error);
         toast.error((error as Error).message);

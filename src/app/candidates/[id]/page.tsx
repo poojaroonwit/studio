@@ -1239,89 +1239,67 @@ export default function CandidateDetailPage() {
             <div className="lg:col-span-1 space-y-6">
               {!isEditing && candidate && allDbPositions.length > 0 && (
                 <>
-                  {/* Applied Job Scoring and Justification */}
-                  {candidate.positionId && (
-                    (() => {
-                      const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                      const jobMatches = candidate.parsedData && 'job_matches' in candidate.parsedData ? candidate.parsedData.job_matches : [];
-                      const appliedMatch = jobMatches?.find(jm => jm.job_id === candidate.positionId || jm.job_title === appliedPosition?.title);
-                      return (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary" />Applied Job</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="mb-2">
-                              <span className="font-semibold">{appliedPosition?.title || 'N/A'}</span>
-                              {appliedMatch && (
-                                <span className="ml-2 text-sm text-muted-foreground">Fit Score: <span className="font-bold text-foreground">{appliedMatch.fit_score}%</span></span>
-                              )}
-                            </div>
-                            {appliedMatch && appliedMatch.match_reasons && appliedMatch.match_reasons.length > 0 && (
-                              <div className="mt-1.5">
-                                <p className="text-xs font-medium text-muted-foreground mb-1">Justification:</p>
-                                <ul className="list-disc list-inside pl-3 text-xs text-foreground">
-                                  {appliedMatch.match_reasons.map((reason, i) => <li key={`applied-reason-${i}`}>{reason}</li>)}
+                  {/* Applied Position Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Applied Position</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                        const appliedMatch = candidate.parsedData?.job_matches?.find(
+                          (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
+                        );
+                        return appliedPosition ? (
+                          <>
+                            <div className="font-semibold text-lg">{appliedPosition.title}</div>
+                            <div className="mt-2">Fit Score: <span className="font-bold">{candidate.fitScore ?? (appliedMatch?.fit_score ?? 'N/A')}%</span></div>
+                            {appliedMatch?.match_reasons?.length > 0 && (
+                              <div className="mt-2">
+                                <div className="font-medium text-sm mb-1">Justification:</div>
+                                <ul className="list-disc list-inside text-sm text-muted-foreground">
+                                  {appliedMatch.match_reasons.map((reason: string, i: number) => (
+                                    <li key={`applied-reason-${i}`}>{reason}</li>
+                                  ))}
                                 </ul>
                               </div>
                             )}
-                            {!appliedMatch && <p className="text-xs text-muted-foreground">No automated scoring or justification available for this job.</p>}
-                          </CardContent>
-                        </Card>
-                      );
-                    })()
-                  )}
-                  {/* Job Matches (excluding applied job) */}
-                  {(() => {
-                    const jobMatches = candidate.parsedData && 'job_matches' in candidate.parsedData ? candidate.parsedData.job_matches : [];
-                    // Exclude applied job and sort by fit_score descending
-                    const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                    const filteredMatches = jobMatches
-                      ? jobMatches.filter(jm => jm.job_id !== candidate.positionId && jm.job_title !== appliedPosition?.title)
-                      : [];
-                    const sortedMatches = filteredMatches.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0));
-                    if (sortedMatches.length === 0) return null;
-                    return (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center"><ListChecks className="mr-2 h-5 w-5 text-blue-600" />Job Matches</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ScrollArea className="h-[calc(100vh-340px)]">
-                            <ul className="space-y-3">
-                              {sortedMatches.map((match, index) => (
-                                <li key={`match-${index}-${match.job_id || index}`} className="p-3 border rounded-md bg-muted/30">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-semibold text-foreground">{match.job_title || 'Job Title Missing'}</h4>
-                                    <span className="text-sm font-medium text-foreground">{match.fit_score}%</span>
-                                  </div>
-                                  {match.match_reasons && match.match_reasons.length > 0 && (
-                                    <div className="mt-1.5">
-                                      <p className="text-xs font-medium text-muted-foreground mb-1">Justification:</p>
-                                      <ul className="list-disc list-inside pl-3 text-xs text-foreground">
-                                        {match.match_reasons.map((reason, i) => <li key={`reason-${index}-${i}`}>{reason}</li>)}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  <div className="mt-3 flex justify-end">
-                                    {match.job_id ? (
-                                      <Link href={`/positions/${match.job_id}`} legacyBehavior>
-                                        <a target="_blank" rel="noopener noreferrer">
-                                          <button className="btn-primary-gradient px-3 py-1 rounded text-white font-medium hover:opacity-90 transition">View Job</button>
-                                        </a>
-                                      </Link>
-                                    ) : (
-                                      <button className="px-3 py-1 rounded bg-muted text-muted-foreground cursor-not-allowed" disabled>View Job</button>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </ScrollArea>
-                        </CardContent>
-                      </Card>
-                    );
-                  })()}
+                          </>
+                        ) : (
+                          <div className="text-muted-foreground">No applied position found.</div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                  {/* Other Job Matches Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Other Job Matches</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {candidate.parsedData?.job_matches && candidate.parsedData.job_matches.length > 0 ? (
+                        <ul className="space-y-4">
+                          {candidate.parsedData.job_matches.filter((jm: any) => {
+                            const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                            return !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase();
+                          }).map((jm: any, idx: number) => (
+                            <li key={`other-match-${idx}`} className="border-b pb-2 last:border-b-0">
+                              <div className="font-semibold">{jm.job_title} <span className="ml-2 text-xs text-muted-foreground">Fit Score: <span className="font-bold">{jm.fit_score}%</span></span></div>
+                              {jm.match_reasons?.length > 0 && (
+                                <ul className="list-disc list-inside text-xs text-muted-foreground mt-1">
+                                  {jm.match_reasons.map((reason: string, i: number) => (
+                                    <li key={`other-reason-${idx}-${i}`}>{reason}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-muted-foreground">No other job matches found.</div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </>
               )}
                {(jobMatches && !isEditing && !(

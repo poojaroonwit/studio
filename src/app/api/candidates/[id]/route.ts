@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const resumeHistoryQuery = `
       SELECT rh.*, u.name as "uploadedByUserName"
       FROM "ResumeHistory" rh
-      LEFT JOIN "User" u ON rh."uploadedByUserId" = u.id
+      LEFT JOIN "User" u ON rh."uploaded_by_user_id" = u.id
       WHERE rh."candidateId" = $1::uuid
       ORDER BY rh."uploadedAt" DESC;
     `;

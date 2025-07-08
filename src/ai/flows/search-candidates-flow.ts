@@ -150,13 +150,8 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
 
   const dbApiKey = await getSystemSetting('geminiApiKey');
 
-  if (dbApiKey) {
-    console.log("AI Search: Using Gemini API Key from database for this flow instance.");
-    const customGoogleAI = googleAI({ apiKey: dbApiKey });
-    activeAi = globalGenkit({ plugins: [customGoogleAI], model: 'gemini-2.0-flash' });
-  } else if (process.env.GOOGLE_API_KEY) {
-    console.log("AI Search: Using GOOGLE_API_KEY environment variable (global Genkit instance).");
-  } else {
+  const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
     console.error('AI Search: Gemini API Key not configured. AI features unavailable.');
     return { matchedCandidateIds: [], aiReasoning: 'AI features are not available due to missing API Key configuration.' };
   }
@@ -212,60 +207,46 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
   const effectiveCandidateData = candidateSummariesText.trim() ? candidateSummariesText : "No candidate details available for processing.";
 
   try {
-    const llmResponse = await activeAi.generate({
-      prompt: `You are an expert HR assistant. Your task is to analyze a list of candidate summaries based on a user's search query.
-Identify the candidates that best match the query.
+    // Direct Gemini API call
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    const prompt = `You are an expert HR assistant. Your task is to analyze a list of candidate summaries based on a user's search query.\nIdentify the candidates that best match the query.\n\nUser Search Query:\n${input.query}\n\nCandidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):\n${effectiveCandidateData}\n\nWhen matching candidates to the user's query, you must consider ALL available candidate attributes, including (but not limited to):\n- Name\n- Contact information (email, phone)\n- Education history (university, major, GPA, etc.)\n- Work experience (companies, positions, durations, descriptions)\n- Skills\n- Fit score\n- Position applied for\n- Application date\n- Recruiter\n- Status and transition history\n- Job suitability preferences\n- Automated job matches\n- Custom fields/attributes\n- Any other data provided in the summary\n\nBase your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.\nIf no candidates seem to match, return an empty list for matchedCandidateIds.\nProvide a brief reasoning for your selection or if no matches are found.\nEnsure your output is in the specified JSON format.\nIf no candidate data is provided but a search query is present, indicate that no data was available to search.`;
 
-User Search Query:
-${input.query}
-
-Candidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):
-${effectiveCandidateData}
-
-When matching candidates to the user's query, you must consider ALL available candidate attributes, including (but not limited to):
-- Name
-- Contact information (email, phone)
-- Education history (university, major, GPA, etc.)
-- Work experience (companies, positions, durations, descriptions)
-- Skills
-- Fit score
-- Position applied for
-- Application date
-- Recruiter
-- Status and transition history
-- Job suitability preferences
-- Automated job matches
-- Custom fields/attributes
-- Any other data provided in the summary
-
-Base your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.
-If no candidates seem to match, return an empty list for matchedCandidateIds.
-Provide a brief reasoning for your selection or if no matches are found.
-Ensure your output is in the specified JSON format.
-If no candidate data is provided but a search query is present, indicate that no data was available to search.
-`,
-      output: {
-        format: 'json',
-        schema: SearchCandidatesOutputSchema,
+    const fetchRes = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-goog-api-key": apiKey,
       },
-      config: {
-        // Optional: add temperature or other settings if needed
-        // temperature: 0.2,
-      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ]
+      }),
     });
 
-    const result = llmResponse.output;
-    if (!result) {
-      console.warn("AI Search: LLM response output is null or undefined.");
-      return { matchedCandidateIds: [], aiReasoning: "The AI model returned an empty response." };
+    if (!fetchRes.ok) {
+      const errorText = await fetchRes.text();
+      throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
+    }
+
+    const data = await fetchRes.json();
+    // Gemini API returns candidates[0].content.parts[0].text
+    const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    let result;
+    try {
+      result = JSON.parse(modelText);
+    } catch (e) {
+      result = { matchedCandidateIds: [], aiReasoning: "Failed to parse AI response." };
     }
 
     let finalReasoning = result.aiReasoning;
-    // Handle cases where the model returns matches but no reasoning text
     if ((result.matchedCandidateIds || []).length > 0 && (!finalReasoning || finalReasoning.trim() === '')) {
       finalReasoning = "The AI model identified matching candidates based on the query but did not provide specific reasoning.";
     }
-    // Handle cases where model returns no matches and no reasoning
     if (input.query && effectiveCandidateData !== "No candidate details available for processing." && (result.matchedCandidateIds || []).length === 0 && (!finalReasoning || finalReasoning.trim() === '')) {
         finalReasoning = "The AI model reviewed the candidate data and found no strong matches for the specified query.";
     }

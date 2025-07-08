@@ -474,7 +474,7 @@ export default function CandidateDetailPage() {
 
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate.candidate);
-      toast(`Candidate status changed to ${newStatus}.`);
+      toast("Candidate details updated successfully.");
     } catch (error: any) {
       toast(error.message);
     } finally {
@@ -756,7 +756,7 @@ export default function CandidateDetailPage() {
             {/* LEFT SIDEBAR: Stage Pipeline */}
             <div className="lg:col-span-1">
               {availableStages.length > 0 && candidate && (
-                <div className="max-w-xs w-full">
+                <div className="max-w-[10rem] w-full">
                   <StagePipeline
                     stages={availableStages}
                     transitionHistory={candidate.transitionHistory || []}

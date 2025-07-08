@@ -193,6 +193,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
+  // Extra validation to prevent DB errors
+  if (!status || typeof status !== 'string' || status.trim() === '') {
+    return NextResponse.json({ message: 'Status is required and must be a non-empty string.' }, { status: 400 });
+  }
+  // Helper to check UUID
+  function isValidUUID(val: string) {
+    return typeof val === 'string' && /^[0-9a-fA-F-]{36}$/.test(val);
+  }
+  if (positionId !== undefined && positionId !== null && !isValidUUID(positionId)) {
+    return NextResponse.json({ message: 'positionId must be a valid UUID or null.' }, { status: 400 });
+  }
+  if (recruiterId !== undefined && recruiterId !== null && !isValidUUID(recruiterId)) {
+    return NextResponse.json({ message: 'recruiterId must be a valid UUID or null.' }, { status: 400 });
+  }
+
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');

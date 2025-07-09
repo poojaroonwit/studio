@@ -37,6 +37,7 @@ import CandidateCommentsSection from '../../../components/candidates/CandidateCo
 import CandidateResumesSection from '../../../components/candidates/CandidateResumesSection';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -347,6 +348,8 @@ export default function CandidateDetailPage() {
 
   const [comments, setComments] = useState<any[]>([]);
   const [resumes, setResumes] = useState<any[]>([]);
+  // Add state for attachments
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -392,6 +395,58 @@ export default function CandidateDetailPage() {
     };
     fetchResumes();
   }, [candidateId]);
+
+  // Update fetchResumes to fetch attachments
+  const fetchResumes = async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`);
+      const data = await res.json();
+      if (Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Update fetchComments to also extract attachments from comments
+  const fetchComments = async () => {
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/comments`);
+      const data = await res.json();
+      if (Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Merge attachments from resumes and comments
+  useEffect(() => {
+    const loadAllAttachments = async () => {
+      const [resumeAttachments, commentList] = await Promise.all([
+        fetchResumes(),
+        fetchComments(),
+      ]);
+      // Extract attachments from comments
+      const commentAttachments = (commentList || []).flatMap(comment =>
+        (comment.attachments || []).map(att => ({
+          ...att,
+          // Optionally add a tag to indicate source
+          label: att.label || 'comment',
+          updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
+        }))
+      );
+      // Merge and sort by updatedAt desc
+      const all = [...(resumeAttachments || []), ...commentAttachments];
+      all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setAttachments(all);
+    };
+    loadAllAttachments();
+  }, [candidateId, isEditing]);
 
   const handleCommentsChange = async () => {
     // re-fetch comments after add/edit/delete
@@ -552,60 +607,14 @@ export default function CandidateDetailPage() {
   const handleUpdateCandidateStatus = async (id: string, newStatus: string, notes?: string, suppressToast?: boolean) => {
     setIsLoading(true);
     try {
-      // Only send the fields that are actually being updated
-      const payload: { status: string; transitionNotes?: string; positionId?: string | null; recruiterId?: string | null } = {
-        status: newStatus || '',
-      };
-      
-      // Only include positionId and recruiterId if they exist
-      if (candidate?.positionId !== undefined) {
-        payload.positionId = candidate.positionId;
-      }
-      if (candidate?.recruiterId !== undefined) {
-        payload.recruiterId = candidate.recruiterId;
-      }
-      
-      if (notes) {
-        payload.transitionNotes = notes;
-      }
-      
-      console.log('Sending payload to API:', payload); // Debug log
-      
-      const response = await fetch(`/api/candidates/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-      console.log('API response:', result); // Debug log
-      
-      if (!response.ok) {
-        if (!suppressToast) {
-          toast(result?.message || 'Failed to update status.');
-        }
-        return;
-      }
-
-      setCandidate(result.candidate);
-      
-      // Only show toast if not suppressed
+      // Use unified bulk update logic
+      await updateCandidateStatusWithNotes(id, newStatus, notes);
+      await fetchCandidateDetails();
       if (!suppressToast) {
-        // Create a more specific toast message for status transitions
-        const candidateName = result.candidate?.name || 'Candidate';
-        const oldStatus = candidate?.status || 'Unknown';
-        const newStatusDisplay = newStatus || 'Unknown';
-        
-        if (oldStatus === newStatusDisplay) {
-          // If only notes were added without status change
-          toast.success(`${candidateName}'s transition notes have been updated.`);
-        } else {
-          // Status was changed
-          toast.success(`${candidateName} moved from "${oldStatus}" to "${newStatusDisplay}".`);
-        }
+        toast.success(`Candidate status updated to "${newStatus}".`);
       }
     } catch (error: any) {
-      console.error('Error updating candidate status:', error); // Debug log
+      console.error('Error updating candidate status:', error);
       if (!suppressToast) {
         toast.error(error?.message || 'Failed to update status.');
       }
@@ -1395,11 +1404,11 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
               
-              {/* Resumes Section */}
+              {/* Attachments Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
                   <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-                  Resume Files
+                  Attachments
                 </h3>
                 <div className="bg-muted rounded-lg p-4">
                   <CandidateResumesSection 
@@ -1407,6 +1416,7 @@ export default function CandidateDetailPage() {
                     resumes={Array.isArray(resumes) ? resumes : []} 
                     isEditing={isEditing} 
                     onResumesChange={handleResumesChange} 
+                    attachments={attachments}
                   />
                 </div>
               </div>

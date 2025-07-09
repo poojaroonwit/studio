@@ -129,7 +129,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-2">
-        <span className="font-semibold">Resumes</span>
+        <span className="font-semibold">Attachments</span>
         <Button size="sm" variant="outline" onClick={() => setSortDesc(!sortDesc)}>
           Sort by Date {sortDesc ? '↓' : '↑'}
         </Button>
@@ -153,13 +153,13 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         </div>
       )}
 
-      {/* Existing Resumes List */}
+      {/* Existing Attachments List */}
       <div className="space-y-3">
         {sortedAttachments.length === 0 && (
           <div className="text-muted-foreground text-sm text-center py-8">
-            No resumes uploaded yet.
+            No attachments uploaded yet.
             {!isEditing && (
-              <p className="text-xs mt-2">Enable edit mode to upload resumes</p>
+              <p className="text-xs mt-2">Enable edit mode to upload attachments</p>
             )}
           </div>
         )}
@@ -177,6 +177,9 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
                   >
                     {attachment.fileName}
                   </a>
+                  {attachment.label && (
+                    <Badge variant="secondary" className="text-xs ml-2">{attachment.label}</Badge>
+                  )}
                   {attachment.isPrimary && (
                     <Badge variant="default" className="text-xs">Primary</Badge>
                   )}

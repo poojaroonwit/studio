@@ -95,11 +95,41 @@ export function CandidateTable({
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
+  // Add state for comments and logs
+  const [modalComments, setModalComments] = useState<any[]>([]);
+  const [modalLogs, setModalLogs] = useState<any[]>([]);
 
+  // Helper to combine and sort activities
+  const getCombinedActivities = () => {
+    const comments = modalComments.map(comment => ({
+      ...comment,
+      type: 'comment',
+      date: comment.createdAt,
+    }));
+    const logs = modalLogs.map(log => ({
+      ...log,
+      type: 'activity',
+      date: log.time || log.createdAt,
+    }));
+    return [...comments, ...logs].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+  };
 
-  const handleManageTransitionsClick = (candidate: Candidate) => {
+  // Update handleManageTransitionsClick to fetch comments and logs
+  const handleManageTransitionsClick = async (candidate: Candidate) => {
     setSelectedCandidateForModal(candidate);
     setIsTransitionsModalOpen(true);
+    // Fetch comments
+    const commentsRes = await fetch(`/api/candidates/${candidate.id}/comments`);
+    const commentsData = await commentsRes.json();
+    setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+    // Fetch logs/activity
+    const logsRes = await fetch(`/api/candidates/${candidate.id}/logs`);
+    const logsData = await logsRes.json();
+    setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
   };
 
   const handleEditPositionClick = (positionId: string | null | undefined) => {
@@ -291,6 +321,17 @@ export function CandidateTable({
           onUpdateCandidate={onUpdateCandidate}
           onRefreshCandidateData={onRefreshCandidateData}
           availableStages={availableStages}
+          comments={getCombinedActivities()}
+          onCommentsChange={async () => {
+            if (!selectedCandidateForModal) return;
+            // Re-fetch comments and logs
+            const commentsRes = await fetch(`/api/candidates/${selectedCandidateForModal.id}/comments`);
+            const commentsData = await commentsRes.json();
+            setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+            const logsRes = await fetch(`/api/candidates/${selectedCandidateForModal.id}/logs`);
+            const logsData = await logsRes.json();
+            setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
+          }}
         />
       )}
       <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>

@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import AutomationUploadModal from './AutomationUploadModal';
+import { AutomationUploadModal } from './AutomationUploadModal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';

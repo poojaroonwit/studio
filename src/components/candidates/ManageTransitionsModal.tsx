@@ -36,6 +36,9 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
+import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
+import CandidateCommentsSection from './CandidateCommentsSection';
+import { StageSelect } from './StageSelect';
 
 const transitionFormSchema = z.object({
   newStatus: z.string().min(1, "New status is required"),
@@ -52,6 +55,8 @@ interface ManageTransitionsModalProps {
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
   preselectedStage?: string | null;
+  comments: any[];
+  onCommentsChange: () => void;
 }
 
 export function ManageTransitionsModal({
@@ -62,6 +67,8 @@ export function ManageTransitionsModal({
   onRefreshCandidateData,
   availableStages,
   preselectedStage,
+  comments,
+  onCommentsChange,
 }: ManageTransitionsModalProps) {
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string>('');
@@ -100,12 +107,13 @@ export function ManageTransitionsModal({
     }
     setIsSaving(true);
     try {
-        // Pass suppressToast as true to prevent toast messages from the parent component
-        await onUpdateCandidate(candidate.id, data.newStatus, data.notes, true); 
+        await updateCandidateStatusWithNotes(candidate.id, data.newStatus, data.notes);
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
         setIsSaving(false);
         onOpenChange(false); // Close modal on success
+        await onRefreshCandidateData(candidate.id); // Refresh data after update
+        onCommentsChange(); // Refresh comments after transition
     } catch (error) {
         setIsSaving(false);
         toast("Failed to save transition. Please try again.");
@@ -202,73 +210,13 @@ export function ManageTransitionsModal({
               </p>
               <form onSubmit={form.handleSubmit(handleAddTransitionSubmit)} className="space-y-4">
                 <div>
-                  <Label htmlFor="newStatus" className="text-sm font-medium text-muted-foreground">New Stage</Label>
-                  {availableStages.length === 0 ? (
-                    <div className="text-sm text-destructive mt-2 mb-4">No stages available. Please configure recruitment stages in settings.</div>
-                  ) : (
-                    <Controller
-                      name="newStatus"
-                      control={form.control}
-                      render={({ field }) => (
-                        <Popover open={statusSearchOpen} onOpenChange={setStatusSearchOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={statusSearchOpen}
-                              className="w-full justify-between mt-1"
-                            >
-                              {field.value
-                                ? availableStages.find((stage) => stage.name === field.value)?.name
-                                : "Select new stage"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
-                            <div className="p-2">
-                              <Input
-                                placeholder="Search stage..."
-                                value={statusSearchQuery}
-                                onChange={(e) => setStatusSearchQuery(e.target.value)}
-                                className="h-9"
-                              />
-                            </div>
-                            <ScrollArea className="max-h-60">
-                              {filteredStages.length === 0 && statusSearchQuery && (
-                                <p className="p-2 text-sm text-muted-foreground text-center">No stage found.</p>
-                              )}
-                              {filteredStages.map((stage) => (
-                                <Button
-                                  key={stage.id}
-                                  variant="ghost"
-                                  className={cn(
-                                    "w-full justify-start px-2 py-1 text-sm font-normal h-auto",
-                                    field.value === stage.name && "bg-accent text-accent-foreground"
-                                  )}
-                                  onClick={() => {
-                                    field.onChange(stage.name);
-                                    setStatusSearchOpen(false);
-                                    setStatusSearchQuery('');
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === stage.name ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {stage.name}
-                                </Button>
-                              ))}
-                            </ScrollArea>
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    />
-                  )}
-                  {form.formState.errors.newStatus && (
-                    <p className="text-xs text-destructive mt-1">{form.formState.errors.newStatus.message}</p>
-                  )}
+                  <StageSelect
+                    value={form.watch('newStatus')}
+                    onChange={val => form.setValue('newStatus', val)}
+                    availableStages={availableStages}
+                    label="New Stage"
+                    error={form.formState.errors.newStatus?.message}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>
@@ -349,6 +297,15 @@ export function ManageTransitionsModal({
               </Button>
             </DialogClose>
           </DialogFooter>
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">Comments & Activity</h3>
+            <CandidateCommentsSection
+              candidateId={candidate.id}
+              comments={comments}
+              isEditing={false}
+              onCommentsChange={onCommentsChange}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

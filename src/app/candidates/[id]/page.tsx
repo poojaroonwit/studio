@@ -233,6 +233,8 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
     if (!stageToRecords[record.stage]) stageToRecords[record.stage] = [];
     stageToRecords[record.stage].push(record);
   });
+  // Track which popover is open by index
+  const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   return (
     <div className="flex flex-col gap-0.5 mb-6">
       {stages.map((stage, idx) => {
@@ -240,23 +242,25 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
         const isCompleted = transitionHistory.some(r => r.stage === stage.name);
         const isCurrent = currentStatus === stage.name;
         return (
-          <Popover key={stage.id}>
+          <Popover key={stage.id} open={openPopoverIdx === idx}>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors
-                  ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-muted/40' : 'bg-muted/10 text-muted-foreground'}
+                  ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-green-100 border-l-4 border-green-500 font-semibold text-green-800' : 'bg-muted/10 text-muted-foreground'}
                 `}
                 onClick={() => {
                   if (!isCompleted) onStageClick(stage.name);
                 }}
+                onMouseEnter={() => setOpenPopoverIdx(idx)}
+                onMouseLeave={() => setOpenPopoverIdx(null)}
               >
                 <div className={`w-3 h-3 rounded-full border ${isCurrent ? 'bg-primary border-primary' : isCompleted ? 'bg-green-500 border-green-500' : 'bg-gray-300 border-gray-300'}`}></div>
                 <span>{stage.name}</span>
                 {isCurrent && <span className="ml-2 text-xs text-primary">(Current)</span>}
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent className="w-80" align="start" sideOffset={4} onMouseEnter={() => setOpenPopoverIdx(idx)} onMouseLeave={() => setOpenPopoverIdx(null)}>
               <div className="mb-1 font-semibold">{stage.name}</div>
               {records.length > 0 ? (
                 <ul className="space-y-2">
@@ -918,7 +922,7 @@ export default function CandidateDetailPage() {
               )}
             </div>
             {/* MAIN CONTENT (50%) with Tabs */}
-            <div className="lg:col-span-5 space-y-8 bg-background border-r border-l border-border p-8">
+            <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
               {/* Tabs for main content */}
              
             
@@ -944,7 +948,7 @@ export default function CandidateDetailPage() {
                              <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                            )}
                            {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                             <span className={`ml-2 text-sm font-semibold px-3 py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
+                             <span className={`text-sm font-semibold py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
                                Fit Score: {formatScoreWithGrade(candidate.fitScore)}
                              </span>
                            )}
@@ -1423,6 +1427,8 @@ export default function CandidateDetailPage() {
                 onRefreshCandidateData={fetchCandidateDetails}
                 availableStages={availableStages}
                 preselectedStage={preselectedStage}
+                comments={comments}
+                onCommentsChange={handleCommentsChange}
             />
           </>
         )}

@@ -106,6 +106,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     return new Date(dateB).getTime() - new Date(dateA).getTime(); // Sort newest first
   });
 
+  // Pagination state
+  const ITEMS_PER_PAGE = 5;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(combinedActivities.length / ITEMS_PER_PAGE) || 1;
+  useEffect(() => {
+    // Reset to first page if activities change
+    setPage(1);
+  }, [candidateId, initialComments, logs]);
+  const paginatedActivities = combinedActivities.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
   // Drag-and-drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -293,8 +303,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
         ) : combinedActivities.length === 0 ? (
           <div className="text-muted-foreground text-sm py-4 text-center">No activities or comments yet.</div>
         ) : (
-          combinedActivities.map((item, index) => (
-            <div key={item.id} className={`py-4 ${index !== combinedActivities.length - 1 ? 'border-b border-border' : ''}`}>
+          paginatedActivities.map((item, index) => (
+            <div key={item.id} className={`py-4 ${index !== paginatedActivities.length - 1 ? 'border-b border-border' : ''}`}>
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                   {/* Icon based on type */}
@@ -406,6 +416,14 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           ))
         )}
       </div>
+      {/* Pagination Controls */}
+      {combinedActivities.length > ITEMS_PER_PAGE && (
+        <div className="flex justify-center items-center gap-2 mt-2">
+          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
+          <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
+          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        </div>
+      )}
       
       {/* Chat-like Comment Input */}
       <div className="border rounded-lg bg-background">

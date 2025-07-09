@@ -16,7 +16,7 @@ const swaggerSpec = {
   },
   servers: [
     { 
-      url: 'http://159.89.193.226:8021',
+      url: 'http://10.0.10.71:8021',
       description: 'Remote server'
     },
     { 

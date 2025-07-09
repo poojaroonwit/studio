@@ -14,7 +14,7 @@ const bulkActionSchema = z.object({
   candidateIds: z.array(z.string().uuid()).min(1, "At least one candidate ID is required."),
   newStatus: z.string().optional(), // Required if action is 'change_status'
   newRecruiterId: z.string().uuid().nullable().optional(), // Required if action is 'assign_recruiter'
-  notes: z.string().optional().nullable(), // Optional for 'change_status'
+  transitionNotes: z.string().optional().nullable(), // Optional for 'change_status'
 });
 
 /**
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { action, candidateIds, newStatus, newRecruiterId } = validationResult.data;
+  const { action, candidateIds, newStatus, newRecruiterId, transitionNotes } = validationResult.data;
 
   // Before using candidateIds in queries, validate:
   const candidateIdsSchema = z.string().uuid().array();
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
           if (candidate.status !== newStatus) {
             await client.query(
               'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-              [uuidv4(), candidate.id, newStatus, `Bulk status change from ${candidate.status} to ${newStatus}`, actingUserId]
+              [uuidv4(), candidate.id, newStatus, transitionNotes || `Bulk status change from ${candidate.status} to ${newStatus}`, actingUserId]
             );
           }
         }

@@ -9,7 +9,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
 import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
@@ -26,6 +26,10 @@ import { Textarea } from '@/components/ui/textarea';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AutomationUploadModal from './AutomationUploadModal';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { StageSelect } from './StageSelect';
 
 
 interface CandidatesPageClientProps {
@@ -621,7 +625,7 @@ export function CandidatesPageClient({
       };
       if (bulkActionType === 'change_status') {
         payload.newStatus = bulkNewStatus;
-        payload.notes = bulkTransitionNotes;
+        payload.transitionNotes = bulkTransitionNotes;
       } else if (bulkActionType === 'assign_recruiter') {
         payload.newRecruiterId = bulkNewRecruiterId;
       }
@@ -867,11 +871,12 @@ export function CandidatesPageClient({
           </AlertDialogHeader>
           {bulkActionType === 'change_status' && (
             <div className="my-4 space-y-2">
-              <Label htmlFor="bulk-new-status">New Status</Label>
-              <Select value={bulkNewStatus || ''} onValueChange={setBulkNewStatus}>
-                <SelectTrigger id="bulk-new-status"><SelectValue placeholder="Select status..." /></SelectTrigger>
-                <SelectContent>{availableStages.map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
-              </Select>
+              <StageSelect
+                value={bulkNewStatus}
+                onChange={setBulkNewStatus}
+                availableStages={availableStages}
+                label="New Status"
+              />
               <Label htmlFor="bulk-transition-notes">Notes (Optional)</Label>
               <Textarea id="bulk-transition-notes" value={bulkTransitionNotes} onChange={(e) => setBulkTransitionNotes(e.target.value)} placeholder="Optional notes for this bulk status change."/>
             </div>

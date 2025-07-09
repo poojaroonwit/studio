@@ -237,69 +237,86 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
   // Track which popover is open by index
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   return (
-    <div className="flex flex-col gap-0.5 mb-6">
+    <div className="flex flex-col gap-0.5 mb-6 relative">
       {stages.map((stage, idx) => {
         const records = stageToRecords[stage.name] || [];
         const isCompleted = transitionHistory.some(r => r.stage === stage.name);
         const isCurrent = currentStatus === stage.name;
         return (
-          <Popover key={stage.id} open={openPopoverIdx === idx}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors
-                  ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-green-100 border-l-4 border-green-500 font-semibold text-green-800' : 'bg-muted/10 text-muted-foreground'}
-                `}
-                onClick={() => {
-                  if (!isCompleted) onStageClick(stage.name);
-                }}
-                onMouseEnter={() => setOpenPopoverIdx(idx)}
-                onMouseLeave={() => setOpenPopoverIdx(null)}
-              >
-                <div className={`w-3 h-3 rounded-full border ${isCurrent ? 'bg-primary border-primary' : isCompleted ? 'bg-green-500 border-green-500' : 'bg-gray-300 border-gray-300'}`}></div>
-                <span>{stage.name}</span>
-                {isCurrent && <span className="ml-2 text-xs text-primary">(Current)</span>}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="start" sideOffset={4} onMouseEnter={() => setOpenPopoverIdx(idx)} onMouseLeave={() => setOpenPopoverIdx(null)}>
-              <div className="mb-1 font-semibold">{stage.name}</div>
-              {records.length > 0 ? (
-                <ul className="space-y-2">
-                  {records.map((record, i) => (
-                    <li key={record.id} className="border-b pb-2 last:border-b-0 last:pb-0">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <Info className="h-3 w-3" />
-                        <span>{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
-                        {editableNotes && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newNote = prompt("Edit note:", record.notes);
-                              if (newNote && newNote.trim() !== '') {
-                                onNoteEdit(record.id, newNote.trim());
-                              }
-                            }}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
-                        <span className="text-muted-foreground">|</span>
-                        <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
-              )}
-            </PopoverContent>
-          </Popover>
+          <div key={stage.id} className="relative flex items-start">
+            {/* Vertical line for workflow, except after last node */}
+            {idx < stages.length - 1 && (
+              <div className="absolute left-4 top-7 w-px h-full z-0" style={{height: 'calc(100% - 1.5rem)'}}>
+                <div className="w-px h-full bg-gray-300 mx-auto" style={{background: isCompleted ? '#22c55e' : '#d1d5db'}} />
+              </div>
+            )}
+            <Popover open={openPopoverIdx === idx}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors relative z-10
+                    ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-green-100 border-l-4 border-green-500 font-semibold text-green-800' : 'bg-muted/10 text-muted-foreground'}
+                  `}
+                  onClick={() => {
+                    if (!isCompleted) onStageClick(stage.name);
+                  }}
+                  onMouseEnter={() => setOpenPopoverIdx(idx)}
+                  onMouseLeave={() => setOpenPopoverIdx(null)}
+                >
+                  {/* Node circle with checkmark if completed */}
+                  <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all
+                    ${isCompleted ? 'bg-green-500 border-green-500 text-white' : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
+                  >
+                    {isCompleted ? (
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-white block"></span>
+                    )}
+                  </div>
+                  <span>{stage.name}</span>
+                  {isCurrent && <span className="ml-2 text-xs text-primary">(Current)</span>}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="start" sideOffset={4} onMouseEnter={() => setOpenPopoverIdx(idx)} onMouseLeave={() => setOpenPopoverIdx(null)}>
+                <div className="mb-1 font-semibold">{stage.name}</div>
+                {records.length > 0 ? (
+                  <ul className="space-y-2">
+                    {records.map((record, i) => (
+                      <li key={record.id} className="border-b pb-2 last:border-b-0 last:pb-0">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <Info className="h-3 w-3" />
+                          <span>{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
+                          {editableNotes && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newNote = prompt("Edit note:", record.notes);
+                                if (newNote && newNote.trim() !== '') {
+                                  onNoteEdit(record.id, newNote.trim());
+                                }
+                              }}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
+                          <span className="text-muted-foreground">|</span>
+                          <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
         );
       })}
     </div>
@@ -908,11 +925,71 @@ export default function CandidateDetailPage() {
               { label: candidate?.name || "Candidate Details" }
             ]} 
           />
+          {/* Quick Actions moved here */}
+          <div className="space-y-4 min-w-[220px] ml-8">
+            <h3 className="text-lg font-semibold flex items-center">
+              <Zap className="mr-2 h-5 w-5 text-primary" />
+              Quick Actions
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {!isEditing ? (
+                <Button 
+                  variant="outline" 
+                  className="justify-start h-auto p-3"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  <div className="text-left">
+                    <div className="font-medium">Edit Details</div>
+                    <div className="text-xs text-muted-foreground">Modify candidate info</div>
+                  </div>
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="default" 
+                    className="justify-start h-auto p-3"
+                    onClick={handleSubmit(handleSaveDetails)}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    <div className="text-left">
+                      <div className="font-medium">{isSubmitting ? 'Saving...' : 'Save Changes'}</div>
+                      <div className="text-xs text-muted-foreground">Save all modifications</div>
+                    </div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-3"
+                    onClick={handleCancelEdit}
+                    disabled={isSubmitting}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Cancel Edit</div>
+                      <div className="text-xs text-muted-foreground">Discard changes</div>
+                    </div>
+                  </Button>
+                </>
+              )}
+              <Button 
+                variant="outline" 
+                className="justify-start h-auto p-3"
+                onClick={() => setIsUploadModalOpen(true)}
+              >
+                <UploadCloud className="mr-2 h-4 w-4" />
+                <div className="text-left">
+                  <div className="font-medium">Upload Resume</div>
+                  <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
+                </div>
+              </Button>
+            </div>
+          </div>
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
           <div className="grid grid-cols-1 lg:grid-cols-10 border-t border-t-gray-300 bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6 h-fit p-6">
+            <div className="lg:col-span-2 bg-card sticky top-6  p-6">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <div className="mb-4">
@@ -1346,69 +1423,6 @@ export default function CandidateDetailPage() {
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
             <div className="lg:col-span-3 space-y-6 bg-card p-3 pt-6 rounded-xl shadow-sm">
-              {/* Quick Actions */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Zap className="mr-2 h-5 w-5 text-primary" />
-                  Quick Actions
-                </h3>
-                <div className="grid grid-cols-1 gap-3">
-               
-                  
-                  {!isEditing ? (
-                    <Button 
-                      variant="outline" 
-                      className="justify-start h-auto p-3"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Edit Details</div>
-                        <div className="text-xs text-muted-foreground">Modify candidate info</div>
-                      </div>
-                    </Button>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="default" 
-                        className="justify-start h-auto p-3"
-                        onClick={handleSubmit(handleSaveDetails)}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        <div className="text-left">
-                          <div className="font-medium">{isSubmitting ? 'Saving...' : 'Save Changes'}</div>
-                          <div className="text-xs text-muted-foreground">Save all modifications</div>
-                        </div>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="justify-start h-auto p-3"
-                        onClick={handleCancelEdit}
-                        disabled={isSubmitting}
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        <div className="text-left">
-                          <div className="font-medium">Cancel Edit</div>
-                          <div className="text-xs text-muted-foreground">Discard changes</div>
-                        </div>
-                      </Button>
-                    </>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="justify-start h-auto p-3"
-                    onClick={() => setIsUploadModalOpen(true)}
-                  >
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Upload Resume</div>
-                      <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
-                    </div>
-                  </Button>
-                </div>
-              </div>
-              
               {/* Comments & Activity Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
@@ -1471,6 +1485,13 @@ export default function CandidateDetailPage() {
             />
         )}
       </div>
+      {/* Render UploadResumeModal for drag-and-drop upload */}
+      <UploadResumeModal
+        isOpen={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        candidate={candidate}
+        onUploadSuccess={handleUploadSuccess}
+      />
     </FormProvider>
   );
 }

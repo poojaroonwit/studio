@@ -833,7 +833,7 @@ export default function CandidateDetailPage() {
   return (
     <FormProvider {...form}>
       <div className="space-y-6">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center p-6 pb-0">
           <Breadcrumb 
             items={[
               { label: "Home", href: "/", icon: Home },
@@ -885,14 +885,14 @@ export default function CandidateDetailPage() {
               )}
             </div>
             {/* MAIN CONTENT (50%) with Tabs */}
-            <div className="lg:col-span-5 space-y-8 bg-background border-r border-border p-8">
+            <div className="lg:col-span-5 space-y-8 bg-background border-r border-l border-border p-8">
               {/* Tabs for main content */}
              
             
                
                    {/* Candidate Header */}
                    {candidate && (
-                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 bg-card border border-border rounded-xl shadow-sm p-6">
+                     <div className="flex flex-col md:flex-row items-center  gap-6 ">
                        {/* Avatar */}
                        <div className="flex-shrink-0">
                          <Avatar className="w-20 h-20 text-3xl">
@@ -933,22 +933,68 @@ export default function CandidateDetailPage() {
                        </div>
                      </div>
                    )}
-                   <div className="flex justify-end mb-6">
-                    {!isEditing && (
-                      <Button onClick={() => setIsEditing(true)}><Edit3 className="mr-2 h-4 w-4"/> Edit Details</Button>
-                    )}
-                    {isEditing && (
-                      <div className="flex gap-2">
-                        <Button onClick={handleSubmit(handleSaveDetails)} variant="default" disabled={isSubmitting} className="btn-primary-gradient">
-                          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4"/>}
-                          {isSubmitting ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                        <Button variant="outline" onClick={handleCancelEdit} disabled={isSubmitting}>
-                          <X className="mr-2 h-4 w-4"/> Cancel
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+
+                   {/* Role Suggestion and Job Matches at the top */}
+                   <div className="space-y-6">
+                     {/* Role Suggestion Summary */}
+                     <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
+                     
+                     {/* Job Matches Table */}
+                     <div className="bg-muted rounded-xl p-6 shadow-sm">
+                       <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+                         <ListChecks className="mr-2 h-6 w-6 text-blue-600" />
+                         Job Matches
+                       </h2>
+                       <div className="overflow-x-auto">
+                         <table className="min-w-full border text-sm">
+                           <thead className="bg-muted">
+                             <tr>
+                               <th className="px-4 py-2 text-left">Title</th>
+                               <th className="px-4 py-2 text-left">Score</th>
+                               <th className="px-4 py-2 text-left">Justification</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {(() => {
+                               const jobMatches = candidate && candidate.parsedData && 'job_matches' in candidate.parsedData && Array.isArray(candidate.parsedData.job_matches)
+                                 ? candidate.parsedData.job_matches
+                                 : [];
+                               const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                               const appliedMatch = jobMatches.find(
+                                 (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
+                               );
+                               const otherMatches = jobMatches.filter((jm: any) => !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase());
+                               const rows = [];
+                               if (appliedMatch && appliedPosition) {
+                                 rows.push({
+                                   title: appliedPosition.title,
+                                   score: appliedMatch.fit_score,
+                                   justification: (appliedMatch.match_reasons || []).join('; ')
+                                 });
+                               }
+                               for (const jm of otherMatches) {
+                                 rows.push({
+                                   title: jm.job_title,
+                                   score: jm.fit_score,
+                                   justification: (jm.match_reasons || []).join('; ')
+                                 });
+                               }
+                               if (rows.length === 0) {
+                                 return <tr><td colSpan={3} className="text-muted-foreground text-center py-4">No job match data available.</td></tr>;
+                               }
+                               return rows.map((row, i) => (
+                                 <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
+                                   <td className="px-4 py-2">{row.title}</td>
+                                   <td className="px-4 py-2">{row.score}%</td>
+                                   <td className="px-4 py-2">{row.justification}</td>
+                                 </tr>
+                               ));
+                             })()}
+                           </tbody>
+                         </table>
+                       </div>
+                     </div>
+                   </div>
 
                   {/* Collapsible Candidate Info Sections */}
                   <section className="mb-4 ">
@@ -1228,182 +1274,6 @@ export default function CandidateDetailPage() {
                               </div>
                             )}
                   </section>
-                  
-                  {/* Main Content Tabs */}
-                  <div className="mb-8">
-                    <Tabs defaultValue="overview" className="w-full">
-                      <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted p-1 rounded-lg">
-                        <TabsTrigger 
-                          value="overview" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                        >
-                          <User className="h-4 w-4" />
-                          Overview
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="comments" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          Comments
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="resumes" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                        >
-                          <UploadCloud className="h-4 w-4" />
-                          Resumes
-                          {Array.isArray(resumes) && resumes.length > 0 && (
-                            <Badge variant="secondary" className="ml-1 text-xs">
-                              {resumes.length}
-                            </Badge>
-                          )}
-                        </TabsTrigger>
-                        <TabsTrigger 
-                          value="activity" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                        >
-                          <Activity className="h-4 w-4" />
-                          Activity
-                        </TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="overview" className="space-y-6">
-                        {/* Role Suggestion Summary */}
-                        <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
-                        
-                        {/* Job Matches Table */}
-                        <div className="bg-muted rounded-xl p-6 shadow-sm">
-                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
-                            <ListChecks className="mr-2 h-6 w-6 text-blue-600" />
-                            Job Matches
-                          </h2>
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full border text-sm">
-                              <thead className="bg-muted">
-                                <tr>
-                                  <th className="px-4 py-2 text-left">Title</th>
-                                  <th className="px-4 py-2 text-left">Score</th>
-                                  <th className="px-4 py-2 text-left">Justification</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {(() => {
-                                  const jobMatches = candidate && candidate.parsedData && 'job_matches' in candidate.parsedData && Array.isArray(candidate.parsedData.job_matches)
-                                    ? candidate.parsedData.job_matches
-                                    : [];
-                                  const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                                  const appliedMatch = jobMatches.find(
-                                    (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
-                                  );
-                                  const otherMatches = jobMatches.filter((jm: any) => !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase());
-                                  const rows = [];
-                                  if (appliedMatch && appliedPosition) {
-                                    rows.push({
-                                      title: appliedPosition.title,
-                                      score: appliedMatch.fit_score,
-                                      justification: (appliedMatch.match_reasons || []).join('; ')
-                                    });
-                                  }
-                                  for (const jm of otherMatches) {
-                                    rows.push({
-                                      title: jm.job_title,
-                                      score: jm.fit_score,
-                                      justification: (jm.match_reasons || []).join('; ')
-                                    });
-                                  }
-                                  if (rows.length === 0) {
-                                    return <tr><td colSpan={3} className="text-muted-foreground text-center py-4">No job match data available.</td></tr>;
-                                  }
-                                  return rows.map((row, i) => (
-                                    <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
-                                      <td className="px-4 py-2">{row.title}</td>
-                                      <td className="px-4 py-2">{row.score}%</td>
-                                      <td className="px-4 py-2">{row.justification}</td>
-                                    </tr>
-                                  ));
-                                })()}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="comments" className="space-y-6">
-                        <div className="bg-muted rounded-xl p-6 shadow-sm">
-                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
-                            <MessageSquare className="mr-2 h-6 w-6 text-blue-600" />
-                            Comments & Notes
-                          </h2>
-                          <CandidateCommentsSection 
-                            candidateId={candidateId} 
-                            comments={comments} 
-                            isEditing={isEditing} 
-                            onCommentsChange={handleCommentsChange} 
-                          />
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="resumes" className="space-y-6">
-                        <div className="bg-muted rounded-xl p-6 shadow-sm">
-                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
-                            <UploadCloud className="mr-2 h-6 w-6 text-blue-600" />
-                            Resume Files
-                          </h2>
-                          <CandidateResumesSection 
-                            candidateId={candidateId} 
-                            resumes={Array.isArray(resumes) ? resumes : []} 
-                            isEditing={isEditing} 
-                            onResumesChange={handleResumesChange} 
-                          />
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="activity" className="space-y-6">
-                        <div className="bg-muted rounded-xl p-6 shadow-sm">
-                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
-                            <Activity className="mr-2 h-6 w-6 text-blue-600" />
-                            Activity History
-                          </h2>
-                          <div className="space-y-4">
-                            {/* Transition History */}
-                            {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
-                              <div>
-                                <h3 className="text-lg font-semibold mb-3">Status Changes</h3>
-                                <div className="space-y-3">
-                                  {candidate.transitionHistory.map((transition, index) => (
-                                    <div key={transition.id} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
-                                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <Badge variant="outline" className="text-xs">
-                                            {transition.stage}
-                                          </Badge>
-                                          <span className="text-xs text-muted-foreground">
-                                            {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
-                                          </span>
-                                        </div>
-                                        {transition.notes && (
-                                          <p className="text-sm text-foreground mt-1">{transition.notes}</p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          By: {transition.actingUserName || 'Unknown user'}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground text-center py-4">
-                                No activity history available.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </div>
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
             <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
@@ -1426,91 +1296,123 @@ export default function CandidateDetailPage() {
                     </div>
                   </Button>
                   
-
-                  
-                  <Button 
-                    variant="outline" 
-                    className="justify-start h-auto p-3"
-                    onClick={() => setIsEditing(!isEditing)}
-                  >
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Edit Details</div>
-                      <div className="text-xs text-muted-foreground">Modify candidate info</div>
-                    </div>
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Candidate Summary */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Info className="mr-2 h-5 w-5 text-primary" />
-                  Summary
-                </h3>
-                <div className="space-y-3">
-                  {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium">Fit Score</span>
-                      <Badge variant="default" className="text-xs">
-                        {candidate.fitScore}%
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {candidate.status && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium">Current Status</span>
-                      <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs">
-                        {candidate.status}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {candidate.positionId && allDbPositions.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium">Applied Position</span>
-                      <span className="text-sm text-foreground">
-                        {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {candidate.recruiterId && recruiters.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <span className="text-sm font-medium">Assigned Recruiter</span>
-                      <span className="text-sm text-foreground">
-                        {recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}
-                      </span>
-                    </div>
+                  {!isEditing ? (
+                    <Button 
+                      variant="outline" 
+                      className="justify-start h-auto p-3"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      <div className="text-left">
+                        <div className="font-medium">Edit Details</div>
+                        <div className="text-xs text-muted-foreground">Modify candidate info</div>
+                      </div>
+                    </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="default" 
+                        className="justify-start h-auto p-3"
+                        onClick={handleSubmit(handleSaveDetails)}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        <div className="text-left">
+                          <div className="font-medium">{isSubmitting ? 'Saving...' : 'Save Changes'}</div>
+                          <div className="text-xs text-muted-foreground">Save all modifications</div>
+                        </div>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="justify-start h-auto p-3"
+                        onClick={handleCancelEdit}
+                        disabled={isSubmitting}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        <div className="text-left">
+                          <div className="font-medium">Cancel Edit</div>
+                          <div className="text-xs text-muted-foreground">Discard changes</div>
+                        </div>
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
               
-              {/* Recent Activity */}
+              {/* Comments Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
-                  <Clock className="mr-2 h-5 w-5 text-primary" />
-                  Recent Activity
+                  <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+                  Comments & Notes
                 </h3>
-                <div className="space-y-2">
-                  {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
-                    candidate.transitionHistory.slice(0, 3).map((transition, index) => (
-                      <div key={transition.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                        <div className="w-2 h-2 rounded-full bg-primary"></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{transition.stage}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
-                          </p>
+                <div className="bg-muted rounded-lg p-4">
+                  <CandidateCommentsSection 
+                    candidateId={candidateId} 
+                    comments={comments} 
+                    isEditing={isEditing} 
+                    onCommentsChange={handleCommentsChange} 
+                  />
+                </div>
+              </div>
+              
+              {/* Resumes Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+                  Resume Files
+                </h3>
+                <div className="bg-muted rounded-lg p-4">
+                  <CandidateResumesSection 
+                    candidateId={candidateId} 
+                    resumes={Array.isArray(resumes) ? resumes : []} 
+                    isEditing={isEditing} 
+                    onResumesChange={handleResumesChange} 
+                  />
+                </div>
+              </div>
+              
+              {/* Activity Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <Activity className="mr-2 h-5 w-5 text-primary" />
+                  Activity History
+                </h3>
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="space-y-4">
+                    {/* Transition History */}
+                    {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Status Changes</h3>
+                        <div className="space-y-3">
+                          {candidate.transitionHistory.map((transition, index) => (
+                            <div key={transition.id} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                              <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {transition.stage}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
+                                  </span>
+                                </div>
+                                {transition.notes && (
+                                  <p className="text-sm text-foreground mt-1">{transition.notes}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  By: {transition.actingUserName || 'Unknown user'}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-2">
-                      No recent activity
-                    </p>
-                  )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No activity history available.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

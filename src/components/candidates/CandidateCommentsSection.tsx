@@ -111,6 +111,31 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     files.forEach(file => formData.append('attachments', file));
     labels.forEach(label => formData.append('labels', label));
     
+    // Create optimistic comment
+    const optimisticComment = {
+      id: `temp-${Date.now()}`,
+      content: newComment,
+      author: { name: 'You' }, // This will be replaced with actual user data
+      createdAt: new Date().toISOString(),
+      attachments: files.map((file, idx) => ({
+        id: `temp-attachment-${Date.now()}-${idx}`,
+        fileName: file.name,
+        label: labels[idx],
+        url: URL.createObjectURL(file)
+      }))
+    };
+    
+    // Add optimistic comment to the top
+    setComments(prev => [optimisticComment, ...prev]);
+    
+    // Clear form immediately
+    setNewComment('');
+    setFiles([]);
+    setLabels([]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    
     try {
       console.log('Sending request to:', `/api/candidates/${candidateId}/comments`);
       
@@ -131,15 +156,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       const result = await res.json();
       console.log('API Response:', result);
       
-      // Clear form
-      setNewComment('');
-      setFiles([]);
-      setLabels([]);
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
-      
-      // Refresh comments
+      // Refresh comments to get the real data
       onCommentsChange();
       
       console.log('Comment added successfully');
@@ -147,6 +164,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     } catch (err: any) {
       console.error('Error adding comment:', err);
       setError(err.message || 'Failed to add comment');
+      
+      // Remove optimistic comment on error
+      setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
     } finally {
       setSaving(false);
     }

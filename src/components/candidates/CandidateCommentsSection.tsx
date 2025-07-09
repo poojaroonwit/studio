@@ -304,8 +304,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                     <Activity className="w-4 h-4 text-green-500" />
                   )}
                   <span className="font-semibold text-sm">
-                    {item.type === 'comment' 
-                      ? (item.author?.name || item.author || 'Unknown')
+                    {item.type === 'comment'
+                      ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
+                          ? item.author.name
+                          : item.author || 'Unknown')
                       : item.user || 'System'
                     }
                   </span>

@@ -1422,7 +1422,7 @@ export default function CandidateDetailPage() {
                     <UploadCloud className="mr-2 h-4 w-4" />
                     <div className="text-left">
                       <div className="font-medium">Upload Resume</div>
-                      <div className="text-xs text-muted-foreground">Add new resume file</div>
+                      <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
                     </div>
                   </Button>
                   

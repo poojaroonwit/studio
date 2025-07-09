@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import DragDropUpload, { UploadFile } from '../ui/drag-drop-upload';
+import { toast } from 'react-hot-toast';
 
 interface Attachment {
   id: string;
@@ -45,8 +47,10 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       });
       if (!res.ok) throw new Error('Failed to set primary');
       onResumesChange();
+      toast.success('Primary resume updated');
     } catch (err: any) {
       console.error('Error setting primary:', err);
+      toast.error('Failed to set primary resume');
     }
   };
 
@@ -59,76 +63,150 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       });
       if (!res.ok) throw new Error('Failed to delete');
       onResumesChange();
+      toast.success('Resume deleted');
     } catch (err: any) {
       console.error('Error deleting attachment:', err);
+      toast.error('Failed to delete resume');
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleUpload = async (files: File[], onProgress?: (fileId: string, progress: number) => void) => {
+    if (!files || files.length === 0) return;
+    
     setUploading(true);
     setUploadError(null);
+    
     try {
-      const formData = new FormData();
-      formData.append('attachment', file);
-      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) {
-        const errorData = await res.text();
-        throw new Error(`Upload failed: ${res.status} ${errorData}`);
+      // Upload files one by one with progress tracking
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('attachments', file);
+
+        // Create a promise that resolves with upload progress
+        const uploadPromise = new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const progress = Math.round((event.loaded / event.total) * 100);
+              const fileId = `${Date.now()}-${file.name}`;
+              onProgress?.(fileId, progress);
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('Network error during upload'));
+          });
+
+          xhr.open('POST', `/api/candidates/${candidateId}/resumes`);
+          xhr.send(formData);
+        });
+
+        await uploadPromise;
       }
+
+      // Refresh the resumes list
       onResumesChange();
+      toast.success(`Successfully uploaded ${files.length} file(s)`);
+      
     } catch (err: any) {
       console.error('Upload error:', err);
       setUploadError(err.message || 'Upload failed');
+      toast.error(err.message || 'Upload failed');
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-2">
         <span className="font-semibold">Resumes</span>
         <Button size="sm" variant="outline" onClick={() => setSortDesc(!sortDesc)}>
           Sort by Date {sortDesc ? '↓' : '↑'}
         </Button>
       </div>
-      <div className="mb-2 flex items-center gap-2">
-        <input
-          type="file"
-          accept="application/pdf,.doc,.docx,.rtf"
-          id="resume-upload"
-          style={{ display: 'none' }}
-          onChange={handleUpload}
-          disabled={uploading}
-        />
-        <label htmlFor="resume-upload">
-          <Button asChild size="sm" disabled={uploading}>
-            <span>{uploading ? 'Uploading...' : 'Upload Resume'}</span>
-          </Button>
-        </label>
-        {uploadError && <span className="text-destructive text-xs ml-2">{uploadError}</span>}
-      </div>
+
+      {/* Drag and Drop Upload Area */}
+      {isEditing && (
+        <div className="mb-6">
+          <DragDropUpload
+            onUpload={handleUpload}
+            accept="application/pdf,.doc,.docx,.rtf"
+            multiple={true}
+            maxFiles={10}
+            maxFileSize={10 * 1024 * 1024} // 10MB
+            disabled={uploading}
+            className="w-full"
+          />
+          {uploadError && (
+            <p className="text-sm text-red-500 mt-2">{uploadError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Existing Resumes List */}
       <div className="space-y-3">
-        {sortedAttachments.length === 0 && <div className="text-muted-foreground text-sm">No resumes uploaded.</div>}
-        {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
-          <div key={attachment.id} className="border rounded p-3 bg-muted/30 flex items-center justify-between gap-4">
-            <div>
-              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">{attachment.fileName}</a>
-              <div className="text-xs text-muted-foreground">Updated: {new Date(attachment.updatedAt).toLocaleString()}</div>
-              {attachment.isPrimary && <Badge variant="default" className="ml-2">Primary</Badge>}
-            </div>
-            {isEditing && (
-              <div className="flex gap-2">
-                {!attachment.isPrimary && <Button size="sm" onClick={() => handleSetPrimary(attachment.id)}>Set Primary</Button>}
-                <Button size="sm" variant="destructive" onClick={() => handleDelete(attachment.id)}>Delete</Button>
-              </div>
+        {sortedAttachments.length === 0 && (
+          <div className="text-muted-foreground text-sm text-center py-8">
+            No resumes uploaded yet.
+            {!isEditing && (
+              <p className="text-xs mt-2">Enable edit mode to upload resumes</p>
             )}
+          </div>
+        )}
+        
+        {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
+          <div key={attachment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <a 
+                    href={attachment.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="font-medium hover:underline text-primary truncate"
+                  >
+                    {attachment.fileName}
+                  </a>
+                  {attachment.isPrimary && (
+                    <Badge variant="default" className="text-xs">Primary</Badge>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Updated: {new Date(attachment.updatedAt).toLocaleString()}
+                </div>
+              </div>
+              
+              {isEditing && (
+                <div className="flex gap-2 flex-shrink-0">
+                  {!attachment.isPrimary && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleSetPrimary(attachment.id)}
+                    >
+                      Set Primary
+                    </Button>
+                  )}
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    onClick={() => handleDelete(attachment.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

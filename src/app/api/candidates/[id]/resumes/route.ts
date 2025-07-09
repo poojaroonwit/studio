@@ -26,50 +26,88 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// POST: Upload a resume (multipart/form-data)
+// POST: Upload a resume (multipart/form-data) - supports single or multiple files
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+  
   // Parse multipart form
   const formData = await req.formData();
-  const file = formData.get('attachment');
-  if (!file || typeof file === 'string') {
-    return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
+  const files = formData.getAll('attachments');
+  
+  if (!files || files.length === 0) {
+    return NextResponse.json({ message: 'No files uploaded' }, { status: 400 });
   }
-  const ext = (file.name || 'pdf').split('.').pop();
-  const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
-  try {
-    // Upload to MinIO
-    const arrayBuffer = await file.arrayBuffer();
-    await minioClient.putObject(
-      MINIO_BUCKET,
-      objectName,
-      Buffer.from(arrayBuffer),
-      undefined,
-      { 'Content-Type': file.type || 'application/pdf' }
-    );
-    // Set isPrimary true if this is the first attachment
-    const count = await prisma.attachment.count({ where: { candidateId: id } });
-    const isPrimary = count === 0;
-    // Store in DB
-    const newAttachment = await prisma.attachment.create({
-      data: {
-        candidateId: id,
-        uploadedById: session.user.id,
-        filePath: objectName,
-        fileName: file.name,
-        isPrimary,
-        label: 'resume', // Added label field as required
-      },
-      include: { uploadedBy: { select: { id: true, name: true, email: true } } },
-    });
-    return NextResponse.json({ data: { ...newAttachment, url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` } }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ message: 'Error uploading attachment', error: String(err) }, { status: 500 });
+
+  const results = [];
+  const errors = [];
+
+  // Get current attachment count to determine if first file should be primary
+  const currentCount = await prisma.attachment.count({ where: { candidateId: id } });
+  let isFirstFile = currentCount === 0;
+
+  for (const file of files) {
+    if (typeof file === 'string') {
+      errors.push('Invalid file data');
+      continue;
+    }
+
+    try {
+      const ext = (file.name || 'pdf').split('.').pop();
+      const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
+      
+      // Upload to MinIO
+      const arrayBuffer = await file.arrayBuffer();
+      await minioClient.putObject(
+        MINIO_BUCKET,
+        objectName,
+        Buffer.from(arrayBuffer),
+        undefined,
+        { 'Content-Type': file.type || 'application/pdf' }
+      );
+
+      // Store in DB
+      const newAttachment = await prisma.attachment.create({
+        data: {
+          candidateId: id,
+          uploadedById: session.user.id,
+          filePath: objectName,
+          fileName: file.name,
+          isPrimary: isFirstFile,
+          label: 'resume',
+        },
+        include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+      });
+
+      results.push({
+        ...newAttachment,
+        url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`
+      });
+
+      // Only the first file in this batch should be primary if no attachments exist
+      if (isFirstFile) {
+        isFirstFile = false;
+      }
+    } catch (err) {
+      errors.push(`Failed to upload ${file.name}: ${String(err)}`);
+    }
   }
+
+  if (results.length === 0) {
+    return NextResponse.json({ 
+      message: 'All uploads failed', 
+      errors 
+    }, { status: 500 });
+  }
+
+  return NextResponse.json({ 
+    data: results,
+    message: `Successfully uploaded ${results.length} file(s)`,
+    errors: errors.length > 0 ? errors : undefined
+  }, { status: 201 });
 }
 
 // PUT: Set a attachment as primary

@@ -98,7 +98,7 @@ services:
       MINIO_BROWSER_REDIRECT_URL: http://localhost:${MINIO_CONSOLE_PORT}
     command: server /data --console-address ":9001" --address ":9000"
     volumes:
-      - /var/dockers/8020/minio_data:/data
+      - /var/dockers/8021/minio_data:/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
@@ -109,7 +109,7 @@ services:
     ports:
       - "${REDIS_EXTERNAL_PORT:-9850}:6379"
     volumes:
-      - /var/dockers/8020/redis_data:/data
+      - /var/dockers/8021/redis_data:/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 256m

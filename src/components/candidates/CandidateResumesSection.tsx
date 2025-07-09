@@ -37,13 +37,31 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   console.log('CandidateResumesSection sortedAttachments:', sortedAttachments);
 
   const handleSetPrimary = async (attachmentId: string) => {
-    await fetch(`/api/candidates/${candidateId}/attachments/${attachmentId}/primary`, { method: 'PUT' });
-    onResumesChange();
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attachmentId }),
+      });
+      if (!res.ok) throw new Error('Failed to set primary');
+      onResumesChange();
+    } catch (err: any) {
+      console.error('Error setting primary:', err);
+    }
   };
 
   const handleDelete = async (attachmentId: string) => {
-    await fetch(`/api/candidates/${candidateId}/attachments/${attachmentId}`, { method: 'DELETE' });
-    onResumesChange();
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attachmentId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      onResumesChange();
+    } catch (err: any) {
+      console.error('Error deleting attachment:', err);
+    }
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,13 +72,17 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
     try {
       const formData = new FormData();
       formData.append('attachment', file);
-      const res = await fetch(`/api/candidates/${candidateId}/attachments`, {
+      const res = await fetch(`/api/candidates/${candidateId}/resumes`, {
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error('Upload failed');
+      if (!res.ok) {
+        const errorData = await res.text();
+        throw new Error(`Upload failed: ${res.status} ${errorData}`);
+      }
       onResumesChange();
     } catch (err: any) {
+      console.error('Upload error:', err);
       setUploadError(err.message || 'Upload failed');
     } finally {
       setUploading(false);

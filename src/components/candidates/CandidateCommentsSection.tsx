@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import dynamic from 'next/dynamic';
-import { X, ImageIcon, FileTextIcon, FileIcon } from 'lucide-react';
-
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
-import 'react-quill/dist/quill.snow.css';
+import { Textarea } from '../ui/textarea';
+import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip } from 'lucide-react';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -38,11 +35,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [editingSaving, setEditingSaving] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Debug logging
+  console.log('CandidateCommentsSection props:', { candidateId, initialComments, isEditing });
+  console.log('Current comments state:', comments);
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setComments(initialComments);
@@ -55,6 +57,14 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       .then(data => setLogs(data.data || []))
       .finally(() => setLogsLoading(false));
   }, [candidateId]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [newComment]);
 
   // Drag-and-drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -90,24 +100,53 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newComment.trim() && files.length === 0) return;
+    
+    console.log('Submitting comment:', { newComment, files: files.length });
+    
     setSaving(true);
     setError(null);
+    
     const formData = new FormData();
     formData.append('content', newComment);
     files.forEach(file => formData.append('attachments', file));
     labels.forEach(label => formData.append('labels', label));
+    
     try {
+      console.log('Sending request to:', `/api/candidates/${candidateId}/comments`);
+      
       const res = await fetch(`/api/candidates/${candidateId}/comments`, {
         method: 'POST',
         body: formData,
       });
-      if (!res.ok) throw new Error('Failed to add comment');
-      onCommentsChange();
+      
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Failed to add comment: ${res.status} ${errorText}`);
+      }
+      
+      const result = await res.json();
+      console.log('API Response:', result);
+      
+      // Clear form
       setNewComment('');
       setFiles([]);
       setLabels([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+      
+      // Refresh comments
+      onCommentsChange();
+      
+      console.log('Comment added successfully');
+      
     } catch (err: any) {
-      setError('Failed to add comment');
+      console.error('Error adding comment:', err);
+      setError(err.message || 'Failed to add comment');
     } finally {
       setSaving(false);
     }
@@ -156,6 +195,13 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAddComment();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Candidate Logs Section */}
@@ -168,7 +214,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             <div className="text-muted-foreground text-sm">No activity logs found.</div>
           ) : (
             (Array.isArray(logs) ? logs : []).map(log => (
-              <div key={log.id} className="border rounded p-2 bg-muted/20 flex flex-col md:flex-row md:items-center md:justify-between text-xs md:text-sm">
+              <div key={log.id} className="flex flex-col md:flex-row md:items-center md:justify-between text-xs md:text-sm py-2 border-b border-border last:border-b-0">
                 <div>
                   <span className="font-medium">{log.action}</span> by <span className="text-blue-700">{log.user}</span>
                   {log.note && <span className="ml-2 text-muted-foreground">Note: {log.note}</span>}
@@ -179,25 +225,93 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           )}
         </div>
       </div>
-      {/* Add Comment Section */}
-      <form onSubmit={handleAddComment} className="space-y-3">
-        <ReactQuill
-          value={newComment}
-          onChange={setNewComment}
-          placeholder="Add a comment..."
-          theme="snow"
-          className="bg-white"
-        />
-        {/* Drag-and-drop area */}
-        <div
-          className={`border-2 border-dashed rounded p-4 text-center cursor-pointer transition-colors ${
-            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
+      
+      {/* Chat-like Comment Input */}
+      <div className="border rounded-lg bg-background">
+        {/* File previews */}
+        {(Array.isArray(files) ? files : []).length > 0 && (
+          <div className="p-3 border-b border-border bg-muted/30">
+            <div className="text-sm font-medium mb-2">Attachments:</div>
+            <div className="space-y-2">
+              {(Array.isArray(files) ? files : []).map((file, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  {/* Preview */}
+                  {file.type.startsWith('image/') ? (
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="w-8 h-8 object-cover rounded"
+                      onLoad={e => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                    />
+                  ) : (
+                    getFileIcon(file)
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{file.name}</div>
+                    <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</div>
+                  </div>
+                  {/* Label select */}
+                  <select
+                    className="border rounded px-2 py-1 text-xs"
+                    value={labels[idx]}
+                    onChange={e => handleLabelChange(idx, e.target.value)}
+                  >
+                    {(Array.isArray(LABEL_OPTIONS) ? LABEL_OPTIONS : []).map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {/* Remove */}
+                  <button
+                    type="button"
+                    className="text-destructive hover:text-destructive/80"
+                    onClick={() => handleRemoveFile(idx)}
+                    aria-label="Remove file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Input area */}
+        <div className="p-3">
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Textarea
+                ref={textareaRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your comment here... (Press Enter to send, Shift+Enter for new line)"
+                className="min-h-[60px] max-h-[120px] resize-none border-0 focus:ring-0 focus:outline-none p-0"
+                rows={1}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAddComment}
+                disabled={saving || (!newComment.trim() && files.length === 0)}
+                size="sm"
+                className="p-2"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Hidden file input */}
           <input
             type="file"
             multiple
@@ -205,86 +319,100 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
             className="hidden"
             onChange={handleFileChange}
           />
-          <div>
-            <span className="font-medium">Drag and drop files here</span> or <span className="underline text-blue-600">browse</span>
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">Supported: images, PDF, DOC, etc.</div>
+          
+          {error && <div className="text-destructive text-xs mt-2">{error}</div>}
         </div>
-        {/* File previews */}
-        {(Array.isArray(files) ? files : []).length > 0 && (
-          <div className="space-y-2">
-            {(Array.isArray(files) ? files : []).map((file, idx) => (
-              <div key={idx} className="flex items-center gap-3 border rounded p-2 bg-muted/30">
-                {/* Preview */}
-                {file.type.startsWith('image/') ? (
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={file.name}
-                    className="w-10 h-10 object-cover rounded"
-                    onLoad={e => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
-                  />
-                ) : (
-                  getFileIcon(file)
-                )}
-                <div className="flex-1">
-                  <div className="font-medium">{file.name}</div>
-                  <div className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</div>
-                </div>
-                {/* Label select */}
-                <select
-                  className="border rounded px-2 py-1 text-xs"
-                  value={labels[idx]}
-                  onChange={e => handleLabelChange(idx, e.target.value)}
-                >
-                  {(Array.isArray(LABEL_OPTIONS) ? LABEL_OPTIONS : []).map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                {/* Remove */}
-                <button
-                  type="button"
-                  className="ml-2 text-destructive"
-                  onClick={() => handleRemoveFile(idx)}
-                  aria-label="Remove file"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        <Button type="submit" disabled={saving || (!newComment.trim() && files.length === 0)}>
-          {saving ? 'Saving...' : 'Add Comment'}
-        </Button>
-        {error && <span className="text-destructive text-xs mt-1">{error}</span>}
-      </form>
+      </div>
+
       {/* Comments List */}
-      <div className="space-y-3">
-        {(Array.isArray(comments) ? comments : []).length === 0 && <div className="text-muted-foreground text-sm">No comments yet.</div>}
-        {(Array.isArray(comments) ? comments : []).map(comment => (
-          <div key={comment.id} className="border rounded p-3 bg-muted/30">
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-semibold text-sm">{comment.author?.name || comment.author || 'Unknown'}</span>
-              <span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</span>
+      <div className="space-y-0">
+        {(Array.isArray(comments) ? comments : []).length === 0 && (
+          <div className="text-muted-foreground text-sm py-4 text-center">No comments yet.</div>
+        )}
+        {(Array.isArray(comments) ? comments : []).map((comment, index) => (
+          <div key={comment.id} className={`py-4 ${index !== (Array.isArray(comments) ? comments : []).length - 1 ? 'border-b border-border' : ''}`}>
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">{comment.author?.name || comment.author || 'Unknown'}</span>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</span>
+              </div>
+              {isEditing && (
+                <div className="flex items-center gap-1">
+                  {editingId === comment.id ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditComment(comment.id)}
+                        disabled={editingSaving === comment.id}
+                      >
+                        {editingSaving === comment.id ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditingContent('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingId(comment.id);
+                          setEditingContent(comment.content);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        disabled={deleteLoading === comment.id}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        {deleteLoading === comment.id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="text-sm mb-2 whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: comment.content }} />
+            {editingId === comment.id ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+            ) : (
+              <div className="text-sm mb-3 whitespace-pre-wrap">{comment.content}</div>
+            )}
             {/* Attachments under comment */}
             {(Array.isArray(comment.attachments) ? comment.attachments : []).length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-2">
+              <div className="flex flex-wrap gap-2 mt-3">
                 {(Array.isArray(comment.attachments) ? comment.attachments : []).map((att: any, idx: number) => (
-                  <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-white">
+                  <div key={att.id || idx} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
                     {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                      <img src={att.url} alt={att.fileName} className="w-8 h-8 object-cover rounded" />
+                      <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
                     ) : (
                       getFileIcon(att)
                     )}
                     <a href={att.url} target="_blank" rel="noopener noreferrer" className="font-medium text-xs hover:underline">{att.fileName}</a>
-                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 border ml-1">{att.label}</span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
                   </div>
                 ))}
               </div>
             )}
-            {/* Edit/Delete buttons (if needed) ... */}
           </div>
         ))}
       </div>

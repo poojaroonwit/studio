@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, Home, Users as UsersIcon, Activity, Clock } from 'lucide-react';
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CandidateCommentsSection from '../../../components/candidates/CandidateCommentsSection';
 import CandidateResumesSection from '../../../components/candidates/CandidateResumesSection';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -345,10 +346,27 @@ export default function CandidateDetailPage() {
   useEffect(() => {
     if (!candidateId) return;
     const fetchComments = async () => {
-      const res = await fetch(`/api/candidates/${candidateId}/comments`);
-      if (res.ok) {
-        setComments(await res.json());
-      } else {
+      try {
+        const res = await fetch(`/api/candidates/${candidateId}/comments`);
+        if (!res.ok) {
+          console.error('Failed to fetch comments:', res.status, res.statusText);
+          setComments([]);
+          return;
+        }
+        
+        const data = await res.json();
+        console.log('Initial comments fetch:', data);
+        
+        // Handle both array and object { data: [...] }
+        if (Array.isArray(data)) {
+          setComments(data);
+        } else if (data && Array.isArray(data.data)) {
+          setComments(data.data);
+        } else {
+          setComments([]);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
         setComments([]);
       }
     };
@@ -370,16 +388,29 @@ export default function CandidateDetailPage() {
     fetchResumes();
   }, [candidateId]);
 
-  const handleCommentsChange = () => {
+  const handleCommentsChange = async () => {
     // re-fetch comments after add/edit/delete
-    fetch(`/api/candidates/${candidateId}/comments`)
-      .then(res => res.ok ? res.json() : [])
-      .then(data => {
-        // Handle both array and object { data: [...] }
-        if (Array.isArray(data)) setComments(data);
-        else if (data && Array.isArray(data.data)) setComments(data.data);
-        else setComments([]);
-      });
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/comments`);
+      if (!response.ok) {
+        console.error('Failed to fetch comments:', response.status, response.statusText);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('Fetched comments:', data);
+      
+      // Handle both array and object { data: [...] }
+      if (Array.isArray(data)) {
+        setComments(data);
+      } else if (data && Array.isArray(data.data)) {
+        setComments(data.data);
+      } else {
+        setComments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
   };
 
   const handleResumesChange = () => {
@@ -802,10 +833,14 @@ export default function CandidateDetailPage() {
   return (
     <FormProvider {...form}>
       <div className="space-y-6">
-        <div className="flex justify-between items-center mb-4">
-          <Button variant="secondary" onClick={() => router.push('/candidates')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to All Candidates
-          </Button>
+        <div className="flex justify-between items-center mb-2">
+          <Breadcrumb 
+            items={[
+              { label: "Home", href: "/", icon: Home },
+              { label: "Candidates", href: "/candidates", icon: UsersIcon },
+              { label: candidate?.name || "Candidate Details" }
+            ]} 
+          />
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 border border-border bg-card overflow-hidden">
@@ -813,6 +848,21 @@ export default function CandidateDetailPage() {
             <div className="lg:col-span-2 bg-card sticky top-6 h-fit p-3">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold flex items-center mb-3">
+                      <Users className="mr-2 h-5 w-5 text-primary" />
+                      Recruitment Pipeline
+                    </h3>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full mb-3"
+                      onClick={() => setIsTransitionsModalOpen(true)}
+                    >
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      Manage Transitions
+                    </Button>
+                  </div>
                   <StagePipeline
                     stages={availableStages}
                     transitionHistory={candidate.transitionHistory || []}
@@ -899,61 +949,9 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </div>
-                  {/* Job Match Table (pivot style) */}
-                  <div className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
-                    <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center"><ListChecks className="mr-2 h-6 w-6 text-blue-600" />Job Matches</h2>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full border text-sm">
-                        <thead className="bg-muted">
-                          <tr>
-                            <th className="px-4 py-2 text-left">Title</th>
-                            <th className="px-4 py-2 text-left">Score</th>
-                            <th className="px-4 py-2 text-left">Justification</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Applied job first */}
-                          {(() => {
-                            const jobMatches = candidate && candidate.parsedData && 'job_matches' in candidate.parsedData && Array.isArray(candidate.parsedData.job_matches)
-                              ? candidate.parsedData.job_matches
-                              : [];
-                            const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                            const appliedMatch = jobMatches.find(
-                              (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
-                            );
-                            const otherMatches = jobMatches.filter((jm: any) => !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase());
-                            const rows = [];
-                            if (appliedMatch && appliedPosition) {
-                              rows.push({
-                                title: appliedPosition.title,
-                                score: appliedMatch.fit_score,
-                                justification: (appliedMatch.match_reasons || []).join('; ')
-                              });
-                            }
-                            for (const jm of otherMatches) {
-                              rows.push({
-                                title: jm.job_title,
-                                score: jm.fit_score,
-                                justification: (jm.match_reasons || []).join('; ')
-                              });
-                            }
-                            if (rows.length === 0) {
-                              return <tr><td colSpan={3} className="text-muted-foreground text-center py-4">No job match data available.</td></tr>;
-                            }
-                            return rows.map((row, i) => (
-                              <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
-                                <td className="px-4 py-2">{row.title}</td>
-                                <td className="px-4 py-2">{row.score}%</td>
-                                <td className="px-4 py-2">{row.justification}</td>
-                              </tr>
-                            ));
-                          })()}
-                        </tbody>
-                      </table>
-                      </div>
-                    </div>
+
                   {/* Collapsible Candidate Info Sections */}
-                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                  <section className="mb-4 ">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setInfoOpen(o => !o)}>
                       <UserCircle className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
@@ -996,7 +994,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                  <section className="mb-4 ">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
                       <GraduationCap className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
@@ -1057,7 +1055,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                  <section className="mb-4 ">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
@@ -1130,7 +1128,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                  <section className="mb-4 ">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
                       <Star className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
@@ -1187,7 +1185,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-8 bg-muted rounded-xl p-6 shadow-sm">
+                  <section className="mb-4 ">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
                       <UserCog className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
@@ -1230,32 +1228,291 @@ export default function CandidateDetailPage() {
                               </div>
                             )}
                   </section>
-                <Tabs defaultValue="info" className="w-full">
-                <TabsContent value="comments">
-                  {/* Candidate Comments Section (editable, add/delete) */}
-                  <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />
-                </TabsContent>
-                <TabsContent value="resumes">
-                  {/* Candidate Resume Files Section (sortable, set primary, add/delete) */}
-                  console.log('CandidateDetailPage resumes state:', resumes);
-                  <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
-                </TabsContent>
-              </Tabs>
+                  
+                  {/* Main Content Tabs */}
+                  <div className="mb-8">
+                    <Tabs defaultValue="overview" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted p-1 rounded-lg">
+                        <TabsTrigger 
+                          value="overview" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                        >
+                          <User className="h-4 w-4" />
+                          Overview
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="comments" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Comments
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="resumes" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                        >
+                          <UploadCloud className="h-4 w-4" />
+                          Resumes
+                          {Array.isArray(resumes) && resumes.length > 0 && (
+                            <Badge variant="secondary" className="ml-1 text-xs">
+                              {resumes.length}
+                            </Badge>
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="activity" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                        >
+                          <Activity className="h-4 w-4" />
+                          Activity
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="overview" className="space-y-6">
+                        {/* Role Suggestion Summary */}
+                        <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
+                        
+                        {/* Job Matches Table */}
+                        <div className="bg-muted rounded-xl p-6 shadow-sm">
+                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+                            <ListChecks className="mr-2 h-6 w-6 text-blue-600" />
+                            Job Matches
+                          </h2>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full border text-sm">
+                              <thead className="bg-muted">
+                                <tr>
+                                  <th className="px-4 py-2 text-left">Title</th>
+                                  <th className="px-4 py-2 text-left">Score</th>
+                                  <th className="px-4 py-2 text-left">Justification</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(() => {
+                                  const jobMatches = candidate && candidate.parsedData && 'job_matches' in candidate.parsedData && Array.isArray(candidate.parsedData.job_matches)
+                                    ? candidate.parsedData.job_matches
+                                    : [];
+                                  const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
+                                  const appliedMatch = jobMatches.find(
+                                    (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
+                                  );
+                                  const otherMatches = jobMatches.filter((jm: any) => !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase());
+                                  const rows = [];
+                                  if (appliedMatch && appliedPosition) {
+                                    rows.push({
+                                      title: appliedPosition.title,
+                                      score: appliedMatch.fit_score,
+                                      justification: (appliedMatch.match_reasons || []).join('; ')
+                                    });
+                                  }
+                                  for (const jm of otherMatches) {
+                                    rows.push({
+                                      title: jm.job_title,
+                                      score: jm.fit_score,
+                                      justification: (jm.match_reasons || []).join('; ')
+                                    });
+                                  }
+                                  if (rows.length === 0) {
+                                    return <tr><td colSpan={3} className="text-muted-foreground text-center py-4">No job match data available.</td></tr>;
+                                  }
+                                  return rows.map((row, i) => (
+                                    <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
+                                      <td className="px-4 py-2">{row.title}</td>
+                                      <td className="px-4 py-2">{row.score}%</td>
+                                      <td className="px-4 py-2">{row.justification}</td>
+                                    </tr>
+                                  ));
+                                })()}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="comments" className="space-y-6">
+                        <div className="bg-muted rounded-xl p-6 shadow-sm">
+                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+                            <MessageSquare className="mr-2 h-6 w-6 text-blue-600" />
+                            Comments & Notes
+                          </h2>
+                          <CandidateCommentsSection 
+                            candidateId={candidateId} 
+                            comments={comments} 
+                            isEditing={isEditing} 
+                            onCommentsChange={handleCommentsChange} 
+                          />
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="resumes" className="space-y-6">
+                        <div className="bg-muted rounded-xl p-6 shadow-sm">
+                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+                            <UploadCloud className="mr-2 h-6 w-6 text-blue-600" />
+                            Resume Files
+                          </h2>
+                          <CandidateResumesSection 
+                            candidateId={candidateId} 
+                            resumes={Array.isArray(resumes) ? resumes : []} 
+                            isEditing={isEditing} 
+                            onResumesChange={handleResumesChange} 
+                          />
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="activity" className="space-y-6">
+                        <div className="bg-muted rounded-xl p-6 shadow-sm">
+                          <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
+                            <Activity className="mr-2 h-6 w-6 text-blue-600" />
+                            Activity History
+                          </h2>
+                          <div className="space-y-4">
+                            {/* Transition History */}
+                            {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
+                              <div>
+                                <h3 className="text-lg font-semibold mb-3">Status Changes</h3>
+                                <div className="space-y-3">
+                                  {candidate.transitionHistory.map((transition, index) => (
+                                    <div key={transition.id} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
+                                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <Badge variant="outline" className="text-xs">
+                                            {transition.stage}
+                                          </Badge>
+                                          <span className="text-xs text-muted-foreground">
+                                            {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
+                                          </span>
+                                        </div>
+                                        {transition.notes && (
+                                          <p className="text-sm text-foreground mt-1">{transition.notes}</p>
+                                        )}
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          By: {transition.actingUserName || 'Unknown user'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                No activity history available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
                 </div>
-            {/* JOB MATCHED (30%) */}
-            <div className="lg:col-span-3 space-y-8 bg-card p-6 rounded-xl shadow-sm">
-              <UITabs defaultValue="comments" className="w-full">
-                <UITabsList className="mb-6 w-full flex rounded-full bg-muted p-1 shadow-sm">
-                  <UITabsTrigger value="comments" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Comments</UITabsTrigger>
-                  <UITabsTrigger value="files" className="flex-1 rounded-full px-6 py-2 text-lg font-semibold transition-colors data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:text-muted-foreground">Files</UITabsTrigger>
-                </UITabsList>
-                <UITabsContent value="comments">
-                  <CandidateCommentsSection candidateId={candidateId} comments={comments} isEditing={isEditing} onCommentsChange={handleCommentsChange} />
-                </UITabsContent>
-                <UITabsContent value="files">
-                  <CandidateResumesSection candidateId={candidateId} resumes={Array.isArray(resumes) ? resumes : []} isEditing={isEditing} onResumesChange={handleResumesChange} />
-                </UITabsContent>
-              </UITabs>
+            {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
+            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+              {/* Quick Actions */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <Zap className="mr-2 h-5 w-5 text-primary" />
+                  Quick Actions
+                </h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-3"
+                    onClick={() => setIsUploadModalOpen(true)}
+                  >
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Upload Resume</div>
+                      <div className="text-xs text-muted-foreground">Add new resume file</div>
+                    </div>
+                  </Button>
+                  
+
+                  
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-3"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Edit Details</div>
+                      <div className="text-xs text-muted-foreground">Modify candidate info</div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Candidate Summary */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <Info className="mr-2 h-5 w-5 text-primary" />
+                  Summary
+                </h3>
+                <div className="space-y-3">
+                  {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Fit Score</span>
+                      <Badge variant="default" className="text-xs">
+                        {candidate.fitScore}%
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {candidate.status && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Current Status</span>
+                      <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs">
+                        {candidate.status}
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {candidate.positionId && allDbPositions.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Applied Position</span>
+                      <span className="text-sm text-foreground">
+                        {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {candidate.recruiterId && recruiters.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="text-sm font-medium">Assigned Recruiter</span>
+                      <span className="text-sm text-foreground">
+                        {recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Recent Activity */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <Clock className="mr-2 h-5 w-5 text-primary" />
+                  Recent Activity
+                </h3>
+                <div className="space-y-2">
+                  {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
+                    candidate.transitionHistory.slice(0, 3).map((transition, index) => (
+                      <div key={transition.id} className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{transition.stage}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      No recent activity
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </form>

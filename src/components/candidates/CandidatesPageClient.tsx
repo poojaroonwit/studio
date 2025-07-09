@@ -719,6 +719,7 @@ export function CandidatesPageClient({
     );
   }
 
+  // Main render
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
@@ -735,18 +736,16 @@ export function CandidatesPageClient({
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-6">
-                <CandidateFilters
-                  initialFilters={filters}
-                  onFilterChange={handleFilterChange}
-                  onAiSearch={handleAiSearch}
-                  availablePositions={availablePositions}
-                  availableStages={availableStages}
-                  availableRecruiters={availableRecruiters}
-                  isLoading={isLoading || isAiSearching}
-                  isAiSearching={isAiSearching}
-                />
-           
-    
+            <CandidateFilters
+              initialFilters={filters}
+              onFilterChange={handleFilterChange}
+              onAiSearch={handleAiSearch}
+              availablePositions={availablePositions}
+              availableStages={availableStages}
+              availableRecruiters={availableRecruiters}
+              isLoading={isLoading || isAiSearching}
+              isAiSearching={isAiSearching}
+            />
           </div>
         </aside>
       )}

@@ -209,7 +209,42 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
   try {
     // Direct Gemini API call
     const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    const prompt = `You are an expert HR assistant. Your task is to analyze a list of candidate summaries based on a user's search query.\nIdentify the candidates that best match the query.\n\nUser Search Query:\n${input.query}\n\nCandidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):\n${effectiveCandidateData}\n\nWhen matching candidates to the user's query, you must consider ALL available candidate attributes, including (but not limited to):\n- Name\n- Contact information (email, phone)\n- Education history (university, major, GPA, etc.)\n- Work experience (companies, positions, durations, descriptions)\n- Skills\n- Fit score\n- Position applied for\n- Application date\n- Recruiter\n- Status and transition history\n- Job suitability preferences\n- Automated job matches\n- Custom fields/attributes\n- Any other data provided in the summary\n\nBase your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.\nIf no candidates seem to match, return an empty list for matchedCandidateIds.\nProvide a brief reasoning for your selection or if no matches are found.\nEnsure your output is in the specified JSON format.\nIf no candidate data is provided but a search query is present, indicate that no data was available to search.`;
+    const prompt = `You are an expert HR assistant. Your task is to analyze a list of candidate summaries based on a user's search query.
+Identify the candidates that best match the query.
+
+User Search Query:
+${input.query}
+
+Candidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):
+${effectiveCandidateData}
+
+When matching candidates to the user's query, you must consider ALL available candidate attributes, including (but not limited to):
+- Name
+- Contact information (email, phone)
+- Education history (university, major, GPA, etc.)
+- Work experience (companies, positions, durations, descriptions)
+- Skills
+- Fit score
+- Position applied for
+- Application date
+- Recruiter
+- Status and transition history
+- Job suitability preferences
+- Automated job matches
+- Custom fields/attributes
+- Any other data provided in the summary
+
+Base your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.
+If no candidates seem to match, return an empty list for matchedCandidateIds.
+Provide a brief reasoning for your selection or if no matches are found.
+
+IMPORTANT: You must respond with ONLY a valid JSON object in this exact format:
+{
+  "matchedCandidateIds": ["uuid1", "uuid2", ...],
+  "aiReasoning": "Your reasoning here"
+}
+
+Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
 
     const fetchRes = await fetch(url, {
       method: "POST",
@@ -236,11 +271,50 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     // Gemini API returns candidates[0].content.parts[0].text
     const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
+    console.log('AI Search: Raw model response:', modelText);
+
     let result;
     try {
-      result = JSON.parse(modelText);
-    } catch (e) {
-      result = { matchedCandidateIds: [], aiReasoning: "Failed to parse AI response." };
+      // Try to extract JSON from the response if it's wrapped in markdown or other text
+      let jsonText = modelText.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      // Try to find JSON object in the text
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
+      }
+      
+      result = JSON.parse(jsonText);
+      
+      // Validate the expected structure
+      if (!result.hasOwnProperty('matchedCandidateIds') || !Array.isArray(result.matchedCandidateIds)) {
+        console.warn('AI Search: Response missing or invalid matchedCandidateIds array');
+        result.matchedCandidateIds = [];
+      }
+      
+      if (!result.hasOwnProperty('aiReasoning') || typeof result.aiReasoning !== 'string') {
+        console.warn('AI Search: Response missing or invalid aiReasoning');
+        result.aiReasoning = '';
+      }
+      
+    } catch (parseError) {
+      console.error('AI Search: JSON parsing failed:', parseError);
+      console.error('AI Search: Raw response that failed to parse:', modelText);
+      
+      // Try to extract candidate IDs from the text using regex
+      const candidateIdMatches = modelText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi) || [];
+      
+      result = { 
+        matchedCandidateIds: candidateIdMatches,
+        aiReasoning: `Failed to parse AI response as JSON. Raw response: ${modelText.substring(0, 200)}${modelText.length > 200 ? '...' : ''}`
+      };
     }
 
     let finalReasoning = result.aiReasoning;
@@ -251,8 +325,13 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         finalReasoning = "The AI model reviewed the candidate data and found no strong matches for the specified query.";
     }
 
+    // Additional validation and sanitization
+    const sanitizedCandidateIds = (result.matchedCandidateIds || [])
+      .filter((id: any) => typeof id === 'string' && id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i))
+      .slice(0, 50); // Limit to 50 results for performance
+
     return {
-      matchedCandidateIds: result.matchedCandidateIds || [],
+      matchedCandidateIds: sanitizedCandidateIds,
       aiReasoning: finalReasoning || "No reasoning provided by the AI.",
     };
 

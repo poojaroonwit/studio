@@ -169,11 +169,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
             </form>
           </ScrollArea>
           {/* Right Column: WYSIWYG Editor */}
-          <Card className="h-full overflow-auto flex flex-col">
-            <CardHeader>
-              <CardTitle>Edit Job Description</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+              <div>Job Description</div>
               <Controller
                 name="description"
                 control={form.control}
@@ -219,8 +215,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                   </div>
                 )}
               />
-            </CardContent>
-          </Card>
+       
         </div>
         
         <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}

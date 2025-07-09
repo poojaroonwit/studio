@@ -8,6 +8,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useState } from 'react';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { Pencil, Trash2, MoveRight, Plus } from 'lucide-react';
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -133,7 +134,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: C
                           </div>
                         </div>
                         {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                          <p className="text-xs text-muted-foreground mt-1.5">Fit Score: <span className="font-semibold text-foreground">{candidate.fitScore}%</span></p>
+                          <p className="text-xs text-muted-foreground mt-1.5">Fit Score: <span className={`font-semibold ${getScoreColor(candidate.fitScore)}`}>{formatScoreWithGrade(candidate.fitScore)}</span></p>
                         )}
                       </Card>
                     </div>

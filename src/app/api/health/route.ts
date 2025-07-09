@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
-import { startupMinIOInitialization } from '@/lib/minio';
-import { getRedisClient } from '@/lib/redis';
+import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 
 export const dynamic = "force-dynamic";
 
@@ -59,108 +57,48 @@ export const dynamic = "force-dynamic";
  *       500:
  *         description: System unhealthy
  */
-export async function GET() {
-  // Skip health checks during build time
-  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE === 'phase-production-build') {
+export async function GET(req: NextRequest) {
+  try {
+    // Test MinIO connectivity
+    const minioStatus = await testMinIO();
+    
     return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      message: 'Health check skipped during build',
-      components: {
-        database: { status: 'healthy', message: 'Build time - not checked', userCount: 0 },
-        minio: { status: 'healthy', message: 'Build time - not checked', bucket: 'uploads' },
-        redis: { status: 'healthy', message: 'Build time - not checked' }
+      services: {
+        minio: minioStatus
       }
     });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    return NextResponse.json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
+}
 
-  const healthCheck = {
-    status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
-    timestamp: new Date().toISOString(),
-    components: {
-      database: { status: 'unhealthy' as 'healthy' | 'unhealthy', message: 'Not checked', userCount: 0 },
-      minio: { status: 'unhealthy' as 'healthy' | 'warning' | 'unhealthy', message: 'Not checked', bucket: '' },
-      redis: { status: 'unhealthy' as 'healthy' | 'unhealthy', message: 'Not checked' }
-    }
-  };
-
-  // Check database
+async function testMinIO() {
   try {
-    const pool = getPool();
-    const client = await pool.connect();
-    const result = await client.query('SELECT COUNT(*) as count FROM "User"');
-    const userCount = parseInt(result.rows[0].count);
-    client.release();
+    // Test basic connectivity
+    await minioClient.listBuckets();
     
-    healthCheck.components.database = {
+    // Test bucket access
+    await ensureBucketExists();
+    
+    return {
       status: 'healthy',
-      message: 'Database connection successful',
-      userCount
+      bucket: MINIO_BUCKET,
+      message: 'MinIO is accessible and bucket is ready'
     };
   } catch (error) {
-    healthCheck.components.database = {
+    console.error('MinIO health check failed:', error);
+    return {
       status: 'unhealthy',
-      message: `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      userCount: 0
+      bucket: MINIO_BUCKET,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'MinIO is not accessible'
     };
-    healthCheck.status = 'degraded';
   }
-
-  // Check MinIO
-  try {
-    const minioResult = await startupMinIOInitialization();
-    healthCheck.components.minio = {
-      status: minioResult.status as 'healthy' | 'warning' | 'unhealthy',
-      message: minioResult.message,
-      bucket: minioResult.bucket || ''
-    };
-    
-    if (minioResult.status === 'error') {
-      healthCheck.status = 'degraded';
-    }
-  } catch (error) {
-    healthCheck.components.minio = {
-      status: 'unhealthy',
-      message: `MinIO check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      bucket: ''
-    };
-    healthCheck.status = 'degraded';
-  }
-
-  // Check Redis
-  try {
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-      await redisClient.ping();
-      healthCheck.components.redis = {
-        status: 'healthy',
-        message: 'Redis connection successful'
-      };
-    } else {
-      healthCheck.components.redis = {
-        status: 'unhealthy',
-        message: 'Redis client not available'
-      };
-      healthCheck.status = 'degraded';
-    }
-  } catch (error) {
-    healthCheck.components.redis = {
-      status: 'unhealthy',
-      message: `Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    };
-    healthCheck.status = 'degraded';
-  }
-
-  // Determine overall status
-  const unhealthyComponents = Object.values(healthCheck.components).filter(
-    component => component.status === 'unhealthy'
-  ).length;
-
-  if (unhealthyComponents > 0) {
-    healthCheck.status = unhealthyComponents === Object.keys(healthCheck.components).length ? 'unhealthy' : 'degraded';
-  }
-
-  const statusCode = healthCheck.status === 'healthy' ? 200 : healthCheck.status === 'degraded' ? 200 : 503;
-  
-  return NextResponse.json(healthCheck, { status: statusCode });
 } 

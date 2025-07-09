@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip } from 'lucide-react';
+import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare } from 'lucide-react';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -22,6 +22,19 @@ export interface CandidateCommentsSectionProps {
   comments: any[];
   isEditing: boolean;
   onCommentsChange: () => void;
+}
+
+interface CombinedActivityItem {
+  id: string;
+  type: 'comment' | 'activity';
+  content?: string;
+  action?: string;
+  user?: string;
+  note?: string;
+  author?: { name: string } | string;
+  createdAt?: string;
+  time?: string;
+  attachments?: any[];
 }
 
 const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ candidateId, comments: initialComments, isEditing, onCommentsChange }) => {
@@ -65,6 +78,33 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
   }, [newComment]);
+
+  // Combine and sort activities by date
+  const combinedActivities: CombinedActivityItem[] = [
+    // Add comments
+    ...(Array.isArray(comments) ? comments : []).map(comment => ({
+      id: comment.id,
+      type: 'comment' as const,
+      content: comment.content,
+      author: comment.author,
+      createdAt: comment.createdAt,
+      attachments: comment.attachments
+    })),
+    // Add activity logs
+    ...(Array.isArray(logs) ? logs : []).map(log => ({
+      id: log.id,
+      type: 'activity' as const,
+      action: log.action,
+      user: log.user,
+      note: log.note,
+      time: log.time
+    }))
+  ].sort((a, b) => {
+    const dateA = (a as any).createdAt || (a as any).time;
+    const dateB = (b as any).createdAt || (b as any).time;
+    if (!dateA || !dateB) return 0;
+    return new Date(dateB).getTime() - new Date(dateA).getTime(); // Sort newest first
+  });
 
   // Drag-and-drop handlers
   const handleDragOver = (e: React.DragEvent) => {
@@ -150,7 +190,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       if (!res.ok) {
         const errorText = await res.text();
         console.error('API Error:', errorText);
-        throw new Error(`Failed to add comment: ${res.status} ${errorText}`);
+        
+        // Try to parse as JSON for better error messages
+        let errorMessage = `Failed to add comment: ${res.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       const result = await res.json();
@@ -163,7 +213,19 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       
     } catch (err: any) {
       console.error('Error adding comment:', err);
-      setError(err.message || 'Failed to add comment');
+      
+      // Provide more specific error messages
+      let errorMessage = err.message || 'Failed to add comment';
+      
+      if (errorMessage.includes('MinIO') || errorMessage.includes('bucket') || errorMessage.includes('storage')) {
+        errorMessage = 'File storage service is not available. Please try again later or contact support.';
+      } else if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+        errorMessage = 'Your session has expired. Please refresh the page and try again.';
+      } else if (errorMessage.includes('500') || errorMessage.includes('Internal server error')) {
+        errorMessage = 'Server error occurred. Please try again later.';
+      }
+      
+      setError(errorMessage);
       
       // Remove optimistic comment on error
       setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
@@ -224,26 +286,123 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
 
   return (
     <div className="space-y-6">
-      {/* Candidate Logs Section */}
-      <div>
-        <div className="font-semibold mb-2">Candidate Activity Log</div>
-        <div className="space-y-2">
-          {logsLoading ? (
-            <div className="text-muted-foreground text-sm">Loading logs...</div>
-          ) : logs.length === 0 ? (
-            <div className="text-muted-foreground text-sm">No activity logs found.</div>
-          ) : (
-            (Array.isArray(logs) ? logs : []).map(log => (
-              <div key={log.id} className="flex flex-col md:flex-row md:items-center md:justify-between text-xs md:text-sm py-2 border-b border-border last:border-b-0">
-                <div>
-                  <span className="font-medium">{log.action}</span> by <span className="text-blue-700">{log.user}</span>
-                  {log.note && <span className="ml-2 text-muted-foreground">Note: {log.note}</span>}
+      {/* Combined Activity and Comments List */}
+      <div className="space-y-0">
+        {logsLoading ? (
+          <div className="text-muted-foreground text-sm py-4 text-center">Loading activities...</div>
+        ) : combinedActivities.length === 0 ? (
+          <div className="text-muted-foreground text-sm py-4 text-center">No activities or comments yet.</div>
+        ) : (
+          combinedActivities.map((item, index) => (
+            <div key={item.id} className={`py-4 ${index !== combinedActivities.length - 1 ? 'border-b border-border' : ''}`}>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                  {/* Icon based on type */}
+                  {item.type === 'comment' ? (
+                    <MessageSquare className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <Activity className="w-4 h-4 text-green-500" />
+                  )}
+                  <span className="font-semibold text-sm">
+                    {item.type === 'comment' 
+                      ? (item.author?.name || item.author || 'Unknown')
+                      : item.user || 'System'
+                    }
+                  </span>
+                  <span className="text-xs text-muted-foreground">•</span>
+                                     <span className="text-xs text-muted-foreground">
+                     {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
+                   </span>
                 </div>
-                <div className="text-muted-foreground mt-1 md:mt-0">{new Date(log.time).toLocaleString()}</div>
+                {isEditing && item.type === 'comment' && (
+                  <div className="flex items-center gap-1">
+                    {editingId === item.id ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditComment(item.id)}
+                          disabled={editingSaving === item.id}
+                        >
+                          {editingSaving === item.id ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingId(null);
+                            setEditingContent('');
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingId(item.id);
+                            setEditingContent(item.content || '');
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteComment(item.id)}
+                          disabled={deleteLoading === item.id}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            ))
-          )}
-        </div>
+              
+              {item.type === 'comment' ? (
+                <>
+                  {editingId === item.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-sm mb-3 whitespace-pre-wrap">{item.content}</div>
+                  )}
+                  {/* Attachments under comment */}
+                  {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
+                        <div key={att.id || idx} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
+                          {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                            <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
+                          ) : (
+                            getFileIcon(att)
+                          )}
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="font-medium text-xs hover:underline">{att.fileName}</a>
+                          <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-sm">
+                  <span className="font-medium">{item.action}</span>
+                  {item.note && <span className="ml-2 text-muted-foreground">Note: {item.note}</span>}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
       
       {/* Chat-like Comment Input */}
@@ -342,99 +501,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           
           {error && <div className="text-destructive text-xs mt-2">{error}</div>}
         </div>
-      </div>
-
-      {/* Comments List */}
-      <div className="space-y-0">
-        {(Array.isArray(comments) ? comments : []).length === 0 && (
-          <div className="text-muted-foreground text-sm py-4 text-center">No comments yet.</div>
-        )}
-        {(Array.isArray(comments) ? comments : []).map((comment, index) => (
-          <div key={comment.id} className={`py-4 ${index !== (Array.isArray(comments) ? comments : []).length - 1 ? 'border-b border-border' : ''}`}>
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">{comment.author?.name || comment.author || 'Unknown'}</span>
-                <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString()}</span>
-              </div>
-              {isEditing && (
-                <div className="flex items-center gap-1">
-                  {editingId === comment.id ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditComment(comment.id)}
-                        disabled={editingSaving === comment.id}
-                      >
-                        {editingSaving === comment.id ? 'Saving...' : 'Save'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditingContent('');
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditingId(comment.id);
-                          setEditingContent(comment.content);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteComment(comment.id)}
-                        disabled={deleteLoading === comment.id}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        {deleteLoading === comment.id ? 'Deleting...' : 'Delete'}
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            {editingId === comment.id ? (
-              <div className="space-y-2">
-                <Textarea
-                  value={editingContent}
-                  onChange={(e) => setEditingContent(e.target.value)}
-                  className="min-h-[80px]"
-                />
-              </div>
-            ) : (
-              <div className="text-sm mb-3 whitespace-pre-wrap">{comment.content}</div>
-            )}
-            {/* Attachments under comment */}
-            {(Array.isArray(comment.attachments) ? comment.attachments : []).length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {(Array.isArray(comment.attachments) ? comment.attachments : []).map((att: any, idx: number) => (
-                  <div key={att.id || idx} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
-                    {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                      <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
-                    ) : (
-                      getFileIcon(att)
-                    )}
-                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="font-medium text-xs hover:underline">{att.fileName}</a>
-                    <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase } from 'lucide-react';
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format } from 'date-fns';
@@ -221,7 +222,9 @@ export function CandidateTable({
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       <Progress value={candidate.fitScore || 0} className="h-2 w-[60px]" />
-                      <span className="text-sm font-medium text-foreground">{(candidate.fitScore || 0)}%</span>
+                      <span className={`text-sm font-medium ${getScoreColor(candidate.fitScore)}`}>
+                        {formatScoreWithGrade(candidate.fitScore)}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>

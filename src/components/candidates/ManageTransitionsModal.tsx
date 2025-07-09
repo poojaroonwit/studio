@@ -48,7 +48,7 @@ interface ManageTransitionsModalProps {
   candidate: Candidate | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string) => Promise<void>; // Modified to accept notes
+  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>; // Modified to accept notes and suppressToast
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
   availableStages: RecruitmentStage[];
   preselectedStage?: string | null;
@@ -100,7 +100,8 @@ export function ManageTransitionsModal({
     }
     setIsSaving(true);
     try {
-        await onUpdateCandidate(candidate.id, data.newStatus, data.notes); 
+        // Pass suppressToast as true to prevent toast messages from the parent component
+        await onUpdateCandidate(candidate.id, data.newStatus, data.notes, true); 
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
         setIsSaving(false);

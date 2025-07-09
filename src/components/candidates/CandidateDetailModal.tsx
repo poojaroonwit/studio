@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import type { Candidate, CandidateDetails, PersonalInfo } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Briefcase, Mail, Phone, Percent, Tag, CalendarDays, Info, UserCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -126,7 +127,7 @@ export function CandidateDetailModal({ isOpen, onOpenChange, candidateSummary }:
                         {renderModalField("Email", displayCandidate.email, Mail)}
                         {renderModalField("Phone", displayCandidate.phone, Phone)}
                         {renderModalField("Applied for", displayCandidate.position?.title || 'N/A - General Application', Briefcase)}
-                        {displayCandidate.fitScore !== undefined && renderModalField("Fit Score", `${displayCandidate.fitScore}%`, Percent)}
+                        {displayCandidate.fitScore !== undefined && renderModalField("Fit Score", formatScoreWithGrade(displayCandidate.fitScore), Percent)}
                         {displayCandidate.applicationDate && renderModalField("Application Date", format(parseISO(displayCandidate.applicationDate), "PPP"), CalendarDays)}
                         {renderModalField("CV Language", parsedDetails?.cv_language, Tag)}
                     </section>

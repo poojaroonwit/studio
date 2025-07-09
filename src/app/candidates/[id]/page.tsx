@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, Home, Users as UsersIcon, Activity, Clock } from 'lucide-react';
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -199,14 +200,14 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
               Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.job_title}</strong> (Open Position).
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Automated Fit Score for this role: <span className="font-semibold text-foreground">{bestAlternativeMatch.fit_score}%</span>.
+              Automated Fit Score for this role: <span className={`font-semibold ${getScoreColor(bestAlternativeMatch.fit_score)}`}>{formatScoreWithGrade(bestAlternativeMatch.fit_score)}</span>.
             </p>
             {currentAppliedPosition ? (
               <p className="text-xs text-muted-foreground">
-                Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: {currentFitScore}%)
+                Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: <span className={getScoreColor(currentFitScore)}>{formatScoreWithGrade(currentFitScore)}</span>)
               </p>
             ) : (
-               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {currentFitScore}%).</p>
+               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: <span className={getScoreColor(currentFitScore)}>{formatScoreWithGrade(currentFitScore)}</span>).</p>
             )}
             {bestAlternativeMatch.match_reasons && bestAlternativeMatch.match_reasons.length > 0 && (
               <div className="mt-1.5">
@@ -544,18 +545,28 @@ export default function CandidateDetailPage() {
     fetchCandidateDetails();
   };
 
-  const handleUpdateCandidateStatus = async (id: string, newStatus: string, notes?: string) => {
+  const handleUpdateCandidateStatus = async (id: string, newStatus: string, notes?: string, suppressToast?: boolean) => {
     setIsLoading(true);
     try {
-      // Always send null for optional fields if not present
-      const payload: { status: string; transitionNotes?: string; positionId: string | null; recruiterId: string | null } = {
+      // Only send the fields that are actually being updated
+      const payload: { status: string; transitionNotes?: string; positionId?: string | null; recruiterId?: string | null } = {
         status: newStatus || '',
-        positionId: candidate?.positionId ?? null,
-        recruiterId: candidate?.recruiterId ?? null,
       };
+      
+      // Only include positionId and recruiterId if they exist
+      if (candidate?.positionId !== undefined) {
+        payload.positionId = candidate.positionId;
+      }
+      if (candidate?.recruiterId !== undefined) {
+        payload.recruiterId = candidate.recruiterId;
+      }
+      
       if (notes) {
         payload.transitionNotes = notes;
       }
+      
+      console.log('Sending payload to API:', payload); // Debug log
+      
       const response = await fetch(`/api/candidates/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -563,15 +574,37 @@ export default function CandidateDetailPage() {
       });
 
       const result = await response.json();
+      console.log('API response:', result); // Debug log
+      
       if (!response.ok) {
-        toast(result?.message || 'Failed to update status.');
+        if (!suppressToast) {
+          toast(result?.message || 'Failed to update status.');
+        }
         return;
       }
 
       setCandidate(result.candidate);
-      toast("Candidate details updated successfully.");
+      
+      // Only show toast if not suppressed
+      if (!suppressToast) {
+        // Create a more specific toast message for status transitions
+        const candidateName = result.candidate?.name || 'Candidate';
+        const oldStatus = candidate?.status || 'Unknown';
+        const newStatusDisplay = newStatus || 'Unknown';
+        
+        if (oldStatus === newStatusDisplay) {
+          // If only notes were added without status change
+          toast.success(`${candidateName}'s transition notes have been updated.`);
+        } else {
+          // Status was changed
+          toast.success(`${candidateName} moved from "${oldStatus}" to "${newStatusDisplay}".`);
+        }
+      }
     } catch (error: any) {
-      toast(error?.message || 'Failed to update status.');
+      console.error('Error updating candidate status:', error); // Debug log
+      if (!suppressToast) {
+        toast.error(error?.message || 'Failed to update status.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -851,7 +884,7 @@ export default function CandidateDetailPage() {
                   <div className="mb-4">
                     <h3 className="text-lg font-semibold flex items-center mb-3">
                       <Users className="mr-2 h-5 w-5 text-primary" />
-                      Recruitment Pipeline
+                      Recruitment Stage
                     </h3>
                     <Button 
                       variant="outline" 
@@ -911,7 +944,9 @@ export default function CandidateDetailPage() {
                              <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                            )}
                            {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                             <span className="ml-2 text-sm font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full">Fit Score: {candidate.fitScore}%</span>
+                             <span className={`ml-2 text-sm font-semibold px-3 py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
+                               Fit Score: {formatScoreWithGrade(candidate.fitScore)}
+                             </span>
                            )}
                          </div>
                          <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
@@ -985,7 +1020,7 @@ export default function CandidateDetailPage() {
                                return rows.map((row, i) => (
                                  <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
                                    <td className="px-4 py-2">{row.title}</td>
-                                   <td className="px-4 py-2">{row.score}%</td>
+                                   <td className={`px-4 py-2 ${getScoreColor(row.score)}`}>{formatScoreWithGrade(row.score)}</td>
                                    <td className="px-4 py-2">{row.justification}</td>
                                  </tr>
                                ));
@@ -1276,7 +1311,7 @@ export default function CandidateDetailPage() {
                   </section>
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+            <div className="lg:col-span-3 space-y-6 bg-card p-3 pt-6 rounded-xl shadow-sm">
               {/* Quick Actions */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
@@ -1284,17 +1319,7 @@ export default function CandidateDetailPage() {
                   Quick Actions
                 </h3>
                 <div className="grid grid-cols-1 gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="justify-start h-auto p-3"
-                    onClick={() => setIsUploadModalOpen(true)}
-                  >
-                    <UploadCloud className="mr-2 h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Upload Resume</div>
-                      <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
-                    </div>
-                  </Button>
+               
                   
                   {!isEditing ? (
                     <Button 
@@ -1336,14 +1361,25 @@ export default function CandidateDetailPage() {
                       </Button>
                     </>
                   )}
+                  <Button 
+                    variant="outline" 
+                    className="justify-start h-auto p-3"
+                    onClick={() => setIsUploadModalOpen(true)}
+                  >
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Upload Resume</div>
+                      <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
+                    </div>
+                  </Button>
                 </div>
               </div>
               
-              {/* Comments Section */}
+              {/* Comments & Activity Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
                   <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                  Comments & Notes
+                  Comments & Activity
                 </h3>
                 <div className="bg-muted rounded-lg p-4">
                   <CandidateCommentsSection 
@@ -1368,51 +1404,6 @@ export default function CandidateDetailPage() {
                     isEditing={isEditing} 
                     onResumesChange={handleResumesChange} 
                   />
-                </div>
-              </div>
-              
-              {/* Activity Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Activity className="mr-2 h-5 w-5 text-primary" />
-                  Activity History
-                </h3>
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="space-y-4">
-                    {/* Transition History */}
-                    {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Status Changes</h3>
-                        <div className="space-y-3">
-                          {candidate.transitionHistory.map((transition, index) => (
-                            <div key={transition.id} className="flex items-start gap-3 p-3 bg-background rounded-lg border">
-                              <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0"></div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {transition.stage}
-                                  </Badge>
-                                  <span className="text-xs text-muted-foreground">
-                                    {transition.date ? new Date(transition.date).toLocaleDateString() : 'Unknown date'}
-                                  </span>
-                                </div>
-                                {transition.notes && (
-                                  <p className="text-sm text-foreground mt-1">{transition.notes}</p>
-                                )}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  By: {transition.actingUserName || 'Unknown user'}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No activity history available.
-                      </p>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

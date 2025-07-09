@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3 } from "lucide-react";
+import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from "next/link";
@@ -210,17 +211,11 @@ export default function DashboardPageClient({
     return safeMyBacklogCandidates.filter((c: Candidate) => c.recruiterId === session?.user?.id);
   }, [myBacklogCandidates, session?.user?.id]);
 
-  // Candidate scoring range metrics
+  // Candidate scoring range metrics with letter grades
   const candidateScoreRanges = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    const ranges = [
-      { label: '81-100', min: 81, max: 100 },
-      { label: '61-80', min: 61, max: 80 },
-      { label: '41-60', min: 41, max: 60 },
-      { label: '21-40', min: 21, max: 40 },
-      { label: '0-20', min: 0, max: 20 },
-    ];
-    return ranges.map(range => ({
+    const scoreRanges = getScoreRangesForChart();
+    return scoreRanges.map(range => ({
       label: range.label,
       count: safeAllCandidates.filter(c => typeof c.fitScore === 'number' && c.fitScore >= range.min && c.fitScore <= range.max).length
     }));
@@ -442,7 +437,7 @@ export default function DashboardPageClient({
                       <TableCell>
                         <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
                       </TableCell>
-                      <TableCell>{candidate.fitScore || 0}%</TableCell>
+                      <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                       <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
                     </TableRow>
                   ))}
@@ -607,7 +602,7 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
                           </TableCell>
-                          <TableCell>{candidate.fitScore || 0}%</TableCell>
+                          <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
                           <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
                         </TableRow>
                       ))}

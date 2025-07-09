@@ -193,6 +193,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
+  console.log('API received payload:', { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes });
+
   // Extra validation to prevent DB errors
   if (!status || typeof status !== 'string' || status.trim() === '') {
     return NextResponse.json({ message: 'Status is required and must be a non-empty string.' }, { status: 400 });
@@ -238,29 +240,94 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.status;
 
-    // Update candidate
+    // Build dynamic update query based on provided fields
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramIndex}`);
+      updateValues.push(name);
+      paramIndex++;
+    }
+    if (email !== undefined) {
+      updateFields.push(`email = $${paramIndex}`);
+      updateValues.push(email);
+      paramIndex++;
+    }
+    if (phone !== undefined) {
+      updateFields.push(`phone = $${paramIndex}`);
+      updateValues.push(phone);
+      paramIndex++;
+    }
+    if (positionId !== undefined) {
+      updateFields.push(`"positionId" = $${paramIndex}`);
+      updateValues.push(positionId);
+      paramIndex++;
+    }
+    if (recruiterId !== undefined) {
+      updateFields.push(`"recruiterId" = $${paramIndex}`);
+      updateValues.push(recruiterId);
+      paramIndex++;
+    }
+    if (fitScore !== undefined) {
+      updateFields.push(`"fitScore" = $${paramIndex}`);
+      updateValues.push(fitScore);
+      paramIndex++;
+    }
+    if (status !== undefined) {
+      updateFields.push(`status = $${paramIndex}`);
+      updateValues.push(status);
+      paramIndex++;
+    }
+    if (parsedData !== undefined) {
+      updateFields.push(`"parsedData" = $${paramIndex}`);
+      updateValues.push(parsedData);
+      paramIndex++;
+    }
+    if (custom_attributes !== undefined) {
+      updateFields.push(`"customAttributes" = $${paramIndex}`);
+      updateValues.push(custom_attributes);
+      paramIndex++;
+    }
+    if (resumePath !== undefined) {
+      updateFields.push(`"resumePath" = $${paramIndex}`);
+      updateValues.push(resumePath);
+      paramIndex++;
+    }
+
+    // Always update the updatedAt timestamp
+    updateFields.push(`"updatedAt" = NOW()`);
+
     const updateQuery = `
       UPDATE "Candidate" 
-      SET name = $1, email = $2, phone = $3, "positionId" = $4, "recruiterId" = $5, 
-          "fitScore" = $6, status = $7, "parsedData" = $8, "customAttributes" = $9, 
-          "resumePath" = $10, "updatedAt" = NOW()
-      WHERE id = $11::uuid
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}::uuid
       RETURNING *;
     `;
-    const updateResult = await client.query(updateQuery, [
-      name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, id
-    ]);
+    updateValues.push(id);
+
+    const updateResult = await client.query(updateQuery, updateValues);
 
     // Create transition record if status changed
     if (oldStatus !== status) {
+      console.log('Creating transition record:', { oldStatus, newStatus: status, transitionNotes, actingUserId });
       const safePositionId = positionId ?? null; // Default to null if undefined
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
-      await client.query(insertTransitionQuery, [
-        uuidv4(), id, safePositionId, status, transitionNotes || `Status changed from ${oldStatus} to ${status}`, actingUserId
-      ]);
+      try {
+        await client.query(insertTransitionQuery, [
+          uuidv4(), id, safePositionId, status, transitionNotes || `Status changed from ${oldStatus} to ${status}`, actingUserId
+        ]);
+        console.log('Transition record created successfully');
+      } catch (transitionError) {
+        console.error('Error creating transition record:', transitionError);
+        throw transitionError;
+      }
+    } else {
+      console.log('No status change detected, skipping transition record creation');
     }
 
     await client.query('COMMIT');

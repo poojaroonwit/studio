@@ -280,6 +280,40 @@ export function CandidatesPageClient({
   useEffect(() => { setAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions]);
   useEffect(() => { setAvailableStages(safeInitialAvailableStages || []); }, [safeInitialAvailableStages]);
 
+  // Fetch positions and stages on mount if not provided initially
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && safeInitialAvailablePositions.length === 0) {
+      const fetchPositionsAndStages = async () => {
+        try {
+          const [posResponse, stagesResponse] = await Promise.all([
+            fetch('/api/positions'),
+            fetch('/api/settings/recruitment-stages')
+          ]);
+
+          if (posResponse.ok) {
+            const posData = await posResponse.json();
+            setAvailablePositions(posData.positions || posData.data || []);
+          } else {
+            console.error("Failed to fetch positions");
+            toast.error("Could not load the list of available positions.");
+          }
+
+          if (stagesResponse.ok) {
+            const stagesData = await stagesResponse.json();
+            setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
+          } else {
+            console.error("Failed to fetch recruitment stages");
+            toast.error("Could not load recruitment stages.");
+          }
+        } catch (error) {
+          console.error("Error fetching positions or stages:", error);
+          toast.error("A network error occurred while fetching initial data.");
+        }
+      };
+      fetchPositionsAndStages();
+    }
+  }, [sessionStatus, safeInitialAvailablePositions.length]);
+
   useEffect(() => {
     // Show error as toast popup if present
     if (initialFetchError) {

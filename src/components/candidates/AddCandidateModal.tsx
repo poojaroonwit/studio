@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, PositionLevel, RecruitmentStage } from '@/lib/types';
 
 const positionLevelOptions: PositionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
@@ -289,13 +290,20 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                         name="fitScore"
                         control={form.control}
                         render={({ field }) => (
-                            <Input
-                                id="fitScore"
-                                type="number"
-                                {...field}
-                                onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
-                                className="mt-1"
-                            />
+                            <div className="space-y-2">
+                                <Input
+                                    id="fitScore"
+                                    type="number"
+                                    {...field}
+                                    onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
+                                    className="mt-1"
+                                />
+                                {field.value > 0 && (
+                                    <div className={`text-sm px-2 py-1 rounded ${getScoreBgColor(field.value)} ${getScoreColor(field.value)}`}>
+                                        Grade: {formatScoreWithGrade(field.value)}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     />
                 </div>

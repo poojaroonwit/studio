@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Search, FilterX, Check, ChevronsUpDown, Loader2, CalendarIcon, Brain, Users, Briefcase, Tag, Star, Building, ListFilter, Zap, Target, Lightbulb, Sparkles } from 'lucide-react';
+import { getScoreRangesForChart } from "@/lib/scoreUtils";
 import type { Position, CandidateStatus, RecruitmentStage, UserProfile } from '@/lib/types';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from '../ui/scroll-area';
@@ -232,7 +233,7 @@ export function CandidateFilters({
     <div>
       {/* AI Search Section */}
       <div className="rounded-lg flex flex-col gap-4  border-primary/20">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2">
           <Brain className="w-5 h-5 text-primary" />
           <h3 className="text font-bold">AI Search</h3>
             <Tooltip>
@@ -437,6 +438,19 @@ export function CandidateFilters({
             <span className="text-xs w-16">
               {fitScoreRange[0]}-{fitScoreRange[1]}
             </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {(() => {
+              const scoreRanges = getScoreRangesForChart();
+              const selectedRanges = scoreRanges.filter(range => 
+                (range.min >= fitScoreRange[0] && range.min <= fitScoreRange[1]) ||
+                (range.max >= fitScoreRange[0] && range.max <= fitScoreRange[1]) ||
+                (range.min <= fitScoreRange[0] && range.max >= fitScoreRange[1])
+              );
+              return selectedRanges.length > 0 ? 
+                `Grades: ${selectedRanges.map(r => r.letter).join(', ')}` : 
+                'No grades in range';
+            })()}
           </div>
         </div>
         <div>

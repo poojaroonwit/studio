@@ -432,8 +432,8 @@ export default function CandidateDetailPage() {
         fetchComments(),
       ]);
       // Extract attachments from comments
-      const commentAttachments = (commentList || []).flatMap(comment =>
-        (comment.attachments || []).map(att => ({
+      const commentAttachments = (commentList || []).flatMap((comment: any) =>
+        (comment.attachments || []).map((att: any) => ({
           ...att,
           // Optionally add a tag to indicate source
           label: att.label || 'comment',
@@ -1413,10 +1413,9 @@ export default function CandidateDetailPage() {
                 <div className="bg-muted rounded-lg p-4">
                   <CandidateResumesSection 
                     candidateId={candidateId} 
-                    resumes={Array.isArray(resumes) ? resumes : []} 
+                    resumes={Array.isArray(attachments) ? attachments : []} 
                     isEditing={isEditing} 
                     onResumesChange={handleResumesChange} 
-                    attachments={attachments}
                   />
                 </div>
               </div>

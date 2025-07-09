@@ -459,8 +459,17 @@ export default function CandidateDetailPage() {
       );
       // Merge and sort by updatedAt desc
       const all = [...(resumeAttachments || []), ...commentAttachments];
-      all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      setAttachments(all);
+      const unique: any[] = [];
+      const seen = new Set();
+      for (const att of all) {
+        const key = att.filePath || att.id || att.url;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(att);
+        }
+      }
+      unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setAttachments(unique);
     };
     loadAllAttachments();
   }, [candidateId, isEditing]);
@@ -479,10 +488,19 @@ export default function CandidateDetailPage() {
         updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
       }))
     );
-    // Merge and sort by updatedAt desc
+    // Merge and remove duplicates by filePath, id, or url
     const all = [...(resumeAttachments || []), ...commentAttachments];
-    all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    setAttachments(all);
+    const unique: any[] = [];
+    const seen = new Set();
+    for (const att of all) {
+      const key = att.filePath || att.id || att.url;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(att);
+      }
+    }
+    unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    setAttachments(unique);
   };
 
   const handleCommentsChange = async () => {
@@ -926,13 +944,13 @@ export default function CandidateDetailPage() {
             ]} 
           />
           {/* Quick Actions moved here */}
-          <div className="space-y-4 min-w-[220px] ml-8">
-            <h3 className="text-lg font-semibold flex items-center">
+          <div className="min-w-[220px] ml-8">
+            <h3 className="text-lg font-semibold flex items-center mb-2">
               <Zap className="mr-2 h-5 w-5 text-primary" />
               Quick Actions
             </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {!isEditing ? (
+            <div className="flex flex-row gap-3 flex-wrap">
+              {!isEditing && (
                 <Button 
                   variant="outline" 
                   className="justify-start h-auto p-3"
@@ -944,45 +962,7 @@ export default function CandidateDetailPage() {
                     <div className="text-xs text-muted-foreground">Modify candidate info</div>
                   </div>
                 </Button>
-              ) : (
-                <>
-                  <Button 
-                    variant="default" 
-                    className="justify-start h-auto p-3"
-                    onClick={handleSubmit(handleSaveDetails)}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    <div className="text-left">
-                      <div className="font-medium">{isSubmitting ? 'Saving...' : 'Save Changes'}</div>
-                      <div className="text-xs text-muted-foreground">Save all modifications</div>
-                    </div>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="justify-start h-auto p-3"
-                    onClick={handleCancelEdit}
-                    disabled={isSubmitting}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Cancel Edit</div>
-                      <div className="text-xs text-muted-foreground">Discard changes</div>
-                    </div>
-                  </Button>
-                </>
               )}
-              <Button 
-                variant="outline" 
-                className="justify-start h-auto p-3"
-                onClick={() => setIsUploadModalOpen(true)}
-              >
-                <UploadCloud className="mr-2 h-4 w-4" />
-                <div className="text-left">
-                  <div className="font-medium">Upload Resume</div>
-                  <div className="text-xs text-muted-foreground">Add new resume file (Legacy)</div>
-                </div>
-              </Button>
             </div>
           </div>
         </div>
@@ -1492,6 +1472,41 @@ export default function CandidateDetailPage() {
         candidate={candidate}
         onUploadSuccess={handleUploadSuccess}
       />
+      {/* Sticky Save/Cancel button bar at bottom right when editing */}
+      {isEditing && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 50,
+            display: 'flex',
+            gap: '1rem',
+            background: 'rgba(255,255,255,0.95)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            borderRadius: '0.75rem',
+            padding: '1rem 1.5rem',
+            alignItems: 'center'
+          }}
+        >
+          <Button
+            variant="default"
+            onClick={handleSubmit(handleSaveDetails)}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleCancelEdit}
+            disabled={isSubmitting}
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancel Edit
+          </Button>
+        </div>
+      )}
     </FormProvider>
   );
 }

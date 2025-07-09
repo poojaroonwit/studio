@@ -233,33 +233,7 @@ export function ManageTransitionsModal({
                 </Button>
               </form>
             </div>
-            {/* Activity Log Section */}
-            <div className="md:pl-6">
-              <h3 className="text-lg font-semibold mb-1 text-foreground">Transition Activity Log</h3>
-              <p className="text-xs text-muted-foreground mb-3">Status changes and notes for this candidate.</p>
-              <div className="max-h-80 overflow-y-auto border rounded p-2 bg-muted/10">
-                {candidate.transitionHistory && candidate.transitionHistory.length > 0 ? (
-                  <ul className="space-y-3">
-                    {candidate.transitionHistory.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((record) => (
-                      <li key={record.id} className="border-b last:border-b-0 pb-2 last:pb-0">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <span className="font-semibold text-foreground">{record.stage}</span>
-                          <span className="text-muted-foreground">|</span>
-                          <span>{record.notes ? record.notes : <span className="italic text-muted-foreground">No note</span>}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
-                          <span className="text-muted-foreground">|</span>
-                          <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-xs text-muted-foreground">No transition records yet.</div>
-                )}
-              </div>
-            </div>
+            {/* Transition Activity Log removed */}
           </div>
 
           <DialogFooter className="border-t pt-4">

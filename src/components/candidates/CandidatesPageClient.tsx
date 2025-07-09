@@ -763,7 +763,7 @@ export function CandidatesPageClient({
       {/* Main Content */}
       <main className="flex-1 w-full space-y-6 min-w-0 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2 items-center sm:justify-end">
+          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2 items-center sm:justify-end ml-auto">
             {selectedCandidateIds.size > 0 && canManageCandidates && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

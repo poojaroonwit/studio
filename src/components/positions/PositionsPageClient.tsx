@@ -276,7 +276,7 @@ export default function PositionsPageClient() {
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Position
             </Button>
-            <Button onClick={() => setIsImportModalOpen(true)} className="whitespace-nowrap">
+            <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="whitespace-nowrap">
               Import Positions
             </Button>
           </div>

@@ -44,14 +44,19 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
       toast.error('Please select a file to upload');
       return;
     }
+    if (!candidate.positionId) {
+      toast.error('Cannot upload resume: Candidate is not applied to any position. Please assign a position first.');
+      return;
+    }
     setIsUploading(true);
     setUploadTriggered(false);
     try {
       console.log('Upload started for candidate:', candidate.id, 'file:', file.name);
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('candidateId', candidate.id);
-      const response = await fetch('/api/resumes/upload', {
+      formData.append('resume', file); // must be 'resume'
+      formData.append('position_id', candidate.positionId); // must be 'position_id', ensure not empty
+      const url = `/api/resumes/upload?candidateId=${candidate.id}`; // candidateId as query param
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
       });

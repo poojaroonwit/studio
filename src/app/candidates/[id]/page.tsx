@@ -236,14 +236,23 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
   });
   // Track which popover is open by index
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
+  // Track which tooltip is hovered by index
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   return (
     <div className="flex flex-col gap-0.5 mb-6 relative">
       {stages.map((stage, idx) => {
         const records = stageToRecords[stage.name] || [];
         const isCompleted = transitionHistory.some(r => r.stage === stage.name);
         const isCurrent = currentStatus === stage.name;
+        const latestRecord = records.length > 0 ? records[records.length - 1] : null;
+        const latestNote = latestRecord ? latestRecord.notes : null;
+        const latestUser = latestRecord ? (latestRecord.actingUserName || 'Unknown') : null;
+        const latestDate = latestRecord && latestRecord.date ? new Date(latestRecord.date).toLocaleString() : null;
         return (
-          <div key={stage.id} className="relative flex items-start">
+          <div key={stage.id} className="relative flex items-start"
+            onMouseEnter={() => setHoveredIdx(idx)}
+            onMouseLeave={() => setHoveredIdx(null)}
+          >
             {/* Vertical line for workflow, except after last node */}
             {idx < stages.length - 1 && (
               <div className="absolute left-4 top-7 w-px h-full z-0" style={{height: 'calc(100% - 1.5rem)'}}>
@@ -255,7 +264,11 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 <button
                   type="button"
                   className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors relative z-10
-                    ${isCurrent ? 'bg-primary/10 border-l-4 border-primary font-bold' : isCompleted ? 'bg-green-100 border-l-4 border-green-500 font-semibold text-green-800' : 'bg-muted/10 text-muted-foreground'}
+                    ${isCurrent 
+                      ? 'bg-primary/10 border-l-4 border-primary font-bold' 
+                      : isCompleted 
+                        ? 'bg-green-200 border-l-4 border-green-600 font-bold text-green-900 shadow-green-200 shadow' 
+                        : 'bg-muted/10 text-muted-foreground'}
                   `}
                   onClick={() => {
                     if (!isCompleted) onStageClick(stage.name);
@@ -265,7 +278,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all
-                    ${isCompleted ? 'bg-green-500 border-green-500 text-white' : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
+                    ${isCompleted ? 'bg-green-500 border-green-600 text-white' : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
                   >
                     {isCompleted ? (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -316,6 +329,14 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 )}
               </PopoverContent>
             </Popover>
+            {/* Custom tooltip for latest note, user, and date */}
+            {hoveredIdx === idx && latestNote && (
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[180px]">
+                <div className="mb-1 font-semibold">Note:</div>
+                <div className="mb-1">{latestNote}</div>
+                <div className="text-[10px] text-gray-300">By: {latestUser}{latestDate ? ` | ${latestDate}` : ''}</div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -935,7 +956,7 @@ export default function CandidateDetailPage() {
   return (
     <FormProvider {...form}>
       <div className="space-y-6">
-        <div className="flex justify-between items-center p-6 pb-0">
+        <div className="flex justify-between items-center p-6 pb-0 sticky top-0 z-40 bg-white shadow">
           <Breadcrumb 
             items={[
               { label: "Home", href: "/", icon: Home },
@@ -944,26 +965,38 @@ export default function CandidateDetailPage() {
             ]} 
           />
           {/* Quick Actions moved here */}
-          <div className="min-w-[220px] ml-8">
-            <h3 className="text-lg font-semibold flex items-center mb-2">
-              <Zap className="mr-2 h-5 w-5 text-primary" />
-              Quick Actions
-            </h3>
-            <div className="flex flex-row gap-3 flex-wrap">
-              {!isEditing && (
-                <Button 
-                  variant="outline" 
-                  className="justify-start h-auto p-3"
-                  onClick={() => setIsEditing(true)}
+          <div className="flex flex-row gap-3 flex-wrap">
+            {!isEditing ? (
+              <Button 
+                variant="outline" 
+                className="justify-start h-auto p-2"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit3 className="mr-2 h-4 w-4" />
+                <div className="text-left">
+                  <div className="font-medium">Edit Details</div>
+                </div>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="default"
+                  onClick={handleSubmit(handleSaveDetails)}
+                  disabled={isSubmitting}
                 >
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  <div className="text-left">
-                    <div className="font-medium">Edit Details</div>
-                    <div className="text-xs text-muted-foreground">Modify candidate info</div>
-                  </div>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
-              )}
-            </div>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isSubmitting}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel Edit
+                </Button>
+              </>
+            )}
           </div>
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
@@ -1472,41 +1505,6 @@ export default function CandidateDetailPage() {
         candidate={candidate}
         onUploadSuccess={handleUploadSuccess}
       />
-      {/* Sticky Save/Cancel button bar at bottom right when editing */}
-      {isEditing && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 50,
-            display: 'flex',
-            gap: '1rem',
-            background: 'rgba(255,255,255,0.95)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            borderRadius: '0.75rem',
-            padding: '1rem 1.5rem',
-            alignItems: 'center'
-          }}
-        >
-          <Button
-            variant="default"
-            onClick={handleSubmit(handleSaveDetails)}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleCancelEdit}
-            disabled={isSubmitting}
-          >
-            <X className="mr-2 h-4 w-4" />
-            Cancel Edit
-          </Button>
-        </div>
-      )}
     </FormProvider>
   );
 }

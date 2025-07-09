@@ -257,14 +257,145 @@ const swaggerSpec = {
       },
       post: {
         summary: 'Create a new candidate (v1 API)',
-        description: 'Creates a new candidate. Requires Bearer token authentication.',
+        description: 'Creates a new candidate. Accepts both the new and legacy formats. Requires Bearer token authentication.',
         tags: ['V1 Candidates'],
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Candidate' }
+              schema: {
+                type: 'object',
+                properties: {
+                  candidate_info: {
+                    type: 'object',
+                    properties: {
+                      contact_info: {
+                        type: 'object',
+                        properties: {
+                          email: { type: 'string', format: 'email' },
+                          phone: { type: 'string' }
+                        },
+                        required: ['email']
+                      },
+                      cv_language: { type: 'string' },
+                      education: { type: 'array', items: { type: 'object' } },
+                      experience: { type: 'array', items: { type: 'object' } },
+                      job_suitable: { type: 'array', items: { type: 'object' } },
+                      personal_info: {
+                        type: 'object',
+                        properties: {
+                          title_honorific: { type: 'string' },
+                          firstname: { type: 'string' },
+                          lastname: { type: 'string' },
+                          nickname: { type: 'string' },
+                          location: { type: 'string' },
+                          introduction_aboutme: { type: 'string' }
+                        },
+                        required: ['firstname', 'lastname']
+                      },
+                      skills: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            segment_skill: { type: 'string' },
+                            skill: { type: 'array', items: { type: 'string' } }
+                          }
+                        }
+                      }
+                    },
+                    required: ['contact_info', 'personal_info']
+                  },
+                  job_matches: {
+                    type: 'array',
+                    items: { type: 'string' }
+                  },
+                  job_applied: {
+                    type: 'object',
+                    properties: {
+                      fit_score: { type: 'integer' },
+                      job_id: { type: 'string' },
+                      justification: { type: 'array', items: { type: 'string' } }
+                    }
+                  }
+                },
+                required: ['candidate_info']
+              },
+              example: {
+                candidate_info: {
+                  contact_info: {
+                    email: 'natthanon.suw@gmail.com',
+                    phone: '080-222-2222'
+                  },
+                  cv_language: 'Thai',
+                  education: [
+                    {
+                      major: 'Computer Engineering',
+                      field: 'Engineering',
+                      period: 'August 2014 - July 2018',
+                      duration: '4 years',
+                      GPA: '3.45',
+                      university: 'Chiang Mai University',
+                      campus: 'Chiang Mai'
+                    }
+                  ],
+                  experience: [
+                    {
+                      company: 'AddVentures by SCG',
+                      position: 'Software Engineer',
+                      description: 'Coding and modifying system as assigned.\nDebugging and solving problem that is occurred in the system.',
+                      period: 'January 2019 - Present',
+                      duration: '4 years 9 months',
+                      is_current_position: 'Present',
+                      postition_level: 'Entry-Level'
+                    }
+                  ],
+                  job_suitable: [
+                    {
+                      suitable_career: 'Software Engineer',
+                      suitable_job_position: 'Software Engineer',
+                      suitable_job_level: 'Entry-Level',
+                      suitable_salary_bath_month: '25,000 - 35,000'
+                    }
+                  ],
+                  personal_info: {
+                    title_honorific: 'Mr.',
+                    firstname: 'Natthanon',
+                    lastname: 'Suwanawatanakul',
+                    nickname: 'Nat',
+                    location: 'Bangkok, Thailand',
+                    introduction_aboutme: 'Enthusiastic programmer who loves coding and solving problem. Very responsible and can work as a team.'
+                  },
+                  skills: [
+                    {
+                      segment_skill: 'Programming Language',
+                      skill: ['C#.Net', 'SQL', 'Javascript', 'Typescript', 'HTML', 'CSS']
+                    }
+                  ]
+                },
+                job_matches: [
+                  {
+                    fit_score: 20,
+                    job_id: "22222222-2222-2222-2222-222222222222",
+                    match_reasons: []
+                  },
+                  {
+                    fit_score: 85,
+                    job_id: "11111111-1111-1111-1111-111111111111",
+                    match_reasons: [
+                      "The candidate has 4 years 9 months of experience as a Software Engineer at AddVentures by SCG, aligning with the job's requirement.",
+                      "The candidate's skill set includes C#.Net, SQL, Javascript, Typescript, HTML, CSS, ASP.Net, ReactJS, NodeJS, Microsoft SQL Server, MySQL, MongoDB, Microsoft Visual Studio, Microsoft SQL Management Studio, VSCode, and Git, many of which are relevant to software development.",
+                      "The candidate's education in Computer Engineering from Chiang Mai University demonstrates a strong foundation in the field."
+                    ]
+                  }
+                ],
+                job_applied: {
+                  fit_score: 0,
+                  job_id: 'f2f306cf-09e2-4bef-8a99-4311acbc71a2',
+                  justification: ['The job position was not found, therefore, a score of 0 is given.']
+                }
+              }
             }
           }
         },
@@ -277,7 +408,7 @@ const swaggerSpec = {
                   type: 'object',
                   properties: {
                     message: { type: 'string' },
-                    candidate: { $ref: '#/components/schemas/Candidate' }
+                    candidate: { type: 'object' }
                   }
                 }
               }

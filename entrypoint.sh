@@ -1,9 +1,29 @@
 #!/bin/sh
 set -e
 
+# --- MinIO Public Policy Automation ---
+# Set these environment variables or use defaults
+export MINIO_HOST=${MINIO_HOST:-http://minio:9000}
+export MINIO_BUCKET=${MINIO_BUCKET:-uploads}
+export MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+
+# Install MinIO Client (mc) if not already installed
+if ! command -v mc >/dev/null 2>&1; then
+  echo "🔧 Installing MinIO Client (mc)..."
+  wget https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc
+  chmod +x /usr/local/bin/mc
+fi
+
+# Set MinIO alias (idempotent)
+mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || true
+
+# Set public read policy on the bucket (idempotent)
+echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET"
+mc policy set download myminio/"$MINIO_BUCKET" || true
+
+# --- Existing DB and App Startup Logic ---
 echo "🔧 Fixing database schema mismatch..."
-
-
 
 # Set default environment variables if not provided
 export NODE_ENV=${NODE_ENV:-production}

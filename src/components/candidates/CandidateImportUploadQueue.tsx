@@ -504,18 +504,24 @@ export const CandidateImportUploadQueue: React.FC = () => {
                     {(() => {
                       const status = item.status;
                       let variant: any = 'default';
+                      let customClass = '';
                       switch (status) {
                         case 'queued': variant = 'secondary'; break;
-                        case 'uploading': variant = 'default'; break;
-                        case 'processing': variant = 'outline'; break;
-                        case 'importing': variant = 'outline'; break;
+                        case 'uploading':
+                        case 'processing':
+                        case 'importing':
+                          variant = undefined;
+                          customClass = 'bg-yellow-400 text-yellow-900 border-yellow-400';
+                          break;
                         case 'success': variant = 'success'; break;
                         case 'error': variant = 'destructive'; break;
                         case 'cancelled': variant = 'secondary'; break;
                         default: variant = 'secondary';
                       }
                       return (
-                        <Badge variant={variant} className="capitalize">{status}</Badge>
+                        <Badge variant={variant} className={`capitalize ${customClass}`}>
+                          {status}
+                        </Badge>
                       );
                     })()}
                   </TableCell>

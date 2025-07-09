@@ -185,13 +185,6 @@ export function ManageTransitionsModal({
     ? availableStages.filter(stage => stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase()))
     : availableStages;
 
-  // Pagination for Comments & Activity
-  const ITEMS_PER_PAGE = 5;
-  const [activityPage, setActivityPage] = useState(1);
-  const totalActivityPages = Math.ceil(comments.length / ITEMS_PER_PAGE) || 1;
-  useEffect(() => { setActivityPage(1); }, [comments, isOpen, candidate?.id]);
-  const paginatedComments = comments.slice((activityPage - 1) * ITEMS_PER_PAGE, activityPage * ITEMS_PER_PAGE);
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -304,22 +297,6 @@ export function ManageTransitionsModal({
               </Button>
             </DialogClose>
           </DialogFooter>
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-2">Comments & Activity</h3>
-            <CandidateCommentsSection
-              candidateId={candidate.id}
-              comments={paginatedComments}
-              isEditing={false}
-              onCommentsChange={onCommentsChange}
-            />
-            {comments.length > ITEMS_PER_PAGE && (
-              <div className="flex justify-center items-center gap-2 mt-2">
-                <Button size="sm" variant="outline" onClick={() => setActivityPage(p => Math.max(1, p - 1))} disabled={activityPage === 1}>Prev</Button>
-                <span className="text-xs text-muted-foreground">Page {activityPage} of {totalActivityPages}</span>
-                <Button size="sm" variant="outline" onClick={() => setActivityPage(p => Math.min(totalActivityPages, p + 1))} disabled={activityPage === totalActivityPages}>Next</Button>
-              </div>
-            )}
-          </div>
         </DialogContent>
       </Dialog>
 

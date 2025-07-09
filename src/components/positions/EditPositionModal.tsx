@@ -168,54 +168,61 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               </div>
             </form>
           </ScrollArea>
-          {/* Right Column: WYSIWYG Editor */}
-              <div>Job Description</div>
+          {/* Right Column: Job Description Card */}
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle>Job Description</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
               <Controller
                 name="description"
                 control={form.control}
                 render={({ field }) => (
                   <div className="mt-1 flex-1 flex flex-col">
-                    <ReactQuill
-                      id="description-edit"
-                      theme="snow"
-                      value={field.value || ''}
-                      onChange={(content, delta, source, editor) => {
-                        if (source === 'user') {
-                          field.onChange(content);
-                        }
-                      }}
-                      className="bg-background border border-input rounded-md flex-1"
-                      placeholder="Enter job description"
-                      style={{ height: '200px', minHeight: '200px', flex: 1 }}
-                      modules={{
-                        toolbar: [
-                          [{ 'header': [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          [{ 'color': [] }, { 'background': [] }],
-                          ['link'],
-                          ['clean']
-                        ],
-                        clipboard: {
-                          matchVisual: false
-                        }
-                      }}
-                      formats={[
-                        'header',
-                        'bold', 'italic', 'underline', 'strike',
-                        'list', 'bullet',
-                        'color', 'background',
-                        'link'
-                      ]}
-                      preserveWhitespace={true}
-                    />
+                    <div className="rounded-lg shadow border border-input bg-muted/50 overflow-hidden">
+                      <ReactQuill
+                        id="description-edit"
+                        theme="snow"
+                        value={field.value || ''}
+                        onChange={(content, delta, source, editor) => {
+                          if (source === 'user') {
+                            field.onChange(content);
+                          }
+                        }}
+                        className="bg-background flex-1 min-h-[200px] px-2 py-2"
+                        placeholder="Enter job description"
+                        style={{ minHeight: '200px', flex: 1 }}
+                        modules={{
+                          toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'color': [] }, { 'background': [] }],
+                            ['link'],
+                            ['clean']
+                          ],
+                          clipboard: {
+                            matchVisual: false
+                          }
+                        }}
+                        formats={[
+                          'header',
+                          'bold', 'italic', 'underline', 'strike',
+                          'list', 'bullet',
+                          'color', 'background',
+                          'link'
+                        ]}
+                        preserveWhitespace={true}
+                      />
+                    </div>
                     {form.formState.errors.description && (
                       <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
                     )}
                   </div>
                 )}
               />
-       
+            </CardContent>
+          </Card>
         </div>
         
         <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}

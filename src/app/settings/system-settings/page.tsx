@@ -105,6 +105,25 @@ export default function SystemSettingsPage() {
         throw new Error(errorData.message);
       }
       toast.success('Settings Saved');
+      // Find appName and appLogoDataUrl in settingsToSave
+      const appNameSetting = settingsToSave.find(s => s.key === 'appName');
+      const appLogoSetting = settingsToSave.find(s => s.key === 'appLogoDataUrl');
+      let changed = false;
+      let appName = null;
+      let appLogoUrl = null;
+      if (appNameSetting && appNameSetting.value) {
+        localStorage.setItem('appConfigAppName', appNameSetting.value);
+        appName = appNameSetting.value;
+        changed = true;
+      }
+      if (appLogoSetting && appLogoSetting.value) {
+        localStorage.setItem('appLogoDataUrl', appLogoSetting.value);
+        appLogoUrl = appLogoSetting.value;
+        changed = true;
+      }
+      if (changed) {
+        window.dispatchEvent(new CustomEvent('appConfigChanged', { detail: { appName, logoUrl: appLogoUrl } }));
+      }
       fetchSystemSettings();
     } catch (error) {
       toast.error((error as Error).message);

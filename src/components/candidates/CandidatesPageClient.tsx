@@ -790,6 +790,9 @@ export function CandidatesPageClient({
             )}
             <div className="flex gap-2 items-center ml-auto">
               {canManageCandidates && (
+                <Button onClick={() => setIsAddModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <PlusCircle className="mr-2 h-4 w-4" /> Add Manually </Button>
+              )}
+              {canManageCandidates && (
                 <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
               )}
               <DropdownMenu>
@@ -858,6 +861,13 @@ export function CandidatesPageClient({
         onOpenChange={setIsAutomationUploadModalOpen}
         onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
       />
+      {canManageCandidates && (
+        <BulkUploadCVsModal
+          isOpen={isBulkUploadModalOpen}
+          onOpenChange={setIsBulkUploadModalOpen}
+          onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
+        />
+      )}
 
       <AlertDialog open={isBulkActionConfirmOpen} onOpenChange={setIsBulkActionConfirmOpen}>
         <AlertDialogContent>

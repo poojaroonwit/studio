@@ -910,9 +910,9 @@ export default function CandidateDetailPage() {
           />
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 border border-border bg-card overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-10 border-t border-t-gray-300 bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6 h-fit p-3">
+            <div className="lg:col-span-2 bg-card sticky top-6 h-fit p-6">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <div className="mb-4">

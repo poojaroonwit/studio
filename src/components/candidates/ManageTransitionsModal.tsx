@@ -99,7 +99,8 @@ export function ManageTransitionsModal({
   if (!candidate) return null;
 
   const handleAddTransitionSubmit = async (data: TransitionFormValues) => {
-    const noChangeCondition = data.newStatus === candidate.status && !data.notes?.trim();
+    const trimmedNotes = data.notes?.trim() || '';
+    const noChangeCondition = data.newStatus === candidate.status && !trimmedNotes;
     
     if (noChangeCondition) {
         toast("Please select a new status or add notes to create a transition.");
@@ -107,13 +108,14 @@ export function ManageTransitionsModal({
     }
     setIsSaving(true);
     try {
-        await updateCandidateStatusWithNotes(candidate.id, data.newStatus, data.notes);
+        await updateCandidateStatusWithNotes(candidate.id, data.newStatus, trimmedNotes);
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
         setIsSaving(false);
         onOpenChange(false); // Close modal on success
         await onRefreshCandidateData(candidate.id); // Refresh data after update
         onCommentsChange(); // Refresh comments after transition
+        toast.success("Candidate details updated successfully.");
     } catch (error) {
         setIsSaving(false);
         toast("Failed to save transition. Please try again.");
@@ -203,12 +205,12 @@ export function ManageTransitionsModal({
           </DialogHeader>
 
           <div className="grid grid-cols-1  gap-x-6 gap-y-4 py-4">
-            <div className="md:border-r md:pr-6">
+           
               <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
               <p className="text-xs text-muted-foreground mb-3">
                 Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
               </p>
-              <form onSubmit={form.handleSubmit(handleAddTransitionSubmit)} className="space-y-4">
+              <form id="transition-form" onSubmit={form.handleSubmit(handleAddTransitionSubmit)} className="space-y-4">
                 <div>
                   <StageSelect
                     value={form.watch('newStatus')}
@@ -227,21 +229,21 @@ export function ManageTransitionsModal({
                     className="mt-1 min-h-[80px]"
                   />
                 </div>
-                <Button type="submit" variant="default" disabled={isSaving}>
-                  {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {isSaving ? 'Saving...' : 'Save Transition'}
-                </Button>
               </form>
-            </div>
+        
             {/* Transition Activity Log removed */}
           </div>
 
-          <DialogFooter className="border-t pt-4">
+          <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">
             <DialogClose asChild>
               <Button type="button" variant="outline">
-                Close
+                Cancel
               </Button>
             </DialogClose>
+            <Button type="submit" form="transition-form" variant="default" disabled={isSaving}>
+              {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isSaving ? 'Saving...' : 'Save Transition'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

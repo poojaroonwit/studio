@@ -1,34 +1,25 @@
 import { NextRequest } from 'next/server';
-
-// TODO: Replace with real DB query
-const mockLogs = [
-  {
-    id: 'log1',
-    action: 'Updated candidate information',
-    user: 'Admin User',
-    time: '2024-06-01T10:00:00Z',
-    note: 'Changed phone number.'
-  },
-  {
-    id: 'log2',
-    action: 'Stage changed',
-    user: 'Recruiter Jane',
-    time: '2024-06-02T14:30:00Z',
-    note: 'Moved to Interview stage.'
-  },
-  {
-    id: 'log3',
-    action: 'Added comment',
-    user: 'Recruiter Jane',
-    time: '2024-06-02T15:00:00Z',
-    note: 'Candidate responded to email.'
-  }
-];
+import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  // In a real implementation, query the AuditLog table for entity = 'candidate' and entity_id = params.id
-  // For now, return mock data
-  return new Response(JSON.stringify({ data: mockLogs }), {
+  // Fetch transition records for the candidate
+  const transitions = await prisma.transitionRecord.findMany({
+    where: { candidateId: params.id },
+    orderBy: { date: 'desc' },
+    include: { actingUser: true },
+  });
+
+  // Map to activity log format
+  const logs = transitions.map(tr => ({
+    id: tr.id,
+    action: 'Stage changed',
+    user: tr.actingUser?.name || 'System',
+    time: tr.date,
+    note: tr.notes || `Moved to ${tr.stage} stage.`,
+    stage: tr.stage,
+  }));
+
+  return new Response(JSON.stringify({ data: logs }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });

@@ -202,7 +202,7 @@ export function ManageTransitionsModal({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 py-4">
+          <div className="grid grid-cols-1  gap-x-6 gap-y-4 py-4">
             <div className="md:border-r md:pr-6">
               <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
               <p className="text-xs text-muted-foreground mb-3">

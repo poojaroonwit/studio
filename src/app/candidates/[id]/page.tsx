@@ -255,7 +255,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
           >
             {/* Vertical line for workflow, except after last node */}
             {idx < stages.length - 1 && (
-              <div className="absolute left-4 top-7 w-px h-full z-0" style={{height: 'calc(100% - 1.5rem)'}}>
+              <div className="absolute left-4 w-px h-full z-0" style={{height: 'calc(100% - 1.5rem)'}}>
                 <div className="w-px h-full bg-gray-300 mx-auto" style={{background: isCompleted ? '#22c55e' : '#d1d5db'}} />
               </div>
             )}
@@ -265,9 +265,9 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                   type="button"
                   className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors relative z-10
                     ${isCurrent 
-                      ? 'bg-primary/10 border-l-4 border-primary font-bold' 
+                      ? 'bg-secondary border-grey-900 font-bold' 
                       : isCompleted 
-                        ? 'bg-green-200 border-l-4 border-green-600 font-bold text-green-900 shadow-green-200 shadow' 
+                        ? 'bg-green-500/30 border-l-4 border-green-700 font-bold text-green-900 shadow-green-400 shadow-lg' 
                         : 'bg-muted/10 text-muted-foreground'}
                   `}
                   onClick={() => {
@@ -955,10 +955,10 @@ export default function CandidateDetailPage() {
 
   return (
     <FormProvider {...form}>
-      <div className="space-y-6">
+      <div className="h-screen overflow-y-auto">
         <div className="flex justify-between items-center p-6 pb-0 sticky top-0 z-40 bg-white shadow">
           <Breadcrumb 
-            items={[
+            items={[ 
               { label: "Home", href: "/", icon: Home },
               { label: "Candidates", href: "/candidates", icon: UsersIcon },
               { label: candidate?.name || "Candidate Details" }
@@ -1099,7 +1099,7 @@ export default function CandidateDetailPage() {
                      <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
                      
                      {/* Job Matches Table */}
-                     <div className="bg-muted rounded-xl p-6 shadow-sm">
+                     <div className="bg-muted rounded p-6 shadow-sm">
                        <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
                          <ListChecks className="mr-2 h-6 w-6 text-blue-600" />
                          Job Matches

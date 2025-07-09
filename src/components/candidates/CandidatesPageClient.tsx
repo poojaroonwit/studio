@@ -763,41 +763,46 @@ export function CandidatesPageClient({
       {/* Main Content */}
       <main className="flex-1 w-full space-y-6 min-w-0 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2 items-center sm:justify-end ml-auto">
-            {selectedCandidateIds.size > 0 && canManageCandidates && (
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            {/* Candidate count badge */}
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground border border-muted-foreground">
+              {displayedCandidates.length} Candidate{displayedCandidates.length !== 1 ? 's' : ''}
+            </span>
+            <div className="flex flex-col sm:flex-row gap-2 items-center sm:justify-end ml-auto">
+              {selectedCandidateIds.size > 0 && canManageCandidates && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleBulkAction('delete')}>
+                      <BulkTrashIcon className="mr-2 h-4 w-4" /> Delete Selected
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleBulkAction('change_status')}>
+                      <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
+                       <Users className="mr-2 h-4 w-4" /> Assign Recruiter
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {canManageCandidates && (
+                  <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
+              )}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
+                 <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => handleBulkAction('delete')}>
-                    <BulkTrashIcon className="mr-2 h-4 w-4" /> Delete Selected
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleBulkAction('change_status')}>
-                    <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
-                     <Users className="mr-2 h-4 w-4" /> Assign Recruiter
-                  </DropdownMenuItem>
+                  {canManageCandidates && (<DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}> <PlusCircle className="mr-2 h-4 w-4" /> Add Manually </DropdownMenuItem>)}
+                  {canManageCandidates && (<DropdownMenuItem onSelect={() => setIsBulkUploadModalOpen(true)}> <FileUp className="mr-2 h-4 w-4" /> Bulk Upload CVs </DropdownMenuItem>)}
+                  {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
+                  {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
-            {canManageCandidates && (
-                <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
-            )}
-            <DropdownMenu>
-               <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {canManageCandidates && (<DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}> <PlusCircle className="mr-2 h-4 w-4" /> Add Manually </DropdownMenuItem>)}
-                {canManageCandidates && (<DropdownMenuItem onSelect={() => setIsBulkUploadModalOpen(true)}> <FileUp className="mr-2 h-4 w-4" /> Bulk Upload CVs </DropdownMenuItem>)}
-                {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
-                {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            </div>
           </div>
-        </div>
 
         {aiSearchReasoning && (
           <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">

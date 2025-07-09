@@ -448,7 +448,28 @@ export default function CandidateDetailPage() {
     loadAllAttachments();
   }, [candidateId, isEditing]);
 
+  // Reference to reload all attachments
+  const loadAllAttachments = async () => {
+    const [resumeAttachments, commentList] = await Promise.all([
+      fetchResumes(),
+      fetchComments(),
+    ]);
+    // Extract attachments from comments
+    const commentAttachments = (commentList || []).flatMap((comment: any) =>
+      (comment.attachments || []).map((att: any) => ({
+        ...att,
+        label: att.label || 'comment',
+        updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
+      }))
+    );
+    // Merge and sort by updatedAt desc
+    const all = [...(resumeAttachments || []), ...commentAttachments];
+    all.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    setAttachments(all);
+  };
+
   const handleCommentsChange = async () => {
+    await loadAllAttachments();
     // re-fetch comments after add/edit/delete
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments`);

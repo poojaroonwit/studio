@@ -717,6 +717,9 @@ export function CandidatesPageClient({
       </div>
     );
   }
+}
+
+
 
   // Main render
   return (

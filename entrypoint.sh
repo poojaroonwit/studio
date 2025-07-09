@@ -3,8 +3,8 @@ set -e
 
 # --- MinIO Public Policy Automation ---
 # Set these environment variables or use defaults
-export MINIO_HOST=${MINIO_HOST:-http://minio:9000}
-export MINIO_BUCKET=${MINIO_BUCKET:-uploads}
+export MINIO_HOST="http://${MINIO_ENDPOINT}:${MINIO_PORT}"
+export MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-uploads}
 export MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
 export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
 
@@ -19,8 +19,8 @@ fi
 mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || true
 
 # Set public read policy on the bucket (idempotent)
-echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET"
-mc policy set download myminio/"$MINIO_BUCKET" || true
+echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET_NAME"
+mc policy set download myminio/"$MINIO_BUCKET_NAME" || true
 
 # --- Existing DB and App Startup Logic ---
 echo "🔧 Fixing database schema mismatch..."

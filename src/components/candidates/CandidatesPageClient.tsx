@@ -717,11 +717,7 @@ export function CandidatesPageClient({
       </div>
     );
   }
-}
 
-
-
-  // Main render
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
@@ -804,7 +800,8 @@ export function CandidatesPageClient({
               </DropdownMenu>
             </div>
           </div>
-
+          </div>
+{/* AI Search Results */}
         {aiSearchReasoning && (
           <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
             <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />

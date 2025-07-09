@@ -1,4 +1,3 @@
-// src/components/candidates/CandidatesPageClient.tsx
 "use client";
 
 import * as React from "react";

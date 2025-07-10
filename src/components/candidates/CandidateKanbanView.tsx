@@ -280,3 +280,101 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate }
     </>
   );
 }
+
+// Multi-recruiter Kanban implementation
+export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMoveCandidate, onCardClick }: any) {
+  // State for drag-and-drop
+  const [draggedCandidate, setDraggedCandidate] = useState<any | null>(null);
+  const [dragOver, setDragOver] = useState<{ stage: any; recruiter: any } | null>(null);
+
+  // Group candidates by stage and recruiter
+  const candidatesByStageAndRecruiter = stages.reduce((acc: any, stage: any) => {
+    acc[stage] = recruiters.reduce((recAcc: any, recruiter: any) => {
+      recAcc[recruiter.id] = candidates.filter(
+        (c: any) => c.status === stage && c.recruiterId === recruiter.id
+      );
+      return recAcc;
+    }, {});
+    return acc;
+  }, {});
+
+  // Drag handlers
+  const handleDragStart = (candidate: any) => setDraggedCandidate(candidate);
+  const handleDragEnd = () => {
+    setDraggedCandidate(null);
+    setDragOver(null);
+  };
+  const handleDragOver = (stage: any, recruiter: any, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver({ stage, recruiter });
+  };
+  const handleDrop = (stage: any, recruiter: any) => {
+    if (
+      draggedCandidate &&
+      (draggedCandidate.status !== stage || draggedCandidate.recruiterId !== recruiter.id)
+    ) {
+      onMoveCandidate?.(draggedCandidate, stage, recruiter.id);
+    }
+    setDraggedCandidate(null);
+    setDragOver(null);
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="sticky left-0 bg-background z-10 border p-2 text-left">Stage \ Recruiter</th>
+            {recruiters.map((recruiter: any) => (
+              <th key={recruiter.id} className="border p-2 text-center">{recruiter.name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {stages.map((stage: any) => (
+            <tr key={stage}>
+              <td className="sticky left-0 bg-background z-10 border p-2 font-semibold">{stage}</td>
+              {recruiters.map((recruiter: any) => (
+                <td
+                  key={recruiter.id}
+                  className={`align-top border min-w-[220px] h-[120px] ${
+                    dragOver && dragOver.stage === stage && dragOver.recruiter.id === recruiter.id
+                      ? 'ring-2 ring-primary/60 bg-accent/60' : ''
+                  }`}
+                  onDragOver={e => handleDragOver(stage, recruiter, e)}
+                  onDrop={() => handleDrop(stage, recruiter)}
+                >
+                  <div className="flex flex-col gap-2 min-h-[80px]">
+                    {(candidatesByStageAndRecruiter[stage][recruiter.id] || []).map((candidate: any) => (
+                      <div
+                        key={candidate.id}
+                        draggable
+                        onDragStart={() => handleDragStart(candidate)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => onCardClick?.(candidate)}
+                        className={`cursor-pointer group ${draggedCandidate?.id === candidate.id ? 'opacity-60' : ''}`}
+                      >
+                        <Card className="p-2 hover:shadow-lg transition-shadow bg-card flex flex-col gap-1 relative">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-7 w-7">
+                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
+                              <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate" title={candidate.name}>{candidate.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate" title={candidate.position?.title || 'N/A'}>{candidate.position?.title || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

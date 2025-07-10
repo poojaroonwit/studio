@@ -249,7 +249,6 @@ export default function CustomFieldsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="shadow-lg">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-6">
           <div>
             <h2 className="flex items-center text-2xl"><Settings2 className="mr-3 h-6 w-6 text-primary"/>Custom Field Definitions</h2>
@@ -281,7 +280,7 @@ export default function CustomFieldsPage() {
             </div>
           )}
         </div>
-      </div>
+    
 
       <CustomFieldForm
         open={isModalOpen}

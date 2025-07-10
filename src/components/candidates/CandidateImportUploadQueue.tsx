@@ -352,7 +352,7 @@ export const CandidateImportUploadQueue: React.FC = () => {
         </div>
       </div>
       {/* Filters and Bulk Actions in Card */}
-      <Card className="mb-4 p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 shadow-none border border-gray-200">
+      <Card className="mb-4 p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 shadow-none border">
         <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Filters */}
           <Input
@@ -381,14 +381,14 @@ export const CandidateImportUploadQueue: React.FC = () => {
               type="date"
               value={format(dateRange.start, 'yyyy-MM-dd')}
               onChange={e => setDateRange(r => ({ ...r, start: new Date(e.target.value) }))}
-              className="border rounded px-2 py-1 text-sm"
+              className="border rounded bg-background px-2 py-1 text-sm"
             />
             <span className="text-sm text-muted-foreground">-</span>
             <input
               type="date"
               value={format(dateRange.end, 'yyyy-MM-dd')}
               onChange={e => setDateRange(r => ({ ...r, end: new Date(e.target.value) }))}
-              className="border rounded px-2 py-1 text-sm"
+              className="border rounded bg-background px-2 py-1 text-sm"
             />
           </div>
           <Button

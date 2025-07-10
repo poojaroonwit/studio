@@ -38,6 +38,7 @@ import CandidateResumesSection from '../../../components/candidates/CandidateRes
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
+import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -288,11 +289,11 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                           ? 'bg-red-500 border-red-600 text-white'
                           : '')
                       : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
-                    style={
-                      isCompleted && !stage.name.toLowerCase().includes('reject')
-                        ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
-                        : undefined
-                    }
+                    // style={
+                    //   isCompleted && !stage.name.toLowerCase().includes('reject')
+                    //     ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
+                    //     : undefined
+                    // }
                   >
                     {isCompleted ? (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -718,6 +719,7 @@ export default function CandidateDetailPage() {
       // Use unified bulk update logic
       await updateCandidateStatusWithNotes(id, newStatus, notes);
       await fetchCandidateDetails();
+      await fetchTransitionHistory();
       if (!suppressToast) {
         toast.success(`Candidate status updated to "${newStatus}".`);
       }
@@ -791,6 +793,7 @@ export default function CandidateDetailPage() {
       });
       toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
       await fetchRecruiters(); // Ensure recruiter list is always up-to-date
+      await fetchCandidateDetails(); // Ensure candidate state is always up-to-date after recruiter assignment
     } catch (error) {
       toast((error as Error).message);
     } finally {
@@ -1028,6 +1031,41 @@ export default function CandidateDetailPage() {
     return parts.pop() || "View Resume";
   };
 
+  // Add this function to handle avatar upload
+  const handleAvatarUpload = async (fileUrlOrFile: string | File) => {
+    setAvatarUploading(true);
+    setAvatarError(null);
+    try {
+      let avatarUrl = '';
+      if (typeof fileUrlOrFile === 'string') {
+        // If a URL is provided (from ImageUpload), just use it
+        avatarUrl = fileUrlOrFile;
+      } else {
+        // If a File is provided, upload to backend
+        const formData = new FormData();
+        formData.append('avatar', fileUrlOrFile);
+        const res = await fetch(`/api/candidates/${candidate.id}/avatar`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (!res.ok) {
+          throw new Error('Failed to upload avatar');
+        }
+        const data = await res.json();
+        avatarUrl = data.avatar_url;
+      }
+      // Update avatar in UI (optimistically)
+      // If using form, setValue; else, update candidate state
+      if (setValue) setValue('parsedData.personal_info.avatar_url', avatarUrl);
+      toast.success('Profile image updated');
+    } catch (err: any) {
+      setAvatarError(err.message || 'Failed to upload avatar');
+      toast.error('Failed to upload avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <FormProvider {...form}>
       <div className="h-screen overflow-y-auto">
@@ -1167,13 +1205,38 @@ export default function CandidateDetailPage() {
                      <div className="flex flex-col md:flex-row items-center  gap-6 ">
                        {/* Avatar */}
                        <div className="flex-shrink-0">
-                         <Avatar className="w-20 h-20 text-3xl">
+                         <Avatar className="w-20 h-20 text-3xl relative group">
                            {candidate.avatarUrl ? (
                              <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
                            ) : (
                              <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
                            )}
+                           {isEditing && (
+                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <ImageUpload
+                                 value={candidate.avatarUrl || ''}
+                                 onChange={async (urlOrFile) => {
+                                   if (typeof urlOrFile === 'string') {
+                                     // If user enters a URL, just update
+                                     await handleAvatarUpload(urlOrFile);
+                                   } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
+                                     await handleAvatarUpload(urlOrFile);
+                                   }
+                                 }}
+                                 label="Upload Profile Image"
+                                 accept="image/*"
+                                 maxSize={2 * 1024 * 1024}
+                                 showPreview={false}
+                                 allowUrl={false}
+                                 allowFile={true}
+                                 disabled={avatarUploading}
+                                 className="w-full h-full"
+                               />
+                               {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
+                             </div>
+                           )}
                          </Avatar>
+                         {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
                        </div>
                        {/* Info */}
                        <div className="flex-1 min-w-0">
@@ -1330,8 +1393,61 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
                                         <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                                         <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                                        <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
-                                        <Input placeholder="Duration" {...register(`parsedData.education.${index}.duration`)} />
+                                        <Controller
+                                          name={`parsedData.education.${index}.period`}
+                                          control={control}
+                                          render={({ field }) => (
+                                            <MonthYearPicker
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              label="Period"
+                                            />
+                                          )}
+                                        />
+                                        <Controller
+                                          name={`parsedData.education.${index}.duration`}
+                                          control={control}
+                                          render={({ field }) => {
+                                            // Parse value like '2 years 3 months'
+                                            let years = '', months = '';
+                                            if (field.value) {
+                                              const match = String(field.value).match(/(\d+)\s*years?\s*(\d+)?\s*months?/);
+                                              if (match) {
+                                                years = match[1] || '';
+                                                months = match[2] || '';
+                                              }
+                                            }
+                                            return (
+                                              <div className="flex gap-2 items-center">
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  placeholder="Years"
+                                                  value={years}
+                                                  onChange={e => {
+                                                    const y = e.target.value;
+                                                    field.onChange(`${y || 0} years ${months || 0} months`);
+                                                  }}
+                                                  className="w-20"
+                                                />
+                                                <span>years</span>
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  max={11}
+                                                  placeholder="Months"
+                                                  value={months}
+                                                  onChange={e => {
+                                                    const m = e.target.value;
+                                                    field.onChange(`${years || 0} years ${m || 0} months`);
+                                                  }}
+                                                  className="w-20"
+                                                />
+                                                <span>months</span>
+                                              </div>
+                                            );
+                                          }}
+                                        />
                                         <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -1343,34 +1459,39 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            (education && education.length > 0) ? (
-                                <ul className="space-y-4">
-                                    {education.map((edu, index) => {
-                                        if (typeof edu === 'string') {
-                                            // Render string-only education entry
-                                            return (
-                                                <li key={`edu-${index}-${edu}`} className="p-3 border rounded-md bg-muted">
-                                                    {renderField("Education", edu)}
-                                                </li>
-                                            );
-                                        } else {
-                                            // Render EducationEntry object
-                                            return (
-                                                <li key={`edu-${index}-${edu.university || index}`} className="p-3 border rounded-md bg-muted">
-                                                    {renderField("University", edu.university)}
-                                                    {renderField("Major", edu.major)}
-                                                    {renderField("Field", edu.field)}
-                                                    {renderField("Campus", edu.campus)}
-                                                    {renderField("Period", edu.period, CalendarDays)}
-                                                    {renderField("Duration", edu.duration)}
-                                                    {renderField("GPA", edu.GPA)}
-                                                    {index < education!.length - 1 && <Separator className="my-3" />}
-                                                </li>
-                                            );
-                                        }
-                                    })}
-                                </ul>
-                            ) : <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
+                            <div className="relative pl-8">
+                              {education.map((edu, index) => {
+                                if (typeof edu === 'string') {
+                                  return (
+                                    <div key={`edu-${index}-${edu}`} className="mb-8 flex items-start relative">
+                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
+                                      <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                        {renderField("Education", edu)}
+                                      </div>
+                                      {index < education.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                    </div>
+                                  );
+                                } else {
+                                  return (
+                                    <div key={`edu-${index}-${edu.university || index}`} className="mb-8 flex items-start relative">
+                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
+                                      <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                        <div className="font-semibold text-primary flex items-center gap-2">
+                                          <CalendarDays className="h-4 w-4" /> {edu.period}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mb-1">{edu.duration}</div>
+                                        {renderField("University", edu.university)}
+                                        {renderField("Major", edu.major)}
+                                        {renderField("Field", edu.field)}
+                                        {renderField("Campus", edu.campus)}
+                                        {renderField("GPA", edu.GPA)}
+                                      </div>
+                                      {index < education.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                    </div>
+                                  );
+                                }
+                              })}
+                            </div>
                         )}
                       </div>
                     )}
@@ -1390,8 +1511,60 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                                         <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                                         <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                                        <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
-                                        <Input placeholder="Duration" {...register(`parsedData.experience.${index}.duration`)} />
+                                        <Controller
+                                          name={`parsedData.experience.${index}.period`}
+                                          control={control}
+                                          render={({ field }) => (
+                                            <MonthYearPicker
+                                              value={field.value || ''}
+                                              onChange={field.onChange}
+                                              label="Period"
+                                            />
+                                          )}
+                                        />
+                                        <Controller
+                                          name={`parsedData.experience.${index}.duration`}
+                                          control={control}
+                                          render={({ field }) => {
+                                            let years = '', months = '';
+                                            if (field.value) {
+                                              const match = String(field.value).match(/(\d+)\s*years?\s*(\d+)?\s*months?/);
+                                              if (match) {
+                                                years = match[1] || '';
+                                                months = match[2] || '';
+                                              }
+                                            }
+                                            return (
+                                              <div className="flex gap-2 items-center">
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  placeholder="Years"
+                                                  value={years}
+                                                  onChange={e => {
+                                                    const y = e.target.value;
+                                                    field.onChange(`${y || 0} years ${months || 0} months`);
+                                                  }}
+                                                  className="w-20"
+                                                />
+                                                <span>years</span>
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  max={11}
+                                                  placeholder="Months"
+                                                  value={months}
+                                                  onChange={e => {
+                                                    const m = e.target.value;
+                                                    field.onChange(`${years || 0} years ${m || 0} months`);
+                                                  }}
+                                                  className="w-20"
+                                                />
+                                                <span>months</span>
+                                              </div>
+                                            );
+                                          }}
+                                        />
                                          <Controller
                                             name={`parsedData.experience.${index}.postition_level`}
                                             control={control}
@@ -1423,27 +1596,30 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            (experience && experience.length > 0) ? (
-                                <ul className="space-y-4">
-                                    {experience.map((exp, index) => (
-                                    <li key={`exp-${index}-${exp.company || index}`} className="p-3 border rounded-md bg-muted">
-                                        {renderField("Company", exp.company)}
-                                        {renderField("Position", exp.position)}
-                                        {renderField("Level", String(exp.postition_level))}
-                                        {renderField("Period", exp.period, CalendarDays)}
-                                        {renderField("Duration", exp.duration)}
-                                        {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
-                                        {exp.description && (
-                                            <div>
-                                                <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
-                                                <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
-                                            </div>
-                                        )}
-                                        {index < experience!.length - 1 && <Separator className="my-3" />}
-                                    </li>
-                                    ))}
-                                </ul>
-                            ) : <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
+                            <div className="relative pl-8">
+                              {experience.map((exp, index) => (
+                                <div key={`exp-${index}-${exp.company || index}`} className="mb-8 flex items-start relative">
+                                  <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
+                                  <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                    <div className="font-semibold text-primary flex items-center gap-2">
+                                      <CalendarDays className="h-4 w-4" /> {exp.period}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mb-1">{exp.duration}</div>
+                                    {renderField("Company", exp.company)}
+                                    {renderField("Position", exp.position)}
+                                    {renderField("Level", String(exp.postition_level))}
+                                    {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
+                                    {exp.description && (
+                                      <div>
+                                        <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
+                                        <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {index < experience.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                </div>
+                              ))}
+                            </div>
                         )}
                       </div>
                     )}

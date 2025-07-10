@@ -103,7 +103,7 @@ export default function ApiKeyManager() {
               type="text"
               value={apiKey}
               readOnly
-              className="w-full p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm select-all border border-gray-200 dark:border-gray-700"
+              className="w-full p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm select-all border dark:border-gray-700"
               aria-label="API Key"
             />
             <button
@@ -120,7 +120,7 @@ export default function ApiKeyManager() {
         <div className="mb-4 text-sm text-gray-500">No API key generated yet.</div>
       )}
       {/* Usage Instructions */}
-      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded border dark:border-gray-700">
         <div className="font-semibold mb-1">How to use your API Key:</div>
         <div className="text-xs text-gray-700 dark:text-gray-300">
           Include the following header in your API requests:<br />

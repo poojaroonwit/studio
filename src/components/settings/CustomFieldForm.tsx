@@ -101,7 +101,7 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
           <div className="flex gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Model</label>
-              <select {...form.register('model_name')} className="w-full border rounded p-2">
+              <select {...form.register('model_name')} className="w-full border rounded p-2 bg-background">
                 <option value="Candidate">Candidate</option>
                 <option value="Position">Position</option>
               </select>
@@ -109,19 +109,19 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Field Key</label>
-              <input {...form.register('field_key')} className="w-full border rounded p-2" placeholder="e.g. linkedin_url" />
+              <input {...form.register('field_key')} className="w-full border rounded p-2 bg-background" placeholder="e.g. linkedin_url" />
               {form.formState.errors.field_key && <span className="text-red-500 text-xs">{form.formState.errors.field_key.message as string}</span>}
             </div>
           </div>
           <div className="flex gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Label</label>
-              <input {...form.register('label')} className="w-full border rounded p-2" placeholder="e.g. LinkedIn URL" />
+              <input {...form.register('label')} className="w-full border rounded p-2 bg-background" placeholder="e.g. LinkedIn URL" />
               {form.formState.errors.label && <span className="text-red-500 text-xs">{form.formState.errors.label.message as string}</span>}
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium mb-1">Field Type</label>
-              <select {...form.register('field_type')} className="w-full border rounded p-2">
+              <select {...form.register('field_type')} className="w-full border rounded p-2 bg-background">
                 {CUSTOM_FIELD_TYPES.map(type => (
                   <option key={type} value={type}>{type.replace('_', ' ')}</option>
                 ))}

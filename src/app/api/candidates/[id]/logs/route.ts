@@ -25,15 +25,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   });
 
   // Map to activity log format
-  const logs = [
-    ...transitions.map((tr: any) => ({
+  // To show 'Moved from ... to ...' for all transitions, we need to infer previous stage
+  const transitionsWithPrev = transitions.map((tr: any, idx: number, arr: any[]) => {
+    const prevStage = arr[idx + 1]?.stage;
+    let moveNote = `Moved from ${prevStage || 'N/A'} to ${tr.stage} stage.`;
+    if (tr.notes && tr.notes.trim()) {
+      moveNote = `${moveNote} Note: ${tr.notes}`;
+    }
+    return {
       id: tr.id,
       action: 'Stage changed',
       user: tr.actingUser?.name || 'System',
       time: tr.date,
-      note: tr.notes || `Moved to ${tr.stage} stage.`,
+      note: moveNote,
       stage: tr.stage,
-    })),
+    };
+  });
+
+  const logs = [
+    ...transitionsWithPrev,
     ...comments.map((c: any) => ({
       id: c.id,
       action: 'Comment',

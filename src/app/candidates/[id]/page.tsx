@@ -1460,7 +1460,7 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative pl-8">
-                              {education.map((edu, index) => {
+                              {(education ?? []).map((edu, index) => {
                                 if (typeof edu === 'string') {
                                   return (
                                     <div key={`edu-${index}-${edu}`} className="mb-8 flex items-start relative">
@@ -1468,7 +1468,7 @@ export default function CandidateDetailPage() {
                                       <div className="ml-6 p-3 border rounded-md bg-muted w-full">
                                         {renderField("Education", edu)}
                                       </div>
-                                      {index < education.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                      {index < (education ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                     </div>
                                   );
                                 } else {
@@ -1486,7 +1486,7 @@ export default function CandidateDetailPage() {
                                         {renderField("Campus", edu.campus)}
                                         {renderField("GPA", edu.GPA)}
                                       </div>
-                                      {index < education.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                      {index < (education ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                     </div>
                                   );
                                 }
@@ -1597,7 +1597,7 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative pl-8">
-                              {experience.map((exp, index) => (
+                              {(experience ?? []).map((exp, index) => (
                                 <div key={`exp-${index}-${exp.company || index}`} className="mb-8 flex items-start relative">
                                   <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
                                   <div className="ml-6 p-3 border rounded-md bg-muted w-full">
@@ -1616,7 +1616,7 @@ export default function CandidateDetailPage() {
                                       </div>
                                     )}
                                   </div>
-                                  {index < experience.length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
+                                  {index < (experience ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                 </div>
                               ))}
                             </div>

@@ -5,6 +5,7 @@ import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { broadcastCandidateResumeUpdate } from '@/lib/candidateSse';
 
 // GET: List resumes for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
         include: { uploadedBy: { select: { id: true, name: true, email: true } } },
       });
+      // Broadcast SSE event for new resume
+      broadcastCandidateResumeUpdate({ candidateId: id, resume: newAttachment, action: 'added' });
 
       results.push({
         ...newAttachment,
@@ -123,6 +126,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await prisma.attachment.updateMany({ where: { candidateId: id }, data: { isPrimary: false } });
     // Set one
     const updated = await prisma.attachment.update({ where: { id: attachmentId, candidateId: id }, data: { isPrimary: true } });
+    // Broadcast SSE event for updated resume
+    broadcastCandidateResumeUpdate({ candidateId: id, resume: updated, action: 'updated' });
     return NextResponse.json({ data: updated });
   } catch (err) {
     return NextResponse.json({ message: 'Error setting primary attachment', error: String(err) }, { status: 500 });
@@ -144,6 +149,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await minioClient.removeObject(MINIO_BUCKET, attachment.filePath);
     // Delete from DB
     await prisma.attachment.delete({ where: { id: attachmentId, candidateId: id } });
+    // Broadcast SSE event for deleted resume
+    broadcastCandidateResumeUpdate({ candidateId: id, resume: { id: attachmentId }, action: 'deleted' });
     // If primary was deleted, set first as primary
     const remaining = await prisma.attachment.findMany({ where: { candidateId: id }, orderBy: { uploadedAt: 'desc' } });
     if (attachment.isPrimary && remaining.length > 0) {

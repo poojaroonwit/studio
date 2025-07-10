@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastCandidateCommentUpdate } from '@/lib/candidateSse';
 
 // Helper to get attachment info by IDs
 async function getAttachmentsByIds(ids: string[]) {
@@ -115,6 +116,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
       include: { author: { select: { id: true, name: true, email: true } } },
     });
+    // Broadcast SSE event for new comment
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: newComment, action: 'added' });
     
     return NextResponse.json({ 
       data: { 
@@ -207,7 +210,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ message: 'Forbidden: Only the author can edit this comment.' }, { status: 403 });
     }
     
-    const updated = await prisma.candidateComment.update({
+    const updatedComment = await prisma.candidateComment.update({
       where: { id: commentId, candidateId: id },
       data: {
         content,
@@ -215,11 +218,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       },
       include: { author: { select: { id: true, name: true, email: true } } },
     });
+    // Broadcast SSE event for updated comment
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: updatedComment, action: 'updated' });
     
     return NextResponse.json({ 
       data: { 
-        ...updated, 
-        attachments: await getAttachmentsByIds(updated.attachmentIds) 
+        ...updatedComment, 
+        attachments: await getAttachmentsByIds(updatedComment.attachmentIds) 
       } 
     });
     
@@ -247,6 +252,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ message: 'Forbidden: Only the author can delete this comment.' }, { status: 403 });
     }
     await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
+    // After successful deletion
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: { id: commentId }, action: 'deleted' });
     return NextResponse.json({ message: 'Deleted' });
   } catch (err) {
     return NextResponse.json({ message: 'Error deleting comment', error: String(err) }, { status: 500 });

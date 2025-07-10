@@ -454,6 +454,7 @@ export default function CandidateDetailPage() {
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -734,6 +735,54 @@ export default function CandidateDetailPage() {
   useEffect(() => {
     console.log('Available stages:', availableStages);
   }, [availableStages]);
+
+  useEffect(() => {
+    // Subscribe to SSE for real-time candidate updates
+    const eventSource = new EventSource('/api/candidates/sse');
+    eventSourceRef.current = eventSource;
+    eventSource.onmessage = (event) => {
+      try {
+        const updatedCandidate = JSON.parse(event.data);
+        if (updatedCandidate.id === candidateId) {
+          // Only refresh if the update is for the current candidate
+          fetchCandidateDetails();
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    };
+    // Listen for custom events: comment, resume, transition
+    eventSource.addEventListener('comment', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.candidateId === candidateId) {
+          fetchComments();
+          loadAllAttachments && loadAllAttachments();
+        }
+      } catch (e) {}
+    });
+    eventSource.addEventListener('resume', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.candidateId === candidateId) {
+          fetchResumes();
+          loadAllAttachments && loadAllAttachments();
+        }
+      } catch (e) {}
+    });
+    eventSource.addEventListener('transition', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.candidateId === candidateId) {
+          fetchTransitionHistory && fetchTransitionHistory();
+        }
+      } catch (e) {}
+    });
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, [candidateId, fetchCandidateDetails, fetchComments, fetchResumes, fetchTransitionHistory, loadAllAttachments]);
 
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
     console.log('handleUploadSuccess called', updatedCandidate);
@@ -1252,7 +1301,7 @@ export default function CandidateDetailPage() {
                            {/* Pencil icon button for avatar upload */}
                            <button
                              type="button"
-                             className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                             className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
                              title="Change profile picture"
                              onClick={() => {
                                // Open hidden file input for image upload
@@ -1485,6 +1534,7 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
+                              {/* Vertical timeline line */}
                               <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
                               {(education ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
@@ -1493,8 +1543,9 @@ export default function CandidateDetailPage() {
                                 if (typeof edu === 'string') {
                                   return (
                                     <div key={`edu-${index}-${edu}`} className="mb-8 flex items-start relative">
-                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
-                                      <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                      {/* Timeline dot */}
+                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
+                                      <div className="ml-6 p-6 border rounded-md w-full">
                                         {renderField("Education", edu)}
                                       </div>
                                     </div>
@@ -1502,8 +1553,9 @@ export default function CandidateDetailPage() {
                                 } else {
                                   return (
                                     <div key={`edu-${index}-${edu.university || index}`} className="mb-8 flex items-start relative">
-                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
-                                      <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                      {/* Timeline dot */}
+                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
+                                      <div className="ml-6 p-3 border rounded-md  w-full">
                                         <div className="font-semibold text-primary flex items-center gap-2">
                                           <CalendarDays className="h-4 w-4" /> {edu.period}
                                         </div>
@@ -1624,14 +1676,16 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
+                              {/* Vertical timeline line */}
                               <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
                               {(experience ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
                               {(experience ?? []).map((exp, index) => (
                                 <div key={`exp-${index}-${exp.company || index}`} className="mb-8 flex items-start relative">
-                                  <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
-                                  <div className="ml-6 p-3 border rounded-md bg-muted w-full">
+                                  {/* Timeline dot */}
+                                  <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
+                                  <div className="ml-6 p-3 border rounded-md  w-full">
                                     <div className="font-semibold text-primary flex items-center gap-2">
                                       <CalendarDays className="h-4 w-4" /> {exp.period}
                                     </div>

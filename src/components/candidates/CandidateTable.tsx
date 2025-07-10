@@ -95,7 +95,6 @@ export function CandidateTable({
   isAllCandidatesSelected,
 }: CandidateTableProps) {
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
-  const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
   // Add state for comments and logs
   const [modalComments, setModalComments] = useState<any[]>([]);
@@ -125,7 +124,6 @@ export function CandidateTable({
   // Update handleManageTransitionsClick to fetch comments and logs
   const handleManageTransitionsClick = async (candidate: Candidate) => {
     setSelectedCandidateForModal(candidate);
-    setIsTransitionsModalOpen(true);
     // Fetch comments
     const commentsRes = await fetch(`/api/candidates/${candidate.id}/comments`);
     const commentsData = await commentsRes.json();
@@ -361,30 +359,6 @@ export function CandidateTable({
           </TableBody>
         </Table>
       </div>
-      {selectedCandidateForModal && (
-        <ManageTransitionsModal
-          candidate={selectedCandidateForModal}
-          isOpen={isTransitionsModalOpen}
-          onOpenChange={(isOpen) => {
-            setIsTransitionsModalOpen(isOpen);
-            if (!isOpen) setSelectedCandidateForModal(null);
-          }}
-          onUpdateCandidate={onUpdateCandidate}
-          onRefreshCandidateData={onRefreshCandidateData}
-          availableStages={availableStages}
-          comments={getCombinedActivities()}
-          onCommentsChange={async () => {
-            if (!selectedCandidateForModal) return;
-            // Re-fetch comments and logs
-            const commentsRes = await fetch(`/api/candidates/${selectedCandidateForModal.id}/comments`);
-            const commentsData = await commentsRes.json();
-            setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
-            const logsRes = await fetch(`/api/candidates/${selectedCandidateForModal.id}/logs`);
-            const logsData = await logsRes.json();
-            setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
-          }}
-        />
-      )}
       {selectedCandidateSummary && (
         <CandidateDetailModal
           isOpen={isDetailModalOpen}

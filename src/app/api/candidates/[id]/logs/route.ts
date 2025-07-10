@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
+import { broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 // Type imports removed due to linter errors
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {

@@ -991,7 +991,7 @@ export default function CandidateDetailPage() {
             ]} 
           />
           {/* Quick Actions moved here */}
-          <div className="flex flex-row gap-3 flex-wrap">
+          <div className={isEditing ? "fixed bottom-6 right-6 z-30 bg-background/95 border shadow-lg rounded-xl flex flex-row gap-4 py-3 px-6" : "flex flex-row gap-3 flex-wrap"} style={isEditing ? {boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)'} : {}}>
             {!isEditing ? (
               <Button 
                 variant="outline" 
@@ -1009,6 +1009,7 @@ export default function CandidateDetailPage() {
                   variant="default"
                   onClick={handleSubmit(handleSaveDetails)}
                   disabled={isSubmitting}
+                  className="btn-primary-gradient flex items-center gap-2"
                 >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
@@ -1017,6 +1018,7 @@ export default function CandidateDetailPage() {
                   variant="outline"
                   onClick={handleCancelEdit}
                   disabled={isSubmitting}
+                  className="flex items-center gap-2"
                 >
                   <X className="mr-2 h-4 w-4" />
                   Cancel Edit

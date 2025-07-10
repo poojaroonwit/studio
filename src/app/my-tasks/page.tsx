@@ -10,7 +10,7 @@ export default async function MyTasksPageServer() {
   // Only pass minimal info to the client; all data fetching is client-side
   return (
     <MyTasksPageClient
-      userSession={session?.user ? { id: session.user.id, role: session.user.role, name: session.user.name || null } : null}
+      userSession={session?.user ? { id: session.user.id, role: session.user.role || '', name: session.user.name || null } : null}
     />
   );
 }

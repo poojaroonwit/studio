@@ -297,7 +297,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                     {isCompleted ? (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     ) : (
-                      <span className="w-2 h-2 rounded-full bg-white block"></span>
+                      <span className="w-2 h-2 rounded-full bg-card block"></span>
                     )}
                   </div>
                   <span>{stage.name}</span>
@@ -982,7 +982,7 @@ export default function CandidateDetailPage() {
   return (
     <FormProvider {...form}>
       <div className="h-screen overflow-y-auto">
-        <div className="flex justify-between items-center px-6 p-3 sticky top-0 z-40 bg-white shadow">
+        <div className="flex justify-between items-center px-6 p-3 sticky top-0 z-40 bg-card border-b border-border shadow">
           <Breadcrumb 
             items={[ 
               { label: "Home", href: "/", icon: Home },
@@ -991,7 +991,7 @@ export default function CandidateDetailPage() {
             ]} 
           />
           {/* Quick Actions moved here */}
-          <div className={isEditing ? "fixed bottom-6 right-6 z-30 bg-background/95 border shadow-lg rounded-xl flex flex-row gap-4 py-3 px-6" : "flex flex-row gap-3 flex-wrap"} style={isEditing ? {boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)'} : {}}>
+          <div className="flex flex-row gap-3 flex-wrap">
             {!isEditing ? (
               <Button 
                 variant="outline" 
@@ -1501,35 +1501,34 @@ export default function CandidateDetailPage() {
 
         {candidate && (
           <>
-            <div className="mb-4">
-              <h3 className="text-md font-semibold mb-2">Assigned Recruiter</h3>
-              {candidate.recruiterId && recruiters.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  <span>{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'Unknown Recruiter'}</span>
-                </div>
-              ) : recruiters.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={candidate.recruiterId || "___UNASSIGN___"}
-                    onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
-                    disabled={isAssigningRecruiter}
+            {/* Assigned Recruiter - now styled as a button-like select and placed above pipeline stage */}
+            <div className="mb-6">
+              <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
+              {recruiters.length > 0 ? (
+                <Select
+                  value={candidate.recruiterId || "___UNASSIGN___"}
+                  onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
+                  disabled={isAssigningRecruiter}
+                >
+                  <SelectTrigger
+                    className="w-72 border-2 border-primary rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
+                    style={{ minHeight: 44 }}
                   >
-                    <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Assign a recruiter..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                      {recruiters.map(r => (
-                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <Users className="h-5 w-5 text-primary mr-2" />
+                    <SelectValue placeholder="Assign a recruiter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
+                    {recruiters.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <span className="text-muted-foreground">No recruiters available to assign.</span>
               )}
             </div>
+            {/* Pipeline Stage/Transitions Modal */}
             <ManageTransitionsModal
                 candidate={candidate}
                 isOpen={isTransitionsModalOpen}

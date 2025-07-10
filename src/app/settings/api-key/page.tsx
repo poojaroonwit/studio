@@ -65,7 +65,7 @@ export default function ApiKeyManager() {
   const statusColor = apiKey ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600";
 
   return (
-    <div className="max-w-lg mx-auto mt-12 p-6 bg-white dark:bg-card rounded shadow">
+    <div className="max-w-lg mx-auto mt-12 p-6 bg-card dark:bg-card rounded shadow">
       <h1 className="text-2xl font-bold mb-2">API Key Management</h1>
       <div className="flex items-center mb-4">
         <span className={`px-2 py-1 rounded text-xs font-semibold mr-2 ${statusColor}`}>{status}</span>
@@ -130,7 +130,7 @@ export default function ApiKeyManager() {
       {/* Confirmation Dialog */}
       {showRevokeConfirm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded shadow-lg max-w-sm w-full">
+          <div className="bg-card dark:bg-gray-900 p-6 rounded shadow-lg max-w-sm w-full">
             <h2 className="text-lg font-bold mb-2">Revoke API Key?</h2>
             <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">This action cannot be undone. Any scripts or integrations using this key will stop working immediately.</p>
             <div className="flex justify-end gap-2">

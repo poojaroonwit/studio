@@ -753,7 +753,7 @@ export function CandidatesPageClient({
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {showFilters && (
-        <aside className="w-80 min-w-[250px] border-r bg-white dark:bg-background transition-all flex flex-col">
+        <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col">
           <div className="flex justify-between items-center p-4 border-b">
             <span className="font-bold text-lg">Filters</span>
             <button
@@ -781,7 +781,7 @@ export function CandidatesPageClient({
       {/* Show button when sidebar is hidden */}
       {!showFilters && (
         <button
-          className="absolute left-0 top-4 z-10 bg-white dark:bg-background border rounded-r p-1 shadow"
+          className="absolute left-0 top-4 z-10 bg-card dark:bg-background border rounded-r p-1 shadow"
           onClick={() => setShowFilters(true)}
           aria-label="Show filters"
         >
@@ -818,14 +818,16 @@ export function CandidatesPageClient({
             )}
             <div className="flex gap-2 items-center ml-auto">
               {canManageCandidates && (
-                <Button onClick={() => setIsAddModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <PlusCircle className="mr-2 h-4 w-4" /> Add Manually </Button>
-              )}
-              {canManageCandidates && (
                 <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {canManageCandidates && (
+                    <DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
+                    </DropdownMenuItem>
+                  )}
                   {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
                   {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
                   {displayedCandidates.length > 0 && (
@@ -947,7 +949,7 @@ export function CandidatesPageClient({
       {/* Manual Move Modal */}
       {isManageTransitionsModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className="bg-white rounded shadow-lg p-6 min-w-[320px]">
+          <div className="bg-card rounded shadow-lg p-6 min-w-[320px]">
             <Label htmlFor="manual-move-candidate">Select Candidate</Label>
             <select
               id="manual-move-candidate"

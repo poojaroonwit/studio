@@ -251,10 +251,13 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
-                      <Progress value={candidate.fitScore || 0} className="h-2 w-[60px]" />
-                      <span className={`text-sm font-medium ${getScoreColor(candidate.fitScore)}`}>
+                      {/* Fit Score as Badge */}
+                      <Badge
+                        variant={getScoreColor(candidate.fitScore) === 'text-green-600' ? 'success' : getScoreColor(candidate.fitScore) === 'text-yellow-600' ? 'secondary' : getScoreColor(candidate.fitScore) === 'text-red-600' ? 'destructive' : 'outline'}
+                        className="min-w-[48px] justify-center"
+                      >
                         {formatScoreWithGrade(candidate.fitScore)}
-                      </span>
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>

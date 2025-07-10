@@ -12,6 +12,8 @@ const recruitmentStageSchema = z.object({
   name: z.string().min(1, 'Stage name cannot be empty.'),
   description: z.string().optional().nullable(),
   sort_order: z.number().int().optional(),
+  color_complete: z.string().optional().nullable(), // Add color_complete
+  color_badge: z.string().optional().nullable(),    // Add color_badge
 });
 
 /**
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT id, name, description, sort_order, color FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
         return NextResponse.json(result.rows);
     } catch (error: any) {
         console.error("Failed to fetch recruitment stages:", error);
@@ -116,14 +118,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, description, sort_order, color } = body;
+    const { name, description, sort_order, color_complete, color_badge } = body;
     const newId = uuidv4();
     
     const client = await getPool().connect();
     try {
         const result = await client.query(
-            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, description, sort_order, color',
-            [newId, name, description, sort_order ?? 0, color || null]
+            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color_complete, color_badge) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, description, sort_order, color_complete, color_badge',
+            [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null]
         );
         await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);

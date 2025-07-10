@@ -28,6 +28,8 @@ export default function PreferencesSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Preferences state
   const [themePreference, setThemePreference] = useState<ThemePreference>('system');
@@ -76,47 +78,44 @@ export default function PreferencesSettingsPage() {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
         if (typeof window !== 'undefined') {
-            const storedTheme = localStorage.getItem(APP_THEME_KEY) as ThemePreference | null;
-            if (storedTheme) setThemePreference(storedTheme);
-
-            const storedLogoDataUrl = localStorage.getItem(APP_LOGO_DATA_URL_KEY);
-            if (storedLogoDataUrl) {
-                setSavedLogoDataUrl(storedLogoDataUrl);
-                setLogoPreviewUrl(storedLogoDataUrl);
-            }
-
-            const storedLoginBgDataUrl = localStorage.getItem(LOGIN_BG_DATA_URL_KEY);
-            if (storedLoginBgDataUrl) {
-                setSavedLoginBgDataUrl(storedLoginBgDataUrl);
-                setLoginBgPreviewUrl(storedLoginBgDataUrl);
-            }
-
-            const storedAppName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY);
-            setAppName(storedAppName || DEFAULT_APP_NAME);
-
-            const storedSidebarStyle = localStorage.getItem(SIDEBAR_ACTIVE_STYLE_KEY) as SidebarActiveStyle | null;
-            if (storedSidebarStyle) setSidebarActiveStyle(storedSidebarStyle);
-
-            // Load saved sidebar colors
-            const savedSidebarColors: Record<string, string> = {};
-            const colorKeys = [
-              'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL', 'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL', 'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL',
-              'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD', 'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD', 'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD'
-            ];
-            
-            colorKeys.forEach(key => {
-              const saved = localStorage.getItem(key);
-              if (saved) {
-                savedSidebarColors[key] = saved;
-              }
-            });
-            
-            if (Object.keys(savedSidebarColors).length > 0) {
-              setSidebarColors(prev => ({ ...prev, ...savedSidebarColors }));
-            }
+            // On mount, fetch global preferences from system-preferences API
+            fetch('/api/settings/system-preferences')
+              .then(res => res.json())
+              .then(prefs => {
+                setAppName(prefs.appName || DEFAULT_APP_NAME);
+                setThemePreference(prefs.themePreference || 'system');
+                setLogoPreviewUrl(prefs.appLogoDataUrl || '');
+                setSidebarActiveStyle(prefs.sidebarActiveStylePreference || 'gradient');
+                setSidebarColors(prefs.sidebarColors || {
+                  sidebarBgStartL: '0 0% 100%',
+                  sidebarBgEndL: '0 0% 100%',
+                  sidebarTextL: '222.2 84% 4.9%',
+                  sidebarActiveBgStartL: '179 67% 66%',
+                  sidebarActiveBgEndL: '238 74% 61%',
+                  sidebarActiveTextL: '0 0% 100%',
+                  sidebarHoverBgL: '210 40% 98%',
+                  sidebarHoverTextL: '222.2 84% 4.9%',
+                  sidebarBorderL: '214.3 31.8% 91.4%',
+                  sidebarBgStartD: '222.2 84% 4.9%',
+                  sidebarBgEndD: '222.2 84% 4.9%',
+                  sidebarTextD: '210 40% 98%',
+                  sidebarActiveBgStartD: '179 67% 66%',
+                  sidebarActiveBgEndD: '238 74% 61%',
+                  sidebarActiveTextD: '0 0% 100%',
+                  sidebarHoverBgD: '217.2 32.6% 17.5%',
+                  sidebarHoverTextD: '210 40% 98%',
+                  sidebarBorderD: '217.2 32.6% 17.5%',
+                });
+                setSavedLogoDataUrl(prefs.appLogoDataUrl || null);
+                setSavedLoginBgDataUrl(prefs.loginBackgroundDataUrl || null);
+              })
+              .catch(() => {
+                // Handle error, e.g., show a toast
+                error('Failed to load system preferences.');
+              });
         }
     }
-  }, [sessionStatus, router, pathname, signIn]);
+  }, [sessionStatus, router, pathname, signIn, error]);
 
   // Apply settings on initial load and when sidebar colors change
   useEffect(() => {
@@ -168,7 +167,7 @@ export default function PreferencesSettingsPage() {
         fileInput.value = '';
     }
     if (clearSaved) {
-        localStorage.removeItem(APP_LOGO_DATA_URL_KEY);
+        // No localStorage to remove, as it's global
         setSavedLogoDataUrl(null);
         setLogoPreviewUrl(null);
         success("The application logo has been reset to default.");
@@ -214,7 +213,7 @@ export default function PreferencesSettingsPage() {
         fileInput.value = '';
     }
     if (clearSaved) {
-        localStorage.removeItem(LOGIN_BG_DATA_URL_KEY);
+        // No localStorage to remove, as it's global
         setSavedLoginBgDataUrl(null);
         setLoginBgPreviewUrl(null);
         success("The login background has been reset to default.");
@@ -224,53 +223,28 @@ export default function PreferencesSettingsPage() {
     }
   };
 
-  const handleSavePreferences = () => {
-    if (!isClient) return;
-    
-    // Save all preferences to localStorage
-    localStorage.setItem(APP_THEME_KEY, themePreference);
-    localStorage.setItem(APP_CONFIG_APP_NAME_KEY, appName || DEFAULT_APP_NAME);
-    localStorage.setItem(SIDEBAR_ACTIVE_STYLE_KEY, sidebarActiveStyle);
-
-    // Save sidebar colors
-    Object.entries(sidebarColors).forEach(([key, value]) => {
-      localStorage.setItem(key, value);
-    });
-
-    let logoUpdated = false;
-    if (selectedLogoFile && logoPreviewUrl) {
-      localStorage.setItem(APP_LOGO_DATA_URL_KEY, logoPreviewUrl);
-      setSavedLogoDataUrl(logoPreviewUrl);
-      logoUpdated = true;
-    }
-
-    let loginBgUpdated = false;
-    if (selectedLoginBgFile && loginBgPreviewUrl) {
-      localStorage.setItem(LOGIN_BG_DATA_URL_KEY, loginBgPreviewUrl);
-      setSavedLoginBgDataUrl(loginBgPreviewUrl);
-      loginBgUpdated = true;
-    }
-
-    // Apply all changes immediately
-    setThemeAndColors({
+  const handleSavePreferences = async () => {
+    setIsSaving(true);
+    const body = {
+      appName,
       themePreference,
-      sidebarColors
+      appLogoDataUrl: logoPreviewUrl || '',
+      sidebarActiveStylePreference: sidebarActiveStyle,
+      sidebarColors: sidebarColors,
+      loginBackgroundDataUrl: loginBgPreviewUrl || '',
+    };
+    const response = await fetch('/api/settings/system-preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
-    
-    applySidebarActiveStyle(sidebarActiveStyle);
-
-    success('Your preferences have been updated and applied.');
-
-    // Dispatch a single event for any config change
-    window.dispatchEvent(new CustomEvent('appConfigChanged', { 
-      detail: { 
-        appName: appName || DEFAULT_APP_NAME,
-        logoUrl: logoUpdated ? logoPreviewUrl : savedLogoDataUrl,
-        loginBgUrl: loginBgUpdated ? loginBgPreviewUrl : savedLoginBgDataUrl,
-        sidebarActiveStyle: sidebarActiveStyle,
-        sidebarColors: sidebarColors
-      } 
-    }));
+    if (response.ok) {
+      window.dispatchEvent(new CustomEvent('appConfigChanged', { detail: body }));
+      success('Preferences updated globally!');
+    } else {
+      error('Failed to update preferences.');
+    }
+    setIsSaving(false);
   };
 
   const handleSidebarStyleChange = (value: string) => {
@@ -738,12 +712,12 @@ export default function PreferencesSettingsPage() {
               setSidebarColors(defaultColors);
               
               // Clear localStorage
-              localStorage.removeItem(APP_THEME_KEY);
-              localStorage.removeItem(APP_CONFIG_APP_NAME_KEY);
-              localStorage.removeItem(SIDEBAR_ACTIVE_STYLE_KEY);
-              localStorage.removeItem(APP_LOGO_DATA_URL_KEY);
-              localStorage.removeItem(LOGIN_BG_DATA_URL_KEY);
-              Object.keys(defaultColors).forEach(key => localStorage.removeItem(key));
+              // localStorage.removeItem(APP_THEME_KEY); // No longer needed
+              // localStorage.removeItem(APP_CONFIG_APP_NAME_KEY); // No longer needed
+              // localStorage.removeItem(SIDEBAR_ACTIVE_STYLE_KEY); // No longer needed
+              // localStorage.removeItem(APP_LOGO_DATA_URL_KEY); // No longer needed
+              // localStorage.removeItem(LOGIN_BG_DATA_URL_KEY); // No longer needed
+              // Object.keys(defaultColors).forEach(key => localStorage.removeItem(key)); // No longer needed
               
               // Apply defaults
               setThemeAndColors({ themePreference: 'system', sidebarColors: defaultColors });
@@ -754,8 +728,8 @@ export default function PreferencesSettingsPage() {
           >
             Reset All
           </Button>
-          <Button onClick={handleSavePreferences} className="btn-primary-gradient">
-            <Save className="mr-2 h-4 w-4" /> Save Preferences
+          <Button onClick={handleSavePreferences} className="btn-primary-gradient" disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save Preferences
           </Button>
         </div>
       </div>

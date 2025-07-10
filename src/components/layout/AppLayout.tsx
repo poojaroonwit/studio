@@ -79,51 +79,45 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   useEffect(() => {
     setIsClient(true);
-    const updateAppConfig = () => {
-      if (typeof window !== 'undefined') {
-        const storedLogo = localStorage.getItem(APP_LOGO_DATA_URL_KEY);
-        setAppLogoUrl(storedLogo);
-        const storedAppName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY);
-        setCurrentAppName(storedAppName || DEFAULT_APP_NAME);
-        // Theme and color settings
-        const themePreference = localStorage.getItem('appThemePreference') || 'system';
-        const primaryGradientStart = localStorage.getItem('primaryGradientStart') || '179 67% 66%';
-        const primaryGradientEnd = localStorage.getItem('primaryGradientEnd') || '238 74% 61%';
-        // Sidebar colors
-        const sidebarColors: Record<string, string> = {};
-        [
-          'sidebarBgStartL','sidebarBgEndL','sidebarTextL','sidebarActiveBgStartL','sidebarActiveBgEndL','sidebarActiveTextL','sidebarHoverBgL','sidebarHoverTextL','sidebarBorderL',
-          'sidebarBgStartD','sidebarBgEndD','sidebarTextD','sidebarActiveBgStartD','sidebarActiveBgEndD','sidebarActiveTextD','sidebarHoverBgD','sidebarHoverTextD','sidebarBorderD',
-        ].forEach(key => {
-          const val = localStorage.getItem(key);
-          if (val) sidebarColors[key] = val;
+    // Fetch global preferences from system-preferences API
+    const fetchGlobalSettings = async () => {
+      try {
+        const res = await fetch('/api/settings/system-preferences');
+        const prefs = await res.json();
+        setAppLogoUrl(prefs.appLogoDataUrl || null);
+        setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
+        setThemeAndColors({
+          themePreference: prefs.themePreference || 'system',
+          primaryGradientStart: prefs.primaryGradientStart,
+          primaryGradientEnd: prefs.primaryGradientEnd,
+          sidebarColors: prefs.sidebarColors || {},
         });
-        setThemeAndColors({ themePreference: themePreference as 'system' | 'light' | 'dark', primaryGradientStart, primaryGradientEnd, sidebarColors });
+      } catch (e) {
+        // fallback to defaults
+        setAppLogoUrl(null);
+        setCurrentAppName(DEFAULT_APP_NAME);
       }
     };
-
-    updateAppConfig(); // Initial load
-
+    fetchGlobalSettings();
     const handleAppConfigChange = (event: Event) => {
-        const customEvent = event as CustomEvent<{ appName?: string; logoUrl?: string | null, themePreference?: string, primaryGradientStart?: string, primaryGradientEnd?: string, sidebarColors?: Record<string,string> }>;
-        if (customEvent.detail) {
-            if (customEvent.detail.appName) {
-                setCurrentAppName(customEvent.detail.appName);
-            }
-            if (customEvent.detail.logoUrl !== undefined) { 
-                 setAppLogoUrl(customEvent.detail.logoUrl);
-            }
-            setThemeAndColors({
-              themePreference: (customEvent.detail.themePreference || 'system') as 'system' | 'light' | 'dark',
-              primaryGradientStart: customEvent.detail.primaryGradientStart,
-              primaryGradientEnd: customEvent.detail.primaryGradientEnd,
-              sidebarColors: customEvent.detail.sidebarColors || {},
-            });
-        } else {
-            updateAppConfig();
+      const customEvent = event as CustomEvent<{ appName?: string; logoUrl?: string | null, themePreference?: string, primaryGradientStart?: string, primaryGradientEnd?: string, sidebarColors?: Record<string,string> }>;
+      if (customEvent.detail) {
+        if (customEvent.detail.appName) {
+          setCurrentAppName(customEvent.detail.appName);
         }
+        if (customEvent.detail.logoUrl !== undefined) {
+          setAppLogoUrl(customEvent.detail.logoUrl);
+        }
+        setThemeAndColors({
+          themePreference: (customEvent.detail.themePreference || 'system') as 'system' | 'light' | 'dark',
+          primaryGradientStart: customEvent.detail.primaryGradientStart,
+          primaryGradientEnd: customEvent.detail.primaryGradientEnd,
+          sidebarColors: customEvent.detail.sidebarColors || {},
+        });
+      } else {
+        fetchGlobalSettings();
+      }
     };
-    
     window.addEventListener('appConfigChanged', handleAppConfigChange);
     return () => {
       window.removeEventListener('appConfigChanged', handleAppConfigChange);

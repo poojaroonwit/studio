@@ -267,7 +267,7 @@ export function MyTasksPageClient({
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {showFilters && (
-        <aside className="w-80 min-w-[250px] border-r bg-white dark:bg-background transition-all flex flex-col">
+        <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col">
           <div className="flex justify-between items-center p-4 border-b">
             <span className="font-bold text-lg">Filters</span>
             <button
@@ -295,7 +295,7 @@ export function MyTasksPageClient({
       {/* Show button when sidebar is hidden */}
       {!showFilters && (
         <button
-          className="absolute left-0 top-4 z-10 bg-white dark:bg-background border rounded-r p-1 shadow"
+          className="absolute left-0 top-4 z-10 bg-card dark:bg-background border rounded-r p-1 shadow"
           onClick={() => setShowFilters(true)}
           aria-label="Show filters"
         >

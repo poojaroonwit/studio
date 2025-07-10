@@ -370,7 +370,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                         <span className="w-full border-t border-border/50" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-white dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+                        <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
                       </div>
                     </div>
                   </div>

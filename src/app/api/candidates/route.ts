@@ -150,11 +150,6 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    console.error('Candidates API: No session or user ID found', { 
-      hasSession: !!session, 
-      hasUser: !!session?.user, 
-      userId: session?.user?.id 
-    });
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
@@ -165,15 +160,16 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
   const offset = (page - 1) * limit;
 
+  // Filters
   const filters: { [key: string]: string | undefined } = {
     status: searchParams.get('status') || undefined,
     positionId: searchParams.get('positionId') || undefined,
     recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || undefined,
-    searchTerm: searchParams.get('searchTerm') || undefined,
+    searchTerm: searchParams.get('searchTerm') || searchParams.get('name') || undefined,
   };
 
   let whereClauses: string[] = [];
@@ -213,7 +209,8 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const candidatesQuery = `
-      SELECT c.*, p.title as "positionTitle", r.id as "recruiterId", r.name as "recruiterName"
+      SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p.position_level as "positionLevel",
+             r.id as "recruiterId", r.name as "recruiterName"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -226,10 +223,32 @@ export async function GET(request: NextRequest) {
     const totalResult = await client.query(totalQuery, queryParams.slice(0, paramIndex - 1));
     const total = parseInt(totalResult.rows[0].count, 10);
     const candidates = candidatesResult.rows.map(row => ({
-      ...row,
-      custom_attributes: row.customAttributes || {}, // Note: column name is customAttributes in DB
-      position: row.positionId ? { title: row.positionTitle } : null,
-      recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName } : null,
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      phone: row.phone || null,
+      avatarUrl: row.avatarUrl || null,
+      dataAiHint: row.dataAiHint || null,
+      resumePath: row.resumePath || null,
+      parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
+      customAttributes: row.customAttributes || {},
+      position: row.positionId ? {
+        id: row.positionId,
+        title: row.positionTitle,
+        department: row.positionDepartment,
+        position_level: row.positionLevel
+      } : null,
+      fitScore: row.fitScore || null,
+      status: row.status,
+      applicationDate: row.applicationDate,
+      recruiter: row.recruiterId ? {
+        id: row.recruiterId,
+        name: row.recruiterName,
+        email: null
+      } : null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      transitionHistory: row.transitionHistory || [],
     }));
     return NextResponse.json({
       data: candidates,

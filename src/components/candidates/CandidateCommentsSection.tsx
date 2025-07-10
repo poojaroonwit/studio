@@ -409,7 +409,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               ) : (
                 <div className="text-sm">
                   <span className="font-medium">{item.action}</span>
-                  {item.note && <span className="ml-2 text-muted-foreground">Note: {item.note}</span>}
+                  {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
                 </div>
               )}
             </div>

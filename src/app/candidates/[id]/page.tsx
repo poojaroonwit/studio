@@ -691,6 +691,10 @@ export default function CandidateDetailPage() {
     }
   }, [fetchError]);
 
+  useEffect(() => {
+    console.log('Available stages:', availableStages);
+  }, [availableStages]);
+
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
     console.log('handleUploadSuccess called', updatedCandidate);
     if (!updatedCandidate || !updatedCandidate.id) return;
@@ -734,6 +738,7 @@ export default function CandidateDetailPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Send all fields to prevent data loss
           name: candidate.name,
           email: candidate.email,
           phone: candidate.phone,
@@ -742,6 +747,10 @@ export default function CandidateDetailPage() {
           fitScore: candidate.fitScore,
           status: candidate.status,
           parsedData: candidate.parsedData,
+          custom_attributes: candidate.customAttributes ?? {},
+          resumePath: candidate.resumePath ?? null,
+          avatarUrl: candidate.avatarUrl ?? null,
+          // Add any other fields you want to preserve here
         }),
       });
       if (!response.ok) {
@@ -780,6 +789,7 @@ export default function CandidateDetailPage() {
         }
       });
       toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
+      await fetchRecruiters(); // Ensure recruiter list is always up-to-date
     } catch (error) {
       toast((error as Error).message);
     } finally {

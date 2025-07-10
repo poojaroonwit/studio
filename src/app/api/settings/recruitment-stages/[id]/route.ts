@@ -12,7 +12,8 @@ const updateRecruitmentStageSchema = z.object({
   name: z.string().min(1, 'Stage name cannot be empty.').optional(),
   description: z.string().optional().nullable(),
   sort_order: z.number().int().optional(),
-  color: z.string().optional().nullable(), // Add color field
+  color_complete: z.string().optional().nullable(),
+  color_badge: z.string().optional().nullable(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT id, name, description, sort_order, color FROM "RecruitmentStage" WHERE id = $1', [id]);
+        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge FROM "RecruitmentStage" WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
@@ -122,8 +123,6 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
     }
 
-    const { name, description, sort_order } = validation.data;
-    
     const client = await getPool().connect();
     try {
         const setClauses = Object.entries(validation.data).map(([key, value], index) => {

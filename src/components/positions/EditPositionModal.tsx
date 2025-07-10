@@ -71,13 +71,13 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   });
 
   useEffect(() => {
-    if (position && isOpen) {
+    if (position && isOpen && position.title && position.department) {
       form.reset({
-        title: position.title,
-        department: position.department,
-        description: position.description || '',
-        isOpen: position.isOpen,
-        position_level: position.position_level || '',
+        title: position.title ?? '',
+        department: position.department ?? '',
+        description: position.description ?? '',
+        isOpen: typeof position.isOpen === 'boolean' ? position.isOpen : true,
+        position_level: position.position_level ?? '',
       });
 
       const fetchCandidates = async () => {
@@ -106,7 +106,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         form.reset({ title: '', department: '', description: '', isOpen: true, position_level: '' });
         setAssociatedCandidates([]);
     }
-  }, [position, isOpen, form]);
+  }, [position?.id, isOpen, form]);
 
   const onSubmit = async (data: EditPositionFormValues) => {
     if (!position) return;

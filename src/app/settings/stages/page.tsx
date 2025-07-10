@@ -53,7 +53,7 @@ import { toast } from 'react-hot-toast';
 import { Session } from 'next-auth';
 import StagesTable from '@/components/settings/StagesTable';
 import StagesForm from '@/components/settings/StagesForm';
-import StagesModal from '@/components/settings/StagesModal';
+// Remove StagesModal import
 
 
 const stageFormSchema = z.object({
@@ -328,15 +328,12 @@ export default function RecruitmentStagesPage() {
         </div>
     
 
-      {/* <StagesForm
+      <StagesForm
         open={isModalOpen}
         stage={editingStage}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingStage(null);
-        }}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleFormSubmit}
-      /> */}
+      />
 
       <AlertDialog open={isReplacementModalOpen} onOpenChange={(open) => {
         setIsReplacementModalOpen(open);
@@ -375,7 +372,7 @@ export default function RecruitmentStagesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <StagesModal />
+      {/* <StagesModal /> */}
     </div>
   );
 }

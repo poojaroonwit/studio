@@ -18,6 +18,9 @@ interface CandidateKanbanViewProps {
   onMoveCandidate?: (candidate: Candidate, newStatus: CandidateStatus) => void;
   onCardClick?: (candidate: Candidate) => void;
   showAddButton?: boolean;
+  rowField?: string;
+  columnField?: string;
+  visibleFields?: string[];
 }
 
 export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, showAddButton = true }: CandidateKanbanViewProps) {
@@ -172,7 +175,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
 }
 
 // New: Row-based Kanban (stages as rows, candidates as draggable cards)
-export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate }: CandidateKanbanViewProps) {
+export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, rowField, columnField, visibleFields }: CandidateKanbanViewProps) {
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<CandidateStatus | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -257,6 +260,18 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate }
                         {candidate.fitScore !== undefined && candidate.fitScore !== null && (
                           <p className="text-xs text-muted-foreground mt-1.5">Fit Score: <span className={`font-semibold ${getScoreColor(candidate.fitScore)}`}>{formatScoreWithGrade(candidate.fitScore)}</span></p>
                         )}
+                        {/* Render visible fields */}
+                        {visibleFields?.map(field => {
+                          if (field === 'name') return null; // name is already shown
+                          if (field === 'email') return <p key={field} className="text-xs text-muted-foreground truncate">{candidate.email}</p>;
+                          if (field === 'phone') return <p key={field} className="text-xs text-muted-foreground truncate">{candidate.phone}</p>;
+                          if (field === 'status') return <p key={field} className="text-xs text-muted-foreground">Status: {candidate.status}</p>;
+                          if (field === 'positionId') return <p key={field} className="text-xs text-muted-foreground">Position: {candidate.position?.title || candidate.positionId}</p>;
+                          if (field === 'fitScore') return <p key={field} className="text-xs text-muted-foreground">Fit Score: {candidate.fitScore}</p>;
+                          if (field === 'recruiterId') return <p key={field} className="text-xs text-muted-foreground">Recruiter: {candidate.recruiter?.name || candidate.recruiterId}</p>;
+                          if (field === 'applicationDate') return <p key={field} className="text-xs text-muted-foreground">Applied: {candidate.applicationDate}</p>;
+                          return null;
+                        })}
                       </Card>
                     </div>
                   ))

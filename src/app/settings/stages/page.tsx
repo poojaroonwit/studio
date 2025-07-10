@@ -248,6 +248,27 @@ export default function RecruitmentStagesPage() {
     }
   };
 
+  // Inline color update handler
+  const handleColorChange = async (stage: RecruitmentStage, colorType: string, newColor: string) => {
+    const url = `/api/settings/recruitment-stages/${stage.id}`;
+    const payload = { [colorType]: newColor };
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.message || 'Failed to update color');
+      }
+      setStages(prev => prev.map(s => s.id === stage.id ? { ...s, [colorType]: newColor } : s));
+      toast.success('Stage color updated');
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
   if (sessionStatus === 'loading' || (isLoading && !fetchError && stages.length === 0)) {
     return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }

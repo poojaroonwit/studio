@@ -4,9 +4,10 @@ interface StagesTableProps {
   stages: any[];
   isLoading: boolean;
   onEdit: (stage: any) => void;
+  onColorChange: (stage: any, colorType: string, newColor: string) => void;
 }
 
-const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit }) => {
+const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit, onColorChange }) => {
   return (
     <div>
       <h2>Stages Table</h2>
@@ -29,19 +30,34 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit }) 
               <td className="px-4 py-2">{stage.description}</td>
               <td className="px-4 py-2">{stage.sort_order}</td>
               <td className="px-4 py-2">
-                {stage.color && (
-                  <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color }} title={stage.color}></span>
-                )}
+                <input
+                  type="color"
+                  value={stage.color || "#ffffff"}
+                  onChange={e => onColorChange(stage, "color", e.target.value)}
+                  title={stage.color}
+                  className="w-8 h-8 p-0 border rounded"
+                  style={{ background: stage.color || "#fff" }}
+                />
               </td>
               <td className="px-4 py-2">
-                {stage.color_complete && (
-                  <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color_complete }} title={stage.color_complete}></span>
-                )}
+                <input
+                  type="color"
+                  value={stage.color_complete || "#ffffff"}
+                  onChange={e => onColorChange(stage, "color_complete", e.target.value)}
+                  title={stage.color_complete}
+                  className="w-8 h-8 p-0 border rounded"
+                  style={{ background: stage.color_complete || "#fff" }}
+                />
               </td>
               <td className="px-4 py-2">
-                {stage.color_badge && (
-                  <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color_badge }} title={stage.color_badge}></span>
-                )}
+                <input
+                  type="color"
+                  value={stage.color_badge || "#ffffff"}
+                  onChange={e => onColorChange(stage, "color_badge", e.target.value)}
+                  title={stage.color_badge}
+                  className="w-8 h-8 p-0 border rounded"
+                  style={{ background: stage.color_badge || "#fff" }}
+                />
               </td>
               <td className="px-4 py-2">
                 <button className="text-blue-600 hover:underline" onClick={() => onEdit(stage)}>Edit</button>

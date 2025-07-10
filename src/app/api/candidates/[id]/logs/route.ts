@@ -28,9 +28,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // To show 'Moved from ... to ...' for all transitions, we need to infer previous stage
   const transitionsWithPrev = transitions.map((tr: any, idx: number, arr: any[]) => {
     const prevStage = arr[idx + 1]?.stage;
-    let moveNote = `Moved from ${prevStage || 'N/A'} to ${tr.stage} stage.`;
-    if (tr.notes && tr.notes.trim()) {
-      moveNote = `${moveNote} Note: ${tr.notes}`;
+    let moveNote = '';
+    if (prevStage && prevStage !== tr.stage) {
+      moveNote = `Moved from ${prevStage} to ${tr.stage} stage.`;
+    } else {
+      moveNote = `Entered ${tr.stage} stage.`;
+    }
+    // Remove redundant 'status change from ...' in notes
+    let cleanedNote = tr.notes && tr.notes.replace(/status change from .+ to .+/i, '').trim();
+    if (cleanedNote) {
+      moveNote = `${moveNote} Note: ${cleanedNote}`;
     }
     return {
       id: tr.id,

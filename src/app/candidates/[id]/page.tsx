@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { Candidate, CandidateDetails, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, PositionLevel, RecruitmentStage } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
@@ -272,11 +272,11 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                             : '')
                         : 'bg-muted/10 text-muted-foreground'}
                   `}
-                  style={
-                    isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
-                      ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff', fontWeight: 'bold', boxShadow: `${stage.color_complete}80 0px 2px 8px 0px` }
-                      : undefined
-                  }
+                  // style={
+                  //   isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
+                  //     ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff', fontWeight: 'bold', boxShadow: `${stage.color_complete}80 0px 2px 8px 0px` }
+                  //     : undefined
+                  // }
                   onClick={() => {
                     if (!isCompleted) onStageClick(stage.name);
                   }}
@@ -289,11 +289,11 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                           ? 'bg-red-500 border-red-600 text-white'
                           : '')
                       : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
-                    // style={
-                    //   isCompleted && !stage.name.toLowerCase().includes('reject')
-                    //     ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
-                    //     : undefined
-                    // }
+                    style={
+                      isCompleted && !stage.name.toLowerCase().includes('reject')
+                        ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
+                        : undefined
+                    }
                   >
                     {isCompleted ? (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -371,6 +371,42 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
   );
 }
 
+// Add a helper function to calculate duration from period string
+function calculateDuration(period?: string): string {
+  if (!period) return '';
+  // Format: 'Jan 2020 - Dec 2022' or 'Jan 2020 - Present'
+  const match = period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
+  if (!match) return '';
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  const startMonth = months.indexOf(match[1]);
+  const startYear = parseInt(match[2], 10);
+  let endMonth, endYear;
+  if (match[3] === 'Present') {
+    const now = new Date();
+    endMonth = now.getMonth();
+    endYear = now.getFullYear();
+  } else {
+    endMonth = months.indexOf(match[4]);
+    endYear = parseInt(match[5], 10);
+  }
+  if (startMonth === -1 || isNaN(startYear) || endMonth === -1 || isNaN(endYear)) return '';
+  let years = endYear - startYear;
+  let monthsDiff = endMonth - startMonth;
+  if (monthsDiff < 0) {
+    years -= 1;
+    monthsDiff += 12;
+  }
+  let result = '';
+  if (years > 0) result += `${years} year${years > 1 ? 's' : ''}`;
+  if (monthsDiff > 0) {
+    if (result) result += ' ';
+    result += `${monthsDiff} month${monthsDiff > 1 ? 's' : ''}`;
+  }
+  return result || '0 months';
+}
 
 export default function CandidateDetailPage() {
   const params = useParams();
@@ -416,6 +452,8 @@ export default function CandidateDetailPage() {
   // Add state for attachments
   const [attachments, setAttachments] = useState<any[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -1211,13 +1249,41 @@ export default function CandidateDetailPage() {
                            ) : (
                              <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
                            )}
+                           {/* Pencil icon button for avatar upload */}
+                           <button
+                             type="button"
+                             className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                             title="Change profile picture"
+                             onClick={() => {
+                               // Open hidden file input for image upload
+                               if (avatarInputRef?.current) avatarInputRef.current.click();
+                             }}
+                             disabled={avatarUploading}
+                             style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
+                           >
+                             <Edit className="w-5 h-5 text-primary" />
+                           </button>
+                           {/* Hidden file input for avatar upload */}
+                           <input
+                             type="file"
+                             accept="image/*"
+                             ref={avatarInputRef}
+                             style={{ display: 'none' }}
+                             onChange={async (e) => {
+                               const file = e.target.files?.[0];
+                               if (file) await handleAvatarUpload(file);
+                               e.target.value = '';
+                             }}
+                             tabIndex={-1}
+                             aria-hidden="true"
+                           />
+                           {/* Existing overlay for edit mode remains unchanged */}
                            {isEditing && (
                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                                <ImageUpload
                                  value={candidate.avatarUrl || ''}
                                  onChange={async (urlOrFile) => {
                                    if (typeof urlOrFile === 'string') {
-                                     // If user enters a URL, just update
                                      await handleAvatarUpload(urlOrFile);
                                    } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
                                      await handleAvatarUpload(urlOrFile);
@@ -1234,6 +1300,9 @@ export default function CandidateDetailPage() {
                                />
                                {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
                              </div>
+                           )}
+                           {avatarUploading && !isEditing && (
+                             <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
                            )}
                          </Avatar>
                          {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
@@ -1404,50 +1473,6 @@ export default function CandidateDetailPage() {
                                             />
                                           )}
                                         />
-                                        <Controller
-                                          name={`parsedData.education.${index}.duration`}
-                                          control={control}
-                                          render={({ field }) => {
-                                            // Parse value like '2 years 3 months'
-                                            let years = '', months = '';
-                                            if (field.value) {
-                                              const match = String(field.value).match(/(\d+)\s*years?\s*(\d+)?\s*months?/);
-                                              if (match) {
-                                                years = match[1] || '';
-                                                months = match[2] || '';
-                                              }
-                                            }
-                                            return (
-                                              <div className="flex gap-2 items-center">
-                                                <Input
-                                                  type="number"
-                                                  min={0}
-                                                  placeholder="Years"
-                                                  value={years}
-                                                  onChange={e => {
-                                                    const y = e.target.value;
-                                                    field.onChange(`${y || 0} years ${months || 0} months`);
-                                                  }}
-                                                  className="w-20"
-                                                />
-                                                <span>years</span>
-                                                <Input
-                                                  type="number"
-                                                  min={0}
-                                                  max={11}
-                                                  placeholder="Months"
-                                                  value={months}
-                                                  onChange={e => {
-                                                    const m = e.target.value;
-                                                    field.onChange(`${years || 0} years ${m || 0} months`);
-                                                  }}
-                                                  className="w-20"
-                                                />
-                                                <span>months</span>
-                                              </div>
-                                            );
-                                          }}
-                                        />
                                         <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -1459,7 +1484,11 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="relative pl-8">
+                            <div className="relative">
+                              <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
+                              {(education ?? []).length === 0 && (
+                                <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
+                              )}
                               {(education ?? []).map((edu, index) => {
                                 if (typeof edu === 'string') {
                                   return (
@@ -1468,7 +1497,6 @@ export default function CandidateDetailPage() {
                                       <div className="ml-6 p-3 border rounded-md bg-muted w-full">
                                         {renderField("Education", edu)}
                                       </div>
-                                      {index < (education ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                     </div>
                                   );
                                 } else {
@@ -1479,14 +1507,13 @@ export default function CandidateDetailPage() {
                                         <div className="font-semibold text-primary flex items-center gap-2">
                                           <CalendarDays className="h-4 w-4" /> {edu.period}
                                         </div>
-                                        <div className="text-xs text-muted-foreground mb-1">{edu.duration}</div>
+                                        <div className="text-xs text-muted-foreground mb-1">{calculateDuration(edu.period)}</div>
                                         {renderField("University", edu.university)}
                                         {renderField("Major", edu.major)}
                                         {renderField("Field", edu.field)}
                                         {renderField("Campus", edu.campus)}
                                         {renderField("GPA", edu.GPA)}
                                       </div>
-                                      {index < (education ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                     </div>
                                   );
                                 }
@@ -1596,7 +1623,11 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="relative pl-8">
+                            <div className="relative">
+                              <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
+                              {(experience ?? []).length === 0 && (
+                                <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
+                              )}
                               {(experience ?? []).map((exp, index) => (
                                 <div key={`exp-${index}-${exp.company || index}`} className="mb-8 flex items-start relative">
                                   <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-white z-10" />
@@ -1604,7 +1635,7 @@ export default function CandidateDetailPage() {
                                     <div className="font-semibold text-primary flex items-center gap-2">
                                       <CalendarDays className="h-4 w-4" /> {exp.period}
                                     </div>
-                                    <div className="text-xs text-muted-foreground mb-1">{exp.duration}</div>
+                                    <div className="text-xs text-muted-foreground mb-1">{calculateDuration(exp.period)}</div>
                                     {renderField("Company", exp.company)}
                                     {renderField("Position", exp.position)}
                                     {renderField("Level", String(exp.postition_level))}
@@ -1616,7 +1647,6 @@ export default function CandidateDetailPage() {
                                       </div>
                                     )}
                                   </div>
-                                  {index < (experience ?? []).length - 1 && <span className="absolute left-2 top-6 w-0.5 h-full bg-primary/30 z-0" />}
                                 </div>
                               ))}
                             </div>

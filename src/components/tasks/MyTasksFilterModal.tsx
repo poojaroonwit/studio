@@ -40,12 +40,12 @@ export function MyTasksFilterModal({ filters, availablePositions, availableStage
       <div className="space-y-2">
         <Label>Position</Label>
         <Select
-          value={localFilters.positionId || ''}
-          onValueChange={val => setLocalFilters({ ...localFilters, positionId: val })}
+          value={localFilters.positionId || "all"}
+          onValueChange={val => setLocalFilters({ ...localFilters, positionId: val === "all" ? undefined : val })}
         >
           <SelectTrigger><SelectValue placeholder="All positions" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             {availablePositions.map((pos: any) => (
               <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
             ))}
@@ -55,12 +55,12 @@ export function MyTasksFilterModal({ filters, availablePositions, availableStage
       <div className="space-y-2">
         <Label>Stage</Label>
         <Select
-          value={localFilters.stage || ''}
-          onValueChange={val => setLocalFilters({ ...localFilters, stage: val })}
+          value={localFilters.stage || "all"}
+          onValueChange={val => setLocalFilters({ ...localFilters, stage: val === "all" ? undefined : val })}
         >
           <SelectTrigger><SelectValue placeholder="All stages" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             {availableStages.map((stage: any) => (
               <SelectItem key={stage} value={stage}>{stage}</SelectItem>
             ))}
@@ -70,12 +70,12 @@ export function MyTasksFilterModal({ filters, availablePositions, availableStage
       <div className="space-y-2">
         <Label>Recruiter</Label>
         <Select
-          value={localFilters.recruiterId || ''}
-          onValueChange={val => setLocalFilters({ ...localFilters, recruiterId: val })}
+          value={localFilters.recruiterId || "all"}
+          onValueChange={val => setLocalFilters({ ...localFilters, recruiterId: val === "all" ? undefined : val })}
         >
           <SelectTrigger><SelectValue placeholder="All recruiters" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             {availableRecruiters.map((rec: any) => (
               <SelectItem key={rec.id} value={rec.id}>{rec.name}</SelectItem>
             ))}

@@ -160,6 +160,9 @@ export function MyTasksPageClient({
          // If no initial data and no error, we should still stop loading after a reasonable time
          const timeout = setTimeout(() => {
            setIsLoading(false);
+           if (candidates.length === 0 && !fetchError && !authError && !permissionError) {
+             console.warn('No candidates loaded after timeout. Forcing empty state.');
+           }
          }, 5000); // 5 second timeout
          
          return () => clearTimeout(timeout);
@@ -226,28 +229,41 @@ export function MyTasksPageClient({
     }
   }, [initialFetchError]);
 
-  if (sessionStatus === 'loading' || (isLoading && !fetchError && !authError && !permissionError && !pathname.startsWith('/auth/signin'))) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (authError) {
-     return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view this page.</p> <Button onClick={() => signIn(undefined, { callbackUrl: pathname })} className="btn-primary-gradient">Sign In</Button> </div> );
-  }
-  if (permissionError) {
-     return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{typeof fetchError === 'object' ? JSON.stringify(fetchError) : fetchError}</p> <Button onClick={() => router.push('/')} className="btn-primary-gradient">Go to Dashboard</Button> </div> );
-  }
+  // Add error boundary for render failures
+  try {
+    if (sessionStatus === 'loading' || (isLoading && !fetchError && !authError && !permissionError && !pathname.startsWith('/auth/signin'))) {
+      return (
+        <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      );
+    }
+    
+    if (authError) {
+       return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view this page.</p> <Button onClick={() => signIn(undefined, { callbackUrl: pathname })} className="btn-primary-gradient">Sign In</Button> </div> );
+    }
+    if (permissionError) {
+       return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{typeof fetchError === 'object' ? JSON.stringify(fetchError) : fetchError}</p> <Button onClick={() => router.push('/')} className="btn-primary-gradient">Go to Dashboard</Button> </div> );
+    }
 
-  if (fetchError && !isLoading) {
+    if (fetchError && !isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+          <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+          <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Tasks</h2>
+          <p className="text-muted-foreground mb-4 max-w-md">{typeof fetchError === 'object' ? JSON.stringify(fetchError) : fetchError}</p>
+          <Button onClick={() => fetchTaskBoardCandidates(standardFilters, selectedRecruiterFilter)} className="btn-hover-primary-gradient">Try Again</Button>
+        </div>
+      );
+    }
+  } catch (err) {
+    // Log render errors
+    console.error('Render error in MyTasksPageClient:', err);
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Tasks</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{typeof fetchError === 'object' ? JSON.stringify(fetchError) : fetchError}</p>
-        <Button onClick={() => fetchTaskBoardCandidates(standardFilters, selectedRecruiterFilter)} className="btn-hover-primary-gradient">Try Again</Button>
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Unexpected Error</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">{err instanceof Error ? err.message : String(err)}</p>
       </div>
     );
   }

@@ -226,9 +226,9 @@ export default function PreferencesSettingsPage() {
   const handleSavePreferences = async () => {
     setIsSaving(true);
     const body = {
-      appName,
-      themePreference,
-      appLogoDataUrl: logoPreviewUrl || '',
+      appName: appName || DEFAULT_APP_NAME,
+      themePreference: themePreference || 'system',
+      appLogoDataUrl: logoPreviewUrl || savedLogoDataUrl || '',
       sidebarActiveStylePreference: sidebarActiveStyle,
       sidebarColors: sidebarColors,
       loginBackgroundDataUrl: loginBgPreviewUrl || '',

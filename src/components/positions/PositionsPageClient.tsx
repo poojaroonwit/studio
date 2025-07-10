@@ -73,8 +73,8 @@ export default function PositionsPageClient() {
 
   // Filter positions
   const filteredPositions = positions.filter(position => {
-    const matchesSearch = position.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         position.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (position.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (position.department || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'open' && position.isOpen) ||
                          (statusFilter === 'closed' && !position.isOpen);
@@ -84,7 +84,7 @@ export default function PositionsPageClient() {
   });
 
   // Get unique departments for filter
-  const departments = Array.from(new Set(positions.map(p => p.department))).sort();
+  const departments = Array.from(new Set(positions.map(p => p.department || ""))).sort();
 
   // Handle add position
   const handleAddPosition = async (formData: AddPositionFormValues) => {

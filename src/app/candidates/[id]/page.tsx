@@ -262,7 +262,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded transition-colors relative z-10
+                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-colors relative z-10
                     ${isCurrent 
                       ? 'bg-secondary border-grey-900 font-bold' 
                       : isCompleted 
@@ -733,7 +733,16 @@ export default function CandidateDetailPage() {
       const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recruiterId: newRecruiterId }),
+        body: JSON.stringify({
+          name: candidate.name,
+          email: candidate.email,
+          phone: candidate.phone,
+          positionId: candidate.positionId,
+          recruiterId: newRecruiterId,
+          fitScore: candidate.fitScore,
+          status: candidate.status,
+          parsedData: candidate.parsedData,
+        }),
       });
       if (!response.ok) {
         throw new Error(`Failed to assign recruiter: ${response.statusText}`);
@@ -1028,9 +1037,37 @@ export default function CandidateDetailPage() {
           </div>
         </div>
         <form onSubmit={handleSubmit(handleSaveDetails)}>
-          <div className="grid grid-cols-1 lg:grid-cols-10 border-t border-t-gray-300 bg-card overflow-hidden">
-            {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
+          <div className="grid grid-cols-1 lg:grid-cols-10 border-t  bg-card overflow-hidden">
+            {/* LEFT SIDEBAR: Assigned Recruiter + Stage Pipeline (20%) */}
             <div className="lg:col-span-2 bg-card sticky top-6  p-6">
+              {candidate && (
+                <div className="mb-6">
+                  <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
+                  {recruiters.length > 0 ? (
+                    <Select
+                      value={candidate.recruiterId || "___UNASSIGN___"}
+                      onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
+                      disabled={isAssigningRecruiter}
+                    >
+                      <SelectTrigger
+                        className="w-72 border-2 border-primary rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
+                        style={{ minHeight: 44 }}
+                      >
+                        <Users className="h-5 w-5 text-primary mr-2" />
+                        <SelectValue placeholder="Assign a recruiter..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
+                        {recruiters.map(r => (
+                          <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-muted-foreground">No recruiters available to assign.</span>
+                  )}
+                </div>
+              )}
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <div className="mb-4">
@@ -1501,33 +1538,6 @@ export default function CandidateDetailPage() {
 
         {candidate && (
           <>
-            {/* Assigned Recruiter - now styled as a button-like select and placed above pipeline stage */}
-            <div className="mb-6">
-              <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
-              {recruiters.length > 0 ? (
-                <Select
-                  value={candidate.recruiterId || "___UNASSIGN___"}
-                  onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
-                  disabled={isAssigningRecruiter}
-                >
-                  <SelectTrigger
-                    className="w-72 border-2 border-primary rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
-                    style={{ minHeight: 44 }}
-                  >
-                    <Users className="h-5 w-5 text-primary mr-2" />
-                    <SelectValue placeholder="Assign a recruiter..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                    {recruiters.map(r => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <span className="text-muted-foreground">No recruiters available to assign.</span>
-              )}
-            </div>
             {/* Pipeline Stage/Transitions Modal */}
             <ManageTransitionsModal
                 candidate={candidate}

@@ -213,7 +213,7 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const candidatesQuery = `
-      SELECT c.*, p.title as "positionTitle", r.name as "recruiterName"
+      SELECT c.*, p.title as "positionTitle", r.id as "recruiterId", r.name as "recruiterName"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
       ...row,
       custom_attributes: row.customAttributes || {}, // Note: column name is customAttributes in DB
       position: row.positionId ? { title: row.positionTitle } : null,
-      recruiter: row.recruiterId ? { name: row.recruiterName } : null,
+      recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName } : null,
     }));
     return NextResponse.json({
       data: candidates,

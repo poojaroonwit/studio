@@ -264,7 +264,7 @@ export default function PositionsPageClient() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Departments</SelectItem>
-              {departments.map(dept => (
+              {departments.filter(Boolean).map(dept => (
                 <SelectItem key={dept} value={dept}>{dept}</SelectItem>
               ))}
             </SelectContent>

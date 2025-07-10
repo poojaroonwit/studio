@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CandidateDetailModal } from './CandidateDetailModal';
 
 interface CandidateTableProps {
   candidates: Candidate[];
@@ -98,6 +99,8 @@ export function CandidateTable({
   // Add state for comments and logs
   const [modalComments, setModalComments] = useState<any[]>([]);
   const [modalLogs, setModalLogs] = useState<any[]>([]);
+  const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Helper to combine and sort activities
   const getCombinedActivities = () => {
@@ -149,6 +152,23 @@ export function CandidateTable({
       onDeleteCandidate(candidateToDelete.id);
       setCandidateToDelete(null);
     }
+  };
+
+  // Add a handler for row click
+  const handleRowClick = (candidate: Candidate, e: React.MouseEvent) => {
+    // Prevent opening modal if clicking on a button, link, or checkbox
+    if ((e.target as HTMLElement).closest('button, a, input, [role="checkbox"])')) return;
+    setSelectedCandidateSummary({
+      id: candidate.id,
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone,
+      status: candidate.status,
+      position: candidate.position,
+      fitScore: candidate.fitScore,
+      parsedData: candidate.parsedData
+    });
+    setIsDetailModalOpen(true);
   };
 
 
@@ -203,7 +223,7 @@ export function CandidateTable({
               }
 
               return (
-                <TableRow key={candidate.id} className="hover:bg-muted/50 transition-colors" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                   <TableCell><Checkbox
                       checked={selectedCandidateIds.has(candidate.id)}
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
@@ -345,6 +365,13 @@ export function CandidateTable({
             const logsData = await logsRes.json();
             setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
           }}
+        />
+      )}
+      {selectedCandidateSummary && (
+        <CandidateDetailModal
+          isOpen={isDetailModalOpen}
+          onOpenChange={setIsDetailModalOpen}
+          candidateSummary={selectedCandidateSummary}
         />
       )}
       <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>

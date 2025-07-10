@@ -7,7 +7,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Candidate, UserProfile, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
-import { CandidateKanbanView } from '@/components/candidates/CandidateKanbanView';
+import { CandidateKanbanView, CandidateRowKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ServerCrash, ShieldAlert, ListTodo, Users, Filter, LayoutGrid, List, Search, FilterX, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -24,7 +24,6 @@ import { toast } from "react-hot-toast";
 const ALL_CANDIDATES_ADMIN_VALUE = "ALL_CANDIDATES_ADMIN";
 const MY_ASSIGNED_VALUE = "me";
 
-
 interface MyTasksPageClientProps {
   initialCandidates: Candidate[];
   initialPositions: Position[];
@@ -33,6 +32,26 @@ interface MyTasksPageClientProps {
   authError?: boolean;
   permissionError?: boolean;
   initialFetchError?: string;
+}
+
+// Summary bar component
+function MyTasksSummaryBar({ candidates, statuses }: { candidates: Candidate[], statuses: string[] }) {
+  const total = candidates.length;
+  const byStatus = statuses.map(status => ({
+    status,
+    count: candidates.filter(c => c.status === status).length
+  }));
+  return (
+    <div className="flex flex-wrap gap-4 items-center mb-4 p-3 bg-muted rounded-lg border">
+      <span className="font-semibold text-lg">Total: {total}</span>
+      {byStatus.map(s => (
+        <span key={s.status} className="text-sm px-3 py-1 rounded-full bg-card border font-medium flex items-center gap-1">
+          <span className="capitalize">{s.status}</span>
+          <span className="ml-1 text-xs text-muted-foreground">{s.count}</span>
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function MyTasksPageClient({
@@ -321,6 +340,8 @@ export function MyTasksPageClient({
       {/* Main Content */}
       <div className="flex-1 space-y-6 min-w-0 p-6">
 
+        <MyTasksSummaryBar candidates={displayedCandidates} statuses={availableStages.map(s => s.name)} />
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle className="flex items-center">
@@ -393,7 +414,27 @@ export function MyTasksPageClient({
                 isAllCandidatesSelected={false}
                 />
             ) : (
-                <CandidateKanbanView candidates={displayedCandidates} statuses={availableStages.map(s => s.name)} />
+                <CandidateRowKanbanView 
+                  candidates={displayedCandidates} 
+                  statuses={availableStages.map(s => s.name)}
+                  onMoveCandidate={async (candidate, newStatus) => {
+                    try {
+                      const response = await fetch(`/api/candidates/${candidate.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: newStatus, recruiterId: candidate.recruiterId }),
+                      });
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ message: 'Failed to update status' }));
+                        throw new Error(errorData.message || 'Failed to update status');
+                      }
+                      toast.success(`Candidate moved to "${newStatus}"`);
+                      await fetchTaskBoardCandidates(standardFilters, selectedRecruiterFilter);
+                    } catch (error) {
+                      toast.error((error instanceof Error ? error.message : String(error)) || 'Failed to update status');
+                    }
+                  }}
+                />
             )}
         
       </div>

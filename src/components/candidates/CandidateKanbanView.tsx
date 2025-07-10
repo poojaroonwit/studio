@@ -162,3 +162,113 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: C
     </div>
   );
 }
+
+// New: Row-based Kanban (stages as rows, candidates as draggable cards)
+export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate }: CandidateKanbanViewProps) {
+  const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<CandidateStatus | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
+
+  const candidatesByStatus = statuses.reduce((acc, status) => {
+    acc[status] = candidates.filter(c => c.status === status);
+    return acc;
+  }, {} as Record<CandidateStatus, Candidate[]>);
+
+  // Drag and drop handlers
+  const handleDragStart = (candidate: Candidate) => {
+    setDraggedCandidate(candidate);
+  };
+  const handleDragEnd = () => {
+    setDraggedCandidate(null);
+    setDragOverStatus(null);
+  };
+  const handleDragOver = (status: CandidateStatus, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverStatus(status);
+  };
+  const handleDrop = (status: CandidateStatus) => {
+    if (draggedCandidate && draggedCandidate.status !== status) {
+      onMoveCandidate?.(draggedCandidate, status);
+    }
+    setDraggedCandidate(null);
+    setDragOverStatus(null);
+  };
+
+  const handleCardClick = (candidate: Candidate) => {
+    setSelectedCandidateSummary({
+      id: candidate.id,
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone,
+      status: candidate.status,
+      position: candidate.position,
+      fitScore: candidate.fitScore,
+      parsedData: candidate.parsedData
+    });
+    setIsModalOpen(true);
+  };
+
+  return (
+    <>
+      <div className="w-full min-h-[400px] bg-background rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+        <div className="grid grid-cols-1 gap-4">
+          {statuses.map(status => (
+            <div
+              key={status}
+              className={`flex flex-row items-center gap-4 transition-all border rounded-lg p-3 bg-card ${dragOverStatus === status ? 'ring-2 ring-primary/60 bg-accent/60' : ''}`}
+              onDragOver={e => handleDragOver(status, e)}
+              onDrop={() => handleDrop(status)}
+            >
+              <div className="w-40 flex-shrink-0 flex flex-col items-center">
+                <span className="font-semibold text-base capitalize">{status}</span>
+                <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5 mt-1">{candidatesByStatus[status]?.length || 0}</span>
+              </div>
+              <div className="flex-1 flex flex-row flex-wrap gap-3 min-h-[60px]">
+                {candidatesByStatus[status]?.length > 0 ? (
+                  candidatesByStatus[status].map(candidate => (
+                    <div
+                      key={candidate.id}
+                      className={`cursor-pointer group w-64 max-w-xs ${draggedCandidate?.id === candidate.id ? 'opacity-60' : ''}`}
+                      draggable
+                      onDragStart={() => handleDragStart(candidate)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => handleCardClick(candidate)}
+                    >
+                      <Card className="p-3 hover:shadow-lg transition-shadow bg-card flex flex-col gap-2 relative">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
+                            <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate" title={candidate.name}>{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground truncate" title={candidate.position?.title || 'N/A'}>{candidate.position?.title || 'N/A'}</p>
+                          </div>
+                        </div>
+                        {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                          <p className="text-xs text-muted-foreground mt-1.5">Fit Score: <span className={`font-semibold ${getScoreColor(candidate.fitScore)}`}>{formatScoreWithGrade(candidate.fitScore)}</span></p>
+                        )}
+                      </Card>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center justify-center h-full min-h-[60px]">
+                    <p className="text-sm text-muted-foreground text-center py-4">No candidates here.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {selectedCandidateSummary && (
+        <CandidateDetailModal
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          candidateSummary={selectedCandidateSummary}
+        />
+      )}
+    </>
+  );
+}

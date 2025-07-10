@@ -68,7 +68,7 @@ async function main() {
     for (const stage of stages) {
       await prisma.recruitmentStage.upsert({
         where: { name: stage.name },
-        update: {},
+        update: { color_complete: stage.color_complete, color_badge: stage.color_badge },
         create: stage
       });
     }

@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
           if (candidate.status !== newStatus) {
             await client.query(
               'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-              [uuidv4(), candidate.id, newStatus, transitionNotes || `Bulk status change from ${candidate.status} to ${newStatus}`, actingUserId]
+              [uuidv4(), candidate.id, newStatus, transitionNotes || `status change from ${candidate.status} to ${newStatus}`, actingUserId]
             );
           }
         }

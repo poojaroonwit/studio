@@ -39,6 +39,7 @@ interface CandidatesPageClientProps {
   authError?: boolean;
   permissionError?: boolean;
   initialFetchError?: string; // Added for server-side errors
+  initialFilters?: CandidateFilterValues;
 }
 
 function downloadFile(content: string, filename: string, contentType: string) {
@@ -61,13 +62,16 @@ export function CandidatesPageClient({
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
   initialFetchError,
+  initialFilters,
 }: CandidatesPageClientProps) {
-  const [filters, setFilters] = useState<CandidateFilterValues>({ 
-    minFitScore: 0, 
-    maxFitScore: 100, 
-    selectedPositionIds: [], 
-    selectedStatuses: [] 
-  });
+  const [filters, setFilters] = useState<CandidateFilterValues>(
+    initialFilters || {
+      minFitScore: 0,
+      maxFitScore: 100,
+      selectedPositionIds: [],
+      selectedStatuses: []
+    }
+  );
 
   const safeInitialCandidates = Array.isArray(initialCandidates) ? initialCandidates : [];
   const safeInitialAvailablePositions = Array.isArray(initialAvailablePositions) ? initialAvailablePositions : [];

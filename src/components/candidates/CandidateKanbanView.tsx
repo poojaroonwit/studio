@@ -17,9 +17,10 @@ interface CandidateKanbanViewProps {
   statuses: CandidateStatus[];
   onMoveCandidate?: (candidate: Candidate, newStatus: CandidateStatus) => void;
   onCardClick?: (candidate: Candidate) => void;
+  showAddButton?: boolean;
 }
 
-export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick }: CandidateKanbanViewProps) {
+export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, showAddButton = true }: CandidateKanbanViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
@@ -101,13 +102,15 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                 <CardTitle className="text-base sm:text-lg capitalize">{status}</CardTitle>
                 <span className="text-xs font-semibold text-muted-foreground bg-muted rounded px-2 py-0.5">{candidatesByStatus[status]?.length || 0}</span>
               </div>
-              <button
-                className="ml-auto flex items-center gap-1 text-primary hover:text-primary/80 text-xs font-medium px-2 py-1 rounded hover:bg-accent transition"
-                onClick={() => setAddingStatus(status)}
-                title={`Add card to ${status}`}
-              >
-                <Plus className="w-4 h-4" /> Add
-              </button>
+              {showAddButton && (
+                <button
+                  className="ml-auto flex items-center gap-1 text-primary hover:text-primary/80 text-xs font-medium px-2 py-1 rounded hover:bg-accent transition"
+                  onClick={() => setAddingStatus(status)}
+                  title={`Add card to ${status}`}
+                >
+                  <Plus className="w-4 h-4" /> Add
+                </button>
+              )}
             </CardHeader>
             <ScrollArea className="flex-grow max-h-[60vh]">
               <CardContent className="p-3 sm:p-4 space-y-3 min-h-[150px]">

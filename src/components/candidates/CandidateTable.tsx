@@ -158,7 +158,7 @@ export function CandidateTable({
   // Add a handler for row click
   const handleRowClick = (candidate: Candidate, e: React.MouseEvent) => {
     // Prevent opening modal if clicking on a button, link, or checkbox
-    if ((e.target as HTMLElement).closest('button, a, input, [role="checkbox"])')) return;
+    if ((e.target as HTMLElement).closest('button, a, input, [role="checkbox"]')) return;
     setSelectedCandidateSummary({
       id: candidate.id,
       name: candidate.name,
@@ -205,8 +205,7 @@ export function CandidateTable({
                 onCheckedChange={onToggleSelectAllCandidates}
                 aria-label="Select all candidates"
               /></TableHead>
-              {/* Add new column for stage pipeline */}
-              <TableHead className="w-48">Pipeline</TableHead>
+              {/* Removed Pipeline column header */}
               <TableHead className="w-[250px]">Candidate</TableHead>
               <TableHead>Applied Job</TableHead>
               <TableHead>Recruiter</TableHead>
@@ -247,27 +246,7 @@ export function CandidateTable({
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                       aria-label={`Select candidate ${candidate.name}`}
                     /></TableCell>
-                  {/* Render the stage pipeline */}
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {availableStages.map((stage, idx) => {
-                        const isCompleted = idx <= currentStageIndex;
-                        return (
-                          <div
-                            key={stage.id}
-                            className={cn(
-                              'w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-xs font-bold',
-                              isCompleted ? '' : 'bg-gray-200 text-gray-400',
-                            )}
-                            style={isCompleted && stage.color_complete ? { backgroundColor: stage.color_complete, color: '#fff', borderColor: stage.color_complete } : {}}
-                            title={stage.name}
-                          >
-                            {idx + 1}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </TableCell>
+                  {/* Removed Pipeline cell */}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">

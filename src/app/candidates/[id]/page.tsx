@@ -289,8 +289,8 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                           : '')
                       : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
                     style={
-                      isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
-                        ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff' }
+                      isCompleted && !stage.name.toLowerCase().includes('reject')
+                        ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
                         : undefined
                     }
                   >
@@ -414,6 +414,7 @@ export default function CandidateDetailPage() {
   const [resumes, setResumes] = useState<any[]>([]);
   // Add state for attachments
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -912,6 +913,35 @@ export default function CandidateDetailPage() {
   const [skillsOpen, setSkillsOpen] = useState(true);
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
 
+  // Fetch transition records from logs endpoint
+  const fetchTransitionHistory = useCallback(async () => {
+    if (!candidateId) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/logs`);
+      if (!res.ok) throw new Error('Failed to fetch candidate logs');
+      const data = await res.json();
+      // Only keep stage change records
+      const transitions = Array.isArray(data.data)
+        ? data.data.filter((log: any) => log.action === 'Stage changed')
+        : [];
+      // Map to TransitionRecord shape if needed
+      setTransitionHistory(transitions.map((tr: any) => ({
+        id: tr.id,
+        candidateId: candidateId,
+        date: tr.time,
+        stage: tr.stage,
+        notes: tr.note,
+        actingUserName: tr.user,
+      })));
+    } catch (error) {
+      setTransitionHistory([]);
+    }
+  }, [candidateId]);
+
+  useEffect(() => {
+    fetchTransitionHistory();
+  }, [candidateId, fetchTransitionHistory]);
+
   if (isLoading && !fetchError) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
@@ -1106,7 +1136,7 @@ export default function CandidateDetailPage() {
                   </div>
                   <StagePipeline
                     stages={availableStages}
-                    transitionHistory={candidate.transitionHistory || []}
+                    transitionHistory={transitionHistory}
                     currentStatus={candidate.status}
                     onStageClick={(stageName) => {
                       setPreselectedStage(stageName);
@@ -1120,6 +1150,7 @@ export default function CandidateDetailPage() {
                         body: JSON.stringify({ notes: newNote }),
                       });
                       await fetchCandidateDetails();
+                      await fetchTransitionHistory();
                     }}
                   />
                 </div>

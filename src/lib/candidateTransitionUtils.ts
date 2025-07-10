@@ -19,7 +19,7 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
       body: JSON.stringify(payload),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || 'Bulk status update failed');
+    if (!response.ok) throw new Error(result.message || 'status update failed');
     toast.success(`${result.successCount || candidateIds.length} candidate(s) updated. ${result.failCount > 0 ? `${result.failCount} failed.` : ''}`);
     return result;
   } catch (error: any) {

@@ -8,7 +8,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
 import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
+import { ManageTransitionsModal } from './ManageTransitionsModal';
 
 
 interface CandidatesPageClientProps {
@@ -115,6 +116,10 @@ export function CandidatesPageClient({
 
   // Collapsible sidebar state
   const [showFilters, setShowFilters] = useState(true);
+
+  const [isManageTransitionsModalOpen, setIsManageTransitionsModalOpen] = useState(false);
+  const [selectedCandidateForManualMove, setSelectedCandidateForManualMove] = useState<Candidate | null>(null);
+  const [modalComments, setModalComments] = useState<any[]>([]);
 
   const fetchRecruiters = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
@@ -684,6 +689,29 @@ export function CandidatesPageClient({
     };
   }, [filters, page, pageSize, fetchPaginatedCandidates]);
 
+  // Handler to open manual move modal
+  const handleOpenManualMove = async () => {
+    if (displayedCandidates.length === 0) return;
+    // Default to first candidate in the list
+    const candidate = displayedCandidates[0];
+    setSelectedCandidateForManualMove(candidate);
+    setIsManageTransitionsModalOpen(true);
+    // Fetch comments for the candidate
+    const commentsRes = await fetch(`/api/candidates/${candidate.id}/comments`);
+    const commentsData = await commentsRes.json();
+    setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+  };
+  // Handler for candidate selection change in modal
+  const handleManualMoveCandidateChange = async (candidateId: string) => {
+    const candidate = displayedCandidates.find(c => c.id === candidateId) || null;
+    setSelectedCandidateForManualMove(candidate);
+    if (candidate) {
+      const commentsRes = await fetch(`/api/candidates/${candidate.id}/comments`);
+      const commentsData = await commentsRes.json();
+      setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+    }
+  };
+
   if (sessionStatus === 'loading') {
     // Show a loading spinner while session is being established
     return (
@@ -800,6 +828,11 @@ export function CandidatesPageClient({
                 <DropdownMenuContent align="end">
                   {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
                   {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
+                  {displayedCandidates.length > 0 && (
+                    <DropdownMenuItem onSelect={handleOpenManualMove}>
+                      <Briefcase className="mr-2 h-4 w-4" /> Manual Move
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -910,6 +943,43 @@ export function CandidatesPageClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Manual Move Modal */}
+      {isManageTransitionsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded shadow-lg p-6 min-w-[320px]">
+            <Label htmlFor="manual-move-candidate">Select Candidate</Label>
+            <select
+              id="manual-move-candidate"
+              className="block w-full border rounded p-2 mt-1 mb-4"
+              value={selectedCandidateForManualMove?.id || ''}
+              onChange={e => handleManualMoveCandidateChange(e.target.value)}
+            >
+              {displayedCandidates.map(c => (
+                <option key={c.id} value={c.id}>{c.name} ({c.status})</option>
+              ))}
+            </select>
+            <Button variant="outline" onClick={() => setIsManageTransitionsModalOpen(false)} className="mr-2">Cancel</Button>
+          </div>
+        </div>
+      )}
+      <ManageTransitionsModal
+        candidate={selectedCandidateForManualMove}
+        isOpen={isManageTransitionsModalOpen}
+        onOpenChange={setIsManageTransitionsModalOpen}
+        onUpdateCandidate={handleUpdateCandidateAPI}
+        onRefreshCandidateData={refreshCandidateInList}
+        availableStages={availableStages}
+        preselectedStage={selectedCandidateForManualMove?.status}
+        comments={modalComments}
+        onCommentsChange={async () => {
+          if (selectedCandidateForManualMove) {
+            const commentsRes = await fetch(`/api/candidates/${selectedCandidateForManualMove.id}/comments`);
+            const commentsData = await commentsRes.json();
+            setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+          }
+        }}
+      />
     </div>
   );
 }

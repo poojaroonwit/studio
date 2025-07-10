@@ -104,7 +104,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: C
                 <Plus className="w-4 h-4" /> Add
               </button>
             </CardHeader>
-            <ScrollArea className="flex-grow">
+            <ScrollArea className="flex-grow max-h-[60vh]">
               <CardContent className="p-3 sm:p-4 space-y-3 min-h-[150px]">
                 {candidatesByStatus[status]?.length > 0 ? (
                   candidatesByStatus[status].map(candidate => (

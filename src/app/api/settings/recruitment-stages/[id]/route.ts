@@ -12,6 +12,7 @@ const updateRecruitmentStageSchema = z.object({
   name: z.string().min(1, 'Stage name cannot be empty.').optional(),
   description: z.string().optional().nullable(),
   sort_order: z.number().int().optional(),
+  color: z.string().optional().nullable(), // Add color field
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT * FROM "RecruitmentStage" WHERE id = $1', [id]);
+        const result = await client.query('SELECT id, name, description, sort_order, color FROM "RecruitmentStage" WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }

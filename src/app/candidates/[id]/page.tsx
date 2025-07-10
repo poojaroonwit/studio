@@ -250,13 +250,12 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
         const latestDate = latestRecord && latestRecord.date ? new Date(latestRecord.date).toLocaleString() : null;
         return (
           <div key={stage.id} className="relative flex items-start"
-            onMouseEnter={() => setHoveredIdx(idx)}
-            onMouseLeave={() => setHoveredIdx(null)}
+            // Remove onMouseEnter/onMouseLeave from container
           >
             {/* Vertical line for workflow, except after last node */}
             {idx < stages.length - 1 && (
               <div className="absolute top-4 w-px h-full z-0" style={{height: 'calc(100% - 0rem)',width: 'calc(2.75rem)'}}>
-                <div className="w-px h-full bg-gray-300 mx-auto" style={{background: isCompleted ? '#22c55e' : '#d1d5db'}} />
+                <div className="w-px h-full bg-gray-300 mx-auto" style={{background: isCompleted ? (stage.name.toLowerCase().includes('reject') ? '#ef4444' : (stage.color_complete || '#22c55e')) : '#d1d5db'}} />
               </div>
             )}
             <Popover open={openPopoverIdx === idx}>
@@ -267,18 +266,33 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                     ${isCurrent 
                       ? 'bg-secondary border-grey-900 font-bold' 
                       : isCompleted 
-                        ? 'bg-green-500/30 border-l-4 border-green-700 font-bold text-green-900 shadow-green-400 shadow-lg' 
+                        ? (stage.name.toLowerCase().includes('reject')
+                            ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
+                            : '')
                         : 'bg-muted/10 text-muted-foreground'}
                   `}
+                  style={
+                    isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
+                      ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff', fontWeight: 'bold', boxShadow: `${stage.color_complete}80 0px 2px 8px 0px` }
+                      : undefined
+                  }
                   onClick={() => {
                     if (!isCompleted) onStageClick(stage.name);
                   }}
-                  onMouseEnter={() => setOpenPopoverIdx(idx)}
-                  onMouseLeave={() => setOpenPopoverIdx(null)}
+                  // Remove tooltip hover from button
                 >
                   {/* Node circle with checkmark if completed */}
                   <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all
-                    ${isCompleted ? 'bg-green-500 border-green-600 text-white' : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
+                    ${isCompleted
+                      ? (stage.name.toLowerCase().includes('reject')
+                          ? 'bg-red-500 border-red-600 text-white'
+                          : '')
+                      : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
+                    style={
+                      isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
+                        ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff' }
+                        : undefined
+                    }
                   >
                     {isCompleted ? (
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -287,7 +301,6 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                     )}
                   </div>
                   <span>{stage.name}</span>
-                  
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80" align="start" sideOffset={4} onMouseEnter={() => setOpenPopoverIdx(idx)} onMouseLeave={() => setOpenPopoverIdx(null)}>
@@ -329,12 +342,25 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 )}
               </PopoverContent>
             </Popover>
-            {/* Custom tooltip for latest note, user, and date */}
-            {hoveredIdx === idx && latestNote && (
-              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[180px]">
-                <div className="mb-1 font-semibold">Note:</div>
-                <div className="mb-1">{latestNote}</div>
-                <div className="text-[10px] text-gray-300">By: {latestUser}{latestDate ? ` | ${latestDate}` : ''}</div>
+            {/* Hover zone for tooltip to the right of the button */}
+            <div
+              className="absolute left-full top-0 h-full w-8"
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{ cursor: 'pointer' }}
+            />
+            {/* Tooltip only appears when hovering the hover zone, not the button */}
+            {hoveredIdx === idx && records.length > 0 && (
+              <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[220px] max-h-64 overflow-y-auto">
+                <div className="mb-1 font-semibold">Stage Notes</div>
+                <ul className="space-y-2">
+                  {records.map((record, i) => (
+                    <li key={record.id} className="border-b border-gray-700 pb-1 last:border-b-0 last:pb-0">
+                      <div className="mb-0.5">{record.notes || <span className='italic text-gray-300'>No note</span>}</div>
+                      <div className="text-[10px] text-gray-300">By: {record.actingUserName || 'Unknown'}{record.date ? ` | ${new Date(record.date).toLocaleString()}` : ''}</div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -1483,15 +1509,15 @@ export default function CandidateDetailPage() {
               ) : recruiters.length > 0 ? (
                 <div className="flex items-center gap-2">
                   <Select
-                    value={candidate.recruiterId || ''}
-                    onValueChange={value => handleAssignRecruiter(value === '' ? null : value)}
+                    value={candidate.recruiterId || "___UNASSIGN___"}
+                    onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
                     disabled={isAssigningRecruiter}
                   >
                     <SelectTrigger className="w-64">
                       <SelectValue placeholder="Assign a recruiter..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
                       {recruiters.map(r => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}

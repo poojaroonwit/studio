@@ -258,9 +258,19 @@ export function CandidateTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(candidate.status)} className="capitalize">
-                      {candidate.status}
-                    </Badge>
+                    {(() => {
+                      const stage = availableStages.find(s => s.name === candidate.status);
+                      const badgeColor = stage?.color_badge;
+                      return (
+                        <Badge
+                          variant={getStatusBadgeVariant(candidate.status)}
+                          className="capitalize"
+                          style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
+                        >
+                          {candidate.status}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
                     {displayDate}

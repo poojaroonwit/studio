@@ -98,6 +98,8 @@ export interface RecruitmentStage {
   sort_order?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  color_complete?: string | null; // Custom color for completed stage node
+  color_badge?: string | null; // Custom color for badge on candidate list
 }
 
 export interface TransitionRecord {

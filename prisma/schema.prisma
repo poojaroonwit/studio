@@ -110,7 +110,8 @@ model RecruitmentStage {
   description String?
   isSystem    Boolean  @map("is_system")
   sortOrder   Int      @map("sort_order")
-  
+  color_complete String?  // HEX or CSS color for completed stage node
+  color_badge String?  // HEX or CSS color for badge on candidate list
   // Indexes
   @@index([sortOrder])
   @@index([isSystem])

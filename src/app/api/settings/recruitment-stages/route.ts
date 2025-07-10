@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT * FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+        const result = await client.query('SELECT id, name, description, sort_order, color FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
         return NextResponse.json(result.rows);
     } catch (error: any) {
         console.error("Failed to fetch recruitment stages:", error);
@@ -116,14 +116,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { name, description, sort_order } = validation.data;
+    const { name, description, sort_order, color } = body;
     const newId = uuidv4();
     
     const client = await getPool().connect();
     try {
         const result = await client.query(
-            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order) VALUES ($1, $2, $3, $4) RETURNING *',
-            [newId, name, description, sort_order ?? 0]
+            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, description, sort_order, color',
+            [newId, name, description, sort_order ?? 0, color || null]
         );
         await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);

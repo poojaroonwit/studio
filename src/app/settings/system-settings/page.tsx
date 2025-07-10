@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import 'react-quill/dist/quill.snow.css';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw } from 'lucide-react';
+import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,10 @@ export default function SystemSettingsPage() {
   const [generalPdfWebhookResponseMode, setGeneralPdfWebhookResponseMode] = useState('blocking');
   const [geminiApiKey, setGeminiApiKey] = useState('');
 
+  // Add state for manual link and type
+  const [manualLink, setManualLink] = useState('');
+  const [manualType, setManualType] = useState('external');
+
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
     setFetchError(null);
@@ -61,6 +65,9 @@ export default function SystemSettingsPage() {
       setGeneralPdfWebhookToken(settings.generalPdfWebhookToken || '');
       setGeneralPdfWebhookResponseMode(settings.generalPdfWebhookResponseMode || 'blocking');
       setGeminiApiKey(settings.geminiApiKey || '');
+      // In fetchSystemSettings, load manualLink and manualType
+      setManualLink(settings.manualLink || '');
+      setManualType(settings.manualType || 'external');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -93,6 +100,8 @@ export default function SystemSettingsPage() {
       { key: 'generalPdfWebhookToken', value: generalPdfWebhookToken },
       { key: 'generalPdfWebhookResponseMode', value: generalPdfWebhookResponseMode },
       { key: 'geminiApiKey', value: geminiApiKey },
+      { key: 'manualLink', value: manualLink },
+      { key: 'manualType', value: manualType },
     ];
     try {
       const response = await fetch('/api/settings/system-settings', {
@@ -162,7 +171,7 @@ export default function SystemSettingsPage() {
      
         <Label htmlFor="gemini-api-key">Gemini API Key</Label>
         <Input id="gemini-api-key" type="password" placeholder="Enter your Gemini API Key" value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} className="mt-1" disabled={isSaving}/>
-        <p className="text-xs text-muted-foreground mt-1">This key is stored securely on the server. For Genkit to use this, ensure it&apos;s also available as the GOOGLE_API_KEY environment variable where your Next.js server runs, or ensure your Genkit flows dynamically fetch it.</p>
+        <p className="text-xs text-muted-foreground">This key is stored securely on the server. For Genkit to use this, ensure it&apos;s also available as the GOOGLE_API_KEY environment variable where your Next.js server runs, or ensure your Genkit flows dynamically fetch it.</p>
   
         </div>
    
@@ -213,11 +222,11 @@ export default function SystemSettingsPage() {
                 Test
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
+            <p className="text-xs text-muted-foreground">This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
       
             <Label htmlFor="resume-processing-webhook-token">Resume Processing Webhook Authentication Token (Optional)</Label>
             <Input id="resume-processing-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={resumeProcessingWebhookToken} onChange={(e) => setResumeProcessingWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
-            <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
+            <p className="text-xs text-muted-foreground">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
       
             <Label htmlFor="resume-processing-webhook-response-mode">Resume Processing Webhook Response Mode</Label>
             <Select value={resumeProcessingWebhookResponseMode} onValueChange={(value) => setResumeProcessingWebhookResponseMode(value)} disabled={isSaving}>
@@ -229,7 +238,7 @@ export default function SystemSettingsPage() {
                 <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
+            <p className="text-xs text-muted-foreground">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
       
           <Separator />
    
@@ -272,11 +281,11 @@ export default function SystemSettingsPage() {
                 Test
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint. You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
+            <p className="text-xs text-muted-foreground">Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint. You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
          
             <Label htmlFor="general-pdf-webhook-token">General PDF Webhook Authentication Token (Optional)</Label>
             <Input id="general-pdf-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={generalPdfWebhookToken} onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
-            <p className="text-xs text-muted-foreground mt-1">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
+            <p className="text-xs text-muted-foreground">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
          
             <Label htmlFor="general-pdf-webhook-response-mode">General PDF Webhook Response Mode</Label>
             <Select value={generalPdfWebhookResponseMode} onValueChange={(value) => setGeneralPdfWebhookResponseMode(value)} disabled={isSaving}>
@@ -288,7 +297,7 @@ export default function SystemSettingsPage() {
                 <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
+            <p className="text-xs text-muted-foreground">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
          
           <Separator />
      
@@ -325,7 +334,7 @@ export default function SystemSettingsPage() {
           
             <Label htmlFor="smtp-password">SMTP Password (set via env)</Label>
             <Input id="smtp-password" type="password" placeholder="Set via environment variable" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)} className="mt-1" disabled readOnly/>
-            <p className="text-xs text-muted-foreground mt-1">Password must be set as an environment variable on the server.</p>
+            <p className="text-xs text-muted-foreground">Password must be set as an environment variable on the server.</p>
           
           
             <Label htmlFor="smtp-secure">SMTP Secure</Label>
@@ -338,6 +347,28 @@ export default function SystemSettingsPage() {
           
      
       
+
+      {/* Manual Link Settings */}
+      <Separator className="my-6" />
+      <div className="flex items-center text-2xl gap-2">
+        <FileText className="h-7 w-7 text-primary" />
+        Manual Link Settings
+      </div>
+      <div className="space-y-4 pt-6">
+        <Label htmlFor="manual-link">Manual Link (URL)</Label>
+        <Input id="manual-link" type="url" placeholder="https://your-manual-page.com" value={manualLink} onChange={e => setManualLink(e.target.value)} className="mt-1" disabled={isSaving} />
+        <Label htmlFor="manual-type">Manual Type</Label>
+        <Select value={manualType} onValueChange={setManualType}>
+          <SelectTrigger id="manual-type" className="w-48 mt-1" disabled={isSaving}>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="external">External Link (new tab)</SelectItem>
+            <SelectItem value="iframe">Iframe (in-app page)</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Set the manual link to an external URL or display it in-app using an iframe.</p>
+      </div>
 
       {/* Floating Save/Reset Bar */}
       <div className="fixed bottom-6 right-6 z-30 bg-background/95 border shadow-lg rounded-xl flex flex-row gap-4 py-3 px-6" style={{boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)'}}>

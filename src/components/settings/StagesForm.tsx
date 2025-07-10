@@ -11,6 +11,8 @@ const stageFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().optional().nullable(),
   sort_order: z.coerce.number().int().optional().default(0),
+  color_complete: z.string().optional().nullable(), // Add color_complete field
+  color_badge: z.string().optional().nullable(), // Add badge color field
 });
 type StageFormValues = z.infer<typeof stageFormSchema>;
 
@@ -24,7 +26,7 @@ interface StagesFormProps {
 const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit }) => {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<StageFormValues>({
     resolver: zodResolver(stageFormSchema),
-    defaultValues: { name: '', description: '', sort_order: 0 },
+    defaultValues: { name: '', description: '', sort_order: 0, color_complete: '', color_badge: '' },
   });
 
   useEffect(() => {
@@ -33,9 +35,11 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
         name: stage.name || '',
         description: stage.description || '',
         sort_order: stage.sort_order || 0,
+        color_complete: stage.color_complete || '',
+        color_badge: stage.color_badge || '',
       });
     } else {
-      reset({ name: '', description: '', sort_order: 0 });
+      reset({ name: '', description: '', sort_order: 0, color_complete: '', color_badge: '' });
     }
   }, [stage, reset]);
 
@@ -60,6 +64,16 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
             <label className="block font-medium mb-1">Sort Order</label>
             <Input type="number" {...register('sort_order', { valueAsNumber: true })} placeholder="0" disabled={isSubmitting} />
             {errors.sort_order && <div className="text-destructive text-xs mt-1">{errors.sort_order.message}</div>}
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Complete Color</label>
+            <Input type="color" {...register('color_complete')} disabled={isSubmitting} className="w-12 h-8 p-0 border-none bg-transparent" />
+            {errors.color_complete && <div className="text-destructive text-xs mt-1">{errors.color_complete.message}</div>}
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Badge Color</label>
+            <Input type="color" {...register('color_badge')} disabled={isSubmitting} className="w-12 h-8 p-0 border-none bg-transparent" />
+            {errors.color_badge && <div className="text-destructive text-xs mt-1">{errors.color_badge.message}</div>}
           </div>
           <DialogFooter className="pt-2">
             <DialogClose asChild>

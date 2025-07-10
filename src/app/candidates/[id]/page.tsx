@@ -736,6 +736,32 @@ export default function CandidateDetailPage() {
     console.log('Available stages:', availableStages);
   }, [availableStages]);
 
+  // Fetch transition records from logs endpoint
+  const fetchTransitionHistory = useCallback(async () => {
+    if (!candidateId) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/logs`);
+      if (!res.ok) throw new Error('Failed to fetch candidate logs');
+      const data = await res.json();
+      // Only keep stage change records
+      const transitions = Array.isArray(data.data)
+        ? data.data.filter((log: any) => log.action === 'Stage changed')
+        : [];
+      // Map to TransitionRecord shape if needed
+      setTransitionHistory(transitions.map((tr: any) => ({
+        id: tr.id,
+        candidateId: candidateId,
+        date: tr.time,
+        stage: tr.stage,
+        notes: tr.note,
+        actingUserName: tr.user,
+      })));
+    } catch (error) {
+      setTransitionHistory([]);
+    }
+  }, [candidateId]);
+
+
   useEffect(() => {
     // Subscribe to SSE for real-time candidate updates
     const eventSource = new EventSource('/api/candidates/sse');
@@ -1003,31 +1029,7 @@ export default function CandidateDetailPage() {
   const [skillsOpen, setSkillsOpen] = useState(true);
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
 
-  // Fetch transition records from logs endpoint
-  const fetchTransitionHistory = useCallback(async () => {
-    if (!candidateId) return;
-    try {
-      const res = await fetch(`/api/candidates/${candidateId}/logs`);
-      if (!res.ok) throw new Error('Failed to fetch candidate logs');
-      const data = await res.json();
-      // Only keep stage change records
-      const transitions = Array.isArray(data.data)
-        ? data.data.filter((log: any) => log.action === 'Stage changed')
-        : [];
-      // Map to TransitionRecord shape if needed
-      setTransitionHistory(transitions.map((tr: any) => ({
-        id: tr.id,
-        candidateId: candidateId,
-        date: tr.time,
-        stage: tr.stage,
-        notes: tr.note,
-        actingUserName: tr.user,
-      })));
-    } catch (error) {
-      setTransitionHistory([]);
-    }
-  }, [candidateId]);
-
+  
   useEffect(() => {
     fetchTransitionHistory();
   }, [candidateId, fetchTransitionHistory]);

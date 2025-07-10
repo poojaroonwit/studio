@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CandidateDetailModal } from './CandidateDetailModal';
+import { cn } from '@/lib/utils';
 
 interface CandidateTableProps {
   candidates: Candidate[];
@@ -197,11 +198,25 @@ export function CandidateTable({
     <>
       <div className="border rounded-lg shadow overflow-hidden">
         <Table>
-          <TableHeader><TableRow><TableHead className="w-12"><Checkbox
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12"><Checkbox
                 checked={isAllCandidatesSelected}
                 onCheckedChange={onToggleSelectAllCandidates}
                 aria-label="Select all candidates"
-              /></TableHead><TableHead className="w-[250px]">Candidate</TableHead><TableHead>Applied Job</TableHead><TableHead>Recruiter</TableHead><TableHead className="w-[100px] hidden sm:table-cell">Fit Score</TableHead><TableHead>Status</TableHead><TableHead className="hidden md:table-cell">Last Update</TableHead><TableHead className="w-[120px] hidden sm:table-cell">Resume</TableHead><TableHead className="text-right w-[80px]">Actions</TableHead></TableRow></TableHeader>
+              /></TableHead>
+              {/* Add new column for stage pipeline */}
+              <TableHead className="w-48">Pipeline</TableHead>
+              <TableHead className="w-[250px]">Candidate</TableHead>
+              <TableHead>Applied Job</TableHead>
+              <TableHead>Recruiter</TableHead>
+              <TableHead className="w-[100px] hidden sm:table-cell">Fit Score</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Last Update</TableHead>
+              <TableHead className="w-[120px] hidden sm:table-cell">Resume</TableHead>
+              <TableHead className="text-right w-[80px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {candidates.map((candidate) => {
               const dateValue = candidate.updatedAt || candidate.createdAt;
@@ -222,6 +237,9 @@ export function CandidateTable({
                 }
               }
 
+              // Find the index of the candidate's current stage
+              const currentStageIndex = availableStages.findIndex(s => s.name === candidate.status);
+
               return (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                   <TableCell><Checkbox
@@ -229,6 +247,27 @@ export function CandidateTable({
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                       aria-label={`Select candidate ${candidate.name}`}
                     /></TableCell>
+                  {/* Render the stage pipeline */}
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {availableStages.map((stage, idx) => {
+                        const isCompleted = idx <= currentStageIndex;
+                        return (
+                          <div
+                            key={stage.id}
+                            className={cn(
+                              'w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-xs font-bold',
+                              isCompleted ? '' : 'bg-gray-200 text-gray-400',
+                            )}
+                            style={isCompleted && stage.color_complete ? { backgroundColor: stage.color_complete, color: '#fff', borderColor: stage.color_complete } : {}}
+                            title={stage.name}
+                          >
+                            {idx + 1}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">

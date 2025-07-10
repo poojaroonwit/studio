@@ -1052,37 +1052,39 @@ export default function CandidateDetailPage() {
             <div className="lg:col-span-2 bg-card sticky top-6  p-6">
               {candidate && (
                 <div className="mb-6">
-                  <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
-                  {recruiters.length > 0 ? (
-                    <div className="relative">
-                      <Select
-                        value={candidate.recruiterId || "___UNASSIGN___"}
-                        onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
-                        disabled={isAssigningRecruiter || !candidate.id}
-                      >
-                        <SelectTrigger
-                          className="w-full mt-2 rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
-                          style={{ minHeight: 44 }}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
+                    {recruiters.length > 0 ? (
+                      <div className="relative">
+                        <Select
+                          value={candidate.recruiterId || "___UNASSIGN___"}
+                          onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
+                          disabled={isAssigningRecruiter || !candidate.id}
                         >
-                          <Users className="h-5 w-5 text-primary mr-2" />
-                          <SelectValue placeholder="Assign a recruiter..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                          {recruiters.map(r => (
-                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {(!candidate.id) && (
-                        <div className="absolute left-0 mt-1 text-xs text-muted-foreground">
-                          Candidate data is still loading. Please wait...
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">No recruiters available to assign.</span>
-                  )}
+                          <SelectTrigger
+                            className="w-full mt-2 rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
+                            style={{ minHeight: 44 }}
+                          >
+                            <Users className="h-5 w-5 text-primary mr-2" />
+                            <SelectValue placeholder="Assign a recruiter..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
+                            {recruiters.map(r => (
+                              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {(!candidate.id) && (
+                          <div className="absolute left-0 mt-1 text-xs text-muted-foreground">
+                            Candidate data is still loading. Please wait...
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">No recruiters available to assign.</span>
+                    )}
+                  </div>
                 </div>
               )}
               {availableStages.length > 0 && candidate && (

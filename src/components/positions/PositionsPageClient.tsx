@@ -122,7 +122,7 @@ export default function PositionsPageClient() {
       }
       
       const updatedPosition = await response.json();
-      setPositions(prev => prev.map(p => p.id === positionId ? updatedPosition : p));
+      setPositions(prev => prev.map(p => p.id === positionId ? updatedPosition.position : p));
       setIsEditModalOpen(false);
       setSelectedPosition(null);
       toast.success('Position updated successfully');

@@ -17,6 +17,8 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit }) 
             <th className="px-4 py-2 text-left">Description</th>
             <th className="px-4 py-2 text-left">Sort Order</th>
             <th className="px-4 py-2 text-left">Color</th>
+            <th className="px-4 py-2 text-left">Complete Color</th>
+            <th className="px-4 py-2 text-left">Badge Color</th>
             <th className="px-4 py-2 text-left">Actions</th>
           </tr>
         </thead>
@@ -29,6 +31,16 @@ const StagesTable: React.FC<StagesTableProps> = ({ stages, isLoading, onEdit }) 
               <td className="px-4 py-2">
                 {stage.color && (
                   <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color }} title={stage.color}></span>
+                )}
+              </td>
+              <td className="px-4 py-2">
+                {stage.color_complete && (
+                  <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color_complete }} title={stage.color_complete}></span>
+                )}
+              </td>
+              <td className="px-4 py-2">
+                {stage.color_badge && (
+                  <span className="inline-block w-6 h-6 rounded border" style={{ backgroundColor: stage.color_badge }} title={stage.color_badge}></span>
                 )}
               </td>
               <td className="px-4 py-2">

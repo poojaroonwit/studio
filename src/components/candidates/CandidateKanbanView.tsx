@@ -16,9 +16,10 @@ interface CandidateKanbanViewProps {
   candidates: Candidate[];
   statuses: CandidateStatus[];
   onMoveCandidate?: (candidate: Candidate, newStatus: CandidateStatus) => void;
+  onCardClick?: (candidate: Candidate) => void;
 }
 
-export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: CandidateKanbanViewProps) {
+export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick }: CandidateKanbanViewProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
@@ -32,17 +33,21 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate }: C
   }, {} as Record<CandidateStatus, Candidate[]>);
 
   const handleCardClick = (candidate: Candidate) => {
-    setSelectedCandidateSummary({
-      id: candidate.id,
-      name: candidate.name,
-      email: candidate.email,
-      phone: candidate.phone,
-      status: candidate.status,
-      position: candidate.position,
-      fitScore: candidate.fitScore,
-      parsedData: candidate.parsedData 
-    });
-    setIsModalOpen(true);
+    if (onCardClick) {
+      onCardClick(candidate);
+    } else {
+      setSelectedCandidateSummary({
+        id: candidate.id,
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        status: candidate.status,
+        position: candidate.position,
+        fitScore: candidate.fitScore,
+        parsedData: candidate.parsedData 
+      });
+      setIsModalOpen(true);
+    }
   };
 
   // Drag and drop handlers

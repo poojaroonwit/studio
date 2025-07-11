@@ -272,11 +272,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                             : '')
                         : 'bg-muted/10 text-muted-foreground'}
                   `}
-                  // style={
-                  //   isCompleted && !stage.name.toLowerCase().includes('reject') && stage.color_complete
-                  //     ? { backgroundColor: stage.color_complete, borderColor: stage.color_complete, color: '#fff', fontWeight: 'bold', boxShadow: `${stage.color_complete}80 0px 2px 8px 0px` }
-                  //     : undefined
-                  // }
+               
                   onClick={() => {
                     if (!isCompleted) onStageClick(stage.name);
                   }}

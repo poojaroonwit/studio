@@ -817,6 +817,7 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                         <CandidateCommentsSection 
                           candidateId={candidate.id}
                           comments={comments}
+                          isEditing={true}
                           onCommentsChange={() => fetchAttachments()}
                         />
                       </TabsContent>
@@ -824,6 +825,7 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                         <CandidateResumesSection 
                           candidateId={candidate.id}
                           resumes={resumes}
+                          isEditing={true}
                           onResumesChange={() => fetchAttachments()}
                         />
                       </TabsContent>
@@ -879,7 +881,7 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium">{transition.stage}</p>
                               <p className="text-xs text-muted-foreground">
-                                {format(parseISO(transition.timestamp), "MMM d, yyyy 'at' h:mm a")}
+                                {format(parseISO(transition.date), "MMM d, yyyy 'at' h:mm a")}
                               </p>
                               {transition.notes && (
                                 <p className="text-xs text-muted-foreground mt-1">{transition.notes}</p>

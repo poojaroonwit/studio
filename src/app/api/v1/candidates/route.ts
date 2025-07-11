@@ -19,13 +19,8 @@ export async function POST(request: NextRequest) {
       lastName, 
       email, 
       phone,
-      location,
-      experience,
-      education,
-      skills,
-      summary,
-      source,
-      status = 'active'
+      positionId,
+      status = 'Applied'
     } = body;
 
     if (!firstName || !lastName || !email) {
@@ -50,29 +45,22 @@ export async function POST(request: NextRequest) {
     // Create candidate with basic information
     const candidate = await prisma.candidate.create({
       data: {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`,
         email: email.toLowerCase().trim(),
         phone: phone?.trim() || null,
-        location: location?.trim() || null,
-        experience: experience || null,
-        education: education || null,
-        skills: skills || [],
-        summary: summary?.trim() || null,
-        source: source?.trim() || 'api',
+        positionId: positionId || null,
+        recruiterId: session.user.id,
         status: status,
-        createdBy: session.user.id,
-        updatedBy: session.user.id,
       },
       include: {
-        createdByUser: {
+        position: {
           select: {
             id: true,
-            name: true,
-            email: true
+            title: true,
+            department: true
           }
         },
-        updatedByUser: {
+        recruiter: {
           select: {
             id: true,
             name: true,
@@ -86,21 +74,18 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         id: candidate.id,
-        firstName: candidate.firstName,
-        lastName: candidate.lastName,
+        name: candidate.name,
         email: candidate.email,
         phone: candidate.phone,
-        location: candidate.location,
-        experience: candidate.experience,
-        education: candidate.education,
-        skills: candidate.skills,
-        summary: candidate.summary,
-        source: candidate.source,
+        positionId: candidate.positionId,
+        recruiterId: candidate.recruiterId,
+        fitScore: candidate.fitScore,
         status: candidate.status,
+        applicationDate: candidate.applicationDate,
         createdAt: candidate.createdAt,
         updatedAt: candidate.updatedAt,
-        createdBy: candidate.createdByUser,
-        updatedBy: candidate.updatedByUser
+        position: candidate.position,
+        recruiter: candidate.recruiter
       }
     }, { status: 201 });
 
@@ -134,10 +119,8 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { location: { contains: search, mode: 'insensitive' } }
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -153,7 +136,14 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          createdByUser: {
+          position: {
+            select: {
+              id: true,
+              title: true,
+              department: true
+            }
+          },
+          recruiter: {
             select: {
               id: true,
               name: true,
@@ -169,20 +159,18 @@ export async function GET(request: NextRequest) {
       success: true,
       data: candidates.map(candidate => ({
         id: candidate.id,
-        firstName: candidate.firstName,
-        lastName: candidate.lastName,
+        name: candidate.name,
         email: candidate.email,
         phone: candidate.phone,
-        location: candidate.location,
-        experience: candidate.experience,
-        education: candidate.education,
-        skills: candidate.skills,
-        summary: candidate.summary,
-        source: candidate.source,
+        positionId: candidate.positionId,
+        recruiterId: candidate.recruiterId,
+        fitScore: candidate.fitScore,
         status: candidate.status,
+        applicationDate: candidate.applicationDate,
         createdAt: candidate.createdAt,
         updatedAt: candidate.updatedAt,
-        createdBy: candidate.createdByUser
+        position: candidate.position,
+        recruiter: candidate.recruiter
       })),
       pagination: {
         page,

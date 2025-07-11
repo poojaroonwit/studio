@@ -257,7 +257,7 @@ const swaggerSpec = {
       },
       post: {
         summary: 'Create a new candidate (v1 API)',
-        description: 'Creates a new candidate. Accepts both the new and legacy formats. Requires Bearer token authentication.',
+        description: 'Creates a new candidate with candidate information, job matches, and applied job data. Requires Bearer token authentication.',
         tags: ['V1 Candidates'],
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -274,23 +274,23 @@ const swaggerSpec = {
                         type: 'object',
                         properties: {
                           email: { type: 'string', format: 'email' },
-                          phone: { type: 'string' }
+                          phone: { type: 'string', nullable: true }
                         },
                         required: ['email']
                       },
-                      cv_language: { type: 'string' },
+                      cv_language: { type: 'string', nullable: true },
                       education: { type: 'array', items: { type: 'object' } },
                       experience: { type: 'array', items: { type: 'object' } },
                       job_suitable: { type: 'array', items: { type: 'object' } },
                       personal_info: {
                         type: 'object',
                         properties: {
-                          title_honorific: { type: 'string' },
+                          title_honorific: { type: 'string', nullable: true },
                           firstname: { type: 'string' },
                           lastname: { type: 'string' },
-                          nickname: { type: 'string' },
-                          location: { type: 'string' },
-                          introduction_aboutme: { type: 'string' }
+                          nickname: { type: 'string', nullable: true },
+                          location: { type: 'string', nullable: true },
+                          introduction_aboutme: { type: 'string', nullable: true }
                         },
                         required: ['firstname', 'lastname']
                       },
@@ -303,22 +303,16 @@ const swaggerSpec = {
                             skill: { type: 'array', items: { type: 'string' } }
                           }
                         }
-                      }
+                      },
+                      status: { type: 'string', nullable: true }
                     },
                     required: ['contact_info', 'personal_info']
                   },
                   job_matches: {
                     type: 'array',
-                    items: { type: 'string' }
+                    items: { $ref: '#/components/schemas/JobMatch' }
                   },
-                  job_applied: {
-                    type: 'object',
-                    properties: {
-                      fit_score: { type: 'integer' },
-                      job_id: { type: 'string' },
-                      justification: { type: 'array', items: { type: 'string' } }
-                    }
-                  }
+                  job_applied: { $ref: '#/components/schemas/JobApplied' }
                 },
                 required: ['candidate_info']
               },
@@ -372,7 +366,8 @@ const swaggerSpec = {
                       segment_skill: 'Programming Language',
                       skill: ['C#.Net', 'SQL', 'Javascript', 'Typescript', 'HTML', 'CSS']
                     }
-                  ]
+                  ],
+                  status: 'new'
                 },
                 job_matches: [
                   {
@@ -408,7 +403,7 @@ const swaggerSpec = {
                   type: 'object',
                   properties: {
                     message: { type: 'string' },
-                    candidate: { type: 'object' }
+                    candidate: { $ref: '#/components/schemas/Candidate' }
                   }
                 }
               }
@@ -418,6 +413,141 @@ const swaggerSpec = {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Insufficient permissions' },
           '409': { description: 'Candidate with this email already exists' }
+        }
+      }
+    },
+    '/api/v1/candidates/import': {
+      post: {
+        summary: 'Import candidates from CSV/Excel file (v1 API)',
+        description: 'Bulk import candidates from CSV or Excel files. Supports both file upload and JSON format. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+        tags: ['V1 Candidates'],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'CSV or Excel file (.csv, .xlsx, .xls)'
+                  }
+                },
+                required: ['file']
+              }
+            },
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  candidates: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        email: { type: 'string', format: 'email' },
+                        phone: { type: 'string', nullable: true },
+                        status: { type: 'string' },
+                        positionId: { type: 'string', format: 'uuid', nullable: true },
+                        recruiterId: { type: 'string', format: 'uuid', nullable: true },
+                        fitScore: { type: 'number', minimum: 0, maximum: 100, nullable: true },
+                        custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+                        parsedData: { type: 'object', additionalProperties: true, nullable: true },
+                        resumePath: { type: 'string', nullable: true }
+                      },
+                      required: ['name', 'email', 'status']
+                    }
+                  }
+                },
+                required: ['candidates']
+              },
+              example: {
+                candidates: [
+                  {
+                    name: "John Doe",
+                    email: "john.doe@example.com",
+                    phone: "+1234567890",
+                    status: "Applied",
+                    positionId: null,
+                    recruiterId: null,
+                    fitScore: 85,
+                    custom_attributes: {},
+                    parsedData: null,
+                    resumePath: null
+                  }
+                ]
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Import completed successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    results: {
+                      type: 'object',
+                      properties: {
+                        imported: { type: 'integer', description: 'Number of candidates successfully imported' },
+                        skipped: { type: 'integer', description: 'Number of candidates skipped (already exist)' },
+                        errors: { type: 'array', items: { type: 'string' }, description: 'List of error messages' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid file format or data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '500': { description: 'Internal server error' }
+        }
+      },
+      get: {
+        summary: 'Get import template (v1 API)',
+        description: 'Returns a template for candidate import. Requires Bearer token authentication.',
+        tags: ['V1 Candidates'],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Import template',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    candidates: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                          email: { type: 'string', format: 'email' },
+                          phone: { type: 'string', nullable: true },
+                          status: { type: 'string' },
+                          positionId: { type: 'string', format: 'uuid', nullable: true },
+                          recruiterId: { type: 'string', format: 'uuid', nullable: true },
+                          fitScore: { type: 'number', minimum: 0, maximum: 100, nullable: true },
+                          custom_attributes: { type: 'object', additionalProperties: true, nullable: true },
+                          parsedData: { type: 'object', additionalProperties: true, nullable: true },
+                          resumePath: { type: 'string', nullable: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' }
         }
       }
     },
@@ -441,7 +571,7 @@ const swaggerSpec = {
       },
       put: {
         summary: 'Update candidate by ID (v1 API)',
-        description: 'Updates a candidate. Requires Bearer token authentication and Admin or CANDIDATES_MANAGE permission.',
+        description: 'Updates a candidate with candidate information, job matches, and applied job data. Supports both legacy and new formats. Requires Bearer token authentication and Admin or CANDIDATES_MANAGE permission.',
         tags: ['V1 Candidates'],
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -451,14 +581,80 @@ const swaggerSpec = {
           required: true,
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/Candidate' }
+              schema: {
+                type: 'object',
+                properties: {
+                  // Legacy fields for backward compatibility
+                  name: { type: 'string', minLength: 1 },
+                  email: { type: 'string', format: 'email' },
+                  phone: { type: 'string', nullable: true },
+                  positionId: { type: 'string', format: 'uuid', nullable: true },
+                  recruiterId: { type: 'string', format: 'uuid', nullable: true },
+                  fitScore: { type: 'number', minimum: 0, maximum: 100 },
+                  status: { type: 'string', minLength: 1 },
+                  parsedData: { type: 'object', additionalProperties: true, nullable: true },
+                  customAttributes: { type: 'object', additionalProperties: true, nullable: true },
+                  resumePath: { type: 'string', nullable: true },
+                  transitionNotes: { type: 'string', nullable: true },
+                  
+                  // New candidate_info format
+                  candidate_info: {
+                    type: 'object',
+                    properties: {
+                      personal_info: {
+                        type: 'object',
+                        properties: {
+                          title_honorific: { type: 'string', nullable: true },
+                          firstname: { type: 'string', minLength: 1 },
+                          lastname: { type: 'string', minLength: 1 },
+                          nickname: { type: 'string', nullable: true },
+                          location: { type: 'string', nullable: true },
+                          introduction_aboutme: { type: 'string', nullable: true }
+                        }
+                      },
+                      contact_info: {
+                        type: 'object',
+                        properties: {
+                          email: { type: 'string', format: 'email' },
+                          phone: { type: 'string', nullable: true }
+                        }
+                      },
+                      education: { type: 'array', items: { type: 'object' } },
+                      experience: { type: 'array', items: { type: 'object' } },
+                      skills: { type: 'array', items: { type: 'object' } },
+                      job_suitable: { type: 'array', items: { type: 'object' } },
+                      cv_language: { type: 'string', nullable: true },
+                      status: { type: 'string' }
+                    }
+                  },
+                  
+                  // Job matches and applied job updates
+                  job_matches: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/JobMatch' }
+                  },
+                  
+                  job_applied: { $ref: '#/components/schemas/JobApplied' }
+                }
+              }
             }
           }
         },
         responses: {
           '200': {
             description: 'Candidate updated successfully',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/Candidate' } } }
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    candidate: { $ref: '#/components/schemas/Candidate' },
+                    updated_fields: { type: 'array', items: { type: 'string' } }
+                  }
+                }
+              }
+            }
           },
           '400': { description: 'Invalid input data' },
           '401': { description: 'Unauthorized' },
@@ -479,6 +675,350 @@ const swaggerSpec = {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Insufficient permissions' },
           '404': { description: 'Candidate not found' }
+        }
+      }
+    },
+    '/api/v1/candidates/{id}/job-applied': {
+      get: {
+        summary: 'Get applied job information for a candidate (v1 API)',
+        description: 'Returns the applied job information for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Applied'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': {
+            description: 'Applied job information',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    job_applied: { $ref: '#/components/schemas/JobApplied' }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Candidate not found' }
+        }
+      },
+      post: {
+        summary: 'Create or update applied job information for a candidate (v1 API)',
+        description: 'Creates or updates the applied job information for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Applied'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/JobApplied' }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Applied job information updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_applied: { $ref: '#/components/schemas/JobApplied' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate or position not found' }
+        }
+      },
+      put: {
+        summary: 'Update applied job information for a candidate (v1 API)',
+        description: 'Updates the applied job information for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Applied'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/JobApplied' }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Applied job information updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_applied: { $ref: '#/components/schemas/JobApplied' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate or position not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete applied job information for a candidate (v1 API)',
+        description: 'Deletes the applied job information for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Applied'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': { description: 'Applied job information deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate not found' }
+        }
+      }
+    },
+    '/api/v1/candidates/{id}/job-matches': {
+      get: {
+        summary: 'Get job matches for a candidate (v1 API)',
+        description: 'Returns all job matches for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': {
+            description: 'List of job matches',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    job_matches: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/JobMatch' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Candidate not found' }
+        }
+      },
+      post: {
+        summary: 'Create or update job matches for a candidate (v1 API)',
+        description: 'Creates or updates job matches for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  job_matches: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/JobMatch' }
+                  }
+                },
+                required: ['job_matches']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Job matches updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_matches: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/JobMatch' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate not found' }
+        }
+      },
+      put: {
+        summary: 'Update job matches for a candidate (v1 API)',
+        description: 'Updates job matches for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  job_matches: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/JobMatch' }
+                  }
+                },
+                required: ['job_matches']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Job matches updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_matches: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/JobMatch' }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete all job matches for a candidate (v1 API)',
+        description: 'Deletes all job matches for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': { description: 'All job matches deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate not found' }
+        }
+      }
+    },
+    '/api/v1/candidates/{id}/job-matches/{matchId}': {
+      get: {
+        summary: 'Get a specific job match for a candidate (v1 API)',
+        description: 'Returns a specific job match for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } },
+          { name: 'matchId', in: 'path', required: true, description: 'Job Match ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': {
+            description: 'Job match details',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    job_match: { $ref: '#/components/schemas/JobMatch' }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Candidate or job match not found' }
+        }
+      },
+      put: {
+        summary: 'Update a specific job match for a candidate (v1 API)',
+        description: 'Updates a specific job match for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } },
+          { name: 'matchId', in: 'path', required: true, description: 'Job Match ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/JobMatch' }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Job match updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_match: { $ref: '#/components/schemas/JobMatch' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate or job match not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete a specific job match for a candidate (v1 API)',
+        description: 'Deletes a specific job match for the specified candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } },
+          { name: 'matchId', in: 'path', required: true, description: 'Job Match ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        responses: {
+          '200': { description: 'Job match deleted successfully' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate or job match not found' }
         }
       }
     },
@@ -616,6 +1156,92 @@ const swaggerSpec = {
           '200': { description: 'Attachment deleted successfully' },
           '401': { description: 'Unauthorized' },
           '404': { description: 'Attachment not found' }
+        }
+      }
+    },
+    '/api/v1/candidates/{id}/avatar': {
+      post: {
+        summary: 'Upload candidate avatar (v1 API)',
+        description: 'Upload an avatar image for a candidate. Supports multipart/form-data. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+        tags: ['V1 Candidates'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  avatar: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Avatar image file (JPG, PNG, etc.)'
+                  }
+                },
+                required: ['avatar']
+              }
+            }
+          }
+        },
+        responses: {
+          '200': {
+            description: 'Avatar uploaded successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    avatar_url: { type: 'string', format: 'uri' },
+                    candidate: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        name: { type: 'string' },
+                        avatarUrl: { type: 'string', format: 'uri' }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid file type or size' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate not found' },
+          '500': { description: 'Internal server error' },
+          '503': { description: 'Storage service unavailable' }
+        }
+      },
+      get: {
+        summary: 'Get candidate avatar URL (v1 API)',
+        description: 'Get the avatar URL for a candidate. Requires Bearer token authentication.',
+        tags: ['V1 Candidates'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string' } }
+        ],
+        responses: {
+          '200': {
+            description: 'Avatar URL retrieved',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    avatar_url: { type: 'string', format: 'uri', nullable: true }
+                  }
+                }
+              }
+            }
+          },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Candidate not found' },
+          '500': { description: 'Database error' }
         }
       }
     },
@@ -983,12 +1609,23 @@ const swaggerSpec = {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid' },
-          jobId: { type: 'string', format: 'uuid' },
-          matchScore: { type: 'number' },
-          createdAt: { type: 'string', format: 'date-time' },
-          updatedAt: { type: 'string', format: 'date-time' }
+          fit_score: { type: 'number', minimum: 0, maximum: 100 },
+          job_id: { type: 'string', format: 'uuid' },
+          match_reasons: { type: 'array', items: { type: 'string' } },
+          position_title: { type: 'string', nullable: true },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' }
         },
-        required: ['jobId', 'matchScore']
+        required: ['fit_score', 'job_id']
+      },
+      JobApplied: {
+        type: 'object',
+        properties: {
+          fit_score: { type: 'number', minimum: 0, maximum: 100 },
+          job_id: { type: 'string', format: 'uuid' },
+          justification: { type: 'array', items: { type: 'string' } }
+        },
+        required: ['fit_score', 'job_id']
       },
       Attachment: {
         type: 'object',
@@ -1018,7 +1655,10 @@ const swaggerSpec = {
   tags: [
     { name: 'V1 Authentication', description: 'External API authentication endpoints' },
     { name: 'V1 Positions', description: 'External API for positions' },
-    { name: 'V1 Candidates', description: 'External API for candidates' }
+    { name: 'V1 Candidates', description: 'External API for candidates' },
+    { name: 'Job Applied', description: 'Job application information endpoints' },
+    { name: 'Job Matches', description: 'Job matching endpoints' },
+    { name: 'Attachments', description: 'File attachment endpoints' }
   ]
 };
 

@@ -75,15 +75,14 @@ Get a list of candidates with pagination and filtering.
 **Query Parameters:**
 - `page` (optional): Page number (default: 1)
 - `limit` (optional): Items per page (default: 10)
+- `search` (optional): Search in name and email
 - `status` (optional): Filter by status
-- `positionId` (optional): Filter by position ID
-- `recruiterId` (optional): Filter by recruiter ID
-- `searchTerm` (optional): Search in name and email
 
 **Response:**
 ```json
 {
-  "candidates": [
+  "success": true,
+  "data": [
     {
       "id": "candidate-id",
       "name": "John Doe",
@@ -93,40 +92,177 @@ Get a list of candidates with pagination and filtering.
       "positionId": "position-id",
       "recruiterId": "recruiter-id",
       "fitScore": 85,
-      "custom_attributes": {},
+      "customAttributes": {},
       "applicationDate": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "position": {
+        "title": "Software Engineer",
+        "department": "Engineering"
+      },
+      "recruiter": {
+        "name": "Jane Smith"
+      }
     }
   ],
-  "total": 150,
-  "page": 1,
-  "limit": 10
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 150,
+    "totalPages": 15
+  }
 }
 ```
 
 #### POST `/api/v1/candidates`
-Create a new candidate.
+Create a new candidate with candidate information, job matches, and applied job data.
 
 **Request Body:**
 ```json
 {
-  "name": "John Doe",
-  "email": "john@example.com",
-  "phone": "+1234567890",
-  "status": "new",
-  "positionId": "position-id",
-  "recruiterId": "recruiter-id",
-  "fitScore": 85,
-  "custom_attributes": {},
-  "parsedData": {
+  "candidate_info": {
     "personal_info": {
+      "title_honorific": "Mr.",
       "firstname": "John",
-      "lastname": "Doe"
+      "lastname": "Doe",
+      "nickname": "Johnny",
+      "location": "Bangkok, Thailand",
+      "introduction_aboutme": "Experienced software engineer"
     },
     "contact_info": {
-      "email": "john@example.com"
+      "email": "john@example.com",
+      "phone": "+1234567890"
+    },
+    "cv_language": "English",
+    "education": [
+      {
+        "major": "Computer Science",
+        "university": "University of Technology",
+        "period": "2018-2022"
+      }
+    ],
+    "experience": [
+      {
+        "company": "Tech Corp",
+        "position": "Software Engineer",
+        "period": "2022-Present"
+      }
+    ],
+    "skills": [
+      {
+        "segment_skill": "Programming Languages",
+        "skill": ["JavaScript", "Python", "React"]
+      }
+    ],
+    "job_suitable": [
+      {
+        "suitable_career": "Software Engineer",
+        "suitable_job_level": "Mid-level"
+      }
+    ],
+    "status": "new"
+  },
+  "job_matches": [
+    {
+      "fit_score": 85,
+      "job_id": "position-uuid",
+      "match_reasons": ["Strong technical skills", "Relevant experience"]
     }
+  ],
+  "job_applied": {
+    "fit_score": 90,
+    "job_id": "position-uuid",
+    "justification": ["Perfect match for the role"]
   }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Candidate created successfully",
+  "candidate": {
+    "id": "candidate-uuid",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "status": "new",
+    "parsedData": { /* candidate_info, job_matches, job_applied */ },
+    "applicationDate": "2024-01-01T00:00:00.000Z",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### POST `/api/v1/candidates/import`
+Import candidates from CSV or Excel files. Supports both file upload and JSON format.
+
+**File Upload (multipart/form-data):**
+```bash
+curl -X POST /api/v1/candidates/import \
+  -H "Authorization: Bearer <token>" \
+  -F "file=@candidates.csv"
+```
+
+**JSON Format:**
+```json
+{
+  "candidates": [
+    {
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "+1234567890",
+      "status": "Applied",
+      "positionId": "position-uuid",
+      "recruiterId": "recruiter-uuid",
+      "fitScore": 85,
+      "custom_attributes": {},
+      "parsedData": null,
+      "resumePath": null
+    }
+  ]
+}
+```
+
+**CSV Format Example:**
+```csv
+name,email,phone,status,positionId,recruiterId,fitScore
+John Doe,john.doe@example.com,+1234567890,Applied,,,85
+Jane Smith,jane.smith@example.com,+1234567891,Screening,,,90
+```
+
+**Response:**
+```json
+{
+  "message": "Import completed",
+  "results": {
+    "imported": 2,
+    "skipped": 1,
+    "errors": ["Candidate with email existing@example.com already exists"]
+  }
+}
+```
+
+#### GET `/api/v1/candidates/import`
+Get import template for reference.
+
+**Response:**
+```json
+{
+  "candidates": [
+    {
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "+1234567890",
+      "status": "Applied",
+      "positionId": null,
+      "recruiterId": null,
+      "fitScore": 85,
+      "custom_attributes": {},
+      "parsedData": null,
+      "resumePath": null
+    }
+  ]
 }
 ```
 
@@ -144,7 +280,7 @@ Get a specific candidate by ID.
   "positionId": "position-id",
   "recruiterId": "recruiter-id",
   "fitScore": 85,
-  "custom_attributes": {},
+  "customAttributes": {},
   "position": {
     "title": "Software Engineer",
     "department": "Engineering"
@@ -158,70 +294,215 @@ Get a specific candidate by ID.
 ```
 
 #### PUT `/api/v1/candidates/{id}`
-Update a candidate.
+Update a candidate with candidate information, job matches, and applied job data. Supports both legacy and new formats.
 
 **Request Body:**
 ```json
 {
-  "name": "John Doe Updated",
-  "status": "interview",
-  "fitScore": 90
+  "candidate_info": {
+    "personal_info": {
+      "firstname": "John",
+      "lastname": "Doe Updated"
+    },
+    "contact_info": {
+      "email": "john.updated@example.com"
+    }
+  },
+  "job_matches": [
+    {
+      "fit_score": 90,
+      "job_id": "position-uuid",
+      "match_reasons": ["Updated match reasons"]
+    }
+  ],
+  "job_applied": {
+    "fit_score": 95,
+    "job_id": "position-uuid",
+    "justification": ["Updated justification"]
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Candidate updated successfully",
+  "candidate": {
+    "id": "candidate-uuid",
+    "name": "John Doe Updated",
+    "email": "john.updated@example.com",
+    "status": "new",
+    "parsedData": { /* updated data */ },
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "updated_fields": ["candidate_info", "job_matches", "job_applied"]
 }
 ```
 
 #### DELETE `/api/v1/candidates/{id}`
 Delete a candidate.
 
-### Candidate Bulk Operations
+### Job Applied Information
 
-#### POST `/api/v1/candidates/bulk-action`
-Perform bulk operations on candidates.
+#### GET `/api/v1/candidates/{id}/job-applied`
+Get applied job information for a candidate.
 
-**Request Body:**
+**Response:**
 ```json
 {
-  "action": "update_status",
-  "candidateIds": ["id1", "id2", "id3"],
-  "data": {
-    "status": "interview"
+  "job_applied": {
+    "fit_score": 90,
+    "job_id": "position-uuid",
+    "justification": ["Strong technical background", "Relevant experience"]
   }
 }
 ```
 
-**Available Actions:**
-- `delete`: Delete candidates
-- `update_status`: Update status of candidates
-- `assign_recruiter`: Assign recruiter to candidates
-- `assign_position`: Assign position to candidates
-
-### Candidate Import/Export
-
-#### GET `/api/v1/candidates/export`
-Export candidates as CSV.
-
-#### GET `/api/v1/candidates/import`
-Get import template.
-
-#### POST `/api/v1/candidates/import`
-Import candidates from JSON.
+#### POST `/api/v1/candidates/{id}/job-applied`
+Create or update applied job information for a candidate.
 
 **Request Body:**
 ```json
 {
-  "candidates": [
+  "fit_score": 90,
+  "job_id": "position-uuid",
+  "justification": ["Strong technical background", "Relevant experience"]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Job applied data updated successfully",
+  "job_applied": {
+    "fit_score": 90,
+    "job_id": "position-uuid",
+    "justification": ["Strong technical background", "Relevant experience"]
+  }
+}
+```
+
+#### PUT `/api/v1/candidates/{id}/job-applied`
+Update applied job information for a candidate.
+
+**Request Body:** Same as POST
+
+**Response:** Same as POST
+
+#### DELETE `/api/v1/candidates/{id}/job-applied`
+Delete applied job information for a candidate.
+
+### Job Matches
+
+#### GET `/api/v1/candidates/{id}/job-matches`
+Get all job matches for a candidate.
+
+**Response:**
+```json
+{
+  "job_matches": [
     {
-      "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "status": "new",
-      "positionId": null,
-      "recruiterId": null,
-      "fitScore": 85,
-      "custom_attributes": {}
+      "id": "match-uuid",
+      "fit_score": 85,
+      "job_id": "position-uuid",
+      "match_reasons": ["Strong technical skills", "Relevant experience"],
+      "position_title": "Software Engineer",
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "updated_at": "2024-01-01T00:00:00.000Z"
     }
   ]
 }
 ```
+
+#### POST `/api/v1/candidates/{id}/job-matches`
+Create or update job matches for a candidate.
+
+**Request Body:**
+```json
+{
+  "job_matches": [
+    {
+      "fit_score": 85,
+      "job_id": "position-uuid",
+      "match_reasons": ["Strong technical skills", "Relevant experience"]
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Job matches updated successfully",
+  "job_matches": [
+    {
+      "id": "match-uuid",
+      "fit_score": 85,
+      "job_id": "position-uuid",
+      "match_reasons": ["Strong technical skills", "Relevant experience"]
+    }
+  ]
+}
+```
+
+#### PUT `/api/v1/candidates/{id}/job-matches`
+Update job matches for a candidate.
+
+**Request Body:** Same as POST
+
+**Response:** Same as POST
+
+#### DELETE `/api/v1/candidates/{id}/job-matches`
+Delete all job matches for a candidate.
+
+### Individual Job Match
+
+#### GET `/api/v1/candidates/{id}/job-matches/{matchId}`
+Get a specific job match for a candidate.
+
+**Response:**
+```json
+{
+  "job_match": {
+    "id": "match-uuid",
+    "fit_score": 85,
+    "job_id": "position-uuid",
+    "match_reasons": ["Strong technical skills"],
+    "position_title": "Software Engineer",
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "updated_at": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### PUT `/api/v1/candidates/{id}/job-matches/{matchId}`
+Update a specific job match for a candidate.
+
+**Request Body:**
+```json
+{
+  "fit_score": 90,
+  "job_id": "position-uuid",
+  "match_reasons": ["Updated match reasons"]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Job match updated successfully",
+  "job_match": {
+    "id": "match-uuid",
+    "fit_score": 90,
+    "job_id": "position-uuid",
+    "match_reasons": ["Updated match reasons"],
+    "updated_at": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+#### DELETE `/api/v1/candidates/{id}/job-matches/{matchId}`
+Delete a specific job match for a candidate.
 
 ### Positions
 
@@ -230,7 +511,7 @@ Get a list of positions with pagination and filtering.
 
 **Query Parameters:**
 - `title` (optional): Filter by title
-- `department` (optional): Filter by department
+- `department` (optional): Filter by department (comma-separated)
 - `isOpen` (optional): Filter by open status
 - `position_level` (optional): Filter by position level
 - `limit` (optional): Items per page (default: 20)
@@ -247,7 +528,7 @@ Get a list of positions with pagination and filtering.
       "description": "Full-stack development role",
       "isOpen": true,
       "position_level": "Mid-level",
-      "custom_attributes": {},
+      "customAttributes": {},
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
     }
@@ -267,7 +548,7 @@ Create a new position.
   "description": "Full-stack development role",
   "isOpen": true,
   "position_level": "Mid-level",
-  "custom_attributes": {}
+  "customAttributes": {}
 }
 ```
 
@@ -322,7 +603,7 @@ Import positions from JSON.
       "description": "Full-stack development role",
       "isOpen": true,
       "position_level": "Mid-level",
-      "custom_attributes": {}
+      "customAttributes": {}
     }
   ]
 }
@@ -381,6 +662,41 @@ Update a user.
 
 #### DELETE `/api/v1/users/{id}`
 Delete a user (only if no candidates assigned).
+
+### Candidate Avatar
+
+#### POST `/api/v1/candidates/{id}/avatar`
+Upload an avatar image for a candidate.
+
+**Request Body (multipart/form-data):**
+```bash
+curl -X POST /api/v1/candidates/{id}/avatar \
+  -H "Authorization: Bearer <token>" \
+  -F "avatar=@profile.jpg"
+```
+
+**Response:**
+```json
+{
+  "message": "Avatar uploaded successfully",
+  "avatar_url": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg",
+  "candidate": {
+    "id": "candidate-uuid",
+    "name": "John Doe",
+    "avatarUrl": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg"
+  }
+}
+```
+
+#### GET `/api/v1/candidates/{id}/avatar`
+Get the avatar URL for a candidate.
+
+**Response:**
+```json
+{
+  "avatar_url": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg"
+}
+```
 
 ### Candidate Resumes
 
@@ -445,4 +761,12 @@ Module permissions include:
 - `POSITIONS_MANAGE`: Create, update, delete positions
 - `POSITIONS_EXPORT`: Export positions
 - `USERS_VIEW`: View users
-- `USERS_MANAGE`: Create, update, delete users 
+- `USERS_MANAGE`: Create, update, delete users
+
+## API Documentation
+
+Interactive API documentation is available at `/api-docs` which provides a Swagger UI interface for testing all endpoints.
+
+## Payload Alignment
+
+All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support both legacy formats and the new structured format with `candidate_info`, `job_matches`, and `job_applied` fields. 

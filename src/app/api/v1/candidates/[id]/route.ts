@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { handleCors } from '@/lib/cors';
 
 const updateCandidateSchema = z.object({
+  // Legacy fields for backward compatibility
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   phone: z.string().optional().nullable(),
@@ -17,6 +18,41 @@ const updateCandidateSchema = z.object({
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
   transitionNotes: z.string().optional().nullable(),
+  
+  // New candidate_info format
+  candidate_info: z.object({
+    personal_info: z.object({
+      title_honorific: z.string().optional().nullable(),
+      firstname: z.string().min(1).optional(),
+      lastname: z.string().min(1).optional(),
+      nickname: z.string().optional().nullable(),
+      location: z.string().optional().nullable(),
+      introduction_aboutme: z.string().optional().nullable(),
+    }).optional(),
+    contact_info: z.object({
+      email: z.string().email().optional(),
+      phone: z.string().optional().nullable(),
+    }).optional(),
+    education: z.array(z.any()).optional(),
+    experience: z.array(z.any()).optional(),
+    skills: z.array(z.any()).optional(),
+    job_suitable: z.array(z.any()).optional(),
+    cv_language: z.string().optional().nullable(),
+    status: z.string().optional(),
+  }).optional(),
+  
+  // Job matches and applied job updates
+  job_matches: z.array(z.object({
+    fit_score: z.number().min(0).max(100),
+    job_id: z.string().uuid(),
+    match_reasons: z.array(z.string()).optional().default([]),
+  })).optional(),
+  
+  job_applied: z.object({
+    fit_score: z.number().min(0).max(100),
+    job_id: z.string().uuid(),
+    justification: z.array(z.string()).optional().default([]),
+  }).optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -109,13 +145,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.status;
+    const existingParsedData = existingCandidate.parsedData || {};
     
     // Build dynamic update query based on provided fields
     const updateFields: string[] = [];
     const updateValues: any[] = [];
     let paramIndex = 1;
     
-    // Only include fields that are actually provided in the request
+    // Handle legacy fields
     if (updateData.name !== undefined) {
       updateFields.push(`name = $${paramIndex++}`);
       updateValues.push(updateData.name);
@@ -151,11 +188,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateValues.push(updateData.status);
     }
     
-    if (updateData.parsedData !== undefined) {
-      updateFields.push(`"parsedData" = $${paramIndex++}`);
-      updateValues.push(updateData.parsedData);
-    }
-    
     if (updateData.custom_attributes !== undefined) {
       updateFields.push(`"customAttributes" = $${paramIndex++}`);
       updateValues.push(updateData.custom_attributes);
@@ -164,6 +196,38 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (updateData.resumePath !== undefined) {
       updateFields.push(`"resumePath" = $${paramIndex++}`);
       updateValues.push(updateData.resumePath);
+    }
+    
+    // Handle new candidate_info format
+    let newParsedData = { ...existingParsedData };
+    let hasParsedDataChanges = false;
+    
+    if (updateData.candidate_info) {
+      newParsedData.candidate_info = {
+        ...(newParsedData.candidate_info || {}),
+        ...updateData.candidate_info
+      };
+      hasParsedDataChanges = true;
+    }
+    
+    if (updateData.job_matches) {
+      newParsedData.job_matches = updateData.job_matches;
+      hasParsedDataChanges = true;
+    }
+    
+    if (updateData.job_applied) {
+      newParsedData.job_applied = updateData.job_applied;
+      hasParsedDataChanges = true;
+    }
+    
+    if (updateData.parsedData) {
+      newParsedData = { ...newParsedData, ...updateData.parsedData };
+      hasParsedDataChanges = true;
+    }
+    
+    if (hasParsedDataChanges) {
+      updateFields.push(`"parsedData" = $${paramIndex++}`);
+      updateValues.push(newParsedData);
     }
     
     // Always update the updatedAt timestamp
@@ -191,6 +255,29 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     updateValues.push(id);
     
     const updateResult = await client.query(updateQuery, updateValues);
+    
+    // Update job matches in JobMatch table if provided
+    if (updateData.job_matches) {
+      // Delete existing job matches
+      await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1', [id]);
+      
+      // Insert new job matches
+      const insertJobMatchQuery = `
+        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      `;
+      
+      for (const match of updateData.job_matches) {
+        const matchId = uuidv4();
+        await client.query(insertJobMatchQuery, [
+          matchId,
+          id,
+          match.job_id,
+          match.fit_score,
+          match.match_reasons || [],
+        ]);
+      }
+    }
     
     // Create transition record if status changed
     if (updateData.status !== undefined && oldStatus !== updateData.status) {

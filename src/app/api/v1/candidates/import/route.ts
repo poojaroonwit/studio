@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { parse as parseCsv } from 'csv-parse/sync';
+import * as XLSX from 'xlsx';
 
 const candidateImportSchema = z.object({
   candidates: z.array(z.object({
@@ -15,6 +17,8 @@ const candidateImportSchema = z.object({
     recruiterId: z.string().uuid().optional().nullable(),
     fitScore: z.number().min(0).max(100).optional(),
     custom_attributes: z.record(z.any()).optional().nullable(),
+    parsedData: z.any().optional().nullable(),
+    resumePath: z.string().optional().nullable(),
   }))
 });
 
@@ -31,19 +35,83 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import candidates' }), { status: 403, headers: handleCors(req) });
   }
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+  let candidates: any[] = [];
+  const contentType = req.headers.get('content-type') || '';
+
+  if (contentType.includes('multipart/form-data')) {
+    // Handle file upload (CSV/Excel)
+    try {
+      const formData = await req.formData();
+      const file = formData.get('file');
+      
+      if (!file || typeof file === 'string') {
+        return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.csv')) {
+        // Parse CSV
+        const csvString = buffer.toString('utf-8');
+        const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
+        candidates = records.map((row: any) => ({
+          name: row.name || row.Name || '',
+          email: row.email || row.Email || '',
+          phone: row.phone || row.Phone || null,
+          status: row.status || row.Status || 'Applied',
+          positionId: row.positionId || row.position_id || null,
+          recruiterId: row.recruiterId || row.recruiter_id || null,
+          fitScore: row.fitScore || row.fit_score ? parseInt(row.fitScore || row.fit_score) : null,
+          custom_attributes: row.custom_attributes ? JSON.parse(row.custom_attributes) : {},
+          parsedData: row.parsedData ? JSON.parse(row.parsedData) : null,
+          resumePath: row.resumePath || row.resume_path || null,
+        }));
+      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // Parse Excel
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        candidates = json.map((row: any) => ({
+          name: row.name || row.Name || '',
+          email: row.email || row.Email || '',
+          phone: row.phone || row.Phone || null,
+          status: row.status || row.Status || 'Applied',
+          positionId: row.positionId || row.position_id || null,
+          recruiterId: row.recruiterId || row.recruiter_id || null,
+          fitScore: row.fitScore || row.fit_score ? parseInt(row.fitScore || row.fit_score) : null,
+          custom_attributes: row.custom_attributes ? JSON.parse(row.custom_attributes) : {},
+          parsedData: row.parsedData ? JSON.parse(row.parsedData) : null,
+          resumePath: row.resumePath || row.resume_path || null,
+        }));
+      } else {
+        return new Response(JSON.stringify({ error: 'Unsupported file type. Please upload CSV or Excel files.' }), { status: 400, headers: handleCors(req) });
+      }
+    } catch (error) {
+      return new Response(JSON.stringify({ error: 'Failed to parse file', details: (error as Error).message }), { status: 400, headers: handleCors(req) });
+    }
+  } else {
+    // Handle JSON body
+    try {
+      const body = await req.json();
+      const validationResult = candidateImportSchema.safeParse(body);
+      if (!validationResult.success) {
+        return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+      }
+      candidates = validationResult.data.candidates;
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    }
   }
 
-  const validationResult = candidateImportSchema.safeParse(body);
+  // Validate candidates
+  const validationResult = candidateImportSchema.safeParse({ candidates });
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { candidates } = validationResult.data;
   const client = await getPool().connect();
   
   try {
@@ -62,13 +130,14 @@ export async function POST(req: NextRequest) {
         
         if (existingResult.rows.length > 0) {
           results.skipped++;
+          results.errors.push(`Candidate with email ${candidate.email} already exists`);
           continue;
         }
 
         // Insert new candidate
         const insertQuery = `
-          INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "applicationDate", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+          INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
         `;
         
         await client.query(insertQuery, [
@@ -80,7 +149,9 @@ export async function POST(req: NextRequest) {
           candidate.positionId || null,
           candidate.recruiterId || null,
           candidate.fitScore || null,
-          candidate.custom_attributes || {}
+          candidate.custom_attributes || {},
+          candidate.parsedData || null,
+          candidate.resumePath || null
         ]);
 
         results.imported++;
@@ -120,11 +191,13 @@ export async function GET(req: NextRequest) {
         name: "John Doe",
         email: "john.doe@example.com",
         phone: "+1234567890",
-        status: "new",
+        status: "Applied",
         positionId: null,
         recruiterId: null,
         fitScore: 85,
-        custom_attributes: {}
+        custom_attributes: {},
+        parsedData: null,
+        resumePath: null
       }
     ]
   };

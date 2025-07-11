@@ -87,6 +87,7 @@ export function TipTapEditor({
             editorProps: {
               attributes: {
                 class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
+                placeholder: placeholder,
               },
             },
           });
@@ -109,7 +110,6 @@ export function TipTapEditor({
       <div 
         ref={editorRef}
         className="min-h-[200px] p-4 focus:outline-none"
-        placeholder={placeholder}
       />
       {!isLoaded && (
         <div className="min-h-[200px] p-4 bg-muted/50 animate-pulse rounded-md" />
@@ -317,7 +317,6 @@ export function MinimalistEditor({
             className="min-h-[200px] focus:outline-none prose prose-sm max-w-none"
             onInput={handleInput}
             dangerouslySetInnerHTML={{ __html: value }}
-            placeholder={placeholder}
           />
         )}
       </div>
@@ -570,7 +569,6 @@ export function CompactEditor({
         onFocus={() => setShowToolbar(true)}
         onBlur={() => setShowToolbar(false)}
         dangerouslySetInnerHTML={{ __html: value }}
-        placeholder={placeholder}
       />
     </div>
   );

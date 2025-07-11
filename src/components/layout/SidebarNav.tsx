@@ -158,7 +158,7 @@ const SidebarNavComponent = function SidebarNav() {
           >
             <a>
               <dashboardNavItem.icon className="h-5 w-5" />
-              <span className="truncate">{dashboardNavItem.label}</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">{dashboardNavItem.label}</span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -175,7 +175,7 @@ const SidebarNavComponent = function SidebarNav() {
             >
               <a>
                 <myTaskBoardNavItem.icon className="h-5 w-5" />
-                <span className="truncate">{myTaskBoardNavItem.label}</span>
+                <span className="truncate group-data-[collapsible=icon]:hidden">{myTaskBoardNavItem.label}</span>
               </a>
             </SidebarMenuButton>
           </Link>
@@ -194,7 +194,7 @@ const SidebarNavComponent = function SidebarNav() {
           >
             <a>
               <candidatesNavItem.icon className="h-5 w-5" />
-              <span className="truncate">{candidatesNavItem.label}</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">{candidatesNavItem.label}</span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -210,7 +210,7 @@ const SidebarNavComponent = function SidebarNav() {
           >
             <a>
               <positionsNavItem.icon className="h-5 w-5" />
-              <span className="truncate">{positionsNavItem.label}</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">{positionsNavItem.label}</span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -228,7 +228,7 @@ const SidebarNavComponent = function SidebarNav() {
           >
             <a className="flex items-center w-full">
               <bulkUploadNavItem.icon className="h-5 w-5" />
-              <span className="truncate">{bulkUploadNavItem.label}</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">{bulkUploadNavItem.label}</span>
               {pendingError ? (
                 <SidebarMenuBadge className="ml-2 bg-gray-400 text-white">?</SidebarMenuBadge>
               ) : pendingCount === null ? (
@@ -253,7 +253,7 @@ const SidebarNavComponent = function SidebarNav() {
           >
             <a>
               <settingsNavItem.icon className="h-5 w-5" />
-              <span className="truncate">{settingsNavItem.label}</span>
+              <span className="truncate group-data-[collapsible=icon]:hidden">{settingsNavItem.label}</span>
             </a>
           </SidebarMenuButton>
         </Link>
@@ -268,7 +268,7 @@ const SidebarNavComponent = function SidebarNav() {
             style={manualConfig.manualType === "external" ? {} : {}}
           >
             <FileText className="h-5 w-5" />
-            <span className="truncate">Manual</span>
+            <span className="truncate group-data-[collapsible=icon]:hidden">Manual</span>
           </a>
         </SidebarMenuItem>
       )}

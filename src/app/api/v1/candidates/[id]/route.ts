@@ -95,8 +95,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!validationResult.success) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
-  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath } = validationResult.data;
+  
+  const updateData = validationResult.data;
   const client = await getPool().connect();
+  
   try {
     await client.query('BEGIN');
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
@@ -104,38 +106,115 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
     }
+    
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.status;
+    
+    // Build dynamic update query based on provided fields
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
+    
+    // Only include fields that are actually provided in the request
+    if (updateData.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      updateValues.push(updateData.name);
+    }
+    
+    if (updateData.email !== undefined) {
+      updateFields.push(`email = $${paramIndex++}`);
+      updateValues.push(updateData.email);
+    }
+    
+    if (updateData.phone !== undefined) {
+      updateFields.push(`phone = $${paramIndex++}`);
+      updateValues.push(updateData.phone);
+    }
+    
+    if (updateData.positionId !== undefined) {
+      updateFields.push(`"positionId" = $${paramIndex++}`);
+      updateValues.push(updateData.positionId);
+    }
+    
+    if (updateData.recruiterId !== undefined) {
+      updateFields.push(`"recruiterId" = $${paramIndex++}`);
+      updateValues.push(updateData.recruiterId);
+    }
+    
+    if (updateData.fitScore !== undefined) {
+      updateFields.push(`"fitScore" = $${paramIndex++}`);
+      updateValues.push(updateData.fitScore);
+    }
+    
+    if (updateData.status !== undefined) {
+      updateFields.push(`status = $${paramIndex++}`);
+      updateValues.push(updateData.status);
+    }
+    
+    if (updateData.parsedData !== undefined) {
+      updateFields.push(`"parsedData" = $${paramIndex++}`);
+      updateValues.push(updateData.parsedData);
+    }
+    
+    if (updateData.custom_attributes !== undefined) {
+      updateFields.push(`"customAttributes" = $${paramIndex++}`);
+      updateValues.push(updateData.custom_attributes);
+    }
+    
+    if (updateData.resumePath !== undefined) {
+      updateFields.push(`"resumePath" = $${paramIndex++}`);
+      updateValues.push(updateData.resumePath);
+    }
+    
+    // Always update the updatedAt timestamp
+    updateFields.push(`"updatedAt" = NOW()`);
+    
+    // If no fields to update, return early
+    if (updateFields.length === 0) {
+      await client.query('ROLLBACK');
+      return new Response(JSON.stringify({ 
+        message: 'No fields to update',
+        candidate: {
+          ...existingCandidate,
+          custom_attributes: existingCandidate.customAttributes || {},
+        }
+      }), { status: 200, headers: handleCors(req) });
+    }
+    
+    // Build and execute the update query
     const updateQuery = `
       UPDATE "Candidate" 
-      SET name = $1, email = $2, phone = $3, "positionId" = $4, "recruiterId" = $5, 
-          "fitScore" = $6, status = $7, "parsedData" = $8, "customAttributes" = $9, 
-          "resumePath" = $10, "updatedAt" = NOW()
-      WHERE id = $11
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *;
     `;
-    const updateResult = await client.query(updateQuery, [
-      name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, id
-    ]);
+    updateValues.push(id);
+    
+    const updateResult = await client.query(updateQuery, updateValues);
+    
     // Create transition record if status changed
-    if (oldStatus !== status) {
+    if (updateData.status !== undefined && oldStatus !== updateData.status) {
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
       await client.query(insertTransitionQuery, [
-        uuidv4(), id, positionId, status, 'Status changed via API', user.id
+        uuidv4(), id, updateData.positionId || existingCandidate.positionId, updateData.status, 'Status changed via API', user.id
       ]);
     }
+    
     await client.query('COMMIT');
     const updatedCandidate = updateResult.rows[0];
+    
     return new Response(JSON.stringify({
       message: 'Candidate updated successfully',
       candidate: {
         ...updatedCandidate,
         custom_attributes: updatedCandidate.customAttributes || {},
-      }
+      },
+      updated_fields: Object.keys(updateData).filter(key => updateData[key as keyof typeof updateData] !== undefined)
     }), { status: 200, headers: handleCors(req) });
+    
   } catch (error) {
     await client.query('ROLLBACK');
     return new Response(JSON.stringify({ error: 'Error updating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });

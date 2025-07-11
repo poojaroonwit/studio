@@ -1,7 +1,5 @@
 "use client";
-import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useCallback } from 'react';
-import 'react-quill/dist/quill.snow.css';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText } from 'lucide-react';
@@ -11,8 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'react-hot-toast';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();

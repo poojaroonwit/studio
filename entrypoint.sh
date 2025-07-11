@@ -3,7 +3,7 @@ set -e
 
 # --- MinIO Public Policy Automation ---
 # Set these environment variables or use defaults
-export MINIO_HOST="http://${MINIO_ENDPOINT}:${MINIO_PORT}"
+export MINIO_HOST="http://${MINIO_ENDPOINT:-minio}:${MINIO_PORT:-9000}"
 export MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-uploads}
 export MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
 export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}

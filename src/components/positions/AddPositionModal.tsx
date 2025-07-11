@@ -25,14 +25,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 
-// Import ReactQuill CSS
-import 'react-quill/dist/quill.snow.css';
-
-// Dynamically import ReactQuill to prevent build-time loading
-const ReactQuill = dynamic(() => import('react-quill'), {
-  ssr: false,
-  loading: () => <div className="h-[200px] bg-muted animate-pulse rounded-md" />
-});
+// Import the new WYSIWYG editors
+import { TipTapEditor } from '@/components/ui/wysiwyg-editors';
 
 const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -135,35 +129,11 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
               name="description"
               control={form.control}
               render={({ field }) => (
-                <ReactQuill
-                  id="description-add"
-                  theme="snow"
+                <TipTapEditor
                   value={field.value || ''}
                   onChange={field.onChange}
-                  className="mt-1 bg-background border border-input rounded-md"
                   placeholder="Enter job description"
-                  style={{ minHeight: 200 }}
-                  modules={{
-                    toolbar: [
-                      [{ 'header': [1, 2, 3, false] }],
-                      ['bold', 'italic', 'underline', 'strike'],
-                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                      [{ 'color': [] }, { 'background': [] }],
-                      ['link'],
-                      ['clean']
-                    ],
-                    clipboard: {
-                      matchVisual: false
-                    }
-                  }}
-                  formats={[
-                    'header',
-                    'bold', 'italic', 'underline', 'strike',
-                    'list', 'bullet',
-                    'color', 'background',
-                    'link'
-                  ]}
-                  preserveWhitespace={true}
+                  className="mt-1 bg-background border border-input rounded-md"
                 />
               )}
             />

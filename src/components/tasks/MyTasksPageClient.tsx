@@ -3,11 +3,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { CandidateRowKanbanView, MultiRecruiterKanbanView } from '@/components/candidates/CandidateKanbanView';
-import { CandidateDetailModal } from '@/components/candidates/CandidateDetailModal';
+import { FullCandidateDetailModal } from '@/components/candidates/FullCandidateDetailModal';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { MyTasksFilterModal } from './MyTasksFilterModal';
 import { CustomizeBoardModal } from './CustomizeBoardModal';
+import { Filter, Settings, Grid3X3, List, Kanban, Users, Calendar, Target } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
@@ -127,23 +129,122 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     });
   };
 
+  // Get status color for YouTrack-style badges
+  const getStatusColor = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'Applied': 'bg-blue-100 text-blue-800 border-blue-200',
+      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200',
+      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200',
+      'Offer Sent': 'bg-green-100 text-green-800 border-green-200',
+      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200',
+      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200',
+    };
+    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b bg-card">
-        <h1 className="text-2xl font-bold">My Tasks</h1>
-        <div className="flex gap-2 items-center">
-          <Button variant="outline" onClick={() => setIsFilterModalOpen(true)}>Filter</Button>
-          <Button variant="outline" onClick={() => setIsCustomizeModalOpen(true)}>Customize Board</Button>
-          {userSession?.role === 'Admin' && (
-            <Button variant="outline" onClick={() => setViewMode(viewMode === 'kanban' ? 'multi-recruiter' : 'kanban')}>
-              {viewMode === 'kanban' ? 'Multi-Recruiter View' : 'Kanban View'}
-            </Button>
-          )}
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* YouTrack-style Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">My Tasks</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  {displayedCandidates.length} candidates assigned to you
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 ml-6">
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Target className="w-3 h-3 mr-1" />
+                  Active
+                </Badge>
+                <Badge variant="outline" className="text-gray-600">
+                  {stages.length} stages
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <Button
+                  variant={boardPrefs.viewType === 'kanban' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setBoardPrefs(prev => ({ ...prev, viewType: 'kanban' }))}
+                  className="h-8 px-3"
+                >
+                  <Kanban className="w-4 h-4 mr-1" />
+                  Kanban
+                </Button>
+                <Button
+                  variant={boardPrefs.viewType === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setBoardPrefs(prev => ({ ...prev, viewType: 'list' }))}
+                  className="h-8 px-3"
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+                <Button
+                  variant={boardPrefs.viewType === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setBoardPrefs(prev => ({ ...prev, viewType: 'grid' }))}
+                  className="h-8 px-3"
+                >
+                  <Grid3X3 className="w-4 h-4 mr-1" />
+                  Grid
+                </Button>
+              </div>
+
+              {/* Action Buttons */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFilterModalOpen(true)}
+                className="h-9 px-4 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCustomizeModalOpen(true)}
+                className="h-9 px-4 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Customize
+              </Button>
+              {userSession?.role === 'Admin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setViewMode(viewMode === 'kanban' ? 'multi-recruiter' : 'kanban')}
+                  className="h-9 px-4 border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  {viewMode === 'kanban' ? 'Multi-Recruiter' : 'Kanban'}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-auto p-6">
         {loading ? (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">Loading...</div>
+          <div className="flex items-center justify-center h-64">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-500 text-sm">Loading your tasks...</p>
+            </div>
+          </div>
         ) : boardPrefs.viewType === 'kanban' ? (
           <CandidateRowKanbanView
             candidates={displayedCandidates}
@@ -155,66 +256,158 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             visibleFields={boardPrefs.visibleFields}
           />
         ) : boardPrefs.viewType === 'list' ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead>
-                <tr>
-                  {boardPrefs.visibleFields.map(field => (
-                    <th key={field} className="px-3 py-2 border-b bg-muted text-left font-semibold">{field.charAt(0).toUpperCase() + field.slice(1)}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayedCandidates.map(candidate => (
-                  <tr key={candidate.id} className="hover:bg-accent cursor-pointer" onClick={() => setSelectedCandidate(candidate)}>
-                    {boardPrefs.visibleFields.map(field => {
-                      if (field === 'name') return <td key={field} className="px-3 py-2 border-b">{candidate.name}</td>;
-                      if (field === 'email') return <td key={field} className="px-3 py-2 border-b">{candidate.email}</td>;
-                      if (field === 'phone') return <td key={field} className="px-3 py-2 border-b">{candidate.phone}</td>;
-                      if (field === 'status') return <td key={field} className="px-3 py-2 border-b">{candidate.status}</td>;
-                      if (field === 'positionId') return <td key={field} className="px-3 py-2 border-b">{candidate.position?.title || candidate.positionId}</td>;
-                      if (field === 'fitScore') return <td key={field} className="px-3 py-2 border-b">{candidate.fitScore}</td>;
-                      if (field === 'recruiterId') return <td key={field} className="px-3 py-2 border-b">{candidate.recruiter?.name || candidate.recruiterId}</td>;
-                      if (field === 'applicationDate') return <td key={field} className="px-3 py-2 border-b">{candidate.applicationDate}</td>;
-                      return <td key={field} className="px-3 py-2 border-b" />;
-                    })}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {boardPrefs.visibleFields.map(field => (
+                      <th key={field} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {field.charAt(0).toUpperCase() + field.slice(1)}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {displayedCandidates.map(candidate => (
+                    <tr 
+                      key={candidate.id} 
+                      className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                      onClick={() => setSelectedCandidate(candidate)}
+                    >
+                      {boardPrefs.visibleFields.map(field => {
+                        if (field === 'name') return (
+                          <td key={field} className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <img
+                                  className="h-10 w-10 rounded-full"
+                                  src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`}
+                                  alt=""
+                                />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{candidate.name}</div>
+                                <div className="text-sm text-gray-500">{candidate.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                        );
+                        if (field === 'email') return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{candidate.email}</td>;
+                        if (field === 'phone') return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{candidate.phone}</td>;
+                        if (field === 'status') return (
+                          <td key={field} className="px-6 py-4 whitespace-nowrap">
+                            <Badge className={`${getStatusColor(candidate.status)} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
+                              {candidate.status}
+                            </Badge>
+                          </td>
+                        );
+                        if (field === 'positionId') return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{candidate.position?.title || candidate.positionId}</td>;
+                        if (field === 'fitScore') return (
+                          <td key={field} className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="text-sm font-medium text-gray-900">{candidate.fitScore}</div>
+                              <div className="ml-2 w-16 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full" 
+                                  style={{ width: `${candidate.fitScore}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </td>
+                        );
+                        if (field === 'recruiterId') return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{candidate.recruiter?.name || candidate.recruiterId}</td>;
+                        if (field === 'applicationDate') return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{candidate.applicationDate}</td>;
+                        return <td key={field} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" />;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedCandidates.map(candidate => (
               <div
                 key={candidate.id}
-                className="bg-card border rounded-lg shadow hover:shadow-lg cursor-pointer p-4 flex flex-col gap-2 items-center"
+                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 cursor-pointer overflow-hidden"
                 onClick={() => setSelectedCandidate(candidate)}
               >
-                <div className="w-16 h-16 mb-2">
-                  <img
-                    src={candidate.avatarUrl || `https://placehold.co/64x64.png?text=${candidate.name?.charAt(0) || 'C'}`}
-                    alt={candidate.name}
-                    className="rounded-full w-full h-full object-cover"
-                  />
+                <div className="p-6">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex-shrink-0">
+                      <img
+                        className="h-12 w-12 rounded-full"
+                        src={candidate.avatarUrl || `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'C'}`}
+                        alt=""
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{candidate.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{candidate.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {boardPrefs.visibleFields.map(field => {
+                      if (field === 'name' || field === 'email') return null;
+                      if (field === 'phone') return (
+                        <div key={field} className="flex items-center text-sm">
+                          <span className="text-gray-500 w-16">Phone:</span>
+                          <span className="text-gray-900">{candidate.phone}</span>
+                        </div>
+                      );
+                      if (field === 'status') return (
+                        <div key={field} className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Status:</span>
+                          <Badge className={`${getStatusColor(candidate.status)} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
+                            {candidate.status}
+                          </Badge>
+                        </div>
+                      );
+                      if (field === 'positionId') return (
+                        <div key={field} className="flex items-center text-sm">
+                          <span className="text-gray-500 w-16">Position:</span>
+                          <span className="text-gray-900 truncate">{candidate.position?.title || candidate.positionId}</span>
+                        </div>
+                      );
+                      if (field === 'fitScore') return (
+                        <div key={field} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Fit Score:</span>
+                            <span className="font-medium text-gray-900">{candidate.fitScore}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${candidate.fitScore}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                      if (field === 'recruiterId') return (
+                        <div key={field} className="flex items-center text-sm">
+                          <span className="text-gray-500 w-16">Recruiter:</span>
+                          <span className="text-gray-900">{candidate.recruiter?.name || candidate.recruiterId}</span>
+                        </div>
+                      );
+                      if (field === 'applicationDate') return (
+                        <div key={field} className="flex items-center text-sm">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                          <span className="text-gray-900">{candidate.applicationDate}</span>
+                        </div>
+                      );
+                      return null;
+                    })}
+                  </div>
                 </div>
-                <div className="font-semibold text-base text-center truncate w-full">{candidate.name}</div>
-                {boardPrefs.visibleFields.map(field => {
-                  if (field === 'name') return null;
-                  if (field === 'email') return <div key={field} className="text-xs text-muted-foreground truncate w-full text-center">{candidate.email}</div>;
-                  if (field === 'phone') return <div key={field} className="text-xs text-muted-foreground truncate w-full text-center">{candidate.phone}</div>;
-                  if (field === 'status') return <div key={field} className="text-xs text-muted-foreground w-full text-center">Status: {candidate.status}</div>;
-                  if (field === 'positionId') return <div key={field} className="text-xs text-muted-foreground w-full text-center">Position: {candidate.position?.title || candidate.positionId}</div>;
-                  if (field === 'fitScore') return <div key={field} className="text-xs text-muted-foreground w-full text-center">Fit Score: {candidate.fitScore}</div>;
-                  if (field === 'recruiterId') return <div key={field} className="text-xs text-muted-foreground w-full text-center">Recruiter: {candidate.recruiter?.name || candidate.recruiterId}</div>;
-                  if (field === 'applicationDate') return <div key={field} className="text-xs text-muted-foreground w-full text-center">Applied: {candidate.applicationDate}</div>;
-                  return null;
-                })}
               </div>
             ))}
           </div>
         )}
       </div>
+
       {/* Filter Modal */}
       <Dialog open={isFilterModalOpen} onOpenChange={setIsFilterModalOpen}>
         <DialogContent>
@@ -228,14 +421,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           />
         </DialogContent>
       </Dialog>
-      {/* Candidate Detail Modal */}
+
+      {/* Full Candidate Detail Modal */}
       {selectedCandidate && (
-        <CandidateDetailModal
+        <FullCandidateDetailModal
           isOpen={!!selectedCandidate}
           onOpenChange={(open) => !open && setSelectedCandidate(null)}
-          candidateSummary={selectedCandidate}
+          candidateId={selectedCandidate.id}
         />
       )}
+
       {/* Customize Board Modal */}
       <CustomizeBoardModal
         open={isCustomizeModalOpen}

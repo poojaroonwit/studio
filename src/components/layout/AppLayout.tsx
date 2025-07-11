@@ -157,11 +157,11 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <SidebarStyleInitializer />
       <div className="flex min-h-screen bg-background">
-        <Sidebar>
+        <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center gap-2 px-2">
               {renderLogo(false)}
-              <span className="font-semibold text-lg">{currentAppName}</span>
+              <span className="font-semibold text-lg group-data-[collapsible=icon]:hidden">{currentAppName}</span>
             </div>
           </SidebarHeader>
           <SidebarContent>

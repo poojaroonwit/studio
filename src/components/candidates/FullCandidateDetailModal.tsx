@@ -596,8 +596,7 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                           <TableRow>
                             <TableHead>Job Title</TableHead>
                             <TableHead>Fit Score</TableHead>
-                            <TableHead>Company</TableHead>
-                            <TableHead>Location</TableHead>
+                            <TableHead>Match Reasons</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -609,8 +608,12 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                                   {formatScoreWithGrade(match.fit_score)}
                                 </Badge>
                               </TableCell>
-                              <TableCell>{match.company || 'N/A'}</TableCell>
-                              <TableCell>{match.location || 'N/A'}</TableCell>
+                              <TableCell>
+                                {match.match_reasons && match.match_reasons.length > 0 
+                                  ? match.match_reasons.slice(0, 2).join(', ') + (match.match_reasons.length > 2 ? '...' : '')
+                                  : 'N/A'
+                                }
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

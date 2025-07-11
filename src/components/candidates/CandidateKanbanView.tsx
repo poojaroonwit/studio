@@ -400,7 +400,7 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
         <CandidateDetailModal
           isOpen={isModalOpen}
           onOpenChange={setIsModalOpen}
-          candidate={selectedCandidateSummary}
+          candidateSummary={selectedCandidateSummary}
         />
       )}
     </>

@@ -177,8 +177,8 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
     <div className="space-y-3">
       {stages.map((stage, index) => {
         const isCurrentStage = stage.name === currentStatus;
-        const hasTransition = transitionHistory.some(t => t.toStage === stage.name);
-        const transition = transitionHistory.find(t => t.toStage === stage.name);
+        const hasTransition = transitionHistory.some(t => t.stage === stage.name);
+        const transition = transitionHistory.find(t => t.stage === stage.name);
         const isCompleted = hasTransition || index < stages.findIndex(s => s.name === currentStatus);
 
         return (
@@ -874,7 +874,7 @@ export function FullCandidateDetailModal({ isOpen, onOpenChange, candidateId }: 
                           <div key={transition.id} className="flex items-start gap-3">
                             <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium">{transition.toStage}</p>
+                              <p className="text-sm font-medium">{transition.stage}</p>
                               <p className="text-xs text-muted-foreground">
                                 {format(parseISO(transition.timestamp), "MMM d, yyyy 'at' h:mm a")}
                               </p>

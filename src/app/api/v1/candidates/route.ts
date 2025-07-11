@@ -1,231 +1,211 @@
-import { NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
-import { verifyApiToken } from '@/lib/auth';
-import { handleCors } from '@/lib/cors';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-const candidateDetailsSchema = z.object({
-  cv_language: z.string().optional().nullable(),
-  personal_info: z.object({
-    title_honorific: z.string().optional().nullable(),
-    firstname: z.string().min(1),
-    lastname: z.string().min(1),
-    nickname: z.string().optional().nullable(),
-    location: z.string().optional().nullable(),
-    introduction_aboutme: z.string().optional().nullable(),
-    avatar_url: z.string().url().optional().nullable(),
-  }),
-  contact_info: z.object({
-    email: z.string().email(),
-    phone: z.string().optional().nullable(),
-  }),
-  education: z.array(z.any()).optional(),
-  experience: z.array(z.any()).optional(),
-  skills: z.array(z.any()).optional(),
-  job_suitable: z.array(z.any()).optional(),
-  job_matches: z.array(z.any()).optional(),
-});
-
-const createCandidateSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  phone: z.string().optional().nullable(),
-  positionId: z.string().uuid().optional().nullable(),
-  recruiterId: z.string().uuid().optional().nullable(),
-  fitScore: z.number().min(0).max(100).optional(),
-  status: z.string().min(1),
-  parsedData: candidateDetailsSchema.optional().nullable(),
-  custom_attributes: z.record(z.any()).optional().nullable(),
-  resumePath: z.string().optional().nullable(),
-});
-
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_VIEW')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view candidates' }), { status: 403, headers: handleCors(req) });
-  }
-  const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const offset = (page - 1) * limit;
-  const filters = {
-    status: searchParams.get('status') || undefined,
-    positionId: searchParams.get('positionId') || undefined,
-    recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || undefined,
-    searchTerm: searchParams.get('searchTerm') || undefined,
-  };
-  let whereClauses = [];
-  let queryParams = [];
-  let paramIndex = 1;
-  if (filters.status) {
-    whereClauses.push(`c.status = $${paramIndex++}`);
-    queryParams.push(filters.status);
-  }
-  if (filters.positionId) {
-    whereClauses.push(`c."positionId" = $${paramIndex++}`);
-    queryParams.push(filters.positionId);
-  }
-  if (filters.recruiterId) {
-    if (filters.recruiterId === 'unassigned') {
-      whereClauses.push(`c."recruiterId" IS NULL`);
-    } else {
-      whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-      queryParams.push(filters.recruiterId);
-    }
-  }
-  if (filters.searchTerm) {
-    whereClauses.push(`(c.name ILIKE $${paramIndex} OR c.email ILIKE $${paramIndex})`);
-    queryParams.push(`%${filters.searchTerm}%`);
-    paramIndex++;
-  }
-  // If user is a Recruiter, only show their assigned candidates
-  if (user.role === 'Recruiter') {
-    whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-    queryParams.push(user.id);
-  }
-  let query = 'SELECT c.* FROM "Candidate" c';
-  let countQuery = 'SELECT COUNT(*) FROM "Candidate" c';
-  if (whereClauses.length > 0) {
-    query += ' WHERE ' + whereClauses.join(' AND ');
-    countQuery += ' WHERE ' + whereClauses.join(' AND ');
-  }
-  query += ' ORDER BY c."updatedAt" DESC';
-  query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-  queryParams.push(limit, offset);
-  const client = await getPool().connect();
+export async function POST(request: NextRequest) {
   try {
-    const result = await client.query(query, queryParams);
-    const countResult = await client.query(countQuery, queryParams.slice(0, paramIndex - 1));
-    const total = parseInt(countResult.rows[0].count, 10);
-    const candidates = result.rows.map(row => ({
-      ...row,
-      custom_attributes: row.customAttributes || {},
-    }));
-    return new Response(JSON.stringify({ candidates, total, page, limit }), { status: 200, headers: handleCors(req) });
+    // Verify authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    
+    // Validate required fields
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      phone,
+      location,
+      experience,
+      education,
+      skills,
+      summary,
+      source,
+      status = 'active'
+    } = body;
+
+    if (!firstName || !lastName || !email) {
+      return NextResponse.json(
+        { error: 'First name, last name, and email are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if candidate with same email already exists
+    const existingCandidate = await prisma.candidate.findFirst({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (existingCandidate) {
+      return NextResponse.json(
+        { error: 'Candidate with this email already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Create candidate with basic information
+    const candidate = await prisma.candidate.create({
+      data: {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        phone: phone?.trim() || null,
+        location: location?.trim() || null,
+        experience: experience || null,
+        education: education || null,
+        skills: skills || [],
+        summary: summary?.trim() || null,
+        source: source?.trim() || 'api',
+        status: status,
+        createdBy: session.user.id,
+        updatedBy: session.user.id,
+      },
+      include: {
+        createdByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        updatedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: candidate.id,
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+        email: candidate.email,
+        phone: candidate.phone,
+        location: candidate.location,
+        experience: candidate.experience,
+        education: candidate.education,
+        skills: candidate.skills,
+        summary: candidate.summary,
+        source: candidate.source,
+        status: candidate.status,
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt,
+        createdBy: candidate.createdByUser,
+        updatedBy: candidate.updatedByUser
+      }
+    }, { status: 201 });
+
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching candidates', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
+    console.error('Error creating candidate:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  const user = token ? await verifyApiToken(token) : null;
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
-  }
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to create candidates' }), { status: 403, headers: handleCors(req) });
-  }
-  let body;
+export async function GET(request: NextRequest) {
   try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
-  }
+    // Verify authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  // Support new format: { candidate_info, job_matches, job_applied }
-  let candidateData;
-  if (body.candidate_info && (body.job_matches !== undefined || body.job_applied !== undefined)) {
-    // Extract name/email from candidate_info
-    const ci = body.candidate_info;
-    const name = ci.personal_info && ci.personal_info.firstname && ci.personal_info.lastname ? `${ci.personal_info.firstname} ${ci.personal_info.lastname}` : undefined;
-    const email = ci.contact_info && ci.contact_info.email ? ci.contact_info.email : undefined;
-    if (!name || !email) {
-      return new Response(JSON.stringify({ error: 'Missing name or email in candidate_info' }), { status: 400, headers: handleCors(req) });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || '';
+
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { location: { contains: search, mode: 'insensitive' } }
+      ];
     }
-    // Use 'new' as default status if not present
-    const status = ci.status || 'new';
-    // Compose parsedData as the whole body
-    const parsedData = { ...body };
-    // Validate minimal fields
-    if (typeof name !== 'string' || typeof email !== 'string' || typeof status !== 'string') {
-      return new Response(JSON.stringify({ error: 'Invalid name, email, or status' }), { status: 400, headers: handleCors(req) });
+
+    if (status) {
+      where.status = status;
     }
-    // Insert into DB as before
-    const newCandidateId = uuidv4();
-    const client = await getPool().connect();
-    try {
-      await client.query('BEGIN');
-      const insertCandidateQuery = `
-        INSERT INTO "Candidate" (id, name, email, status, "parsedData", "applicationDate", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-        RETURNING *;
-      `;
-      const candidateResult = await client.query(insertCandidateQuery, [
-        newCandidateId, name, email, status, parsedData
-      ]);
-      const newCandidate = candidateResult.rows[0];
-      // Create initial transition record
-      const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
-      `;
-      await client.query(insertTransitionQuery, [
-        uuidv4(), newCandidateId, status, 'Initial creation', user.id
-      ]);
-      await client.query('COMMIT');
-      return new Response(JSON.stringify({ message: 'Candidate created successfully', candidate: newCandidate }), { status: 201, headers: handleCors(req) });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      if ((error as any).code === '23505' && (error as any).constraint === 'Candidate_email_key') {
-        return new Response(JSON.stringify({ error: `A candidate with the email "${email}" already exists.` }), { status: 409, headers: handleCors(req) });
+
+    // Get candidates with pagination
+    const [candidates, total] = await Promise.all([
+      prisma.candidate.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          createdByUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          }
+        }
+      }),
+      prisma.candidate.count({ where })
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: candidates.map(candidate => ({
+        id: candidate.id,
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+        email: candidate.email,
+        phone: candidate.phone,
+        location: candidate.location,
+        experience: candidate.experience,
+        education: candidate.education,
+        skills: candidate.skills,
+        summary: candidate.summary,
+        source: candidate.source,
+        status: candidate.status,
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt,
+        createdBy: candidate.createdByUser
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
-      return new Response(JSON.stringify({ error: 'Error creating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-    } finally {
-      client.release();
-    }
-  }
+    });
 
-  // Fallback to old format
-  const validationResult = createCandidateSchema.safeParse(body);
-  if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
-  }
-  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath } = validationResult.data;
-  const newCandidateId = uuidv4();
-  const client = await getPool().connect();
-  try {
-    await client.query('BEGIN');
-    const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "parsedData", "customAttributes", "resumePath", "applicationDate", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-      RETURNING *;
-    `;
-    const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath
-    ]);
-    const newCandidate = candidateResult.rows[0];
-    // Create initial transition record
-    const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
-    `;
-    await client.query(insertTransitionQuery, [
-      uuidv4(), newCandidateId, positionId, status, 'Initial creation', user.id
-    ]);
-    await client.query('COMMIT');
-    return new Response(JSON.stringify({ message: 'Candidate created successfully', candidate: newCandidate }), { status: 201, headers: handleCors(req) });
   } catch (error) {
-    await client.query('ROLLBACK');
-    if ((error as any).code === '23505' && (error as any).constraint === 'Candidate_email_key') {
-      return new Response(JSON.stringify({ error: `A candidate with the email "${email}" already exists.` }), { status: 409, headers: handleCors(req) });
-    }
-    return new Response(JSON.stringify({ error: 'Error creating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
-  } finally {
-    client.release();
+    console.error('Error fetching candidates:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  const headers = handleCors(request);
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
   return new Response(null, { status: 200, headers });
 } 

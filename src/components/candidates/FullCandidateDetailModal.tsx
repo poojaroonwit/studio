@@ -203,7 +203,7 @@ function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick,
                 <div className="font-medium text-sm">{stage.name}</div>
                 {transition && (
                   <div className="text-xs text-muted-foreground">
-                    {format(parseISO(transition.timestamp), "MMM d, yyyy")}
+                    {format(parseISO(transition.date), "MMM d, yyyy")}
                   </div>
                 )}
               </div>

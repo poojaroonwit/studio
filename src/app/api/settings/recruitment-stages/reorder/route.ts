@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
 import { deleteCache, CACHE_KEY_RECRUITMENT_STAGES } from '@/lib/redis';
+import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const reorderSchema = z.object({
   stageIds: z.array(z.string().uuid()),
@@ -102,6 +104,11 @@ export async function POST(request: NextRequest) {
     );
     // Invalidate recruitment stages cache so new order is reflected
     await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
+    
+    // Broadcast the updated stages list to all connected clients
+    const updatedStages = await fetchAllRecruitmentStagesDb();
+    broadcastRecruitmentStagesUpdate(updatedStages);
+    
     return NextResponse.json({ message: 'Recruitment stages reordered successfully' }, { status: 200 });
   } catch (error: any) {
     await client.query('ROLLBACK');

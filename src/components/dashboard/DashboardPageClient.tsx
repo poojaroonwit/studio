@@ -426,9 +426,9 @@ export default function DashboardPageClient({
                     <TableRow key={candidate.id} className="hover:bg-muted/50">
                       <TableCell>
                         <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                          <Avatar className="h-8 w-8">
+                          <Avatar size="sm" className="border border-border">
                             <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                            <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{candidate.name}</span>
                         </Link>
@@ -485,9 +485,9 @@ export default function DashboardPageClient({
                       <TableRow key={candidate.id} className="hover:bg-muted/50">
                         <TableCell>
                           <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                            <Avatar className="h-8 w-8">
+                            <Avatar size="sm" className="border border-border">
                               <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                              <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                              <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{candidate.name}</span>
                           </Link>
@@ -591,9 +591,9 @@ export default function DashboardPageClient({
                         <TableRow key={candidate.id} className="hover:bg-muted/50">
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <Avatar className="h-8 w-8">
+                              <Avatar size="sm" className="border border-border">
                                 <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                                <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{candidate.name}</span>
                             </Link>
@@ -641,9 +641,9 @@ export default function DashboardPageClient({
                         <TableRow key={candidate.id} className="hover:bg-muted/50">
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <Avatar className="h-8 w-8">
+                              <Avatar size="sm" className="border border-border">
                                 <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                                <AvatarFallback>{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{candidate.name}</span>
                             </Link>

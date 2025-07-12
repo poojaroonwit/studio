@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { broadcastCandidateUpdate } from '@/lib/candidateSse';
+import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 
 /**
  * @openapi
@@ -314,15 +314,29 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       console.log('Creating transition record:', { oldStatus, newStatus: status, transitionNotes, actingUserId });
       const safePositionId = positionId ?? null; // Default to null if undefined
       const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
+      const newTransitionId = uuidv4();
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
       try {
         await client.query(insertTransitionQuery, [
-          uuidv4(), id, safePositionId, status, transitionMessage, actingUserId
+          newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
         ]);
         console.log('Transition record created successfully');
+        
+        // Get the created transition record to broadcast
+        const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
+        const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
+        if (transitionResult.rows.length > 0) {
+          const newTransition = transitionResult.rows[0];
+          // Broadcast the new transition
+          broadcastCandidateTransitionUpdate({
+            candidateId: id,
+            transition: newTransition,
+            action: 'add'
+          });
+        }
       } catch (transitionError) {
         console.error('Error creating transition record:', transitionError);
         throw transitionError;

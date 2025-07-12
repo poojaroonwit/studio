@@ -240,18 +240,18 @@ export default function RolesPermissionsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="grid md:grid-cols-3 gap-6">
+    <div className="h-full flex flex-col p-6">
+      <div className="flex-1 grid md:grid-cols-3 gap-6 min-h-0">
         {/* Left Panel: Roles List */}
-        <div className="md:col-span-1 shadow-sm">
+        <div className="md:col-span-1 shadow-sm flex flex-col">
           <div className="flex justify-between items-center p-4 border-b">
             <h2 className="text-lg">Roles</h2>
              <Button size="sm" onClick={() => handleOpenModal()} className="btn-primary-gradient h-8">
               <PlusCircle className="mr-1.5 h-4 w-4" /> Create
             </Button>
           </div>
-          <div className="p-0">
-            <ScrollArea className="h-[calc(100vh-16rem)]"> {/* Adjust height as needed */}
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
               {isLoading && roles.length === 0 ? (
                  <div className="p-4 text-sm text-muted-foreground text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading roles...</div>
               ) : roles.length === 0 ? (
@@ -285,7 +285,7 @@ export default function RolesPermissionsPage() {
         </div>
 
         {/* Right Panel: Permissions for Selected Role */}
-        <div className="md:col-span-2 shadow-sm">
+        <div className="md:col-span-2 shadow-sm flex flex-col">
           {selectedRole ? (
             <>
               <div className="flex justify-between items-center p-4 border-b">
@@ -298,8 +298,8 @@ export default function RolesPermissionsPage() {
                   {!selectedRole.is_system_role && <Button variant="destructive" size="sm" onClick={() => confirmDelete(selectedRole)}><Trash2 className="mr-1.5 h-3.5 w-3.5"/> Delete Role</Button>}
                 </div>
               </div>
-              <div className="p-4">
-                <ScrollArea className="h-[calc(100vh-18rem)]"> {/* Adjust height */}
+              <div className="flex-1 p-4 min-h-0">
+                <ScrollArea className="h-full">
                   {groupedPermissions.map(group => (
                     <div key={group.category} className="mb-6">
                       <h3 className="text-md font-semibold text-primary mb-2 border-b pb-1">{group.category}</h3>
@@ -323,7 +323,7 @@ export default function RolesPermissionsPage() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
               <ShieldCheck className="h-16 w-16 text-muted-foreground mb-4" />
               <p className="text-muted-foreground">Select a role from the left to view and manage its permissions.</p>
             </div>

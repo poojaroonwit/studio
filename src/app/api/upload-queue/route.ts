@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 /**
  * @openapi
@@ -198,6 +199,14 @@ export async function POST(request: NextRequest) {
       uploadId: upload_id,
       filePath: file_path
     });
+
+    // Dispatch webhook for upload queue created event
+    try {
+      await dispatchWebhooks.uploadQueueCreated(res.rows[0]);
+    } catch (webhookError) {
+      console.error('Failed to dispatch upload queue created webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

@@ -38,6 +38,7 @@ import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -178,6 +179,15 @@ export async function POST(request: NextRequest) {
     }
 
     await logAudit('AUDIT', `Position '${newPosition.title}' (ID: ${newPosition.id}) created by ${actingUserName}.`, 'API:Positions:Create', actingUserId, { targetPositionId: newPosition.id, title: newPosition.title, department: newPosition.department, position_level: newPosition.position_level });
+    
+    // Dispatch webhook for position creation
+    try {
+      await dispatchWebhooks.positionCreated(newPosition);
+    } catch (webhookError) {
+      console.error('Failed to dispatch position creation webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });
   } catch (error) {
     console.error("Failed to create position:", error);

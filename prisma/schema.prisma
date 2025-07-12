@@ -221,65 +221,9 @@ model SystemSetting {
   @@index([updatedAt])
 }
 
-model WebhookFieldMapping {
-  id          String   @id @default(uuid()) @db.Uuid
-  targetPath  String   @map("target_path")
-  sourcePath  String?  @map("source_path")
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Indexes
-  @@index([targetPath])
-}
 
-model NotificationEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  eventKey    String   @unique @map("event_key")
-  label       String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  settings    NotificationSetting[]
-  
-  // Indexes
-  @@index([eventKey])
-}
 
-model NotificationChannel {
-  id          String   @id @default(uuid()) @db.Uuid
-  channelKey  String   @unique @map("channel_key")
-  label       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  settings    NotificationSetting[]
-  
-  // Indexes
-  @@index([channelKey])
-}
 
-model NotificationSetting {
-  id          String   @id @default(uuid()) @db.Uuid
-  eventId     String   @db.Uuid @map("event_id")
-  channelId   String   @db.Uuid @map("channel_id")
-  isEnabled   Boolean  @default(false) @map("is_enabled")
-  configuration Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  event       NotificationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  channel     NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  
-  // Indexes
-  @@index([eventId])
-  @@index([channelId])
-  @@index([isEnabled])
-}
 
 model CustomFieldDefinition {
   id          String   @id @default(uuid()) @db.Uuid
@@ -443,4 +387,54 @@ model Attachment {
   @@index([uploadedById])
   @@index([label])
   @@index([isPrimary])
+}
+
+model Webhook {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  url               String
+  events            String[] // Array of event types this webhook listens to
+  method            String   // GET, POST, PUT, PATCH
+  is_active         Boolean  @default(true) @map("is_active")
+  auth_type         String   @default("none") @map("auth_type") // none, basic, bearer, header
+  auth_username     String?  @map("auth_username")
+  auth_password     String?  @map("auth_password")
+  auth_token        String?  @map("auth_token")
+  auth_header_name  String?  @map("auth_header_name")
+  auth_header_value String?  @map("auth_header_value")
+  headers           Json?    // Custom headers as JSON object
+  retry_count       Int      @default(3) @map("retry_count")
+  timeout           Int      @default(30) // Timeout in seconds
+  created_at        DateTime @default(now()) @map("created_at")
+  updated_at        DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  logs              WebhookLog[]
+  
+  // Indexes
+  @@index([is_active])
+  @@index([events])
+  @@index([created_at])
+}
+
+model WebhookLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  webhook_id     String   @db.Uuid @map("webhook_id")
+  event_type     String   @map("event_type")
+  payload        Json     // The webhook payload that was sent
+  response_status Int?    @map("response_status")
+  response_body  String?  @map("response_body")
+  success        Boolean
+  error_message  String?  @map("error_message")
+  duration_ms    Int      @default(0) @map("duration_ms")
+  created_at     DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([webhook_id])
+  @@index([event_type])
+  @@index([success])
+  @@index([created_at])
 }

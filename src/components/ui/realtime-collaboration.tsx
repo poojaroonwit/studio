@@ -289,9 +289,9 @@ export function RealtimeCollaboration({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/50">
-                            <Avatar className="w-6 h-6">
+                            <Avatar size="xs" className="border border-border">
                               <AvatarImage src="" />
-                              <AvatarFallback className="text-xs">
+                              <AvatarFallback className="text-xs font-medium">
                                 {getUserInitials(user.userName)}
                               </AvatarFallback>
                             </Avatar>

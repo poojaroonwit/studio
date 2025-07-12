@@ -430,6 +430,11 @@ Create or update job matches for a candidate.
 }
 ```
 
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `position_title`: Automatically retrieved from the Position table based on `job_id`
+- `created_at`: Automatically set to current timestamp when creating new matches
+- `updated_at`: Automatically set to current timestamp when updating matches
+
 **Response:**
 ```json
 {
@@ -486,6 +491,11 @@ Update a specific job match for a candidate.
   "match_reasons": ["Updated match reasons"]
 }
 ```
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `position_title`: Automatically retrieved from the Position table based on `job_id`
+- `created_at`: Automatically set to current timestamp when creating new matches
+- `updated_at`: Automatically set to current timestamp when updating matches
 
 **Response:**
 ```json

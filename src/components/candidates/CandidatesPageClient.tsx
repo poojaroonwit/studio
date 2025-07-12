@@ -329,7 +329,17 @@ export function CandidatesPageClient({
   }, [initialFetchError]);
 
   useEffect(() => {
+    console.log('[SSE] Setting up SSE connection for candidates page...');
     const eventSource = new EventSource('/api/candidates/sse');
+    
+    eventSource.onopen = () => {
+      console.log('[SSE] SSE connection opened for candidates page');
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('[SSE] SSE connection error for candidates page:', error);
+    };
+    
     eventSource.onmessage = (event) => {
       try {
         const updatedCandidate = JSON.parse(event.data);
@@ -354,7 +364,24 @@ export function CandidatesPageClient({
         // Ignore parse errors
       }
     };
-    return () => eventSource.close();
+    
+    // Listen for recruitment stage updates
+    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
+      try {
+        console.log('[SSE] CandidatesPageClient received recruitment stages update:', event.data);
+        const updatedStages = JSON.parse(event.data);
+        console.log('[SSE] CandidatesPageClient parsed stages:', updatedStages);
+        setAvailableStages(updatedStages);
+      } catch (e) {
+        console.error('Error parsing recruitment stages update:', e);
+      }
+    });
+    
+    // Cleanup function
+    return () => {
+      console.log('[SSE] Cleaning up SSE connection for candidates page');
+      eventSource.close();
+    };
   }, []);
 
 
@@ -806,11 +833,7 @@ export function CandidatesPageClient({
                   )}
                   {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
                   {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
-                  {displayedCandidates.length > 0 && (
-                    <DropdownMenuItem onSelect={() => {}}>
-                      <Briefcase className="mr-2 h-4 w-4" /> Manual Move
-                    </DropdownMenuItem>
-                  )}
+              
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

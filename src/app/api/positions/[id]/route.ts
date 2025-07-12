@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getRedisClient, CACHE_KEY_POSITIONS } from '@/lib/redis';
 import { getPool } from '@/lib/db';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 /**
  * @openapi
@@ -161,12 +162,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await logAudit('AUDIT', `Position '${title}' updated by ${actingUserName}.`, 'API:Positions:Update', actingUserId, { positionId: id });
     
     const updatedPosition = updateResult.rows[0];
+    const positionWithCustomAttrs = {
+      ...updatedPosition,
+      custom_attributes: updatedPosition.customAttributes || {},
+    };
+    
+    // Dispatch webhook for position update
+    try {
+      await dispatchWebhooks.positionUpdated(positionWithCustomAttrs);
+    } catch (webhookError) {
+      console.error('Failed to dispatch position update webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json({ 
       message: 'Position updated successfully', 
-      position: {
-        ...updatedPosition,
-        custom_attributes: updatedPosition.customAttributes || {},
-      }
+      position: positionWithCustomAttrs
     });
   } catch (error: any) {
     await client.query('ROLLBACK');
@@ -220,6 +231,18 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `Position '${currentPosition.rows[0].title}' deleted by ${actingUserName}.`, 'API:Positions:Delete', actingUserId, { positionId: id });
+    
+    // Dispatch webhook for position deletion
+    try {
+      const positionToDelete = {
+        ...currentPosition.rows[0],
+        custom_attributes: currentPosition.rows[0].customAttributes || {},
+      };
+      await dispatchWebhooks.positionDeleted(positionToDelete);
+    } catch (webhookError) {
+      console.error('Failed to dispatch position deletion webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     return NextResponse.json({ message: 'Position deleted successfully' });
   } catch (error: any) {

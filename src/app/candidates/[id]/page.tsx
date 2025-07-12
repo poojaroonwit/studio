@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, Home, Users as UsersIcon, Activity, Clock } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, Activity, Clock } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
@@ -36,9 +36,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CandidateCommentsSection from '../../../components/candidates/CandidateCommentsSection';
 import CandidateResumesSection from '../../../components/candidates/CandidateResumesSection';
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
+import { StagePipeline } from '@/components/candidates/StagePipeline';
+import { differenceInMonths, parse, isValid } from 'date-fns';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -228,144 +229,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
   );
 };
 
-function StagePipeline({ stages, transitionHistory, currentStatus, onStageClick, editableNotes, onNoteEdit }: { stages: RecruitmentStage[], transitionHistory: TransitionRecord[], currentStatus: string, onStageClick: (stageName: string) => void, editableNotes: boolean, onNoteEdit: (transitionId: string, newNote: string) => Promise<void> }) {
-  // Map stage name to all transition records for that stage
-  const stageToRecords: Record<string, TransitionRecord[]> = {};
-  transitionHistory.forEach(record => {
-    if (!stageToRecords[record.stage]) stageToRecords[record.stage] = [];
-    stageToRecords[record.stage].push(record);
-  });
-  // Track which popover is open by index
-  const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
-  // Track which tooltip is hovered by index
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  return (
-    <div className="flex flex-col gap-0.5 mb-6 relative">
-      {stages.map((stage, idx) => {
-        const records = stageToRecords[stage.name] || [];
-        const isCompleted = transitionHistory.some(r => r.stage === stage.name);
-        const isCurrent = currentStatus === stage.name;
-        const latestRecord = records.length > 0 ? records[records.length - 1] : null;
-        const latestNote = latestRecord ? latestRecord.notes : null;
-        const latestUser = latestRecord ? (latestRecord.actingUserName || 'Unknown') : null;
-        const latestDate = latestRecord && latestRecord.date ? new Date(latestRecord.date).toLocaleString() : null;
-        return (
-          <div key={stage.id} className="relative flex items-start"
-            // Remove onMouseEnter/onMouseLeave from container
-          >
-            {/* Vertical line for workflow, except after last node */}
-            {idx < stages.length - 1 && (
-              <div className="absolute top-4 w-px h-full z-0" style={{height: 'calc(100% - 0rem)',width: 'calc(2.75rem)'}}>
-                <div className="w-px h-full bg-gray-300 mx-auto" style={{background: isCompleted ? (stage.name.toLowerCase().includes('reject') ? '#ef4444' : (stage.color_complete || '#22c55e')) : '#d1d5db'}} />
-              </div>
-            )}
-            <Popover open={openPopoverIdx === idx}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={`flex items-center gap-3 cursor-pointer px-3 py-2 rounded-full transition-colors relative z-10
-                    ${isCurrent 
-                      ? 'bg-secondary border-grey-900 font-bold' 
-                      : isCompleted 
-                        ? (stage.name.toLowerCase().includes('reject')
-                            ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
-                            : '')
-                        : 'bg-muted/10 text-muted-foreground'}
-                  `}
-               
-                  onClick={() => {
-                    if (!isCompleted) onStageClick(stage.name);
-                  }}
-                  // Remove tooltip hover from button
-                >
-                  {/* Node circle with checkmark if completed */}
-                  <div className={`w-5 h-5 flex items-center justify-center rounded-full border-2 transition-all
-                    ${isCompleted
-                      ? (stage.name.toLowerCase().includes('reject')
-                          ? 'bg-red-500 border-red-600 text-white'
-                          : '')
-                      : isCurrent ? 'bg-primary border-primary text-white' : 'bg-gray-300 border-gray-300 text-gray-500'}`}
-                    style={
-                      isCompleted && !stage.name.toLowerCase().includes('reject')
-                        ? { backgroundColor: stage.color_complete || '#22c55e', borderColor: stage.color_complete || '#22c55e', color: '#fff' }
-                        : undefined
-                    }
-                  >
-                    {isCompleted ? (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-card block"></span>
-                    )}
-                  </div>
-                  <span>{stage.name}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="start" sideOffset={4} onMouseEnter={() => setOpenPopoverIdx(idx)} onMouseLeave={() => setOpenPopoverIdx(null)}>
-                <div className="mb-1 font-semibold">{stage.name}</div>
-                {records.length > 0 ? (
-                  <ul className="space-y-2">
-                    {records.map((record, i) => (
-                      <li key={record.id} className="border-b pb-2 last:border-b-0 last:pb-0">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <Info className="h-3 w-3" />
-                          <span>{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
-                          {editableNotes && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newNote = prompt("Edit note:", record.notes);
-                                if (newNote && newNote.trim() !== '') {
-                                  onNoteEdit(record.id, newNote.trim());
-                                }
-                              }}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
-                          <span className="text-muted-foreground">|</span>
-                          <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-xs text-muted-foreground">No transition record for this stage yet.</div>
-                )}
-              </PopoverContent>
-            </Popover>
-            {/* Hover zone for tooltip to the right of the button */}
-            <div
-              className="absolute left-full top-0 h-full w-8"
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              style={{ cursor: 'pointer' }}
-            />
-            {/* Tooltip only appears when hovering the hover zone, not the button */}
-            {hoveredIdx === idx && records.length > 0 && (
-              <div className="absolute left-[calc(100%+2rem)] top-1/2 -translate-y-1/2 ml-2 px-3 py-2 bg-black text-white text-xs rounded shadow-lg z-50 max-w-xs whitespace-pre-line min-w-[220px] max-h-64 overflow-y-auto">
-                <div className="mb-1 font-semibold">Stage Notes</div>
-                <ul className="space-y-2">
-                  {records.map((record, i) => (
-                    <li key={record.id} className="border-b border-gray-700 pb-1 last:border-b-0 last:pb-0">
-                      <div className="mb-0.5">{record.notes || <span className='italic text-gray-300'>No note</span>}</div>
-                      <div className="text-[10px] text-gray-300">By: {record.actingUserName || 'Unknown'}{record.date ? ` | ${new Date(record.date).toLocaleString()}` : ''}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+
 
 // Add a helper function to calculate duration from period string
 function calculateDuration(period?: string): string {
@@ -760,8 +624,18 @@ export default function CandidateDetailPage() {
 
   useEffect(() => {
     // Subscribe to SSE for real-time candidate updates
+    console.log('[SSE] Setting up SSE connection for candidate detail page...');
     const eventSource = new EventSource('/api/candidates/sse');
     eventSourceRef.current = eventSource;
+    
+    eventSource.onopen = () => {
+      console.log('[SSE] SSE connection opened for candidate detail page');
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('[SSE] SSE connection error for candidate detail page:', error);
+    };
+    
     eventSource.onmessage = (event) => {
       try {
         const updatedCandidate = JSON.parse(event.data);
@@ -800,7 +674,21 @@ export default function CandidateDetailPage() {
         }
       } catch (e) {}
     });
+    
+    // Listen for recruitment stage updates
+    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
+      try {
+        console.log('[SSE] Received recruitment stages update:', event.data);
+        const updatedStages = JSON.parse(event.data);
+        console.log('[SSE] Parsed stages:', updatedStages);
+        setAvailableStages(updatedStages);
+      } catch (e) {
+        console.error('Error parsing recruitment stages update:', e);
+      }
+    });
+    // Cleanup function
     return () => {
+      console.log('[SSE] Cleaning up SSE connection for candidate detail page');
       eventSource.close();
       eventSourceRef.current = null;
     };
@@ -1151,95 +1039,271 @@ export default function CandidateDetailPage() {
     }
   };
 
+  // Utility to parse 'MMM yyyy' date strings
+  const parseDate = (str: string) => {
+    const d = parse(str, 'MMM yyyy', new Date());
+    return isValid(d) ? d : null;
+  };
+
   return (
     <FormProvider {...form}>
       <div className="h-screen overflow-y-auto">
-        <div className="flex justify-between items-center px-6 p-3 sticky top-0 z-40 bg-card border-b border-border shadow">
-          <Breadcrumb 
-            items={[ 
-              { label: "Home", href: "/", icon: Home },
-              { label: "Candidates", href: "/candidates", icon: UsersIcon },
-              { label: candidate?.name || "Candidate Details" }
-            ]} 
-          />
-          {/* Quick Actions moved here */}
-          <div className="flex flex-row gap-3 flex-wrap">
-            {!isEditing ? (
-              <Button 
-                variant="outline" 
-                className="justify-start h-auto p-2"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit3 className="mr-2 h-4 w-4" />
-                <div className="text-left">
-                  <div className="font-medium">Edit Details</div>
-                </div>
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="default"
-                  onClick={handleSubmit(handleSaveDetails)}
-                  disabled={isSubmitting}
-                  className="btn-primary-gradient flex items-center gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {isSubmitting ? 'Saving...' : 'Save Changes'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel Edit
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+      
         <form onSubmit={handleSubmit(handleSaveDetails)}>
-          <div className="grid grid-cols-1 lg:grid-cols-10 border-t  bg-card overflow-hidden">
-            {/* LEFT SIDEBAR: Assigned Recruiter + Stage Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6  p-6">
-              {candidate && (
-                <div className="mb-6">
-                  <div className="border rounded-lg p-4 bg-background">
-                    <Label className="mb-1 block text-md font-semibold">Assigned Recruiter</Label>
-                    {recruiters.length > 0 ? (
-                      <div className="relative">
-                        <Select
-                          value={candidate.recruiterId || "___UNASSIGN___"}
-                          onValueChange={value => handleAssignRecruiter(value === "___UNASSIGN___" ? null : value)}
-                          disabled={isAssigningRecruiter || !candidate.id}
+          {/* Header - 2 Columns */}
+          {candidate && (
+            <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
+              <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+                {/* Column 1: Candidate Header (7 cols - left sidebar + main content) */}
+                <div className="lg:col-span-7">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      <Avatar className="w-20 h-20 text-3xl relative group">
+                        {candidate.avatarUrl ? (
+                          <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
+                        ) : (
+                          <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
+                        )}
+                        {/* Pencil icon button for avatar upload */}
+                        <button
+                          type="button"
+                          className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                          title="Change profile picture"
+                          onClick={() => {
+                            // Open hidden file input for image upload
+                            if (avatarInputRef?.current) avatarInputRef.current.click();
+                          }}
+                          disabled={avatarUploading}
+                          style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
                         >
-                          <SelectTrigger
-                            className="w-full mt-2 rounded-lg px-4 py-2 text-base font-medium flex items-center gap-2 bg-background shadow-sm hover:border-primary/80 focus:ring-2 focus:ring-primary"
-                            style={{ minHeight: 44 }}
-                          >
-                            <Users className="h-5 w-5 text-primary mr-2" />
-                            <SelectValue placeholder="Assign a recruiter..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                            {recruiters.map(r => (
-                              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {(!candidate.id) && (
-                          <div className="absolute left-0 mt-1 text-xs text-muted-foreground">
-                            Candidate data is still loading. Please wait...
+                          <Edit className="w-5 h-5 text-primary" />
+                        </button>
+                        {/* Hidden file input for avatar upload */}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={avatarInputRef}
+                          style={{ display: 'none' }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) await handleAvatarUpload(file);
+                            e.target.value = '';
+                          }}
+                          tabIndex={-1}
+                          aria-hidden="true"
+                        />
+                        {/* Existing overlay for edit mode remains unchanged */}
+                        {isEditing && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ImageUpload
+                              value={candidate.avatarUrl || ''}
+                              onChange={async (urlOrFile) => {
+                                if (typeof urlOrFile === 'string') {
+                                  await handleAvatarUpload(urlOrFile);
+                                } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
+                                  await handleAvatarUpload(urlOrFile);
+                                }
+                              }}
+                              label="Upload Profile Image"
+                              accept="image/*"
+                              maxSize={2 * 1024 * 1024}
+                              showPreview={false}
+                              allowUrl={false}
+                              allowFile={true}
+                              disabled={avatarUploading}
+                              className="w-full h-full"
+                            />
+                            {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
                           </div>
                         )}
+                        {avatarUploading && !isEditing && (
+                          <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
+                        )}
+                      </Avatar>
+                      {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{candidate.name}</span>
+                        {candidate.status && (
+                          <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
+                        )}
+                        {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                          <span className={`text-sm font-semibold py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
+                            Fit Score: {formatScoreWithGrade(candidate.fitScore)}
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">No recruiters available to assign.</span>
-                    )}
+                      <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
+                        {candidate.positionId && allDbPositions.length > 0 && (
+                          <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
+                        )}
+                        {candidate.recruiterId && recruiters.length > 0 && (
+                          <span>Recruiter: <span className="font-medium text-foreground">{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}</span></span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
+                        {candidate.email && (
+                          <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
+                        )}
+                        {candidate.phone && (
+                          <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+                
+                {/* Column 2: Action Buttons (3 cols - same as comments) */}
+                <div className="lg:col-span-3">
+                  <div className="flex flex-row gap-3">
+                    {/* Edit Actions Button with Dropdown */}
+                    {!isEditing ? (
+                      <div className="w-1/2 relative">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="default"
+                              className="w-full h-18 flex flex-col items-start justify-center p-3"
+                            >
+                              <div className="flex items-center mb-1">
+                                <Edit3 className="h-4 w-4 mr-2" />
+                                <span className="font-bold text-sm">Edit Actions</span>
+                              </div>
+                                                      <span className="text-xs text-muted-foreground text-left leading-tight">
+                          Edit candidate details,<br />
+                          Manage transitions
+                        </span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-0" align="start">
+                            <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  setIsEditing(true);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                              >
+                                <Edit3 className="h-4 w-4 mr-2" />
+                                Edit Candidate Details
+                              </button>
+                              {availableStages.length > 0 && (
+                                <button
+                                  onClick={() => {
+                                    setIsTransitionsModalOpen(true);
+                                  }}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                >
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Manage Transitions
+                                </button>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 w-1/2">
+                        <Button
+                          variant="default"
+                          size="default"
+                          onClick={handleSubmit(handleSaveDetails)}
+                          disabled={isSubmitting}
+                          className="btn-primary-gradient w-1/2 h-16 flex flex-col items-center justify-center p-3"
+                        >
+                          <div className="flex items-center mb-1">
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            <span className="font-bold text-sm">{isSubmitting ? 'Saving...' : 'Save'}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground leading-tight">
+                            Save all changes
+                          </span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={handleCancelEdit}
+                          disabled={isSubmitting}
+                          className="w-1/2 h-16 flex flex-col items-center justify-center p-3"
+                        >
+                          <div className="flex items-center mb-1">
+                            <X className="mr-2 h-4 w-4" />
+                            <span className="font-bold text-sm">Cancel</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground leading-tight">
+                            Discard changes
+                          </span>
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {/* Recruiter Assignment Button with Dropdown */}
+                    <div className="w-1/2 relative">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="default"
+                            disabled={isAssigningRecruiter || !candidate.id}
+                            className="w-full h-18 flex flex-col items-start justify-center p-3"
+                          >
+                            <div className="flex items-center mb-1">
+                              <Users className="h-4 w-4 mr-2" />
+                              <span className="font-bold text-sm">Recruiter Label</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground text-left leading-tight">
+                              {recruiters.length > 0 ? 'Recruiter assign' : 'No recruiters available'}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-0" align="start">
+                          <div className="py-1">
+                            {recruiters.length > 0 ? (
+                              <>
+                                <div className="px-4 py-2 text-xs text-muted-foreground border-b">
+                                  Current: {recruiters.find(r => r.id === candidate.recruiterId)?.name || 'Unassigned'}
+                                </div>
+                                <button
+                                  onClick={() => handleAssignRecruiter(null)}
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                >
+                                  Unassign
+                                </button>
+                                {recruiters.map((recruiter) => (
+                                  <button
+                                    key={recruiter.id}
+                                    onClick={() => handleAssignRecruiter(recruiter.id)}
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
+                                  >
+                                    <User className="h-4 w-4 mr-2" />
+                                    {recruiter.name}
+                                  </button>
+                                ))}
+                              </>
+                            ) : (
+                              <div className="px-4 py-2 text-sm text-muted-foreground">
+                                No recruiters available
+                              </div>
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Empty space for 2 cols to maintain 12-column grid */}
+               
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
+            {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
+            <div className="lg:col-span-2 bg-card sticky top-6 p-6">
               {availableStages.length > 0 && candidate && (
                 <div className="max-w-[14rem] w-full">
                   <div className="mb-4">
@@ -1247,15 +1311,6 @@ export default function CandidateDetailPage() {
                       <Users className="mr-2 h-5 w-5 text-primary" />
                       Recruitment Stage
                     </h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full mb-3"
-                      onClick={() => setIsTransitionsModalOpen(true)}
-                    >
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      Manage Transitions
-                    </Button>
                   </div>
                   <StagePipeline
                     stages={availableStages}
@@ -1275,6 +1330,7 @@ export default function CandidateDetailPage() {
                       await fetchCandidateDetails();
                       await fetchTransitionHistory();
                     }}
+                    candidateId={candidateId}
                   />
                 </div>
               )}
@@ -1282,110 +1338,6 @@ export default function CandidateDetailPage() {
             {/* MAIN CONTENT (50%) with Tabs */}
             <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
               {/* Tabs for main content */}
-             
-            
-               
-                   {/* Candidate Header */}
-                   {candidate && (
-                     <div className="flex flex-col md:flex-row items-center  gap-6 ">
-                       {/* Avatar */}
-                       <div className="flex-shrink-0">
-                         <Avatar className="w-20 h-20 text-3xl relative group">
-                           {candidate.avatarUrl ? (
-                             <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
-                           ) : (
-                             <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
-                           )}
-                           {/* Pencil icon button for avatar upload */}
-                           <button
-                             type="button"
-                             className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
-                             title="Change profile picture"
-                             onClick={() => {
-                               // Open hidden file input for image upload
-                               if (avatarInputRef?.current) avatarInputRef.current.click();
-                             }}
-                             disabled={avatarUploading}
-                             style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
-                           >
-                             <Edit className="w-5 h-5 text-primary" />
-                           </button>
-                           {/* Hidden file input for avatar upload */}
-                           <input
-                             type="file"
-                             accept="image/*"
-                             ref={avatarInputRef}
-                             style={{ display: 'none' }}
-                             onChange={async (e) => {
-                               const file = e.target.files?.[0];
-                               if (file) await handleAvatarUpload(file);
-                               e.target.value = '';
-                             }}
-                             tabIndex={-1}
-                             aria-hidden="true"
-                           />
-                           {/* Existing overlay for edit mode remains unchanged */}
-                           {isEditing && (
-                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <ImageUpload
-                                 value={candidate.avatarUrl || ''}
-                                 onChange={async (urlOrFile) => {
-                                   if (typeof urlOrFile === 'string') {
-                                     await handleAvatarUpload(urlOrFile);
-                                   } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
-                                     await handleAvatarUpload(urlOrFile);
-                                   }
-                                 }}
-                                 label="Upload Profile Image"
-                                 accept="image/*"
-                                 maxSize={2 * 1024 * 1024}
-                                 showPreview={false}
-                                 allowUrl={false}
-                                 allowFile={true}
-                                 disabled={avatarUploading}
-                                 className="w-full h-full"
-                               />
-                               {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
-                             </div>
-                           )}
-                           {avatarUploading && !isEditing && (
-                             <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
-                           )}
-                         </Avatar>
-                         {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
-                       </div>
-                       {/* Info */}
-                       <div className="flex-1 min-w-0">
-                         <div className="flex flex-wrap items-center gap-3 mb-2">
-                           <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{candidate.name}</span>
-                           {candidate.status && (
-                             <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
-                           )}
-                           {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                             <span className={`text-sm font-semibold py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
-                               Fit Score: {formatScoreWithGrade(candidate.fitScore)}
-                             </span>
-                           )}
-                         </div>
-                         <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
-                           {candidate.positionId && allDbPositions.length > 0 && (
-                             <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
-                           )}
-                           {candidate.recruiterId && recruiters.length > 0 && (
-                             <span>Recruiter: <span className="font-medium text-foreground">{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}</span></span>
-                           )}
-                         </div>
-                         <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
-                           {candidate.email && (
-                             <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
-                           )}
-                           {candidate.phone && (
-                             <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                   )}
 
                    {/* Role Suggestion and Job Matches at the top */}
                    <div className="space-y-6">
@@ -1532,37 +1484,120 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
-                              {/* Vertical timeline line */}
-                              <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
+                              {/* Continuous vertical line that connects all education nodes */}
+                              {(education ?? []).length > 0 && (
+                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education.length - 1) * 80}px` }} />
+                              )}
                               {(education ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
                               {(education ?? []).map((edu, index) => {
                                 if (typeof edu === 'string') {
                                   return (
-                                    <div key={`edu-${index}-${edu}`} className="mb-8 flex items-start relative">
-                                      {/* Timeline dot */}
-                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
-                                      <div className="ml-6 p-6 border rounded-md w-full">
-                                        {renderField("Education", edu)}
+                                    <div key={`edu-${index}-${edu}`} className="relative mb-8">
+                                      {/* Timeline item */}
+                                      <div className="flex items-start space-x-4">
+                                        {/* Date on the left */}
+                                        <div className="flex-shrink-0 w-28 text-right">
+                                          <div className="text-xs text-muted-foreground font-medium">
+                                            <div className="text-muted-foreground">Education</div>
+                                          </div>
+                                        </div>
+                                        {/* Timeline line and node */}
+                                        <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                          {/* Node (icon) */}
+                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                            <GraduationCap className="w-3 h-3 text-foreground" />
+                                          </div>
+                                        </div>
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0 pb-0 flex items-center">
+                                          <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                                            {renderField("Education", edu)}
+                                          </div>
+                                          {typeof edu.fitScore === 'number' && (
+                                            <div className="flex flex-col items-center justify-center ml-6">
+                                              <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                                              <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   );
                                 } else {
+                                  // Parse start, end, duration
+                                  let start = '', end = '', duration = '';
+                                  if (edu.period) {
+                                    const parts = String(edu.period).split(' - ');
+                                    start = parts[0] || '';
+                                    end = parts[1] || '';
+                                  }
+                                  if (edu.duration) {
+                                    duration = edu.duration;
+                                  } else if (start && end) {
+                                    // Try to parse and calculate duration
+                                    const startDate = parseDate(start);
+                                    const endDate = parseDate(end);
+                                    if (startDate && endDate) {
+                                      const months = differenceInMonths(endDate, startDate);
+                                      const years = Math.floor(months / 12);
+                                      const remMonths = months % 12;
+                                      duration = [
+                                        years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                                        remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                                      ].filter(Boolean).join(' ');
+                                    }
+                                  }
                                   return (
-                                    <div key={`edu-${index}-${edu.university || index}`} className="mb-8 flex items-start relative">
-                                      {/* Timeline dot */}
-                                      <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
-                                      <div className="ml-6 p-3 border rounded-md  w-full">
-                                        <div className="font-semibold text-primary flex items-center gap-2">
-                                          <CalendarDays className="h-4 w-4" /> {edu.period}
+                                    <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
+                                      {/* Timeline item */}
+                                      <div className="flex items-start space-x-4">
+                                        {/* Date on the left */}
+                                        <div className="flex-shrink-0 w-28 text-right">
+                                          <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
+                                            {(start || end) && (
+                                              <div>
+                                                <span className="text-primary font-black text-sm">{start}</span>
+                                                {end && (
+                                                  <span className="text-primary font-black text-sm"> - {end}</span>
+                                                )}
+                                              </div>
+                                            )}
+                                            {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
+                                          </div>
                                         </div>
-                                        <div className="text-xs text-muted-foreground mb-1">{calculateDuration(edu.period)}</div>
-                                        {renderField("University", edu.university)}
-                                        {renderField("Major", edu.major)}
-                                        {renderField("Field", edu.field)}
-                                        {renderField("Campus", edu.campus)}
-                                        {renderField("GPA", edu.GPA)}
+                                        {/* Timeline line and node */}
+                                        <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                          {/* Node (icon) */}
+                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                            <GraduationCap className="w-3 h-3 text-foreground" />
+                                          </div>
+                                        </div>
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0 pb-0 flex items-center">
+                                          <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                                            <h4 className="font-semibold text-foreground mb-1">
+                                              {edu.university || 'University not specified'}
+                                              {edu.campus && ` (${edu.campus})`}
+                                            </h4>
+                                            <p className="text-sm text-muted-foreground mb-2">
+                                              {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
+                                               edu.major || edu.field || 'Field of study not specified'}
+                                            </p>
+                                            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                              {edu.GPA && (
+                                                <span>GPA: {edu.GPA}</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          {typeof edu.fitScore === 'number' && (
+                                            <div className="flex flex-col items-center justify-center ml-6">
+                                              <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                                              <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   );
@@ -1674,33 +1709,87 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
-                              {/* Vertical timeline line */}
-                              <span className="absolute left-2 top-0 bottom-0 w-0.5 bg-primary/30 z-0" />
                               {(experience ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
-                              {(experience ?? []).map((exp, index) => (
-                                <div key={`exp-${index}-${exp.company || index}`} className="mb-8 flex items-start relative">
-                                  {/* Timeline dot */}
-                                  <span className="absolute left-0 top-2 w-4 h-4 rounded-full bg-primary border-2 border-gray-300 z-10" />
-                                  <div className="ml-6 p-3 border rounded-md  w-full">
-                                    <div className="font-semibold text-primary flex items-center gap-2">
-                                      <CalendarDays className="h-4 w-4" /> {exp.period}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mb-1">{calculateDuration(exp.period)}</div>
-                                    {renderField("Company", exp.company)}
-                                    {renderField("Position", exp.position)}
-                                    {renderField("Level", String(exp.postition_level))}
-                                    {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
-                                    {exp.description && (
-                                      <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
-                                        <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
+                              {(experience ?? []).map((exp, index) => {
+                                // Parse start, end, duration
+                                let start = '', end = '', duration = '';
+                                if (exp.period) {
+                                  const parts = String(exp.period).split(' - ');
+                                  start = parts[0] || '';
+                                  end = parts[1] || '';
+                                }
+                                if (exp.duration) {
+                                  duration = exp.duration;
+                                } else if (start && end) {
+                                  // Try to parse and calculate duration
+                                  const startDate = parseDate(start);
+                                  const endDate = parseDate(end);
+                                  if (startDate && endDate) {
+                                    const months = differenceInMonths(endDate, startDate);
+                                    const years = Math.floor(months / 12);
+                                    const remMonths = months % 12;
+                                    duration = [
+                                      years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                                      remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                                    ].filter(Boolean).join(' ');
+                                  }
+                                }
+                                return (
+                                  <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
+                                    {/* Timeline item */}
+                                    <div className="flex items-start space-x-4">
+                                      {/* Date on the left */}
+                                      <div className="flex-shrink-0 w-28 text-right">
+                                        <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
+                                          {(start || end) && (
+                                            <div>
+                                              <span className="text-primary font-black text-sm">{start}</span>
+                                              {end && (
+                                                <span className="text-primary font-black text-sm"> - {end}</span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
+                                        </div>
                                       </div>
-                                    )}
+                                      {/* Timeline line and node */}
+                                      <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                        {/* Vertical line within this node container */}
+                                        {(experience ?? []).length > 1 && (
+                                          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-border transform -translate-x-1/2 z-0" />
+                                        )}
+                                        {/* Node (icon) */}
+                                        <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                          <Briefcase className="w-3 h-3 text-foreground" />
+                                        </div>
+                                      </div>
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0 pb-0 flex items-center">
+                                        <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                                          {renderField("Company", exp.company)}
+                                          {renderField("Position", exp.position)}
+                                          {renderField("Level", String(exp.postition_level))}
+                                          {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
+                                          {exp.description && (
+                                            <div>
+                                              <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
+                                              <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {typeof exp.fitScore === 'number' && (
+                                          <div className="flex flex-col items-center justify-center ml-6">
+                                            <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                                            <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                         )}
                       </div>

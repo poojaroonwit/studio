@@ -8,13 +8,12 @@ import { signIn, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Briefcase, Building, CalendarDays, CheckCircle2, Info, ListFilter, Loader2, ServerCrash, ShieldAlert, Users, Home } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building, CalendarDays, CheckCircle2, Info, ListFilter, Loader2, ServerCrash, ShieldAlert, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from 'next/link';
 import { CandidateTable } from '@/components/candidates/CandidateTable'; 
 import { toast } from 'react-hot-toast';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 export default function PositionDetailPage() {
   const params = useParams();
@@ -227,15 +226,6 @@ export default function PositionDetailPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="mb-4">
-        <Breadcrumb 
-          items={[
-            { label: "Home", href: "/", icon: Home },
-            { label: "Positions", href: "/positions", icon: Briefcase },
-            { label: position?.title || "Position Details" }
-          ]} 
-        />
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left: Position Details */}

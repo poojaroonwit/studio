@@ -16,13 +16,15 @@ import {
   UserCog, 
   Code2, 
   ListOrdered,
-  ArrowRight
+  ArrowRight,
+  Webhook
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
 const settingsItems = [
   { href: "/settings/preferences", label: "Preferences", icon: Palette, description: "Customize your user interface and display preferences." },
   { href: "/settings/system-settings", label: "Integrations", icon: Zap, description: "Configure webhooks, SMTP, AI settings, and system integrations." },
+  { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage webhooks for real-time event notifications.", permissionId: 'WEBHOOK_MANAGE' as PlatformModuleId },
   { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Manage your recruitment workflow stages and pipelines.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId },
   { href: "/settings/data-models", label: "Data Models (Client)", icon: DatabaseZap, description: "Configure client-side data model preferences.", permissionId: 'DATA_MODELS_MANAGE' as PlatformModuleId },
   { href: "/settings/custom-fields", label: "Custom Fields (Server)", icon: Settings2, description: "Define server-side custom field definitions.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId },

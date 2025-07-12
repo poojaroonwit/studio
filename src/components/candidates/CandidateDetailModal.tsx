@@ -104,9 +104,14 @@ export function CandidateDetailModal({ isOpen, onOpenChange, candidateSummary }:
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader className="pt-6 px-6 pb-4 border-b">
           <DialogTitle className="text-2xl flex items-center">
-             <Avatar className="h-10 w-10 mr-3 border-2 border-primary">
-                <AvatarImage src={personalInfo?.avatar_url || `https://placehold.co/40x40.png?text=${displayCandidate.name?.charAt(0) || 'C'}`} alt={displayCandidate.name || "Candidate"} data-ai-hint="person avatar" />
-                <AvatarFallback>{displayCandidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+             <Avatar size="xl" className="mr-4 border-2 border-primary shadow-lg">
+                <AvatarImage
+                  src={displayCandidate.avatarUrl ? displayCandidate.avatarUrl : personalInfo?.avatar_url || `https://placehold.co/64x64.png?text=${displayCandidate.name?.charAt(0) || 'C'}`}
+                  alt={displayCandidate.name || "Candidate"}
+                  data-ai-hint="person avatar"
+                  onError={(e) => { e.currentTarget.src = `https://placehold.co/64x64.png?text=${displayCandidate.name?.charAt(0) || 'C'}`; }}
+                />
+                <AvatarFallback className="text-lg font-semibold">{displayCandidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
             </Avatar>
             {displayCandidate.name || "Candidate Details"}
           </DialogTitle>

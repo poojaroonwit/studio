@@ -159,9 +159,21 @@ export default function RecruitmentStagesPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || `Failed to ${editingStage ? 'update' : 'create'} stage`);
       
+      // Update local state immediately
+      if (editingStage) {
+        // Update existing stage
+        setStages(prev => prev.map(stage => 
+          stage.id === editingStage.id 
+            ? { ...stage, ...result }
+            : stage
+        ));
+      } else {
+        // Add new stage
+        setStages(prev => [...prev, result].sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity) || a.name.localeCompare(b.name)));
+      }
+      
       toast.success(`Stage ${editingStage ? 'Updated' : 'Created'}`);
       setIsModalOpen(false);
-      fetchStages(); 
     } catch (error) {
       console.error('Error creating or updating stage:', error);
       toast.error((error as Error).message);
@@ -183,8 +195,11 @@ export default function RecruitmentStagesPage() {
         }
         throw new Error(result.message || `Failed to delete stage. Status: ${response.status}`);
       }
+      
+      // Update local state immediately
+      setStages(prev => prev.filter(s => s.id !== stage.id));
+      
       toast.success(`Stage "${stage.name}" has been deleted.${replacement ? ` Candidates migrated to "${replacement}".` : ''}`);
-      fetchStages();
     } catch (error) {
       console.error('Error deleting stage:', error);
       toast.error((error as Error).message);
@@ -218,8 +233,28 @@ export default function RecruitmentStagesPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to move stage');
       }
+      
+      // Update local state immediately by reordering
+      setStages(prev => {
+        const currentIndex = prev.findIndex(s => s.id === stageId);
+        if (currentIndex === -1) return prev;
+        
+        const newStages = [...prev];
+        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+        
+        if (targetIndex >= 0 && targetIndex < newStages.length) {
+          // Swap the stages
+          [newStages[currentIndex], newStages[targetIndex]] = [newStages[targetIndex], newStages[currentIndex]];
+          
+          // Update sort_order to reflect the new order
+          newStages[currentIndex] = { ...newStages[currentIndex], sort_order: currentIndex };
+          newStages[targetIndex] = { ...newStages[targetIndex], sort_order: targetIndex };
+        }
+        
+        return newStages;
+      });
+      
       toast.success('Recruitment stage order updated.');
-      fetchStages(); // Refresh the list to show new order
     } catch (error) {
       console.error('Error moving stage:', error);
       toast.error((error as Error).message);
@@ -233,17 +268,24 @@ export default function RecruitmentStagesPage() {
     const reorderedStages = Array.from(stages);
     const [removed] = reorderedStages.splice(result.source.index, 1);
     reorderedStages.splice(result.destination.index, 0, removed);
-    setStages(reorderedStages);
+    
+    // Update sort_order for all stages to reflect new order
+    const updatedStages = reorderedStages.map((stage, index) => ({
+      ...stage,
+      sort_order: index
+    }));
+    
+    setStages(updatedStages);
     try {
       await fetch('/api/settings/recruitment-stages/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageIds: reorderedStages.map(s => s.id) }),
+        body: JSON.stringify({ stageIds: updatedStages.map(s => s.id) }),
       });
       toast.success('Recruitment stage order updated.');
-      fetchStages();
     } catch (error) {
       toast.error('Failed to update stage order.');
+      // Revert to original order on error
       fetchStages();
     }
   };
@@ -266,6 +308,45 @@ export default function RecruitmentStagesPage() {
       toast.success('Stage color updated');
     } catch (error) {
       toast.error((error as Error).message);
+    }
+  };
+
+  const handleTestSSE = async () => {
+    try {
+      console.log('[TEST] Testing SSE broadcast...');
+      const response = await fetch('/api/settings/recruitment-stages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `Test Stage ${Date.now()}`,
+          description: 'Test stage for SSE debugging',
+          sort_order: stages.length
+        }),
+      });
+      
+      if (response.ok) {
+        const newStage = await response.json();
+        console.log('[TEST] Created test stage:', newStage);
+        toast.success('Test stage created and SSE broadcast triggered');
+        
+        // Delete the test stage after 5 seconds
+        setTimeout(async () => {
+          try {
+            await fetch(`/api/settings/recruitment-stages/${newStage.id}`, {
+              method: 'DELETE'
+            });
+            console.log('[TEST] Deleted test stage');
+          } catch (e) {
+            console.error('[TEST] Error deleting test stage:', e);
+          }
+        }, 5000);
+      } else {
+        console.error('[TEST] Failed to create test stage:', response.status);
+        toast.error('Failed to create test stage');
+      }
+    } catch (error) {
+      console.error('[TEST] Error testing SSE:', error);
+      toast.error('Error testing SSE');
     }
   };
 
@@ -298,9 +379,35 @@ export default function RecruitmentStagesPage() {
               If a custom stage is in use, you will be prompted to migrate candidates to another stage upon deletion.
             </p>
           </div>
-          <Button onClick={() => handleOpenModal()} className="btn-primary-gradient mt-2 sm:mt-0">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => handleOpenModal()} className="btn-primary-gradient mt-2 sm:mt-0">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
+            </Button>
+            <Button 
+              onClick={async () => {
+                console.log('[TEST] Testing SSE broadcast...');
+                const response = await fetch('/api/settings/recruitment-stages');
+                if (response.ok) {
+                  const stages = await response.json();
+                  console.log('[TEST] Current stages:', stages);
+                  // This will trigger a broadcast
+                  await fetch('/api/settings/recruitment-stages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      name: 'Test Stage ' + Date.now(), 
+                      description: 'Test stage for SSE',
+                      sort_order: 999
+                    }),
+                  });
+                }
+              }} 
+              variant="outline" 
+              className="mt-2 sm:mt-0"
+            >
+              Test SSE
+            </Button>
+          </div>
         </div>
         <div className="p-6">
           {isLoading && stages.length === 0 ? (

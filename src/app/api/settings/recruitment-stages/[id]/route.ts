@@ -7,6 +7,8 @@ import type { RecruitmentStage } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getRedisClient, CACHE_KEY_RECRUITMENT_STAGES, deleteCache } from '@/lib/redis';
 import { authOptions } from '@/lib/auth';
+import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const updateRecruitmentStageSchema = z.object({
   name: z.string().min(1, 'Stage name cannot be empty.').optional(),
@@ -123,6 +125,8 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
     }
 
+    console.log('[API] Updating recruitment stage:', id, 'with data:', validation.data);
+
     const client = await getPool().connect();
     try {
         const setClauses = Object.entries(validation.data).map(([key, value], index) => {
@@ -138,14 +142,28 @@ export async function PUT(request: NextRequest) {
             RETURNING *;
         `;
 
+        console.log('[API] Update query:', updateQuery);
+        console.log('[API] Query params:', queryParams, id);
+
         const result = await client.query(updateQuery, [...queryParams, id]);
 
         if (result.rowCount === 0) {
+            console.log('[API] No rows updated for stage ID:', id);
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
 
+        console.log('[API] Successfully updated stage:', result.rows[0].name);
+
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) updated.`, 'API:RecruitmentStages:Update', actingUserId, { stageId: id, changes: validation.data });
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
+        
+        // Broadcast the updated stages list to all connected clients
+        console.log('[API] Updating stage, broadcasting update...');
+        const updatedStages = await fetchAllRecruitmentStagesDb();
+        console.log('[API] Fetched updated stages:', updatedStages.length);
+        console.log('[API] Stages to broadcast:', updatedStages.map(s => s.name));
+        broadcastRecruitmentStagesUpdate(updatedStages);
+        
         return NextResponse.json(result.rows[0]);
 
     } catch (error: any) {
@@ -173,6 +191,13 @@ export async function DELETE(request: NextRequest) {
         
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) deleted.`, 'API:RecruitmentStages:Delete', actingUserId, { stageId: id });
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
+        
+        // Broadcast the updated stages list to all connected clients
+        console.log('[API] Deleting stage, broadcasting update...');
+        const updatedStages = await fetchAllRecruitmentStagesDb();
+        console.log('[API] Fetched updated stages:', updatedStages.length);
+        broadcastRecruitmentStagesUpdate(updatedStages);
+        
         return NextResponse.json({ message: "Recruitment stage deleted successfully" });
 
     } catch (error: any) {

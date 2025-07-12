@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const path = require('path');
+import { execSync } from 'child_process';
+import path from 'path';
 
 console.log('🔧 Setting up database with postgres user...');
 
@@ -31,7 +31,7 @@ try {
     console.log('');
     console.log('📝 Next steps:');
     console.log('1. Start your application: npm run dev');
-    console.log('2. Access the application at: http://10.0.10.71:8021');
+    console.log('2. Access the application at: http://localhost:8021');
     console.log('3. Login with: admin@ncc.com / nccadmin');
     console.log('');
     console.log('🔍 If you encounter any issues, check:');

@@ -37,8 +37,8 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { id: 'USER_PREFERENCES_MANAGE', label: 'Manage Own UI Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows users to manage their own UI display preferences for data models." },
   { id: 'RECRUITMENT_STAGES_MANAGE', label: 'Manage Recruitment Stages', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing the stages in the recruitment pipeline." },
   { id: 'CUSTOM_FIELDS_MANAGE', label: 'Manage Custom Fields', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows defining custom data fields for candidates and positions." },
-  { id: 'WEBHOOK_MAPPING_MANAGE', label: 'Manage Webhook Mappings', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows configuring mappings for incoming webhook payloads." },
-  { id: 'NOTIFICATION_SETTINGS_MANAGE', label: 'Manage Notification Settings', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows configuring system notification events and channels." },
+
+
   { id: 'LOGS_VIEW', label: 'View Application Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing system and audit logs." },
   { id: 'HR_DEPARTMENT_MANAGE', label: 'Manage HR Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of HR department including users, records, and settings." },
   { id: 'IT_DEPARTMENT_MANAGE', label: 'Manage IT Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of IT department including users, records, and settings." },
@@ -362,14 +362,7 @@ export interface DataModelPreferences { // Used on client-side, potentially load
 }
 
 
-export interface WebhookFieldMapping {
-  id?: string;
-  targetPath: string;
-  sourcePath: string | null;
-  notes?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
+
 
 export interface ModelAttributeDefinition {
   key: string;
@@ -404,6 +397,7 @@ export interface CustomFieldDefinition {
 export type SystemSettingKey =
   | 'appName'
   | 'appLogoDataUrl'
+  | 'appFaviconDataUrl'
   | 'appThemePreference'
   | 'primaryGradientStart'
   | 'primaryGradientEnd'
@@ -459,43 +453,7 @@ export type LoginPageBackgroundType = "default" | "image" | "color" | "gradient"
 export type LoginPageLayoutType = 'center' | '2column';
 
 
-// Notification System Types
-export interface NotificationEvent {
-  id: string;
-  event_key: string;
-  label: string;
-  description?: string | null;
-  createdAt?: string;
-}
 
-export interface NotificationChannel {
-  id: string;
-  channel_key: 'email' | 'webhook';
-  label: string;
-  createdAt?: string;
-}
-
-export interface NotificationSetting {
-  id?: string; // DB id
-  eventId: string; // FK to NotificationEvent.id
-  channelId: string; // FK to NotificationChannel.id
-  isEnabled: boolean;
-  configuration?: { webhookUrl?: string } | null; // For webhook URL, etc.
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// For GET /api/settings/notifications to combine data
-export interface NotificationEventWithSettings extends NotificationEvent {
-  channels: Array<{
-    channelId: string;
-    channelKey: 'email' | 'webhook';
-    channelLabel: string;
-    isEnabled: boolean;
-    configuration?: { webhookUrl?: string } | null;
-    settingId?: string; // ID of the NotificationSetting record, if exists
-  }>;
-}
 
 // For the new Settings Layout sub-navigation
 export interface SettingsNavigationItem {

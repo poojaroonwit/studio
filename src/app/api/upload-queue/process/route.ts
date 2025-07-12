@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { getSystemSetting } from '@/lib/settings';
 import { Buffer } from 'buffer';
 import { logAudit } from '@/lib/auditLog';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import os from 'os';
 
 /**
@@ -111,6 +112,15 @@ export async function POST(request: NextRequest) {
       `UPDATE upload_queue SET status = 'inprocess', updated_at = now() WHERE id = $1`,
       [job.id]
     );
+
+    // Dispatch webhook for upload queue processing event
+    try {
+      const updatedJob = { ...job, status: 'inprocess' };
+      await dispatchWebhooks.uploadQueueProcessing(updatedJob);
+    } catch (webhookError) {
+      console.error('Failed to dispatch upload queue processing webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     // Broadcast file download completion
     const redisClientDownload = await import('@/lib/redis').then(m => m.getRedisClient());
@@ -215,6 +225,15 @@ export async function POST(request: NextRequest) {
             lastError = fetchError;
             retryCount++;
             console.error(`[Webhook] Attempt ${retryCount} failed:`, fetchError);
+            
+            // Dispatch webhook for retry event
+            try {
+              const retryJob = { ...job, status: 'retrying' };
+              await dispatchWebhooks.uploadQueueRetry(retryJob, retryCount);
+            } catch (webhookError) {
+              console.error('Failed to dispatch upload queue retry webhook:', webhookError);
+              // Don't fail the request if webhook fails
+            }
             
             if (retryCount < maxRetries) {
               // Wait before retrying (exponential backoff)
@@ -379,6 +398,19 @@ export async function POST(request: NextRequest) {
       `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
       [status, error, error_details, payload, job.id]
     );
+
+    // Dispatch webhook for upload queue completion/failure event
+    try {
+      const finalJob = { ...job, status, error, error_details, completed_date: new Date() };
+      if (status === 'success') {
+        await dispatchWebhooks.uploadQueueCompleted(finalJob, { processing_result: payload });
+      } else {
+        await dispatchWebhooks.uploadQueueFailed(finalJob, { error_details: error_details || error });
+      }
+    } catch (webhookError) {
+      console.error('Failed to dispatch upload queue completion webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     // Publish queue update event for real-time updates
     const redisClientFinal = await import('@/lib/redis').then(m => m.getRedisClient());
@@ -424,6 +456,25 @@ export async function POST(request: NextRequest) {
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [(err as Error).message, (err as Error).stack, payload, job.id]
       );
+
+      // Dispatch webhook for upload queue failure event
+      try {
+        const failedJob = { 
+          ...job, 
+          status: 'error', 
+          error: (err as Error).message, 
+          error_details: (err as Error).stack,
+          completed_date: new Date()
+        };
+        await dispatchWebhooks.uploadQueueFailed(failedJob, { 
+          error_details: (err as Error).stack,
+          exception: true
+        });
+      } catch (webhookError) {
+        console.error('Failed to dispatch upload queue failure webhook:', webhookError);
+        // Don't fail the request if webhook fails
+      }
+
       await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, { 
         jobId: job.id,
         fileName: job.file_name,
@@ -553,6 +604,15 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
             lastError = fetchError;
             retryCount++;
             console.error(`[Webhook] Attempt ${retryCount} failed:`, fetchError);
+            
+            // Dispatch webhook for retry event
+            try {
+              const retryJob = { ...job, status: 'retrying' };
+              await dispatchWebhooks.uploadQueueRetry(retryJob, retryCount);
+            } catch (webhookError) {
+              console.error('Failed to dispatch upload queue retry webhook:', webhookError);
+              // Don't fail the request if webhook fails
+            }
             
             if (retryCount < maxRetries) {
               // Wait before retrying (exponential backoff)

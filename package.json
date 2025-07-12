@@ -19,8 +19,10 @@
     "db:migrate": "prisma migrate deploy --schema=prisma/schema.prisma",
     "db:setup": "node scripts/setup-db-with-postgres-user.js",
     "db:setup:ps": "powershell -ExecutionPolicy Bypass -File scripts/setup-db-with-postgres-user.ps1",
+    "setup:local": "node scripts/setup-local-dev.js",
     "db:check": "node scripts/check-database-schema.js",
-    "build:processor": "tsc --project tsconfig.processor.json"
+    "build:processor": "tsc --project tsconfig.processor.json",
+    "seed:upload-queue": "node scripts/seed-upload-queue.js"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.14.0",
@@ -66,6 +68,7 @@
     "css-select": "^5.0.0",
     "csv-parse": "^5.6.0",
     "date-fns": "^3.6.0",
+    "eventsource": "^4.0.0",
     "formdata-node": "^6.0.3",
     "formidable": "^3.5.4",
     "genkit": "latest",
@@ -75,6 +78,7 @@
     "nanoid": "^5.1.5",
     "next": "^14.2.3",
     "next-auth": "^4.2.4",
+    "node-fetch": "^3.3.2",
     "pg": "^8.12.0",
     "prisma": "^6.11.0",
     "react": "^18.3.1",

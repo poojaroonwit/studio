@@ -15,12 +15,12 @@ import {
   DatabaseZap,
   Settings2 as CustomFieldsIcon, // Renamed to avoid conflict
   SlidersHorizontal,
-  BellRing,
   UsersRound,
   Code2,
   ListOrdered,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Webhook
 } from 'lucide-react';
 import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
@@ -32,9 +32,10 @@ const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Define your hiring pipeline.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/data-models", label: "Data Model UI", icon: DatabaseZap, description: "Customize UI for data attributes.", permissionId: 'USER_PREFERENCES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/custom-fields", label: "Custom Fields", icon: CustomFieldsIcon, description: "Define custom fields for entities.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/webhook-mapping", label: "Webhook Mapping", icon: SlidersHorizontal, description: "Map incoming webhook data.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+
+  { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/user-groups", label: "Roles & Permissions", icon: ShieldCheck, description: "Manage user roles and permissions.", permissionId: 'USER_GROUPS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/notifications", label: "Notification Settings", icon: BellRing, description: "Configure system notifications.", permissionId: 'NOTIFICATION_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+
   { href: "/settings/users", label: "Manage Users", icon: UsersRound, description: "Add, edit, or remove users.", permissionId: 'USERS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/api-key", label: "API Key Management", icon: Code2, description: "Generate and manage your personal API key." },
   { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference." },

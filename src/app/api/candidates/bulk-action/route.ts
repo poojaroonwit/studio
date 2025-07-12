@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
+import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 
 export const dynamic = "force-dynamic";
 
@@ -131,10 +132,24 @@ export async function POST(request: NextRequest) {
         // Create transition records for status changes
         for (const candidate of oldStatuses) {
           if (candidate.status !== newStatus) {
+            const newTransitionId = uuidv4();
             await client.query(
               'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-              [uuidv4(), candidate.id, newStatus, transitionNotes || `status change from ${candidate.status} to ${newStatus}`, actingUserId]
+              [newTransitionId, candidate.id, newStatus, transitionNotes || `status change from ${candidate.status} to ${newStatus}`, actingUserId]
             );
+            
+            // Get the created transition record to broadcast
+            const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
+            const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
+            if (transitionResult.rows.length > 0) {
+              const newTransition = transitionResult.rows[0];
+              // Broadcast the new transition
+              broadcastCandidateTransitionUpdate({
+                candidateId: candidate.id,
+                transition: newTransition,
+                action: 'add'
+              });
+            }
           }
         }
 

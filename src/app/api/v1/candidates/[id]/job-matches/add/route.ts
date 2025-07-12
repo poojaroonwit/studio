@@ -9,6 +9,10 @@ const addJobMatchSchema = z.object({
   fit_score: z.number().min(0).max(100),
   job_id: z.string().uuid(),
   match_reasons: z.array(z.string()).optional().default([]),
+  // Note: position_title, created_at, and updated_at are automatically handled
+  // - position_title: Retrieved from Position table based on job_id
+  // - created_at: Automatically set to current timestamp
+  // - updated_at: Automatically set to current timestamp
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {

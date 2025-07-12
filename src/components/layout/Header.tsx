@@ -1,5 +1,5 @@
 "use client";
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, LogOut, UserCircle, LogIn, KeyRound, Edit3 } from "lucide-react"; 
+import { Sun, Moon, LogOut, UserCircle, LogIn, KeyRound, Edit3, Home, Users, Briefcase, Settings, ListTodo, UploadCloud, UsersRound, Code2, ListOrdered, Palette, Zap, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, FileText, Webhook } from "lucide-react"; 
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
@@ -18,10 +18,87 @@ import { EditUserModal, type EditUserFormValues } from '@/components/users/EditU
 import { toast } from "react-hot-toast";
 import type { UserProfile } from "@/lib/types";
 import * as React from 'react';
+import { usePathname } from "next/navigation";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
 const DEFAULT_APP_NAME = "CandiTrack";
+
+// Function to generate breadcrumb items based on pathname
+function getBreadcrumbItems(pathname: string) {
+  const items = [{ label: "Home", href: "/", icon: Home }];
+  
+  if (pathname === "/") {
+    return [{ label: "Dashboard", href: "/", icon: Home }];
+  }
+  
+  if (pathname.startsWith("/candidates")) {
+    items.push({ label: "Candidates", href: "/candidates", icon: Users });
+    
+    if (pathname === "/candidates/upload") {
+      items.push({ label: "Bulk Upload", icon: UploadCloud });
+    } else if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
+      items.push({ label: "Candidate Details", icon: UserCircle });
+    }
+  }
+  
+  if (pathname.startsWith("/positions")) {
+    items.push({ label: "Positions", href: "/positions", icon: Briefcase });
+    
+    if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
+      items.push({ label: "Position Details", icon: Briefcase });
+    }
+  }
+  
+  if (pathname.startsWith("/users")) {
+    items.push({ label: "Manage Users", icon: UsersRound });
+  }
+  
+  if (pathname.startsWith("/my-tasks")) {
+    items.push({ label: "My Task Board", icon: ListTodo });
+  }
+  
+  if (pathname.startsWith("/settings")) {
+    items.push({ label: "Settings", href: "/settings", icon: Settings });
+    
+    if (pathname.startsWith("/settings/system-settings")) {
+      items.push({ label: "System Settings", icon: Settings });
+    } else if (pathname.startsWith("/settings/system-preferences")) {
+      items.push({ label: "System Preferences", icon: Palette });
+    } else if (pathname.startsWith("/settings/stages")) {
+      items.push({ label: "Recruitment Stages", icon: KanbanSquare });
+    } else if (pathname.startsWith("/settings/data-models")) {
+      items.push({ label: "Data Model UI", icon: DatabaseZap });
+    } else if (pathname.startsWith("/settings/custom-fields")) {
+      items.push({ label: "Custom Fields", icon: Settings2 });
+    } else if (pathname.startsWith("/settings/user-groups")) {
+      items.push({ label: "User Groups", icon: UsersRound });
+    } else if (pathname.startsWith("/settings/users")) {
+      items.push({ label: "Users", icon: UsersRound });
+    } else if (pathname.startsWith("/settings/webhooks")) {
+      items.push({ label: "Webhooks", icon: Webhook });
+    } else if (pathname.startsWith("/settings/logs")) {
+      items.push({ label: "Application Logs", icon: ListOrdered });
+    } else if (pathname.startsWith("/settings/api-docs")) {
+      items.push({ label: "API Documentation", icon: Code2 });
+    }
+  }
+  
+  if (pathname.startsWith("/api-docs")) {
+    items.push({ label: "API Documentation", icon: Code2 });
+  }
+  
+  if (pathname.startsWith("/logs")) {
+    items.push({ label: "Application Logs", icon: ListOrdered });
+  }
+  
+  if (pathname.startsWith("/auth/signin")) {
+    return [{ label: "Sign In", icon: LogIn }];
+  }
+  
+  return items;
+}
 
 export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   const { isMobile } = useSidebar();
@@ -31,6 +108,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => setMounted(true), []);
 
@@ -103,7 +181,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     return (
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          {isMobile && <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />}
+          <div className="h-8 w-8 rounded-md bg-muted animate-pulse" />
           <div className="h-6 w-32 rounded bg-muted animate-pulse" />
         </div>
         <div className="flex items-center gap-3">
@@ -120,8 +198,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <SidebarTrigger />
-          <h1 className="text-lg font-semibold text-foreground">{effectivePageTitle}</h1>
+          <Breadcrumb items={getBreadcrumbItems(pathname)} />
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
@@ -132,9 +209,9 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-md">
-                  <Avatar className="h-9 w-9">
+                  <Avatar size="md" className="border border-border">
                     <AvatarImage src={user.image || undefined} alt={user.name || "User"} data-ai-hint={user.image ? undefined : "profile person"} />
-                    <AvatarFallback>{user.name?.charAt(0)?.toUpperCase() || <UserCircle className="h-5 w-5"/>}</AvatarFallback>
+                    <AvatarFallback className="text-sm font-medium">{user.name?.charAt(0)?.toUpperCase() || <UserCircle className="h-4 w-4"/>}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

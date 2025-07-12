@@ -83,7 +83,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const combinedActivities: CombinedActivityItem[] = [
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
-      id: comment.id,
+      id: `comment-${comment.id}`,
       type: 'comment' as const,
       content: comment.content,
       author: comment.author,
@@ -92,7 +92,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     })),
     // Add activity logs
     ...(Array.isArray(logs) ? logs : []).map(log => ({
-      id: log.id,
+      id: `activity-${log.id}`,
       type: 'activity' as const,
       action: log.action,
       user: log.user,
@@ -245,15 +245,18 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   };
 
   const handleEditComment = async (id: string) => {
+    // Extract the original comment ID by removing the 'comment-' prefix
+    const originalId = id.replace('comment-', '');
+    
     setEditingSaving(id);
     setError(null);
     // Optimistically update comment
     const prevComments = [...comments];
-    setComments(comments.map(c => c.id === id ? { ...c, content: editingContent } : c));
+    setComments(comments.map(c => c.id === originalId ? { ...c, content: editingContent } : c));
     setEditingId(null);
     setEditingContent('');
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/comments/${id}`, {
+      const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editingContent }),
@@ -269,13 +272,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   };
 
   const handleDeleteComment = async (id: string) => {
+    // Extract the original comment ID by removing the 'comment-' prefix
+    const originalId = id.replace('comment-', '');
+    
     setDeleteLoading(id);
     setError(null);
     // Optimistically remove comment
     const prevComments = [...comments];
-    setComments(comments.filter(c => c.id !== id));
+    setComments(comments.filter(c => c.id !== originalId));
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/comments/${id}`, {
+      const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
         method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete comment');
       onCommentsChange();

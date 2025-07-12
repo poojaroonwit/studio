@@ -6,12 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { CandidateDetailModal } from './CandidateDetailModal';
-import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User } from 'lucide-react';
+import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface CandidateKanbanViewProps {
   candidates: Candidate[];
@@ -22,6 +23,8 @@ interface CandidateKanbanViewProps {
   rowField?: string;
   columnField?: string;
   visibleFields?: string[];
+  visibleRowValues?: string[];
+  visibleColumnValues?: string[];
 }
 
 export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, showAddButton = true }: CandidateKanbanViewProps) {
@@ -78,28 +81,28 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {
     const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200',
+      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
     };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
   };
 
   // Skeleton loader for columns/cards
   if (loading) {
     return (
-      <div className="w-full min-h-[300px] bg-gray-50 rounded-lg p-6 flex gap-4 overflow-x-auto">
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex gap-4 overflow-x-auto">
         {statuses.map((status, idx) => (
-          <div key={status} className="flex-shrink-0 w-72 md:w-80 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col gap-3 animate-pulse">
-            <div className="h-6 w-2/3 bg-gray-200 rounded mb-2" />
+          <div key={status} className="flex-shrink-0 w-72 md:w-80 bg-card rounded-xl shadow-sm border border-border p-4 flex flex-col gap-3 animate-pulse">
+            <div className="h-6 w-2/3 bg-muted rounded mb-2" />
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 bg-gray-200 rounded-lg mb-2" />
+              <div key={i} className="h-20 bg-muted rounded-lg mb-2" />
             ))}
           </div>
         ))}
@@ -108,31 +111,36 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
   }
 
   return (
-    <div className="w-full min-h-[400px] bg-gray-50 rounded-lg p-4 flex gap-4 overflow-x-auto">
+    <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
       {statuses.map(status => (
         <div
           key={status}
-          className={`flex-shrink-0 w-72 md:w-80 flex flex-col h-full transition-all ${dragOverStatus === status ? 'ring-2 ring-blue-500/60 bg-blue-50/60' : ''}`}
+          className={cn(
+            "flex-shrink-0 w-72 md:w-80 flex flex-col h-full transition-all duration-200",
+            dragOverStatus === status && "ring-2 ring-primary/60 bg-primary/5"
+          )}
           onDragOver={e => handleDragOver(status, e)}
           onDrop={() => handleDrop(status)}
         >
-          <Card className="flex flex-col h-full shadow-sm border border-gray-200 bg-white">
-            <CardHeader className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10 flex flex-row items-center justify-between">
+          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <CardTitle className="text-base font-semibold text-gray-900 capitalize">{status}</CardTitle>
-                <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                <div className="w-3 h-3 rounded-full bg-primary"></div>
+                <CardTitle className="text-base font-semibold text-foreground capitalize">{status}</CardTitle>
+                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
                   {candidatesByStatus[status]?.length || 0}
                 </Badge>
               </div>
               {showAddButton && (
-                <button
-                  className="ml-auto flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
                   onClick={() => setAddingStatus(status)}
                   title={`Add card to ${status}`}
                 >
-                  <Plus className="w-4 h-4" /> Add
-                </button>
+                  <Plus className="w-4 h-4" />
+                </Button>
               )}
             </CardHeader>
             <ScrollArea className="flex-grow max-h-[60vh]">
@@ -147,30 +155,21 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                       onDragStart={() => handleDragStart(candidate)}
                       onDragEnd={handleDragEnd}
                     >
-                      <Card className={`p-4 hover:shadow-md transition-all duration-200 bg-white border border-gray-200 flex flex-col gap-3 relative ${draggedCandidate?.id === candidate.id ? 'opacity-60 scale-95' : ''}`}> 
+                      <Card className={cn(
+                        "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
+                        draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                      )}> 
                         <div className="flex items-start gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} data-ai-hint="person avatar"/>
-                            <AvatarFallback className="bg-blue-100 text-blue-600">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate" title={candidate.name}>{candidate.name}</p>
-                            <p className="text-xs text-gray-500 truncate mt-1" title={candidate.position?.title || 'N/A'}>
+                            <p className="text-sm font-semibold text-foreground truncate" title={candidate.name}>{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
                               <Target className="w-3 h-3 inline mr-1" />
                               {candidate.position?.title || 'N/A'}
                             </p>
-                          </div>
-                          {/* Quick actions (edit/move/delete) */}
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-2 z-10">
-                            <button className="p-1 rounded hover:bg-gray-100 transition-colors" title="Edit">
-                              <Pencil className="w-4 h-4 text-blue-500" />
-                            </button>
-                            <button className="p-1 rounded hover:bg-gray-100 transition-colors" title="Move">
-                              <MoveRight className="w-4 h-4 text-gray-500" />
-                            </button>
-                            <button className="p-1 rounded hover:bg-gray-100 transition-colors" title="Delete">
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </button>
                           </div>
                         </div>
                         
@@ -178,12 +177,12 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                           {candidate.fitScore !== undefined && candidate.fitScore !== null && (
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500">Fit Score</span>
-                                <span className="font-medium text-gray-900">{candidate.fitScore}%</span>
+                                <span className="text-muted-foreground">Fit Score</span>
+                                <span className="font-medium text-foreground">{candidate.fitScore}%</span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div className="w-full bg-muted rounded-full h-2">
                                 <div 
-                                  className={`h-2 rounded-full transition-all duration-300 ${getScoreBgColor(candidate.fitScore)}`}
+                                  className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
                                   style={{ width: `${candidate.fitScore}%` }}
                                 ></div>
                               </div>
@@ -191,54 +190,77 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                           )}
                           
                           {candidate.email && (
-                            <div className="flex items-center text-xs text-gray-500">
-                              <User className="w-3 h-3 mr-1" />
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Mail className="w-3 h-3 mr-1" />
                               {candidate.email}
                             </div>
                           )}
                           
-                          {candidate.applicationDate && (
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Applied: {candidate.applicationDate}
+                          {candidate.phone && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {candidate.phone}
                             </div>
                           )}
+                          
+                          {candidate.applicationDate && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hover Actions */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle edit
+                              }}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     </div>
                   ))
                 ) : (
-                  <div className="flex items-center justify-center h-full py-8">
+                  <div className="flex items-center justify-center w-full py-8">
                     <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-gray-400" />
+                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+                        <Plus className="w-6 h-6 text-muted-foreground" />
                       </div>
-                      <p className="text-sm text-gray-500">No candidates here</p>
-                      <p className="text-xs text-gray-400 mt-1">Drag candidates to this column</p>
+                      <p className="text-sm text-muted-foreground">No candidates</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
                     </div>
                   </div>
                 )}
               </CardContent>
             </ScrollArea>
-            {/* Add Card Modal/Placeholder */}
-            {addingStatus === status && (
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex gap-2 items-center">
-                  <Input placeholder="Candidate name..." className="flex-1 text-sm" />
-                  <Button size="sm" variant="default" onClick={() => setAddingStatus(null)} className="text-xs">Add</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAddingStatus(null)} className="text-xs">Cancel</Button>
-                </div>
-              </div>
-            )}
           </Card>
         </div>
       ))}
+      
+      {/* Candidate Detail Modal */}
+      {selectedCandidateSummary && (
+        <CandidateDetailModal
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          candidateSummary={selectedCandidateSummary}
+        />
+      )}
     </div>
   );
 }
 
-// New: Row-based Kanban (stages as rows, candidates as draggable cards)
-export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, rowField, columnField, visibleFields }: CandidateKanbanViewProps) {
+// Enhanced Row-based Kanban (stages as rows, candidates as draggable cards)
+export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, rowField, columnField, visibleFields, visibleRowValues }: CandidateKanbanViewProps) {
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<CandidateStatus | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -248,6 +270,11 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
     acc[status] = candidates.filter(c => c.status === status);
     return acc;
   }, {} as Record<CandidateStatus, Candidate[]>);
+
+  // Only show rows in visibleRowValues (if provided)
+  const filteredStatuses = visibleRowValues && visibleRowValues.length > 0
+    ? statuses.filter(s => visibleRowValues.includes(s))
+    : statuses;
 
   // Drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
@@ -270,52 +297,59 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
   };
 
   const handleCardClick = (candidate: Candidate) => {
-    setSelectedCandidateSummary({
-      id: candidate.id,
-      name: candidate.name,
-      email: candidate.email,
-      phone: candidate.phone,
-      status: candidate.status,
-      position: candidate.position,
-      fitScore: candidate.fitScore,
-      parsedData: candidate.parsedData
-    });
-    setIsModalOpen(true);
+    if (onCardClick) {
+      onCardClick(candidate);
+    } else {
+      setSelectedCandidateSummary({
+        id: candidate.id,
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        status: candidate.status,
+        position: candidate.position,
+        fitScore: candidate.fitScore,
+        parsedData: candidate.parsedData
+      });
+      setIsModalOpen(true);
+    }
   };
 
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {
     const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200',
+      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
     };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
   };
 
   return (
     <>
-      <div className="w-full min-h-[400px] bg-gray-50 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
-          {statuses.map(status => (
+          {filteredStatuses.map(status => (
             <div
               key={status}
-              className={`flex flex-row items-center gap-4 transition-all border border-gray-200 rounded-lg p-4 bg-white shadow-sm ${dragOverStatus === status ? 'ring-2 ring-blue-500/60 bg-blue-50/60' : ''}`}
+              className={cn(
+                "flex flex-row items-center gap-4 transition-all duration-200 border border-border rounded-lg p-4 bg-card shadow-sm",
+                dragOverStatus === status && "ring-2 ring-primary/60 bg-primary/5"
+              )}
               onDragOver={e => handleDragOver(status, e)}
               onDrop={() => handleDrop(status)}
             >
               <div className="w-40 flex-shrink-0 flex flex-col items-center">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="font-semibold text-base capitalize text-gray-900">{status}</span>
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                  <span className="font-semibold text-base capitalize text-foreground">{status}</span>
                 </div>
-                <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
                   {candidatesByStatus[status]?.length || 0} candidates
                 </Badge>
               </div>
@@ -324,21 +358,24 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
                   candidatesByStatus[status].map(candidate => (
                     <div
                       key={candidate.id}
-                      className={`cursor-pointer group w-64 max-w-xs ${draggedCandidate?.id === candidate.id ? 'opacity-60 scale-95' : ''}`}
+                      className={cn(
+                        "cursor-pointer group w-64 max-w-xs",
+                        draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                      )}
                       draggable
                       onDragStart={() => handleDragStart(candidate)}
                       onDragEnd={handleDragEnd}
                       onClick={() => handleCardClick(candidate)}
                     >
-                      <Card className="p-4 hover:shadow-md transition-all duration-200 bg-white border border-gray-200 flex flex-col gap-3 relative">
+                      <Card className="p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                            <AvatarFallback className="bg-blue-100 text-blue-600">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate" title={candidate.name}>{candidate.name}</p>
-                            <p className="text-xs text-gray-500 truncate mt-1" title={candidate.position?.title || 'N/A'}>
+                            <p className="text-sm font-semibold text-foreground truncate" title={candidate.name}>{candidate.name}</p>
+                            <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
                               <Target className="w-3 h-3 inline mr-1" />
                               {candidate.position?.title || 'N/A'}
                             </p>
@@ -349,12 +386,12 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
                           {candidate.fitScore !== undefined && candidate.fitScore !== null && (
                             <div className="space-y-1">
                               <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500">Fit Score</span>
-                                <span className="font-medium text-gray-900">{candidate.fitScore}%</span>
+                                <span className="text-muted-foreground">Fit Score</span>
+                                <span className="font-medium text-foreground">{candidate.fitScore}%</span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div className="w-full bg-muted rounded-full h-2">
                                 <div 
-                                  className={`h-2 rounded-full transition-all duration-300 ${getScoreBgColor(candidate.fitScore)}`}
+                                  className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
                                   style={{ width: `${candidate.fitScore}%` }}
                                 ></div>
                               </div>
@@ -362,18 +399,42 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
                           )}
                           
                           {candidate.email && (
-                            <div className="flex items-center text-xs text-gray-500">
-                              <User className="w-3 h-3 mr-1" />
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Mail className="w-3 h-3 mr-1" />
                               {candidate.email}
                             </div>
                           )}
                           
-                          {candidate.applicationDate && (
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Applied: {candidate.applicationDate}
+                          {candidate.phone && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {candidate.phone}
                             </div>
                           )}
+                          
+                          {candidate.applicationDate && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hover Actions */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle edit
+                              }}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     </div>
@@ -381,11 +442,11 @@ export function CandidateRowKanbanView({ candidates, statuses, onMoveCandidate, 
                 ) : (
                   <div className="flex items-center justify-center w-full py-8">
                     <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-gray-400" />
+                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+                        <Plus className="w-6 h-6 text-muted-foreground" />
                       </div>
-                      <p className="text-sm text-gray-500">No candidates in this stage</p>
-                      <p className="text-xs text-gray-400 mt-1">Drag candidates here</p>
+                      <p className="text-sm text-muted-foreground">No candidates in this stage</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
                     </div>
                   </div>
                 )}
@@ -432,69 +493,131 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
     setDragOverRecruiter(null);
   };
 
+  const handleCardClick = (candidate: any) => {
+    if (onCardClick) {
+      onCardClick(candidate);
+    }
+  };
+
+  // Get status color for YouTrack-style badges
+  const getStatusColor = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
+      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
+      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
+      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
+      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
+    };
+    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
+  };
+
   return (
-    <div className="w-full min-h-[400px] bg-gray-50 rounded-lg p-4 overflow-auto">
-      <div className="grid grid-cols-1 gap-4">
-        {stages.map((stage: any) => (
-          <div key={stage} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 capitalize">{stage}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recruiters.map((recruiter: any) => {
-                const recruiterCandidates = candidates.filter((c: any) => 
-                  c.status === stage && c.recruiterId === recruiter.id
-                );
-                
-                return (
-                  <div
-                    key={recruiter.id}
-                    className={`p-4 border border-gray-200 rounded-lg transition-all ${
-                      dragOverStage === stage && dragOverRecruiter === recruiter 
-                        ? 'ring-2 ring-blue-500/60 bg-blue-50/60' 
-                        : 'bg-gray-50'
-                    }`}
-                    onDragOver={(e) => handleDragOver(stage, recruiter, e)}
-                    onDrop={() => handleDrop(stage, recruiter)}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">{recruiter.name}</h4>
-                      <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
-                        {recruiterCandidates.length}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {recruiterCandidates.map((candidate: any) => (
-                        <div
-                          key={candidate.id}
-                          className={`p-3 bg-white rounded border border-gray-200 cursor-pointer hover:shadow-sm transition-all ${
-                            draggedCandidate?.id === candidate.id ? 'opacity-60 scale-95' : ''
-                          }`}
-                          draggable
-                          onDragStart={() => handleDragStart(candidate)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => onCardClick?.(candidate)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
-                              <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                                {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{candidate.name}</p>
-                              <p className="text-xs text-gray-500 truncate">{candidate.position?.title}</p>
+    <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+      {recruiters.map((recruiter: any) => (
+        <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
+          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={recruiter.avatarUrl} alt={recruiter.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    {recruiter.name?.charAt(0)?.toUpperCase() || 'R'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">{recruiter.name}</CardTitle>
+                  <p className="text-xs text-muted-foreground">Recruiter</p>
+                </div>
+              </div>
+            </CardHeader>
+            <ScrollArea className="flex-grow max-h-[60vh]">
+              <CardContent className="p-4 space-y-4">
+                {stages.map((stage: any) => {
+                  const stageCandidates = candidates.filter((c: any) => c.status === stage && c.recruiterId === recruiter.id);
+                  return (
+                    <div key={stage} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">{stage}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {stageCandidates.length}
+                        </Badge>
+                      </div>
+                      <div
+                        className={cn(
+                          "min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200",
+                          dragOverStage === stage && dragOverRecruiter?.id === recruiter.id && "border-primary bg-primary/5"
+                        )}
+                        onDragOver={(e) => handleDragOver(stage, recruiter, e)}
+                        onDrop={() => handleDrop(stage, recruiter)}
+                      >
+                        {stageCandidates.length > 0 ? (
+                          <div className="space-y-2">
+                            {stageCandidates.map((candidate: any) => (
+                              <div
+                                key={candidate.id}
+                                className={cn(
+                                  "cursor-pointer group p-3 bg-card border border-border rounded-lg hover:shadow-sm transition-all duration-200",
+                                  draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                                )}
+                                draggable
+                                onDragStart={() => handleDragStart(candidate)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => handleCardClick(candidate)}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <Avatar className="h-6 w-6 flex-shrink-0">
+                                    <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
+                                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                      {candidate.name?.charAt(0)?.toUpperCase() || 'C'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-foreground truncate" title={candidate.name}>
+                                      {candidate.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate" title={candidate.position?.title || 'N/A'}>
+                                      {candidate.position?.title || 'N/A'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                                  <div className="mt-2 space-y-1">
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-muted-foreground">Fit</span>
+                                      <span className="font-medium text-foreground">{candidate.fitScore}%</span>
+                                    </div>
+                                    <div className="w-full bg-muted rounded-full h-1">
+                                      <div 
+                                        className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
+                                        style={{ width: `${candidate.fitScore}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-16">
+                            <div className="text-center">
+                              <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">Drop here</p>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+                  );
+                })}
+              </CardContent>
+            </ScrollArea>
+          </Card>
+        </div>
+      ))}
     </div>
   );
 }

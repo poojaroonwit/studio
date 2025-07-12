@@ -39,7 +39,7 @@ import { Buffer } from 'buffer';
  */
 
 const systemSettingKeyEnum = z.enum([
-    'appName', 'appLogoDataUrl', 'appThemePreference',
+    'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
     'primaryGradientStart', 'primaryGradientEnd',
     'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'smtpSecure', 'smtpFromEmail',
     'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
@@ -68,21 +68,11 @@ const systemSettingKeyEnum = z.enum([
     // Sidebar Dark Theme - Border and shadow settings
     'sidebarBorderWidthD', 'sidebarBorderStyleD', 'sidebarBorderRadiusD', 'sidebarShadowD', 'sidebarShadowHoverD', 'sidebarShadowActiveD',
     // Sidebar Light Theme - Spacing and layout
-    'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL', 'sidebarGapL', 'sidebarWidthL', 'sidebarWidthCollapsedL', 'sidebarTransitionDurationL', 'sidebarTransitionTimingL',
+    'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL',
+    'sidebarItemSpacingL', 'sidebarGroupSpacingL', 'sidebarIconSizeL',
     // Sidebar Dark Theme - Spacing and layout
-    'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD', 'sidebarGapD', 'sidebarWidthD', 'sidebarWidthCollapsedD', 'sidebarTransitionDurationD', 'sidebarTransitionTimingD',
-    // Sidebar Light Theme - Menu item specific settings
-    'sidebarMenuItemBgL', 'sidebarMenuItemBgHoverL', 'sidebarMenuItemBgActiveL', 'sidebarMenuItemColorL', 'sidebarMenuItemColorHoverL', 'sidebarMenuItemColorActiveL',
-    'sidebarMenuItemBorderL', 'sidebarMenuItemBorderHoverL', 'sidebarMenuItemBorderActiveL', 'sidebarMenuItemBorderRadiusL', 'sidebarMenuItemPaddingXL', 'sidebarMenuItemPaddingYL',
-    'sidebarMenuItemMarginL', 'sidebarMenuItemFontWeightL', 'sidebarMenuItemFontWeightActiveL', 'sidebarMenuItemFontSizeL', 'sidebarMenuItemLineHeightL', 'sidebarMenuItemTransitionL',
-    // Sidebar Dark Theme - Menu item specific settings
-    'sidebarMenuItemBgD', 'sidebarMenuItemBgHoverD', 'sidebarMenuItemBgActiveD', 'sidebarMenuItemColorD', 'sidebarMenuItemColorHoverD', 'sidebarMenuItemColorActiveD',
-    'sidebarMenuItemBorderD', 'sidebarMenuItemBorderHoverD', 'sidebarMenuItemBorderActiveD', 'sidebarMenuItemBorderRadiusD', 'sidebarMenuItemPaddingXD', 'sidebarMenuItemPaddingYD',
-    'sidebarMenuItemMarginD', 'sidebarMenuItemFontWeightD', 'sidebarMenuItemFontWeightActiveD', 'sidebarMenuItemFontSizeD', 'sidebarMenuItemLineHeightD', 'sidebarMenuItemTransitionD',
-    // Sidebar Light Theme - Icon settings
-    'sidebarIconSizeL', 'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
-    // Sidebar Dark Theme - Icon settings
-    'sidebarIconSizeD', 'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
+    'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD',
+    'sidebarItemSpacingD', 'sidebarGroupSpacingD', 'sidebarIconSizeD',
     // Sidebar Light Theme - Group label settings
     'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
     // Sidebar Dark Theme - Group label settings
@@ -157,6 +147,7 @@ export async function POST(request: NextRequest) {
 
       // Handle file uploads if present
       const logoFile = formData.get('logo');
+      const faviconFile = formData.get('favicon');
       const loginBackgroundImageFile = formData.get('loginBackgroundImage');
 
       if (logoFile && typeof logoFile !== 'string') {
@@ -164,6 +155,13 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await logoFile.arrayBuffer());
         const dataUrl = `data:${logoFile.type};base64,${buffer.toString('base64')}`;
         settingsToSave.push({ key: 'appLogoDataUrl', value: dataUrl });
+      }
+
+      if (faviconFile && typeof faviconFile !== 'string') {
+        // Convert favicon file to data URL and add to settings
+        const buffer = Buffer.from(await faviconFile.arrayBuffer());
+        const dataUrl = `data:${faviconFile.type};base64,${buffer.toString('base64')}`;
+        settingsToSave.push({ key: 'appFaviconDataUrl', value: dataUrl });
       }
 
       if (loginBackgroundImageFile && typeof loginBackgroundImageFile !== 'string') {

@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate } from '@/lib/candidateSse';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 /**
  * @openapi
@@ -134,6 +135,15 @@ export async function POST(request: NextRequest) {
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
     broadcastCandidateUpdate(newCandidate); // Broadcast to SSE clients
+    
+    // Dispatch webhook for candidate creation
+    try {
+      await dispatchWebhooks.candidateCreated(newCandidate);
+    } catch (webhookError) {
+      console.error('Failed to dispatch candidate creation webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
     await client.query('ROLLBACK');

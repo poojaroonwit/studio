@@ -827,7 +827,7 @@ const swaggerSpec = {
       },
       post: {
         summary: 'Create or update job matches for a candidate (v1 API)',
-        description: 'Creates or updates job matches for the specified candidate. Requires Bearer token authentication.',
+        description: 'Creates or updates job matches for the specified candidate. Note: position_title, created_at, and updated_at are automatically handled and should not be included in the request body. Requires Bearer token authentication.',
         tags: ['V1 Candidates', 'Job Matches'],
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -842,10 +842,19 @@ const swaggerSpec = {
                 properties: {
                   job_matches: {
                     type: 'array',
-                    items: { $ref: '#/components/schemas/JobMatch' }
+                    items: { $ref: '#/components/schemas/JobMatchRequest' }
                   }
                 },
                 required: ['job_matches']
+              },
+              example: {
+                job_matches: [
+                  {
+                    fit_score: 85,
+                    job_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    match_reasons: ["Strong technical skills", "Relevant experience"]
+                  }
+                ]
               }
             }
           }
@@ -876,7 +885,7 @@ const swaggerSpec = {
       },
       put: {
         summary: 'Update job matches for a candidate (v1 API)',
-        description: 'Updates job matches for the specified candidate. Requires Bearer token authentication.',
+        description: 'Updates job matches for the specified candidate. Note: position_title, created_at, and updated_at are automatically handled and should not be included in the request body. Requires Bearer token authentication.',
         tags: ['V1 Candidates', 'Job Matches'],
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -891,10 +900,19 @@ const swaggerSpec = {
                 properties: {
                   job_matches: {
                     type: 'array',
-                    items: { $ref: '#/components/schemas/JobMatch' }
+                    items: { $ref: '#/components/schemas/JobMatchRequest' }
                   }
                 },
                 required: ['job_matches']
+              },
+              example: {
+                job_matches: [
+                  {
+                    fit_score: 90,
+                    job_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    match_reasons: ["Updated match reasons"]
+                  }
+                ]
               }
             }
           }
@@ -939,6 +957,54 @@ const swaggerSpec = {
         }
       }
     },
+    '/api/v1/candidates/{id}/job-matches/add': {
+      post: {
+        summary: 'Add a new job match for a candidate (v1 API)',
+        description: 'Adds a new job match for the specified candidate. Note: position_title, created_at, and updated_at are automatically handled and should not be included in the request body. Requires Bearer token authentication.',
+        tags: ['V1 Candidates', 'Job Matches'],
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  fit_score: { type: 'number', minimum: 0, maximum: 100, description: 'Fit score between 0-100' },
+                  job_id: { type: 'string', format: 'uuid', description: 'Position ID to match with' },
+                  match_reasons: { type: 'array', items: { type: 'string' }, description: 'Array of reasons for the match' }
+                },
+                required: ['fit_score', 'job_id']
+              }
+            }
+          }
+        },
+        responses: {
+          '201': {
+            description: 'Job match added successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string' },
+                    job_match: { $ref: '#/components/schemas/JobMatch' }
+                  }
+                }
+              }
+            }
+          },
+          '400': { description: 'Invalid input data' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Insufficient permissions' },
+          '404': { description: 'Candidate or position not found' },
+          '409': { description: 'Job match already exists for this candidate and position' }
+        }
+      }
+    },
     '/api/v1/candidates/{id}/job-matches/{matchId}': {
       get: {
         summary: 'Get a specific job match for a candidate (v1 API)',
@@ -969,7 +1035,7 @@ const swaggerSpec = {
       },
       put: {
         summary: 'Update a specific job match for a candidate (v1 API)',
-        description: 'Updates a specific job match for the specified candidate. Requires Bearer token authentication.',
+        description: 'Updates a specific job match for the specified candidate. Note: position_title, created_at, and updated_at are automatically handled and should not be included in the request body. Requires Bearer token authentication.',
         tags: ['V1 Candidates', 'Job Matches'],
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -1608,15 +1674,38 @@ const swaggerSpec = {
       JobMatch: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
-          fit_score: { type: 'number', minimum: 0, maximum: 100 },
-          job_id: { type: 'string', format: 'uuid' },
-          match_reasons: { type: 'array', items: { type: 'string' } },
-          position_title: { type: 'string', nullable: true },
-          created_at: { type: 'string', format: 'date-time' },
-          updated_at: { type: 'string', format: 'date-time' }
+          id: { type: 'string', format: 'uuid', description: 'Job match ID (auto-generated)' },
+          fit_score: { type: 'number', minimum: 0, maximum: 100, description: 'Fit score between 0-100' },
+          job_id: { type: 'string', format: 'uuid', description: 'Position ID to match with' },
+          match_reasons: { type: 'array', items: { type: 'string' }, description: 'Array of reasons for the match' },
+          position_title: { 
+            type: 'string', 
+            nullable: true, 
+            description: 'Position title (automatically retrieved from Position table - do not include in requests)' 
+          },
+          created_at: { 
+            type: 'string', 
+            format: 'date-time', 
+            description: 'Creation timestamp (automatically set - do not include in requests)' 
+          },
+          updated_at: { 
+            type: 'string', 
+            format: 'date-time', 
+            description: 'Last update timestamp (automatically set - do not include in requests)' 
+          }
         },
-        required: ['fit_score', 'job_id']
+        required: ['fit_score', 'job_id'],
+        description: 'Job match information. Note: position_title, created_at, and updated_at are automatically handled and should not be included in request bodies.'
+      },
+      JobMatchRequest: {
+        type: 'object',
+        properties: {
+          fit_score: { type: 'number', minimum: 0, maximum: 100, description: 'Fit score between 0-100' },
+          job_id: { type: 'string', format: 'uuid', description: 'Position ID to match with' },
+          match_reasons: { type: 'array', items: { type: 'string' }, description: 'Array of reasons for the match' }
+        },
+        required: ['fit_score', 'job_id'],
+        description: 'Job match request data. Only includes fields that need to be provided in requests.'
       },
       JobApplied: {
         type: 'object',

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { type ReactNode, useState, useEffect } from "react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar } from "@/components/ui/sidebar";
 import { Header } from "./Header";
 import { useSession } from "next-auth/react";
 import { GlobalLoadingOverlay } from "./GlobalLoadingOverlay";
@@ -9,12 +9,22 @@ import { usePageLoading } from "@/hooks/use-page-loading";
 import { useSessionValidation } from "@/hooks/use-session-validation";
 import SidebarNav from "./SidebarNav";
 import { SidebarStyleInitializer } from "./SidebarStyleInitializer";
+import { FaviconUpdater } from "./FaviconUpdater";
+import { useFavicon } from "@/hooks/use-favicon";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from 'next/image';
-import { Package2 } from "lucide-react";
+import { Package2, ChevronRight, ChevronLeft } from "lucide-react";
 import packageJson from '../../../package.json';
 import { setThemeAndColors } from '@/lib/themeUtils';
+import { SidebarHeaderContent } from "./SidebarHeaderContent";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -45,7 +55,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/settings/stages")) return "Recruitment Stages";
   if (pathname.startsWith("/settings/data-models")) return "Data Model Preferences";
   if (pathname.startsWith("/settings/custom-fields")) return "Custom Field Definitions";
-  if (pathname.startsWith("/settings/webhook-mapping")) return "Webhook Payload Mapping";
+  
   if (pathname.startsWith("/settings/user-groups")) return "User Groups"; // New
   if (pathname.startsWith("/api-docs")) return "API Documentation";
   if (pathname.startsWith("/logs")) return "Application Logs";
@@ -68,6 +78,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const { data: session, status } = useSession();
   const isLoading = usePageLoading();
+  
+  // Add favicon management
+  const { faviconDataUrl } = useFavicon();
   
   // Add session validation - only validate on authenticated pages
   const shouldValidateSession = pathname !== "/auth/signin" && status === "authenticated";
@@ -146,23 +159,21 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const isSettingsPage = pathname.startsWith("/settings");
 
-  const renderLogo = (isCollapsed: boolean) => {
-    if (isClient && appLogoUrl) {
-      return <Image src={appLogoUrl} alt="App Logo" width={isCollapsed ? 32 : 32} height={isCollapsed ? 32 : 32} className={isCollapsed ? "h-8 w-8 object-contain" : "h-8 w-8 object-contain"} data-ai-hint="company logo" />;
-    }
-    return DEFAULT_LOGO_ICON;
-  };
+
 
   return (
     <SidebarProvider defaultOpen={true}>
       <SidebarStyleInitializer />
+      <FaviconUpdater faviconDataUrl={faviconDataUrl} />
+      <SidebarToggleButton />
       <div className="flex min-h-screen bg-background">
-        <Sidebar collapsible="icon">
+        <Sidebar collapsible="icon" className="border-r border-border">
           <SidebarHeader>
-            <div className="flex items-center gap-2 px-2">
-              {renderLogo(false)}
-              <span className="font-semibold text-lg group-data-[collapsible=icon]:hidden">{currentAppName}</span>
-            </div>
+            <SidebarHeaderContent 
+              currentAppName={currentAppName}
+              appLogoUrl={appLogoUrl}
+              isClient={isClient}
+            />
           </SidebarHeader>
           <SidebarContent>
             <SidebarNav />
@@ -177,5 +188,31 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
     </SidebarProvider>
+  );
+}
+
+// Component for the expand/collapse button
+function SidebarToggleButton() {
+  const { open, toggleSidebar } = useSidebar();
+  
+  return (
+    <div className={`fixed top-2 transform -translate-x-1/2 z-[99999] ${open ? 'left-[var(--sidebar-width)]' : 'left-[var(--sidebar-width-icon)]'}`}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+              className="rounded-full bg-red-500 hover:bg-red-600 text-white border-2 border-red-600 shadow-lg h-8 w-8"
+            >
+              {open ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{open ? "Collapse sidebar" : "Expand sidebar"}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
   );
 }

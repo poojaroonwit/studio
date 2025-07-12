@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = params;
+
+    // Verify webhook exists
+    const webhook = await prisma.webhook.findUnique({
+      where: { id },
+      select: { name: true }
+    });
+
+    if (!webhook) {
+      return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
+    }
+
+    // Get all logs for this webhook
+    const logs = await prisma.webhookLog.findMany({
+      where: { webhook_id: id },
+      orderBy: { created_at: 'desc' },
+      select: {
+        event_type: true,
+        success: true,
+        response_status: true,
+        error_message: true,
+        duration_ms: true,
+        created_at: true,
+        payload: true,
+        response_body: true
+      }
+    });
+
+    // Generate CSV content
+    const csvHeaders = [
+      'Date',
+      'Event Type',
+      'Status',
+      'Response Status',
+      'Duration (ms)',
+      'Error Message',
+      'Payload',
+      'Response Body'
+    ];
+
+    const csvRows = logs.map(log => [
+      log.created_at.toISOString(),
+      log.event_type,
+      log.success ? 'Success' : 'Failed',
+      log.response_status || '',
+      log.duration_ms,
+      log.error_message || '',
+      JSON.stringify(log.payload),
+      log.response_body || ''
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Create response with CSV headers
+    const response = new NextResponse(csvContent);
+    response.headers.set('Content-Type', 'text/csv');
+    response.headers.set('Content-Disposition', `attachment; filename="webhook-logs-${webhook.name}-${new Date().toISOString().split('T')[0]}.csv"`);
+
+    return response;
+  } catch (error) {
+    console.error('Error exporting webhook logs:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+} 

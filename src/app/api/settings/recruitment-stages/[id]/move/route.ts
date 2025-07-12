@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
+import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
 const moveStageSchema = z.object({
   direction: z.enum(['up', 'down']),
@@ -147,6 +149,11 @@ export async function POST(request: NextRequest) {
         await client.query('COMMIT');
 
         await logAudit('AUDIT', `Recruitment stage (ID: ${stageId}) moved ${direction}.`, 'API:RecruitmentStages:Move', actingUserId, { stageId, direction });
+        
+        // Broadcast the updated stages list to all connected clients
+        const updatedStages = await fetchAllRecruitmentStagesDb();
+        broadcastRecruitmentStagesUpdate(updatedStages);
+        
         return NextResponse.json({ message: 'Stage order updated successfully' }, { status: 200 });
 
     } catch (error: any) {

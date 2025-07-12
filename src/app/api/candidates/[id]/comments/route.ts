@@ -6,6 +6,7 @@ import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateCommentUpdate } from '@/lib/candidateSse';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 // Helper to get attachment info by IDs
 async function getAttachmentsByIds(ids: string[]) {
@@ -119,6 +120,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Broadcast SSE event for new comment
     broadcastCandidateCommentUpdate({ candidateId: id, comment: newComment, action: 'added' });
     
+    // Dispatch webhook for comment creation
+    try {
+      const commentWithAuthor = {
+        ...newComment,
+        author_name: newComment.author.name || newComment.author.email,
+      };
+      await dispatchWebhooks.commentCreated(commentWithAuthor);
+    } catch (webhookError) {
+      console.error('Failed to dispatch comment creation webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json({ 
       data: { 
         ...newComment, 
@@ -221,6 +234,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Broadcast SSE event for updated comment
     broadcastCandidateCommentUpdate({ candidateId: id, comment: updatedComment, action: 'updated' });
     
+    // Dispatch webhook for comment update
+    try {
+      const commentWithAuthor = {
+        ...updatedComment,
+        author_name: updatedComment.author.name || updatedComment.author.email,
+      };
+      await dispatchWebhooks.commentUpdated(commentWithAuthor);
+    } catch (webhookError) {
+      console.error('Failed to dispatch comment update webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json({ 
       data: { 
         ...updatedComment, 
@@ -254,6 +279,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
     // After successful deletion
     broadcastCandidateCommentUpdate({ candidateId: id, comment: { id: commentId }, action: 'deleted' });
+    
+    // Dispatch webhook for comment deletion
+    try {
+      const commentWithAuthor = {
+        ...comment,
+        author_name: 'Unknown', // Author info might not be available after deletion
+      };
+      await dispatchWebhooks.commentDeleted(commentWithAuthor);
+    } catch (webhookError) {
+      console.error('Failed to dispatch comment deletion webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
+    
     return NextResponse.json({ message: 'Deleted' });
   } catch (err) {
     return NextResponse.json({ message: 'Error deleting comment', error: String(err) }, { status: 500 });

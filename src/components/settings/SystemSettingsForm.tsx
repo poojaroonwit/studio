@@ -18,7 +18,7 @@ interface SystemSettingsFormProps {
 
 // Allowed system setting keys (must match backend systemSettingKeyEnum)
 const ALLOWED_SYSTEM_SETTING_KEYS = [
-  'appName', 'appLogoDataUrl', 'appThemePreference',
+  'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
   'primaryGradientStart', 'primaryGradientEnd',
   'smtpHost', 'smtpPort', 'smtpUser', 'smtpSecure', 'smtpFromEmail',
   'generalPdfWebhookUrl', 'geminiApiKey',

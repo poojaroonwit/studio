@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, type ChangeEvent } from "react";
 import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ const DEFAULT_THEME: ThemePreference = "system";
 // Backend keys
 const APP_THEME_KEY = 'themePreference';
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
+const APP_FAVICON_DATA_URL_KEY = 'appFaviconDataUrl';
 const APP_NAME_KEY = 'appName';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
 
@@ -441,6 +443,11 @@ export default function SystemPreferencesPage() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [savedLogoDataUrl, setSavedLogoDataUrl] = useState<string | null>(null);
   
+  // App Favicon state
+  const [selectedFaviconFile, setSelectedFaviconFile] = useState<File | null>(null);
+  const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
+  const [savedFaviconDataUrl, setSavedFaviconDataUrl] = useState<string | null>(null);
+  
   // Login page design state
   const [loginBackgroundType, setLoginBackgroundType] = useState<LoginBackgroundType>(DEFAULT_LOGIN_BACKGROUND_TYPE);
   const [selectedLoginImageFile, setSelectedLoginImageFile] = useState<File | null>(null);
@@ -458,6 +465,8 @@ export default function SystemPreferencesPage() {
 
   // Sidebar color state
   const [sidebarColors, setSidebarColors] = useState<SidebarColors>(DEFAULT_SIDEBAR_COLORS_BASE);
+  const [appMenuIcon, setAppMenuIcon] = useState<string>("");
+  const [appMenuIconType, setAppMenuIconType] = useState<"lucide"|"image">("lucide");
 
   const canEdit =
     session?.user?.role === "Admin" ||
@@ -481,6 +490,10 @@ export default function SystemPreferencesPage() {
           setSavedLogoDataUrl(data[APP_LOGO_DATA_URL_KEY] || null);
           setLogoPreviewUrl(data[APP_LOGO_DATA_URL_KEY] || null);
           
+          // Load favicon settings
+          setSavedFaviconDataUrl(data[APP_FAVICON_DATA_URL_KEY] || null);
+          setFaviconPreviewUrl(data[APP_FAVICON_DATA_URL_KEY] || null);
+          
           // Load login page design settings
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
           setSavedLoginImageDataUrl(data[LOGIN_BACKGROUND_IMAGE_KEY] || null);
@@ -498,6 +511,9 @@ export default function SystemPreferencesPage() {
           });
           setSidebarColors(newSidebarColors);
           setSidebarCSSVars(newSidebarColors);
+
+          setAppMenuIcon(data.appMenuIcon || "");
+          setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
         } catch (e: any) {
           setErrorMsg(e.message);
         } finally {
@@ -515,30 +531,42 @@ export default function SystemPreferencesPage() {
   const handleLogoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.type.startsWith('image/')) {
-        if (file.size > 100 * 1024) { // Max 100KB
-            error("Logo Too Large: Please select an image smaller than 100KB.");
-            setSelectedLogoFile(null);
-            setLogoPreviewUrl(savedLogoDataUrl);
-            event.target.value = '';
-            return;
-        }
-        setSelectedLogoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setLogoPreviewUrl(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        error("Invalid File Type: Please select an image file (e.g., PNG, JPG, SVG).");
-        setSelectedLogoFile(null);
-        setLogoPreviewUrl(savedLogoDataUrl);
-        event.target.value = '';
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        error('Logo file size must be less than 5MB');
+        return;
       }
-    } else {
-      setSelectedLogoFile(null);
-      setLogoPreviewUrl(savedLogoDataUrl);
+      setSelectedLogoFile(file);
+      const url = URL.createObjectURL(file);
+      setLogoPreviewUrl(url);
     }
+  };
+
+  const handleFaviconFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 1 * 1024 * 1024) { // 1MB limit for favicon
+        error('Favicon file size must be less than 1MB');
+        return;
+      }
+      // Check if it's a valid image format
+      if (!file.type.startsWith('image/')) {
+        error('Please select a valid image file for favicon');
+        return;
+      }
+      setSelectedFaviconFile(file);
+      const url = URL.createObjectURL(file);
+      setFaviconPreviewUrl(url);
+    }
+  };
+
+  const clearLogoSelection = () => {
+    setSelectedLogoFile(null);
+    setLogoPreviewUrl(savedLogoDataUrl);
+  };
+
+  const clearFaviconSelection = () => {
+    setSelectedFaviconFile(null);
+    setFaviconPreviewUrl(savedFaviconDataUrl);
   };
 
   const removeSelectedLogo = (clearSaved: boolean = false) => {
@@ -599,11 +627,17 @@ export default function SystemPreferencesPage() {
         { key: LOGIN_BACKGROUND_GRADIENT_START_KEY, value: loginBackgroundGradientStart == null ? null : String(loginBackgroundGradientStart) },
         { key: LOGIN_BACKGROUND_GRADIENT_END_KEY, value: loginBackgroundGradientEnd == null ? null : String(loginBackgroundGradientEnd) },
         { key: LOGIN_BACKGROUND_COLOR_KEY, value: loginBackgroundColor == null ? null : String(loginBackgroundColor) },
+        { key: 'appMenuIcon', value: appMenuIcon == null ? null : String(appMenuIcon) },
       ]));
       
       // Logo file
       if (selectedLogoFile) {
         formData.append('logo', selectedLogoFile);
+      }
+      
+      // Favicon file
+      if (selectedFaviconFile) {
+        formData.append('favicon', selectedFaviconFile);
       }
       
       // Login background image file
@@ -631,10 +665,20 @@ export default function SystemPreferencesPage() {
         setSelectedLogoFile(null);
       }
       
+      if (selectedFaviconFile) {
+        setSavedFaviconDataUrl(faviconPreviewUrl);
+        setSelectedFaviconFile(null);
+      }
+      
       if (selectedLoginImageFile) {
         setSavedLoginImageDataUrl(loginImagePreviewUrl);
         setSelectedLoginImageFile(null);
       }
+
+      // Trigger favicon update
+      window.dispatchEvent(new CustomEvent('faviconUpdated', {
+        detail: { faviconDataUrl: faviconPreviewUrl }
+      }));
       
       success('Preferences saved successfully!');
       setSuccessMsg(true);
@@ -830,6 +874,47 @@ export default function SystemPreferencesPage() {
 
           <section>
             <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
+              <ImageUp className="mr-2 h-5 w-5" /> App Favicon
+            </h3>
+            <div>
+              <Label htmlFor="app-favicon-upload">Change App Favicon (Recommended: 32x32px, max 1MB)</Label>
+              <Input
+                id="app-favicon-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFaviconFileChange}
+                className="mt-1"
+                disabled={!canEdit}
+              />
+              {faviconPreviewUrl && (
+                <div className="mt-3 p-2 border rounded-md inline-flex items-center gap-3 bg-muted/50">
+                  <Image src={faviconPreviewUrl} alt="Favicon preview" width={32} height={32} className="h-8 w-8 object-contain rounded" />
+                  {selectedFaviconFile && <span className="text-sm text-foreground truncate max-w-xs">{selectedFaviconFile.name}</span>}
+                  <Button variant="ghost" size="icon" onClick={clearFaviconSelection} className="h-7 w-7">
+                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
+                    <span className="sr-only">Cancel selection</span>
+                  </Button>
+                </div>
+              )}
+              {savedFaviconDataUrl && (
+                 <div className="mt-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setSavedFaviconDataUrl(null);
+                      setFaviconPreviewUrl(null);
+                    }} disabled={!canEdit}>
+                        <Trash2 className="mr-2 h-4 w-4"/> Reset to Default Favicon
+                    </Button>
+                 </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Select an image to replace the application favicon. Changes apply after saving preferences.
+                Recommended size: 32x32 pixels. Stored in the database as a data URL (max 1MB).
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
               <LogIn className="mr-2 h-5 w-5" /> Login Page Design
             </h3>
             <div className="space-y-4">
@@ -1012,6 +1097,67 @@ export default function SystemPreferencesPage() {
               </div>
             </div>
           </section>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Sidebar Menu Icon (Collapsed)</CardTitle>
+              <CardDescription>
+                Choose a Lucide icon or provide an image URL to use as the application icon at the top of the collapsed sidebar menu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <Label>Icon Type</Label>
+                  <RadioGroup value={appMenuIconType} onValueChange={setAppMenuIconType} className="flex flex-row gap-4">
+                    <RadioGroupItem value="lucide" id="icon-type-lucide" />
+                    <Label htmlFor="icon-type-lucide">Lucide Icon</Label>
+                    <RadioGroupItem value="image" id="icon-type-image" />
+                    <Label htmlFor="icon-type-image">Image URL</Label>
+                  </RadioGroup>
+                </div>
+                {appMenuIconType === "lucide" ? (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="app-menu-icon-select">Lucide Icon</Label>
+                    <select
+                      id="app-menu-icon-select"
+                      className="border rounded p-2 w-64"
+                      value={appMenuIcon}
+                      onChange={e => setAppMenuIcon(e.target.value)}
+                    >
+                      <option value="">(Default)</option>
+                      {Object.keys(LucideIcons).filter(name => /^[A-Z]/.test(name)).sort().map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                    {appMenuIcon && LucideIcons[appMenuIcon] && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span>Preview:</span>
+                        {React.createElement(LucideIcons[appMenuIcon], { className: "h-8 w-8" })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="app-menu-icon-url">Image URL</Label>
+                    <Input
+                      id="app-menu-icon-url"
+                      type="text"
+                      placeholder="https://example.com/icon.png"
+                      value={appMenuIcon}
+                      onChange={e => setAppMenuIcon(e.target.value)}
+                    />
+                    {appMenuIcon && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span>Preview:</span>
+                        <Image src={appMenuIcon} alt="App Menu Icon" width={32} height={32} className="h-8 w-8 object-contain" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </CardContent>
         <CardFooter>
           <Button onClick={handleSavePreferences} className="btn-primary-gradient" disabled={saving || !canEdit}>

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { CandidateRowKanbanView } from '@/components/candidates/CandidateKanbanView';
+import { FlexibleKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { FullCandidateDetailModal } from '@/components/candidates/FullCandidateDetailModal';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [visibleColumnValues, setVisibleColumnValues] = useState<string[]>([]);
   const [rowField, setRowField] = useState('status');
   const [columnField, setColumnField] = useState('recruiterId');
+  const [metadataLoaded, setMetadataLoaded] = useState(false);
 
   // Permission check: can view all recruiters?
   const canViewAllRecruiters = userSession?.role === 'Admin' || (session?.user?.modulePermissions?.includes('MANAGE_ALL_TASKS'));
@@ -61,8 +62,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
         const positionsData = await positionsRes.json();
         setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
+        setMetadataLoaded(true);
       } catch (e) {
         console.error('Error fetching metadata:', e);
+        setMetadataLoaded(true); // Set to true even on error to prevent infinite loading
       } finally {
         setLoading(false);
       }
@@ -86,56 +89,154 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     };
   }, []);
 
-  // Compute unique values for row/column fields from candidates
+  // Get all possible values for row and column fields (not just from current candidates)
   const uniqueRowValues = useMemo(() => {
-    return Array.from(new Set(candidates.map(c => c[rowField] ?? ''))).filter(Boolean);
-  }, [candidates, rowField]);
+    if (rowField === 'status') {
+      // For status field, use all available stages
+      return stages;
+    } else if (rowField === 'recruiterId') {
+      // For recruiter field, use all available recruiters
+      return recruiters.map(r => r.id);
+    } else if (rowField === 'positionId') {
+      // For position field, use all available positions
+      return positions.map(p => p.id);
+    } else {
+      // For other fields, get unique values from candidates + any additional values from preferences
+      const candidateValues = Array.from(new Set(candidates.map(c => c[rowField] ?? ''))).filter(Boolean);
+      return candidateValues;
+    }
+  }, [candidates, rowField, stages, recruiters, positions]);
+
   const uniqueColumnValues = useMemo(() => {
-    return Array.from(new Set(candidates.map(c => c[columnField] ?? ''))).filter(Boolean);
-  }, [candidates, columnField]);
+    if (columnField === 'status') {
+      // For status field, use all available stages
+      return stages;
+    } else if (columnField === 'recruiterId') {
+      // For recruiter field, use all available recruiters
+      return recruiters.map(r => r.id);
+    } else if (columnField === 'positionId') {
+      // For position field, use all available positions
+      return positions.map(p => p.id);
+    } else {
+      // For other fields, get unique values from candidates + any additional values from preferences
+      const candidateValues = Array.from(new Set(candidates.map(c => c[columnField] ?? ''))).filter(Boolean);
+      return candidateValues;
+    }
+  }, [candidates, columnField, stages, recruiters, positions]);
 
   // Load preferences (including visibleRowValues/visibleColumnValues) on mount and after modal save
   const loadBoardPrefs = useCallback(() => {
+    console.log('MyTasksPageClient: loadBoardPrefs called');
+    console.log('MyTasksPageClient: Current state when loading prefs:', {
+      uniqueRowValues,
+      uniqueColumnValues,
+      stages,
+      recruiters,
+      positions,
+      rowField,
+      columnField
+    });
     fetch('/api/settings/user-preferences')
-      .then(res => res.json())
+      .then(res => {
+        console.log('MyTasksPageClient: User preferences response status:', res.status);
+        return res.json();
+      })
       .then(prefs => {
+        console.log('MyTasksPageClient: Loaded preferences:', prefs);
         const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-        if (rowPref) setRowField(rowPref.customNote || 'status');
-        if (colPref) setColumnField(colPref.customNote || 'recruiterId');
+        
+        const newRowField = rowPref ? rowPref.customNote || 'status' : 'status';
+        const newColumnField = colPref ? colPref.customNote || 'recruiterId' : 'recruiterId';
+        
+        console.log('MyTasksPageClient: Setting fields:', {
+          newRowField,
+          newColumnField,
+          rowPref,
+          colPref
+        });
+        
+        setRowField(newRowField);
+        setColumnField(newColumnField);
+        
+        // Update boardPrefs state to match
+        setBoardPrefs(prev => ({
+          ...prev,
+          rowField: newRowField,
+          columnField: newColumnField,
+        }));
+        
         if (visibleRowPref) {
           try {
-            setVisibleRowValues(JSON.parse(visibleRowPref.customNote) || []);
+            const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
+            console.log('MyTasksPageClient: Setting visibleRowValues:', parsedValues);
+            setVisibleRowValues(parsedValues);
           } catch {
+            console.log('MyTasksPageClient: Error parsing visibleRowValues, setting empty array');
             setVisibleRowValues([]);
           }
         } else {
+          console.log('MyTasksPageClient: No visibleRowPref, setting uniqueRowValues:', uniqueRowValues);
           setVisibleRowValues(uniqueRowValues);
         }
         if (visibleColPref) {
           try {
-            setVisibleColumnValues(JSON.parse(visibleColPref.customNote) || []);
+            const parsedValues = JSON.parse(visibleColPref.customNote) || [];
+            console.log('MyTasksPageClient: Setting visibleColumnValues:', parsedValues);
+            setVisibleColumnValues(parsedValues);
           } catch {
+            console.log('MyTasksPageClient: Error parsing visibleColumnValues, setting empty array');
             setVisibleColumnValues([]);
           }
         } else {
+          console.log('MyTasksPageClient: No visibleColPref, setting uniqueColumnValues:', uniqueColumnValues);
           setVisibleColumnValues(uniqueColumnValues);
         }
+        
+        // Fallback: if visibleRowValues is still empty, use stages as default
+        if (uniqueRowValues.length === 0 && stages.length > 0) {
+          console.log('MyTasksPageClient: Fallback - setting visibleRowValues to stages:', stages);
+          setVisibleRowValues(stages);
+        }
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error('MyTasksPageClient: Error loading board preferences:', error);
+        // Set defaults on error
+        setRowField('status');
+        setColumnField('recruiterId');
+        setBoardPrefs(prev => ({
+          ...prev,
+          rowField: 'status',
+          columnField: 'recruiterId',
+        }));
+        setVisibleRowValues(uniqueRowValues);
+        setVisibleColumnValues(uniqueColumnValues);
+      });
   }, [uniqueRowValues, uniqueColumnValues]);
 
   useEffect(() => {
-    loadBoardPrefs();
+    if (metadataLoaded) {
+      loadBoardPrefs();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [metadataLoaded]);
+
+  // Fallback: ensure visibleRowValues has a value when stages are loaded
+  useEffect(() => {
+    if (stages.length > 0 && visibleRowValues.length === 0 && rowField === 'status') {
+      console.log('MyTasksPageClient: Fallback useEffect - setting visibleRowValues to stages:', stages);
+      setVisibleRowValues(stages);
+    }
+  }, [stages, visibleRowValues.length, rowField]);
 
   // When modal closes after save, reload preferences
   const handleCustomizeModalChange = (open: boolean) => {
+    console.log('MyTasksPageClient: handleCustomizeModalChange called with open:', open);
     setIsCustomizeModalOpen(open);
     if (!open) {
+      console.log('MyTasksPageClient: Modal closed, reloading preferences...');
       loadBoardPrefs();
     }
   };
@@ -182,20 +283,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   }, [filteredCandidates, filters]);
 
   // Handle drag-and-drop move
-  const handleMoveCandidate = (candidate: any, newStage: string, newRecruiterId?: string) => {
+  const handleMoveCandidate = (candidate: any, newValue: string) => {
     // Optimistically update UI
     setCandidates((prev) =>
       prev.map((c) =>
         c.id === candidate.id
-          ? { ...c, status: newStage, recruiterId: newRecruiterId ?? c.recruiterId }
+          ? { ...c, [rowField]: newValue }
           : c
       )
     );
+    
     // Send update to API
+    const updateData: any = {};
+    updateData[rowField] = newValue;
+    
     fetch(`/api/candidates/${candidate.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStage, recruiterId: newRecruiterId ?? candidate.recruiterId }),
+      body: JSON.stringify(updateData),
     });
   };
 
@@ -304,7 +409,19 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 variant="outline"
                 size="sm"
                 className="h-9 px-3 text-xs"
-                onClick={() => setIsCustomizeModalOpen(true)}
+                onClick={() => {
+                  console.log('MyTasksPageClient: Customize button clicked');
+                  console.log('MyTasksPageClient: Current state:', {
+                    rowField,
+                    columnField,
+                    visibleRowValues,
+                    visibleColumnValues,
+                    uniqueRowValues,
+                    uniqueColumnValues,
+                    boardPrefs
+                  });
+                  setIsCustomizeModalOpen(true);
+                }}
               >
                 <Settings className="w-4 h-4 mr-1" />
                 Customize
@@ -379,17 +496,28 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <CandidateRowKanbanView
-                candidates={displayedCandidates}
-                statuses={stages}
-                onMoveCandidate={handleMoveCandidate}
-                onCardClick={setSelectedCandidate}
-                rowField={boardPrefs.rowField}
-                columnField={boardPrefs.columnField}
-                visibleFields={boardPrefs.visibleFields}
-                visibleRowValues={visibleRowValues}
-                visibleColumnValues={visibleColumnValues}
-              />
+              (() => {
+                console.log('MyTasksPageClient: Rendering FlexibleKanbanView with props:', {
+                  rowField,
+                  columnField,
+                  visibleRowValues,
+                  visibleColumnValues,
+                  candidatesCount: displayedCandidates.length
+                });
+                return (
+                  <FlexibleKanbanView
+                    candidates={displayedCandidates}
+                    statuses={stages}
+                    onMoveCandidate={handleMoveCandidate}
+                    onCardClick={setSelectedCandidate}
+                    rowField={rowField}
+                    columnField={columnField}
+                    visibleFields={boardPrefs.visibleFields}
+                    visibleRowValues={visibleRowValues}
+                    visibleColumnValues={visibleColumnValues}
+                  />
+                );
+              })()
             ) : (
               // Table View
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

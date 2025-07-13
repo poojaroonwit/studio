@@ -202,6 +202,12 @@ function MultiSelect({
 }
 
 export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], columnFieldValues = [] }: CustomizeBoardModalProps) {
+  console.log('CustomizeBoardModal: Component rendered with props:', {
+    open,
+    rowFieldValues,
+    columnFieldValues
+  });
+  
   // Filter out empty values from props
   const cleanRowFieldValues = (rowFieldValues || []).filter(val => 
     typeof val === 'string' && val.trim() !== ''
@@ -330,16 +336,21 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   useEffect(() => {
     if (!open) return;
     
+    console.log('CustomizeBoardModal: Modal opened, loading preferences...');
     setInitializing(true);
     fetch('/api/settings/user-preferences')
-      .then(res => res.json())
+      .then(res => {
+        console.log('CustomizeBoardModal: User preferences response status:', res.status);
+        return res.json();
+      })
       .then(prefs => {
+        console.log('CustomizeBoardModal: Loaded preferences:', prefs);
         const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
         
-        console.log('Loading preferences:', {
+        console.log('CustomizeBoardModal: Found preferences:', {
           rowPref,
           colPref,
           visibleRowPref,
@@ -374,9 +385,10 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           setVisibleColumnValues([]);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('CustomizeBoardModal: Error loading preferences:', error);
         // Fallback to defaults
-        console.log('Error loading preferences, using defaults');
+        console.log('CustomizeBoardModal: Error loading preferences, using defaults');
         setVisibleRowValues([]);
         setVisibleColumnValues([]);
       })
@@ -404,36 +416,45 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   useEffect(() => {
     if (!open) return;
     
+    console.log('CustomizeBoardModal: Fetching actual data...');
     const fetchActualData = async () => {
       try {
         // Fetch recruiters
+        console.log('CustomizeBoardModal: Fetching recruiters...');
         const recruitersRes = await fetch('/api/users?role=Recruiter');
         const recruitersData = await recruitersRes.json();
+        console.log('CustomizeBoardModal: Recruiters response:', recruitersData);
         setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
         
         // Fetch positions
+        console.log('CustomizeBoardModal: Fetching positions...');
         const positionsRes = await fetch('/api/positions');
         const positionsData = await positionsRes.json();
+        console.log('CustomizeBoardModal: Positions response:', positionsData);
         setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
         
         // Fetch stages
+        console.log('CustomizeBoardModal: Fetching stages...');
         const stagesRes = await fetch('/api/settings/recruitment-stages');
         const stagesData = await stagesRes.json();
+        console.log('CustomizeBoardModal: Stages response:', stagesData);
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
         
         // Fetch candidates to get unique values
+        console.log('CustomizeBoardModal: Fetching candidates...');
         const candidatesRes = await fetch('/api/candidates');
         const candidatesData = await candidatesRes.json();
+        console.log('CustomizeBoardModal: Candidates response:', candidatesData);
         setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));
         
-        console.log('Fetched actual data:', {
+        console.log('CustomizeBoardModal: Fetched actual data:', {
           recruiters: recruitersData,
           positions: positionsData,
           stages: stagesData,
           candidates: candidatesData
         });
       } catch (error) {
-        console.error('Error fetching actual data:', error);
+        console.error('CustomizeBoardModal: Error fetching actual data:', error);
       }
     };
     
@@ -454,6 +475,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   }, [open]);
 
   const handleSave = async () => {
+    console.log('CustomizeBoardModal: Starting save process...');
     setLoading(true);
     try {
       const prefs = [
@@ -463,7 +485,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         { modelType: 'Candidate', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify(visibleColumnValues) },
       ];
       
-      console.log('Saving preferences:', prefs);
+      console.log('CustomizeBoardModal: Saving preferences:', prefs);
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -478,14 +500,16 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       
       clearTimeout(timeoutId);
       
+      console.log('CustomizeBoardModal: Save response status:', res.status);
+      
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('Save failed:', res.status, errorText);
+        console.error('CustomizeBoardModal: Save failed:', res.status, errorText);
         throw new Error(`Failed to save preferences: ${res.status} ${errorText}`);
       }
       
       const result = await res.json();
-      console.log('Save successful:', result);
+      console.log('CustomizeBoardModal: Save successful:', result);
       
       toast("Preferences saved! Your board customization has been applied.", {
         duration: 4000,
@@ -499,7 +523,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       // Close modal
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error saving preferences:', err);
+      console.error('CustomizeBoardModal: Error saving preferences:', err);
       
       let errorMessage = "Failed to save preferences";
       if (err.name === 'AbortError') {
@@ -539,6 +563,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Settings className="w-5 h-5" />
             Customize Board Layout
+            {initializing && <span className="text-sm text-muted-foreground">(Loading...)</span>}
           </DialogTitle>
           <DialogDescription className="text-base">
             Configure how your task board is organized. Choose which attributes to use for rows and columns, 

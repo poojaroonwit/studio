@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 
 import { Pool } from 'pg';
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
 
 /**
  * Check existing database schema and determine what needs to be created

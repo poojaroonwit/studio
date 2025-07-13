@@ -18,8 +18,7 @@ const WebhookManagement = dynamic(
 
 export default function WebhooksPage() {
   return (
-    <div className="container mx-auto py-6">
-    
+    <div className="container mx-auto py-6 px-6">
       <WebhookManagement />
     </div>
   );

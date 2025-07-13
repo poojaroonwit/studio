@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis';
-import { redis } from './redis';
+import getRedisClient from './redis';
 
 export interface RateLimitConfig {
   maxRequests: number;
@@ -15,25 +15,42 @@ export interface RateLimitResult {
 }
 
 export class WebhookRateLimiter {
-  private redis: Redis;
   private config: RateLimitConfig;
 
   constructor(config: RateLimitConfig) {
-    this.redis = redis;
     this.config = config;
   }
 
+  private async getRedis(): Promise<Redis | null> {
+    try {
+      return await getRedisClient();
+    } catch (error) {
+      console.error('Failed to get Redis client:', error);
+      return null;
+    }
+  }
+
   async checkLimit(identifier: string): Promise<RateLimitResult> {
+    const redis = await this.getRedis();
+    if (!redis) {
+      // If Redis is unavailable, allow the request
+      return {
+        allowed: true,
+        remaining: this.config.maxRequests - 1,
+        resetTime: Date.now() + this.config.windowMs
+      };
+    }
+
     const key = `${this.config.keyPrefix}:${identifier}`;
     const now = Date.now();
     const windowStart = now - this.config.windowMs;
 
     try {
       // Get current requests in the window
-      const requests = await this.redis.zrangebyscore(key, windowStart, '+inf');
+      const requests = await redis.zrangebyscore(key, windowStart, '+inf');
       
       // Remove expired entries
-      await this.redis.zremrangebyscore(key, '-inf', windowStart - 1);
+      await redis.zremrangebyscore(key, '-inf', windowStart - 1);
       
       const currentCount = requests.length;
       const remaining = Math.max(0, this.config.maxRequests - currentCount);
@@ -41,8 +58,8 @@ export class WebhookRateLimiter {
       
       if (allowed) {
         // Add current request
-        await this.redis.zadd(key, now, now.toString());
-        await this.redis.expire(key, Math.ceil(this.config.windowMs / 1000));
+        await redis.zadd(key, now, now.toString());
+        await redis.expire(key, Math.ceil(this.config.windowMs / 1000));
       }
 
       const resetTime = now + this.config.windowMs;
@@ -66,12 +83,21 @@ export class WebhookRateLimiter {
   }
 
   async getLimitInfo(identifier: string): Promise<RateLimitResult> {
+    const redis = await this.getRedis();
+    if (!redis) {
+      return {
+        allowed: true,
+        remaining: this.config.maxRequests,
+        resetTime: Date.now() + this.config.windowMs
+      };
+    }
+
     const key = `${this.config.keyPrefix}:${identifier}`;
     const now = Date.now();
     const windowStart = now - this.config.windowMs;
 
     try {
-      const requests = await this.redis.zrangebyscore(key, windowStart, '+inf');
+      const requests = await redis.zrangebyscore(key, windowStart, '+inf');
       const currentCount = requests.length;
       const remaining = Math.max(0, this.config.maxRequests - currentCount);
       const allowed = currentCount < this.config.maxRequests;
@@ -93,9 +119,12 @@ export class WebhookRateLimiter {
   }
 
   async resetLimit(identifier: string): Promise<void> {
+    const redis = await this.getRedis();
+    if (!redis) return;
+
     const key = `${this.config.keyPrefix}:${identifier}`;
     try {
-      await this.redis.del(key);
+      await redis.del(key);
     } catch (error) {
       console.error('Rate limit reset failed:', error);
     }

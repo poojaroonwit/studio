@@ -209,7 +209,7 @@ export default function ApplicationLogsPage() {
   }
 
   return (
-    <>
+    <div className="h-full flex flex-col p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center text-2xl"> <ListOrdered className="mr-3 h-6 w-6 text-primary" /> Application Logs </div>
@@ -296,7 +296,7 @@ export default function ApplicationLogsPage() {
       onSubmit={handleSubmit}
     />
     <LogsModal />
-    </>
+    </div>
   );
 }
 

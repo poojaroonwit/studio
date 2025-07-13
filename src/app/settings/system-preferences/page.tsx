@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Type } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const DEFAULT_APP_NAME = "CandiTrack";
 const DEFAULT_THEME: ThemePreference = "system";
 
 // Backend keys
-const APP_THEME_KEY = 'themePreference';
+const APP_THEME_KEY = 'appThemePreference';
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_FAVICON_DATA_URL_KEY = 'appFaviconDataUrl';
 const APP_NAME_KEY = 'appName';
@@ -33,7 +33,7 @@ const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
 
 // Login page design keys/types/utilities
 const LOGIN_BACKGROUND_TYPE_KEY = 'loginBackgroundType';
-const LOGIN_BACKGROUND_IMAGE_KEY = 'loginBackgroundImage';
+const LOGIN_BACKGROUND_IMAGE_KEY = 'loginPageBackgroundImageUrl';
 const LOGIN_BACKGROUND_GRADIENT_START_KEY = 'loginBackgroundGradientStart';
 const LOGIN_BACKGROUND_GRADIENT_END_KEY = 'loginBackgroundGradientEnd';
 const LOGIN_BACKGROUND_COLOR_KEY = 'loginBackgroundColor';
@@ -327,7 +327,7 @@ function setSidebarCSSVars(settings: SidebarColors) {
     'sidebarGroupLabelFontWeightL': '--sidebar-group-label-font-weight',
     'sidebarGroupLabelTextTransformL': '--sidebar-group-label-text-transform',
     'sidebarGroupLabelLetterSpacingL': '--sidebar-group-label-letter-spacing',
-    'sidebarGroupLabelPaddingL': '--sidebar-group-label-padding',
+    'sidebarGroupLabelPaddingL': '--sidebar-group-label-padding-x',
     'sidebarGroupLabelMarginL': '--sidebar-group-label-margin',
     
     // Dark theme - Background colors
@@ -400,7 +400,7 @@ function setSidebarCSSVars(settings: SidebarColors) {
     'sidebarGroupLabelFontWeightD': '--sidebar-group-label-font-weight',
     'sidebarGroupLabelTextTransformD': '--sidebar-group-label-text-transform',
     'sidebarGroupLabelLetterSpacingD': '--sidebar-group-label-letter-spacing',
-    'sidebarGroupLabelPaddingD': '--sidebar-group-label-padding',
+    'sidebarGroupLabelPaddingD': '--sidebar-group-label-padding-x',
     'sidebarGroupLabelMarginD': '--sidebar-group-label-margin',
   };
 
@@ -617,46 +617,37 @@ export default function SystemPreferencesPage() {
     setErrorMsg(null);
     setSuccessMsg(false);
     try {
-      const formData = new FormData();
+      // Convert to the format expected by the backend
+      const settingsToSave = [
+        { key: 'appThemePreference', value: themePreference },
+        { key: 'appName', value: appName },
+        { key: 'appLogoDataUrl', value: selectedLogoFile ? logoPreviewUrl : savedLogoDataUrl },
+        { key: 'appFaviconDataUrl', value: selectedFaviconFile ? faviconPreviewUrl : savedFaviconDataUrl },
+        { key: 'loginBackgroundType', value: loginBackgroundType },
+        { key: 'loginBackgroundGradientStart', value: loginBackgroundGradientStart },
+        { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
+        { key: 'loginBackgroundColor', value: loginBackgroundColor },
+        { key: 'loginPageBackgroundImageUrl', value: selectedLoginImageFile ? loginImagePreviewUrl : savedLoginImageDataUrl },
+      ];
       
-      // System preferences
-      formData.append('preferences', JSON.stringify([
-        { key: APP_THEME_KEY, value: themePreference == null ? null : String(themePreference) },
-        { key: APP_NAME_KEY, value: appName == null ? null : String(appName) },
-        { key: LOGIN_BACKGROUND_TYPE_KEY, value: loginBackgroundType == null ? null : String(loginBackgroundType) },
-        { key: LOGIN_BACKGROUND_GRADIENT_START_KEY, value: loginBackgroundGradientStart == null ? null : String(loginBackgroundGradientStart) },
-        { key: LOGIN_BACKGROUND_GRADIENT_END_KEY, value: loginBackgroundGradientEnd == null ? null : String(loginBackgroundGradientEnd) },
-        { key: LOGIN_BACKGROUND_COLOR_KEY, value: loginBackgroundColor == null ? null : String(loginBackgroundColor) },
-        { key: 'appMenuIcon', value: appMenuIcon == null ? null : String(appMenuIcon) },
-      ]));
-      
-      // Logo file
-      if (selectedLogoFile) {
-        formData.append('logo', selectedLogoFile);
-      }
-      
-      // Favicon file
-      if (selectedFaviconFile) {
-        formData.append('favicon', selectedFaviconFile);
-      }
-      
-      // Login background image file
-      if (selectedLoginImageFile) {
-        formData.append('loginBackgroundImage', selectedLoginImageFile);
-      }
-      
-      // Batch all sidebar colors into a single preferences entry
-      const sidebarColorPrefs = SIDEBAR_COLOR_KEYS.map(key => ({ key, value: sidebarColors[key] == null ? null : String(sidebarColors[key]) }));
-      formData.append('preferences', JSON.stringify(sidebarColorPrefs));
+      // Add sidebar colors
+      Object.entries(sidebarColors).forEach(([key, value]) => {
+        if (value) {
+          settingsToSave.push({ key, value });
+        }
+      });
       
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settingsToSave),
       });
       
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to save preferences');
+        throw new Error(errorData.message || 'Failed to save preferences');
       }
       
       // Update saved states
@@ -778,395 +769,791 @@ export default function SystemPreferencesPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <Card className="w-full mx-auto shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Palette className="mr-2 h-6 w-6 text-primary" /> System Preferences
-          </CardTitle>
-          <CardDescription>Manage your application name, theme, and logo. Settings are global for all users.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <section>
-            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                <PenSquare className="mr-2 h-5 w-5" /> App Name
-            </h3>
-            <div>
-                <Label htmlFor="app-name-input">Application Name</Label>
-                <Input
-                id="app-name-input"
-                type="text"
-                value={appName}
-                onChange={(e) => setAppName(e.target.value)}
-                className="mt-1"
-                placeholder="e.g., My ATS"
-                disabled={!canEdit}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                This name will be displayed in the application header and other relevant places.
-                </p>
-            </div>
-          </section>
+    <div className="h-full flex flex-col p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">System Preferences</h1>
+          <p className="text-muted-foreground">Manage application appearance, branding, and global settings</p>
+        </div>
+        <Button 
+          onClick={handleSavePreferences} 
+          disabled={saving || !canEdit}
+          className="btn-primary-gradient"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Changes
+            </>
+          )}
+        </Button>
+      </div>
 
-          <section>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Theme</h3>
-            <RadioGroup
-              value={themePreference}
-              onValueChange={(value) => setThemePreference(value as ThemePreference)}
-              className="flex flex-col sm:flex-row sm:space-x-4"
-              disabled={!canEdit}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="light" id="theme-light" />
-                <Label htmlFor="theme-light">Light</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="dark" id="theme-dark" />
-                <Label htmlFor="theme-dark">Dark</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="system" id="theme-system" />
-                <Label htmlFor="theme-system">System Default</Label>
-              </div>
-            </RadioGroup>
-            <p className="text-xs text-muted-foreground mt-1">
-              Note: This theme preference is saved locally. Actual theme switching is handled by the header toggle.
-            </p>
-          </section>
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <Tabs defaultValue="general" className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="general" className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              General
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="flex items-center gap-2">
+              <ImageUp className="h-4 w-4" />
+              Branding
+            </TabsTrigger>
+            <TabsTrigger value="sidebar" className="flex items-center gap-2">
+              <SidebarIcon className="h-4 w-4" />
+              Sidebar
+            </TabsTrigger>
+          </TabsList>
 
-          <section>
-            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-              <ImageUp className="mr-2 h-5 w-5" /> App Logo
-            </h3>
-            <div>
-              <Label htmlFor="app-logo-upload">Change App Logo (Recommended: square, max 100KB)</Label>
-              <Input
-                id="app-logo-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleLogoFileChange}
-                className="mt-1"
-                disabled={!canEdit}
-              />
-              {logoPreviewUrl && (
-                <div className="mt-3 p-2 border rounded-md inline-flex items-center gap-3 bg-muted/50">
-                  <Image src={logoPreviewUrl} alt="Logo preview" width={48} height={48} className="h-12 w-12 object-contain rounded" />
-                  {selectedLogoFile && <span className="text-sm text-foreground truncate max-w-xs">{selectedLogoFile.name}</span>}
-                  <Button variant="ghost" size="icon" onClick={() => removeSelectedLogo(false)} className="h-7 w-7">
-                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
-                    <span className="sr-only">Cancel selection</span>
-                  </Button>
-                </div>
-              )}
-              {savedLogoDataUrl && (
-                 <div className="mt-2">
-                    <Button variant="outline" size="sm" onClick={() => removeSelectedLogo(true)} disabled={!canEdit}>
-                        <Trash2 className="mr-2 h-4 w-4"/> Reset to Default Logo
-                    </Button>
-                 </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Select an image to replace the application logo. Changes apply after saving preferences.
-                Stored in the database as a data URL (max 100KB recommended).
-              </p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-              <ImageUp className="mr-2 h-5 w-5" /> App Favicon
-            </h3>
-            <div>
-              <Label htmlFor="app-favicon-upload">Change App Favicon (Recommended: 32x32px, max 1MB)</Label>
-              <Input
-                id="app-favicon-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFaviconFileChange}
-                className="mt-1"
-                disabled={!canEdit}
-              />
-              {faviconPreviewUrl && (
-                <div className="mt-3 p-2 border rounded-md inline-flex items-center gap-3 bg-muted/50">
-                  <Image src={faviconPreviewUrl} alt="Favicon preview" width={32} height={32} className="h-8 w-8 object-contain rounded" />
-                  {selectedFaviconFile && <span className="text-sm text-foreground truncate max-w-xs">{selectedFaviconFile.name}</span>}
-                  <Button variant="ghost" size="icon" onClick={clearFaviconSelection} className="h-7 w-7">
-                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
-                    <span className="sr-only">Cancel selection</span>
-                  </Button>
-                </div>
-              )}
-              {savedFaviconDataUrl && (
-                 <div className="mt-2">
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setSavedFaviconDataUrl(null);
-                      setFaviconPreviewUrl(null);
-                    }} disabled={!canEdit}>
-                        <Trash2 className="mr-2 h-4 w-4"/> Reset to Default Favicon
-                    </Button>
-                 </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Select an image to replace the application favicon. Changes apply after saving preferences.
-                Recommended size: 32x32 pixels. Stored in the database as a data URL (max 1MB).
-              </p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-              <LogIn className="mr-2 h-5 w-5" /> Login Page Design
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="login-background-type">Background Type</Label>
-                <Select value={loginBackgroundType || ''} onValueChange={(value) => setLoginBackgroundType(value as LoginBackgroundType)} disabled={!canEdit}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select background type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="image">Background Image</SelectItem>
-                    <SelectItem value="gradient">Gradient</SelectItem>
-                    <SelectItem value="solid">Solid Color</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {loginBackgroundType === 'image' && (
-                <div>
-                  <Label htmlFor="login-background-image">Background Image (Recommended: landscape, max 500KB)</Label>
-                  <Input
-                    id="login-background-image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLoginImageFileChange}
-                    className="mt-1"
-                    disabled={!canEdit}
-                  />
-                  {loginImagePreviewUrl && (
-                    <div className="mt-3 p-2 border rounded-md inline-flex items-center gap-3 bg-muted/50">
-                      <Image src={loginImagePreviewUrl} alt="Login background preview" width={120} height={80} className="h-20 w-30 object-cover rounded" />
-                      {selectedLoginImageFile && <span className="text-sm text-foreground truncate max-w-xs">{selectedLoginImageFile.name}</span>}
-                      <Button variant="ghost" size="icon" onClick={() => removeSelectedLoginImage(false)} className="h-7 w-7">
-                        <XCircle className="h-4 w-4 text-muted-foreground hover:text-destructive"/>
-                        <span className="sr-only">Cancel selection</span>
-                      </Button>
-                    </div>
-                  )}
-                  {savedLoginImageDataUrl && (
-                    <div className="mt-2">
-                      <Button variant="outline" size="sm" onClick={() => removeSelectedLoginImage(true)} disabled={!canEdit}>
-                        <Trash2 className="mr-2 h-4 w-4"/> Remove Background Image
-                      </Button>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select an image for the login page background. Landscape orientation works best.
-                  </p>
-                </div>
-              )}
-
-              {loginBackgroundType === 'gradient' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="login-gradient-start">Gradient Start Color</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        id="login-gradient-start"
-                        type="text"
-                        value={loginBackgroundGradientStart}
-                        onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
-                        placeholder="179 67% 66%"
-                        className="text-sm"
-                        disabled={!canEdit}
-                      />
-                      <Input
-                        type="color"
-                        value={convertHslStringToHex(loginBackgroundGradientStart)}
-                        onChange={(e) => setLoginBackgroundGradientStart(hexToHslString(e.target.value))}
-                        className="w-10 h-9 p-1 rounded-md border"
-                        disabled={!canEdit}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="login-gradient-end">Gradient End Color</Label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Input
-                        id="login-gradient-end"
-                        type="text"
-                        value={loginBackgroundGradientEnd}
-                        onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
-                        placeholder="238 74% 61%"
-                        className="text-sm"
-                        disabled={!canEdit}
-                      />
-                      <Input
-                        type="color"
-                        value={convertHslStringToHex(loginBackgroundGradientEnd)}
-                        onChange={(e) => setLoginBackgroundGradientEnd(hexToHslString(e.target.value))}
-                        className="w-10 h-9 p-1 rounded-md border"
-                        disabled={!canEdit}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {loginBackgroundType === 'solid' && (
-                <div>
-                  <Label htmlFor="login-solid-color">Background Color</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      id="login-solid-color"
-                      type="text"
-                      value={loginBackgroundColor}
-                      onChange={(e) => setLoginBackgroundColor(e.target.value)}
-                      placeholder="220 25% 97%"
-                      className="text-sm"
-                      disabled={!canEdit}
-                    />
-                    <Input
-                      type="color"
-                      value={convertHslStringToHex(loginBackgroundColor)}
-                      onChange={(e) => setLoginBackgroundColor(hexToHslString(e.target.value))}
-                      className="w-10 h-9 p-1 rounded-md border"
-                      disabled={!canEdit}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 border rounded-lg bg-muted/30">
-                <h4 className="text-sm font-medium mb-2">Preview</h4>
-                <div 
-                  className="h-24 rounded-md relative overflow-hidden"
-                  style={{
-                    background: loginBackgroundType === 'image' && loginImagePreviewUrl 
-                      ? `url(${loginImagePreviewUrl}) center/cover`
-                      : loginBackgroundType === 'gradient'
-                      ? `linear-gradient(135deg, hsl(${loginBackgroundGradientStart}), hsl(${loginBackgroundGradientEnd}))`
-                      : `hsl(${loginBackgroundColor})`
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">Login Page Background</span>
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="my-6" />
-              
-              <div>
-                <h4 className="text-lg font-semibold text-foreground mb-2 flex items-center">
-                  <SidebarIcon className="mr-2 h-5 w-5" /> Sidebar Colors
-                </h4>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Customize the sidebar appearance for light and dark themes
-                </p>
-                <Tabs defaultValue="light-sidebar" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="light-sidebar" className="flex items-center gap-2">
-                      <Sun className="h-4 w-4" />
-                      Light Theme
-                    </TabsTrigger>
-                    <TabsTrigger value="dark-sidebar" className="flex items-center gap-2">
-                      <Moon className="h-4 w-4" />
-                      Dark Theme
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="light-sidebar" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {renderSidebarColorInputs('Light')}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => resetSidebarColors('Light')}>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Reset Light Theme Colors
-                    </Button>
-                  </TabsContent>
-                  <TabsContent value="dark-sidebar" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {renderSidebarColorInputs('Dark')}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => resetSidebarColors('Dark')}>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Reset Dark Theme Colors
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </div>
-          </section>
-
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Sidebar Menu Icon (Collapsed)</CardTitle>
-              <CardDescription>
-                Choose a Lucide icon or provide an image URL to use as the application icon at the top of the collapsed sidebar menu.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <Label>Icon Type</Label>
-                  <RadioGroup value={appMenuIconType} onValueChange={setAppMenuIconType} className="flex flex-row gap-4">
-                    <RadioGroupItem value="lucide" id="icon-type-lucide" />
-                    <Label htmlFor="icon-type-lucide">Lucide Icon</Label>
-                    <RadioGroupItem value="image" id="icon-type-image" />
-                    <Label htmlFor="icon-type-image">Image URL</Label>
-                  </RadioGroup>
-                </div>
-                {appMenuIconType === "lucide" ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="app-menu-icon-select">Lucide Icon</Label>
-                    <select
-                      id="app-menu-icon-select"
-                      className="border rounded p-2 w-64"
-                      value={appMenuIcon}
-                      onChange={e => setAppMenuIcon(e.target.value)}
-                    >
-                      <option value="">(Default)</option>
-                      {Object.keys(LucideIcons).filter(name => /^[A-Z]/.test(name)).sort().map(name => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                    {appMenuIcon && LucideIcons[appMenuIcon] && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span>Preview:</span>
-                        {React.createElement(LucideIcons[appMenuIcon], { className: "h-8 w-8" })}
+          <div className="flex-1 overflow-hidden">
+            <TabsContent value="general" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* App Name Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <PenSquare className="h-5 w-5 text-primary" />
+                        Application Name
+                      </CardTitle>
+                      <CardDescription>
+                        Set the name that appears throughout the application
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <Label htmlFor="app-name-input">Application Name</Label>
+                        <Input
+                          id="app-name-input"
+                          type="text"
+                          value={appName}
+                          onChange={(e) => setAppName(e.target.value)}
+                          placeholder="e.g., CandiTrack Pro"
+                          disabled={!canEdit}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          This name will be displayed in the header, browser tab, and other locations
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="app-menu-icon-url">Image URL</Label>
-                    <Input
-                      id="app-menu-icon-url"
-                      type="text"
-                      placeholder="https://example.com/icon.png"
-                      value={appMenuIcon}
-                      onChange={e => setAppMenuIcon(e.target.value)}
-                    />
-                    {appMenuIcon && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span>Preview:</span>
-                        <Image src={appMenuIcon} alt="App Menu Icon" width={32} height={32} className="h-8 w-8 object-contain" />
+                    </CardContent>
+                  </Card>
+
+                  {/* Theme Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sun className="h-5 w-5 text-primary" />
+                        Theme Settings
+                      </CardTitle>
+                      <CardDescription>
+                        Configure the default theme for new users
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <Label>Default Theme</Label>
+                        <RadioGroup
+                          value={themePreference}
+                          onValueChange={(value) => setThemePreference(value as ThemePreference)}
+                          className="grid grid-cols-3 gap-4"
+                          disabled={!canEdit}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="light" id="theme-light" />
+                            <Label htmlFor="theme-light" className="flex items-center gap-2">
+                              <Sun className="h-4 w-4" />
+                              Light
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="dark" id="theme-dark" />
+                            <Label htmlFor="theme-dark" className="flex items-center gap-2">
+                              <Moon className="h-4 w-4" />
+                              Dark
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="system" id="theme-system" />
+                            <Label htmlFor="theme-system" className="flex items-center gap-2">
+                              <RotateCcw className="h-4 w-4" />
+                              System
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                        <p className="text-xs text-muted-foreground">
+                          Users can still override this setting in their personal preferences
+                        </p>
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSavePreferences} className="btn-primary-gradient" disabled={saving || !canEdit}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {saving ? "Saving..." : "Save Preferences"}
-          </Button>
-          {successMsg && <span className="ml-4 text-green-600">Preferences saved!</span>}
-        </CardFooter>
-      </Card>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="appearance" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Login Page Design */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <LogIn className="h-5 w-5 text-primary" />
+                        Login Page Design
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the appearance of the login page
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Background Type */}
+                      <div className="space-y-3">
+                        <Label>Background Type</Label>
+                        <RadioGroup
+                          value={loginBackgroundType}
+                          onValueChange={(value) => setLoginBackgroundType(value as LoginBackgroundType)}
+                          className="grid grid-cols-3 gap-4"
+                          disabled={!canEdit}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="gradient" id="bg-gradient" />
+                            <Label htmlFor="bg-gradient">Gradient</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="image" id="bg-image" />
+                            <Label htmlFor="bg-image">Image</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="solid" id="bg-solid" />
+                            <Label htmlFor="bg-solid">Solid Color</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      {/* Background Image */}
+                      {loginBackgroundType === 'image' && (
+                        <div className="space-y-3">
+                          <Label>Background Image</Label>
+                          <div className="flex items-center gap-4">
+                            {loginImagePreviewUrl && (
+                              <div className="relative">
+                                <img
+                                  src={loginImagePreviewUrl}
+                                  alt="Login background preview"
+                                  className="w-32 h-20 object-cover rounded-md border"
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  className="absolute -top-2 -right-2 h-6 w-6"
+                                  onClick={() => removeSelectedLoginImage(true)}
+                                  disabled={!canEdit}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLoginImageFileChange}
+                                disabled={!canEdit}
+                                className="hidden"
+                                id="login-bg-upload"
+                              />
+                              <Label
+                                htmlFor="login-bg-upload"
+                                className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                              >
+                                <ImageUp className="mr-2 h-4 w-4" />
+                                Upload Image
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Recommended: 1920x1080, max 500KB
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Gradient Colors */}
+                      {loginBackgroundType === 'gradient' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Gradient Start Color</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={loginBackgroundGradientStart}
+                                onChange={(e) => setLoginBackgroundGradientStart(e.target.value)}
+                                placeholder="179 67% 66%"
+                                disabled={!canEdit}
+                              />
+                              <Input
+                                type="color"
+                                value={convertHslStringToHex(loginBackgroundGradientStart)}
+                                onChange={(e) => setLoginBackgroundGradientStart(hexToHslString(e.target.value))}
+                                className="w-12 h-10 p-1 rounded-md border"
+                                disabled={!canEdit}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Gradient End Color</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                value={loginBackgroundGradientEnd}
+                                onChange={(e) => setLoginBackgroundGradientEnd(e.target.value)}
+                                placeholder="238 74% 61%"
+                                disabled={!canEdit}
+                              />
+                              <Input
+                                type="color"
+                                value={convertHslStringToHex(loginBackgroundGradientEnd)}
+                                onChange={(e) => setLoginBackgroundGradientEnd(hexToHslString(e.target.value))}
+                                className="w-12 h-10 p-1 rounded-md border"
+                                disabled={!canEdit}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Solid Color */}
+                      {loginBackgroundType === 'solid' && (
+                        <div className="space-y-2">
+                          <Label>Background Color</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={loginBackgroundColor}
+                              onChange={(e) => setLoginBackgroundColor(e.target.value)}
+                              placeholder="220 25% 97%"
+                              disabled={!canEdit}
+                            />
+                            <Input
+                              type="color"
+                              value={convertHslStringToHex(loginBackgroundColor)}
+                              onChange={(e) => setLoginBackgroundColor(hexToHslString(e.target.value))}
+                              className="w-12 h-10 p-1 rounded-md border"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="branding" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* App Logo */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageUp className="h-5 w-5 text-primary" />
+                        Application Logo
+                      </CardTitle>
+                      <CardDescription>
+                        Upload your company logo to appear in the application header
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          {logoPreviewUrl && (
+                            <div className="relative">
+                              <img
+                                src={logoPreviewUrl}
+                                alt="Logo preview"
+                                className="w-32 h-16 object-contain rounded-md border bg-background"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute -top-2 -right-2 h-6 w-6"
+                                onClick={() => removeSelectedLogo(true)}
+                                disabled={!canEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoFileChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="app-logo-upload"
+                            />
+                            <Label
+                              htmlFor="app-logo-upload"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            >
+                              <ImageUp className="mr-2 h-4 w-4" />
+                              Upload Logo
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: 200x80px, max 5MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Favicon */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageUp className="h-5 w-5 text-primary" />
+                        Favicon
+                      </CardTitle>
+                      <CardDescription>
+                        Upload a favicon to appear in browser tabs
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          {faviconPreviewUrl && (
+                            <div className="relative">
+                              <img
+                                src={faviconPreviewUrl}
+                                alt="Favicon preview"
+                                className="w-8 h-8 object-contain rounded border bg-background"
+                              />
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                className="absolute -top-2 -right-2 h-6 w-6"
+                                onClick={() => clearFaviconSelection()}
+                                disabled={!canEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFaviconFileChange}
+                              disabled={!canEdit}
+                              className="hidden"
+                              id="app-favicon-upload"
+                            />
+                            <Label
+                              htmlFor="app-favicon-upload"
+                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                            >
+                              <ImageUp className="mr-2 h-4 w-4" />
+                              Upload Favicon
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Recommended: 32x32px, max 1MB
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="sidebar" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Sidebar Colors */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <SidebarIcon className="h-5 w-5 text-primary" />
+                        Sidebar Colors
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the sidebar appearance for light and dark themes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="light" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="light">Light Theme</TabsTrigger>
+                          <TabsTrigger value="dark">Dark Theme</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="light" className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium">Light Theme Colors</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetSidebarColors('Light')}
+                              disabled={!canEdit}
+                            >
+                              <RotateCcw className="mr-2 h-3 w-3" />
+                              Reset
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {renderSidebarColorInputs('Light')}
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="dark" className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium">Dark Theme Colors</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetSidebarColors('Dark')}
+                              disabled={!canEdit}
+                            >
+                              <RotateCcw className="mr-2 h-3 w-3" />
+                              Reset
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {renderSidebarColorInputs('Dark')}
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+
+                  {/* Sidebar Group Labels */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Type className="h-5 w-5 text-primary" />
+                        Group Labels
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the appearance of sidebar group labels (General, Recruitment, Other)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="light" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="light">Light Theme</TabsTrigger>
+                          <TabsTrigger value="dark">Dark Theme</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="light" className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium">Light Theme Group Labels</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetSidebarColors('Light')}
+                              disabled={!canEdit}
+                            >
+                              <RotateCcw className="mr-2 h-3 w-3" />
+                              Reset
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Group Label Color */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelColorL" className="text-sm font-medium">
+                                Label Color
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  id="sidebarGroupLabelColorL"
+                                  type="text"
+                                  value={sidebarColors.sidebarGroupLabelColorL || ''}
+                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorL: e.target.value }))}
+                                  placeholder="220 15% 50%"
+                                  className="text-sm"
+                                />
+                                <Input
+                                  type="color"
+                                  value={convertHslStringToHex(sidebarColors.sidebarGroupLabelColorL)}
+                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorL: hexToHslString(e.target.value) }))}
+                                  className="w-10 h-9 p-1 rounded-md border"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Group Label Font Size */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelFontSizeL" className="text-sm font-medium">
+                                Font Size
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelFontSizeL || '0.75rem'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontSizeL: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0.625rem">Extra Small (10px)</SelectItem>
+                                  <SelectItem value="0.75rem">Small (12px)</SelectItem>
+                                  <SelectItem value="0.875rem">Medium (14px)</SelectItem>
+                                  <SelectItem value="1rem">Large (16px)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Font Weight */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelFontWeightL" className="text-sm font-medium">
+                                Font Weight
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelFontWeightL || '500'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontWeightL: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="400">Normal</SelectItem>
+                                  <SelectItem value="500">Medium</SelectItem>
+                                  <SelectItem value="600">Semi Bold</SelectItem>
+                                  <SelectItem value="700">Bold</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Text Transform */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelTextTransformL" className="text-sm font-medium">
+                                Text Transform
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelTextTransformL || 'uppercase'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelTextTransformL: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="uppercase">Uppercase</SelectItem>
+                                  <SelectItem value="lowercase">Lowercase</SelectItem>
+                                  <SelectItem value="capitalize">Capitalize</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Letter Spacing */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelLetterSpacingL" className="text-sm font-medium">
+                                Letter Spacing
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelLetterSpacingL || '0.05em'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelLetterSpacingL: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0em">Normal</SelectItem>
+                                  <SelectItem value="0.025em">Tight</SelectItem>
+                                  <SelectItem value="0.05em">Wide</SelectItem>
+                                  <SelectItem value="0.1em">Extra Wide</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Padding */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelPaddingL" className="text-sm font-medium">
+                                Padding
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelPaddingL || '0.5rem 0.75rem'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelPaddingL: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0.25rem 0.5rem">Small</SelectItem>
+                                  <SelectItem value="0.5rem 0.75rem">Medium</SelectItem>
+                                  <SelectItem value="0.75rem 1rem">Large</SelectItem>
+                                  <SelectItem value="1rem 1.25rem">Extra Large</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </TabsContent>
+                        <TabsContent value="dark" className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium">Dark Theme Group Labels</h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetSidebarColors('Dark')}
+                              disabled={!canEdit}
+                            >
+                              <RotateCcw className="mr-2 h-3 w-3" />
+                              Reset
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Group Label Color */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelColorD" className="text-sm font-medium">
+                                Label Color
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  id="sidebarGroupLabelColorD"
+                                  type="text"
+                                  value={sidebarColors.sidebarGroupLabelColorD || ''}
+                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorD: e.target.value }))}
+                                  placeholder="210 25% 70%"
+                                  className="text-sm"
+                                />
+                                <Input
+                                  type="color"
+                                  value={convertHslStringToHex(sidebarColors.sidebarGroupLabelColorD)}
+                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorD: hexToHslString(e.target.value) }))}
+                                  className="w-10 h-9 p-1 rounded-md border"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Group Label Font Size */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelFontSizeD" className="text-sm font-medium">
+                                Font Size
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelFontSizeD || '0.75rem'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontSizeD: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0.625rem">Extra Small (10px)</SelectItem>
+                                  <SelectItem value="0.75rem">Small (12px)</SelectItem>
+                                  <SelectItem value="0.875rem">Medium (14px)</SelectItem>
+                                  <SelectItem value="1rem">Large (16px)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Font Weight */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelFontWeightD" className="text-sm font-medium">
+                                Font Weight
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelFontWeightD || '500'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontWeightD: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="400">Normal</SelectItem>
+                                  <SelectItem value="500">Medium</SelectItem>
+                                  <SelectItem value="600">Semi Bold</SelectItem>
+                                  <SelectItem value="700">Bold</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Text Transform */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelTextTransformD" className="text-sm font-medium">
+                                Text Transform
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelTextTransformD || 'uppercase'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelTextTransformD: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">None</SelectItem>
+                                  <SelectItem value="uppercase">Uppercase</SelectItem>
+                                  <SelectItem value="lowercase">Lowercase</SelectItem>
+                                  <SelectItem value="capitalize">Capitalize</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Letter Spacing */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelLetterSpacingD" className="text-sm font-medium">
+                                Letter Spacing
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelLetterSpacingD || '0.05em'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelLetterSpacingD: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0em">Normal</SelectItem>
+                                  <SelectItem value="0.025em">Tight</SelectItem>
+                                  <SelectItem value="0.05em">Wide</SelectItem>
+                                  <SelectItem value="0.1em">Extra Wide</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Group Label Padding */}
+                            <div className="space-y-2">
+                              <Label htmlFor="sidebarGroupLabelPaddingD" className="text-sm font-medium">
+                                Padding
+                              </Label>
+                              <Select
+                                value={sidebarColors.sidebarGroupLabelPaddingD || '0.5rem 0.75rem'}
+                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelPaddingD: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0.25rem 0.5rem">Small</SelectItem>
+                                  <SelectItem value="0.5rem 0.75rem">Medium</SelectItem>
+                                  <SelectItem value="0.75rem 1rem">Large</SelectItem>
+                                  <SelectItem value="1rem 1.25rem">Extra Large</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+
+      {/* Success Message */}
+      {successMsg && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
+          Preferences saved successfully!
+        </div>
+      )}
     </div>
   );
 } 

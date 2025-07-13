@@ -35,6 +35,8 @@ import { cn } from '@/lib/utils';
 import { ChevronsUpDown, Check as CheckIcon } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { toast } from 'react-hot-toast';
+import { RoleSelector } from '@/components/settings/RoleSelector';
+import { RolePermissionSelector } from '@/components/settings/RolePermissionSelector';
 
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
@@ -67,9 +69,6 @@ const groupedPermissions: { category: PlatformModuleCategory, permissions: Platf
 
 export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalProps) {
   const [availableGroups, setAvailableGroups] = useState<UserGroup[]>([]);
-  const [groupSearchOpen, setGroupSearchOpen] = useState(false);
-  const [groupSearchQuery, setGroupSearchQuery] = useState('');
-  const [forcePasswordChange, setForcePasswordChange] = useState(false);
 
   const form = useForm<AddUserFormValues>({
     resolver: zodResolver(addUserFormSchema),
@@ -114,7 +113,6 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
       fetchGroups();
     } else {
         setAvailableGroups([]);
-        setGroupSearchQuery('');
     }
   }, [isOpen, form, toast]);
 
@@ -122,9 +120,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
     await onAddUser(data);
   };
 
-  const filteredGroups = groupSearchQuery
-    ? availableGroups.filter(group => group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()))
-    : availableGroups;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -132,13 +128,12 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
       if (!open) {
         form.reset();
         setAvailableGroups([]);
-        setGroupSearchQuery('');
       }
     }}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <UserPlus className="mr-2 h-5 w-5 text-primary" /> Add New User
+          <DialogTitle className="flex items-center text-lg font-semibold">
+            <UserPlus className="mr-2 h-4 w-4 text-primary" /> Add New User
           </DialogTitle>
           <DialogDescription>
             Enter the details for the new application user and assign permissions and groups.
@@ -162,73 +157,42 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                 </div>
 
                 {/* Right Column: Groups & Permissions */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label className="flex items-center text-md font-medium"><Users className="mr-2 h-5 w-5 text-primary" /> Assign to Groups (Roles)</Label>
-                        <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={groupSearchOpen} className="w-full justify-between">
-                               {form.getValues("groupIds")?.length > 0 ? `${form.getValues("groupIds")?.length} group(s) selected` : "Select groups..."}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
-                            <div className="p-2"><Input placeholder="Search group..." value={groupSearchQuery} onChange={(e) => setGroupSearchQuery(e.target.value)} className="h-9" /></div>
-                            <ScrollArea className="max-h-40">
-                              {availableGroups.length === 0 && <p className="p-2 text-xs text-muted-foreground text-center">No groups available.</p>}
-                              {filteredGroups.length === 0 && groupSearchQuery && <p className="p-2 text-xs text-muted-foreground text-center">No group found.</p>}
-                              {filteredGroups.map(group => (
-                                <FormField key={group.id} control={form.control} name="groupIds"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 px-2 py-1.5 hover:bg-accent rounded-sm">
-                                      <FormControl><Checkbox checked={Boolean(field.value?.includes(group.id))}
-                                        onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), group.id]) : field.onChange((field.value || []).filter(v => v !== group.id))}
-                                      /></FormControl>
-                                      <FormLabel className="text-sm font-normal cursor-pointer flex-grow">{typeof group.name === 'object' ? JSON.stringify(group.name) : group.name}</FormLabel>
-                                    </FormItem>
-                                  )} />
-                              ))}
-                            </ScrollArea>
-                          </PopoverContent>
-                        </Popover>
+                <div className="space-y-6">
+                    <FormField control={form.control} name="groupIds" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center text-md font-medium">
+                          <Users className="mr-2 h-5 w-5 text-primary" /> Assign to Groups (Roles)
+                        </FormLabel>
+                        <FormControl>
+                          <RoleSelector
+                            availableRoles={availableGroups}
+                            selectedRoleIds={field.value || []}
+                            onRolesChange={field.onChange}
+                            title="Role Assignment"
+                            description="Choose which roles should be assigned to this user."
+                            multiple={true}
+                          />
+                        </FormControl>
                         <FormMessage />
-                    </div>
+                      </FormItem>
+                    )} />
 
-                    <Separator />
-
-                    <div className="space-y-2">
-                        <Label className="flex items-center text-md font-medium"><ShieldCheck className="mr-2 h-5 w-5 text-primary" /> Direct Module Permissions</Label>
-                        <div className="space-y-4 rounded-md border p-4 max-h-60 overflow-y-auto">
-                          {groupedPermissions.map((group: { category: PlatformModuleCategory, permissions: PlatformModule[] }) => (
-                            <div key={group.category}>
-                              <h4 className="font-medium text-sm text-muted-foreground mb-1.5">{typeof group.category === 'object' ? JSON.stringify(group.category) : group.category}</h4>
-                              {group.permissions.map((module: PlatformModule) => (
-                                <FormField key={module.id} control={form.control} name="modulePermissions"
-                                  render={({ field }) => {
-                                    const checked = field.value?.includes(module.id);
-                                    return (
-                                      <FormItem className="flex flex-row items-center space-x-4 mb-3">
-                                        <FormControl>
-                                          <Switch
-                                            checked={checked}
-                                            onCheckedChange={(checked) => checked ? field.onChange([...(field.value || []), module.id]) : field.onChange((field.value || []).filter(v => v !== module.id))}
-                                          />
-                                        </FormControl>
-                                        <div className="flex flex-col">
-                                          <FormLabel className="text-sm font-medium">{typeof module.label === 'object' ? JSON.stringify(module.label) : module.label}</FormLabel>
-                                          <span className="text-xs text-muted-foreground">{typeof module.description === 'object' ? JSON.stringify(module.description) : module.description}</span>
-                                        </div>
-                                      </FormItem>
-                                    );
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          ))}
-                        </div>
+                    <FormField control={form.control} name="modulePermissions" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center text-md font-medium">
+                          <ShieldCheck className="mr-2 h-5 w-5 text-primary" /> Direct Module Permissions
+                        </FormLabel>
+                        <FormControl>
+                          <RolePermissionSelector
+                            selectedPermissions={field.value || []}
+                            onPermissionsChange={field.onChange}
+                            title="Direct Permissions"
+                            description="These are direct permissions. User also inherits permissions from assigned groups."
+                          />
+                        </FormControl>
                         <FormMessage />
-                        <p className="text-xs text-muted-foreground mt-1">These are direct permissions. User also inherits permissions from assigned groups.</p>
-                    </div>
+                      </FormItem>
+                    )} />
                 </div>
               </div>
               

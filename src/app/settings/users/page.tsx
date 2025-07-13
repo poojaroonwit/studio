@@ -227,11 +227,18 @@ export default function ManageUsersPage() {
   return (
         <div className="p-6">
           
-          {session?.user?.role === 'Admin' && (
-              <Button className="w-full sm:w-auto btn-primary-gradient" onClick={() => setIsAddUserModalOpen(true)}> 
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+          {/* Header with Add User Button */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Manage Users</h1>
+              <p className="text-muted-foreground">Create, edit, and manage user accounts and permissions</p>
+            </div>
+            {session?.user?.role === 'Admin' && (
+              <Button className="btn-primary-gradient" onClick={() => setIsAddUserModalOpen(true)}> 
+                <PlusCircle className="mr-2 h-4 w-4" /> Add New User
               </Button>
-          )}
+            )}
+          </div>
    
           {/* Filters Section */}
           <div className="mb-6">

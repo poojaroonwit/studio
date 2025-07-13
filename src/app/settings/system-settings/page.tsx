@@ -2,13 +2,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText } from 'lucide-react';
+import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText, Database, Webhook } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'react-hot-toast';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -156,224 +160,475 @@ export default function SystemSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-32 p-6">
-      {/* AI Configuration (Gemini) */}
-  
-        <div className="flex items-center text-2xl gap-2">
-          <BrainCircuit className="h-7 w-7 text-primary" />
-          AI Configuration (Gemini)
+    <div className="h-full flex flex-col p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">System Settings</h1>
+          <p className="text-muted-foreground">Configure system integrations, AI services, and automation workflows</p>
         </div>
-        <div className="space-y-4 pt-6">
-     
-        <Label htmlFor="gemini-api-key">Gemini API Key</Label>
-        <Input id="gemini-api-key" type="password" placeholder="Enter your Gemini API Key" value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} className="mt-1" disabled={isSaving}/>
-        <p className="text-xs text-muted-foreground">This key is stored securely on the server. For Genkit to use this, ensure it&apos;s also available as the GOOGLE_API_KEY environment variable where your Next.js server runs, or ensure your Genkit flows dynamically fetch it.</p>
-  
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={fetchSystemSettings} 
+            disabled={isSaving}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reset
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="btn-primary-gradient flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
         </div>
-   
-      {/* Webhook Automation + Max Concurrent Processors */}
-  
-        <div className="flex items-center text-2xl gap-2">
-          <Zap className="h-7 w-7 text-primary" />
-          Workflow Automation
-        </div>
-    
-  
-            <Label htmlFor="resume-processing-webhook">Resume Processing Webhook URL (Any Service)</Label>
-            <div className="flex gap-2">
-              <Input id="resume-processing-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-resume" value={resumeProcessingWebhookUrl} onChange={(e) => setResumeProcessingWebhookUrl(e.target.value)} className="mt-1 flex-1" disabled={isSaving}/>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={async () => {
-                  if (!resumeProcessingWebhookUrl) {
-                    toast.error('Please enter a webhook URL first');
-                    return;
-                  }
-                  try {
-                    const response = await fetch('/api/settings/webhook-test', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        webhookUrl: resumeProcessingWebhookUrl,
-                        webhookToken: resumeProcessingWebhookToken
-                      })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                      toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
-                    } else {
-                      toast.error(`Webhook test failed: ${result.error}`);
-                    }
-                    console.log('Webhook test result:', result);
-                  } catch (error) {
-                    toast.error('Failed to test webhook');
-                    console.error('Webhook test error:', error);
-                  }
-                }}
-                disabled={isSaving || !resumeProcessingWebhookUrl}
-                className="mt-1"
-              >
-                Test
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
-      
-            <Label htmlFor="resume-processing-webhook-token">Resume Processing Webhook Authentication Token (Optional)</Label>
-            <Input id="resume-processing-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={resumeProcessingWebhookToken} onChange={(e) => setResumeProcessingWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
-            <p className="text-xs text-muted-foreground">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
-      
-            <Label htmlFor="resume-processing-webhook-response-mode">Resume Processing Webhook Response Mode</Label>
-            <Select value={resumeProcessingWebhookResponseMode} onValueChange={(value) => setResumeProcessingWebhookResponseMode(value)} disabled={isSaving}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select response mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
-                <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
-      
-          <Separator />
-   
-            <Label htmlFor="general-pdf-webhook">New Candidate PDF Webhook URL</Label>
-            <div className="flex gap-2">
-              <Input id="general-pdf-webhook" type="url" placeholder="https://your-webhook-endpoint/receive-pdf" value={generalPdfWebhookUrl} onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} className="mt-1 flex-1" disabled={isSaving}/>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={async () => {
-                  if (!generalPdfWebhookUrl) {
-                    toast.error('Please enter a webhook URL first');
-                    return;
-                  }
-                  try {
-                    const response = await fetch('/api/settings/webhook-test', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        webhookUrl: generalPdfWebhookUrl,
-                        webhookToken: generalPdfWebhookToken
-                      })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                      toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
-                    } else {
-                      toast.error(`Webhook test failed: ${result.error}`);
-                    }
-                    console.log('Webhook test result:', result);
-                  } catch (error) {
-                    toast.error('Failed to test webhook');
-                    console.error('Webhook test error:', error);
-                  }
-                }}
-                disabled={isSaving || !generalPdfWebhookUrl}
-                className="mt-1"
-              >
-                Test
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint. You can use any compatible webhook service (Zapier, Make, custom API, etc.).</p>
-         
-            <Label htmlFor="general-pdf-webhook-token">General PDF Webhook Authentication Token (Optional)</Label>
-            <Input id="general-pdf-webhook-token" type="password" placeholder="Bearer token for webhook authentication" value={generalPdfWebhookToken} onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} className="mt-1" disabled={isSaving}/>
-            <p className="text-xs text-muted-foreground">Optional Bearer token for webhook authentication. Leave empty if no authentication is required.</p>
-         
-            <Label htmlFor="general-pdf-webhook-response-mode">General PDF Webhook Response Mode</Label>
-            <Select value={generalPdfWebhookResponseMode} onValueChange={(value) => setGeneralPdfWebhookResponseMode(value)} disabled={isSaving}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select response mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
-                <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.</p>
-         
-          <Separator />
-     
-            <Label style={{ marginTop: 16, display: 'block' }} mb-2>Max Concurrent Processors</Label>
-            <Input
-              type="number"
-              min={1}
-              max={100}
-              value={maxConcurrentProcessors}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxConcurrentProcessors(Number(e.target.value))}
-              style={{ marginBottom: 16, width: 80 }}
-          />
-  
-        
-
-      {/* SMTP Configuration */}
-     
-        <div className="flex items-center text-2xl gap-2">
-          <Mail className="h-7 w-7 text-primary" />
-          SMTP Configuration
-        </div>
-          
-            <Label htmlFor="smtp-host">SMTP Host</Label>
-            <Input id="smtp-host" type="text" placeholder="smtp.example.com" value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} className="mt-1" disabled={isSaving}/>
-          
-          
-            <Label htmlFor="smtp-port">SMTP Port</Label>
-            <Input id="smtp-port" type="text" placeholder="587" value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} className="mt-1" disabled={isSaving}/>
-          
-          
-            <Label htmlFor="smtp-user">SMTP User</Label>
-            <Input id="smtp-user" type="text" placeholder="user@example.com" value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)} className="mt-1" disabled={isSaving}/>
-          
-          
-            <Label htmlFor="smtp-password">SMTP Password (set via env)</Label>
-            <Input id="smtp-password" type="password" placeholder="Set via environment variable" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)} className="mt-1" disabled readOnly/>
-            <p className="text-xs text-muted-foreground">Password must be set as an environment variable on the server.</p>
-          
-          
-            <Label htmlFor="smtp-secure">SMTP Secure</Label>
-            <input id="smtp-secure" type="checkbox" checked={smtpSecure} onChange={(e) => setSmtpSecure(e.target.checked)} disabled={isSaving}/>
-            <span className="ml-2 text-sm">Use TLS/SSL</span>
-        
-          
-            <Label htmlFor="smtp-from-email">From Email</Label>
-            <Input id="smtp-from-email" type="email" placeholder="noreply@example.com" value={smtpFromEmail} onChange={(e) => setSmtpFromEmail(e.target.value)} className="mt-1" disabled={isSaving}/>
-          
-     
-      
-
-      {/* Manual Link Settings */}
-      <Separator className="my-6" />
-      <div className="flex items-center text-2xl gap-2">
-        <FileText className="h-7 w-7 text-primary" />
-        Manual Link Settings
-      </div>
-      <div className="space-y-4 pt-6">
-        <Label htmlFor="manual-link">Manual Link (URL)</Label>
-        <Input id="manual-link" type="url" placeholder="https://your-manual-page.com" value={manualLink} onChange={e => setManualLink(e.target.value)} className="mt-1" disabled={isSaving} />
-        <Label htmlFor="manual-type">Manual Type</Label>
-        <Select value={manualType} onValueChange={setManualType}>
-          <SelectTrigger id="manual-type" className="w-48 mt-1" disabled={isSaving}>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="external">External Link (new tab)</SelectItem>
-            <SelectItem value="iframe">Iframe (in-app page)</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">Set the manual link to an external URL or display it in-app using an iframe.</p>
       </div>
 
-      {/* Floating Save/Reset Bar */}
-      <div className="fixed bottom-6 right-6 z-30 bg-background/95 border shadow-lg rounded-xl flex flex-row gap-4 py-3 px-6" style={{boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)'}}>
-        <Button onClick={handleSave} disabled={isSaving} className="btn-primary-gradient flex items-center gap-2">
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save All
-        </Button>
-        <Button variant="outline" onClick={fetchSystemSettings} disabled={isSaving} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" /> Reset
-        </Button>
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <Tabs defaultValue="ai" className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <BrainCircuit className="h-4 w-4" />
+              AI Services
+            </TabsTrigger>
+            <TabsTrigger value="automation" className="flex items-center gap-2">
+              <Webhook className="h-4 w-4" />
+              Automation
+            </TabsTrigger>
+            <TabsTrigger value="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              System
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 overflow-hidden">
+            <TabsContent value="ai" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* AI Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BrainCircuit className="h-5 w-5 text-primary" />
+                        Gemini AI Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Google Gemini AI for advanced candidate analysis and processing
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gemini-api-key">Gemini API Key</Label>
+                        <Input 
+                          id="gemini-api-key" 
+                          type="password" 
+                          placeholder="Enter your Gemini API Key" 
+                          value={geminiApiKey} 
+                          onChange={(e) => setGeminiApiKey(e.target.value)} 
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          This key is stored securely on the server. For Genkit to use this, ensure it&apos;s also available as the GOOGLE_API_KEY environment variable where your Next.js server runs, or ensure your Genkit flows dynamically fetch it.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="automation" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* Resume Processing Webhook */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        Resume Processing Webhook
+                      </CardTitle>
+                      <CardDescription>
+                        Configure webhook for automated resume processing and candidate creation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="resume-processing-webhook">Webhook URL</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="resume-processing-webhook" 
+                            type="url" 
+                            placeholder="https://your-webhook-endpoint/receive-resume" 
+                            value={resumeProcessingWebhookUrl} 
+                            onChange={(e) => setResumeProcessingWebhookUrl(e.target.value)} 
+                            className="flex-1" 
+                            disabled={isSaving}
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={async () => {
+                              if (!resumeProcessingWebhookUrl) {
+                                toast.error('Please enter a webhook URL first');
+                                return;
+                              }
+                              try {
+                                const response = await fetch('/api/settings/webhook-test', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    webhookUrl: resumeProcessingWebhookUrl,
+                                    webhookToken: resumeProcessingWebhookToken
+                                  })
+                                });
+                                const result = await response.json();
+                                if (result.success) {
+                                  toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
+                                } else {
+                                  toast.error(`Webhook test failed: ${result.error}`);
+                                }
+                                console.log('Webhook test result:', result);
+                              } catch (error) {
+                                toast.error('Failed to test webhook');
+                                console.error('Webhook test error:', error);
+                              }
+                            }}
+                            disabled={isSaving || !resumeProcessingWebhookUrl}
+                          >
+                            Test
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="resume-processing-webhook-token">Authentication Token (Optional)</Label>
+                        <Input 
+                          id="resume-processing-webhook-token" 
+                          type="password" 
+                          placeholder="Bearer token for webhook authentication" 
+                          value={resumeProcessingWebhookToken} 
+                          onChange={(e) => setResumeProcessingWebhookToken(e.target.value)} 
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Optional Bearer token for webhook authentication. Leave empty if no authentication is required.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="resume-processing-webhook-response-mode">Response Mode</Label>
+                        <Select value={resumeProcessingWebhookResponseMode} onValueChange={(value) => setResumeProcessingWebhookResponseMode(value)} disabled={isSaving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select response mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
+                            <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* General PDF Webhook */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        General PDF Webhook
+                      </CardTitle>
+                      <CardDescription>
+                        Configure webhook for general PDF processing and candidate creation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="general-pdf-webhook">Webhook URL</Label>
+                        <div className="flex gap-2">
+                          <Input 
+                            id="general-pdf-webhook" 
+                            type="url" 
+                            placeholder="https://your-webhook-endpoint/receive-pdf" 
+                            value={generalPdfWebhookUrl} 
+                            onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} 
+                            className="flex-1" 
+                            disabled={isSaving}
+                          />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={async () => {
+                              if (!generalPdfWebhookUrl) {
+                                toast.error('Please enter a webhook URL first');
+                                return;
+                              }
+                              try {
+                                const response = await fetch('/api/settings/webhook-test', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    webhookUrl: generalPdfWebhookUrl,
+                                    webhookToken: generalPdfWebhookToken
+                                  })
+                                });
+                                const result = await response.json();
+                                if (result.success) {
+                                  toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
+                                } else {
+                                  toast.error(`Webhook test failed: ${result.error}`);
+                                }
+                                console.log('Webhook test result:', result);
+                              } catch (error) {
+                                toast.error('Failed to test webhook');
+                                console.error('Webhook test error:', error);
+                              }
+                            }}
+                            disabled={isSaving || !generalPdfWebhookUrl}
+                          >
+                            Test
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="general-pdf-webhook-token">Authentication Token (Optional)</Label>
+                        <Input 
+                          id="general-pdf-webhook-token" 
+                          type="password" 
+                          placeholder="Bearer token for webhook authentication" 
+                          value={generalPdfWebhookToken} 
+                          onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} 
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Optional Bearer token for webhook authentication. Leave empty if no authentication is required.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="general-pdf-webhook-response-mode">Response Mode</Label>
+                        <Select value={generalPdfWebhookResponseMode} onValueChange={(value) => setGeneralPdfWebhookResponseMode(value)} disabled={isSaving}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select response mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
+                            <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="email" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* SMTP Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5 text-primary" />
+                        SMTP Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure email server settings for sending notifications and communications
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="smtp-host">SMTP Host</Label>
+                          <Input 
+                            id="smtp-host" 
+                            type="text" 
+                            placeholder="smtp.example.com" 
+                            value={smtpHost} 
+                            onChange={(e) => setSmtpHost(e.target.value)} 
+                            disabled={isSaving}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="smtp-port">SMTP Port</Label>
+                          <Input 
+                            id="smtp-port" 
+                            type="text" 
+                            placeholder="587" 
+                            value={smtpPort} 
+                            onChange={(e) => setSmtpPort(e.target.value)} 
+                            disabled={isSaving}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="smtp-user">SMTP User</Label>
+                        <Input 
+                          id="smtp-user" 
+                          type="text" 
+                          placeholder="user@example.com" 
+                          value={smtpUser} 
+                          onChange={(e) => setSmtpUser(e.target.value)} 
+                          disabled={isSaving}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="smtp-password">SMTP Password</Label>
+                        <Input 
+                          id="smtp-password" 
+                          type="password" 
+                          placeholder="Set via environment variable" 
+                          value={smtpPassword} 
+                          onChange={(e) => setSmtpPassword(e.target.value)} 
+                          disabled 
+                          readOnly
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Password must be set as an environment variable on the server.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="smtp-secure"
+                          checked={smtpSecure}
+                          onCheckedChange={setSmtpSecure}
+                          disabled={isSaving}
+                        />
+                        <Label htmlFor="smtp-secure">Use TLS/SSL</Label>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="smtp-from-email">From Email</Label>
+                        <Input 
+                          id="smtp-from-email" 
+                          type="email" 
+                          placeholder="noreply@example.com" 
+                          value={smtpFromEmail} 
+                          onChange={(e) => setSmtpFromEmail(e.target.value)} 
+                          disabled={isSaving}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="system" className="h-full">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-6">
+                  {/* System Configuration */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Database className="h-5 w-5 text-primary" />
+                        System Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure system performance and processing settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-concurrent-processors">Max Concurrent Processors</Label>
+                        <Input
+                          id="max-concurrent-processors"
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={maxConcurrentProcessors}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxConcurrentProcessors(Number(e.target.value))}
+                          className="w-32"
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Maximum number of concurrent resume processing jobs
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Manual Link Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        Manual Link Settings
+                      </CardTitle>
+                      <CardDescription>
+                        Configure manual documentation and help links
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="manual-link">Manual Link (URL)</Label>
+                        <Input 
+                          id="manual-link" 
+                          type="url" 
+                          placeholder="https://your-manual-page.com" 
+                          value={manualLink} 
+                          onChange={e => setManualLink(e.target.value)} 
+                          disabled={isSaving} 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manual-type">Manual Type</Label>
+                        <Select value={manualType} onValueChange={setManualType} disabled={isSaving}>
+                          <SelectTrigger id="manual-type" className="w-48">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="external">External Link (new tab)</SelectItem>
+                            <SelectItem value="iframe">Iframe (in-app page)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Set the manual link to an external URL or display it in-app using an iframe.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
     </div>
   );

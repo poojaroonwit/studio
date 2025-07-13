@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+import { formatCandidateName } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format } from 'date-fns';
@@ -36,6 +37,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CandidateDetailModal } from './CandidateDetailModal';
 import { cn } from '@/lib/utils';
+
+
 
 interface CandidateTableProps {
   candidates: Candidate[];
@@ -239,32 +242,32 @@ export function CandidateTable({
 
               return (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
-                  <TableCell key="select"><Checkbox
+                  <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={selectedCandidateIds.has(candidate.id)}
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
                       aria-label={`Select candidate ${candidate.name}`}
                     /></TableCell>
                   {/* Removed Pipeline cell */}
-                  <TableCell key="candidate-info">
+                  <TableCell key={`${candidate.id}-candidate-info`}>
                     <div className="flex items-center gap-3">
                       <Avatar size="lg" className="border-2 border-border">
                         <AvatarImage
-                          src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'C'}`}
-                          alt={candidate.name}
+                          src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`}
+                          alt={formatCandidateName(candidate)}
                           data-ai-hint="person avatar"
-                          onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'C'}`; }}
+                          onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`; }}
                         />
-                        <AvatarFallback className="text-sm font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                        <AvatarFallback className="text-sm font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                       </Avatar>
                       <div>
                         <Link href={`/candidates/${candidate.id}`} passHref>
-                          <span className="font-medium text-foreground hover:underline cursor-pointer">{candidate.name}</span>
+                          <span className="font-medium text-foreground hover:underline cursor-pointer">{formatCandidateName(candidate)}</span>
                         </Link>
                         <div className="text-xs text-muted-foreground">{candidate.email}</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell key="position">
+                  <TableCell key={`${candidate.id}-position`}>
                     {candidate.position?.title ? (
                       <span
                         className="font-medium text-primary hover:underline cursor-pointer"
@@ -277,7 +280,7 @@ export function CandidateTable({
                       <span className="text-muted-foreground">N/A</span>
                     )}
                   </TableCell>
-                  <TableCell key="recruiter">
+                  <TableCell key={`${candidate.id}-recruiter`}>
                     <Select value={candidate.recruiter?.id || ''} onValueChange={value => onAssignRecruiter(candidate.id, value === '___UNASSIGN___' ? null : value)}>
                       <SelectTrigger className="w-36">
                         <SelectValue placeholder="Unassigned" />
@@ -290,7 +293,7 @@ export function CandidateTable({
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell key="fit-score" className="hidden sm:table-cell">
+                  <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       {/* Fit Score as Badge */}
                       <Badge
@@ -301,7 +304,7 @@ export function CandidateTable({
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell key="status">
+                  <TableCell key={`${candidate.id}-status`}>
                     {(() => {
                       const stage = availableStages.find(s => s.name === candidate.status);
                       const badgeColor = stage?.color_badge;
@@ -316,17 +319,17 @@ export function CandidateTable({
                       );
                     })()}
                   </TableCell>
-                  <TableCell key="last-update" className="text-sm text-muted-foreground hidden md:table-cell">
+                  <TableCell key={`${candidate.id}-last-update`} className="text-sm text-muted-foreground hidden md:table-cell">
                     {displayDate}
                   </TableCell>
-                  <TableCell key="resume" className="text-xs hidden sm:table-cell">
+                  <TableCell key={`${candidate.id}-resume`} className="text-xs hidden sm:table-cell">
                     {candidate.resumePath ?
                       <span className="text-green-600 truncate block max-w-[100px] hover:underline cursor-pointer" title={candidate.resumePath}>
                         {candidate.resumePath.split('-').pop()?.split('.').slice(0,-1).join('.') || candidate.resumePath.split('-').pop()}
                       </span>
                       : <span className="text-muted-foreground">No resume</span>}
                   </TableCell>
-                  <TableCell key="actions" className="text-right">
+                  <TableCell key={`${candidate.id}-actions`} className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

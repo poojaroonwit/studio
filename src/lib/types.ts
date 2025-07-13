@@ -267,6 +267,7 @@ export interface Candidate {
   recruiterId?: string | null;
   recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;
   customAttributes?: Record<string, any> | null;
+  assignmentJustification?: string | null;
   createdAt?: string;
   updatedAt?: string;
   transitionHistory: TransitionRecord[];

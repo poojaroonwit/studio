@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { Candidate, Position } from "@/lib/types"
@@ -24,18 +24,31 @@ interface CandidatesPerPositionChartProps {
 }
 
 export function CandidatesPerPositionChart({ candidates, positions }: CandidatesPerPositionChartProps) {
-  // Ensure inputs are arrays before processing
-  const safeCandidates = Array.isArray(candidates) ? candidates : [];
-  const safePositions = Array.isArray(positions) ? positions : [];
-  
-  const data = safePositions.map(position => {
-    const candidateCount = safeCandidates.filter(c => c.positionId === position.id).length;
-    return {
-      position: position.title.length > 15 ? `${position.title.substring(0,12)}...` : position.title, // Truncate long titles
-      fullPositionTitle: position.title,
-      candidates: candidateCount,
-    };
-  }).filter(item => item.candidates > 0); // Only show positions with candidates
+  // Memoize the data processing to prevent unnecessary recalculations
+  const data = useMemo(() => {
+    // Ensure inputs are arrays before processing
+    const safeCandidates = Array.isArray(candidates) ? candidates : [];
+    const safePositions = Array.isArray(positions) ? positions : [];
+    
+    // Create a map for faster candidate counting
+    const candidateCountMap = new Map<string, number>();
+    safeCandidates.forEach(candidate => {
+      if (candidate.positionId) {
+        candidateCountMap.set(candidate.positionId, (candidateCountMap.get(candidate.positionId) || 0) + 1);
+      }
+    });
+    
+    return safePositions
+      .map(position => {
+        const candidateCount = candidateCountMap.get(position.id) || 0;
+        return {
+          position: position.title.length > 15 ? `${position.title.substring(0,12)}...` : position.title, // Truncate long titles
+          fullPositionTitle: position.title,
+          candidates: candidateCount,
+        };
+      })
+      .filter(item => item.candidates > 0); // Only show positions with candidates
+  }, [candidates, positions]);
 
   if (data.length === 0) {
     return (

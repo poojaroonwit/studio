@@ -1,0 +1,336 @@
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Building, 
+  MapPin, 
+  Calendar, 
+  DollarSign, 
+  Briefcase,
+  ArrowRight,
+  X,
+  Loader2
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+interface JobMatchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  jobMatch: {
+    job_id: string;
+    job_title: string;
+    fit_score: number;
+    match_reasons: string[];
+    position?: {
+      id: string;
+      title: string;
+      description?: string;
+      department?: string;
+      location?: string;
+      salary?: string;
+      requirements?: string;
+      isOpen: boolean;
+    };
+  } | null;
+  statistics?: {
+    totalApplied: number;
+    totalMatching: number;
+    matchingNotApplied: number;
+  } | undefined;
+}
+
+export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }: JobMatchModalProps) {
+  const router = useRouter();
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [stats, setStats] = useState(statistics || {
+    totalApplied: 0,
+    totalMatching: 0,
+    matchingNotApplied: 0
+  });
+
+  useEffect(() => {
+    if (isOpen && jobMatch?.job_id) {
+      fetchStatistics();
+    }
+  }, [isOpen, jobMatch?.job_id]);
+
+  const fetchStatistics = async () => {
+    if (!jobMatch?.job_id) return;
+    
+    setLoadingStats(true);
+    try {
+      const response = await fetch(`/api/positions/${jobMatch.job_id}/statistics`);
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const handleNavigateToCandidates = (filterType: 'applied' | 'matching' | 'matchingNotApplied') => {
+    if (!jobMatch?.job_id || isNavigating) return;
+    
+    setIsNavigating(true);
+    
+    let advancedQuery = '';
+    switch (filterType) {
+      case 'applied':
+        // Show candidates who have applied to this position (any status)
+        advancedQuery = `positionId:${jobMatch.job_id}`;
+        break;
+      case 'matching':
+        // Show candidates with good fit score for this position using matching fit score
+        advancedQuery = `positionId:${jobMatch.job_id} matchingFitScoreMin:70 matchingFitScoreMax:100`;
+        break;
+      case 'matchingNotApplied':
+        // Show candidates with high fit score who haven't applied yet
+        // Use matching fit score with higher threshold
+        advancedQuery = `positionId:${jobMatch.job_id} matchingFitScoreMin:80 matchingFitScoreMax:100`;
+        break;
+    }
+    
+    // Use setTimeout to prevent rapid state changes
+    setTimeout(() => {
+      router.replace(`/candidates?query=${encodeURIComponent(advancedQuery)}`);
+      onClose();
+    }, 100);
+  };
+
+  if (!jobMatch) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              {jobMatch.position?.title || jobMatch.job_title}
+            </DialogTitle>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+          {/* Left Column - Job Information and Match Reasons */}
+          <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-2">
+            {/* Job Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Job Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Department:</span>
+                      <span className={jobMatch.position?.department ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.department || 'Not specified'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Location:</span>
+                      <span className={jobMatch.position?.location ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.location || 'Not specified'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Salary:</span>
+                      <span className={jobMatch.position?.salary ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.salary || 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Status:</span>
+                      <Badge variant={jobMatch.position?.isOpen ? "default" : "secondary"}>
+                        {jobMatch.position?.isOpen ? 'Open' : 'Closed'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium">Match Score:</span>
+                      <Badge variant="outline" className="text-primary border-primary">
+                        {jobMatch.fit_score}/100
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {jobMatch.position?.description && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Description:</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {jobMatch.position.description}
+                    </p>
+                  </div>
+                )}
+
+                {jobMatch.position?.requirements && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Requirements:</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {jobMatch.position.requirements}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Match Reasons */}
+            {jobMatch.match_reasons && jobMatch.match_reasons.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Match Reasons</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {jobMatch.match_reasons.map((reason, index) => (
+                      <div key={index} className="flex items-start gap-2 text-sm">
+                        <span className="text-primary text-xs mt-1">•</span>
+                        <span>{reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column - Static Candidate Statistics */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Candidate Statistics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <div className="flex items-center gap-3">
+                      <Users className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <div className="text-sm font-medium">Applied</div>
+                        <div className="text-xs text-muted-foreground">Candidates</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        {loadingStats ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          stats.totalApplied
+                        )}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleNavigateToCandidates('applied')}
+                        disabled={isNavigating}
+                        className="h-6 px-2 text-xs"
+                      >
+                        {isNavigating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            View
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                    <div className="flex items-center gap-3">
+                      <UserCheck className="h-5 w-5 text-green-500" />
+                      <div>
+                        <div className="text-sm font-medium">Matching</div>
+                        <div className="text-xs text-muted-foreground">Candidates</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                        {loadingStats ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          stats.totalMatching
+                        )}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleNavigateToCandidates('matching')}
+                        disabled={isNavigating}
+                        className="h-6 px-2 text-xs"
+                      >
+                        {isNavigating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            View
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-50 dark:bg-orange-950/20">
+                    <div className="flex items-center gap-3">
+                      <UserX className="h-5 w-5 text-orange-500" />
+                      <div>
+                        <div className="text-sm font-medium">Potential</div>
+                        <div className="text-xs text-muted-foreground">Not Applied</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                        {loadingStats ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          stats.matchingNotApplied
+                        )}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleNavigateToCandidates('matchingNotApplied')}
+                        disabled={isNavigating}
+                        className="h-6 px-2 text-xs"
+                      >
+                        {isNavigating ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            View
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+} 

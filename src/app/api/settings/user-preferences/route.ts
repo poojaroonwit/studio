@@ -125,8 +125,8 @@ export async function POST(request: NextRequest) {
     const savedPrefs: UserDataModelPreference[] = [];
     for (const pref of preferencesToSave) {
       const upsertQuery = `
-        INSERT INTO "UserUIDisplayPreference" ("userId", model_type, attribute_key, ui_preference, custom_note, "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO "UserUIDisplayPreference" (id, "userId", model_type, attribute_key, ui_preference, custom_note, "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
         ON CONFLICT ("userId", model_type, attribute_key) DO UPDATE SET
           ui_preference = EXCLUDED.ui_preference,
           custom_note = EXCLUDED.custom_note,

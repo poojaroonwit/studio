@@ -82,6 +82,7 @@ model Candidate {
   parsedData      Json?
   customAttributes Json?   @default("{}")
   resumePath      String?
+  assignmentJustification String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   avatarUrl       String?

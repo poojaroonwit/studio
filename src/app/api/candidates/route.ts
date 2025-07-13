@@ -180,32 +180,119 @@ export async function GET(request: NextRequest) {
     positionId: searchParams.get('positionId') || undefined,
     recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || undefined,
     searchTerm: searchParams.get('searchTerm') || searchParams.get('name') || undefined,
+    email: searchParams.get('email') || undefined,
+    phone: searchParams.get('phone') || undefined,
+    education: searchParams.get('education') || undefined,
+    applicationDateStart: searchParams.get('applicationDateStart') || undefined,
+    applicationDateEnd: searchParams.get('applicationDateEnd') || undefined,
+    minFitScore: searchParams.get('minFitScore') || undefined,
+    maxFitScore: searchParams.get('maxFitScore') || undefined,
   };
 
   let whereClauses: string[] = [];
   let queryParams: any[] = [];
   let paramIndex = 1;
 
+  // Handle status filter (supports multiple statuses)
   if (filters.status) {
-    whereClauses.push(`c.status = $${paramIndex++}`);
-    queryParams.push(filters.status);
-  }
-  if (filters.positionId) {
-    whereClauses.push(`c."positionId" = $${paramIndex++}`);
-    queryParams.push(filters.positionId);
-  }
-  if (filters.recruiterId) {
-    if (filters.recruiterId === 'unassigned') {
-      whereClauses.push(`c."recruiterId" IS NULL`);
+    const statuses = filters.status.split(',').map(s => s.trim());
+    if (statuses.length === 1) {
+      whereClauses.push(`c.status = $${paramIndex++}`);
+      queryParams.push(statuses[0]);
     } else {
-      whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-      queryParams.push(filters.recruiterId);
+      whereClauses.push(`c.status = ANY($${paramIndex++})`);
+      queryParams.push(statuses);
     }
   }
+
+  // Handle position filter (supports multiple positions)
+  if (filters.positionId) {
+    const positionIds = filters.positionId.split(',').map(id => id.trim());
+    if (positionIds.length === 1) {
+      whereClauses.push(`c."positionId" = $${paramIndex++}`);
+      queryParams.push(positionIds[0]);
+    } else {
+      whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
+      queryParams.push(positionIds);
+    }
+  }
+
+  // Handle recruiter filter (supports multiple recruiters and 'unassigned')
+  if (filters.recruiterId) {
+    const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
+    if (recruiterIds.length === 1 && recruiterIds[0] === 'unassigned') {
+      whereClauses.push(`c."recruiterId" IS NULL`);
+    } else if (recruiterIds.length === 1) {
+      whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
+      queryParams.push(recruiterIds[0]);
+    } else {
+      // Handle mixed case: some unassigned, some assigned
+      const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
+      const hasUnassigned = recruiterIds.includes('unassigned');
+      
+      if (assignedIds.length > 0 && hasUnassigned) {
+        whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+        queryParams.push(assignedIds);
+      } else if (assignedIds.length > 0) {
+        whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+        queryParams.push(assignedIds);
+      } else if (hasUnassigned) {
+        whereClauses.push(`c."recruiterId" IS NULL`);
+      }
+    }
+  }
+
+  // Handle text search (name)
   if (filters.searchTerm) {
     whereClauses.push(`(c.name ILIKE $${paramIndex} OR c.email ILIKE $${paramIndex})`);
     queryParams.push(`%${filters.searchTerm}%`);
     paramIndex++;
+  }
+
+  // Handle email filter
+  if (filters.email) {
+    whereClauses.push(`c.email ILIKE $${paramIndex++}`);
+    queryParams.push(`%${filters.email}%`);
+  }
+
+  // Handle phone filter
+  if (filters.phone) {
+    whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
+    queryParams.push(`%${filters.phone}%`);
+  }
+
+  // Handle education filter (search in parsed data)
+  if (filters.education) {
+    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
+    queryParams.push(`%${filters.education}%`);
+  }
+
+  // Handle date range filter
+  if (filters.applicationDateStart || filters.applicationDateEnd) {
+    if (filters.applicationDateStart && filters.applicationDateEnd) {
+      whereClauses.push(`c."applicationDate" >= $${paramIndex++} AND c."applicationDate" <= $${paramIndex++}`);
+      queryParams.push(filters.applicationDateStart, filters.applicationDateEnd);
+    } else if (filters.applicationDateStart) {
+      whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
+      queryParams.push(filters.applicationDateStart);
+    } else if (filters.applicationDateEnd) {
+      whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
+      queryParams.push(filters.applicationDateEnd);
+    }
+  }
+
+  // Handle fit score range filter
+  if (filters.minFitScore || filters.maxFitScore) {
+    if (filters.minFitScore && filters.maxFitScore) {
+      whereClauses.push(`c."fitScore" >= $${paramIndex++} AND c."fitScore" <= $${paramIndex++}`);
+      queryParams.push(parseInt(filters.minFitScore), parseInt(filters.maxFitScore));
+    } else if (filters.minFitScore) {
+      whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+      queryParams.push(parseInt(filters.minFitScore));
+    } else if (filters.maxFitScore) {
+      whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+      queryParams.push(parseInt(filters.maxFitScore));
+    }
   }
 
   // If user is a Recruiter, only show their assigned candidates

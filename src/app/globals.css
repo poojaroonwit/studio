@@ -290,5 +290,19 @@ body {
   .dark .switch-green[data-state="checked"] {
      background-color: hsl(var(--custom-green-checked)) !important;
   }
+
+  /* Hide scrollbar utility class */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+
+  /* Custom width for job match cards */
+  .w-70 {
+    width: 17.5rem; /* 280px */
+  }
 }
     

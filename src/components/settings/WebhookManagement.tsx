@@ -14,10 +14,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send } from 'lucide-react';
+import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Webhook {
   id: string;
@@ -837,7 +844,7 @@ export default function WebhookManagement() {
   };
 
   const handleTestDialogOpen = (webhook: Webhook | null) => {
-    setSelectedWebhooks(webhook);
+    setSelectedWebhookForTest(webhook);
     setTestResult(null);
     if (webhook) {
       setTestPayload('{\n  "test": true,\n  "timestamp": "' + new Date().toISOString() + '",\n  "webhook_name": "' + webhook.name + '"\n}');
@@ -964,7 +971,7 @@ export default function WebhookManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Webhook Management</h2>
@@ -972,13 +979,35 @@ export default function WebhookManagement() {
             Configure webhooks to receive real-time notifications about application events.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Webhook
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (webhooks.length === 0) {
+                showError('No webhooks available to test');
+                return;
+              }
+              // Test all active webhooks
+              const activeWebhooks = webhooks.filter(w => w.is_active);
+              if (activeWebhooks.length === 0) {
+                showError('No active webhooks to test');
+                return;
+              }
+              // Use the first active webhook for testing
+              handleTestDialogOpen(activeWebhooks[0]);
+            }}
+            disabled={webhooks.length === 0}
+          >
+            <TestTube className="mr-2 h-4 w-4" />
+            Test Send Webhook
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Webhook
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="space-y-4">
               <div className="flex items-center space-x-3">
@@ -1148,7 +1177,7 @@ export default function WebhookManagement() {
                                     type="checkbox"
                                     checked={formData.events.includes(event)}
                                     onChange={() => toggleEvent(event)}
-                                    className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
+                                    className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-green-500 checked:bg-green-500 checked:border-green-500"
                                   />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between">
@@ -1582,6 +1611,7 @@ export default function WebhookManagement() {
                   <Checkbox
                     checked={isAllSelected()}
                     onCheckedChange={handleSelectAll}
+                    className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white"
                   />
                 </TableHead>
                 <TableHead>Name</TableHead>
@@ -1617,6 +1647,7 @@ export default function WebhookManagement() {
                       onCheckedChange={(checked) => 
                         handleWebhookSelection(webhook.id, checked as boolean)
                       }
+                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 data-[state=checked]:text-white"
                     />
                   </TableCell>
                   <TableCell className="font-medium">{webhook.name}</TableCell>
@@ -1657,64 +1688,59 @@ export default function WebhookManagement() {
                   </TableCell>
                   <TableCell>{formatDate(webhook.created_at)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(webhook.id, webhook.id)}
-                      >
-                        {copiedId === webhook.id ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleLogsDialogOpen(webhook)}
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTestDialogOpen(webhook)}
-                      >
-                        <TestTube className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(webhook)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Webhook</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{webhook.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(webhook.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => copyToClipboard(webhook.id, webhook.id)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy ID
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleLogsDialogOpen(webhook)}>
+                          <History className="mr-2 h-4 w-4" />
+                          View Logs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleTestDialogOpen(webhook)}>
+                          <TestTube className="mr-2 h-4 w-4" />
+                          Test Webhook
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleEdit(webhook)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Webhook</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{webhook.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(webhook.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
                 ))

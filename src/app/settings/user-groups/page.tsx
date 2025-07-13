@@ -2,12 +2,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
-import UserGroupsTable from '@/components/settings/UserGroupsTable';
-import UserGroupsForm from '@/components/settings/UserGroupsForm';
-import UserGroupsModal from '@/components/settings/UserGroupsModal';
 import type { UserGroup, PlatformModule, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +38,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RolePermissionSelector } from '@/components/settings/RolePermissionSelector';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
 
@@ -65,7 +72,7 @@ export default function RolesPermissionsPage() {
 
   const [roles, setRoles] = useState<UserGroup[]>([]); // UserGroups are now "Roles"
   const [selectedRole, setSelectedRole] = useState<UserGroup | null>(null);
-  const selectedRoleIdRef = useRef<string | null>(null); // Ref to store selected role ID
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -78,7 +85,7 @@ export default function RolesPermissionsPage() {
     defaultValues: { name: '', description: '', permissions: [], is_default: false },
   });
 
-  const fetchRolesAndSelect = useCallback(async (roleIdToSelect?: string | null) => {
+  const fetchRoles = useCallback(async () => {
     if (sessionStatus !== 'authenticated') return;
     setIsLoading(true);
     setFetchError(null);
@@ -94,30 +101,14 @@ export default function RolesPermissionsPage() {
       }
       const data: UserGroup[] = await response.json();
       setRoles(data);
-      
-      if (roleIdToSelect) {
-        const roleToReselect = data.find(r => r.id === roleIdToSelect);
-        setSelectedRole(roleToReselect || (data.length > 0 ? data[0] : null));
-        selectedRoleIdRef.current = roleToReselect?.id || (data.length > 0 ? data[0].id : null);
-      } else if (data.length > 0 && !selectedRoleIdRef.current) { // Use ref instead of selectedRole
-        setSelectedRole(data[0]);
-        selectedRoleIdRef.current = data[0].id;
-      } else if (data.length === 0) {
-        setSelectedRole(null);
-        selectedRoleIdRef.current = null;
-      }
-      // If a role was already selected, and it's still in the list, keep it.
-      // If it was deleted, then the selection will clear or pick the first if list not empty.
-
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname]); // Removed selectedRole from dependencies
+  }, [sessionStatus, pathname]);
 
   useEffect(() => {
-
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
@@ -125,10 +116,10 @@ export default function RolesPermissionsPage() {
         setFetchError("You do not have permission to manage roles & permissions.");
         setIsLoading(false);
       } else {
-        fetchRolesAndSelect(selectedRoleIdRef.current); // Fetch with current ref ID if set
+        fetchRoles();
       }
     }
-  }, [sessionStatus, session, pathname, fetchRolesAndSelect]);
+  }, [sessionStatus, session, pathname, fetchRoles]);
 
   useEffect(() => {
     if (fetchError) {
@@ -138,7 +129,7 @@ export default function RolesPermissionsPage() {
 
   const handleSelectRole = (role: UserGroup) => {
     setSelectedRole(role);
-    selectedRoleIdRef.current = role.id; // Update ref when user explicitly selects
+    setIsPermissionModalOpen(true);
   };
 
   const handleOpenModal = (role: UserGroup | null = null) => {
@@ -162,38 +153,42 @@ export default function RolesPermissionsPage() {
       
       toast.success(`Role "${result.name}" was successfully ${editingRole ? 'updated' : 'created'}.`);
       setIsModalOpen(false);
-      fetchRolesAndSelect(result.id); // Refresh list and attempt to select the created/edited role
+      fetchRoles(); // Refresh list
 
     } catch (error) {
       toast.error((error as Error).message);
     }
   };
   
-  const handlePermissionToggle = async (permissionId: PlatformModuleId, role: UserGroup) => {
-    if (role.is_system_role) {
+  const handlePermissionUpdate = async (roleId: string, permissions: PlatformModuleId[]) => {
+    const role = roles.find(r => r.id === roleId);
+    if (!role || role.is_system_role) {
       toast.error("Permissions for system roles cannot be changed.");
       return;
     }
-    const currentPermissions = role.permissions || [];
-    const newPermissions = currentPermissions.includes(permissionId)
-      ? currentPermissions.filter(p => p !== permissionId)
-      : [...currentPermissions, permissionId];
 
     try {
-      const response = await fetch(`/api/settings/user-groups/${role.id}`, {
+      const response = await fetch(`/api/settings/user-groups/${roleId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: role.name, description: role.description, permissions: newPermissions, is_default: role.is_default }),
+        body: JSON.stringify({ 
+          name: role.name, 
+          description: role.description, 
+          permissions, 
+          is_default: role.is_default 
+        }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Failed to update role permissions.");
       
       toast.success(`Permissions for role "${role.name}" updated.`);
       // Update local state for immediate UI feedback
-      setSelectedRole(prev => prev ? { ...prev, permissions: newPermissions } : null);
-      setRoles(prevRoles => prevRoles.map(r => r.id === role.id ? { ...r, permissions: newPermissions } : r));
+      setSelectedRole(prev => prev ? { ...prev, permissions } : null);
+      setRoles(prevRoles => prevRoles.map(r => r.id === roleId ? { ...r, permissions } : r));
     } catch (error) {
       toast.error((error as Error).message);
+      // Revert local state on error
+      fetchRoles();
     }
   };
 
@@ -202,9 +197,7 @@ export default function RolesPermissionsPage() {
   };
 
   const handleDelete = async () => {
-    if (!roleToDelete) return;
-    if (roleToDelete.is_system_role) {
-      toast.error("System roles cannot be deleted.");
+    if (!roleToDelete) {
       setRoleToDelete(null);
       return;
     }
@@ -215,7 +208,7 @@ export default function RolesPermissionsPage() {
         throw new Error(errorData.message || 'Failed to delete role');
       }
       toast.success('Role deleted successfully.');
-      fetchRolesAndSelect(null); // Refresh and select first item or nothing
+      fetchRoles(); // Refresh list
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -234,109 +227,178 @@ export default function RolesPermissionsPage() {
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Data</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {isPermissionError ? (<Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>) : (<Button onClick={() => fetchRolesAndSelect(selectedRoleIdRef.current)} className="btn-hover-primary-gradient">Try Again</Button>)}
+        {isPermissionError ? (<Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>) : (<Button onClick={() => fetchRoles()} className="btn-hover-primary-gradient">Try Again</Button>)}
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col p-6">
-      <div className="flex-1 grid md:grid-cols-3 gap-6 min-h-0">
-        {/* Left Panel: Roles List */}
-        <div className="md:col-span-1 shadow-sm flex flex-col">
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-lg">Roles</h2>
-             <Button size="sm" onClick={() => handleOpenModal()} className="btn-primary-gradient h-8">
-              <PlusCircle className="mr-1.5 h-4 w-4" /> Create
-            </Button>
-          </div>
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full">
-              {isLoading && roles.length === 0 ? (
-                 <div className="p-4 text-sm text-muted-foreground text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" />Loading roles...</div>
-              ) : roles.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground text-center">No roles defined.</p>
-              ) : (
-                <div className="space-y-0">
-                  {roles.map((role) => (
-                    <Button
-                      key={role.id}
-                      variant="ghost"
-                      onClick={() => handleSelectRole(role)}
-                      className={cn(
-                        "w-full justify-start rounded-none p-4 text-left h-auto border-b border-border last:border-b-0",
-                        selectedRole?.id === role.id && "bg-primary/10 text-primary font-semibold "
-                      )}
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                            <span className="font-medium">{role.name} {role.is_system_role && <Badge variant="secondary" className="ml-1 text-xs">System</Badge>}</span>
-                            <span className="text-xs text-muted-foreground">{role.user_count || 0} users</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{role.description || 'No description'}</p>
-                        {role.is_default && <Badge variant="outline" className="mt-1 text-xs">Default</Badge>}
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
+          <p className="text-muted-foreground">Manage user roles and their associated permissions</p>
         </div>
-
-        {/* Right Panel: Permissions for Selected Role */}
-        <div className="md:col-span-2 shadow-sm flex flex-col">
-          {selectedRole ? (
-            <>
-              <div className="flex justify-between items-center p-4 border-b">
-                <div>
-                  <h2 className="text-lg">{selectedRole.name} Permissions</h2>
-                  <p className="text-xs">Configure what users with the &quot;{selectedRole.name}&quot; role can do.</p>
-                </div>
-                <div className="flex gap-2">
-                  {!selectedRole.is_system_role && <Button variant="outline" size="sm" onClick={() => handleOpenModal(selectedRole)}><Edit3 className="mr-1.5 h-3.5 w-3.5"/> Edit Role</Button>}
-                  {!selectedRole.is_system_role && <Button variant="destructive" size="sm" onClick={() => confirmDelete(selectedRole)}><Trash2 className="mr-1.5 h-3.5 w-3.5"/> Delete Role</Button>}
-                </div>
-              </div>
-              <div className="flex-1 p-4 min-h-0">
-                <ScrollArea className="h-full">
-                  {groupedPermissions.map(group => (
-                    <div key={group.category} className="mb-6">
-                      <h3 className="text-md font-semibold text-primary mb-2 border-b pb-1">{group.category}</h3>
-                      <div className="space-y-3">
-                        {group.permissions.map(perm => (
-                          <div key={perm.id} className="flex items-center justify-between p-3 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
-                            <div>
-                              <Label htmlFor={`${selectedRole.id}-${perm.id}`} className="font-medium text-sm">{perm.label}</Label>
-                              <p className="text-xs text-muted-foreground">{perm.description}</p>
-                            </div>
-                            <Switch
-                              checked={(selectedRole.permissions || []).includes(perm.id)}
-                              onCheckedChange={() => handlePermissionToggle(perm.id, selectedRole)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </ScrollArea>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-              <ShieldCheck className="h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Select a role from the left to view and manage its permissions.</p>
-            </div>
-          )}
-        </div>
+        <Button onClick={() => handleOpenModal()} className="btn-primary-gradient">
+          <PlusCircle className="mr-2 h-4 w-4" /> Create Role
+        </Button>
       </div>
 
+      {/* Full Width Table */}
+      <div className="flex-1 bg-card border rounded-lg shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Role Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead>Permissions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && roles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p className="text-muted-foreground">Loading roles...</p>
+                </TableCell>
+              </TableRow>
+            ) : roles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No roles defined.</p>
+                  <Button onClick={() => handleOpenModal()} className="btn-primary-gradient">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Create First Role
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : (
+              roles.map((role) => (
+                <TableRow 
+                  key={role.id} 
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/50 transition-colors",
+                    selectedRole?.id === role.id && "bg-primary/5"
+                  )}
+                  onClick={() => handleSelectRole(role)}
+                >
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">{role.name}</span>
+                      {role.is_default && (
+                        <Badge variant="secondary" className="text-xs">Default</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-muted-foreground text-sm">
+                      {role.description || 'No description'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {role.is_system_role ? (
+                      <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                        System
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Custom</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {role.user_count || 0} users
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {role.is_system_role && role.name === 'Admin' ? 'All' : (role.permissions || []).length + ' permissions'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {!role.is_system_role || role.name === 'Admin' ? (
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleOpenModal(role); }}>
+                              <Edit3 className="mr-2 h-4 w-4" /> Edit Role
+                            </DropdownMenuItem>
+                          ) : null}
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); handleSelectRole(role); }}>
+                            <ShieldCheck className="mr-2 h-4 w-4" /> Permissions
+                          </DropdownMenuItem>
+                          {!role.is_system_role && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={e => { e.stopPropagation(); confirmDelete(role); }} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Permission Settings Modal */}
+      <Dialog open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
+              {selectedRole?.name} - Permission Settings
+            </DialogTitle>
+            <DialogDescription>
+              Configure what users with the "{selectedRole?.name}" role can do.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden">
+            {selectedRole && (
+              <RolePermissionSelector
+                selectedPermissions={selectedRole.is_system_role && selectedRole.name === 'Admin' ? platformModuleIds : selectedRole.permissions || []}
+                onPermissionsChange={permissions => {
+                  if (selectedRole.is_system_role && selectedRole.name === 'Admin') return; // Prevent editing
+                  setSelectedRole(prev => prev ? { ...prev, permissions } : null);
+                  setRoles(prevRoles => prevRoles.map(r => r.id === selectedRole.id ? { ...r, permissions } : r));
+                  handlePermissionUpdate(selectedRole.id, permissions);
+                }}
+                disabled={selectedRole.is_system_role && selectedRole.name === 'Admin'}
+                className="h-full"
+              />
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPermissionModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Role Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
             <DialogDescription>
-              {editingRole ? `Update the details for the &quot;${editingRole.name}&quot; role.` : 'Define a new role. Permissions are managed on the main page after creation.'}
+              {editingRole ? `Update the details for the "${editingRole.name}" role.` : 'Define a new role. Permissions are managed on the main page after creation.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -381,13 +443,14 @@ export default function RolesPermissionsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation */}
       {roleToDelete && (
         <AlertDialog open={!!roleToDelete} onOpenChange={(open) => { if(!open) setRoleToDelete(null);}}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will delete the role &quot;<strong>{roleToDelete.name}</strong>&quot;. This action cannot be undone.
+                This will delete the role "<strong>{roleToDelete.name}</strong>". This action cannot be undone.
                 Users will lose permissions granted by this role.
               </AlertDialogDescription>
             </AlertDialogHeader>

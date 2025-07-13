@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import prisma from './prisma';
 import { webhookRateLimits, addRateLimitHeaders, RateLimitResult } from './webhookRateLimit';
 
 export interface WebhookPayload {

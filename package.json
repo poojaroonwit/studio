@@ -68,6 +68,7 @@
     "css-select": "^5.0.0",
     "csv-parse": "^5.6.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.0",
     "eventsource": "^4.0.0",
     "formdata-node": "^6.0.3",
     "formidable": "^3.5.4",

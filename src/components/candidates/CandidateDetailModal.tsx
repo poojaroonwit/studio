@@ -14,6 +14,7 @@ import type { Candidate, CandidateDetails, PersonalInfo } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Briefcase, Mail, Phone, Percent, Tag, CalendarDays, Info, UserCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+import { formatCandidateName } from "@/lib/candidateUtils";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +28,8 @@ interface CandidateDetailModalProps {
   onOpenChange: (isOpen: boolean) => void;
   candidateSummary: Partial<Candidate> & { id: string; name: string }; 
 }
+
+
 
 const getStatusBadgeVariant = (status?: Candidate['status']): "default" | "secondary" | "destructive" | "outline" => {
   if (!status) return "outline";
@@ -106,14 +109,14 @@ export function CandidateDetailModal({ isOpen, onOpenChange, candidateSummary }:
           <DialogTitle className="text-2xl flex items-center">
              <Avatar size="xl" className="mr-4 border-2 border-primary shadow-lg">
                 <AvatarImage
-                  src={displayCandidate.avatarUrl ? displayCandidate.avatarUrl : personalInfo?.avatar_url || `https://placehold.co/64x64.png?text=${displayCandidate.name?.charAt(0) || 'C'}`}
-                  alt={displayCandidate.name || "Candidate"}
+                  src={displayCandidate.avatarUrl ? displayCandidate.avatarUrl : personalInfo?.avatar_url || `https://placehold.co/64x64.png?text=${formatCandidateName(displayCandidate)?.charAt(0) || 'C'}`}
+                  alt={formatCandidateName(displayCandidate) || "Candidate"}
                   data-ai-hint="person avatar"
-                  onError={(e) => { e.currentTarget.src = `https://placehold.co/64x64.png?text=${displayCandidate.name?.charAt(0) || 'C'}`; }}
+                  onError={(e) => { e.currentTarget.src = `https://placehold.co/64x64.png?text=${formatCandidateName(displayCandidate)?.charAt(0) || 'C'}`; }}
                 />
-                <AvatarFallback className="text-lg font-semibold">{displayCandidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                <AvatarFallback className="text-lg font-semibold">{formatCandidateName(displayCandidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
             </Avatar>
-            {displayCandidate.name || "Candidate Details"}
+            {formatCandidateName(displayCandidate)}
           </DialogTitle>
            {displayCandidate.status && (
             <Badge variant={getStatusBadgeVariant(displayCandidate.status)} className="text-sm px-2 py-0.5 capitalize absolute top-7 right-16">

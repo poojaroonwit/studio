@@ -5,8 +5,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3 } from "lucide-react";
+import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
+import { formatCandidateName } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from "next/link";
@@ -29,6 +30,8 @@ import {
 } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+
 
 interface DashboardPageClientProps {
   initialCandidates: Candidate[];
@@ -99,21 +102,42 @@ export default function DashboardPageClient({
         accumulatedFetchError += `Failed to fetch candidates: ${errorText}. `;
         if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesResOrNull) {
-        const candidatesData: Candidate[] = await candidatesResOrNull.json();
+        const response = await candidatesResOrNull.json();
+        const candidatesData: Candidate[] = response.data || response; // Handle both paginated and direct response
         if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       }
 
-      if (usersResOrNull && !usersResOrNull.ok) { /* ... error handling ... */ setAllUsers([]); }
-      else if (usersResOrNull) { setAllUsers(await usersResOrNull.json()); }
+      if (usersResOrNull && !usersResOrNull.ok) { 
+        const errorText = usersResOrNull.statusText || `Status: ${usersResOrNull.status}`;
+        accumulatedFetchError += `Failed to fetch users: ${errorText}. `;
+        setAllUsers([]); 
+      }
+      else if (usersResOrNull) { 
+        const usersData = await usersResOrNull.json();
+        setAllUsers(usersData); 
+      }
 
-      if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { /* ... error handling ... */ setMyBacklogCandidates([]); }
+      if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
+        const errorText = myBacklogCandidatesResOrNull.statusText || `Status: ${myBacklogCandidatesResOrNull.status}`;
+        accumulatedFetchError += `Failed to fetch backlog candidates: ${errorText}. `;
+        setMyBacklogCandidates([]); 
+      }
       else if (myBacklogCandidatesResOrNull) {
-        const backlogData: Candidate[] = await myBacklogCandidatesResOrNull.json();
+        const response = await myBacklogCandidatesResOrNull.json();
+        const backlogData: Candidate[] = response.data || response; // Handle both paginated and direct response
         setMyBacklogCandidates(backlogData.filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
       }
 
-      if (!positionsRes || !positionsRes.ok) { /* ... error handling ... */ setAllPositions([]); }
-      else { setAllPositions(await positionsRes.json()); }
+      if (!positionsRes || !positionsRes.ok) { 
+        const errorText = positionsRes?.statusText || `Status: ${positionsRes?.status}`;
+        accumulatedFetchError += `Failed to fetch positions: ${errorText}. `;
+        setAllPositions([]); 
+      }
+      else { 
+        const response = await positionsRes.json();
+        const positionsData = response.data || response; // Handle both paginated and direct response
+        setAllPositions(positionsData);
+      }
 
       if (accumulatedFetchError) setFetchError(accumulatedFetchError.trim());
 
@@ -148,25 +172,33 @@ export default function DashboardPageClient({
     }
   }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, sessionStatus, session?.user?.role, toast]);
 
+  // Fetch data when session is authenticated and initial data is empty
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session?.user?.id) {
+      // Only fetch if we don't have data already
+      const hasData = (initialCandidates && initialCandidates.length > 0) || 
+                     (initialPositions && initialPositions.length > 0) || 
+                     (initialUsers && initialUsers.length > 0);
+      
+      if (!hasData) {
+        fetchDataClientSide();
+      }
+    }
+  }, [sessionStatus, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
-  const totalActiveCandidates = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
-  }, [allCandidates]);
+
+  const totalActiveCandidates = processedCandidates.activeCandidates;
   const totalOpenPositions = useMemo(() => {
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     return safeAllPositions.filter((p: Position) => p.isOpen).length;
   }, [allPositions]);
-  const hiredThisMonthAdmin = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => {
-      try {
-        if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
-        const appDate = parseISO(c.applicationDate);
-        return c.status === 'Hired' && appDate.getFullYear() === new Date().getFullYear() && appDate.getMonth() === new Date().getMonth();
-      } catch { return false; }
-    }).length;
-  }, [allCandidates]);
+
+  // Memoize open positions to avoid repeated filtering
+  const openPositions = useMemo(() => {
+    const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
+    return safeAllPositions.filter((p: Position) => p.isOpen);
+  }, [allPositions]);
+  const hiredThisMonthAdmin = processedCandidates.hiredThisMonth;
   const totalActiveRecruiters = useMemo(() => {
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
     return safeAllUsers.filter((u: UserProfile) => u.role === 'Recruiter').length;
@@ -211,54 +243,142 @@ export default function DashboardPageClient({
     return safeMyBacklogCandidates.filter((c: Candidate) => c.recruiterId === session?.user?.id);
   }, [myBacklogCandidates, session?.user?.id]);
 
-  // Candidate scoring range metrics with letter grades
-  const candidateScoreRanges = useMemo(() => {
+  // Optimized candidate processing - single pass through candidates array
+  const processedCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const stats = {
+      activeCandidates: 0,
+      unassignedCandidates: 0,
+      unassignedList: [] as Candidate[],
+      stageCounts: {} as { [key: string]: number },
+      scoreRanges: {} as { [key: string]: number },
+      highPriorityCandidates: [] as Candidate[],
+      recentApplications: [] as Candidate[],
+      hiredThisMonth: 0,
+    };
+
     const scoreRanges = getScoreRangesForChart();
-    return scoreRanges.map(range => ({
-      label: range.label,
-      count: safeAllCandidates.filter(c => typeof c.fitScore === 'number' && c.fitScore >= range.min && c.fitScore <= range.max).length
-    }));
-  }, [allCandidates]);
-
-  // Unassigned candidates metric
-  const unassignedCandidatesCount = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId).length;
-  }, [allCandidates]);
-
-  // Unassigned candidates list
-  const unassignedCandidatesList = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId);
-  }, [allCandidates]);
-
-  // Stage summary metrics
-  const stageSummary = useMemo(() => {
-    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    const stageCounts: { [key: string]: number } = {};
     
     safeAllCandidates.forEach((candidate: Candidate) => {
-      if (!BACKLOG_EXCLUSION_STATUSES.includes(candidate.status)) {
+      const isActive = !BACKLOG_EXCLUSION_STATUSES.includes(candidate.status);
+      const isUnassigned = isActive && !candidate.recruiterId;
+      
+      if (isActive) {
+        stats.activeCandidates++;
+        
+        // Stage counts
         const status = candidate.status;
-        stageCounts[status] = (stageCounts[status] || 0) + 1;
+        stats.stageCounts[status] = (stats.stageCounts[status] || 0) + 1;
+        
+        // High priority candidates
+        if (typeof candidate.fitScore === 'number' && candidate.fitScore > 80) {
+          stats.highPriorityCandidates.push(candidate);
+        }
+        
+        // Score ranges
+        scoreRanges.forEach(range => {
+          if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
+            stats.scoreRanges[range.label] = (stats.scoreRanges[range.label] || 0) + 1;
+          }
+        });
+      }
+      
+      if (isUnassigned) {
+        stats.unassignedCandidates++;
+        stats.unassignedList.push(candidate);
+      }
+      
+      // Recent applications
+      if (candidate.applicationDate && typeof candidate.applicationDate === 'string') {
+        try {
+          const appDate = parseISO(candidate.applicationDate);
+          if (appDate >= sevenDaysAgo && appDate <= now) {
+            stats.recentApplications.push(candidate);
+          }
+          
+          // Hired this month
+          if (candidate.status === 'Hired' && appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear()) {
+            stats.hiredThisMonth++;
+          }
+        } catch (error) {
+          // Skip invalid dates
+        }
       }
     });
     
-    return Object.entries(stageCounts).map(([stage, count]) => ({
+    return stats;
+  }, [allCandidates]);
+
+  // Derived statistics from processed data
+  const candidateScoreRanges = useMemo(() => {
+    const scoreRanges = getScoreRangesForChart();
+    return scoreRanges.map(range => ({
+      label: range.label,
+      count: processedCandidates.scoreRanges[range.label] || 0
+    }));
+  }, [processedCandidates.scoreRanges]);
+
+  const unassignedCandidatesCount = processedCandidates.unassignedCandidates;
+  const unassignedCandidatesList = processedCandidates.unassignedList;
+  const highPriorityCandidates = processedCandidates.highPriorityCandidates;
+  const recentApplications = processedCandidates.recentApplications;
+
+  // Stage summary metrics
+  const stageSummary = useMemo(() => {
+    return Object.entries(processedCandidates.stageCounts).map(([stage, count]) => ({
       stage,
       count
-    })).sort((a, b) => b.count - a.count); // Sort by count descending
-  }, [allCandidates]);
+    })).sort((a, b) => b.count - a.count);
+  }, [processedCandidates.stageCounts]);
+
+  // New candidates assigned to me today (for recruiter) - optimized
+  const newCandidatesAssignedToMeToday = useMemo(() => {
+    const safeMyAssignedCandidates = Array.isArray(myAssignedCandidates) ? myAssignedCandidates : [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return safeMyAssignedCandidates.filter((c: Candidate) => {
+      if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      try {
+        const appDate = parseISO(c.applicationDate);
+        appDate.setHours(0, 0, 0, 0);
+        return appDate.getTime() === today.getTime();
+      } catch { 
+        return false; 
+      }
+    });
+  }, [myAssignedCandidates]);
 
   if (authError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You need to be signed in to view the dashboard."}</p> <Button onClick={() => signIn(undefined, { callbackUrl: window.location.pathname })} className="btn-hover-primary-gradient">Sign In</Button> </div> );
   if (permissionError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p> <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Home</Button> </div> );
   if (fetchError && !isLoading && initialFetchError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2> <p className="text-muted-foreground mb-6 max-w-md"> Could not load dashboard data: {fetchError} </p> <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">Try Again</Button> </div> );
-  if (isLoading) return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
+  // Show loading state only for initial load, not for statistics calculations
+  if (isLoading && (!allCandidates.length && !allPositions.length)) return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"> <Loader2 className="h-16 w-16 animate-spin text-primary" /> </div> );
 
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
+      {/* Dashboard Header with Clear All Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="h-6 w-1 bg-primary rounded-full"></div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => router.push('/candidates')}
+          className="flex items-center space-x-2"
+        >
+          <X className="h-4 w-4" />
+          <span>Clear All Filters</span>
+        </Button>
+      </div>
+
       {/* Section 1: Key Performance Indicators */}
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
@@ -281,7 +401,9 @@ export default function DashboardPageClient({
                 </div>
             </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-2xl font-bold text-foreground">
+                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : stat.value}
+                </div>
               </CardContent>
           </Card>
         ))}
@@ -340,6 +462,11 @@ export default function DashboardPageClient({
           return (
             <Card className="shadow-sm hover:shadow-md transition-all duration-200">
               <CardContent className="pt-6">
+                {isLoading ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
                 <Bar
                   data={{
                     labels: sortedScoreRanges.map(r => r.label),
@@ -374,6 +501,16 @@ export default function DashboardPageClient({
                         }
                       }
                     },
+                    onClick: (event, elements) => {
+                      if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const range = sortedScoreRanges[index];
+                        if (range) {
+                          const query = `matchingFitScoreMin:${range.min} matchingFitScoreMax:${range.max}`;
+                          router.push('/candidates?query=' + encodeURIComponent(query));
+                        }
+                      }
+                    },
                     scales: {
                       x: {
                         beginAtZero: true,
@@ -388,6 +525,7 @@ export default function DashboardPageClient({
                   }}
                   height={100}
                 />
+                )}
               </CardContent>
             </Card>
           );
@@ -402,7 +540,7 @@ export default function DashboardPageClient({
             <div className="h-6 w-1 bg-orange-500 rounded-full"></div>
             <h2 className="text-xl font-semibold text-foreground">Unassigned Candidates</h2>
           </div>
-          <Link href="/candidates?recruiterId=unassigned" passHref>
+          <Link href="/candidates?query=recruiterId:unassigned" passHref>
             <Button variant="outline" size="sm">
               View All ({unassignedCandidatesCount})
             </Button>
@@ -410,7 +548,11 @@ export default function DashboardPageClient({
         </div>
         <Card className="shadow-sm hover:shadow-md transition-all duration-200">
           <CardContent className="pt-6">
-            {unassignedCandidatesList.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : unassignedCandidatesList.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -427,10 +569,10 @@ export default function DashboardPageClient({
                       <TableCell>
                         <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                           <Avatar size="sm" className="border border-border">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                            <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
+                            <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{candidate.name}</span>
+                          <span className="font-medium">{formatCandidateName(candidate)}</span>
                         </Link>
                       </TableCell>
                       <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
@@ -460,6 +602,31 @@ export default function DashboardPageClient({
           <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* Unassigned Candidates */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Users className="mr-2 h-5 w-5 text-red-500" />
+                Unassigned Candidates ({unassignedCandidatesCount})
+              </CardTitle>
+              <CardDescription>
+                Candidates not assigned to any recruiter
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{unassignedCandidatesCount}</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('recruiterId:unassigned'))}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* New Candidates Today */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>
@@ -467,46 +634,25 @@ export default function DashboardPageClient({
                 <UserPlus className="mr-2 h-5 w-5 text-orange-500" /> 
                 New Candidates Today ({newCandidatesTodayAdminList.length})
               </CardTitle>
-              <CardDescription>All candidates who applied today.</CardDescription>
+              <CardDescription>
+                Candidates who applied today
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {newCandidatesTodayAdminList.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Recruiter</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {newCandidatesTodayAdminList.slice(0, 5).map(candidate => (
-                      <TableRow key={candidate.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                            <Avatar size="sm" className="border border-border">
-                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                              <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{candidate.name}</span>
-                          </Link>
-                        </TableCell>
-                        <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
-                        </TableCell>
-                        <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <UserRoundSearch className="h-12 w-12 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No new candidates today.</p>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">{newCandidatesTodayAdminList.length}</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const query = `applicationDateStart:${today} applicationDateEnd:${today}`;
+                    router.push('/candidates?query=' + encodeURIComponent(query));
+                  }}
+                >
+                  View All
+                </Button>
                 </div>
-              )}
             </CardContent>
           </Card>
 
@@ -514,13 +660,19 @@ export default function DashboardPageClient({
           <Card className="shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader>
               <CardTitle className="flex items-center text-lg">
-                <FileWarning className="mr-2 h-5 w-5 text-amber-600" /> 
+                <Briefcase className="mr-2 h-5 w-5 text-blue-500" />
                 Positions Needing Applicants ({openPositionsWithNoCandidates.length})
               </CardTitle>
-              <CardDescription>Open positions with no candidates yet.</CardDescription>
+              <CardDescription>
+                Open positions with no candidates yet.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {openPositionsWithNoCandidates.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : openPositionsWithNoCandidates.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -528,6 +680,7 @@ export default function DashboardPageClient({
                       <TableHead>Department</TableHead>
                       <TableHead>Level</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead></TableHead> {/* For View button */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -542,6 +695,11 @@ export default function DashboardPageClient({
                         <TableCell>{position.position_level || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-green-600 border-green-600">Open</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Link href={`/candidates?query=${encodeURIComponent(`positionId:${position.id}`)}`} passHref>
+                            <Button variant="outline" size="sm">View</Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -573,6 +731,10 @@ export default function DashboardPageClient({
                   My Action Items ({myActionItemsList.length})
                 </CardTitle>
                 <CardDescription>Active candidates assigned to you requiring attention.</CardDescription>
+                {/* View button for my assigned candidates */}
+                <Link href={`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id}`)}`} passHref>
+                  <Button variant="outline" size="sm" className="mt-2">View My Candidates</Button>
+                </Link>
               </CardHeader>
               <CardContent>
                 {myActionItemsList.length > 0 ? (
@@ -592,10 +754,10 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                               <Avatar size="sm" className="border border-border">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                                <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
+                                <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{candidate.name}</span>
+                              <span className="font-medium">{formatCandidateName(candidate)}</span>
                             </Link>
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
@@ -642,10 +804,10 @@ export default function DashboardPageClient({
                           <TableCell>
                             <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
                               <Avatar size="sm" className="border border-border">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${candidate.name?.charAt(0) || 'C'}`} alt={candidate.name} />
-                                <AvatarFallback className="text-xs font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
+                                <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{candidate.name}</span>
+                              <span className="font-medium">{formatCandidateName(candidate)}</span>
                             </Link>
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
@@ -664,17 +826,269 @@ export default function DashboardPageClient({
         </div>
       )}
 
-      {/* Section 8: Analytics Chart */}
+      {/* Section 8: Status-based Statistics */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <div className="h-6 w-1 bg-purple-500 rounded-full"></div>
+          <h2 className="text-xl font-semibold text-foreground">Status Overview</h2>
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* High Priority Candidates */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <AlertTriangle className="mr-2 h-5 w-5 text-orange-500" />
+                High Priority Candidates ({highPriorityCandidates.length})
+              </CardTitle>
+              <CardDescription>Candidates with high fit scores (>80) in active stages.</CardDescription>
+              {/* View button for high priority candidates */}
+              <Link href={`/candidates?query=${encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100 status:Applied,Screening,Interview Scheduled,Interviewing')}`} passHref>
+                <Button variant="outline" size="sm" className="mt-2">View High Priority</Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {highPriorityCandidates.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Candidate</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Fit Score</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {highPriorityCandidates.slice(0, 5).map(candidate => (
+                      <TableRow key={candidate.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                            <Avatar size="sm" className="border border-border">
+                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
+                              <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{formatCandidateName(candidate)}</span>
+                          </Link>
+                        </TableCell>
+                        <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-green-600 font-semibold">{formatScoreWithGrade(candidate.fitScore)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
+                  <p className="text-sm text-muted-foreground">No high priority candidates at the moment.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Applications */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Clock className="mr-2 h-5 w-5 text-blue-500" />
+                Recent Applications ({recentApplications.length})
+              </CardTitle>
+              <CardDescription>Candidates who applied in the last 7 days.</CardDescription>
+              {/* View button for recent applications */}
+              <Link href={`/candidates?query=${encodeURIComponent(`applicationDateStart:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)} applicationDateEnd:${new Date().toISOString().slice(0, 10)}`)}`} passHref>
+                <Button variant="outline" size="sm" className="mt-2">View Recent</Button>
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : recentApplications.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Candidate</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Applied</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentApplications.slice(0, 5).map(candidate => (
+                      <TableRow key={candidate.id} className="hover:bg-muted/50">
+                        <TableCell>
+                          <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                            <Avatar size="sm" className="border border-border">
+                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
+                              <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium">{formatCandidateName(candidate)}</span>
+                          </Link>
+                        </TableCell>
+                        <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
+                        </TableCell>
+                        <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Clock className="h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">No recent applications.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Section 9: Analytics Chart */}
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
           <div className="h-6 w-1 bg-indigo-500 rounded-full"></div>
           <h2 className="text-xl font-semibold text-foreground">Analytics Overview</h2>
         </div>
+        {isLoading ? (
         <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-          <CardContent className="pt-6">
-            <CandidatesPerPositionChart candidates={allCandidates} positions={allPositions.filter(p => p.isOpen)} />
+            <CardHeader>
+              <CardTitle>Candidates per Position</CardTitle>
+              <CardDescription>Overview of candidate distribution across open positions.</CardDescription>
+            </CardHeader>
+            <CardContent className="h-[300px] flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </CardContent>
         </Card>
+        ) : (
+          <CandidatesPerPositionChart candidates={allCandidates} positions={openPositions} />
+        )}
+      </div>
+
+      {/* Section 8: High Priority Candidates */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <div className="h-6 w-1 bg-green-500 rounded-full"></div>
+          <h2 className="text-xl font-semibold text-foreground">High Priority Candidates</h2>
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* High Fit Score Candidates */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Star className="mr-2 h-5 w-5 text-yellow-500" />
+                High Fit Score (80+)
+              </CardTitle>
+              <CardDescription>
+                Candidates with excellent fit scores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">High Score</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100'))}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Active Stage Candidates */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Target className="mr-2 h-5 w-5 text-purple-500" />
+                Active Stages
+              </CardTitle>
+              <CardDescription>
+                Candidates in active recruitment stages
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">Active</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Interview Scheduled,Interviewing'))}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Section 9: Recent Activity */}
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <div className="h-6 w-1 bg-blue-500 rounded-full"></div>
+          <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
+        </div>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* This Week's Applications */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <CalendarIcon className="mr-2 h-5 w-5 text-blue-500" />
+                This Week's Applications
+              </CardTitle>
+              <CardDescription>
+                Candidates who applied this week
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">This Week</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    const today = new Date();
+                    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    const query = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)} applicationDateEnd:${today.toISOString().slice(0, 10)}`;
+                    router.push('/candidates?query=' + encodeURIComponent(query));
+                  }}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Engineering Candidates */}
+          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Code className="mr-2 h-5 w-5 text-green-500" />
+                Engineering Candidates
+              </CardTitle>
+              <CardDescription>
+                Candidates with engineering background
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-2xl font-bold">Engineering</div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('education:Engineering,Computer Science,Software'))}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

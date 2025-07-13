@@ -36,6 +36,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import type { UserProfile, PlatformModuleId, UserGroup, PlatformModuleCategory } from '@/lib/types';
 import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
 import { toast } from 'react-hot-toast';
+import { RoleSelector } from '@/components/settings/RoleSelector';
+import { RolePermissionSelector } from '@/components/settings/RolePermissionSelector';
 
 const userRoleOptions: UserProfile['role'][] = ['Admin', 'Recruiter', 'Hiring Manager'];
 const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, ...PlatformModuleId[]];
@@ -71,8 +73,6 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'general' | 'permissions'>(isSelfEdit ? 'general' : 'general');
   const [availableGroups, setAvailableGroups] = useState<UserGroup[]>([]);
-  const [groupSearchOpen, setGroupSearchOpen] = useState(false);
-  const [groupSearchQuery, setGroupSearchQuery] = useState('');
 
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(editUserFormSchema),
@@ -118,7 +118,6 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
     } else if (!isOpen) {
       form.reset({ name: '', email: '', role: 'Recruiter', newPassword: '', forcePasswordChange: false, authenticationMethod: 'basic', modulePermissions: [], groupIds: [] });
       setAvailableGroups([]);
-      setGroupSearchQuery('');
       setActiveTab('general');
     }
   }, [user, isOpen, form, toast, isSelfEdit]);
@@ -145,9 +144,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
 
   if (!user && isOpen) return null;
 
-  const filteredGroups = groupSearchQuery
-    ? availableGroups.filter(group => group.name.toLowerCase().includes(groupSearchQuery.toLowerCase()))
-    : availableGroups;
+
 
   const dialogTitle = isSelfEdit ? "Edit My Profile" : `Edit User: ${user?.name || 'N/A'}`;
   const dialogDescription = isSelfEdit
@@ -165,14 +162,13 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
       if (!open) {
         form.reset({ name: '', email: '', role: 'Recruiter', newPassword: '', forcePasswordChange: false, authenticationMethod: 'basic', modulePermissions: [], groupIds: [] });
         setAvailableGroups([]);
-        setGroupSearchQuery('');
         setActiveTab('general');
       }
     }}>
       <DialogContent className="sm:max-w-6xl lg:max-w-7xl xl:max-w-8xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="p-4 pb-6 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <DialogTitle className="flex items-center text-2xl font-bold">
-            <Edit3 className="mr-3 h-6 w-6 text-primary" /> {typeof dialogTitle === 'object' ? JSON.stringify(dialogTitle) : dialogTitle}
+          <DialogTitle className="flex items-center text-lg font-semibold">
+            <Edit3 className="mr-2 h-4 w-4 text-primary" /> {typeof dialogTitle === 'object' ? JSON.stringify(dialogTitle) : dialogTitle}
           </DialogTitle>
           <DialogDescription className="text-base mt-2">{typeof dialogDescription === 'object' ? JSON.stringify(dialogDescription) : dialogDescription}</DialogDescription>
         </DialogHeader>
@@ -379,61 +375,22 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                     <div className="space-y-8">
                       {/* Groups Section */}
                       <div className="space-y-6">
-                        <div className="border-b pb-2">
-                          <Label className="flex items-center text-xl font-semibold text-primary">
-                            <Users className="mr-3 h-6 w-6" /> User Groups (Roles)
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Assign user to specific groups to inherit their permissions and access levels.
-                          </p>
-                        </div>
                         
-                        <div className="bg-muted/30 rounded-lg p-6 border">
-                          <Popover open={groupSearchOpen} onOpenChange={setGroupSearchOpen}>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" role="combobox" aria-expanded={groupSearchOpen} className="w-full justify-between h-12 text-base">
-                                {form.getValues("groupIds")?.length > 0 ? `${form.getValues("groupIds")?.length} group(s) selected` : "Select groups..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
-                              <div className="p-3">
-                                <Input placeholder="Search group..." value={groupSearchQuery} onChange={(e) => setGroupSearchQuery(e.target.value)} className="h-10" />
-                              </div>
-                              <ScrollArea className="max-h-60">
-                                {availableGroups.length === 0 && <p className="p-4 text-sm text-muted-foreground text-center">No groups available.</p>}
-                                {filteredGroups.length === 0 && groupSearchQuery && <p className="p-4 text-sm text-muted-foreground text-center">No group found.</p>}
-                                {filteredGroups.map(group => (
-                                  <FormField key={group.id} control={form.control} name="groupIds"
-                                    render={({ field }) => (
-                                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 px-3 py-2 hover:bg-accent rounded-sm">
-                                        <FormControl>
-                                          <Checkbox 
-                                            checked={Boolean(field.value?.includes(group.id))}
-                                            onCheckedChange={(checked) => 
-                                              checked 
-                                                ? field.onChange([...(field.value || []), group.id]) 
-                                                : field.onChange((field.value || []).filter(v => v !== group.id))
-                                            }
-                                          />
-                                        </FormControl>
-                                        <FormLabel className="text-sm font-normal cursor-pointer flex-grow">
-                                          <div className="flex flex-col">
-                                            <span className="font-medium">{group.name}</span>
-                                            {group.description && (
-                                              <span className="text-xs text-muted-foreground">{group.description}</span>
-                                            )}
-                                          </div>
-                                        </FormLabel>
-                                      </FormItem>
-                                    )} 
-                                  />
-                                ))}
-                              </ScrollArea>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </div>
+                        <FormField control={form.control} name="groupIds" render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RoleSelector
+                                availableRoles={availableGroups}
+                                selectedRoleIds={field.value || []}
+                                onRolesChange={field.onChange}
+                                title="Role Assignment"
+                                description="Assign user to specific groups to inherit their permissions and access levels."
+                                multiple={true}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                       </div>
 
                       <Separator className="my-8" />
@@ -449,43 +406,19 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                           </p>
                         </div>
                         
-                        <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
-                          {groupedPermissions.map(group => (
-                            <div key={group.category}>
-                              <h4 className="font-semibold text-lg text-primary mb-4 border-b pb-2">{group.category}</h4>
-                              <div className="space-y-4">
-                                {group.permissions.map((module) => (
-                                  <FormField key={module.id} control={form.control} name="modulePermissions"
-                                    render={({ field }) => {
-                                      const checked = field.value?.includes(module.id);
-                                      return (
-                                        <FormItem className="flex flex-row items-center justify-between p-3 rounded-md bg-background hover:bg-muted/50 transition-colors border">
-                                          <div className="flex-1">
-                                            <Label htmlFor={`${user?.id}-${module.id}`} className="font-medium text-base cursor-pointer">
-                                              {module.label}
-                                            </Label>
-                                            <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
-                                          </div>
-                                          <FormControl>
-                                            <Switch
-                                              id={`${user?.id}-${module.id}`}
-                                              checked={checked}
-                                              onCheckedChange={(checked) => 
-                                                checked 
-                                                  ? field.onChange([...(field.value || []), module.id]) 
-                                                  : field.onChange((field.value || []).filter(v => v !== module.id))
-                                              }
-                                            />
-                                          </FormControl>
-                                        </FormItem>
-                                      );
-                                    }} 
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        <FormField control={form.control} name="modulePermissions" render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <RolePermissionSelector
+                                selectedPermissions={field.value || []}
+                                onPermissionsChange={field.onChange}
+                                title="Direct Permissions"
+                                description="Grant specific permissions directly to this user, overriding group permissions."
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                       </div>
                     </div>
                   )}

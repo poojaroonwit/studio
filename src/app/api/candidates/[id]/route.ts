@@ -69,6 +69,7 @@ const updateCandidateSchema = z.object({
   recruiterId: z.string().uuid().nullable().optional(),
   fitScore: z.number().min(0).max(100).optional(),
   status: z.string().min(1).optional(),
+  assignmentJustification: z.string().optional().nullable(),
   parsedData: z.record(z.any()).optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
@@ -152,6 +153,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
+      assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
       position: candidate.positionId ? {
         title: candidate.positionTitle || null,
@@ -191,9 +193,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
-  console.log('API received payload:', { name, email, phone, positionId, recruiterId, fitScore, status, parsedData, custom_attributes, resumePath, transitionNotes });
+  console.log('API received payload:', { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes });
 
   // Extra validation to prevent DB errors
   if (!status || typeof status !== 'string' || status.trim() === '') {
@@ -278,6 +280,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (status !== undefined) {
       updateFields.push(`status = $${paramIndex}`);
       updateValues.push(status);
+      paramIndex++;
+    }
+    if (assignmentJustification !== undefined) {
+      updateFields.push(`"assignmentJustification" = $${paramIndex}`);
+      updateValues.push(assignmentJustification);
       paramIndex++;
     }
     if (parsedData !== undefined) {

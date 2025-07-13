@@ -14,8 +14,9 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, Activity, Clock } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+import { formatCandidateName } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -39,7 +40,9 @@ import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, T
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 import { StagePipeline } from '@/components/candidates/StagePipeline';
+import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
+import JobMatchModal from '@/components/candidates/JobMatchModal';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -51,11 +54,14 @@ const positionLevelOptions: PositionLevel[] = ['entry level', 'mid level', 'seni
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
     case 'Hired': case 'Offer Accepted': return 'default';
+    case 'Applied': case 'Screening': case 'Shortlisted': case 'On Hold': return 'secondary';
     case 'Interview Scheduled': case 'Interviewing': case 'Offer Extended': return 'secondary';
     case 'Rejected': return 'destructive';
     default: return 'outline';
   }
 };
+
+
 
 const personalInfoEditSchema = z.object({
   title_honorific: z.string().optional().nullable(),
@@ -105,6 +111,15 @@ const jobSuitableEntryEditSchema = z.object({
     suitable_salary_bath_month: z.string().optional().nullable(),
 }).deepPartial();
 
+const jobMatchEntryEditSchema = z.object({
+    job_id: z.string().uuid().optional().nullable(),
+    job_title: z.string().optional().nullable(),
+    fit_score: z.number().min(0).max(100).optional().nullable(),
+    match_reasons: z.array(z.string()).optional(),
+    match_reasons_string: z.string().optional().nullable(),
+    is_applied_job: z.boolean().optional(),
+}).deepPartial();
+
 const candidateDetailsEditSchema = z.object({
   cv_language: z.string().optional().nullable(),
   personal_info: personalInfoEditSchema.optional(),
@@ -113,6 +128,7 @@ const candidateDetailsEditSchema = z.object({
   experience: z.array(experienceEntryEditSchema).optional(),
   skills: z.array(skillEntryEditSchema).optional(),
   job_suitable: z.array(jobSuitableEntryEditSchema).optional(),
+  job_matches: z.array(jobMatchEntryEditSchema).optional(),
 }).deepPartial();
 
 const editCandidateDetailSchema = z.object({
@@ -123,111 +139,14 @@ const editCandidateDetailSchema = z.object({
   recruiterId: z.string().uuid().nullable().optional(),
   fitScore: z.number().min(0).max(100).nullable().optional(),
   status: z.string().min(1, "Status is required").optional(),
+  assignmentJustification: z.string().optional(),
   parsedData: candidateDetailsEditSchema.optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 
-interface RoleSuggestionSummaryProps {
-  candidate: Candidate | null;
-  allDbPositions: Position[];
-}
 
-const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate, allDbPositions }) => {
-  if (!candidate || !candidate.parsedData) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg"><Lightbulb className="mr-2 h-5 w-5 text-yellow-500" />Role Suggestion</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No automated job match data to provide suggestions.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Use a type guard to safely access job_matches
-  const jobMatches =
-    candidate.parsedData && 'job_matches' in candidate.parsedData
-      ? candidate.parsedData.job_matches
-      : undefined;
-
-  if (!jobMatches || jobMatches.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-lg"><Lightbulb className="mr-2 h-5 w-5 text-yellow-500" />Role Suggestion</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No automated job match data to provide suggestions.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const currentAppliedPositionId = candidate.positionId;
-  const currentAppliedPosition = allDbPositions.find(p => p.id === currentAppliedPositionId);
-  const currentFitScore = candidate.fitScore || 0;
-  let bestAlternativeMatch: AutomationJobMatch | null = null;
-  let bestAlternativeScore = currentFitScore;
-  let bestAlternativePositionInDb: Position | null = null;
-
-  const openPositionsMap = new Map(allDbPositions.filter(p => p.isOpen).map(p => [p.title.toLowerCase(), p]));
-
-  for (const jobMatch of jobMatches) {
-    const jobMatchTitleLower = jobMatch.job_title?.toLowerCase(); // job_title can be optional/null
-    if (!jobMatchTitleLower) continue;
-
-    const dbPositionMatch = openPositionsMap.get(jobMatchTitleLower);
-
-    if (dbPositionMatch && dbPositionMatch.id !== currentAppliedPositionId) {
-      if (jobMatch.fit_score > bestAlternativeScore && (jobMatch.fit_score - currentFitScore >= 10)) {
-        bestAlternativeScore = jobMatch.fit_score;
-        bestAlternativeMatch = jobMatch;
-        bestAlternativePositionInDb = dbPositionMatch;
-      }
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center text-lg"><Lightbulb className="mr-2 h-5 w-5 text-yellow-500" />Role Suggestion</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {bestAlternativeMatch && bestAlternativePositionInDb ? (
-          <div className="p-3 border border-dashed border-primary/50 rounded-md bg-primary/5">
-            <p className="text-sm text-foreground">
-              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.job_title}</strong> (Open Position).
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Automated Fit Score for this role: <span className={`font-semibold ${getScoreColor(bestAlternativeMatch.fit_score)}`}>{formatScoreWithGrade(bestAlternativeMatch.fit_score)}</span>.
-            </p>
-            {currentAppliedPosition ? (
-              <p className="text-xs text-muted-foreground">
-                Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: <span className={getScoreColor(currentFitScore)}>{formatScoreWithGrade(currentFitScore)}</span>)
-              </p>
-            ) : (
-               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: <span className={getScoreColor(currentFitScore)}>{formatScoreWithGrade(currentFitScore)}</span>).</p>
-            )}
-            {bestAlternativeMatch.match_reasons && bestAlternativeMatch.match_reasons.length > 0 && (
-              <div className="mt-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Top Match Reasons for Suggested Role:</p>
-                <ul className="list-disc list-inside pl-3 text-xs text-foreground">
-                  {bestAlternativeMatch.match_reasons.slice(0, 2).map((reason, i) => <li key={`reason-sugg-${i}`}>{reason}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Candidate appears well-suited for their current applied role, or no significantly stronger alternative open roles were identified from automated matches.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
 
 
 
@@ -284,6 +203,8 @@ export default function CandidateDetailPage() {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
+  const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
+  const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
 
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
@@ -306,12 +227,14 @@ export default function CandidateDetailPage() {
   const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({ control, name: "parsedData.experience" });
   const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
+  const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
 
   const [comments, setComments] = useState<any[]>([]);
   const [resumes, setResumes] = useState<any[]>([]);
   // Add state for attachments
   const [attachments, setAttachments] = useState<any[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
+  const [showAllJobMatches, setShowAllJobMatches] = useState(false);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -559,7 +482,8 @@ export default function CandidateDetailPage() {
 
       if (posResponse.ok) {
         const posData = await posResponse.json();
-        setAllDbPositions(posData.positions || []);
+        // The API returns { data: positions, total } not { positions }
+        setAllDbPositions(posData.data || []);
       } else {
         console.error("Failed to fetch positions");
         toast("Could not load the list of available positions.");
@@ -798,18 +722,28 @@ export default function CandidateDetailPage() {
     }
   };
 
-  const handleJobMatchClick = (jobMatchTitle: string | null | undefined) => {
-    if (!jobMatchTitle) {
-        toast("Job match data is incomplete.");
-        return;
-    }
-    const matchedPosition = allDbPositions.find(p => p.title.toLowerCase() === jobMatchTitle.toLowerCase());
-    if (matchedPosition) {
-      setSelectedPositionForEdit(matchedPosition);
-      setIsEditPositionModalOpen(true);
-    } else {
-      toast(`Position "${jobMatchTitle}" not found in the system.`);
-    }
+    const handleJobMatchClick = (jobMatch: any) => {
+    // Find the position details - try by job_id first, then by job_title
+    const position = allDbPositions.find(p => p.id === jobMatch.job_id) || 
+                    allDbPositions.find(p => p.title === jobMatch.job_title);
+    
+    // Prepare the job match data with position details
+    const jobMatchData = {
+      ...jobMatch,
+      position: position ? {
+        id: position.id,
+        title: position.title,
+        description: position.description,
+        department: position.department,
+        location: (position as any).location,
+        salary: (position as any).salary,
+        requirements: (position as any).requirements,
+        isOpen: position.isOpen,
+      } : undefined
+    };
+    
+    setSelectedJobMatch(jobMatchData);
+    setIsJobMatchModalOpen(true);
   };
 
   const handlePositionEdited = async () => {
@@ -824,6 +758,7 @@ export default function CandidateDetailPage() {
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
     console.log('handleSaveDetails called', data);
+    
     const processedData = {
         ...data,
         parsedData: {
@@ -835,6 +770,12 @@ export default function CandidateDetailPage() {
             experience: data.parsedData?.experience?.map(exp => ({
                 ...exp,
                 postition_level: exp.postition_level === PLACEHOLDER_VALUE_NONE ? null : exp.postition_level
+            })),
+            job_matches: data.parsedData?.job_matches?.map(match => ({
+                ...match,
+                match_reasons: match.match_reasons_string 
+                    ? match.match_reasons_string.split('\n').map(reason => reason.trim()).filter(reason => reason)
+                    : []
             }))
         }
     };
@@ -850,10 +791,10 @@ export default function CandidateDetailPage() {
         await fetchCandidateDetails();
         setIsEditing(false);
         if (data && Object.keys(data).length > 0) {
-          toast("Candidate details updated successfully.");
+          toast.success("Candidate details updated successfully.");
         }
     } catch (error) {
-        toast((error as Error).message);
+        toast.error((error as Error).message);
     }
   };
 
@@ -867,6 +808,7 @@ export default function CandidateDetailPage() {
             recruiterId: candidate.recruiterId,
             fitScore: candidate.fitScore,
             status: candidate.status,
+            assignmentJustification: (candidate as any).assignmentJustification || '',
             parsedData: {
                 ...(candidate.parsedData as CandidateDetails),
                 skills: (candidate.parsedData as CandidateDetails)?.skills?.map(s => ({
@@ -889,29 +831,35 @@ export default function CandidateDetailPage() {
                     is_current_position?: boolean;
                     postition_level?: string | null;
                 }[],
+                job_matches: ((candidate.parsedData as CandidateDetails)?.job_matches?.map(match => ({
+                    ...match,
+                    match_reasons_string: Array.isArray(match.match_reasons) 
+                        ? match.match_reasons.join('\n')
+                        : ''
+                })) || []) as {
+                    job_title?: string | null;
+                    fit_score?: number | null;
+                    match_reasons?: string[];
+                    match_reasons_string?: string | null;
+                    is_applied_job?: boolean;
+                }[],
             }
         });
     }
     setIsEditing(false);
   };
 
-  const jobMatches =
-    candidate &&
-    candidate.parsedData &&
-    'job_matches' in candidate.parsedData &&
-    candidate.parsedData.job_matches &&
-    candidate.parsedData.job_matches.length > 0
-      ? candidate.parsedData.job_matches
-      : undefined;
-
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
-  const [selectedJobMatch, setSelectedJobMatch] = useState<any | null>(null);
 
   const [infoOpen, setInfoOpen] = useState(true);
+  const [contactOpen, setContactOpen] = useState(true);
   const [educationOpen, setEducationOpen] = useState(true);
   const [experienceOpen, setExperienceOpen] = useState(true);
   const [skillsOpen, setSkillsOpen] = useState(true);
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
+  const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
+  const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
+  const [jobMatchesScrollPosition, setJobMatchesScrollPosition] = useState(0);
 
   
   useEffect(() => {
@@ -970,6 +918,11 @@ export default function CandidateDetailPage() {
   const jobSuitable = (candidate.parsedData && 'job_suitable' in candidate.parsedData)
     ? candidate.parsedData.job_suitable
     : undefined;
+  const candidateJobMatches = (candidate.parsedData && 'job_matches' in candidate.parsedData)
+    ? candidate.parsedData.job_matches
+    : undefined;
+  
+
   const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
     ? (candidate.parsedData as any).job_applied
     : undefined;
@@ -1049,21 +1002,51 @@ export default function CandidateDetailPage() {
     <FormProvider {...form}>
       <div className="h-screen overflow-y-auto">
       
+        {/* Floating Save/Cancel Buttons - Only show when editing */}
+        {isEditing && (
+          <div className="fixed top-4 right-4 z-50 flex gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSubmit(handleSaveDetails)}
+              disabled={isSubmitting}
+              className="shadow-lg"
+            >
+              {isSubmitting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {isSubmitting ? 'Saving...' : 'Save'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelEdit}
+              disabled={isSubmitting}
+              className="shadow-lg"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          </div>
+        )}
+      
         <form onSubmit={handleSubmit(handleSaveDetails)}>
           {/* Header - 2 Columns */}
           {candidate && (
             <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
               <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-                {/* Column 1: Candidate Header (7 cols - left sidebar + main content) */}
-                <div className="lg:col-span-7">
+                {/* Column 1: Candidate Header (6 cols) */}
+                <div className="lg:col-span-6">
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       <Avatar className="w-20 h-20 text-3xl relative group">
                         {candidate.avatarUrl ? (
-                          <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
+                          <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
                         ) : (
-                          <AvatarFallback>{candidate.name?.[0] || '?'}</AvatarFallback>
+                          <AvatarFallback>{formatCandidateName(candidate)?.[0] || '?'}</AvatarFallback>
                         )}
                         {/* Pencil icon button for avatar upload */}
                         <button
@@ -1126,14 +1109,9 @@ export default function CandidateDetailPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{candidate.name}</span>
+                        <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{formatCandidateName(candidate)}</span>
                         {candidate.status && (
                           <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
-                        )}
-                        {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                          <span className={`text-sm font-semibold py-1 rounded-full ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}>
-                            Fit Score: {formatScoreWithGrade(candidate.fitScore)}
-                          </span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
@@ -1156,8 +1134,10 @@ export default function CandidateDetailPage() {
                   </div>
                 </div>
                 
-                {/* Column 2: Action Buttons (3 cols - same as comments) */}
-                <div className="lg:col-span-3">
+
+                
+                {/* Column 2: Action Buttons (4 cols) */}
+                <div className="lg:col-span-4">
                   <div className="flex flex-row gap-3">
                     {/* Edit Actions Button with Dropdown */}
                     {!isEditing ? (
@@ -1184,6 +1164,20 @@ export default function CandidateDetailPage() {
                               <button
                                 onClick={() => {
                                   setIsEditing(true);
+                                  // Populate form with existing candidate data
+                                  if (candidate) {
+                                    reset({
+                                      name: candidate.name || '',
+                                      email: candidate.email || '',
+                                      phone: candidate.phone || '',
+                                      positionId: candidate.positionId || null,
+                                      recruiterId: candidate.recruiterId || null,
+                                      fitScore: candidate.fitScore || null,
+                                      status: candidate.status || '',
+                                      assignmentJustification: (candidate as any).assignmentJustification || '',
+                                      parsedData: candidate.parsedData || {}
+                                    });
+                                  }
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
                               >
@@ -1207,36 +1201,7 @@ export default function CandidateDetailPage() {
                       </div>
                     ) : (
                       <div className="flex gap-2 w-1/2">
-                        <Button
-                          variant="default"
-                          size="default"
-                          onClick={handleSubmit(handleSaveDetails)}
-                          disabled={isSubmitting}
-                          className="btn-primary-gradient w-1/2 h-16 flex flex-col items-center justify-center p-3"
-                        >
-                          <div className="flex items-center mb-1">
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            <span className="font-bold text-sm">{isSubmitting ? 'Saving...' : 'Save'}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground leading-tight">
-                            Save all changes
-                          </span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          onClick={handleCancelEdit}
-                          disabled={isSubmitting}
-                          className="w-1/2 h-16 flex flex-col items-center justify-center p-3"
-                        >
-                          <div className="flex items-center mb-1">
-                            <X className="mr-2 h-4 w-4" />
-                            <span className="font-bold text-sm">Cancel</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground leading-tight">
-                            Discard changes
-                          </span>
-                        </Button>
+                        {/* Save/Cancel buttons moved to floating position - this div is now empty */}
                       </div>
                     )}
                     
@@ -1339,67 +1304,425 @@ export default function CandidateDetailPage() {
             <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
               {/* Tabs for main content */}
 
-                   {/* Role Suggestion and Job Matches at the top */}
-                   <div className="space-y-6">
-                     {/* Role Suggestion Summary */}
-                     <RoleSuggestionSummary candidate={candidate} allDbPositions={allDbPositions} />
-                     
-                     {/* Job Matches Table */}
-                     <div className="bg-muted rounded p-6 shadow-sm">
-                       <h2 className="text-xl font-bold tracking-tight mb-4 flex items-center">
-                         <ListChecks className="mr-2 h-6 w-6 text-blue-600" />
-                         Job Matches
-                       </h2>
-                       <div className="overflow-x-auto">
-                         <table className="min-w-full border text-sm">
-                           <thead className="bg-muted">
-                             <tr>
-                               <th className="px-4 py-2 text-left">Title</th>
-                               <th className="px-4 py-2 text-left">Score</th>
-                               <th className="px-4 py-2 text-left">Justification</th>
-                             </tr>
-                           </thead>
-                           <tbody>
-                             {(() => {
-                               const jobMatches = candidate && candidate.parsedData && 'job_matches' in candidate.parsedData && Array.isArray(candidate.parsedData.job_matches)
-                                 ? candidate.parsedData.job_matches
-                                 : [];
-                               const appliedPosition = allDbPositions.find(p => p.id === candidate.positionId);
-                               const appliedMatch = jobMatches.find(
-                                 (jm: any) => appliedPosition && jm.job_title?.toLowerCase() === appliedPosition.title.toLowerCase()
-                               );
-                               const otherMatches = jobMatches.filter((jm: any) => !appliedPosition || jm.job_title?.toLowerCase() !== appliedPosition.title.toLowerCase());
-                               const rows = [];
-                               if (appliedMatch && appliedPosition) {
-                                 rows.push({
-                                   title: appliedPosition.title,
-                                   score: appliedMatch.fit_score,
-                                   justification: (appliedMatch.match_reasons || []).join('; ')
-                                 });
-                               }
-                               for (const jm of otherMatches) {
-                                 rows.push({
-                                   title: jm.job_title,
-                                   score: jm.fit_score,
-                                   justification: (jm.match_reasons || []).join('; ')
-                                 });
-                               }
-                               if (rows.length === 0) {
-                                 return <tr><td colSpan={3} className="text-muted-foreground text-center py-4">No job match data available.</td></tr>;
-                               }
-                               return rows.map((row, i) => (
-                                 <tr key={i} className={i === 0 ? 'bg-primary/10 font-semibold' : ''}>
-                                   <td className="px-4 py-2">{row.title}</td>
-                                   <td className={`px-4 py-2 ${getScoreColor(row.score)}`}>{formatScoreWithGrade(row.score)}</td>
-                                   <td className="px-4 py-2">{row.justification}</td>
-                                 </tr>
-                               ));
-                             })()}
-                           </tbody>
-                         </table>
+                  {/* Job Applied Section */}
+                  <section className="mb-4">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
+                      <Briefcase className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
+                      {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+                    </button>
+                    {jobAppliedOpen && (
+                      <div className="space-y-4 transition-all duration-200">
+                        {isEditing ? (
+                       <div className="space-y-4">
+                            <div className="p-4 border rounded-lg bg-card space-y-4">
+                              <div>
+                                <Label className="text-sm font-medium mb-2">Applied Position</Label>
+                                <Controller
+                                  name="positionId"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <PositionSelectDropdown
+                                      value={field.value || ''}
+                                      onValueChange={field.onChange}
+                                      placeholder="Select the position this candidate applied for..."
+                                      filterOpenOnly={false}
+                                    />
+                                  )}
+                                />
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  This is the position the candidate actually applied for.
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium mb-2">Match Score</Label>
+                                <Input 
+                                  type="number" 
+                                  min="0"
+                                  max="100"
+                                  placeholder="0-100" 
+                                  {...register('fitScore', { 
+                                    valueAsNumber: true,
+                                    min: { value: 0, message: "Score must be at least 0" },
+                                    max: { value: 100, message: "Score must be at most 100" }
+                                  })} 
+                                />
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Rate how well this candidate fits the applied position (0-100).
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
+                                <Textarea 
+                                  placeholder="Explain why this candidate was assigned to this position...&#10;e.g.,&#10;• Strong technical background&#10;• Relevant experience in similar role&#10;• Good cultural fit with team&#10;• Meets all required qualifications"
+                                  {...register('assignmentJustification')}
+                                  rows={4}
+                                  className="resize-none"
+                                />
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Provide detailed reasons for assigning this candidate to the applied position.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {candidate.positionId ? (
+                              <div 
+                                className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
+                                style={{
+                                  background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8))',
+                                  padding: '2px',
+                                  boxShadow: '0 4px 12px -2px hsla(var(--primary), 0.4), 0 2px 4px -1px hsla(var(--primary), 0.2)'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.filter = 'brightness(1.02)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.filter = 'brightness(1)';
+                                }}
+                                onClick={() => {
+                                  const position = allDbPositions.find(p => p.id === candidate.positionId);
+                                  
+                                  if (position) {
+                                    const appliedJobData = {
+                                      job_id: candidate.positionId,
+                                      job_title: position.title,
+                                      fit_score: candidate.fitScore || 0,
+                                      match_reasons: (candidate as any).assignmentJustification ? [(candidate as any).assignmentJustification] : [],
+                                      position: {
+                                        id: position.id,
+                                        title: position.title,
+                                        description: position.description,
+                                        department: position.department,
+                                        location: (position as any).location,
+                                        salary: (position as any).salary,
+                                        requirements: (position as any).requirements,
+                                        isOpen: position.isOpen,
+                                      }
+                                    };
+                                    setSelectedJobMatch(appliedJobData);
+                                    setIsJobMatchModalOpen(true);
+                                  }
+                                }}
+                              >
+                                <div 
+                                  className="rounded-lg p-4 h-full border shadow-lg"
+                                >
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold text-foreground text-lg">
+                                      {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position'}
+                                    </h4>
+                                    {candidate.fitScore !== null && candidate.fitScore !== undefined && (
+                                      <div className="text-2xl font-bold text-primary flex items-center gap-2">
+                                        <span>{candidate.fitScore}%</span>
+                                        <span className="text-lg font-bold text-primary">(A)</span>
+                                      </div>
+                                    )}
+                                   </div>
+                                   
+                                  {(candidate as any).assignmentJustification && (
+                                     <div className="mt-3">
+                                      <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                                        <Info className="h-3 w-3" />
+                                        Justification:
+                                      </h5>
+                                      <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
+                                        {(candidate as any).assignmentJustification}
+                                      </div>
+                                     </div>
+                                   )}
+                                 </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Briefcase className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                                <p>No position applied for.</p>
+                                <p className="text-sm">Click "Edit" to select the position this candidate applied for.</p>
+                              </div>
+                            )}
+                                 </div>
+                               )}
                        </div>
-                     </div>
-                   </div>
+                    )}
+                  </section>
+
+                  {/* Job Matches Section */}
+                  <section className="mb-4">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
+                      <ListChecks className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
+                        Job Matches
+                        {candidateJobMatches && candidateJobMatches.length > 0 && (
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            ({candidateJobMatches.length})
+                          </span>
+                        )}
+                        {candidateJobMatches && candidateJobMatches.length > 1 && (
+                          <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                            ← Scroll →
+                          </span>
+                        )}
+                      </h2>
+                      {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+                    </button>
+                    {jobMatchesOpen && (
+                      <div className="space-y-4 transition-all duration-200">
+
+                        {/* Edit Section */}
+                        {isEditing && (
+                          <div className="border rounded-lg p-4 bg-card">
+                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                              <Edit3 className="h-5 w-5 text-primary" />
+                              Edit Job Matches
+                            </h3>
+                        <div className="space-y-4">
+                            {jobMatchesFields.length === 0 && (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                                    <p>No job matches added yet.</p>
+                                    <p className="text-sm">Click "Add Job Match" to get started.</p>
+                                </div>
+                            )}
+                            {jobMatchesFields.map((field, index) => (
+                                <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-card relative group hover:shadow-md transition-shadow">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-xs text-muted-foreground">
+                                        Job Match #{index + 1}
+                                            </div>
+                                        </div>
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" 
+                                            onClick={() => removeJobMatch(index)}
+                                            title="Remove job match"
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-sm font-medium">Position *</Label>
+                                            <Controller
+                                                name={`parsedData.job_matches.${index}.job_id`}
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <PositionSelectDropdown
+                                                        value={field.value || ''}
+                                                        onValueChange={(value) => {
+                                                            field.onChange(value);
+                                                            // Update job title when position is selected
+                                                            const selectedPosition = allDbPositions.find(p => p.id === value);
+                                                            if (selectedPosition) {
+                                                                setValue(`parsedData.job_matches.${index}.job_title`, selectedPosition.title);
+                                                            }
+                                                        }}
+                                                        placeholder="Select position..."
+                                                        filterOpenOnly={false}
+                                                    />
+                                                )}
+                                            />
+                                            {errors.parsedData?.job_matches?.[index]?.job_id && (
+                                                <p className="text-xs text-destructive">
+                                                    {errors.parsedData.job_matches[index]?.job_id?.message}
+                                                </p>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="space-y-1">
+                                            <Label className="text-sm font-medium">Fit Score</Label>
+                                            <Input 
+                                                type="number" 
+                                                min="0"
+                                                max="100"
+                                                placeholder="0-100" 
+                                                {...register(`parsedData.job_matches.${index}.fit_score`, { 
+                                                    valueAsNumber: true,
+                                                    min: { value: 0, message: "Score must be at least 0" },
+                                                    max: { value: 100, message: "Score must be at most 100" }
+                                                })} 
+                                            />
+                                            {errors.parsedData?.job_matches?.[index]?.fit_score && (
+                                                <p className="text-xs text-destructive">
+                                                    {errors.parsedData.job_matches[index]?.fit_score?.message}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-medium">Match Reasons</Label>
+                                        <Textarea 
+                                            placeholder="Enter match reasons, one per line&#10;e.g.,&#10;• Strong technical skills&#10;• Relevant experience&#10;• Good cultural fit"
+                                            {...register(`parsedData.job_matches.${index}.match_reasons_string`)}
+                                            rows={4}
+                                            className="resize-none"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Each line will become a separate reason. Use bullet points (•) for better formatting.
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div className="space-y-3">
+                                <div className="flex gap-2">
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        className="w-full" 
+                                        onClick={() => appendJobMatch({ 
+                                            job_id: '',
+                                            job_title: '', 
+                                            fit_score: 0, 
+                                            match_reasons: [], 
+                                            is_applied_job: false,
+                                            match_reasons_string: ''
+                                        })}
+                                    >
+                                        <PlusCircle className="mr-2 h-4 w-4" /> Add Job Match
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                                    </div>
+                        )}
+
+                        {/* View Section - Job Matches Cards */}
+                        {!isEditing && (candidateJobMatches && candidateJobMatches.length > 0) && (
+                            <div className="relative">
+                              {/* Left Navigation Button - Section Level */}
+                              {candidateJobMatches.length > 1 && (
+                                    <Button 
+                                        type="button"
+                                        variant="outline" 
+                                  size="icon"
+                                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+                                        onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const container = document.querySelector('.job-matches-container');
+                                    if (container) {
+                                      container.scrollBy({ left: -280, behavior: 'smooth' });
+                                      // Update scroll position after animation
+                                      setTimeout(() => {
+                                        setJobMatchesScrollPosition(container.scrollLeft);
+                                      }, 300);
+                                    }
+                                  }}
+                                >
+                                  <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                              )}
+                              
+                              {/* Right Navigation Button - Section Level */}
+                              {candidateJobMatches.length > 1 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                  size="icon"
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const container = document.querySelector('.job-matches-container');
+                                    if (container) {
+                                      container.scrollBy({ left: 280, behavior: 'smooth' });
+                                      // Update scroll position after animation
+                                      setTimeout(() => {
+                                        setJobMatchesScrollPosition(container.scrollLeft);
+                                      }, 300);
+                                    }
+                                  }}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                              )}
+                                
+                                    <div 
+                                className="flex overflow-x-auto gap-3 pb-2 job-matches-container scrollbar-hide" 
+                                        style={{ 
+                                            scrollbarWidth: 'none', 
+                                            msOverflowStyle: 'none'
+                                        }}
+                                        onScroll={(e) => {
+                                          const target = e.target as HTMLElement;
+                                          setJobMatchesScrollPosition(target.scrollLeft);
+                                        }}
+                                    >
+                                {candidateJobMatches.map((match, index) => {
+                                  // Try to find position by job_id first, then by job_title
+                                  const position = allDbPositions.find(p => p.id === match.job_id) || 
+                                                 allDbPositions.find(p => p.title === match.job_title);
+                                  
+                                  return (
+                                    <div 
+                                      key={`jobmatch-${index}-${match.job_title || index}`} 
+                                      className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
+                                      onClick={() => handleJobMatchClick(match)}
+                                    >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    {(match as any).is_applied_job && (
+                                                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
+                                                    )}
+                                          <h4 className="font-semibold text-foreground text-sm truncate">
+                                            {position?.title || match.job_title || 'Unknown Position'}
+                                          </h4>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                                <div className="text-xs text-muted-foreground">
+                                                    #{index + 1}
+                                                </div>
+                                            </div>
+                                            </div>
+                                            {match.fit_score && match.fit_score > 0 && (
+                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fit_score)}`}>
+                                                    {formatScoreWithGrade(match.fit_score)}
+                                                </div>
+                                            )}
+                                            {match.match_reasons && match.match_reasons.length > 0 && (
+                                                <div>
+                                                    <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                                        <Lightbulb className="h-3 w-3" />
+                                                        Reasons ({match.match_reasons.length}):
+                                                    </h5>
+                                                    <div className="space-y-1 max-h-20 overflow-y-auto">
+                                                        {match.match_reasons.slice(0, 2).map((reason, reasonIndex) => (
+                                                            <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
+                                                                <span className="text-primary text-xs mt-0.5">•</span>
+                                                                <span className="flex-1 line-clamp-1">{reason}</span>
+                                                            </div>
+                                                        ))}
+                                                        {match.match_reasons.length > 2 && (
+                                                            <div className="text-xs text-muted-foreground italic">
+                                                                +{match.match_reasons.length - 2} more reasons
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {(!match.match_reasons || match.match_reasons.length === 0) && (
+                                                <div className="text-xs text-muted-foreground italic">
+                                                    No match reasons provided
+                                                </div>
+                                            )}
+                                        </div>
+                                  );
+                                })}
+                                    </div>
+                                        </div>
+                           
+                    )}
+                              </div>
+                            )}
+                  </section>
 
                   {/* Collapsible Candidate Info Sections */}
                   <section className="mb-4 ">
@@ -1422,10 +1745,10 @@ export default function CandidateDetailPage() {
                             {errors.parsedData?.personal_info?.lastname && <p className="text-sm text-destructive mb-4">{errors.parsedData.personal_info.lastname.message}</p>}
                             <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
                             <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
-                            <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
-                            <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
                             <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
                             <Textarea id="parsedData.personal_info.introduction_aboutme" {...register('parsedData.personal_info.introduction_aboutme')} className="mb-4" />
+                            <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
+                            <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
                         </>
                       ) : (
                           <div className="space-y-4">
@@ -1440,6 +1763,34 @@ export default function CandidateDetailPage() {
                                     <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
                                     </div>
                                 )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* Contact Information Section */}
+                  <section className="mb-4 ">
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
+                      <Mail className="mr-2 h-6 w-6 text-primary" />
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
+                      {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+                    </button>
+                    {contactOpen && (
+                      <div className="space-y-4 transition-all duration-200">
+                     {isEditing ? (
+                        <>
+                            <Label htmlFor="email" className="mb-2">Email *</Label>
+                            <Input id="email" type="email" {...register('email')} className="mb-4" />
+                            {errors.email && <p className="text-sm text-destructive mb-4">{errors.email.message}</p>}
+                            <Label htmlFor="phone" className="mb-2">Phone</Label>
+                            <Input id="phone" type="tel" {...register('phone')} className="mb-4" />
+                            {errors.phone && <p className="text-sm text-destructive mb-4">{errors.phone.message}</p>}
+                        </>
+                      ) : (
+                          <div className="space-y-4">
+                                {renderField("Email", candidate?.email, Mail)}
+                                {renderField("Phone", candidate?.phone, Phone)}
                           </div>
                         )}
                       </div>
@@ -1895,6 +2246,7 @@ export default function CandidateDetailPage() {
                               </div>
                             )}
                   </section>
+
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
             <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
@@ -1960,6 +2312,13 @@ export default function CandidateDetailPage() {
               onEditPosition={handlePositionEdited}
             />
         )}
+        
+        {/* Job Match Modal */}
+        <JobMatchModal
+          isOpen={isJobMatchModalOpen}
+          onClose={() => setIsJobMatchModalOpen(false)}
+          jobMatch={selectedJobMatch}
+        />
       </div>
       {/* Render UploadResumeModal for drag-and-drop upload */}
       <UploadResumeModal
@@ -1968,6 +2327,31 @@ export default function CandidateDetailPage() {
         candidate={candidate}
         onUploadSuccess={handleUploadSuccess}
       />
+
+      {/* Floating Save/Cancel Buttons for Edit Mode */}
+      {isEditing && (
+        <div className="fixed bottom-6 right-6 z-50 flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={handleCancelEdit}
+            className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            size="lg"
+            onClick={handleSubmit(handleSaveDetails)}
+            className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
+        </div>
+      )}
     </FormProvider>
   );
 }

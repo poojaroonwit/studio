@@ -311,44 +311,7 @@ export default function RecruitmentStagesPage() {
     }
   };
 
-  const handleTestSSE = async () => {
-    try {
-      console.log('[TEST] Testing SSE broadcast...');
-      const response = await fetch('/api/settings/recruitment-stages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `Test Stage ${Date.now()}`,
-          description: 'Test stage for SSE debugging',
-          sort_order: stages.length
-        }),
-      });
-      
-      if (response.ok) {
-        const newStage = await response.json();
-        console.log('[TEST] Created test stage:', newStage);
-        toast.success('Test stage created and SSE broadcast triggered');
-        
-        // Delete the test stage after 5 seconds
-        setTimeout(async () => {
-          try {
-            await fetch(`/api/settings/recruitment-stages/${newStage.id}`, {
-              method: 'DELETE'
-            });
-            console.log('[TEST] Deleted test stage');
-          } catch (e) {
-            console.error('[TEST] Error deleting test stage:', e);
-          }
-        }, 5000);
-      } else {
-        console.error('[TEST] Failed to create test stage:', response.status);
-        toast.error('Failed to create test stage');
-      }
-    } catch (error) {
-      console.error('[TEST] Error testing SSE:', error);
-      toast.error('Error testing SSE');
-    }
-  };
+
 
   if (sessionStatus === 'loading' || (isLoading && !fetchError && stages.length === 0)) {
     return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
@@ -382,30 +345,6 @@ export default function RecruitmentStagesPage() {
           <div className="flex gap-2">
             <Button onClick={() => handleOpenModal()} className="btn-primary-gradient mt-2 sm:mt-0">
               <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
-            </Button>
-            <Button 
-              onClick={async () => {
-                console.log('[TEST] Testing SSE broadcast...');
-                const response = await fetch('/api/settings/recruitment-stages');
-                if (response.ok) {
-                  const stages = await response.json();
-                  console.log('[TEST] Current stages:', stages);
-                  // This will trigger a broadcast
-                  await fetch('/api/settings/recruitment-stages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      name: 'Test Stage ' + Date.now(), 
-                      description: 'Test stage for SSE',
-                      sort_order: 999
-                    }),
-                  });
-                }
-              }} 
-              variant="outline" 
-              className="mt-2 sm:mt-0"
-            >
-              Test SSE
             </Button>
           </div>
         </div>

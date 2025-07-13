@@ -158,7 +158,7 @@ function MultiSelect({
           )}
 
           {/* Options */}
-          <ScrollArea className="max-h-[200px]">
+          <ScrollArea className="max-h-[300px] min-h-[100px]">
             {filteredOptions.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 {validOptions.length === 0 ? 'No values available' : 'No values found'}
@@ -558,8 +558,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="pb-4">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader className="pb-4 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Settings className="w-5 h-5" />
             Customize Board Layout
@@ -571,9 +571,9 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'row' | 'column')} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6 flex-shrink-0">
               <TabsTrigger value="row" className="flex items-center gap-2">
                 <List className="w-4 h-4" />
                 Row Configuration
@@ -584,8 +584,8 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-auto">
-              <TabsContent value="row" className="h-full space-y-6">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <TabsContent value="row" className="space-y-6 pb-8">
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium flex items-center gap-2 mb-2">
@@ -629,7 +629,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                 </div>
               </TabsContent>
 
-              <TabsContent value="column" className="h-full space-y-6">
+              <TabsContent value="column" className="space-y-6 pb-8">
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium flex items-center gap-2 mb-2">
@@ -676,7 +676,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           </Tabs>
         </div>
 
-        <DialogFooter className="pt-4 border-t">
+        <DialogFooter className="pt-4 border-t flex-shrink-0">
           <div className="flex items-center justify-between w-full">
             <div className="text-xs text-muted-foreground">
               Changes will be applied immediately to your board

@@ -114,7 +114,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
   }
 
   return (
-    <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
       {statuses.map(status => (
         <div
           key={status}
@@ -126,7 +126,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
           onDrop={() => handleDrop(status)}
         >
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex flex-row items-center justify-between">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex flex-row items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 rounded-full bg-primary"></div>
                 <CardTitle className="text-base font-semibold text-foreground capitalize">{status}</CardTitle>
@@ -146,7 +146,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                 </Button>
               )}
             </CardHeader>
-            <ScrollArea className="flex-grow max-h-[60vh]">
+            <ScrollArea className="flex-1 min-h-0">
               <CardContent className="p-4 space-y-3 min-h-[150px]">
                 {candidatesByStatus[status]?.length > 0 ? (
                   candidatesByStatus[status].map(candidate => (
@@ -656,11 +656,11 @@ export function FlexibleKanbanView({
   if (isColumnBased) {
     return (
       <>
-        <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+        <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
           {effectiveColumnValues.map((colValue) => (
             <div key={colValue} className="flex-shrink-0 w-80 flex flex-col h-full">
               <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-                <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10">
+                <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">
@@ -673,7 +673,7 @@ export function FlexibleKanbanView({
                     </div>
                   </div>
                 </CardHeader>
-                <ScrollArea className="flex-grow max-h-[60vh]">
+                <ScrollArea className="flex-1 min-h-0">
                   <CardContent className="p-4 space-y-4">
                     {effectiveRowValues.map((rowValue) => {
                       const cellCandidates = candidatesByPosition[rowValue]?.[colValue] || [];
@@ -774,7 +774,7 @@ export function FlexibleKanbanView({
   // Render row-based layout (rows = rowField values)
   return (
     <>
-      <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
           {effectiveRowValues.map(rowValue => (
             <div
@@ -958,11 +958,11 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
   };
 
   return (
-    <div className="w-full min-h-[400px] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
       {recruiters.map((recruiter: any) => (
         <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={recruiter.avatarUrl} alt={recruiter.name} />
@@ -976,7 +976,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                 </div>
               </div>
             </CardHeader>
-            <ScrollArea className="flex-grow max-h-[60vh]">
+            <ScrollArea className="flex-1 min-h-0">
               <CardContent className="p-4 space-y-4">
                 {stages.map((stage: any) => {
                   const stageCandidates = candidates.filter((c: any) => c.status === stage && c.recruiterId === recruiter.id);

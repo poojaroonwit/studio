@@ -613,17 +613,17 @@ export default function WebhookManagement() {
                 Add Webhook
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {editingWebhook ? 'Edit Webhook' : 'Create New Webhook'}
-                </DialogTitle>
+                    {editingWebhook ? 'Edit Webhook' : 'Create New Webhook'}
+                  </DialogTitle>
                 <DialogDescription>
-                  Configure webhook settings to receive real-time notifications about application events.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
+                    Configure webhook settings to receive real-time notifications about application events.
+                  </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="name">Webhook Name</Label>
@@ -638,7 +638,7 @@ export default function WebhookManagement() {
                   
                   <div>
                     <Label htmlFor="url">Webhook URL</Label>
-                    <Input
+                        <Input
                       id="url"
                       type="url"
                       value={formData.url}
@@ -646,51 +646,51 @@ export default function WebhookManagement() {
                       placeholder="https://your-domain.com/webhook-endpoint"
                       required
                     />
-                  </div>
-                  
+                    </div>
+
                   <div>
                     <Label>HTTP Method</Label>
-                    <Select
-                      value={formData.method}
-                      onValueChange={(value: 'GET' | 'POST' | 'PUT' | 'PATCH') => 
-                        setFormData(prev => ({ ...prev, method: value }))
-                      }
-                    >
+                      <Select
+                        value={formData.method}
+                        onValueChange={(value: 'GET' | 'POST' | 'PUT' | 'PATCH') => 
+                          setFormData(prev => ({ ...prev, method: value }))
+                        }
+                      >
                       <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="GET">GET</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                      </SelectContent>
-                    </Select>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="POST">POST</SelectItem>
+                          <SelectItem value="GET">GET</SelectItem>
+                          <SelectItem value="PUT">PUT</SelectItem>
+                          <SelectItem value="PATCH">PATCH</SelectItem>
+                        </SelectContent>
+                      </Select>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                    />
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="is_active"
+                          checked={formData.is_active}
+                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                        />
                     <Label htmlFor="is_active">Active</Label>
-                  </div>
-                </div>
+                      </div>
+                    </div>
 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => handleDialogOpen(false)}>
-                    Cancel
-                  </Button>
+                  Cancel
+                </Button>
                   <Button type="submit">
-                    {editingWebhook ? 'Update Webhook' : 'Create Webhook'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+                  {editingWebhook ? 'Update Webhook' : 'Create Webhook'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
+              </div>
 
       <Card>
         <CardHeader>
@@ -745,108 +745,108 @@ export default function WebhookManagement() {
                 </TableRow>
               ) : (
                 webhooks.map((webhook) => (
-                  <TableRow key={webhook.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={isSelected(webhook.id)}
-                        onCheckedChange={(checked) => 
-                          handleWebhookSelection(webhook.id, checked as boolean)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{webhook.name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <span className="truncate max-w-[200px]">{webhook.url}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(webhook.url, `url-${webhook.id}`)}
-                        >
-                          {copiedId === `url-${webhook.id}` ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {webhook.events.slice(0, 2).map(event => (
-                          <Badge key={event} variant="secondary" className="text-xs">
-                            {event}
-                          </Badge>
-                        ))}
-                        {webhook.events.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{webhook.events.length - 2} more
-                          </Badge>
+                <TableRow key={webhook.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={isSelected(webhook.id)}
+                      onCheckedChange={(checked) => 
+                        handleWebhookSelection(webhook.id, checked as boolean)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{webhook.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <span className="truncate max-w-[200px]">{webhook.url}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(webhook.url, `url-${webhook.id}`)}
+                      >
+                        {copiedId === `url-${webhook.id}` ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={webhook.is_active ? 'default' : 'secondary'}>
-                        {webhook.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(webhook.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => copyToClipboard(webhook.id, webhook.id)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy ID
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleLogsDialogOpen(webhook)}>
-                            <History className="mr-2 h-4 w-4" />
-                            View Logs
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleTestDialogOpen(webhook)}>
-                            <TestTube className="mr-2 h-4 w-4" />
-                            Test Webhook
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleEdit(webhook)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Trash2 className="mr-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {webhook.events.slice(0, 2).map(event => (
+                        <Badge key={event} variant="secondary" className="text-xs">
+                          {event}
+                        </Badge>
+                      ))}
+                      {webhook.events.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{webhook.events.length - 2} more
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={webhook.is_active ? 'default' : 'secondary'}>
+                      {webhook.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(webhook.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => copyToClipboard(webhook.id, webhook.id)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy ID
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleLogsDialogOpen(webhook)}>
+                          <History className="mr-2 h-4 w-4" />
+                          View Logs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleTestDialogOpen(webhook)}>
+                          <TestTube className="mr-2 h-4 w-4" />
+                          Test Webhook
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleEdit(webhook)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Webhook</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{webhook.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(webhook.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
                                 Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Webhook</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{webhook.name}"? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(webhook.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
                 ))
               )}
             </TableBody>

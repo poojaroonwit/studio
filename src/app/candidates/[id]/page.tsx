@@ -1837,7 +1837,7 @@ export default function CandidateDetailPage() {
                             <div className="relative">
                               {/* Continuous vertical line that connects all education nodes */}
                               {(education ?? []).length > 0 && (
-                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education.length - 1) * 80}px` }} />
+                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education ?? []).length - 1) * 80}px` }} />
                               )}
                               {(education ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>

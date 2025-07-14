@@ -19,7 +19,7 @@ import { toast } from "react-hot-toast";
 import type { UserProfile } from "@/lib/types";
 import * as React from 'react';
 import { usePathname } from "next/navigation";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 
 
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -27,7 +27,7 @@ const DEFAULT_APP_NAME = "CandiTrack";
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string) {
-  const items = [{ label: "Home", href: "/", icon: Home }];
+  const items: BreadcrumbItem[] = [{ label: "Home", href: "/", icon: Home }];
   
   if (pathname === "/") {
     return [{ label: "Dashboard", href: "/", icon: Home }];
@@ -37,9 +37,9 @@ function getBreadcrumbItems(pathname: string) {
     items.push({ label: "Candidates", href: "/candidates", icon: Users });
     
     if (pathname === "/candidates/upload") {
-      items.push({ label: "Bulk Upload", icon: UploadCloud });
+      items.push({ label: "Bulk Upload", href: "/candidates/upload", icon: UploadCloud });
     } else if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
-      items.push({ label: "Candidate Details", icon: UserCircle });
+      items.push({ label: "Candidate Details", href: pathname, icon: UserCircle });
     }
   }
   
@@ -47,54 +47,54 @@ function getBreadcrumbItems(pathname: string) {
     items.push({ label: "Positions", href: "/positions", icon: Briefcase });
     
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
-      items.push({ label: "Position Details", icon: Briefcase });
+      items.push({ label: "Position Details", href: pathname, icon: Briefcase });
     }
   }
   
   if (pathname.startsWith("/users")) {
-    items.push({ label: "Manage Users", icon: UsersRound });
+    items.push({ label: "Manage Users", href: "/users", icon: UsersRound });
   }
   
   if (pathname.startsWith("/my-tasks")) {
-    items.push({ label: "My Task Board", icon: ListTodo });
+    items.push({ label: "My Task Board", href: "/my-tasks", icon: ListTodo });
   }
   
   if (pathname.startsWith("/settings")) {
     items.push({ label: "Settings", href: "/settings", icon: Settings });
     
     if (pathname.startsWith("/settings/system-settings")) {
-      items.push({ label: "System Settings", icon: Settings });
+      items.push({ label: "System Settings", href: "/settings/system-settings", icon: Settings });
     } else if (pathname.startsWith("/settings/system-preferences")) {
-      items.push({ label: "System Preferences", icon: Palette });
+      items.push({ label: "System Preferences", href: "/settings/system-preferences", icon: Palette });
     } else if (pathname.startsWith("/settings/stages")) {
-      items.push({ label: "Recruitment Stages", icon: KanbanSquare });
+      items.push({ label: "Recruitment Stages", href: "/settings/stages", icon: KanbanSquare });
     } else if (pathname.startsWith("/settings/data-models")) {
-      items.push({ label: "Data Model UI", icon: DatabaseZap });
+      items.push({ label: "Data Model UI", href: "/settings/data-models", icon: DatabaseZap });
     } else if (pathname.startsWith("/settings/custom-fields")) {
-      items.push({ label: "Custom Fields", icon: Settings2 });
+      items.push({ label: "Custom Fields", href: "/settings/custom-fields", icon: Settings2 });
     } else if (pathname.startsWith("/settings/user-groups")) {
-      items.push({ label: "User Groups", icon: UsersRound });
+      items.push({ label: "User Groups", href: "/settings/user-groups", icon: UsersRound });
     } else if (pathname.startsWith("/settings/users")) {
-      items.push({ label: "Users", icon: UsersRound });
+      items.push({ label: "Users", href: "/settings/users", icon: UsersRound });
     } else if (pathname.startsWith("/settings/webhooks")) {
-      items.push({ label: "Webhooks", icon: Webhook });
+      items.push({ label: "Webhooks", href: "/settings/webhooks", icon: Webhook });
     } else if (pathname.startsWith("/settings/logs")) {
-      items.push({ label: "Application Logs", icon: ListOrdered });
+      items.push({ label: "Application Logs", href: "/settings/logs", icon: ListOrdered });
     } else if (pathname.startsWith("/settings/api-docs")) {
-      items.push({ label: "API Documentation", icon: Code2 });
+      items.push({ label: "API Documentation", href: "/settings/api-docs", icon: Code2 });
     }
   }
   
   if (pathname.startsWith("/api-docs")) {
-    items.push({ label: "API Documentation", icon: Code2 });
+    items.push({ label: "API Documentation", href: "/api-docs", icon: Code2 });
   }
   
   if (pathname.startsWith("/logs")) {
-    items.push({ label: "Application Logs", icon: ListOrdered });
+    items.push({ label: "Application Logs", href: "/logs", icon: ListOrdered });
   }
   
   if (pathname.startsWith("/auth/signin")) {
-    return [{ label: "Sign In", icon: LogIn }];
+    return [{ label: "Sign In", href: "/auth/signin", icon: LogIn }];
   }
   
   return items;

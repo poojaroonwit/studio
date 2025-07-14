@@ -60,7 +60,7 @@ interface CandidateFiltersProps {
   onClearAllFilters?: () => void;
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
-  availableRecruiters: UserProfile[];
+  availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
   isLoading?: boolean;
   isAiSearching?: boolean;
   aiSearchResults?: any;

@@ -48,11 +48,11 @@ export function TipTapEditor({
   placeholder = "Start writing...",
   className,
   readOnly = false,
-}) {
+}: TipTapEditorProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [editorInstance, setEditorInstance] = useState(null);
-  const editorRef = useRef(null);
-  const tiptapEditorRef = useRef(null);
+  const [editorInstance, setEditorInstance] = useState<any>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const tiptapEditorRef = useRef<any>(null);
   const isSettingContent = useRef(false);
 
   // Initialize editor only once
@@ -137,7 +137,7 @@ export function TipTapEditor({
 }
 
 // Toolbar implementation
-function TipTapToolbar({ editor }) {
+function TipTapToolbar({ editor }: { editor: any }) {
   if (!editor) return null;
   
   return (

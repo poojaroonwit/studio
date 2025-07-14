@@ -177,6 +177,8 @@ export interface AutomationJobMatch {
   job_title?: string | null;
   fit_score: number;
   match_reasons?: string[];
+  match_reasons_string?: string | null;
+  is_applied_job?: boolean;
 }
 
 export interface CandidateDetails {

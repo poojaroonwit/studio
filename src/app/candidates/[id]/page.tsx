@@ -2218,7 +2218,7 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-2 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
               {/* Comments & Activity Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">

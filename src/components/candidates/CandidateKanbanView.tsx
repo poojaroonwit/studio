@@ -8,7 +8,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useMemo } from 'react';
-import { CandidateDetailModal } from './CandidateDetailModal';
+import CandidateDetailModal from './CandidateDetailModal';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
@@ -253,9 +253,9 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
       {/* Candidate Detail Modal */}
       {selectedCandidateSummary && (
         <CandidateDetailModal
-          isOpen={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          candidateSummary={selectedCandidateSummary}
+          candidateId={selectedCandidateSummary.id}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </div>
@@ -493,9 +493,9 @@ export function CandidateRowKanbanView({
       {/* Candidate Detail Modal */}
       {selectedCandidateSummary && (
         <CandidateDetailModal
-          isOpen={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          candidateSummary={selectedCandidateSummary}
+          candidateId={selectedCandidateSummary.id}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </>
@@ -709,7 +709,7 @@ export function FlexibleKanbanView({
                                   >
                                     <div className="flex items-start gap-2">
                                       <Avatar className="h-6 w-6 flex-shrink-0">
-                                        <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
+                                        <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
                                         <AvatarFallback className="bg-primary/10 text-primary text-xs">
                                           {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
                                         </AvatarFallback>
@@ -759,12 +759,12 @@ export function FlexibleKanbanView({
           ))}
         </div>
         
-        {/* Candidate Detail Modal */}
-        {selectedCandidateSummary && (
+        {/* Candidate Detail Modal - only show if onCardClick is not provided */}
+        {!onCardClick && selectedCandidateSummary && (
           <CandidateDetailModal
-            isOpen={isModalOpen}
-            onOpenChange={setIsModalOpen}
-            candidateSummary={selectedCandidateSummary}
+            candidateId={selectedCandidateSummary.id}
+            open={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
           />
         )}
       </>
@@ -898,12 +898,12 @@ export function FlexibleKanbanView({
         </div>
       </div>
       
-      {/* Candidate Detail Modal */}
-      {selectedCandidateSummary && (
+      {/* Candidate Detail Modal - only show if onCardClick is not provided */}
+      {!onCardClick && selectedCandidateSummary && (
         <CandidateDetailModal
-          isOpen={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          candidateSummary={selectedCandidateSummary}
+          candidateId={selectedCandidateSummary.id}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </>
@@ -1012,7 +1012,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                               >
                                 <div className="flex items-start gap-2">
                                   <Avatar className="h-6 w-6 flex-shrink-0">
-                                    <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
+                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
                                     <AvatarFallback className="bg-primary/10 text-primary text-xs">
                                       {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
                                     </AvatarFallback>

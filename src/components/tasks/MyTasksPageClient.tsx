@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FlexibleKanbanView } from '@/components/candidates/CandidateKanbanView';
-import { FullCandidateDetailModal } from '@/components/candidates/FullCandidateDetailModal';
+import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CustomizeBoardModal } from './CustomizeBoardModal';
@@ -576,10 +576,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       />
 
       {selectedCandidate && (
-        <FullCandidateDetailModal
-          candidate={selectedCandidate}
+        <CandidateDetailModal
+          candidateId={selectedCandidate.id}
           open={!!selectedCandidate}
-          onOpenChange={(open) => !open && setSelectedCandidate(null)}
+          onClose={() => setSelectedCandidate(null)}
         />
       )}
     </div>

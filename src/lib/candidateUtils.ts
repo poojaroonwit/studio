@@ -4,7 +4,7 @@ import type { Candidate } from '@/lib/types';
  * Formats candidate name as "Title FirstName LastName"
  * Falls back to candidate.name if personal info is not available
  */
-export const formatCandidateName = (candidate: Candidate): string => {
+export const formatCandidateName = (candidate: Partial<Candidate> & { id: string; name: string }): string => {
   const personalInfo = (candidate.parsedData && 'personal_info' in candidate.parsedData)
     ? candidate.parsedData.personal_info
     : undefined;

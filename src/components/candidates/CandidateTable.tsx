@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CandidateDetailModal } from './CandidateDetailModal';
+import CandidateDetailModal from './CandidateDetailModal';
 import { cn } from '@/lib/utils';
 
 
@@ -369,9 +369,9 @@ export function CandidateTable({
       </div>
       {selectedCandidateSummary && (
         <CandidateDetailModal
-          isOpen={isDetailModalOpen}
-          onOpenChange={setIsDetailModalOpen}
-          candidateSummary={selectedCandidateSummary}
+          candidateId={selectedCandidateSummary.id}
+          open={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
         />
       )}
       <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>

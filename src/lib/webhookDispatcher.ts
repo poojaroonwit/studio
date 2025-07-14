@@ -6,6 +6,7 @@ export interface WebhookPayload {
   timestamp: string;
   data: any;
   webhook_id?: string;
+  [key: string]: any;
 }
 
 export interface WebhookResult {
@@ -150,7 +151,7 @@ export class WebhookDispatcher {
 
     // Add custom headers
     Object.entries(webhook.headers).forEach(([key, value]) => {
-      headers[key] = value;
+      headers[key] = typeof value === 'string' ? value : String(value);
     });
 
     // Add authentication headers
@@ -252,7 +253,7 @@ export class WebhookDispatcher {
         data: {
           webhook_id: webhookId,
           event_type: eventType,
-          payload,
+          payload: payload as any,
           response_status: responseStatus,
           response_body: responseBody,
           success,

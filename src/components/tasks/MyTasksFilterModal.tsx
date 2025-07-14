@@ -281,7 +281,7 @@ export function MyTasksFilterModal({
               {Object.entries(localFilters).map(([key, value]) => {
                 if (value === undefined || value === '' || value === null) return null;
                 
-                let displayValue = value;
+                let displayValue = String(value);
                 let label = key;
                 
                 // Format display values
@@ -303,10 +303,10 @@ export function MyTasksFilterModal({
                   label = 'Max Score';
                 } else if (key === 'applicationDateStart') {
                   label = 'From Date';
-                  displayValue = new Date(value).toLocaleDateString();
+                  displayValue = typeof value === 'string' && value ? new Date(value).toLocaleDateString() : String(value);
                 } else if (key === 'applicationDateEnd') {
                   label = 'To Date';
-                  displayValue = new Date(value).toLocaleDateString();
+                  displayValue = typeof value === 'string' && value ? new Date(value).toLocaleDateString() : String(value);
                 }
 
                 return (

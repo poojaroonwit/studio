@@ -140,6 +140,7 @@ export default function WysiwygDemoPage() {
               value={tiptapContent}
               onChange={setTipTapContent}
               placeholder="Start writing with TipTap..."
+              className=""
             />
           </CardContent>
         </Card>
@@ -371,6 +372,7 @@ function MyComponent() {
       value={content}
       onChange={setContent}
       placeholder="Start writing..."
+      className=""
     />
   );
 }`}

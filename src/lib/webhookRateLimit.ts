@@ -1,4 +1,3 @@
-import { Redis } from 'ioredis';
 import getRedisClient from './redis';
 
 export interface RateLimitConfig {
@@ -21,9 +20,10 @@ export class WebhookRateLimiter {
     this.config = config;
   }
 
-  private async getRedis(): Promise<Redis | null> {
+  private async getRedis(): Promise<any> {
     try {
-      return await getRedisClient();
+      const client = await getRedisClient();
+      return client as any;
     } catch (error) {
       console.error('Failed to get Redis client:', error);
       return null;

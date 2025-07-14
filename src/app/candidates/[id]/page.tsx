@@ -598,6 +598,13 @@ export default function CandidateDetailPage() {
         }
       } catch (e) {}
     });
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+    });
     
     // Listen for recruitment stage updates
     eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
@@ -997,6 +1004,24 @@ export default function CandidateDetailPage() {
     const d = parse(str, 'MMM yyyy', new Date());
     return isValid(d) ? d : null;
   };
+
+  // Initialize form if not already done
+  const form = useForm<EditCandidateFormValues>({
+    resolver: zodResolver(editCandidateDetailSchema),
+    defaultValues: {
+      name: candidate?.name || '',
+      email: candidate?.email || '',
+      phone: candidate?.phone || '',
+      positionId: candidate?.positionId || null,
+      recruiterId: candidate?.recruiterId || null,
+      fitScore: candidate?.fitScore || null,
+      status: candidate?.status || '',
+      assignmentJustification: (candidate as any)?.assignmentJustification || '',
+      parsedData: (candidate?.parsedData as any) || {}
+    }
+  });
+
+  const { handleSubmit, reset, setValue, formState: { isSubmitting } } = form;
 
   return (
     <FormProvider {...form}>

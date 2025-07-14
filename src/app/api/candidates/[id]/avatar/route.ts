@@ -102,14 +102,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Avatar uploaded successfully', avatarUrl: publicUrl }, { status: 200 });
     } catch (dbError) {
       await client.query('ROLLBACK');
-      await logAudit('ERROR', `Failed to update candidate avatar. Error: ${dbError.message}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
-      return NextResponse.json({ message: 'Failed to update candidate avatar', error: dbError.message }, { status: 500 });
+      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown database error';
+      await logAudit('ERROR', `Failed to update candidate avatar. Error: ${errorMessage}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
+      return NextResponse.json({ message: 'Failed to update candidate avatar', error: errorMessage }, { status: 500 });
     } finally {
       client.release();
     }
   } catch (error) {
-    await logAudit('ERROR', `Avatar upload failed. Error: ${error.message}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
-    return NextResponse.json({ message: 'Avatar upload failed', error: error.message }, { status: 500 });
+          const uploadErrorMessage = error instanceof Error ? error.message : 'Unknown upload error';
+      await logAudit('ERROR', `Avatar upload failed. Error: ${uploadErrorMessage}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
+      return NextResponse.json({ message: 'Avatar upload failed', error: uploadErrorMessage }, { status: 500 });
   }
 }
 

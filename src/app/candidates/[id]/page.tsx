@@ -1175,7 +1175,7 @@ export default function CandidateDetailPage() {
                                       fitScore: candidate.fitScore || null,
                                       status: candidate.status || '',
                                       assignmentJustification: (candidate as any).assignmentJustification || '',
-                                      parsedData: candidate.parsedData || {}
+                                      parsedData: (candidate.parsedData as any) || {}
                                     });
                                   }
                                 }}

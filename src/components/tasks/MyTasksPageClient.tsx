@@ -84,7 +84,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     });
     
     return () => {
-      console.log('[SSE] Cleaning up SSE connection for tasks page');
       eventSource.close();
     };
   }, []);
@@ -126,23 +125,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Load preferences (including visibleRowValues/visibleColumnValues) on mount and after modal save
   const loadBoardPrefs = useCallback(() => {
-    console.log('MyTasksPageClient: loadBoardPrefs called');
-    console.log('MyTasksPageClient: Current state when loading prefs:', {
-      uniqueRowValues,
-      uniqueColumnValues,
-      stages,
-      recruiters,
-      positions,
-      rowField,
-      columnField
-    });
     fetch('/api/settings/user-preferences')
       .then(res => {
-        console.log('MyTasksPageClient: User preferences response status:', res.status);
         return res.json();
       })
       .then(prefs => {
-        console.log('MyTasksPageClient: Loaded preferences:', prefs);
         const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
@@ -150,13 +137,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         const newRowField = rowPref ? rowPref.customNote || 'status' : 'status';
         const newColumnField = colPref ? colPref.customNote || 'recruiterId' : 'recruiterId';
-        
-        console.log('MyTasksPageClient: Setting fields:', {
-          newRowField,
-          newColumnField,
-          rowPref,
-          colPref
-        });
         
         setRowField(newRowField);
         setColumnField(newColumnField);
@@ -171,33 +151,26 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         if (visibleRowPref) {
           try {
             const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
-            console.log('MyTasksPageClient: Setting visibleRowValues:', parsedValues);
             setVisibleRowValues(parsedValues);
           } catch {
-            console.log('MyTasksPageClient: Error parsing visibleRowValues, setting empty array');
             setVisibleRowValues([]);
           }
         } else {
-          console.log('MyTasksPageClient: No visibleRowPref, setting uniqueRowValues:', uniqueRowValues);
           setVisibleRowValues(uniqueRowValues);
         }
         if (visibleColPref) {
           try {
             const parsedValues = JSON.parse(visibleColPref.customNote) || [];
-            console.log('MyTasksPageClient: Setting visibleColumnValues:', parsedValues);
             setVisibleColumnValues(parsedValues);
           } catch {
-            console.log('MyTasksPageClient: Error parsing visibleColumnValues, setting empty array');
             setVisibleColumnValues([]);
           }
         } else {
-          console.log('MyTasksPageClient: No visibleColPref, setting uniqueColumnValues:', uniqueColumnValues);
           setVisibleColumnValues(uniqueColumnValues);
         }
         
         // Fallback: if visibleRowValues is still empty, use stages as default
         if (uniqueRowValues.length === 0 && stages.length > 0) {
-          console.log('MyTasksPageClient: Fallback - setting visibleRowValues to stages:', stages);
           setVisibleRowValues(stages);
         }
       })
@@ -226,17 +199,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Fallback: ensure visibleRowValues has a value when stages are loaded
   useEffect(() => {
     if (stages.length > 0 && visibleRowValues.length === 0 && rowField === 'status') {
-      console.log('MyTasksPageClient: Fallback useEffect - setting visibleRowValues to stages:', stages);
       setVisibleRowValues(stages);
     }
   }, [stages, visibleRowValues.length, rowField]);
 
   // When modal closes after save, reload preferences
   const handleCustomizeModalChange = (open: boolean) => {
-    console.log('MyTasksPageClient: handleCustomizeModalChange called with open:', open);
     setIsCustomizeModalOpen(open);
     if (!open) {
-      console.log('MyTasksPageClient: Modal closed, reloading preferences...');
       loadBoardPrefs();
     }
   };
@@ -496,28 +466,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              (() => {
-                console.log('MyTasksPageClient: Rendering FlexibleKanbanView with props:', {
-                  rowField,
-                  columnField,
-                  visibleRowValues,
-                  visibleColumnValues,
-                  candidatesCount: displayedCandidates.length
-                });
-                return (
-                  <FlexibleKanbanView
-                    candidates={displayedCandidates}
-                    statuses={stages}
-                    onMoveCandidate={handleMoveCandidate}
-                    onCardClick={setSelectedCandidate}
-                    rowField={rowField}
-                    columnField={columnField}
-                    visibleFields={boardPrefs.visibleFields}
-                    visibleRowValues={visibleRowValues}
-                    visibleColumnValues={visibleColumnValues}
-                  />
-                );
-              })()
+              <FlexibleKanbanView
+                candidates={displayedCandidates}
+                statuses={stages}
+                onMoveCandidate={handleMoveCandidate}
+                onCardClick={setSelectedCandidate}
+                rowField={rowField}
+                columnField={columnField}
+                visibleFields={boardPrefs.visibleFields}
+                visibleRowValues={visibleRowValues}
+                visibleColumnValues={visibleColumnValues}
+              />
             ) : (
               // Table View
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

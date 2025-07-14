@@ -63,13 +63,10 @@ export function StagePipeline({
 
   // Set up SSE for real-time updates
   useEffect(() => {
-    console.log('[StagePipeline] Setting up SSE connection for candidate', candidateId);
-    
     const eventSource = new EventSource('/api/candidates/sse');
     eventSourceRef.current = eventSource;
     
     eventSource.onopen = () => {
-      console.log('[StagePipeline] SSE connection opened');
       setIsConnected(true);
     };
     
@@ -83,7 +80,6 @@ export function StagePipeline({
       try {
         const updatedCandidate = JSON.parse(event.data);
         if (updatedCandidate.id === candidateId) {
-          console.log('[StagePipeline] Received candidate update:', updatedCandidate);
           setLocalCurrentStatus(updatedCandidate.status || localCurrentStatus);
         }
       } catch (e) {
@@ -96,7 +92,6 @@ export function StagePipeline({
       try {
         const payload = JSON.parse(event.data);
         if (payload.candidateId === candidateId) {
-          console.log('[StagePipeline] Received transition update:', payload);
           // Update transition history based on action
           if (payload.action === 'add') {
             setLocalTransitionHistory(prev => [...prev, payload.transition]);
@@ -118,9 +113,7 @@ export function StagePipeline({
     // Listen for recruitment stage updates
     eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
       try {
-        console.log('[StagePipeline] Received recruitment stages update:', event.data);
         const updatedStages = JSON.parse(event.data);
-        console.log('[StagePipeline] Parsed stages:', updatedStages);
         setLocalStages(updatedStages);
       } catch (e) {
         console.error('[StagePipeline] Error parsing recruitment stages update:', e);
@@ -129,7 +122,6 @@ export function StagePipeline({
 
     // Cleanup function
     return () => {
-      console.log('[StagePipeline] Cleaning up SSE connection');
       setIsConnected(false);
       eventSource.close();
       eventSourceRef.current = null;

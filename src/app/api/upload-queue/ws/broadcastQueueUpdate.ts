@@ -7,32 +7,20 @@ import { clients } from './clients';
 
 export async function broadcastQueueUpdate() {
   try {
-    console.log(`[BROADCAST] Broadcasting queue update to ${clients.size} clients`);
-    
     const client = await getPool().connect();
     try {
       const res = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC');
       const data = JSON.stringify({ type: 'queue', data: res.rows });
       
-      let successCount = 0;
-      let errorCount = 0;
-      
       for (const ws of clients) {
         try {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(data);
-            successCount++;
-          } else {
-            console.log('[BROADCAST] Skipping closed WebSocket connection');
-            errorCount++;
           }
         } catch (error) {
           console.error('[BROADCAST] Error sending to client:', error);
-          errorCount++;
         }
       }
-      
-      console.log(`[BROADCAST] Broadcast completed. Success: ${successCount}, Errors: ${errorCount}`);
     } finally {
       client.release();
     }

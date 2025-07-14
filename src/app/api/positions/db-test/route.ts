@@ -9,9 +9,7 @@ export async function GET() {
     const pool = getPool();
     console.log('[POSITIONS/DB-TEST] Database pool obtained');
     
-    console.log('[POSITIONS/DB-TEST] Testing simple query...');
     const result = await pool.query('SELECT COUNT(*) as count FROM "Position"');
-    console.log('[POSITIONS/DB-TEST] Query executed successfully');
     
     const count = result.rows[0]?.count || 0;
     console.log(`[POSITIONS/DB-TEST] Position count: ${count}`);

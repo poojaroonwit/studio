@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
     }
 
-    console.log('[API] Updating recruitment stage:', id, 'with data:', validation.data);
+
 
     const client = await getPool().connect();
     try {
@@ -142,26 +142,19 @@ export async function PUT(request: NextRequest) {
             RETURNING *;
         `;
 
-        console.log('[API] Update query:', updateQuery);
-        console.log('[API] Query params:', queryParams, id);
+
 
         const result = await client.query(updateQuery, [...queryParams, id]);
 
         if (result.rowCount === 0) {
-            console.log('[API] No rows updated for stage ID:', id);
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
-
-        console.log('[API] Successfully updated stage:', result.rows[0].name);
 
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) updated.`, 'API:RecruitmentStages:Update', actingUserId, { stageId: id, changes: validation.data });
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
-        console.log('[API] Updating stage, broadcasting update...');
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        console.log('[API] Fetched updated stages:', updatedStages.length);
-        console.log('[API] Stages to broadcast:', updatedStages.map(s => s.name));
         broadcastRecruitmentStagesUpdate(updatedStages);
         
         return NextResponse.json(result.rows[0]);
@@ -193,9 +186,7 @@ export async function DELETE(request: NextRequest) {
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
-        console.log('[API] Deleting stage, broadcasting update...');
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        console.log('[API] Fetched updated stages:', updatedStages.length);
         broadcastRecruitmentStagesUpdate(updatedStages);
         
         return NextResponse.json({ message: "Recruitment stage deleted successfully" });

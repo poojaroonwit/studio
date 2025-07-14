@@ -89,9 +89,6 @@ export async function GET(request: NextRequest) {
     query += ' ORDER BY "createdAt" DESC';
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     queryParams.push(limit, offset);
-
-    console.log('Positions API: Executing query:', query);
-    console.log('Positions API: Query params:', queryParams);
     
     const result = await getPool().query(query, queryParams);
     const countResult = await getPool().query(countQuery, queryParams.slice(0, paramIndex - 1));

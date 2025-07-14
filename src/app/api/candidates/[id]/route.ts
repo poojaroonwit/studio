@@ -106,7 +106,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       WHERE c.id = $1::uuid;
     `;
     const candidateResult = await client.query(candidateQuery, [id]);
-    console.log('Candidate query result for ID', id, candidateResult.rows);
     
     if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });

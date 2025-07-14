@@ -9,8 +9,6 @@ export async function GET(request: NextRequest) {
   
   const stream = new ReadableStream({
     async start(controller) {
-      console.log('[SSE] Client connected');
-      
       // Send initial data
       try {
         const client = await getPool().connect();
@@ -19,7 +17,6 @@ export async function GET(request: NextRequest) {
         
         const data = JSON.stringify({ type: 'queue', data: res.rows });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        console.log(`[SSE] Sent initial data (${res.rows.length} items)`);
       } catch (error) {
         console.error('[SSE] Failed to send initial data:', error);
         const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
@@ -40,8 +37,6 @@ export async function GET(request: NextRequest) {
             try {
               const msg = JSON.parse(message);
               if (msg.type === 'queue_updated') {
-                console.log('[SSE] Received queue update, fetching latest data');
-                
                 // Fetch updated data and send to client
                 const client = await getPool().connect();
                 const res = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC');
@@ -49,14 +44,11 @@ export async function GET(request: NextRequest) {
                 
                 const data = JSON.stringify({ type: 'queue', data: res.rows });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-                console.log(`[SSE] Sent updated data (${res.rows.length} items)`);
               }
             } catch (error) {
               console.error('[SSE] Error processing Redis message:', error);
             }
           });
-          
-          console.log('[SSE] Redis subscription established');
         }
       } catch (error) {
         console.error('[SSE] Failed to subscribe to Redis:', error);
@@ -74,7 +66,6 @@ export async function GET(request: NextRequest) {
       
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        console.log('[SSE] Client disconnected');
         clearInterval(keepaliveInterval);
         if (redisSubscription) {
           redisSubscription.unsubscribe();

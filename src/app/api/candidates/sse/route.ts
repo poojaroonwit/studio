@@ -21,14 +21,12 @@ export async function GET(request: NextRequest) {
   const stream = new ReadableStream({
     start(controller) {
       thisController = controller;
-      console.log('[SSE] Client connected to /api/candidates/sse');
       addSseController(controller);
 
       // Send initial event
       try {
         const data = JSON.stringify({ type: 'connected', message: 'SSE connection established' });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        console.log('[SSE] Sent initial connection confirmation');
       } catch (error) {
         console.error('[SSE] Failed to send initial confirmation:', error);
       }
@@ -45,14 +43,12 @@ export async function GET(request: NextRequest) {
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
-        console.log('[SSE] Client disconnected from /api/candidates/sse');
         clearInterval(keepaliveInterval);
         removeSseController(thisController);
         controller.close();
       });
     },
     cancel() {
-      console.log('[SSE] Stream cancelled');
       removeSseController(thisController);
     },
   });

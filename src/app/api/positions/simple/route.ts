@@ -11,9 +11,7 @@ export async function GET() {
     const pool = getPool();
     console.log('[POSITIONS/SIMPLE] Database pool obtained');
     
-    console.log('[POSITIONS/SIMPLE] Executing simple query...');
     const result = await pool.query('SELECT id, title, department FROM "Position" LIMIT 5');
-    console.log('[POSITIONS/SIMPLE] Query executed, rows:', result.rows.length);
     
     const positions = result.rows.map(row => ({
       id: row.id,

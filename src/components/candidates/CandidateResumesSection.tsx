@@ -30,13 +30,11 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  console.log('CandidateResumesSection resumes prop:', resumes);
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime();
     const dateB = new Date(b.updatedAt).getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
   }) : [];
-  console.log('CandidateResumesSection sortedAttachments:', sortedAttachments);
 
   const handleSetPrimary = async (attachmentId: string) => {
     try {

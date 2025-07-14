@@ -251,7 +251,6 @@ export function CandidateFilters({
 
   // Apply advanced query
   const handleApplyAdvancedQuery = () => {
-    console.log('CandidateFilters: handleApplyAdvancedQuery called');
     if (!advancedQueryInput.trim()) return;
     
     const parsedFilters = parseAdvancedQuery(advancedQueryInput);
@@ -375,7 +374,6 @@ export function CandidateFilters({
 
   // Clear all filters function
   const handleClearAll = () => {
-    console.log('CandidateFilters: handleClearAll called');
     // Reset all local state
     setName('');
     setEmail('');
@@ -458,7 +456,6 @@ export function CandidateFilters({
         if (hasUrlFilters) {
       // Use a small delay to prevent multiple rapid calls
       const timeoutId = setTimeout(() => {
-        console.log('CandidateFilters: Applying initial filters from URL');
         onFilterChange(initialFilters);
       }, 100);
 
@@ -467,8 +464,6 @@ export function CandidateFilters({
   }, [initialFilters]); // Removed onFilterChange from dependencies to prevent infinite loop
 
   const handleApplyStandardFilters = () => {
-    console.log('CandidateFilters: handleApplyStandardFilters called');
-    
     // If there's an advanced query, parse and apply it
     if (advancedQueryInput.trim()) {
       const parsedFilters = parseAdvancedQuery(advancedQueryInput);

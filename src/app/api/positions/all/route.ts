@@ -166,7 +166,6 @@ export async function GET(request: NextRequest) {
 
     // Build query
     const { query, params } = buildQuery(filters);
-    console.log('[POSITIONS/ALL] Query:', query);
     console.log('[POSITIONS/ALL] Params:', params);
 
     // Execute query

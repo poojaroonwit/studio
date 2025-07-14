@@ -151,8 +151,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     if (e) e.preventDefault();
     if (!newComment.trim() && files.length === 0) return;
     
-    console.log('Submitting comment:', { newComment, files: files.length });
-    
     setSaving(true);
     setError(null);
     
@@ -187,15 +185,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     }
     
     try {
-      console.log('Sending request to:', `/api/candidates/${candidateId}/comments`);
-      
       const res = await fetch(`/api/candidates/${candidateId}/comments`, {
         method: 'POST',
         body: formData,
       });
-      
-      console.log('Response status:', res.status);
-      console.log('Response ok:', res.ok);
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -214,12 +207,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       }
       
       const result = await res.json();
-      console.log('API Response:', result);
       
       // Refresh comments to get the real data
       onCommentsChange();
-      
-      console.log('Comment added successfully');
       
     } catch (err: any) {
       console.error('Error adding comment:', err);

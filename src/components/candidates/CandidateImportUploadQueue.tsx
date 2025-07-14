@@ -158,7 +158,6 @@ export const CandidateImportUploadQueue: React.FC = () => {
         eventSource = new EventSource(sseUrl);
         
         eventSource.onopen = () => {
-          console.log('SSE connected for real-time queue updates');
           setIsRealtimeActive(true);
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
         };
@@ -170,7 +169,6 @@ export const CandidateImportUploadQueue: React.FC = () => {
           // Attempt to reconnect if under max attempts
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            console.log(`Attempting to reconnect SSE (${reconnectAttempts}/${maxReconnectAttempts})...`);
             setTimeout(() => {
               if (eventSource) {
                 eventSource.close();

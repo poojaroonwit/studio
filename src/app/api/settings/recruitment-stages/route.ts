@@ -93,7 +93,6 @@ export async function GET(request: NextRequest) {
     const client = await getPool().connect();
     try {
         const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
-        console.log('[API] GET recruitment stages - fetched', result.rows.length, 'stages');
         return NextResponse.json(result.rows);
     } catch (error: any) {
         console.error("Failed to fetch recruitment stages:", error);
@@ -134,10 +133,7 @@ export async function POST(request: NextRequest) {
         await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
-        console.log('[API] Creating stage, broadcasting update...');
         const updatedStages = await fetchAllRecruitmentStagesDb();
-        console.log('[API] Fetched updated stages:', updatedStages.length);
-        console.log('[API] Stages to broadcast:', updatedStages.map(s => s.name));
         broadcastRecruitmentStagesUpdate(updatedStages);
         
         return NextResponse.json(result.rows[0], { status: 201 });

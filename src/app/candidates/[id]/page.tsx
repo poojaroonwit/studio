@@ -39,7 +39,7 @@ import CandidateResumesSection from '../../../components/candidates/CandidateRes
 import { Tabs as UITabs, TabsList as UITabsList, TabsTrigger as UITabsTrigger, TabsContent as UITabsContent } from '@/components/ui/tabs';
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
-import { StagePipeline } from '@/components/candidates/StagePipeline';
+import { RecruitmentPipelineCard } from '@/components/candidates/RecruitmentPipelineCard';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
@@ -529,13 +529,8 @@ export default function CandidateDetailPage() {
 
   useEffect(() => {
     // Subscribe to SSE for real-time candidate updates
-    console.log('[SSE] Setting up SSE connection for candidate detail page...');
     const eventSource = new EventSource('/api/candidates/sse');
     eventSourceRef.current = eventSource;
-    
-    eventSource.onopen = () => {
-      console.log('[SSE] SSE connection opened for candidate detail page');
-    };
     
     eventSource.onerror = (error) => {
       console.error('[SSE] SSE connection error for candidate detail page:', error);
@@ -583,9 +578,7 @@ export default function CandidateDetailPage() {
     // Listen for recruitment stage updates
     eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
       try {
-        console.log('[SSE] Received recruitment stages update:', event.data);
         const updatedStages = JSON.parse(event.data);
-        console.log('[SSE] Parsed stages:', updatedStages);
         setAvailableStages(updatedStages);
       } catch (e) {
         console.error('Error parsing recruitment stages update:', e);
@@ -593,7 +586,6 @@ export default function CandidateDetailPage() {
     });
     // Cleanup function
     return () => {
-      console.log('[SSE] Cleaning up SSE connection for candidate detail page');
       eventSource.close();
       eventSourceRef.current = null;
     };
@@ -1021,7 +1013,7 @@ export default function CandidateDetailPage() {
             <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
               <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
                 {/* Column 1: Candidate Header (6 cols) */}
-                <div className="lg:col-span-6">
+                <div className="lg:col-span-7">
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
@@ -1120,7 +1112,7 @@ export default function CandidateDetailPage() {
 
                 
                 {/* Column 2: Action Buttons (4 cols) */}
-                <div className="lg:col-span-4">
+                <div className="lg:col-span-3">
                   <div className="flex flex-row gap-3">
                     {/* Edit Actions Button with Dropdown */}
                     {!isEditing ? (
@@ -1250,17 +1242,11 @@ export default function CandidateDetailPage() {
           )}
           
           <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
-            {/* LEFT SIDEBAR: Stage Pipeline (20%) */}
+            {/* LEFT SIDEBAR: Recruitment Pipeline (20%) */}
             <div className="lg:col-span-2 bg-card sticky top-6 p-6">
               {availableStages.length > 0 && candidate && (
-                <div className="max-w-[14rem] w-full">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold flex items-center mb-3">
-                      <Users className="mr-2 h-5 w-5 text-primary" />
-                      Recruitment Stage
-                    </h3>
-                  </div>
-                  <StagePipeline
+                <div className="w-full">
+                  <RecruitmentPipelineCard
                     stages={availableStages}
                     transitionHistory={transitionHistory}
                     currentStatus={candidate.status}
@@ -2232,7 +2218,7 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+            <div className="lg:col-span-2 space-y-6 bg-card p-6 rounded-xl shadow-sm">
               {/* Comments & Activity Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">

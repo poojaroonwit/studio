@@ -840,7 +840,7 @@ export default function DashboardPageClient({
                 <AlertTriangle className="mr-2 h-5 w-5 text-orange-500" />
                 High Priority Candidates ({highPriorityCandidates.length})
               </CardTitle>
-              <CardDescription>Candidates with high fit scores (>80) in active stages.</CardDescription>
+              <CardDescription>Candidates with high fit scores (&gt;80) in active stages.</CardDescription>
               {/* View button for high priority candidates */}
               <Link href={`/candidates?query=${encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100 status:Applied,Screening,Interview Scheduled,Interviewing')}`} passHref>
                 <Button variant="outline" size="sm" className="mt-2">View High Priority</Button>

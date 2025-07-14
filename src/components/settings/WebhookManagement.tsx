@@ -981,7 +981,7 @@ export default function WebhookManagement() {
                 Add Webhook
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-primary/10 rounded-lg">

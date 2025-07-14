@@ -571,13 +571,6 @@ export default function CandidateDetailPage() {
       } catch (e) {}
     });
 
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
-    });
-    
     // Listen for recruitment stage updates
     eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
       try {

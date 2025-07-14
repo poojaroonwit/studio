@@ -1254,15 +1254,7 @@ export function CandidatesPageClient({
               </DropdownMenu>
             )}
             <div className="flex gap-2 items-center ml-auto">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleClearAllFilters}
-                className="flex items-center space-x-2"
-              >
-                <X className="h-4 w-4" />
-                <span>Clear All Filters</span>
-              </Button>
+              {/* Removed Clear All Filters button as per request */}
               {canManageCandidates && (
                 <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
               )}

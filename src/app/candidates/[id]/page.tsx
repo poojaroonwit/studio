@@ -312,41 +312,8 @@ export default function CandidateDetailPage() {
     }
   };
 
-  // Merge attachments from resumes and comments
-  useEffect(() => {
-    const loadAllAttachments = async () => {
-      const [resumeAttachments, commentList] = await Promise.all([
-        fetchResumes(),
-        fetchComments(),
-      ]);
-      // Extract attachments from comments
-      const commentAttachments = (commentList || []).flatMap((comment: any) =>
-        (comment.attachments || []).map((att: any) => ({
-          ...att,
-          // Optionally add a tag to indicate source
-          label: att.label || 'comment',
-          updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
-        }))
-      );
-      // Merge and sort by updatedAt desc
-      const all = [...(resumeAttachments || []), ...commentAttachments];
-      const unique: any[] = [];
-      const seen = new Set();
-      for (const att of all) {
-        const key = att.filePath || att.id || att.url;
-        if (!seen.has(key)) {
-          seen.add(key);
-          unique.push(att);
-        }
-      }
-      unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      setAttachments(unique);
-    };
-    loadAllAttachments();
-  }, [candidateId, isEditing]);
-
   // Reference to reload all attachments
-  const loadAllAttachments = async () => {
+  const loadAllAttachments = useCallback(async () => {
     const [resumeAttachments, commentList] = await Promise.all([
       fetchResumes(),
       fetchComments(),
@@ -372,7 +339,12 @@ export default function CandidateDetailPage() {
     }
     unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     setAttachments(unique);
-  };
+  }, [fetchResumes, fetchComments]);
+
+  // Merge attachments from resumes and comments
+  useEffect(() => {
+    loadAllAttachments();
+  }, [candidateId, isEditing, loadAllAttachments]);
 
   const handleCommentsChange = async () => {
     await loadAllAttachments();

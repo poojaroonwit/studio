@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon } from "lucide-react";
+import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
@@ -186,8 +186,10 @@ export default function DashboardPageClient({
     }
   }, [sessionStatus, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
-
-  const totalActiveCandidates = processedCandidates.activeCandidates;
+  const totalActiveCandidates = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;
+  }, [allCandidates]);
   const totalOpenPositions = useMemo(() => {
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     return safeAllPositions.filter((p: Position) => p.isOpen).length;
@@ -198,7 +200,17 @@ export default function DashboardPageClient({
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     return safeAllPositions.filter((p: Position) => p.isOpen);
   }, [allPositions]);
-  const hiredThisMonthAdmin = processedCandidates.hiredThisMonth;
+  const hiredThisMonthAdmin = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const now = new Date();
+    return safeAllCandidates.filter((c: Candidate) => {
+      if (c.status !== 'Hired' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      try {
+        const appDate = parseISO(c.applicationDate);
+        return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
+      } catch { return false; }
+    }).length;
+  }, [allCandidates]);
   const totalActiveRecruiters = useMemo(() => {
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
     return safeAllUsers.filter((u: UserProfile) => u.role === 'Recruiter').length;
@@ -243,96 +255,81 @@ export default function DashboardPageClient({
     return safeMyBacklogCandidates.filter((c: Candidate) => c.recruiterId === session?.user?.id);
   }, [myBacklogCandidates, session?.user?.id]);
 
-  // Optimized candidate processing - single pass through candidates array
-  const processedCandidates = useMemo(() => {
+  // Derived statistics from processed data
+  const candidateScoreRanges = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const scoreRanges = getScoreRangesForChart();
+    const scoreRangeCounts: { [key: string]: number } = {};
+    
+    safeAllCandidates.forEach((candidate: Candidate) => {
+      if (!BACKLOG_EXCLUSION_STATUSES.includes(candidate.status)) {
+        scoreRanges.forEach(range => {
+          if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
+            scoreRangeCounts[range.label] = (scoreRangeCounts[range.label] || 0) + 1;
+          }
+        });
+      }
+    });
+    
+    return scoreRanges.map(range => ({
+      label: range.label,
+      count: scoreRangeCounts[range.label] || 0
+    }));
+  }, [allCandidates]);
+
+  const unassignedCandidatesCount = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    return safeAllCandidates.filter((c: Candidate) => 
+      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
+    ).length;
+  }, [allCandidates]);
+
+  const unassignedCandidatesList = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    return safeAllCandidates.filter((c: Candidate) => 
+      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && !c.recruiterId
+    );
+  }, [allCandidates]);
+
+  const highPriorityCandidates = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    return safeAllCandidates.filter((c: Candidate) => 
+      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && 
+      typeof c.fitScore === 'number' && c.fitScore > 80
+    );
+  }, [allCandidates]);
+
+  const recentApplications = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    const stats = {
-      activeCandidates: 0,
-      unassignedCandidates: 0,
-      unassignedList: [] as Candidate[],
-      stageCounts: {} as { [key: string]: number },
-      scoreRanges: {} as { [key: string]: number },
-      highPriorityCandidates: [] as Candidate[],
-      recentApplications: [] as Candidate[],
-      hiredThisMonth: 0,
-    };
-
-    const scoreRanges = getScoreRangesForChart();
-    
-    safeAllCandidates.forEach((candidate: Candidate) => {
-      const isActive = !BACKLOG_EXCLUSION_STATUSES.includes(candidate.status);
-      const isUnassigned = isActive && !candidate.recruiterId;
-      
-      if (isActive) {
-        stats.activeCandidates++;
-        
-        // Stage counts
-        const status = candidate.status;
-        stats.stageCounts[status] = (stats.stageCounts[status] || 0) + 1;
-        
-        // High priority candidates
-        if (typeof candidate.fitScore === 'number' && candidate.fitScore > 80) {
-          stats.highPriorityCandidates.push(candidate);
-        }
-        
-        // Score ranges
-        scoreRanges.forEach(range => {
-          if (typeof candidate.fitScore === 'number' && candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
-            stats.scoreRanges[range.label] = (stats.scoreRanges[range.label] || 0) + 1;
-          }
-        });
-      }
-      
-      if (isUnassigned) {
-        stats.unassignedCandidates++;
-        stats.unassignedList.push(candidate);
-      }
-      
-      // Recent applications
-      if (candidate.applicationDate && typeof candidate.applicationDate === 'string') {
-        try {
-          const appDate = parseISO(candidate.applicationDate);
-          if (appDate >= sevenDaysAgo && appDate <= now) {
-            stats.recentApplications.push(candidate);
-          }
-          
-          // Hired this month
-          if (candidate.status === 'Hired' && appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear()) {
-            stats.hiredThisMonth++;
-          }
-        } catch (error) {
-          // Skip invalid dates
-        }
-      }
+    return safeAllCandidates.filter((c: Candidate) => {
+      if (!c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      try {
+        const appDate = parseISO(c.applicationDate);
+        return appDate >= sevenDaysAgo && appDate <= now;
+      } catch { return false; }
     });
-    
-    return stats;
   }, [allCandidates]);
-
-  // Derived statistics from processed data
-  const candidateScoreRanges = useMemo(() => {
-    const scoreRanges = getScoreRangesForChart();
-    return scoreRanges.map(range => ({
-      label: range.label,
-      count: processedCandidates.scoreRanges[range.label] || 0
-    }));
-  }, [processedCandidates.scoreRanges]);
-
-  const unassignedCandidatesCount = processedCandidates.unassignedCandidates;
-  const unassignedCandidatesList = processedCandidates.unassignedList;
-  const highPriorityCandidates = processedCandidates.highPriorityCandidates;
-  const recentApplications = processedCandidates.recentApplications;
 
   // Stage summary metrics
   const stageSummary = useMemo(() => {
-    return Object.entries(processedCandidates.stageCounts).map(([stage, count]) => ({
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const stageCounts: { [key: string]: number } = {};
+    
+    safeAllCandidates.forEach((candidate: Candidate) => {
+      if (!BACKLOG_EXCLUSION_STATUSES.includes(candidate.status)) {
+        const status = candidate.status;
+        stageCounts[status] = (stageCounts[status] || 0) + 1;
+      }
+    });
+    
+    return Object.entries(stageCounts).map(([stage, count]) => ({
       stage,
       count
     })).sort((a, b) => b.count - a.count);
-  }, [processedCandidates.stageCounts]);
+  }, [allCandidates]);
 
   // New candidates assigned to me today (for recruiter) - optimized
   const newCandidatesAssignedToMeToday = useMemo(() => {
@@ -368,15 +365,7 @@ export default function DashboardPageClient({
           <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
         </div>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => router.push('/candidates')}
-          className="flex items-center space-x-2"
-        >
-          <X className="h-4 w-4" />
-          <span>Clear All Filters</span>
-        </Button>
+        {/* Removed Clear All Filters button as per request */}
       </div>
 
       {/* Section 1: Key Performance Indicators */}
@@ -506,8 +495,13 @@ export default function DashboardPageClient({
                         const index = elements[0].index;
                         const range = sortedScoreRanges[index];
                         if (range) {
-                          const query = `matchingFitScoreMin:${range.min} matchingFitScoreMax:${range.max}`;
-                          router.push('/candidates?query=' + encodeURIComponent(query));
+                          // Get the original score ranges to find min/max values
+                          const scoreRanges = getScoreRangesForChart();
+                          const originalRange = scoreRanges.find(r => r.label === range.label);
+                          if (originalRange) {
+                            const query = `matchingFitScoreMin:${originalRange.min} matchingFitScoreMax:${originalRange.max}`;
+                            router.push('/candidates?query=' + encodeURIComponent(query));
+                          }
                         }
                       }
                     },

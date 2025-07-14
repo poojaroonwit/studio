@@ -35,7 +35,6 @@ const preferenceSchema = z.object({
   sidebarHoverTextD: z.string().optional(),
   sidebarBorderD: z.string().optional(),
 }).and(z.record(z.string(), z.any().optional())); // Allow any additional string keys
-});
 
 // System-wide preferences use a special system user ID
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';

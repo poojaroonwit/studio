@@ -34,8 +34,7 @@ const preferenceSchema = z.object({
   sidebarHoverBgD: z.string().optional(),
   sidebarHoverTextD: z.string().optional(),
   sidebarBorderD: z.string().optional(),
-  // Add other sidebar properties as needed
-  [z.string()]: z.any().optional(), // Allow any additional string keys
+}).and(z.record(z.string(), z.any().optional())); // Allow any additional string keys
 });
 
 // System-wide preferences use a special system user ID

@@ -459,44 +459,6 @@ export default function WebhookManagement() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const { error: showError, success: showSuccess } = useToast();
 
-  // Ensure all state is properly initialized
-  useEffect(() => {
-    try {
-      // Initialize with empty arrays/objects to prevent undefined values
-      setWebhooks([]);
-      setCustomHeaders([]);
-      fetchWebhooks();
-    } catch (err) {
-      console.error('Error initializing WebhookManagement:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize component');
-      setLoading(false);
-    }
-  }, []);
-
-  // If there's an error, show error UI
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Error</CardTitle>
-            <CardDescription>
-              An error occurred while loading the webhook management interface.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-red-500">
-              {error}
-            </div>
-            <Button onClick={() => window.location.reload()}>
-              Reload Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const fetchWebhooks = async () => {
     try {
       setLoading(true);
@@ -602,8 +564,6 @@ export default function WebhookManagement() {
     }
   };
 
-
-
   const handleEdit = (webhook: Webhook) => {
     setEditingWebhook(webhook);
     setFormData({
@@ -681,20 +641,23 @@ export default function WebhookManagement() {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
-      showSuccess('Webhook ID copied to clipboard');
-    } catch (error) {
-      showError('Failed to copy to clipboard');
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const fetchWebhookLogs = async (webhookId: string, page: number = 1, filter: string = 'all', search: string = '') => {
@@ -702,7 +665,6 @@ export default function WebhookManagement() {
       setLogsLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
         filter,
         search
       });
@@ -716,7 +678,6 @@ export default function WebhookManagement() {
         showError('Failed to fetch webhook logs');
       }
     } catch (error) {
-      console.error('Error fetching webhook logs:', error);
       showError('Failed to fetch webhook logs');
     } finally {
       setLogsLoading(false);
@@ -729,7 +690,7 @@ export default function WebhookManagement() {
       setLogsPage(1);
       setLogsFilter('all');
       setLogsSearch('');
-      fetchWebhookLogs(webhook.id);
+      fetchWebhookLogs(webhook.id, 1, 'all', '');
     }
   };
 
@@ -760,7 +721,12 @@ export default function WebhookManagement() {
     if (!selectedWebhookForLogs) return;
     
     try {
-      const response = await fetch(`/api/settings/webhooks/${selectedWebhookForLogs.id}/logs/export`);
+      const params = new URLSearchParams({
+        filter: logsFilter,
+        search: logsSearch
+      });
+      
+      const response = await fetch(`/api/settings/webhooks/${selectedWebhookForLogs.id}/logs/export?${params}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -771,12 +737,10 @@ export default function WebhookManagement() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        showSuccess('Logs exported successfully');
       } else {
         showError('Failed to export logs');
       }
     } catch (error) {
-      console.error('Error exporting logs:', error);
       showError('Failed to export logs');
     }
   };
@@ -789,55 +753,36 @@ export default function WebhookManagement() {
         const data = await response.json();
         setWebhookAnalytics(data);
       } else {
-        showError('Failed to fetch webhook analytics');
+        console.error('Failed to fetch webhook analytics');
       }
     } catch (error) {
       console.error('Error fetching webhook analytics:', error);
-      showError('Failed to fetch webhook analytics');
     } finally {
       setAnalyticsLoading(false);
     }
   };
-
-  // Fetch analytics on component mount
-  useEffect(() => {
-    fetchWebhookAnalytics();
-  }, []);
 
   const testWebhook = async () => {
     if (!selectedWebhookForTest) return;
     
     try {
       setTestLoading(true);
-      setTestResult(null);
-      
-      let payload;
-      try {
-        payload = JSON.parse(testPayload);
-      } catch (error) {
-        showError('Invalid JSON payload');
-        return;
-      }
-
-      const response = await fetch(`/api/settings/webhooks/${selectedWebhookForTest.id}/health`, {
+      const response = await fetch(`/api/settings/webhooks/${selectedWebhookForTest.id}/test`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ testPayload: payload })
+        headers: { 'Content-Type': 'application/json' },
+        body: testPayload
       });
-
+      
       if (response.ok) {
         const result = await response.json();
         setTestResult(result);
         showSuccess('Webhook test completed');
       } else {
         const error = await response.json();
-        showError(error.error || 'Failed to test webhook');
+        showError(error.message || 'Webhook test failed');
       }
     } catch (error) {
-      console.error('Error testing webhook:', error);
-      showError('Failed to test webhook');
+      showError('Webhook test failed');
     } finally {
       setTestLoading(false);
     }
@@ -845,30 +790,26 @@ export default function WebhookManagement() {
 
   const handleTestDialogOpen = (webhook: Webhook | null) => {
     setSelectedWebhookForTest(webhook);
-    setTestResult(null);
     if (webhook) {
-      setTestPayload('{\n  "test": true,\n  "timestamp": "' + new Date().toISOString() + '",\n  "webhook_name": "' + webhook.name + '"\n}');
+      setTestResult(null);
+      setTestPayload('{\n  "test": true,\n  "timestamp": "' + new Date().toISOString() + '"\n}');
     }
   };
 
   const handleWebhookSelection = (webhookId: string, selected: boolean) => {
-    // Ensure selectedWebhooks is always a Set
-    const currentSelection = selectedWebhooks instanceof Set ? selectedWebhooks : new Set();
-    const newSelection = new Set(currentSelection);
-    
-    if (selected) {
-      newSelection.add(webhookId);
-    } else {
-      newSelection.delete(webhookId);
-    }
-    setSelectedWebhooks(newSelection);
+    setSelectedWebhooks(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(webhookId);
+      } else {
+        newSet.delete(webhookId);
+      }
+      return newSet;
+    });
   };
 
   const handleSelectAll = () => {
-    // Ensure selectedWebhooks is always a Set
-    const currentSelection = selectedWebhooks instanceof Set ? selectedWebhooks : new Set();
-    
-    if (currentSelection.size === webhooks.length) {
+    if (isAllSelected()) {
       setSelectedWebhooks(new Set());
     } else {
       setSelectedWebhooks(new Set(webhooks.map(w => w.id)));
@@ -876,59 +817,55 @@ export default function WebhookManagement() {
   };
 
   const performBulkAction = async () => {
-    // Ensure selectedWebhooks is always a Set
-    const currentSelection = selectedWebhooks instanceof Set ? selectedWebhooks : new Set();
+    if (!bulkAction || selectedWebhooks.size === 0) return;
     
-    if (!bulkAction || currentSelection.size === 0) return;
-
     try {
       setBulkLoading(true);
-      const webhookIds = Array.from(currentSelection);
-
-      let endpoint = '';
+      const webhookIds = Array.from(selectedWebhooks);
+      
+      let url = '/api/settings/webhooks/bulk-action';
       let method = 'POST';
-      let body = { webhook_ids: webhookIds };
-
-      switch (bulkAction) {
-        case 'enable':
-          endpoint = '/api/settings/webhooks/bulk-action';
-          body = { ...body, action: 'enable' };
-          break;
-        case 'disable':
-          endpoint = '/api/settings/webhooks/bulk-action';
-          body = { ...body, action: 'disable' };
-          break;
-        case 'delete':
-          endpoint = '/api/settings/webhooks/bulk-action';
-          body = { ...body, action: 'delete' };
-          method = 'DELETE';
-          break;
-        case 'test':
-          endpoint = '/api/settings/webhooks/bulk-test';
-          break;
-        default:
-          return;
+      let body = { action: bulkAction, webhookIds };
+      
+      if (bulkAction === 'delete') {
+        // For delete, we'll handle each webhook individually
+        const deletePromises = webhookIds.map(id => 
+          fetch(`/api/settings/webhooks/${id}`, { method: 'DELETE' })
+        );
+        
+        const results = await Promise.allSettled(deletePromises);
+        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.ok).length;
+        
+        if (successCount > 0) {
+          showSuccess(`Successfully deleted ${successCount} webhook${successCount !== 1 ? 's' : ''}`);
+          setSelectedWebhooks(new Set());
+          setBulkAction('');
+          fetchWebhooks();
+        } else {
+          showError('Failed to delete webhooks');
+        }
+        return;
       }
-
-      const response = await fetch(endpoint, {
+      
+      const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-
+      
       if (response.ok) {
-        const result = await response.json();
-        showSuccess(`Bulk action completed: ${result.message}`);
+        const actionText = bulkAction === 'enable' ? 'enabled' : 
+                          bulkAction === 'disable' ? 'disabled' : 
+                          bulkAction === 'test' ? 'tested' : 'processed';
+        showSuccess(`Successfully ${actionText} ${selectedWebhooks.size} webhook${selectedWebhooks.size !== 1 ? 's' : ''}`);
         setSelectedWebhooks(new Set());
         setBulkAction('');
-        fetchWebhooks(); // Refresh the list
+        fetchWebhooks();
       } else {
-        const error = await response.json();
-        showError(error.error || 'Bulk action failed');
+        showError('Failed to perform bulk action');
       }
     } catch (error) {
-      console.error('Error performing bulk action:', error);
-      showError('Bulk action failed');
+      showError('Failed to perform bulk action');
     } finally {
       setBulkLoading(false);
     }
@@ -942,17 +879,15 @@ export default function WebhookManagement() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `webhooks-export-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `webhooks-${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        showSuccess('Webhooks exported successfully');
       } else {
         showError('Failed to export webhooks');
       }
     } catch (error) {
-      console.error('Error exporting webhooks:', error);
       showError('Failed to export webhooks');
     }
   };
@@ -969,6 +904,44 @@ export default function WebhookManagement() {
   const isAllSelected = () => {
     return selectedWebhooks instanceof Set ? selectedWebhooks.size === webhooks.length && webhooks.length > 0 : false;
   };
+
+  // Ensure all state is properly initialized
+  useEffect(() => {
+    try {
+      // Initialize with empty arrays/objects to prevent undefined values
+      setWebhooks([]);
+      setCustomHeaders([]);
+      fetchWebhooks();
+    } catch (err) {
+      console.error('Error initializing WebhookManagement:', err);
+      setError(err instanceof Error ? err.message : 'Failed to initialize component');
+      setLoading(false);
+    }
+  }, []);
+
+  // If there's an error, show error UI
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>
+              An error occurred while loading the webhook management interface.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-red-500">
+              {error}
+            </div>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">

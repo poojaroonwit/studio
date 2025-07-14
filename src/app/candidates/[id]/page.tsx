@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, Controller, useFieldArray, FormProvider } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +43,7 @@ import { StagePipeline } from '@/components/candidates/StagePipeline';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
+
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -187,6 +188,11 @@ function calculateDuration(period?: string): string {
   return result || '0 months';
 }
 
+// Add this type guard near the top of your component file, after imports:
+function hasFitScore(obj: any): obj is { fitScore: number } {
+  return typeof obj === 'object' && obj !== null && 'fitScore' in obj && typeof obj.fitScore === 'number';
+}
+
 export default function CandidateDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -216,18 +222,9 @@ export default function CandidateDetailPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
-  const form = useForm<EditCandidateFormValues>({
-    resolver: zodResolver(editCandidateDetailSchema),
-    defaultValues: {},
-  });
 
-  const { control, register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = form;
 
-  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control, name: "parsedData.education" });
-  const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({ control, name: "parsedData.experience" });
-  const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
-  const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
-  const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
+
 
   const [comments, setComments] = useState<any[]>([]);
   const [resumes, setResumes] = useState<any[]>([]);
@@ -238,6 +235,48 @@ export default function CandidateDetailPage() {
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Initialize form early to avoid temporal dead zone
+  const form = useForm<EditCandidateFormValues>({
+    resolver: zodResolver(editCandidateDetailSchema),
+    defaultValues: {
+      name: candidate?.name || '',
+      email: candidate?.email || '',
+      phone: candidate?.phone || '',
+      positionId: candidate?.positionId || null,
+      recruiterId: candidate?.recruiterId || null,
+      fitScore: candidate?.fitScore || null,
+      status: candidate?.status || '',
+      assignmentJustification: (candidate as any)?.assignmentJustification || '',
+      parsedData: (candidate?.parsedData as any) || {}
+    }
+  });
+
+  const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register } = form;
+
+  // Field arrays for form sections
+  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control, name: "parsedData.education" });
+  const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({ control, name: "parsedData.experience" });
+  const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
+  const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
+  const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
+
+  // Update form when candidate data changes
+  useEffect(() => {
+    if (candidate) {
+      reset({
+        name: candidate.name || '',
+        email: candidate.email || '',
+        phone: candidate.phone || '',
+        positionId: candidate.positionId || null,
+        recruiterId: candidate.recruiterId || null,
+        fitScore: candidate.fitScore || null,
+        status: candidate.status || '',
+        assignmentJustification: (candidate as any)?.assignmentJustification || '',
+        parsedData: (candidate.parsedData as any) || {}
+      });
+    }
+  }, [candidate, reset]);
 
   useEffect(() => {
     if (!candidateId) return;
@@ -392,38 +431,8 @@ export default function CandidateDetailPage() {
         setCandidate(null);
         return;
       }
-      const data: Candidate = await response.json();
+            const data: Candidate = await response.json();
       setCandidate(data);
-      reset({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        positionId: data.positionId,
-        recruiterId: data.recruiterId,
-        fitScore: data.fitScore,
-        status: data.status,
-        parsedData: {
-            ...(data.parsedData as CandidateDetails),
-            skills: (data.parsedData as CandidateDetails)?.skills?.map(s => ({
-                ...s,
-                skill_string: s.skill?.join(', ') || ''
-            })) || [],
-            experience: ((data.parsedData as CandidateDetails)?.experience?.map(exp => ({
-                ...exp,
-                is_current_position: typeof exp.is_current_position === 'string'
-                    ? exp.is_current_position === 'true'
-                    : !!exp.is_current_position,
-            })) || []) as {
-                period?: string | null;
-                duration?: string | null;
-                company?: string | null;
-                position?: string | null;
-                description?: string | null;
-                is_current_position?: boolean;
-                postition_level?: string | null;
-            }[],
-        }
-      });
     } catch (error) {
       console.error("Error fetching candidate details:", error);
       setFetchError((error as Error).message || "Could not load candidate data.");
@@ -431,7 +440,7 @@ export default function CandidateDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [candidateId, reset]);
+  }, [candidateId]);
 
   const fetchRecruiters = useCallback(async () => {
     try {
@@ -970,59 +979,43 @@ export default function CandidateDetailPage() {
     return isValid(d) ? d : null;
   };
 
-  // Initialize form if not already done
-  const form = useForm<EditCandidateFormValues>({
-    resolver: zodResolver(editCandidateDetailSchema),
-    defaultValues: {
-      name: candidate?.name || '',
-      email: candidate?.email || '',
-      phone: candidate?.phone || '',
-      positionId: candidate?.positionId || null,
-      recruiterId: candidate?.recruiterId || null,
-      fitScore: candidate?.fitScore || null,
-      status: candidate?.status || '',
-      assignmentJustification: (candidate as any)?.assignmentJustification || '',
-      parsedData: (candidate?.parsedData as any) || {}
-    }
-  });
 
-  const { handleSubmit, reset, setValue, formState: { isSubmitting } } = form;
 
+  // Field arrays for form sections
   return (
-    <FormProvider {...form}>
-      <div className="h-screen overflow-y-auto">
-      
-        {/* Floating Save/Cancel Buttons - Only show when editing */}
-        {isEditing && (
-          <div className="fixed top-4 right-4 z-50 flex gap-2">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleSubmit(handleSaveDetails)}
-              disabled={isSubmitting}
-              className="shadow-lg"
-            >
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isSubmitting ? 'Saving...' : 'Save'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancelEdit}
-              disabled={isSubmitting}
-              className="shadow-lg"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
-          </div>
-        )}
-      
-        <form onSubmit={handleSubmit(handleSaveDetails)}>
+    <div className="h-screen overflow-y-auto">
+    
+      {/* Floating Save/Cancel Buttons - Only show when editing */}
+      {isEditing && (
+        <div className="fixed top-4 right-4 z-50 flex gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleSubmit(handleSaveDetails)}
+            disabled={isSubmitting}
+            className="shadow-lg"
+          >
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {isSubmitting ? 'Saving...' : 'Save'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancelEdit}
+            disabled={isSubmitting}
+            className="shadow-lg"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </div>
+      )}
+    
+      <form onSubmit={handleSubmit(handleSaveDetails)}>
           {/* Header - 2 Columns */}
           {candidate && (
             <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
@@ -1827,7 +1820,7 @@ export default function CandidateDetailPage() {
                             <div className="relative">
                               {/* Continuous vertical line that connects all education nodes */}
                               {(education ?? []).length > 0 && (
-                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education ?? []).length - 1) * 80}px` }} />
+                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((education ?? []).length - 1) * 80}px` }} />
                               )}
                               {(education ?? []).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
@@ -1856,7 +1849,7 @@ export default function CandidateDetailPage() {
                                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
                                             {renderField("Education", edu)}
                                           </div>
-                                          {typeof edu.fitScore === 'number' && (
+                                          {hasFitScore(edu) && (
                                             <div className="flex flex-col items-center justify-center ml-6">
                                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
                                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
@@ -1932,7 +1925,7 @@ export default function CandidateDetailPage() {
                                               )}
                                             </div>
                                           </div>
-                                          {typeof edu.fitScore === 'number' && (
+                                          {hasFitScore(edu) && (
                                             <div className="flex flex-col items-center justify-center ml-6">
                                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
                                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
@@ -2120,7 +2113,7 @@ export default function CandidateDetailPage() {
                                             </div>
                                           )}
                                         </div>
-                                        {typeof exp.fitScore === 'number' && (
+                                        {hasFitScore(exp) && (
                                           <div className="flex flex-col items-center justify-center ml-6">
                                             <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
                                             <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
@@ -2309,39 +2302,38 @@ export default function CandidateDetailPage() {
           onClose={() => setIsJobMatchModalOpen(false)}
           jobMatch={selectedJobMatch}
         />
-      </div>
-      {/* Render UploadResumeModal for drag-and-drop upload */}
-      <UploadResumeModal
-        isOpen={isUploadModalOpen}
-        onOpenChange={setIsUploadModalOpen}
-        candidate={candidate}
-        onUploadSuccess={handleUploadSuccess}
-      />
+        {/* Render UploadResumeModal for drag-and-drop upload */}
+        <UploadResumeModal
+          isOpen={isUploadModalOpen}
+          onOpenChange={setIsUploadModalOpen}
+          candidate={candidate}
+          onUploadSuccess={handleUploadSuccess}
+        />
 
-      {/* Floating Save/Cancel Buttons for Edit Mode */}
-      {isEditing && (
-        <div className="fixed bottom-6 right-6 z-50 flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={handleCancelEdit}
-            className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            size="lg"
-            onClick={handleSubmit(handleSaveDetails)}
-            className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-        </div>
-      )}
-    </FormProvider>
-  );
+        {/* Floating Save/Cancel Buttons for Edit Mode */}
+        {isEditing && (
+          <div className="fixed bottom-6 right-6 z-50 flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handleCancelEdit}
+              className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="lg"
+              onClick={handleSubmit(handleSaveDetails)}
+              className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </div>
+        )}
+      </div>
+    );
 }

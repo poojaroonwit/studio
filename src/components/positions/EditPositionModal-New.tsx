@@ -111,7 +111,7 @@ export function EditPositionModal({
   }, [position?.id, isOpen, form]);
 
   const onSubmit = async (data: EditPositionFormValues) => {
-    if (!position) return;
+    if (!position || form.formState.isSubmitting) return;
     await onEditPosition(position.id, data);
   };
   
@@ -245,8 +245,7 @@ export function EditPositionModal({
             </Button>
           </DialogClose>
           <Button 
-            type="button" 
-            onClick={form.handleSubmit(onSubmit)} 
+            type="submit" 
             disabled={form.formState.isSubmitting} 
             className="btn-primary-gradient"
           >

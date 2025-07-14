@@ -120,7 +120,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     // Update the job match
     const updateQuery = `
       UPDATE "JobMatch" 
-      SET "jobId" = $1, "fitScore" = $2, "matchReasons" = $3, "updatedAt" = NOW()
+      SET "jobId" = $1, "fitScore" = $2, "matchReasons" = $3
       WHERE id = $4 AND "candidateId" = $5
       RETURNING *;
     `;

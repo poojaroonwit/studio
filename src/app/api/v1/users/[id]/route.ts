@@ -127,7 +127,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateValues.push(password);
     }
 
-    updateFields.push(`"updatedAt" = NOW()`);
     updateValues.push(id);
 
     const updateQuery = `

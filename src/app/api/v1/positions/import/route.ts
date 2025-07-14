@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
 
         // Insert new position
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes")
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
         
         await client.query(insertQuery, [

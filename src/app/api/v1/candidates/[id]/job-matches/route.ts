@@ -112,16 +112,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1', [id]);
 
     // Insert new job matches
-    const insertQuery = `
-      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+    const insertJobMatchQuery = `
+      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
+      VALUES ($1, $2, $3, $4, $5)
     `;
 
     const insertedMatches = [];
     
     for (const match of job_matches) {
       const matchId = uuidv4();
-      await client.query(insertQuery, [
+      await client.query(insertJobMatchQuery, [
         matchId,
         id,
         match.job_id,
@@ -197,16 +197,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1', [id]);
 
     // Insert new job matches
-    const insertQuery = `
-      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+    const insertJobMatchQuery = `
+      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
+      VALUES ($1, $2, $3, $4, $5)
     `;
 
     const insertedMatches = [];
     
     for (const match of job_matches) {
       const matchId = uuidv4();
-      await client.query(insertQuery, [
+      await client.query(insertJobMatchQuery, [
         matchId,
         id,
         match.job_id,

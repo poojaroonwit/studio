@@ -56,7 +56,11 @@ export default function ApiDocsUIPage() {
   }
 
   return (
-    <div style={{ height: '100vh' }}>
+    <div style={{ 
+      height: '100%', 
+      width: '100%',
+      overflow: 'hidden'
+    }}>
       <SwaggerUI 
         spec={swaggerSpec}
         docExpansion="list"

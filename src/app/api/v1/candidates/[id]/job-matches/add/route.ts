@@ -76,13 +76,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Insert new job match
     const matchId = uuidv4();
-    const insertQuery = `
-      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      RETURNING *;
+    const insertJobMatchQuery = `
+      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
+      VALUES ($1, $2, $3, $4, $5)
     `;
     
-    const insertResult = await client.query(insertQuery, [
+    const insertResult = await client.query(insertJobMatchQuery, [
       matchId,
       id,
       job_id,

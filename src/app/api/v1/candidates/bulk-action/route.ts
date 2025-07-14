@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           return new Response(JSON.stringify({ error: 'Status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET status = $1, "updatedAt" = NOW() WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET status = $1 WHERE id = ANY($2)';
         queryParams = [data.status, candidateIds];
         break;
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           return new Response(JSON.stringify({ error: 'Recruiter ID is required for assign_recruiter action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1, "updatedAt" = NOW() WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "recruiterId" = $1 WHERE id = ANY($2)';
         queryParams = [data.recruiterId, candidateIds];
         break;
 
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           return new Response(JSON.stringify({ error: 'Position ID is required for assign_position action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Candidate" SET "positionId" = $1, "updatedAt" = NOW() WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Candidate" SET "positionId" = $1 WHERE id = ANY($2)';
         queryParams = [data.positionId, candidateIds];
         break;
 

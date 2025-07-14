@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,74 +42,92 @@ interface TipTapEditorProps {
   readOnly?: boolean;
 }
 
-export function TipTapEditor({ 
-  value, 
-  onChange, 
-  placeholder = "Start writing...", 
+export function TipTapEditor({
+  value,
+  onChange,
+  placeholder = "Start writing...",
   className,
-  readOnly = false 
-}: TipTapEditorProps) {
+  readOnly = false,
+}) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
+  const [editorInstance, setEditorInstance] = useState(null);
+  const editorRef = useRef(null);
+  const tiptapEditorRef = useRef(null);
+  const isSettingContent = useRef(false);
 
+  // Initialize editor only once
   useEffect(() => {
-    // Dynamically load TipTap to avoid SSR issues
+    let Editor, StarterKit, Underline, Link, TextAlign, Color, TextStyle;
+
     const loadTipTap = async () => {
-      try {
-        const { Editor } = await import('@tiptap/react');
-        const StarterKit = await import('@tiptap/starter-kit');
-        const Underline = await import('@tiptap/extension-underline');
-        const Link = await import('@tiptap/extension-link');
-        const TextAlign = await import('@tiptap/extension-text-align');
-        const Color = await import('@tiptap/extension-color');
-        const TextStyle = await import('@tiptap/extension-text-style');
+      Editor = (await import("@tiptap/react")).Editor;
+      StarterKit = await import("@tiptap/starter-kit");
+      Underline = await import("@tiptap/extension-underline");
+      Link = await import("@tiptap/extension-link");
+      TextAlign = await import("@tiptap/extension-text-align");
+      Color = await import("@tiptap/extension-color");
+      TextStyle = await import("@tiptap/extension-text-style");
 
-        if (editorRef.current) {
-          const editor = new Editor({
-            element: editorRef.current,
-            extensions: [
-              StarterKit.default,
-              Underline.default,
-              Link.default.configure({
-                openOnClick: false,
-              }),
-              TextAlign.default.configure({
-                types: ['heading', 'paragraph'],
-              }),
-              Color.default,
-              TextStyle.default,
-            ],
-            content: value,
-            editable: !readOnly,
-            onUpdate: ({ editor }) => {
-              onChange(editor.getHTML());
+      if (editorRef.current) {
+        const instance = new Editor({
+          element: editorRef.current,
+          extensions: [
+            StarterKit.default,
+            Underline.default,
+            Link.default.configure({ openOnClick: false }),
+            TextAlign.default.configure({ types: ["heading", "paragraph"] }),
+            Color.default,
+            TextStyle.default,
+          ],
+          content: value || "",
+          editable: !readOnly,
+          onUpdate: ({ editor }) => {
+            if (isSettingContent.current) return;
+            onChange(editor.getHTML());
+          },
+          editorProps: {
+            attributes: {
+              class:
+                "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none",
+              placeholder: placeholder,
             },
-            editorProps: {
-              attributes: {
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none',
-                placeholder: placeholder,
-              },
-            },
-          });
-
-          setIsLoaded(true);
-        }
-      } catch (error) {
-        console.error('Failed to load TipTap:', error);
+          },
+        });
+        tiptapEditorRef.current = instance;
+        setEditorInstance(instance);
+        setIsLoaded(true);
       }
     };
 
     loadTipTap();
-  }, [value, onChange, readOnly]);
+
+    return () => {
+      if (tiptapEditorRef.current) {
+        tiptapEditorRef.current.destroy();
+        tiptapEditorRef.current = null;
+      }
+    };
+    // eslint-disable-next-line
+  }, []);
+
+  // Sync content from parent to editor
+  useEffect(() => {
+    const editor = tiptapEditorRef.current;
+    if (editor && editor.getHTML() !== value) {
+      isSettingContent.current = true;
+      editor.commands.setContent(value || "", false);
+      isSettingContent.current = false;
+    }
+  }, [value]);
 
   return (
     <div className={cn("border rounded-lg overflow-hidden", className)}>
-      {!readOnly && (
-        <TipTapToolbar />
+      {!readOnly && editorInstance && (
+        <TipTapToolbar editor={editorInstance} />
       )}
-      <div 
+      <div
         ref={editorRef}
-        className="min-h-[200px] p-4 focus:outline-none"
+        className="min-h-[200px] p-4 bg-white"
       />
       {!isLoaded && (
         <div className="min-h-[200px] p-4 bg-muted/50 animate-pulse rounded-md" />
@@ -118,68 +136,146 @@ export function TipTapEditor({
   );
 }
 
-function TipTapToolbar() {
+// Toolbar implementation
+function TipTapToolbar({ editor }) {
+  if (!editor) return null;
+  
   return (
     <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        data-active={editor.isActive('bold')}
+      >
         <Bold className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        data-active={editor.isActive('italic')}
+      >
         <Italic className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        data-active={editor.isActive('underline')}
+      >
         <Underline className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        data-active={editor.isActive('strike')}
+      >
         <Strikethrough className="h-4 w-4" />
       </Button>
       
       <Separator orientation="vertical" className="h-6" />
       
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        data-active={editor.isActive('heading', { level: 1 })}
+      >
         <Heading1 className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        data-active={editor.isActive('heading', { level: 2 })}
+      >
         <Heading2 className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        data-active={editor.isActive('heading', { level: 3 })}
+      >
         <Heading3 className="h-4 w-4" />
       </Button>
       
       <Separator orientation="vertical" className="h-6" />
       
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        data-active={editor.isActive('bulletList')}
+      >
         <List className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        data-active={editor.isActive('orderedList')}
+      >
         <ListOrdered className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        data-active={editor.isActive('blockquote')}
+      >
         <Quote className="h-4 w-4" />
       </Button>
       
       <Separator orientation="vertical" className="h-6" />
       
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        data-active={editor.isActive({ textAlign: 'left' })}
+      >
         <AlignLeft className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        data-active={editor.isActive({ textAlign: 'center' })}
+      >
         <AlignCenter className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        data-active={editor.isActive({ textAlign: 'right' })}
+      >
         <AlignRight className="h-4 w-4" />
       </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="h-8 w-8 p-0"
+        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+        data-active={editor.isActive({ textAlign: 'justify' })}
+      >
         <AlignJustify className="h-4 w-4" />
-      </Button>
-      
-      <Separator orientation="vertical" className="h-6" />
-      
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-        <Link className="h-4 w-4" />
-      </Button>
-      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-        <Palette className="h-4 w-4" />
       </Button>
     </div>
   );

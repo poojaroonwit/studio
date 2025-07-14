@@ -103,7 +103,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   }, [position?.id, isOpen, form]);
 
   const onSubmit = async (data: EditPositionFormValues) => {
-    if (!position) return;
+    if (!position || form.formState.isSubmitting) return;
     await onEditPosition(position.id, data);
   };
   
@@ -195,7 +195,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting} className="btn-primary-gradient">
+          <Button type="submit" disabled={form.formState.isSubmitting} className="btn-primary-gradient">
             {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>

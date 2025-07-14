@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
 
     // Create candidate
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, status, "parsedData", "applicationDate", "updatedAt", "createdAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, status, "parsedData", "applicationDate")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
       RETURNING *;
     `;
     
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
     // Create job matches if provided
     if (job_matches && job_matches.length > 0) {
       const insertJobMatchQuery = `
-        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
+        VALUES ($1, $2, $3, $4, $5)
       `;
 
       for (const match of job_matches) {
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
 
     // Create initial transition record
     const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW());
+      INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date)
+      VALUES ($1, $2, $3, $4, $5, NOW());
     `;
     
     await client.query(insertTransitionQuery, [

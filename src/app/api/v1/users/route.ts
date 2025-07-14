@@ -116,8 +116,8 @@ export async function POST(req: NextRequest) {
 
     // Create new user
     const insertQuery = `
-      INSERT INTO "User" (id, name, email, role, "modulePermissions", password, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      INSERT INTO "User" (id, name, email, role, "modulePermissions", password)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, name, email, role, "modulePermissions", "createdAt", "updatedAt";
     `;
 

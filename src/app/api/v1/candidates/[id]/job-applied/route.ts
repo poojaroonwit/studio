@@ -105,7 +105,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Update candidate with new parsedData
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1, "updatedAt" = NOW()
+      SET "parsedData" = $1
       WHERE id = $2
       RETURNING *;
     `;
@@ -194,7 +194,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Update candidate with new parsedData
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1, "updatedAt" = NOW()
+      SET "parsedData" = $1
       WHERE id = $2
       RETURNING *;
     `;
@@ -258,7 +258,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Update candidate with new parsedData
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1, "updatedAt" = NOW()
+      SET "parsedData" = $1
       WHERE id = $2
       RETURNING *;
     `;

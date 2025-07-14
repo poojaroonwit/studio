@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       // Update with correct field name (avatarUrl in Prisma schema)
-      const updateQuery = `UPDATE "Candidate" SET "avatarUrl" = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *;`;
+      const updateQuery = `UPDATE "Candidate" SET "avatarUrl" = $1 WHERE id = $2 RETURNING *;`;
       const result = await client.query(updateQuery, [avatarUrl, candidateId]);
       
       if (result.rows.length === 0) {

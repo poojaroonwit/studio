@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updateQuery = `
       UPDATE "Position" 
       SET title = $1, department = $2, description = $3, "isOpen" = $4, 
-          position_level = $5, "customAttributes" = $6, "updatedAt" = NOW()
+          position_level = $5, "customAttributes" = $6
       WHERE id = $7
       RETURNING *;
     `;

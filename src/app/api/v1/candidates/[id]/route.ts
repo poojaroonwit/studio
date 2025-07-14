@@ -230,9 +230,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateValues.push(newParsedData);
     }
     
-    // Always update the updatedAt timestamp
-    updateFields.push(`"updatedAt" = NOW()`);
-    
     // If no fields to update, return early
     if (updateFields.length === 0) {
       await client.query('ROLLBACK');
@@ -263,8 +260,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       
       // Insert new job matches
       const insertJobMatchQuery = `
-        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
+        VALUES ($1, $2, $3, $4, $5)
       `;
       
       for (const match of updateData.job_matches) {

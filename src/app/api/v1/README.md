@@ -14,6 +14,15 @@ Authorization: Bearer <your-token>
 
 All endpoints are prefixed with `/api/v1/`
 
+## Automatic Fields
+
+The following fields are automatically handled by the database and should not be included in request bodies:
+
+- **`createdAt`**: Automatically set to the current timestamp when creating new records
+- **`updatedAt`**: Automatically set to the current timestamp when updating records
+
+These fields are returned in API responses but are managed by the database schema and Prisma ORM.
+
 ## Endpoints
 
 ### Authentication
@@ -121,60 +130,82 @@ Create a new candidate with candidate information, job matches, and applied job 
 {
   "candidate_info": {
     "personal_info": {
-      "title_honorific": "Mr.",
-      "firstname": "John",
-      "lastname": "Doe",
-      "nickname": "Johnny",
-      "location": "Bangkok, Thailand",
-      "introduction_aboutme": "Experienced software engineer"
+      "title_honorific": "Mr.",                     // Optional
+      "firstname": "John",                          // Required
+      "lastname": "Doe",                            // Required
+      "nickname": "Johnny",                         // Optional
+      "location": "Bangkok, Thailand",              // Optional
+      "introduction_aboutme": "Experienced software engineer"  // Optional
     },
     "contact_info": {
-      "email": "john@example.com",
-      "phone": "+1234567890"
+      "email": "john@example.com",                  // Required
+      "phone": "+1234567890"                        // Optional
     },
-    "cv_language": "English",
-    "education": [
+    "cv_language": "English",                       // Optional
+    "education": [                                  // Optional
       {
-        "major": "Computer Science",
-        "university": "University of Technology",
-        "period": "2018-2022"
+        "major": "Computer Science",                // Optional
+        "university": "University of Technology",   // Optional
+        "period": "2018-2022"                       // Optional
       }
     ],
-    "experience": [
+    "experience": [                                 // Optional
       {
-        "company": "Tech Corp",
-        "position": "Software Engineer",
-        "period": "2022-Present"
+        "company": "Tech Corp",                     // Optional
+        "position": "Software Engineer",            // Optional
+        "period": "2022-Present"                    // Optional
       }
     ],
-    "skills": [
+    "skills": [                                     // Optional
       {
-        "segment_skill": "Programming Languages",
-        "skill": ["JavaScript", "Python", "React"]
+        "segment_skill": "Programming Languages",   // Optional
+        "skill": ["JavaScript", "Python", "React"]  // Optional
       }
     ],
-    "job_suitable": [
+    "job_suitable": [                               // Optional
       {
-        "suitable_career": "Software Engineer",
-        "suitable_job_level": "Mid-level"
+        "suitable_career": "Software Engineer",     // Optional
+        "suitable_job_level": "Mid-level"           // Optional
       }
     ],
-    "status": "new"
+    "status": "new"                                 // Optional (default: "new")
   },
-  "job_matches": [
+  "job_matches": [                                  // Optional
     {
-      "fit_score": 85,
-      "job_id": "position-uuid",
-      "match_reasons": ["Strong technical skills", "Relevant experience"]
+      "fit_score": 85,                              // Required (if job_matches provided)
+      "job_id": "position-uuid",                    // Required (if job_matches provided)
+      "match_reasons": ["Strong technical skills", "Relevant experience"]  // Optional
     }
   ],
-  "job_applied": {
-    "fit_score": 90,
-    "job_id": "position-uuid",
-    "justification": ["Perfect match for the role"]
+  "job_applied": {                                  // Optional
+    "fit_score": 90,                                // Required (if job_applied provided)
+    "job_id": "position-uuid",                      // Required (if job_applied provided)
+    "justification": ["Perfect match for the role"] // Optional
   }
 }
 ```
+
+**Field Requirements:**
+
+**Required Fields:**
+- `candidate_info.personal_info.firstname` - Candidate's first name
+- `candidate_info.personal_info.lastname` - Candidate's last name
+- `candidate_info.contact_info.email` - Candidate's email address
+
+**Conditionally Required Fields:**
+- `job_matches[].fit_score` - Required if job_matches array is provided
+- `job_matches[].job_id` - Required if job_matches array is provided
+- `job_applied.fit_score` - Required if job_applied object is provided
+- `job_applied.job_id` - Required if job_applied object is provided
+
+**Optional Fields:**
+- All other fields in the request body are optional
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `createdAt`: Automatically set to current timestamp
+- `updatedAt`: Automatically set to current timestamp
+- `applicationDate`: Automatically set to current timestamp
+- `id`: Automatically generated UUID
 
 **Response:**
 ```json
@@ -553,20 +584,42 @@ Create a new position.
 **Request Body:**
 ```json
 {
-  "title": "Software Engineer",
-  "department": "Engineering",
-  "description": "Full-stack development role",
-  "isOpen": true,
-  "position_level": "Mid-level",
-  "customAttributes": {}
+  "title": "Software Engineer",                     // Required
+  "department": "Engineering",                      // Required
+  "description": "Full-stack development role",     // Optional
+  "isOpen": true,                                   // Optional (default: true)
+  "position_level": "Mid-level",                    // Optional
+  "customAttributes": {}                            // Optional (default: {})
 }
 ```
+
+**Field Requirements:**
+
+**Required Fields:**
+- `title` - Position title
+- `department` - Department name
+
+**Optional Fields:**
+- `description` - Position description
+- `isOpen` - Whether position is open for applications (default: true)
+- `position_level` - Position level (e.g., "Entry", "Mid-level", "Senior")
+- `customAttributes` - Custom attributes object (default: {})
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `createdAt`: Automatically set to current timestamp
+- `updatedAt`: Automatically set to current timestamp
+- `id`: Automatically generated UUID
 
 #### GET `/api/v1/positions/{id}`
 Get a specific position by ID.
 
 #### PUT `/api/v1/positions/{id}`
 Update a position.
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `createdAt`: Automatically set to current timestamp
+- `updatedAt`: Automatically set to current timestamp
+- `id`: Automatically generated UUID
 
 #### DELETE `/api/v1/positions/{id}`
 Delete a position.
@@ -608,16 +661,33 @@ Import positions from JSON.
 {
   "positions": [
     {
-      "title": "Software Engineer",
-      "department": "Engineering",
-      "description": "Full-stack development role",
-      "isOpen": true,
-      "position_level": "Mid-level",
-      "customAttributes": {}
+      "title": "Software Engineer",                     // Required
+      "department": "Engineering",                      // Required
+      "description": "Full-stack development role",     // Optional
+      "isOpen": true,                                   // Optional (default: true)
+      "position_level": "Mid-level",                    // Optional
+      "customAttributes": {}                            // Optional (default: {})
     }
   ]
 }
 ```
+
+**Field Requirements:**
+
+**Required Fields:**
+- `positions[].title` - Position title
+- `positions[].department` - Department name
+
+**Optional Fields:**
+- `positions[].description` - Position description
+- `positions[].isOpen` - Whether position is open for applications (default: true)
+- `positions[].position_level` - Position level (e.g., "Entry", "Mid-level", "Senior")
+- `positions[].customAttributes` - Custom attributes object (default: {})
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `createdAt`: Automatically set to current timestamp
+- `updatedAt`: Automatically set to current timestamp
+- `id`: Automatically generated UUID
 
 ### Users
 
@@ -656,13 +726,29 @@ Create a new user.
 **Request Body:**
 ```json
 {
-  "name": "Jane Smith",
-  "email": "jane@example.com",
-  "role": "Recruiter",
-  "modulePermissions": ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"],
-  "password": "password123"
+  "name": "Jane Smith",                            // Required
+  "email": "jane@example.com",                     // Required
+  "role": "Recruiter",                             // Required
+  "modulePermissions": ["CANDIDATES_VIEW", "CANDIDATES_MANAGE"],  // Optional (default: [])
+  "password": "password123"                        // Optional (for basic auth)
 }
 ```
+
+**Field Requirements:**
+
+**Required Fields:**
+- `name` - User's full name
+- `email` - User's email address (must be unique)
+- `role` - User role ("Admin", "Recruiter", "User")
+
+**Optional Fields:**
+- `modulePermissions` - Array of module permissions (default: [])
+- `password` - Password for basic authentication (optional if using external auth)
+
+**Note:** The following fields are automatically handled and should not be included in the request:
+- `createdAt`: Automatically set to current timestamp
+- `updatedAt`: Automatically set to current timestamp
+- `id`: Automatically generated UUID
 
 #### GET `/api/v1/users/{id}`
 Get a specific user by ID.
@@ -779,4 +865,4 @@ Interactive API documentation is available at `/api-docs` which provides a Swagg
 
 ## Payload Alignment
 
-All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support both legacy formats and the new structured format with `candidate_info`, `job_matches`, and `job_applied` fields. 
+All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support both legacy formats and the new structured format with `candidate_info`, `job_matches`, and `job_applied` fields.

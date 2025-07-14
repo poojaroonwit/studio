@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           return new Response(JSON.stringify({ error: 'isOpen status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Position" SET "isOpen" = $1, "updatedAt" = NOW() WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Position" SET "isOpen" = $1 WHERE id = ANY($2)';
         queryParams = [data.isOpen, positionIds];
         break;
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
           await client.query('ROLLBACK');
           return new Response(JSON.stringify({ error: 'Department is required for update_department action' }), { status: 400, headers: handleCors(req) });
         }
-        updateQuery = 'UPDATE "Position" SET department = $1, "updatedAt" = NOW() WHERE id = ANY($2)';
+        updateQuery = 'UPDATE "Position" SET department = $1 WHERE id = ANY($2)';
         queryParams = [data.department, positionIds];
         break;
 

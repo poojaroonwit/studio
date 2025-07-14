@@ -8,7 +8,7 @@ import "swagger-ui-react/swagger-ui.css";
 
 export default function ApiDocsPage() {
   return (
-    <div className="h-[calc(100vh-4rem)] w-full bg-background p-0">
+    <div className="h-full w-full bg-background p-0 overflow-hidden">
       <SwaggerUI url="/api-docs" docExpansion="list" defaultModelsExpandDepth={-1} />
     </div>
   );

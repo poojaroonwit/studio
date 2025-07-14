@@ -10,7 +10,11 @@ const SwaggerUI = dynamic(() => import('swagger-ui-react'), {
 
 export default function ApiDocsPage() {
   return (
-    <div style={{ height: '100vh' }}>
+    <div style={{ 
+      height: '100%', 
+      width: '100%',
+      overflow: 'hidden'
+    }}>
       <SwaggerUI 
         url="/api-docs"
         docExpansion="list"

@@ -272,7 +272,11 @@ export default function PositionDetailPage() {
             <CardContent>
               <div className="text-base text-muted-foreground min-h-[120px]">
                 {position.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: position.description }} />
+                  <div 
+                    dangerouslySetInnerHTML={{ __html: position.description }} 
+                    className="prose prose-sm max-w-none"
+                    style={{ whiteSpace: 'pre-wrap' }}
+                  />
                 ) : (
                   <span>No job description provided.</span>
                 )}

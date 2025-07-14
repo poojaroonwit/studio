@@ -10,6 +10,17 @@ This API provides endpoints for managing candidate information without job appli
 ## Authentication
 All endpoints require authentication via NextAuth session.
 
+## Automatic Fields
+
+The following fields are automatically handled by the database and should not be included in request bodies:
+
+- **`createdAt`**: Automatically set to the current timestamp when creating new records
+- **`updatedAt`**: Automatically set to the current timestamp when updating records
+- **`id`**: Automatically generated UUID
+- **`applicationDate`**: Automatically set to the current timestamp when creating candidates
+
+These fields are returned in API responses but are managed by the database schema and Prisma ORM.
+
 ## Endpoints
 
 ### POST /api/v1/candidates

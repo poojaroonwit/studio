@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown } from 'lucide-react';
+import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -71,7 +71,7 @@ const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(categor
 
 export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEdit = false }: EditUserModalProps) {
   const { data: session } = useSession();
-  const [activeTab, setActiveTab] = useState<'general' | 'permissions'>(isSelfEdit ? 'general' : 'general');
+  const [activeTab, setActiveTab] = useState('user-info');
   const [availableGroups, setAvailableGroups] = useState<UserGroup[]>([]);
 
   const form = useForm<EditUserFormValues>({
@@ -99,7 +99,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
         modulePermissions: user.modulePermissions || [],
         groupIds: user.groups?.map(g => g.id) || [],
       });
-      setActiveTab(isSelfEdit ? 'general' : 'general');
+      setActiveTab('user-info');
 
       if (!isSelfEdit) {
         const fetchGroups = async () => {
@@ -118,7 +118,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
     } else if (!isOpen) {
       form.reset({ name: '', email: '', role: 'Recruiter', newPassword: '', forcePasswordChange: false, authenticationMethod: 'basic', modulePermissions: [], groupIds: [] });
       setAvailableGroups([]);
-      setActiveTab('general');
+      setActiveTab('user-info');
     }
   }, [user, isOpen, form, toast, isSelfEdit]);
 
@@ -144,17 +144,20 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
 
   if (!user && isOpen) return null;
 
-
-
   const dialogTitle = isSelfEdit ? "Edit My Profile" : `Edit User: ${user?.name || 'N/A'}`;
   const dialogDescription = isSelfEdit
     ? "Update your personal information. Use the Change Password function to update your password."
     : "Update user details, assign roles, groups, and permissions.";
 
-  const navItems = [
-    { id: 'general', label: 'General Information', icon: Users },
-    ...(!isSelfEdit ? [{ id: 'permissions', label: 'Groups & Permissions', icon: ShieldCheck }] : [])
-  ];
+  const getTabStatus = (tabName: string) => {
+    if (tabName === activeTab) return 'active';
+    const tabOrder = isSelfEdit ? ['user-info'] : ['user-info', 'groups', 'permissions'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const tabIndex = tabOrder.indexOf(tabName);
+    return tabIndex < currentIndex ? 'completed' : 'pending';
+  };
+
+  const getTotalSteps = () => isSelfEdit ? 1 : 3;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -162,170 +165,175 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
       if (!open) {
         form.reset({ name: '', email: '', role: 'Recruiter', newPassword: '', forcePasswordChange: false, authenticationMethod: 'basic', modulePermissions: [], groupIds: [] });
         setAvailableGroups([]);
-        setActiveTab('general');
+        setActiveTab('user-info');
       }
     }}>
-      <DialogContent className="sm:max-w-6xl lg:max-w-7xl xl:max-w-8xl max-h-[95vh] flex flex-col p-0">
-        <DialogHeader className="p-4 pb-6 border-b bg-gradient-to-r from-primary/5 to-primary/10">
-          <DialogTitle className="flex items-center text-lg font-semibold">
-            <Edit3 className="mr-2 h-4 w-4 text-primary" /> {typeof dialogTitle === 'object' ? JSON.stringify(dialogTitle) : dialogTitle}
-          </DialogTitle>
-          <DialogDescription className="text-base mt-2">{typeof dialogDescription === 'object' ? JSON.stringify(dialogDescription) : dialogDescription}</DialogDescription>
+      <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center text-xl font-semibold">
+                <Edit3 className="mr-3 h-5 w-5 text-primary" /> {dialogTitle}
+              </DialogTitle>
+              <DialogDescription className="text-base mt-2 text-muted-foreground">
+                {dialogDescription}
+              </DialogDescription>
+            </div>
+            {!isSelfEdit && (
+              <Badge variant="secondary" className="text-sm">
+                Step {['user-info', 'groups', 'permissions'].indexOf(activeTab) + 1} of {getTotalSteps()}
+              </Badge>
+            )}
+          </div>
         </DialogHeader>
 
-        <div className="flex flex-col lg:flex-row flex-grow overflow-hidden p-4 gap-8">
-          {!isSelfEdit && (
-            <aside className="lg:w-80 border-b lg:border-b-0 lg:border-r pb-8 lg:pb-0 lg:pr-8 space-y-2">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-foreground mb-3">Navigation</h3>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
+            {/* Progress Steps */}
+            {!isSelfEdit && (
+              <div className="px-6 py-4 border-b bg-muted/30">
+                <div className="flex items-center justify-between">
+                  {[
+                    { id: 'user-info', label: 'User Information', icon: User },
+                    { id: 'groups', label: 'Group Assignment', icon: Users },
+                    { id: 'permissions', label: 'Permissions', icon: ShieldCheck }
+                  ].map((tab, index) => (
+                    <div key={tab.id} className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200",
+                          getTabStatus(tab.id) === 'active' && "bg-primary text-primary-foreground shadow-md",
+                          getTabStatus(tab.id) === 'completed' && "bg-green-100 text-green-700 hover:bg-green-200",
+                          getTabStatus(tab.id) === 'pending' && "bg-muted text-muted-foreground hover:bg-muted/80"
+                        )}
+                      >
+                        <tab.icon className="h-4 w-4" />
+                        <span className="font-medium">{tab.label}</span>
+                      </button>
+                      {index < 2 && (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              {navItems.map(item => (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "default" : "ghost"}
-                  onClick={() => setActiveTab(item.id as 'general' | 'permissions')}
-                  className={cn(
-                    "w-full justify-start text-base py-3 px-4",
-                    activeTab === item.id && "btn-primary-gradient text-primary-foreground shadow-lg",
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5" /> {typeof item.label === 'object' ? JSON.stringify(item.label) : item.label}
-                </Button>
-              ))}
-            </aside>
-          )}
+            )}
 
-          <main className={cn("flex-grow overflow-hidden flex-1")}>
-            <ScrollArea className="h-full pr-4">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                  {activeTab === 'general' && (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Content Area */}
+            <div className="flex-1 p-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+                <TabsContent value="user-info" className="mt-0 h-full">
+                  <Card className="border-0 shadow-none">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center text-lg">
+                        <User className="mr-2 h-5 w-5 text-primary" />
+                        {isSelfEdit ? 'Profile Information' : 'Basic Information'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField 
                           control={form.control} 
                           name="name" 
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-base font-medium">Full Name *</FormLabel>
+                              <FormLabel htmlFor="name-edit" className="text-sm font-medium">Full Name *</FormLabel>
                               <FormControl>
-                                <Input {...field} className="h-12 text-base" />
+                                <Input id="name-edit" {...field} className="h-10" placeholder="Enter full name" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )} 
                         />
+                        
                         <FormField 
                           control={form.control} 
                           name="email" 
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-base font-medium">Email Address *</FormLabel>
+                              <FormLabel htmlFor="email-edit" className="text-sm font-medium">Email Address *</FormLabel>
                               <FormControl>
-                                <Input type="email" {...field} className="h-12 text-base" />
+                                <Input id="email-edit" type="email" {...field} className="h-10" placeholder="user@example.com" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )} 
                         />
                       </div>
-                      
+
                       {!isSelfEdit && (
-                        <FormField 
-                          control={form.control} 
-                          name="role" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-base font-medium">System Role *</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger className="h-12 text-base">
-                                    <SelectValue placeholder="Select a role" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {userRoleOptions.map(roleValue => (
-                                    <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                              <p className="text-sm text-muted-foreground mt-2">
-                                This is the primary system role. Specific permissions are managed via groups and direct assignments.
-                              </p>
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                      
-                      {!isSelfEdit && canManageAuthentication && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-                          <Label className="text-base font-medium">Authentication Method</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField 
                             control={form.control} 
-                            name="authenticationMethod" 
+                            name="role" 
                             render={({ field }) => (
                               <FormItem>
-                                <FormControl>
-                                  <RadioGroup 
-                                    onValueChange={field.onChange} 
-                                    value={field.value} 
-                                    className="flex flex-col space-y-3"
-                                  >
-                                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                                      <RadioGroupItem value="basic" id="auth-basic" />
-                                      <Label htmlFor="auth-basic" className="flex flex-col cursor-pointer">
-                                        <span className="font-medium">Basic Authentication</span>
-                                        <span className="text-sm text-muted-foreground">
-                                          User signs in with email and password
-                                        </span>
-                                      </Label>
-                                    </div>
-                                    <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                                      <RadioGroupItem value="azure" id="auth-azure" />
-                                      <Label htmlFor="auth-azure" className="flex flex-col cursor-pointer">
-                                        <span className="font-medium">Azure AD</span>
-                                        <span className="text-sm text-muted-foreground">
-                                          User signs in through Microsoft Azure Active Directory
-                                        </span>
-                                      </Label>
-                                    </div>
-                                  </RadioGroup>
-                                </FormControl>
+                                <FormLabel htmlFor="role-edit" className="text-sm font-medium">System Role *</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger id="role-edit" className="h-10">
+                                      <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {userRoleOptions.map(roleValue => (
+                                      <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  This is the primary system role. Specific permissions are managed via groups and direct assignments.
+                                </p>
                               </FormItem>
                             )}
                           />
-                          <p className="text-sm text-muted-foreground">
-                            Email address ({form.watch('email')}) will be used as the primary identifier for both authentication methods.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {!isSelfEdit && canForcePasswordChange && form.watch('authenticationMethod') === 'basic' && (
-                        <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-                          <div className="flex items-center space-x-2">
+                          
+                          {canManageAuthentication && (
                             <FormField 
                               control={form.control} 
-                              name="forcePasswordChange" 
+                              name="authenticationMethod" 
                               render={({ field }) => (
-                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox 
-                                      checked={Boolean(field.value)} 
-                                      onCheckedChange={(checked) => field.onChange(checked)}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="text-base font-medium">
-                                    Force Password Change
-                                  </FormLabel>
+                                <FormItem>
+                                  <FormLabel htmlFor="auth-method-edit" className="text-sm font-medium">Authentication Method</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger id="auth-method-edit" className="h-10">
+                                        <SelectValue placeholder="Select authentication method" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="basic">Basic (Email/Password)</SelectItem>
+                                      <SelectItem value="azure">Azure AD</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    Email address ({form.watch('email')}) will be used as the primary identifier for both authentication methods.
+                                  </p>
                                 </FormItem>
-                              )}
+                              )} 
                             />
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            When enabled, the user will be required to change their password on next login.
-                          </p>
+                          )}
+                        </div>
+                      )}
+
+                      {!isSelfEdit && canForcePasswordChange && form.watch('authenticationMethod') === 'basic' && (
+                        <div className="space-y-4">
+                          <FormField 
+                            control={form.control} 
+                            name="forcePasswordChange" 
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Force password change on next login</FormLabel>
+                              </FormItem>
+                            )} 
+                          />
                           
                           {form.watch('forcePasswordChange') && (
                             <FormField 
@@ -333,13 +341,14 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                               name="newPassword" 
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel className="text-base font-medium">New Password *</FormLabel>
+                                  <FormLabel htmlFor="password-edit" className="text-sm font-medium">New Password *</FormLabel>
                                   <FormControl>
                                     <Input 
+                                      id="password-edit"
                                       type="password" 
                                       {...field} 
                                       placeholder="Enter new password (min 6 characters)" 
-                                      className="h-12 text-base" 
+                                      className="h-10" 
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -359,86 +368,161 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                           name="newPassword" 
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-base font-medium">New Password (Optional)</FormLabel>
+                              <FormLabel htmlFor="password-edit" className="text-sm font-medium">New Password (Optional)</FormLabel>
                               <FormControl>
-                                <Input type="password" {...field} placeholder="Leave blank to keep current" className="h-12 text-base" />
+                                <Input 
+                                  id="password-edit"
+                                  type="password" 
+                                  {...field} 
+                                  placeholder="Leave blank to keep current" 
+                                  className="h-10" 
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )} 
                         />
                       )}
-                    </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {!isSelfEdit && (
+                  <>
+                    <TabsContent value="groups" className="mt-0 h-full">
+                      <Card className="border-0 shadow-none">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="flex items-center text-lg">
+                            <Users className="mr-2 h-5 w-5 text-primary" />
+                            Group Assignment
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-base font-medium mb-2">Assign to Groups</h3>
+                              <p className="text-sm text-muted-foreground mb-6">
+                                Choose which groups/roles should be assigned to this user. Users inherit permissions from their assigned groups.
+                              </p>
+                            </div>
+                            
+                            <FormField 
+                              control={form.control} 
+                              name="groupIds" 
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <RoleSelector
+                                      availableRoles={availableGroups}
+                                      selectedRoleIds={field.value || []}
+                                      onRolesChange={field.onChange}
+                                      title="Role Assignment"
+                                      description="Assign user to specific groups to inherit their permissions and access levels."
+                                      multiple={true}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} 
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="permissions" className="mt-0 h-full">
+                      <Card className="border-0 shadow-none">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="flex items-center text-lg">
+                            <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
+                            Direct Module Permissions
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="text-base font-medium mb-2">Direct Permissions</h3>
+                              <p className="text-sm text-muted-foreground mb-6">
+                                These are direct permissions assigned specifically to this user. The user will also inherit permissions from their assigned groups.
+                              </p>
+                            </div>
+                            
+                            <FormField 
+                              control={form.control} 
+                              name="modulePermissions" 
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <RolePermissionSelector
+                                      selectedPermissions={field.value || []}
+                                      onPermissionsChange={field.onChange}
+                                      title="Direct Permissions"
+                                      description="Grant specific permissions directly to this user, overriding group permissions."
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )} 
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </>
+                )}
+              </Tabs>
+            </div>
+            
+            <DialogFooter className="p-6 border-t bg-muted/20">
+              <div className="flex items-center justify-between w-full">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" size="lg">Cancel</Button>
+                </DialogClose>
+                
+                <div className="flex items-center gap-3">
+                  {!isSelfEdit && activeTab !== 'user-info' && (
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="lg"
+                      onClick={() => {
+                        if (activeTab === 'groups') setActiveTab('user-info');
+                        if (activeTab === 'permissions') setActiveTab('groups');
+                      }}
+                    >
+                      Previous
+                    </Button>
                   )}
-
-                  {activeTab === 'permissions' && !isSelfEdit && (
-                    <div className="space-y-8">
-                      {/* Groups Section */}
-                      <div className="space-y-6">
-                        
-                        <FormField control={form.control} name="groupIds" render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RoleSelector
-                                availableRoles={availableGroups}
-                                selectedRoleIds={field.value || []}
-                                onRolesChange={field.onChange}
-                                title="Role Assignment"
-                                description="Assign user to specific groups to inherit their permissions and access levels."
-                                multiple={true}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-
-                      <Separator className="my-8" />
-
-                      {/* Direct Permissions Section */}
-                      <div className="space-y-6">
-                        <div className="border-b pb-2">
-                          <Label className="flex items-center text-xl font-semibold text-primary">
-                            <ShieldCheck className="mr-3 h-6 w-6" /> Direct Module Permissions
-                          </Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Grant specific permissions directly to this user, overriding group permissions.
-                          </p>
-                        </div>
-                        
-                        <FormField control={form.control} name="modulePermissions" render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <RolePermissionSelector
-                                selectedPermissions={field.value || []}
-                                onPermissionsChange={field.onChange}
-                                title="Direct Permissions"
-                                description="Grant specific permissions directly to this user, overriding group permissions."
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </div>
+                  
+                  {!isSelfEdit && activeTab !== 'permissions' ? (
+                    <Button 
+                      type="button" 
+                      variant="default"
+                      size="lg"
+                      onClick={() => {
+                        if (activeTab === 'user-info') setActiveTab('groups');
+                        if (activeTab === 'groups') setActiveTab('permissions');
+                      }}
+                    >
+                      Next
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="submit" 
+                      disabled={form.formState.isSubmitting} 
+                      className="btn-primary-gradient"
+                      size="lg"
+                    >
+                      {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4"/>}
+                      {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                    </Button>
                   )}
-                </form>
-              </Form>
-            </ScrollArea>
-          </main>
-        </div>
-
-        <DialogFooter className="p-8 pt-6 border-t bg-muted/20">
-          <DialogClose asChild>
-            <Button type="button" variant="outline" className="h-12 px-6 text-base">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting} className="btn-primary-gradient h-12 px-8 text-base">
-            {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2 h-5 w-5"/> : <Save className="mr-2 h-5 w-5"/>}
-            {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </DialogFooter>
+                </div>
+              </div>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

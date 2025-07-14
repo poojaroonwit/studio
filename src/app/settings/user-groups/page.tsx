@@ -401,7 +401,7 @@ export default function RolesPermissionsPage() {
               {editingRole ? `Update the details for the "${editingRole.name}" role.` : 'Define a new role. Permissions are managed on the main page after creation.'}
             </DialogDescription>
           </DialogHeader>
-          <Form {...form}>
+          <Form {...form as any}>
             <form onSubmit={form.handleSubmit(handleRoleFormSubmit)} className="space-y-4 py-2">
               <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem>

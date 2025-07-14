@@ -59,9 +59,11 @@ export async function POST(
     };
 
     // Add custom headers
-    Object.entries(webhook.headers).forEach(([key, value]) => {
-      headers[key] = value;
-    });
+    if (webhook.headers) {
+      Object.entries(webhook.headers).forEach(([key, value]) => {
+        headers[key] = value;
+      });
+    }
 
     // Add authentication headers
     if (webhook.auth_type === 'basic' && webhook.auth_username && webhook.auth_password) {

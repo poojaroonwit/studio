@@ -343,32 +343,32 @@ model Attachment {
 }
 
 model Webhook {
-  id                String       @id @default(uuid()) @db.Uuid
+  id                String   @id @default(uuid()) @db.Uuid
   name              String
   url               String
   method            String
   headers           Json?
-  auth_header_name  String?      @map("auth_header_name")
-  auth_header_value String?      @map("auth_header_value")
-  auth_password     String?      @map("auth_password")
-  auth_token        String?      @map("auth_token")
-  auth_type         String       @default("none") @map("auth_type")
-  auth_username     String?      @map("auth_username")
-  created_at        DateTime     @default(now()) @map("created_at")
+  auth_header_name  String?  @map("auth_header_name")
+  auth_header_value String?  @map("auth_header_value")
+  auth_password     String?  @map("auth_password")
+  auth_token        String?  @map("auth_token")
+  auth_type         String   @default("none") @map("auth_type")
+  auth_username     String?  @map("auth_username")
+  created_at        DateTime @default(now()) @map("created_at")
   events            String[]
-  is_active         Boolean      @default(true) @map("is_active")
-  retry_count       Int          @default(3) @map("retry_count")
-  timeout           Int          @default(30)
-  updated_at        DateTime     @updatedAt @map("updated_at")
-  
+  is_active         Boolean  @default(true) @map("is_active")
+  retry_count       Int      @default(3) @map("retry_count")
+  timeout           Int      @default(30)
+  updated_at        DateTime @updatedAt @map("updated_at")
+
   // Webhook body customization fields
-  body_template     String?      @map("body_template") // JSON template for custom webhook body
-  field_mappings    Json?        @map("field_mappings") // Field mappings for each event type
-  include_metadata  Boolean      @default(true) @map("include_metadata") // Whether to include event metadata
-  custom_payload    Boolean      @default(false) @map("custom_payload") // Whether to use custom payload instead of default
-  
-  logs              WebhookLog[]
-  body_configs      WebhookBodyConfig[]
+  body_template    String? @map("body_template") // JSON template for custom webhook body
+  field_mappings   Json?   @map("field_mappings") // Field mappings for each event type
+  include_metadata Boolean @default(true) @map("include_metadata") // Whether to include event metadata
+  custom_payload   Boolean @default(false) @map("custom_payload") // Whether to use custom payload instead of default
+
+  logs         WebhookLog[]
+  body_configs WebhookBodyConfig[]
 
   @@index([is_active])
   @@index([events])
@@ -376,15 +376,15 @@ model Webhook {
 }
 
 model WebhookBodyConfig {
-  id                String   @id @default(uuid()) @db.Uuid
-  webhook_id        String   @map("webhook_id") @db.Uuid
-  event_type        String   @map("event_type")
-  body_template     String   @map("body_template") // JSON template for this specific event
-  field_mappings    Json?    @map("field_mappings") // Field mappings for this event
-  is_active         Boolean  @default(true) @map("is_active")
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
-  webhook           Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+  id             String   @id @default(uuid()) @db.Uuid
+  webhook_id     String   @map("webhook_id") @db.Uuid
+  event_type     String   @map("event_type")
+  body_template  String   @map("body_template") // JSON template for this specific event
+  field_mappings Json?    @map("field_mappings") // Field mappings for this event
+  is_active      Boolean  @default(true) @map("is_active")
+  created_at     DateTime @default(now()) @map("created_at")
+  updated_at     DateTime @updatedAt @map("updated_at")
+  webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
   @@unique([webhook_id, event_type])
   @@index([webhook_id])

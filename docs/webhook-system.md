@@ -1,49 +1,156 @@
 # Webhook Management System
 
-The webhook management system allows you to configure real-time notifications for various application events. This system provides a robust, scalable way to integrate with external systems and services.
+## Overview
+
+The webhook management system allows you to receive real-time notifications when events occur in your recruitment system. Instead of polling the API for updates, webhooks push data to your endpoint in real-time.
 
 ## Features
 
-- **Event-driven notifications**: Receive webhooks for candidate, position, user, resume, and comment events
-- **Flexible authentication**: Support for Basic Auth, Bearer tokens, and custom headers
-- **Retry logic**: Automatic retry with exponential backoff for failed deliveries
-- **Comprehensive logging**: Full delivery history with request/response details
-- **Real-time testing**: Test webhook configurations before going live
-- **User-friendly interface**: Easy-to-use web interface for management
+### ✅ Core Functionality
+- **Webhook Creation & Management** - Create, edit, and delete webhooks
+- **Event Selection** - Choose which events to receive notifications for
+- **Authentication Support** - Basic, Bearer token, and custom header authentication
+- **Custom Headers** - Add custom headers to webhook requests
+- **Retry Logic** - Automatic retry with exponential backoff for failed deliveries
+- **Timeout Handling** - Configurable timeout settings
+- **Delivery Logs** - Track webhook delivery success/failure
+- **Testing** - Test webhooks before going live
+- **Bulk Operations** - Enable/disable/delete multiple webhooks
+- **Export** - Export webhook configurations
 
-## Supported Events
+### ✅ Available Events
 
-### Candidate Events
-- `candidate.created` - When a new candidate is created
-- `candidate.updated` - When candidate information is updated
+#### Candidate Events
+- `candidate.created` - When a candidate is created
+- `candidate.updated` - When a candidate is updated
 - `candidate.deleted` - When a candidate is deleted
-- `candidate.stage_changed` - When a candidate moves between recruitment stages
+- `candidate.stage_changed` - When a candidate changes stage
 
-### Position Events
-- `position.created` - When a new position is created
-- `position.updated` - When position details are updated
+#### Position Events
+- `position.created` - When a position is created
+- `position.updated` - When a position is updated
 - `position.deleted` - When a position is deleted
 
-### User Events
-- `user.created` - When a new user is created
-- `user.updated` - When user information is updated
+#### User Events
+- `user.created` - When a user is created
+- `user.updated` - When a user is updated
 - `user.deleted` - When a user is deleted
 
-### Resume Events
+#### Resume Events
 - `resume.uploaded` - When a resume is uploaded
-- `resume.processed` - When a resume is processed (AI analysis, etc.)
+- `resume.processed` - When a resume is processed
 
-### Comment Events
-- `comment.created` - When a comment is added to a candidate
-- `comment.updated` - When a comment is modified
+#### Comment Events
+- `comment.created` - When a comment is created
+- `comment.updated` - When a comment is updated
 - `comment.deleted` - When a comment is deleted
 
-### System Events
-- `webhook.test` - Test event for validating webhook configurations
+#### Upload Queue Events
+- `upload_queue.created` - When an upload queue item is created
+- `upload_queue.processing` - When an upload queue item is processing
+- `upload_queue.completed` - When an upload queue item is completed
+- `upload_queue.failed` - When an upload queue item fails
+- `upload_queue.retry` - When an upload queue item is retried
 
-## Webhook Payload Format
+## Quick Start
 
-All webhooks follow a consistent JSON payload format:
+### 1. Access Webhook Management
+Navigate to **Settings → Webhook Management** in your application.
+
+### 2. Create a Webhook
+1. Click **"Add Webhook"**
+2. Fill in the webhook details:
+   - **Name**: A descriptive name for your webhook
+   - **URL**: Your endpoint URL (must be HTTPS)
+   - **Method**: HTTP method (GET, POST, PUT, PATCH)
+   - **Events**: Select which events you want to receive
+   - **Authentication**: Configure if needed
+   - **Headers**: Add custom headers if needed
+   - **Timeout**: Set timeout in seconds (5-300)
+   - **Retry Count**: Number of retry attempts (0-10)
+
+### 3. Test Your Webhook
+1. Click the **"Test"** button in the webhook actions menu
+2. Check the test results
+3. Verify your endpoint received the test payload
+
+### 4. Monitor Logs
+1. Click **"View Logs"** to see delivery history
+2. Filter by success/failure status
+3. Search through logs for specific events
+
+## API Reference
+
+### Webhook Endpoints
+
+#### List Webhooks
+```http
+GET /api/settings/webhooks
+```
+
+#### Create Webhook
+```http
+POST /api/settings/webhooks
+Content-Type: application/json
+
+{
+  "name": "My Webhook",
+  "url": "https://your-endpoint.com/webhook",
+  "events": ["candidate.created", "position.created"],
+  "method": "POST",
+  "is_active": true,
+  "auth_type": "none",
+  "headers": {},
+  "retry_count": 3,
+  "timeout": 30
+}
+```
+
+#### Update Webhook
+```http
+PUT /api/settings/webhooks/{id}
+Content-Type: application/json
+
+{
+  "name": "Updated Webhook Name",
+  "events": ["candidate.created"]
+}
+```
+
+#### Delete Webhook
+```http
+DELETE /api/settings/webhooks/{id}
+```
+
+#### Test Webhook
+```http
+POST /api/settings/webhooks/{id}/test
+```
+
+#### Get Webhook Logs
+```http
+GET /api/settings/webhooks/{id}/logs?page=1&limit=20&filter=all&search=test
+```
+
+#### Export Webhooks
+```http
+GET /api/settings/webhooks/export
+```
+
+#### Bulk Actions
+```http
+POST /api/settings/webhooks/bulk-action
+Content-Type: application/json
+
+{
+  "webhook_ids": ["id1", "id2"],
+  "action": "enable" // or "disable", "delete"
+}
+```
+
+### Webhook Payload Format
+
+All webhook payloads follow this structure:
 
 ```json
 {
@@ -51,320 +158,228 @@ All webhooks follow a consistent JSON payload format:
   "timestamp": "2024-01-15T10:30:00.000Z",
   "data": {
     "candidate": {
-      "id": "uuid",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
       "name": "John Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "current_stage": "new",
+      "email": "john.doe@example.com",
+      "status": "Applied",
+      "position_id": "550e8400-e29b-41d4-a716-446655440001",
+      "application_date": "2024-01-15T10:30:00.000Z",
       "created_at": "2024-01-15T10:30:00.000Z",
       "updated_at": "2024-01-15T10:30:00.000Z"
     }
-  },
-  "webhook_id": "webhook-uuid"
-}
-```
-
-### Event-Specific Data
-
-Each event type includes relevant data in the `data` field:
-
-#### Candidate Events
-```json
-{
-  "candidate": {
-    "id": "uuid",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "+1234567890",
-    "current_stage": "interview",
-    "created_at": "2024-01-15T10:30:00.000Z",
-    "updated_at": "2024-01-15T10:30:00.000Z"
   }
 }
 ```
 
-For `candidate.stage_changed`, additional fields are included:
-```json
-{
-  "candidate": { ... },
-  "old_stage": "new",
-  "new_stage": "interview"
-}
-```
+### Headers
 
-#### Position Events
-```json
-{
-  "position": {
-    "id": "uuid",
-    "title": "Senior Developer",
-    "department": "Engineering",
-    "description": "We are looking for...",
-    "status": "active",
-    "created_at": "2024-01-15T10:30:00.000Z",
-    "updated_at": "2024-01-15T10:30:00.000Z"
-  }
-}
-```
-
-#### Resume Events
-```json
-{
-  "resume": {
-    "id": "uuid",
-    "filename": "john_doe_resume.pdf",
-    "file_size": 1024000,
-    "mime_type": "application/pdf",
-    "uploaded_at": "2024-01-15T10:30:00.000Z"
-  },
-  "candidate": {
-    "id": "uuid",
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-}
-```
-
-For `resume.processed`, additional processing results are included:
-```json
-{
-  "resume": { ... },
-  "candidate": { ... },
-  "processing_result": {
-    "skills_extracted": ["JavaScript", "React", "Node.js"],
-    "experience_years": 5,
-    "confidence_score": 0.85
-  }
-}
-```
-
-## HTTP Headers
-
-All webhooks include standard headers:
+Webhook requests include these standard headers:
 
 ```
 Content-Type: application/json
 User-Agent: Recruitment-System-Webhook/1.0
-X-Webhook-ID: webhook-uuid
-X-Event-Type: candidate.created
-X-Timestamp: 2024-01-15T10:30:00.000Z
+X-Webhook-ID: {webhook_id}
+X-Event-Type: {event_type}
+X-Timestamp: {timestamp}
 ```
 
-Custom headers configured in the webhook settings are also included.
-
-## Authentication Methods
+## Authentication
 
 ### Basic Authentication
-```http
-Authorization: Basic base64(username:password)
+```json
+{
+  "auth_type": "basic",
+  "auth_username": "your-username",
+  "auth_password": "your-password"
+}
 ```
 
 ### Bearer Token
-```http
-Authorization: Bearer your-token-here
+```json
+{
+  "auth_type": "bearer",
+  "auth_token": "your-bearer-token"
+}
 ```
 
 ### Custom Header
-```http
-X-API-Key: your-api-key-here
-```
-
-## Configuration
-
-### Creating a Webhook
-
-1. Navigate to **Settings > Webhook Management**
-2. Click **Add Webhook**
-3. Configure the following settings:
-
-#### Basic Settings
-- **Name**: Descriptive name for the webhook
-- **URL**: The endpoint that will receive webhooks
-- **HTTP Method**: GET, POST, PUT, or PATCH
-- **Events**: Select which events to listen for
-- **Active**: Enable/disable the webhook
-
-#### Advanced Settings
-- **Retry Count**: Number of retry attempts (0-10, default: 3)
-- **Timeout**: Request timeout in seconds (5-300, default: 30)
-
-#### Authentication
-- **Type**: None, Basic, Bearer, or Custom Header
-- **Credentials**: Username/password, token, or header name/value
-
-#### Custom Headers
-Add any additional HTTP headers needed by your endpoint.
-
-### Testing Webhooks
-
-1. In the webhook management interface, click the test tube icon
-2. A test payload will be sent to your webhook URL
-3. Check the delivery logs to verify the response
-
-## Delivery Logs
-
-Each webhook delivery is logged with:
-
-- **Event type**: The event that triggered the webhook
-- **Payload**: The complete request payload
-- **Response status**: HTTP status code from your endpoint
-- **Response body**: Response content from your endpoint
-- **Success/failure**: Whether the delivery was successful
-- **Error message**: Details if the delivery failed
-- **Duration**: Time taken for the request
-- **Timestamp**: When the webhook was sent
-
-### Viewing Logs
-
-1. Click the history icon next to any webhook
-2. Use filters to search by event type, status, or date range
-3. View detailed request/response information
-
-## Best Practices
-
-### Webhook Endpoint Requirements
-
-Your webhook endpoint should:
-
-1. **Respond quickly**: Return a 2xx status code within 30 seconds
-2. **Handle duplicates**: Be idempotent (safe to process multiple times)
-3. **Validate signatures**: Verify webhook authenticity if needed
-4. **Log requests**: Keep your own logs for debugging
-5. **Handle errors gracefully**: Don't crash on malformed requests
-
-### Security Considerations
-
-1. **Use HTTPS**: Always use secure endpoints
-2. **Validate payloads**: Check that requests come from expected sources
-3. **Rate limiting**: Implement rate limiting on your endpoint
-4. **Authentication**: Use webhook authentication when possible
-
-### Error Handling
-
-The system automatically retries failed webhooks with exponential backoff:
-
-- **Client errors (4xx)**: Not retried (assumed to be permanent)
-- **Server errors (5xx)**: Retried up to the configured retry count
-- **Network errors**: Retried with exponential backoff
-
-### Monitoring
-
-Monitor webhook health by:
-
-1. **Checking delivery logs**: Look for failed deliveries
-2. **Setting up alerts**: Configure notifications for webhook failures
-3. **Testing regularly**: Use the test feature to verify endpoints
-4. **Reviewing response times**: Monitor delivery duration
-
-## API Integration
-
-### Programmatic Webhook Management
-
-Use the REST API to manage webhooks programmatically:
-
-```bash
-# List webhooks
-GET /api/settings/webhooks
-
-# Create webhook
-POST /api/settings/webhooks
+```json
 {
-  "name": "My Webhook",
-  "url": "https://my-endpoint.com/webhook",
-  "events": ["candidate.created", "candidate.updated"],
-  "method": "POST",
-  "auth_type": "bearer",
-  "auth_token": "my-token"
+  "auth_type": "header",
+  "auth_header_name": "X-API-Key",
+  "auth_header_value": "your-api-key"
 }
-
-# Update webhook
-PUT /api/settings/webhooks/{id}
-
-# Delete webhook
-DELETE /api/settings/webhooks/{id}
-
-# Test webhook
-POST /api/settings/webhooks/{id}/test
-
-# Get webhook logs
-GET /api/settings/webhooks/{id}/logs
 ```
 
-### Webhook Dispatcher Integration
+## Security Best Practices
 
-To dispatch webhooks from your code:
+### 1. Use HTTPS
+All webhook endpoints must use HTTPS to ensure data security in transit.
 
-```typescript
-import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+### 2. Implement Authentication
+Use one of the supported authentication methods to verify webhook requests.
 
-// Dispatch candidate events
-await dispatchWebhooks.candidateCreated(candidate);
-await dispatchWebhooks.candidateUpdated(candidate);
-await dispatchWebhooks.candidateStageChanged(candidate, oldStage, newStage);
+### 3. Validate Payloads
+Always validate the webhook payload structure and content.
 
-// Dispatch position events
-await dispatchWebhooks.positionCreated(position);
-await dispatchWebhooks.positionUpdated(position);
+### 4. Handle Idempotency
+Design your webhook handlers to be idempotent. The same webhook might be sent multiple times due to retries.
 
-// Dispatch user events
-await dispatchWebhooks.userCreated(user);
-await dispatchWebhooks.userUpdated(user);
+### 5. Process Quickly
+Return a response within 30 seconds to avoid timeouts.
 
-// Dispatch resume events
-await dispatchWebhooks.resumeUploaded(resume, candidate);
-await dispatchWebhooks.resumeProcessed(resume, candidate, processingResult);
+### 6. Log Everything
+Log all webhook requests for debugging and audit purposes.
 
-// Dispatch comment events
-await dispatchWebhooks.commentCreated(comment);
-await dispatchWebhooks.commentUpdated(comment);
+## Error Handling
+
+### HTTP Status Codes
+- `200-299`: Success - Webhook was processed successfully
+- `4xx`: Client Error - Webhook will be retried
+- `5xx`: Server Error - Webhook will be retried
+
+### Retry Logic
+- Failed webhooks are retried with exponential backoff
+- Retry delays: 1s, 5s, 15s, 30s, 60s
+- Maximum retry count is configurable per webhook
+
+### Timeout Handling
+- Webhook requests timeout after the configured timeout period
+- Timeout errors are logged and retried
+
+## Testing
+
+### Using the Test Feature
+1. Create a webhook in the management interface
+2. Click the "Test" button
+3. Check the test results
+4. Verify your endpoint received the payload
+
+### Using the Test Script
+```bash
+# Set your test webhook URL
+export TEST_WEBHOOK_URL="https://webhook.site/your-unique-url"
+
+# Run the test script
+node scripts/test-webhooks.js
 ```
+
+### Manual Testing
+You can also test webhooks by:
+1. Creating a test candidate/position
+2. Checking the webhook logs
+3. Verifying your endpoint received the notification
+
+## Monitoring
+
+### Webhook Logs
+- View delivery history for each webhook
+- Filter by success/failure status
+- Search through logs
+- Export logs for analysis
+
+### Health Monitoring
+- Check webhook status in the management interface
+- Monitor delivery success rates
+- Set up alerts for failed webhooks
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Webhook not receiving events**
-   - Check if webhook is active
-   - Verify event types are selected
-   - Check delivery logs for errors
+#### Webhook Not Receiving Data
+1. Check if the webhook is active
+2. Verify the endpoint URL is correct and accessible
+3. Check authentication settings
+4. Review webhook logs for errors
 
-2. **Authentication failures**
-   - Verify credentials are correct
-   - Check authentication type matches endpoint requirements
-   - Ensure custom headers are properly formatted
+#### Authentication Failures
+1. Verify credentials are correct
+2. Check if your endpoint expects the authentication method
+3. Test with a simple endpoint first
 
-3. **Timeout errors**
-   - Increase timeout setting
-   - Optimize your endpoint response time
-   - Check for long-running operations
+#### Timeout Errors
+1. Ensure your endpoint responds quickly
+2. Increase the timeout setting if needed
+3. Optimize your webhook handler
 
-4. **Retry loops**
-   - Check endpoint is returning proper status codes
-   - Verify endpoint can handle the payload format
-   - Review error messages in delivery logs
+#### Retry Loops
+1. Check if your endpoint is returning 4xx/5xx status codes
+2. Verify the payload format is correct
+3. Check webhook logs for specific error messages
 
-### Debugging
+### Debugging Tips
+1. Use the test feature to verify webhook configuration
+2. Check webhook logs for detailed error information
+3. Test with a simple webhook endpoint (like webhook.site)
+4. Monitor your endpoint's logs for incoming requests
 
-1. **Enable detailed logging**: Check server logs for webhook dispatcher messages
-2. **Test with simple endpoint**: Use a service like webhook.site for testing
-3. **Check network connectivity**: Ensure your endpoint is accessible
-4. **Validate payload format**: Verify your endpoint can parse the JSON payload
+## Integration Examples
 
-## Migration from Legacy Webhooks
+### Node.js/Express
+```javascript
+app.post('/webhooks/recruitment', (req, res) => {
+  const { event, timestamp, data } = req.body;
+  
+  // Validate webhook signature if needed
+  // Process the webhook data
+  console.log('Received webhook:', event, data);
+  
+  // Return success
+  res.status(200).json({ received: true });
+});
+```
 
-If you have existing webhook configurations:
+### Python/Flask
+```python
+from flask import Flask, request, jsonify
 
-1. **Export current settings**: Save your existing webhook configurations
-2. **Create new webhooks**: Use the new webhook management interface
-3. **Test thoroughly**: Verify all events are working correctly
-4. **Update integrations**: Update any external systems using the old webhooks
-5. **Remove old configurations**: Clean up legacy webhook settings
+app = Flask(__name__)
+
+@app.route('/webhooks/recruitment', methods=['POST'])
+def webhook_handler():
+    data = request.get_json()
+    event = data.get('event')
+    timestamp = data.get('timestamp')
+    payload = data.get('data')
+    
+    # Process the webhook
+    print(f"Received {event} at {timestamp}")
+    
+    return jsonify({'received': True}), 200
+```
+
+### PHP
+```php
+<?php
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
+
+$event = $data['event'];
+$timestamp = $data['timestamp'];
+$payload = $data['data'];
+
+// Process the webhook
+error_log("Received webhook: $event");
+
+http_response_code(200);
+echo json_encode(['received' => true]);
+?>
+```
 
 ## Support
 
 For issues with the webhook system:
+1. Check the webhook logs for error details
+2. Review this documentation
+3. Test with the provided test script
+4. Contact support with specific error messages and logs
 
-1. Check the delivery logs for specific error messages
-2. Review the troubleshooting section above
-3. Contact system administrators for persistent issues
-4. Check server logs for additional debugging information 
+## Changelog
+
+### Version 1.0.0
+- Initial webhook management system
+- Support for all major events
+- Authentication and retry logic
+- Comprehensive logging and monitoring
+- Bulk operations and export functionality 

@@ -165,7 +165,7 @@ export class WebhookService {
         data: {
           webhook_id: webhookId,
           event_type: payload.event,
-          payload: payload,
+          payload: payload as any, // Cast to any to satisfy Prisma's Json type
           response_status: result.status || null,
           response_body: result.response || null,
           success: result.success,

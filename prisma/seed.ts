@@ -486,7 +486,7 @@ async function main() {
       {
         id: '50000000-0000-0000-0000-000000009999',
         name: 'Resume Processing Workflow',
-        url: 'http://159.89.193.226:689/v1/workflows/run',
+        url: 'https://ncc-dify.qsncc.com/v1/workflows/run',
         events: [
           'upload_queue.created',
           'upload_queue.processing',

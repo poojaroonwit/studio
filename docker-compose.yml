@@ -68,6 +68,9 @@ services:
           cpus: '0.25'
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
+    networks:
+      - docker_internal
+      - default
 
   postgres:
     image: postgres:14-alpine
@@ -85,6 +88,8 @@ services:
     # Resource limits
     mem_limit: 512m
     cpus: 0.25
+    networks:
+      - docker_internal
 
   minio:
     image: minio/minio:latest
@@ -103,6 +108,8 @@ services:
     # Resource limits
     mem_limit: 512m
     cpus: 0.25
+    networks:
+      - docker_internal
 
   redis:
     image: redis:alpine
@@ -114,6 +121,8 @@ services:
     # Resource limits
     mem_limit: 256m
     cpus: 0.1
+    networks:
+      - docker_internal
 
   upload-queue-processor:
     build:
@@ -158,4 +167,17 @@ services:
     restart: unless-stopped
     mem_limit: 1g
     cpus: 0.5
+    networks:
+      - docker_internal
+
+networks:
+  default:
+    external:
+      name: docker_external
+  docker_internal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.21.0/24
+          gateway: 172.20.21.1
 

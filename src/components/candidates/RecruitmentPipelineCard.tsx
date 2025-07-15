@@ -153,11 +153,6 @@ export function RecruitmentPipelineCard({
                         <h4 className={`font-medium ${isCurrent ? 'text-primary' : ''}`}>
                           {stage.name}
                         </h4>
-                        {records.length > 1 && (
-                          <Badge variant="outline" className="text-xs">
-                            {records.length} notes
-                          </Badge>
-                        )}
                         {records.length > 0 && (
                           <Popover open={openPopoverIdx === index}>
                             <PopoverTrigger asChild>

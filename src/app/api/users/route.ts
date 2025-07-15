@@ -9,6 +9,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { dispatchWebhooks } from '@/lib/webhooks';
 
 /**
  * @openapi
@@ -226,6 +227,7 @@ export async function POST(request: NextRequest) {
     }
     
     await logAudit('AUDIT', `User account '${userToReturn.name}' (ID: ${userToReturn.id}) created by ${session.user.name}.`, 'API:Users:Create', session.user.id, { targetUserId: userToReturn.id, role: userToReturn.role, permissions: userToReturn.modulePermissions, groups: groupIds });
+    await dispatchWebhooks.userCreated(newUser);
     return NextResponse.json(userToReturn, { status: 201 });
 
   } catch (error: any) {

@@ -63,6 +63,66 @@ interface WebhookFormData {
   timeout: number;
 }
 
+// Define all possible webhook events, grouped by category
+const WEBHOOK_EVENT_CATEGORIES = [
+  {
+    category: 'Candidate Events',
+    events: [
+      { id: 'candidate.created', label: 'Candidate Created', description: 'Triggered when a candidate is created.' },
+      { id: 'candidate.updated', label: 'Candidate Updated', description: 'Triggered when a candidate is updated.' },
+      { id: 'candidate.deleted', label: 'Candidate Deleted', description: 'Triggered when a candidate is deleted.' },
+      { id: 'candidate.stage_changed', label: 'Stage Changed', description: 'Triggered when a candidate changes stage.' },
+    ],
+  },
+  {
+    category: 'Position Events',
+    events: [
+      { id: 'position.created', label: 'Position Created', description: 'Triggered when a position is created.' },
+      { id: 'position.updated', label: 'Position Updated', description: 'Triggered when a position is updated.' },
+      { id: 'position.deleted', label: 'Position Deleted', description: 'Triggered when a position is deleted.' },
+    ],
+  },
+  {
+    category: 'User Events',
+    events: [
+      { id: 'user.created', label: 'User Created', description: 'Triggered when a user is created.' },
+      { id: 'user.updated', label: 'User Updated', description: 'Triggered when a user is updated.' },
+      { id: 'user.deleted', label: 'User Deleted', description: 'Triggered when a user is deleted.' },
+    ],
+  },
+  {
+    category: 'Resume Events',
+    events: [
+      { id: 'resume.uploaded', label: 'Resume Uploaded', description: 'Triggered when a resume is uploaded.' },
+      { id: 'resume.processed', label: 'Resume Processed', description: 'Triggered when a resume is processed.' },
+    ],
+  },
+  {
+    category: 'Comment Events',
+    events: [
+      { id: 'comment.created', label: 'Comment Created', description: 'Triggered when a comment is created.' },
+      { id: 'comment.updated', label: 'Comment Updated', description: 'Triggered when a comment is updated.' },
+      { id: 'comment.deleted', label: 'Comment Deleted', description: 'Triggered when a comment is deleted.' },
+    ],
+  },
+  {
+    category: 'Upload Queue Events',
+    events: [
+      { id: 'upload_queue.created', label: 'Upload Queue Created', description: 'Triggered when an upload queue item is created.' },
+      { id: 'upload_queue.processing', label: 'Upload Queue Processing', description: 'Triggered when an upload queue item is processing.' },
+      { id: 'upload_queue.completed', label: 'Upload Queue Completed', description: 'Triggered when an upload queue item is completed.' },
+      { id: 'upload_queue.failed', label: 'Upload Queue Failed', description: 'Triggered when an upload queue item fails.' },
+      { id: 'upload_queue.retry', label: 'Upload Queue Retry', description: 'Triggered when an upload queue item is retried.' },
+    ],
+  },
+  {
+    category: 'Other',
+    events: [
+      { id: 'webhook.test', label: 'Webhook Test', description: 'Triggered when testing a webhook.' },
+    ],
+  },
+];
+
 export default function WebhookManagement() {
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -615,52 +675,113 @@ export default function WebhookManagement() {
             </DialogTrigger>
             <DialogContent className="max-w-4xl p-0 overflow-hidden">
               <div className="flex flex-col md:flex-row h-full">
-                {/* Left: Event Selection */}
-                <div className="w-full md:w-1/2 bg-muted p-6 border-r border-border flex flex-col">
+                {/* Left: Event Selection (Permission-style) */}
+                <div className="w-full md:w-1/2 bg-muted p-6 border-r border-border flex flex-col" style={{ maxHeight: '70vh' }}>
                   <h3 className="font-semibold text-lg mb-4">Select Events</h3>
-                  <div className="flex flex-col gap-2 overflow-y-auto">
-                    {/* Example event categories, replace with your actual event list and categories */}
-                    <div>
-                      <div className="font-medium text-sm mb-2">Candidate Events</div>
-                      {['candidate.created', 'candidate.updated', 'candidate.deleted', 'candidate.stage_changed'].map(event => (
-                        <label key={event} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.events.includes(event)}
-                            onChange={e => {
-                              setFormData(prev => ({
+                  {/* Quick Selection Controls */}
+                  <div className="flex items-center justify-between mb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, events: WEBHOOK_EVENT_CATEGORIES.flatMap(cat => cat.events.map(e => e.id)) }))}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, events: [] }))}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Clear All
+                    </Button>
+                    <Badge variant="secondary" className="text-xs">
+                      {formData.events.length} selected
+                    </Badge>
+                  </div>
+                  {/* Make the event list scrollable */}
+                  <div className="flex-1 overflow-y-auto divide-y divide-border/50" style={{ minHeight: 0 }}>
+                    {WEBHOOK_EVENT_CATEGORIES.map(({ category, events }) => (
+                      <div key={category} className="py-2">
+                        {/* Category Header */}
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold capitalize">{category}</span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setFormData(prev => ({
                                 ...prev,
-                                events: e.target.checked
-                                  ? [...prev.events, event]
-                                  : prev.events.filter(ev => ev !== event)
-                              }));
-                            }}
-                          />
-                          <span className="text-sm">{event.replace('candidate.', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm mb-2 mt-4">Position Events</div>
-                      {['position.created', 'position.updated', 'position.deleted'].map(event => (
-                        <label key={event} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.events.includes(event)}
-                            onChange={e => {
-                              setFormData(prev => ({
+                                events: Array.from(new Set([...prev.events, ...events.map(e => e.id)])),
+                              }))}
+                              className="h-5 px-1 text-xs"
+                            >
+                              All
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setFormData(prev => ({
                                 ...prev,
-                                events: e.target.checked
-                                  ? [...prev.events, event]
-                                  : prev.events.filter(ev => ev !== event)
-                              }));
-                            }}
-                          />
-                          <span className="text-sm">{event.replace('position.', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                        </label>
-                      ))}
+                                events: prev.events.filter(eid => !events.some(e => e.id === eid)),
+                              }))}
+                              className="h-5 px-1 text-xs"
+                            >
+                              Clear
+                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              {formData.events.filter(eid => events.some(e => e.id === eid)).length}/{events.length}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Event Checkboxes */}
+                        <div className="divide-y divide-border/30">
+                          {events.map(event => (
+                            <label key={event.id} className="flex items-center gap-2 p-2 hover:bg-muted/30 transition-colors cursor-pointer">
+                              <Checkbox
+                                checked={formData.events.includes(event.id)}
+                                onCheckedChange={() => toggleEvent(event.id)}
+                                className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium text-foreground">{event.label}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">{event.id}</span>
+                                <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Selected Events Summary */}
+                  <div className="p-2 border-t bg-muted/20 mt-2">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                        Selected Events ({formData.events.length})
+                      </p>
                     </div>
-                    {/* Add more event categories as needed */}
+                    <div className="flex flex-wrap gap-1">
+                      {formData.events.slice(0, 5).map(eventId => {
+                        const event = WEBHOOK_EVENT_CATEGORIES.flatMap(cat => cat.events).find(e => e.id === eventId);
+                        return (
+                          <Badge key={eventId} variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                            {event?.label || eventId}
+                          </Badge>
+                        );
+                      })}
+                      {formData.events.length > 5 && (
+                        <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">
+                          +{formData.events.length - 5} more
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Right: Postman-style Webhook Config */}

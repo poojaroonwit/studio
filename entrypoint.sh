@@ -42,8 +42,8 @@ echo "🔧 Generating Prisma client..."
 npx prisma generate
 
 # Force reset the database schema
-echo "🔄 Resetting database schema..."
-npx prisma db push --force-reset --accept-data-loss
+echo "🔄 Running database migrations (safe for production)..."
+npx prisma migrate deploy
 
 # Seed the database
 echo "🌱 Seeding database..."

@@ -3,6 +3,15 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createConflictError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const createUserSchema = z.object({
   name: z.string().min(1),
@@ -18,11 +27,11 @@ export async function GET(req: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view users' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
   const { searchParams } = new URL(req.url);
@@ -70,10 +79,12 @@ export async function GET(req: NextRequest) {
       modulePermissions: row.modulePermissions || [],
     }));
 
-    return new Response(JSON.stringify({ users, total, page, limit }), { status: 200, headers: handleCors(req) });
+    return createSuccessResponse(req, { users, total, page, limit }, 200);
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching users', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error fetching users', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -85,23 +96,23 @@ export async function POST(req: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to create users' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
   }
 
   let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = createUserSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
   const { name, email, role, modulePermissions, password } = validationResult.data;
@@ -111,7 +122,7 @@ export async function POST(req: NextRequest) {
     // Check if user already exists
     const existingResult = await client.query('SELECT id FROM "User" WHERE email = $1', [email]);
     if (existingResult.rows.length > 0) {
-      return new Response(JSON.stringify({ error: 'User with this email already exists' }), { status: 409, headers: handleCors(req) });
+      return handleApiError(req, createConflictError('User with this email already exists'));
     }
 
     // Create new user
@@ -132,16 +143,18 @@ export async function POST(req: NextRequest) {
 
     const newUser = result.rows[0];
 
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       message: 'User created successfully',
       user: {
         ...newUser,
         modulePermissions: newUser.modulePermissions || [],
       }
-    }), { status: 201, headers: handleCors(req) });
+    }, 201);
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error creating user', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error creating user', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

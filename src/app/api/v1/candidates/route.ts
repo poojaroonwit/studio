@@ -5,6 +5,15 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createConflictError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 // Schema for candidate creation with the new format
 const candidateInfoSchema = z.object({
@@ -39,23 +48,23 @@ export async function POST(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(request) });
+    return handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to create candidates' }), { status: 403, headers: handleCors(request) });
+    return handleApiError(request, createForbiddenError('Insufficient permissions to create candidates'));
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(request) });
+    return handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(request) });
+    return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
   const { candidate_info } = validationResult.data;
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest) {
     
     if (existingResult.rows.length > 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate with this email already exists' }), { status: 409, headers: handleCors(request) });
+      return handleApiError(request, createConflictError('Candidate with this email already exists'));
     }
 
     // Create candidate
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
 
-    return new Response(JSON.stringify({
+    return createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {
         id: newCandidate.id,
@@ -126,11 +135,13 @@ export async function POST(request: NextRequest) {
         createdAt: newCandidate.createdAt,
         updatedAt: newCandidate.updatedAt,
       }
-    }), { status: 201, headers: handleCors(request) });
+    }, 201);
 
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error creating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(request) });
+    return handleApiError(request, createInternalServerError('Error creating candidate', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -142,7 +153,7 @@ export async function GET(request: NextRequest) {
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(request) });
+    return handleApiError(request, createUnauthorizedError('Authentication required'));
   }
 
   const { searchParams } = new URL(request.url);
@@ -212,8 +223,7 @@ export async function GET(request: NextRequest) {
       } : null
     }));
 
-    return new Response(JSON.stringify({
-      success: true,
+    return createSuccessResponse(request, {
       data: candidates,
       pagination: {
         page,
@@ -221,10 +231,12 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit)
       }
-    }), { status: 200, headers: handleCors(request) });
+    }, 200);
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching candidates', details: (error as Error).message }), { status: 500, headers: handleCors(request) });
+    return handleApiError(request, createInternalServerError('Error fetching candidates', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

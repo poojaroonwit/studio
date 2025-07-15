@@ -1392,6 +1392,7 @@ export default function WebhookManagement() {
             await handleBodyConfigSave(customizingWebhook.id, config);
             setCustomizingWebhook(null);
           }}
+          onClose={() => setCustomizingWebhook(null)}
         />
       )}
     </div>

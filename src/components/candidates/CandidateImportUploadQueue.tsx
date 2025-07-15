@@ -14,6 +14,8 @@ import { addDays, format, isAfter, isBefore, parseISO, subDays } from 'date-fns'
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useSession } from 'next-auth/react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export type CandidateJobType = "upload" | "import";
 
@@ -725,173 +727,188 @@ export const CandidateImportUploadQueue: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
       <Dialog open={!!selectedCombinedJob} onOpenChange={open => !open && setShowCombinedDialogId(null)}>
-        <DialogContent className="max-w-6xl w-full">
+        <DialogContent className="max-w-6xl w-full max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Job Details & Webhook Log</DialogTitle>
           </DialogHeader>
           {selectedCombinedJob ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(90vh-120px)]">
               {/* Left Column - Job Details */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">Job Information</h3>
-                  <div className="grid grid-cols-1 gap-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">File Name:</span>
-                      <span className="font-mono text-xs break-all">{selectedCombinedJob.file_name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">File Size:</span>
-                      <span>{formatBytes(selectedCombinedJob.file_size)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Status:</span>
-                      <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : selectedCombinedJob.status === 'fail' ? 'destructive' : 'secondary'}>
-                        {selectedCombinedJob.status}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Source:</span>
-                      <span>{selectedCombinedJob.source || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Upload Date:</span>
-                      <span>{selectedCombinedJob.upload_date ? format(new Date(selectedCombinedJob.upload_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Completed Date:</span>
-                      <span>{selectedCombinedJob.completed_date ? format(new Date(selectedCombinedJob.completed_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Duration:</span>
-                      <span>{selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium text-muted-foreground">Job ID:</span>
-                      <span className="font-mono text-xs">{selectedCombinedJob.id}</span>
-                    </div>
-                  </div>
-                  {selectedCombinedJob.file_path && (
-                    <div className="mt-4">
-                      <Button asChild variant="outline" size="sm">
-                        <a href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`} target="_blank" rel="noopener noreferrer">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download File
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column - Error Details & Success Response */}
-              <div className="space-y-4">
-                {/* Error Details */}
-                {selectedCombinedJob.error_details && (
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center text-destructive">
-                      <AlertCircle className="h-5 w-5 mr-2" />
-                      Error Details
-                    </h3>
-                    <pre className="bg-destructive/10 border border-destructive/20 rounded p-3 text-xs text-destructive max-h-40 overflow-auto whitespace-pre-wrap">
-                      {selectedCombinedJob.error_details}
-                    </pre>
-                  </div>
-                )}
-
-                {/* Success Response */}
-                {selectedCombinedJob.status === 'success' && selectedCombinedJob.webhook_payload?.webhookResJson && (
-                  <div>
-                    <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center text-green-600">
-                      <CheckCircle className="h-5 w-5 mr-2" />
-                      Success Response
-                    </h3>
-                    <pre className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100 max-h-40 overflow-auto whitespace-pre-wrap">
-                      {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                {/* Webhook Log */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center">
-                    <ExternalLink className="h-5 w-5 mr-2 text-blue-600" />
-                    Webhook Log
-                  </h3>
-                  
-                  {selectedCombinedJob.webhook_payload ? (
-                    <div className="space-y-4">
-                      {/* Response Mode */}
-                      {selectedCombinedJob.webhook_payload.responseMode && (
-                        <div>
-                          <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Mode:</div>
-                          <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
-                            <Badge variant="outline">
-                              {selectedCombinedJob.webhook_payload.responseMode}
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Webhook Payload */}
-                      <div>
-                        <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Payload Sent to Webhook:</div>
-                        <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-900 dark:text-blue-100">
-                          {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
-                        </pre>
+                    <h3 className="font-semibold mb-3 text-lg border-b pb-2">Job Information</h3>
+                    <div className="grid grid-cols-1 gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">File Name:</span>
+                        <span className="font-mono text-xs break-all">{selectedCombinedJob.file_name}</span>
                       </div>
-
-                      {/* Webhook Response Status */}
-                      {selectedCombinedJob.webhook_payload.webhookResStatus && (
-                        <div>
-                          <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Status:</div>
-                          <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
-                            <Badge variant={selectedCombinedJob.webhook_payload.webhookResStatus === 200 ? 'default' : 'destructive'}>
-                              {selectedCombinedJob.webhook_payload.webhookResStatus}
-                            </Badge>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Webhook Response Text (for streaming) */}
-                      {selectedCombinedJob.webhook_payload.webhookResponseText && (
-                        <div>
-                          <div className="font-medium text-sm mb-2 text-purple-600 dark:text-purple-400">Raw Response Text:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded p-3 text-xs text-purple-900 dark:text-purple-100">
-                            {selectedCombinedJob.webhook_payload.webhookResponseText}
-                          </pre>
-                        </div>
-                      )}
-
-                      {/* Webhook Error */}
-                      {selectedCombinedJob.webhook_payload.webhookError && (
-                        <div>
-                          <div className="font-medium text-sm mb-2 text-red-600 dark:text-red-400">Webhook Error:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-300">
-                            {selectedCombinedJob.webhook_payload.webhookError}
-                          </pre>
-                        </div>
-                      )}
-
-                      {/* Webhook Response JSON */}
-                      {selectedCombinedJob.webhook_payload.webhookResJson && (
-                        <div>
-                          <div className="font-medium text-sm mb-2 text-green-600 dark:text-green-400">Webhook Response JSON:</div>
-                          <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100">
-                            {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
-                          </pre>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">File Size:</span>
+                        <span>{formatBytes(selectedCombinedJob.file_size)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Status:</span>
+                        <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : selectedCombinedJob.status === 'fail' ? 'destructive' : 'secondary'}>
+                          {selectedCombinedJob.status}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Source:</span>
+                        <span>{selectedCombinedJob.source || '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Upload Date:</span>
+                        <span>{selectedCombinedJob.upload_date ? format(new Date(selectedCombinedJob.upload_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Completed Date:</span>
+                        <span>{selectedCombinedJob.completed_date ? format(new Date(selectedCombinedJob.completed_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Duration:</span>
+                        <span>{selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Job ID:</span>
+                        <span className="font-mono text-xs">{selectedCombinedJob.id}</span>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <ExternalLink className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No webhook data available</p>
-                      <p className="text-xs">This job may not have been processed by a webhook</p>
-                    </div>
-                  )}
+                    {selectedCombinedJob.file_path && (
+                      <div className="mt-4">
+                        <Button asChild variant="outline" size="sm">
+                          <a href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download File
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
+
+              {/* Right Column - Accordion with Error Details, Success Response & Webhook Log */}
+              <ScrollArea className="h-full pr-4">
+                <Accordion type="multiple" defaultValue={["webhook-log"]} className="w-full">
+                  {/* Error Details Accordion */}
+                  {selectedCombinedJob.error_details && (
+                    <AccordionItem value="error-details" className="border rounded-lg mb-4">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-destructive/5">
+                        <div className="flex items-center text-destructive">
+                          <AlertCircle className="h-5 w-5 mr-2" />
+                          <span className="font-semibold">Error Details</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <pre className="bg-destructive/10 border border-destructive/20 rounded p-3 text-xs text-destructive max-h-60 overflow-auto whitespace-pre-wrap">
+                          {selectedCombinedJob.error_details}
+                        </pre>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+
+                  {/* Success Response Accordion */}
+                  {selectedCombinedJob.status === 'success' && selectedCombinedJob.webhook_payload?.webhookResJson && (
+                    <AccordionItem value="success-response" className="border rounded-lg mb-4">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-green-50 dark:hover:bg-green-950/20">
+                        <div className="flex items-center text-green-600 dark:text-green-400">
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          <span className="font-semibold">Success Response</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <pre className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100 max-h-60 overflow-auto whitespace-pre-wrap">
+                          {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
+                        </pre>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+
+                  {/* Webhook Log Accordion */}
+                  <AccordionItem value="webhook-log" className="border rounded-lg">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-blue-50 dark:hover:bg-blue-950/20">
+                      <div className="flex items-center text-blue-600 dark:text-blue-400">
+                        <ExternalLink className="h-5 w-5 mr-2" />
+                        <span className="font-semibold">Webhook Log</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      {selectedCombinedJob.webhook_payload ? (
+                        <div className="space-y-4">
+                          {/* Response Mode */}
+                          {selectedCombinedJob.webhook_payload.responseMode && (
+                            <div>
+                              <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Mode:</div>
+                              <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
+                                <Badge variant="outline">
+                                  {selectedCombinedJob.webhook_payload.responseMode}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Webhook Payload */}
+                          <div>
+                            <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Payload Sent to Webhook:</div>
+                            <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-900 dark:text-blue-100">
+                              {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
+                            </pre>
+                          </div>
+
+                          {/* Webhook Response Status */}
+                          {selectedCombinedJob.webhook_payload.webhookResStatus && (
+                            <div>
+                              <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Response Status:</div>
+                              <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-2 text-sm">
+                                <Badge variant={selectedCombinedJob.webhook_payload.webhookResStatus === 200 ? 'default' : 'destructive'}>
+                                  {selectedCombinedJob.webhook_payload.webhookResStatus}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Webhook Response Text (for streaming) */}
+                          {selectedCombinedJob.webhook_payload.webhookResponseText && (
+                            <div>
+                              <div className="font-medium text-sm mb-2 text-purple-600 dark:text-purple-400">Raw Response Text:</div>
+                              <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded p-3 text-xs text-purple-900 dark:text-purple-100">
+                                {selectedCombinedJob.webhook_payload.webhookResponseText}
+                              </pre>
+                            </div>
+                          )}
+
+                          {/* Webhook Error */}
+                          {selectedCombinedJob.webhook_payload.webhookError && (
+                            <div>
+                              <div className="font-medium text-sm mb-2 text-red-600 dark:text-red-400">Webhook Error:</div>
+                              <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded p-3 text-xs text-red-700 dark:text-red-300">
+                                {selectedCombinedJob.webhook_payload.webhookError}
+                              </pre>
+                            </div>
+                          )}
+
+                          {/* Webhook Response JSON */}
+                          {selectedCombinedJob.webhook_payload.webhookResJson && (
+                            <div>
+                              <div className="font-medium text-sm mb-2 text-green-600 dark:text-green-400">Webhook Response JSON:</div>
+                              <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100">
+                                {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <ExternalLink className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No webhook data available</p>
+                          <p className="text-xs">This job may not have been processed by a webhook</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </ScrollArea>
             </div>
           ) : <div>Job not found.</div>}
           <DialogFooter>

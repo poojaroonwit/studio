@@ -392,24 +392,16 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
         status: updatedCandidate.status,
         parsedData: {
           ...(updatedCandidate.parsedData as CandidateDetails),
-          skills: (updatedCandidate.parsedData as CandidateDetails)?.skills?.map(s => ({
+          skills: Array.isArray((updatedCandidate.parsedData as CandidateDetails)?.skills) ? (updatedCandidate.parsedData as CandidateDetails)?.skills?.map(s => ({
             ...s,
-            skill_string: s.skill?.join(', ') || ''
-          })) || [],
-          experience: ((updatedCandidate.parsedData as CandidateDetails)?.experience?.map(exp => ({
+            skill_string: Array.isArray(s.skill) ? s.skill.join(', ') : ''
+          })) || [] : [],
+          experience: Array.isArray((updatedCandidate.parsedData as CandidateDetails)?.experience) ? (updatedCandidate.parsedData as CandidateDetails)?.experience?.map(exp => ({
             ...exp,
             is_current_position: typeof exp.is_current_position === 'string'
               ? exp.is_current_position === 'true'
               : !!exp.is_current_position,
-          })) || []) as {
-            period?: string | null;
-            duration?: string | null;
-            company?: string | null;
-            position?: string | null;
-            description?: string | null;
-            is_current_position?: boolean;
-            postition_level?: string | null;
-          }[],
+          })) || [] : [],
         }
       });
       toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
@@ -1296,7 +1288,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                                 return (
                                   <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted">
                                     <div className="text-sm font-medium text-foreground mb-2">{skillEntry.segment_skill || 'Skill Segment'}</div>
-                                    {skillEntry.skill && skillEntry.skill.length > 0 && (
+                                    {skillEntry.skill && Array.isArray(skillEntry.skill) && skillEntry.skill.length > 0 && (
                                       <div className="flex flex-wrap gap-1.5 mt-1">
                                         {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
                                       </div>

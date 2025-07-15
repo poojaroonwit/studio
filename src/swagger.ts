@@ -308,11 +308,7 @@ const swaggerSpec = {
                     },
                     required: ['contact_info', 'personal_info']
                   },
-                  job_matches: {
-                    type: 'array',
-                    items: { $ref: '#/components/schemas/JobMatch' }
-                  },
-                  job_applied: { $ref: '#/components/schemas/JobApplied' }
+                  // Note: job_matches and job_applied fields have been removed from the v1 API schema
                 },
                 required: ['candidate_info']
               },
@@ -368,28 +364,8 @@ const swaggerSpec = {
                     }
                   ],
                   status: 'new'
-                },
-                job_matches: [
-                  {
-                    fit_score: 20,
-                    job_id: "22222222-2222-2222-2222-222222222222",
-                    match_reasons: []
-                  },
-                  {
-                    fit_score: 85,
-                    job_id: "11111111-1111-1111-1111-111111111111",
-                    match_reasons: [
-                      "The candidate has 4 years 9 months of experience as a Software Engineer at AddVentures by SCG, aligning with the job's requirement.",
-                      "The candidate's skill set includes C#.Net, SQL, Javascript, Typescript, HTML, CSS, ASP.Net, ReactJS, NodeJS, Microsoft SQL Server, MySQL, MongoDB, Microsoft Visual Studio, Microsoft SQL Management Studio, VSCode, and Git, many of which are relevant to software development.",
-                      "The candidate's education in Computer Engineering from Chiang Mai University demonstrates a strong foundation in the field."
-                    ]
-                  }
-                ],
-                job_applied: {
-                  fit_score: 0,
-                  job_id: 'f2f306cf-09e2-4bef-8a99-4311acbc71a2',
-                  justification: ['The job position was not found, therefore, a score of 0 is given.']
                 }
+                // Note: job_matches and job_applied fields have been removed from the v1 API schema
               }
             }
           }

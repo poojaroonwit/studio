@@ -3,20 +3,27 @@ import { getPool, getMergedUserPermissions } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createValidationError, 
+  createUnauthorizedError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 export async function POST(req: NextRequest) {
   let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return handleApiError(req, createValidationError('Invalid JSON body'));
   }
   const { email, password } = body;
   if (!email || !password) {
-    return new Response(JSON.stringify({ error: 'Email and password are required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return handleApiError(req, createValidationError('Email and password are required'));
   }
   if (!process.env.NEXTAUTH_SECRET) {
-    return new Response(JSON.stringify({ error: 'Server misconfiguration: NEXTAUTH_SECRET is not set' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return handleApiError(req, createInternalServerError('Server misconfiguration: NEXTAUTH_SECRET is not set'));
   }
   const client = await getPool().connect();
   try {
@@ -36,12 +43,14 @@ export async function POST(req: NextRequest) {
           process.env.NEXTAUTH_SECRET,
           { expiresIn: '1h' }
         );
-        return new Response(JSON.stringify({ success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        return createSuccessResponse(req, { success: true, token, user: { id: user.id, email: user.email, role: user.role, modulePermissions: mergedPermissions } }, 200);
       }
     }
-    return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    return handleApiError(req, createUnauthorizedError('Invalid email or password'));
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error during authentication', details: (error as Error).message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return handleApiError(req, createInternalServerError('Error during authentication', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

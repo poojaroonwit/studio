@@ -50,6 +50,7 @@ interface WebhookBodyCustomizationProps {
     body_configs?: WebhookBodyConfig[];
   };
   onSave: (config: any) => Promise<void>;
+  onClose?: () => void;
 }
 
 const TRANSFORM_OPTIONS = [
@@ -65,7 +66,8 @@ export default function WebhookBodyCustomization({
   webhookId,
   webhookEvents,
   initialConfig,
-  onSave
+  onSave,
+  onClose
 }: WebhookBodyCustomizationProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -266,7 +268,10 @@ export default function WebhookBodyCustomization({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open && onClose) onClose();
+      }}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="flex items-center gap-2">
             <Code className="h-4 w-4" />

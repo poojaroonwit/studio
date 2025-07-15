@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
+import { createSuccessResponse, handleApiError, createInternalServerError } from '@/lib/apiErrorHandler';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,30 +35,14 @@ export async function GET(req: NextRequest) {
       api: 'v1'
     };
 
-    return new Response(JSON.stringify(healthStatus), {
-      status: 200,
-      headers: {
-        ...handleCors(req),
-        'Content-Type': 'application/json'
-      }
-    });
+    return createSuccessResponse(req, healthStatus, 200);
 
   } catch (error) {
-    const errorStatus = {
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: (error as Error).message,
+    return handleApiError(req, createInternalServerError('Health check failed', { 
+      originalError: (error as Error).message,
       version: '1.0.0',
       api: 'v1'
-    };
-
-    return new Response(JSON.stringify(errorStatus), {
-      status: 503,
-      headers: {
-        ...handleCors(req),
-        'Content-Type': 'application/json'
-      }
-    });
+    }));
   }
 }
 

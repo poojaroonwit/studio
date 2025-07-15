@@ -4,6 +4,15 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createNotFoundError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const updateCandidateSchema = z.object({
   // Legacy fields for backward compatibility
@@ -60,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
   const { id } = params;
   const client = await getPool().connect();
@@ -74,7 +83,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     `;
     const candidateResult = await client.query(candidateQuery, [id]);
     if (candidateResult.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Candidate not found'));
     }
     const candidate = candidateResult.rows[0];
     // Get job matches for this candidate
@@ -95,7 +104,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ORDER BY rh."uploadedAt" DESC;
     `;
     const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       ...candidate,
       custom_attributes: candidate.customAttributes || {},
       position: candidate.positionId ? {
@@ -105,9 +114,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
       jobMatches: jobMatchesResult.rows,
       resumeHistory: resumeHistoryResult.rows,
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error fetching candidate', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -118,18 +129,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to update candidates'));
   }
   const { id } = params;
   let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid JSON body'));
   }
   const validationResult = updateCandidateSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
   
   const updateData = validationResult.data;
@@ -140,7 +151,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
     const existingCandidate = existingResult.rows[0];
@@ -233,13 +244,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // If no fields to update, return early
     if (updateFields.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ 
+      return createSuccessResponse(req, { 
         message: 'No fields to update',
         candidate: {
           ...existingCandidate,
           custom_attributes: existingCandidate.customAttributes || {},
         }
-      }), { status: 200, headers: handleCors(req) });
+      }, 200);
     }
     
     // Build and execute the update query
@@ -290,18 +301,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('COMMIT');
     const updatedCandidate = updateResult.rows[0];
     
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       message: 'Candidate updated successfully',
       candidate: {
         ...updatedCandidate,
         custom_attributes: updatedCandidate.customAttributes || {},
       },
       updated_fields: Object.keys(updateData).filter(key => updateData[key as keyof typeof updateData] !== undefined)
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
     
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error updating candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error updating candidate', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -312,7 +325,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE'))) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to delete candidates'));
   }
   const { id } = params;
   const client = await getPool().connect();
@@ -321,14 +334,16 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Candidate not found'));
     }
     await client.query('DELETE FROM "Candidate" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    return new Response(JSON.stringify({ message: 'Candidate deleted successfully' }), { status: 200, headers: handleCors(req) });
+    return createSuccessResponse(req, { message: 'Candidate deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error deleting candidate', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error deleting candidate', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

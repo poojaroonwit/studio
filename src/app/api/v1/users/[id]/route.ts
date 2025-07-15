@@ -3,6 +3,16 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createNotFoundError, 
+  createConflictError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
@@ -18,11 +28,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to view users' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
   const { id } = params;
@@ -33,17 +43,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('User not found'));
     }
 
     const userData = result.rows[0];
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       ...userData,
       modulePermissions: userData.modulePermissions || [],
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching user', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error fetching user', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -55,11 +67,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to update users' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to update users'));
   }
 
   const { id } = params;
@@ -67,12 +79,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = updateUserSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
   const { name, email, role, modulePermissions, password } = validationResult.data;
@@ -85,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingResult = await client.query('SELECT * FROM "User" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('User not found'));
     }
 
     // Check if email is being changed and if it's already taken
@@ -93,7 +105,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const emailCheckResult = await client.query('SELECT id FROM "User" WHERE email = $1 AND id != $2', [email, id]);
       if (emailCheckResult.rows.length > 0) {
         await client.query('ROLLBACK');
-        return new Response(JSON.stringify({ error: 'Email is already taken by another user' }), { status: 409, headers: handleCors(req) });
+        return handleApiError(req, createConflictError('Email is already taken by another user'));
       }
     }
 
@@ -140,17 +152,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('COMMIT');
 
     const updatedUser = updateResult.rows[0];
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       message: 'User updated successfully',
       user: {
         ...updatedUser,
         modulePermissions: updatedUser.modulePermissions || [],
       }
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error updating user', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error updating user', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -162,11 +176,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to delete users' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to delete users'));
   }
 
   const { id } = params;
@@ -179,7 +193,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const existingResult = await client.query('SELECT * FROM "User" WHERE id = $1', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'User not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('User not found'));
     }
 
     // Check if user has assigned candidates
@@ -188,19 +202,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     
     if (candidateCount > 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ 
-        error: `Cannot delete user with assigned candidates. Found ${candidateCount} candidates assigned to this user.` 
-      }), { status: 400, headers: handleCors(req) });
+      return handleApiError(req, createValidationError(`Cannot delete user with assigned candidates. Found ${candidateCount} candidates assigned to this user.`));
     }
 
     await client.query('DELETE FROM "User" WHERE id = $1', [id]);
     await client.query('COMMIT');
 
-    return new Response(JSON.stringify({ message: 'User deleted successfully' }), { status: 200, headers: handleCors(req) });
+    return createSuccessResponse(req, { message: 'User deleted successfully' }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error deleting user', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error deleting user', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

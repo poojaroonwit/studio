@@ -4,6 +4,15 @@ import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createNotFoundError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { id: candidateId } = params;
@@ -13,11 +22,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to upload avatars' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to upload avatars'));
   }
 
   try {
@@ -25,17 +34,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const file = formData.get('avatar');
     
     if (!file || typeof file === 'string') {
-      return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
+      return handleApiError(req, createValidationError('No file uploaded'));
     }
 
     if (!file.type.startsWith('image/')) {
-      return new Response(JSON.stringify({ error: 'Invalid file type. Only image files are allowed.' }), { status: 400, headers: handleCors(req) });
+      return handleApiError(req, createValidationError('Invalid file type. Only image files are allowed.'));
     }
 
     // Check file size (limit to 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      return new Response(JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }), { status: 400, headers: handleCors(req) });
+      return handleApiError(req, createValidationError('File too large. Maximum size is 5MB.'));
     }
 
     // Ensure MinIO bucket exists
@@ -43,7 +52,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await ensureBucketExists();
     } catch (minioError) {
       console.error('[V1 AVATAR UPLOAD] MinIO bucket error:', minioError);
-      return new Response(JSON.stringify({ error: 'Storage service unavailable' }), { status: 503, headers: handleCors(req) });
+      return handleApiError(req, createInternalServerError('Storage service unavailable', { 
+        originalError: String(minioError) 
+      }));
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -60,7 +71,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
     } catch (minioError) {
       console.error('[V1 AVATAR UPLOAD] MinIO upload error:', minioError);
-      return new Response(JSON.stringify({ error: 'Failed to upload file to storage' }), { status: 500, headers: handleCors(req) });
+      return handleApiError(req, createInternalServerError('Failed to upload file to storage', { 
+        originalError: String(minioError) 
+      }));
     }
 
     const avatarUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
@@ -74,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const candidateCheck = await client.query('SELECT id, name FROM "Candidate" WHERE id = $1', [candidateId]);
       if (candidateCheck.rows.length === 0) {
         await client.query('ROLLBACK');
-        return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+        return handleApiError(req, createNotFoundError('Candidate not found'));
       }
 
       // Update with correct field name (avatarUrl in Prisma schema)
@@ -83,12 +96,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       
       if (result.rows.length === 0) {
         await client.query('ROLLBACK');
-        return new Response(JSON.stringify({ error: 'Failed to update candidate' }), { status: 500, headers: handleCors(req) });
+        return handleApiError(req, createInternalServerError('Failed to update candidate'));
       }
 
       await client.query('COMMIT');
       
-      return new Response(JSON.stringify({ 
+      return createSuccessResponse(req, { 
         message: 'Avatar uploaded successfully', 
         avatar_url: avatarUrl,
         candidate: {
@@ -96,19 +109,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           name: candidateCheck.rows[0].name,
           avatarUrl: avatarUrl
         }
-      }), { status: 200, headers: handleCors(req) });
+      }, 200);
 
     } catch (dbError) {
       await client.query('ROLLBACK');
       console.error('[V1 AVATAR UPLOAD] Database error:', dbError);
-      return new Response(JSON.stringify({ error: 'Database error', details: String(dbError) }), { status: 500, headers: handleCors(req) });
+      return handleApiError(req, createInternalServerError('Database error', { 
+        originalError: String(dbError) 
+      }));
     } finally {
       client.release();
     }
 
   } catch (error) {
     console.error('[V1 AVATAR UPLOAD] Unexpected error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', details: String(error) }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Internal server error', { 
+      originalError: String(error) 
+    }));
   }
 }
 
@@ -120,22 +137,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const user = token ? await verifyApiToken(token) : null;
   
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   const client = await getPool().connect();
   try {
     const result = await client.query('SELECT "avatarUrl" FROM "Candidate" WHERE id = $1', [candidateId]);
     if (result.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Candidate not found'));
     }
     
-    return new Response(JSON.stringify({ 
+    return createSuccessResponse(req, { 
       avatar_url: result.rows[0].avatarUrl || null 
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
   } catch (error) {
     console.error('[V1 AVATAR GET] Database error:', error);
-    return new Response(JSON.stringify({ error: 'Database error', details: String(error) }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Database error', { 
+      originalError: String(error) 
+    }));
   } finally {
     client.release();
   }

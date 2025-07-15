@@ -169,19 +169,8 @@ Create a new candidate with candidate information, job matches, and applied job 
       }
     ],
     "status": "new"                                 // Optional (default: "new")
-  },
-  "job_matches": [                                  // Optional
-    {
-      "fit_score": 85,                              // Required (if job_matches provided)
-      "job_id": "position-uuid",                    // Required (if job_matches provided)
-      "match_reasons": ["Strong technical skills", "Relevant experience"]  // Optional
-    }
-  ],
-  "job_applied": {                                  // Optional
-    "fit_score": 90,                                // Required (if job_applied provided)
-    "job_id": "position-uuid",                      // Required (if job_applied provided)
-    "justification": ["Perfect match for the role"] // Optional
   }
+  // Note: job_matches and job_applied fields have been removed from the v1 API schema
 }
 ```
 
@@ -192,11 +181,9 @@ Create a new candidate with candidate information, job matches, and applied job 
 - `candidate_info.personal_info.lastname` - Candidate's last name
 - `candidate_info.contact_info.email` - Candidate's email address
 
-**Conditionally Required Fields:**
-- `job_matches[].fit_score` - Required if job_matches array is provided
-- `job_matches[].job_id` - Required if job_matches array is provided
-- `job_applied.fit_score` - Required if job_applied object is provided
-- `job_applied.job_id` - Required if job_applied object is provided
+**Note:** The following fields have been removed from the v1 API and are no longer supported:
+- `job_matches` - Job matching functionality has been moved to separate endpoints
+- `job_applied` - Job application functionality has been moved to separate endpoints
 
 **Optional Fields:**
 - All other fields in the request body are optional
@@ -217,7 +204,7 @@ Create a new candidate with candidate information, job matches, and applied job 
     "email": "john@example.com",
     "phone": "+1234567890",
     "status": "new",
-    "parsedData": { /* candidate_info, job_matches, job_applied */ },
+    "parsedData": { /* candidate_info only */ },
     "applicationDate": "2024-01-01T00:00:00.000Z",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -325,7 +312,7 @@ Get a specific candidate by ID.
 ```
 
 #### PUT `/api/v1/candidates/{id}`
-Update a candidate with candidate information, job matches, and applied job data. Supports both legacy and new formats.
+Update a candidate with candidate information. Job matches and applied job data should be managed through separate endpoints.
 
 **Request Body:**
 ```json
@@ -338,18 +325,6 @@ Update a candidate with candidate information, job matches, and applied job data
     "contact_info": {
       "email": "john.updated@example.com"
     }
-  },
-  "job_matches": [
-    {
-      "fit_score": 90,
-      "job_id": "position-uuid",
-      "match_reasons": ["Updated match reasons"]
-    }
-  ],
-  "job_applied": {
-    "fit_score": 95,
-    "job_id": "position-uuid",
-    "justification": ["Updated justification"]
   }
 }
 ```
@@ -366,7 +341,7 @@ Update a candidate with candidate information, job matches, and applied job data
     "parsedData": { /* updated data */ },
     "updatedAt": "2024-01-01T00:00:00.000Z"
   },
-  "updated_fields": ["candidate_info", "job_matches", "job_applied"]
+  "updated_fields": ["candidate_info"]
 }
 ```
 
@@ -865,4 +840,4 @@ Interactive API documentation is available at `/api-docs` which provides a Swagg
 
 ## Payload Alignment
 
-All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support both legacy formats and the new structured format with `candidate_info`, `job_matches`, and `job_applied` fields.
+All API payloads are designed to align with the frontend components and database schema. The candidate creation and update endpoints support the structured format with `candidate_info` field. Job matches and applied job data are managed through separate dedicated endpoints.

@@ -2,8 +2,16 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { verifyApiToken } from '@/lib/auth'; // You may need to implement this
+import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -20,7 +28,7 @@ export async function GET(req: NextRequest) {
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
   try {
@@ -73,9 +81,11 @@ export async function GET(req: NextRequest) {
       custom_attributes: row.customAttributes || {},
     }));
 
-    return new Response(JSON.stringify({ data: positions, total }), { status: 200, headers: handleCors(req) });
+    return createSuccessResponse(req, { data: positions, total }, 200);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching positions', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error fetching positions', { 
+      originalError: (error as Error).message 
+    }));
   }
 }
 
@@ -85,19 +95,21 @@ export async function POST(req: NextRequest) {
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 
   let body;
   try {
     body = await req.json();
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error parsing request body', details: (error as Error).message }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Error parsing request body', { 
+      originalError: (error as Error).message 
+    }));
   }
 
   const validationResult = createPositionSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
   const validatedData = validationResult.data;
@@ -123,9 +135,11 @@ export async function POST(req: NextRequest) {
       ...result.rows[0],
       custom_attributes: result.rows[0].customAttributes || {},
     };
-    return new Response(JSON.stringify(newPosition), { status: 201, headers: handleCors(req) });
+    return createSuccessResponse(req, newPosition, 201);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error creating position', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error creating position', { 
+      originalError: (error as Error).message 
+    }));
   }
 }
 

@@ -4,6 +4,15 @@ import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createNotFoundError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -19,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
   const { id } = params;
   const client = await getPool().connect();
@@ -27,15 +36,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const query = 'SELECT id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
     const result = await client.query(query, [id]);
     if (result.rows.length === 0) {
-      return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Position not found'));
     }
     const position = result.rows[0];
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       ...position,
       custom_attributes: position.customAttributes || {},
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error fetching position', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error fetching position', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -46,18 +57,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to update positions'));
   }
   const { id } = params;
   let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid JSON body'));
   }
   const validationResult = updatePositionSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
   const { title, department, description, isOpen, position_level, custom_attributes } = validationResult.data;
   const client = await getPool().connect();
@@ -67,7 +78,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const existingResult = await client.query(positionExistsQuery, [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Position not found'));
     }
     const updateQuery = `
       UPDATE "Position" 
@@ -81,16 +92,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     ]);
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
-    return new Response(JSON.stringify({
+    return createSuccessResponse(req, {
       message: 'Position updated successfully',
       position: {
         ...updatedPosition,
         custom_attributes: updatedPosition.customAttributes || {},
       }
-    }), { status: 200, headers: handleCors(req) });
+    }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error updating position', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error updating position', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }
@@ -101,7 +114,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
   if (!user || (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
-    return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
+    return handleApiError(req, createForbiddenError('Insufficient permissions to delete positions'));
   }
   const { id } = params;
   const client = await getPool().connect();
@@ -110,14 +123,16 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const currentPosition = await client.query('SELECT * FROM "Position" WHERE id = $1', [id]);
     if (currentPosition.rows.length === 0) {
       await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Position not found' }), { status: 404, headers: handleCors(req) });
+      return handleApiError(req, createNotFoundError('Position not found'));
     }
     await client.query('DELETE FROM "Position" WHERE id = $1', [id]);
     await client.query('COMMIT');
-    return new Response(JSON.stringify({ message: 'Position deleted successfully' }), { status: 200, headers: handleCors(req) });
+    return createSuccessResponse(req, { message: 'Position deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error deleting position', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    return handleApiError(req, createInternalServerError('Error deleting position', { 
+      originalError: (error as Error).message 
+    }));
   } finally {
     client.release();
   }

@@ -112,7 +112,8 @@ MINIO_BUCKET_NAME=studio5-local
 MINIO_USE_SSL=false
 
 # Redis Configuration
-REDIS_URL=redis://localhost:6379
+# REDIS_URL should match your main .env config or be overridden as needed
+REDIS_URL=${REDIS_URL:-redis://redis:6379}
 
 # Authentication Configuration
 NEXTAUTH_URL=http://localhost:8021

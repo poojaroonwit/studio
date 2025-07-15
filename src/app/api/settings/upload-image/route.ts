@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
+import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { Buffer } from 'buffer';
 
 export async function PUT(request: NextRequest) {
@@ -53,6 +54,6 @@ export async function PUT(request: NextRequest) {
     'Content-Type': (file as File).type,
   });
   // Use the same public URL logic as avatar upload (hardcode the port that works for avatars)
-  const publicUrl = `http://localhost:8621/${MINIO_BUCKET}/${objectName}`;
+  const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
   return NextResponse.json({ url: publicUrl });
 } 

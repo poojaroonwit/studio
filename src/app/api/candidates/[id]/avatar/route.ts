@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Use the MinIO API port for public access, not the console port
-    const publicUrl = `http://localhost:8621/${MINIO_BUCKET}/${objectName}`;
+    const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
 
     // Update candidate's avatarUrl in the database
     const client = await getPool().connect();

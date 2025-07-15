@@ -844,7 +844,7 @@ export default function CandidateDetailPage() {
     ? candidate.parsedData.job_suitable
     : undefined;
   const candidateJobMatches = (candidate.parsedData && 'job_matches' in candidate.parsedData)
-    ? candidate.parsedData.job_matches
+    ? (candidate.parsedData as any).job_matches
     : undefined;
   
 

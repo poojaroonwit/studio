@@ -47,6 +47,17 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
     if (onCardClick) {
       onCardClick(candidate);
     } else {
+      // Validate parsedData to ensure it has the expected structure
+      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
+        ...candidate.parsedData,
+        // Ensure array fields are actually arrays
+        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
+        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
+        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
+        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
+        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
+      } : {};
+      
       setSelectedCandidateSummary({
         id: candidate.id,
         name: formatCandidateName(candidate),
@@ -55,7 +66,7 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
         status: candidate.status,
         position: candidate.position,
         fitScore: candidate.fitScore,
-        parsedData: candidate.parsedData 
+        parsedData: validatedParsedData
       });
       setIsModalOpen(true);
     }
@@ -334,6 +345,17 @@ export function CandidateRowKanbanView({
     if (onCardClick) {
       onCardClick(candidate);
     } else {
+      // Validate parsedData to ensure it has the expected structure
+      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
+        ...candidate.parsedData,
+        // Ensure array fields are actually arrays
+        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
+        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
+        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
+        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
+        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
+      } : {};
+      
       setSelectedCandidateSummary({
         id: candidate.id,
         name: formatCandidateName(candidate),
@@ -342,7 +364,7 @@ export function CandidateRowKanbanView({
         status: candidate.status,
         position: candidate.position,
         fitScore: candidate.fitScore,
-        parsedData: candidate.parsedData
+        parsedData: validatedParsedData
       });
       setIsModalOpen(true);
     }
@@ -626,6 +648,17 @@ export function FlexibleKanbanView({
     if (onCardClick) {
       onCardClick(candidate);
     } else {
+      // Validate parsedData to ensure it has the expected structure
+      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
+        ...candidate.parsedData,
+        // Ensure array fields are actually arrays
+        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
+        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
+        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
+        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
+        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
+      } : {};
+      
       setSelectedCandidateSummary({
         id: candidate.id,
         name: formatCandidateName(candidate),
@@ -634,7 +667,7 @@ export function FlexibleKanbanView({
         status: candidate.status,
         position: candidate.position,
         fitScore: candidate.fitScore,
-        parsedData: candidate.parsedData
+        parsedData: validatedParsedData
       });
       setIsModalOpen(true);
     }

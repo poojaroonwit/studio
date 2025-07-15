@@ -758,12 +758,12 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     <ListChecks className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
                       Job Matches
-                      {candidate.parsedData && 'job_matches' in candidate.parsedData && candidate.parsedData.job_matches && candidate.parsedData.job_matches.length > 0 && (
+                      {candidate.parsedData && 'job_matches' in candidate.parsedData && (candidate.parsedData as any).job_matches && (candidate.parsedData as any).job_matches.length > 0 && (
                         <span className="ml-2 text-sm font-normal text-muted-foreground">
-                          ({candidate.parsedData.job_matches.length})
+                          ({(candidate.parsedData as any).job_matches.length})
                         </span>
                       )}
-                      {candidate.parsedData && 'job_matches' in candidate.parsedData && candidate.parsedData.job_matches && candidate.parsedData.job_matches.length > 1 && (
+                      {candidate.parsedData && 'job_matches' in candidate.parsedData && (candidate.parsedData as any).job_matches && (candidate.parsedData as any).job_matches.length > 1 && (
                         <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                           ← Scroll →
                         </span>
@@ -882,11 +882,11 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                       )}
 
                       {/* View Section */}
-                      {!isEditing && candidate.parsedData && 'job_matches' in candidate.parsedData && candidate.parsedData.job_matches && candidate.parsedData.job_matches.length > 0 && (
+                      {!isEditing && candidate.parsedData && 'job_matches' in candidate.parsedData && (candidate.parsedData as any).job_matches && (candidate.parsedData as any).job_matches.length > 0 && (
                         <div className="relative">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Matching Positions</h3>
-                            {candidate.parsedData.job_matches.length > 1 && (
+                            {(candidate.parsedData as any).job_matches.length > 1 && (
                               <div className="flex items-center gap-2">
                                 <Button
                                   variant="outline"
@@ -923,7 +923,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
                             style={{ scrollBehavior: 'smooth' }}
                           >
-                            {(Array.isArray(candidate.parsedData?.job_matches) ? candidate.parsedData.job_matches : []).map((match, index) => {
+                            {(Array.isArray((candidate.parsedData as any)?.job_matches) ? (candidate.parsedData as any).job_matches : []).map((match, index) => {
                               const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === match.job_id) : null;
                               if (!position) return null;
                               
@@ -992,7 +992,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                         </div>
                       )}
 
-                      {!isEditing && (!candidate.parsedData || !('job_matches' in candidate.parsedData) || !candidate.parsedData.job_matches || candidate.parsedData.job_matches.length === 0) && (
+                      {!isEditing && (!candidate.parsedData || !('job_matches' in candidate.parsedData) || !(candidate.parsedData as any).job_matches || (candidate.parsedData as any).job_matches.length === 0) && (
                         <div className="text-center py-8 text-muted-foreground">
                           <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
                           <p>No job matches found.</p>

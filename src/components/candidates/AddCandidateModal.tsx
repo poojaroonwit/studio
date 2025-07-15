@@ -164,14 +164,21 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
   }, [isOpen, form, availableStages]);
 
   const onSubmit = async (data: AddCandidateFormValues) => {
-    const processedData = {
-      ...data,
-      experience: data.experience?.map(exp => ({
-        ...exp,
-        postition_level: exp.postition_level === PLACEHOLDER_VALUE_NONE ? null : exp.postition_level,
-      }))
-    };
-    await onAddCandidate(processedData);
+    try {
+      const processedData = {
+        ...data,
+        experience: data.experience?.map(exp => ({
+          ...exp,
+          postition_level: exp.postition_level === PLACEHOLDER_VALUE_NONE ? null : exp.postition_level,
+        }))
+      };
+      await onAddCandidate(processedData);
+      // Close the modal after successful submission
+      onOpenChange(false);
+    } catch (error) {
+      // If there's an error, don't close the modal so user can fix and retry
+      console.error('Error adding candidate:', error);
+    }
   };
 
   return (

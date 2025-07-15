@@ -46,7 +46,7 @@ interface CandidateTableProps {
   availableStages: RecruitmentStage[];
   availableRecruiters: { id: string; name: string }[];
   onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
-  onUpdateCandidate: (candidateId: string, status: CandidateStatus) => Promise<void>;
+  onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
   onDeleteCandidate: (candidateId: string) => Promise<void>;
   onOpenUploadModal: (candidate: Candidate) => void;
   onEditPosition: (position: Position) => void;
@@ -104,6 +104,7 @@ export function CandidateTable({
   const [modalLogs, setModalLogs] = useState<any[]>([]);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isManageTransitionsModalOpen, setIsManageTransitionsModalOpen] = useState(false);
 
   // Helper to combine and sort activities
   const getCombinedActivities = () => {
@@ -135,6 +136,8 @@ export function CandidateTable({
     const logsRes = await fetch(`/api/candidates/${candidate.id}/logs`);
     const logsData = await logsRes.json();
     setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
+    // Open the modal
+    setIsManageTransitionsModalOpen(true);
   };
 
   const handleEditPositionClick = (positionId: string | null | undefined) => {
@@ -393,6 +396,23 @@ export function CandidateTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ManageTransitionsModal
+        candidate={selectedCandidateForModal}
+        isOpen={isManageTransitionsModalOpen}
+        onOpenChange={setIsManageTransitionsModalOpen}
+        onUpdateCandidate={onUpdateCandidate}
+        onRefreshCandidateData={onRefreshCandidateData}
+        availableStages={availableStages}
+        comments={modalComments}
+        onCommentsChange={() => {
+          // Refresh comments when needed
+          if (selectedCandidateForModal) {
+            fetch(`/api/candidates/${selectedCandidateForModal.id}/comments`)
+              .then(res => res.json())
+              .then(data => setModalComments(Array.isArray(data) ? data : (data.data || [])));
+          }
+        }}
+      />
     </>
   );
 }

@@ -30,16 +30,7 @@ const candidateInfoSchema = z.object({
 
 const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema,
-  job_matches: z.array(z.object({
-    fit_score: z.number().min(0).max(100),
-    job_id: z.string().uuid(),
-    match_reasons: z.array(z.string()).optional().default([]),
-  })).optional(),
-  job_applied: z.object({
-    fit_score: z.number().min(0).max(100),
-    job_id: z.string().uuid(),
-    justification: z.array(z.string()).optional().default([]),
-  }).optional(),
+  // job_matches and job_applied removed
 });
 
 export async function POST(request: NextRequest) {
@@ -67,11 +58,11 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(request) });
   }
 
-  const { candidate_info, job_matches, job_applied } = validationResult.data;
+  const { candidate_info } = validationResult.data;
   const name = `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`;
   const email = candidate_info.contact_info.email;
   const status = candidate_info.status || 'new';
-  const parsedData = { candidate_info, job_matches, job_applied };
+  const parsedData = { candidate_info };
   const newCandidateId = uuidv4();
 
   const client = await getPool().connect();
@@ -105,25 +96,6 @@ export async function POST(request: NextRequest) {
     ]);
 
     const newCandidate = candidateResult.rows[0];
-
-    // Create job matches if provided
-    if (job_matches && job_matches.length > 0) {
-      const insertJobMatchQuery = `
-        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
-        VALUES ($1, $2, $3, $4, $5)
-      `;
-
-      for (const match of job_matches) {
-        const matchId = uuidv4();
-        await client.query(insertJobMatchQuery, [
-          matchId,
-          newCandidateId,
-          match.job_id,
-          match.fit_score,
-          match.match_reasons || [],
-        ]);
-      }
-    }
 
     // Create initial transition record
     const insertTransitionQuery = `

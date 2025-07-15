@@ -843,7 +843,7 @@ export function CandidatesPageClient({
     }
   }, [fetchCandidateById, toast, fetchPaginatedCandidates, filters, page, pageSize, aiMatchedCandidateIds]);
 
-  const handleUpdateCandidateAPI = async (candidateId: string, status: CandidateStatus, transitionNotes?: string) => {
+  const handleUpdateCandidateAPI = async (candidateId: string, status: CandidateStatus, transitionNotes?: string, suppressToast?: boolean) => {
     try {
       const payload: { status: CandidateStatus, transitionNotes?: string } = { status };
       if (transitionNotes) {
@@ -861,7 +861,9 @@ export function CandidatesPageClient({
       }
       const updatedCandidateFromServer: Candidate = await response.json();
       setAllCandidates(prev => prev.map(c => (c.id === updatedCandidateFromServer.id ? updatedCandidateFromServer : c)));
-      toast.success(`${updatedCandidateFromServer.name}'s status set to ${updatedCandidateFromServer.status}.`);
+      if (!suppressToast) {
+        toast.success(`${updatedCandidateFromServer.name}'s status set to ${updatedCandidateFromServer.status}.`);
+      }
     } catch (error) {
       console.error("Error updating candidate:", error);
       toast.error((error as Error).message);

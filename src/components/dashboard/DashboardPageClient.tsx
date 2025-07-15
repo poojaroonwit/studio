@@ -127,7 +127,7 @@ export default function DashboardPageClient({
         if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates([]); else setMyAssignedCandidates([]);
       } else if (candidatesResOrNull) {
         const response = await candidatesResOrNull.json();
-        const candidatesData: Candidate[] = response.data || response; // Handle both paginated and direct response
+        const candidatesData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
         if (userRole === 'Admin' || userRole === 'Hiring Manager') setAllCandidates(candidatesData); else setMyAssignedCandidates(candidatesData);
       }
 
@@ -138,7 +138,7 @@ export default function DashboardPageClient({
       }
       else if (usersResOrNull) { 
         const usersData = await usersResOrNull.json();
-        setAllUsers(usersData); 
+        setAllUsers(Array.isArray(usersData) ? usersData : []);
       }
 
       if (myBacklogCandidatesResOrNull && !myBacklogCandidatesResOrNull.ok) { 
@@ -148,7 +148,7 @@ export default function DashboardPageClient({
       }
       else if (myBacklogCandidatesResOrNull) {
         const response = await myBacklogCandidatesResOrNull.json();
-        const backlogData: Candidate[] = response.data || response; // Handle both paginated and direct response
+        const backlogData: Candidate[] = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
         setMyBacklogCandidates(backlogData.filter(c => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)));
       }
 
@@ -159,7 +159,7 @@ export default function DashboardPageClient({
       }
       else { 
         const response = await positionsRes.json();
-        const positionsData = response.data || response; // Handle both paginated and direct response
+        const positionsData = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
         setAllPositions(positionsData);
       }
 

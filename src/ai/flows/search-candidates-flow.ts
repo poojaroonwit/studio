@@ -86,7 +86,7 @@ function createCandidateSummary(candidate: Candidate): string {
       });
     }
 
-    if (details.skills && details.skills.length > 0) {
+    if (details.skills && Array.isArray(details.skills) && details.skills.length > 0) {
       summaryParts.push("Skills:");
       details.skills.forEach((skillEntry: SkillEntry) => {
         let skillStr = `  - Segment: ${skillEntry.segment_skill || 'General'}: `;
@@ -101,7 +101,7 @@ function createCandidateSummary(candidate: Candidate): string {
       });
     }
 
-    if (details.job_suitable && details.job_suitable.length > 0) {
+    if (details.job_suitable && Array.isArray(details.job_suitable) && details.job_suitable.length > 0) {
         summaryParts.push("Job Suitability Preferences:");
         details.job_suitable.forEach((js: JobSuitableEntry, index: number) => {
             let jsStr = `  ${index + 1}. Career: ${js.suitable_career || 'N/A'}`;
@@ -112,7 +112,7 @@ function createCandidateSummary(candidate: Candidate): string {
         });
     }
     
-    if (details.job_matches && details.job_matches.length > 0) {
+    if (details.job_matches && Array.isArray(details.job_matches) && details.job_matches.length > 0) {
       summaryParts.push("Automated Job Matches (from automation):");
       details.job_matches.forEach(match => {
         summaryParts.push(`  - Job: ${match.job_title || match.job_id || 'N/A'}, Fit: ${match.fit_score}%, Reasons: ${(match.match_reasons || []).join(', ')}`);

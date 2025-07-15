@@ -176,6 +176,7 @@ export default function RecruitmentStagesPage() {
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error creating or updating stage:', error);
+      // Do NOT setFetchError here to avoid duplicate error toasts
       toast.error((error as Error).message);
     }
   };

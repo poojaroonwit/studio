@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   // TODO: Replace with actual logic to fetch transitions for the candidateId
-  const transitions = [];
+  const transitions: any[] = [];
 
   return NextResponse.json({ transitions });
 } 

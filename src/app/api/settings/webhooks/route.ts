@@ -5,6 +5,13 @@ import prisma from '@/lib/prisma';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
+const fieldMappingSchema = z.object({
+  source_field: z.string(),
+  target_field: z.string(),
+  transform: z.enum(['uppercase', 'lowercase', 'trim', 'date', 'number', 'boolean']).optional(),
+  default_value: z.any().optional(),
+});
+
 const webhookSchema = z.object({
   name: z.string().min(1),
   url: z.string().url(),
@@ -20,6 +27,11 @@ const webhookSchema = z.object({
   headers: z.record(z.string(), z.string()).optional(),
   retry_count: z.number().min(0).max(10).optional(),
   timeout: z.number().min(5).max(300).optional(),
+  // New body customization fields
+  body_template: z.string().optional(),
+  field_mappings: z.array(fieldMappingSchema).optional(),
+  include_metadata: z.boolean().optional(),
+  custom_payload: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -30,7 +42,13 @@ export async function GET(req: NextRequest) {
     }
 
     const webhooks = await prisma.webhook.findMany({
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      include: {
+        body_configs: {
+          where: { is_active: true },
+          orderBy: { event_type: 'asc' }
+        }
+      }
     });
 
     // Sanitize webhooks to ensure no undefined values
@@ -50,6 +68,20 @@ export async function GET(req: NextRequest) {
       headers: webhook.headers || {},
       retry_count: webhook.retry_count || 3,
       timeout: webhook.timeout || 30,
+      // New body customization fields
+      body_template: webhook.body_template || null,
+      field_mappings: webhook.field_mappings || null,
+      include_metadata: Boolean(webhook.include_metadata),
+      custom_payload: Boolean(webhook.custom_payload),
+      body_configs: webhook.body_configs.map(config => ({
+        id: config.id,
+        event_type: config.event_type,
+        body_template: config.body_template,
+        field_mappings: config.field_mappings,
+        is_active: config.is_active,
+        created_at: config.created_at,
+        updated_at: config.updated_at
+      })),
       created_at: webhook.created_at?.toISOString() || new Date().toISOString(),
       updated_at: webhook.updated_at?.toISOString() || new Date().toISOString()
     }));
@@ -101,6 +133,11 @@ export async function POST(req: NextRequest) {
         headers: data.headers || {},
         retry_count: data.retry_count ?? 3,
         timeout: data.timeout ?? 30,
+        // New body customization fields
+        body_template: data.body_template,
+        field_mappings: data.field_mappings,
+        include_metadata: data.include_metadata ?? true,
+        custom_payload: data.custom_payload ?? false,
       }
     });
 

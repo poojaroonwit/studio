@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       }));
     }
 
-    // 3. Send to all active webhooks for upload queue processing (no system setting/env var)
+    // 3. Send to resume processing webhook (system setting)
     let status = 'success';
     let error = null;
     let error_details = null;
@@ -142,22 +142,16 @@ export async function POST(request: NextRequest) {
     let webhookResults = null;
     let payload = null;
     try {
-      // Build payload for webhooks
-      const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
-      const webhookPayload = {
-        ...job,
-        file_url: publicUrl,
-      };
-      webhookResults = await dispatchWebhooks.uploadQueueProcessing(webhookPayload);
-      // If any webhook failed, mark as fail
-      if (webhookResults && webhookResults.some(r => !r.success)) {
-        status = 'fail';
-        error = 'One or more webhooks failed';
-        error_details = webhookResults.filter(r => !r.success).map(r => r.error).join('; ');
-      }
+      // Use the same logic as processSingleUploadQueueJob for resume processing webhook
+      const result = await processSingleUploadQueueJob(job, client);
+      status = result.job?.status || 'success';
+      error = result.job?.error || null;
+      error_details = result.job?.error_details || null;
+      webhookResults = result.webhook_response || null;
+      payload = result.job || null;
     } catch (err) {
       status = 'fail';
-      error = 'Webhook dispatch error';
+      error = 'Resume processing webhook error';
       error_details = err instanceof Error ? err.message : String(err);
     }
 
@@ -304,10 +298,6 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       const inputs = {
         cv_url: publicUrl,
         applied_position_id: finalPositionId,
-        applied_job_level: job.position_level,
-        applied_job_title: job.position_title,
-        applied_job_description: job.position_description,
-        candidate_id: job.candidate_id,
         job_id: job.id,
         meta: job.meta,
         filename: job.filename,

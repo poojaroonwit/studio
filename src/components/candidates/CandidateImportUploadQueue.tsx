@@ -369,6 +369,7 @@ export const CandidateImportUploadQueue: React.FC = () => {
             <option value="uploading">Uploading</option>
             <option value="processing">Processing</option>
             <option value="importing">Importing</option>
+            <option value="inprocess">In Process</option>
             <option value="success">Success</option>
             <option value="error">Error</option>
             <option value="cancelled">Cancelled</option>
@@ -556,23 +557,21 @@ export const CandidateImportUploadQueue: React.FC = () => {
                         <Eye className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
-                    {(item.status === "queued" || item.status === "error") && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Retry"
-                        onClick={async () => {
-                          await fetch(`/api/upload-queue/${item.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
-                          });
-                          fetchJobs();
-                        }}
-                      >
-                        <RotateCcw className="h-4 w-4 text-primary" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Retry"
+                      onClick={async () => {
+                        await fetch(`/api/upload-queue/${item.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
+                        });
+                        fetchJobs();
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4 text-primary" />
+                    </Button>
                     {(item.status === "queued" || item.status === "uploading") && (
                       <Button
                         variant="ghost"
@@ -783,12 +782,15 @@ export const CandidateImportUploadQueue: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
+              </div>
+
+              {/* Right Column - Error Details & Success Response */}
+              <div className="space-y-4">
                 {/* Error Details */}
                 {selectedCombinedJob.error_details && (
                   <div>
-                    <h3 className="font-semibold mb-2 text-destructive flex items-center">
-                      <AlertCircle className="h-4 w-4 mr-2" />
+                    <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center text-destructive">
+                      <AlertCircle className="h-5 w-5 mr-2" />
                       Error Details
                     </h3>
                     <pre className="bg-destructive/10 border border-destructive/20 rounded p-3 text-xs text-destructive max-h-40 overflow-auto whitespace-pre-wrap">
@@ -796,10 +798,21 @@ export const CandidateImportUploadQueue: React.FC = () => {
                     </pre>
                   </div>
                 )}
-              </div>
 
-              {/* Right Column - Webhook Log */}
-              <div className="space-y-4">
+                {/* Success Response */}
+                {selectedCombinedJob.status === 'success' && selectedCombinedJob.webhook_payload?.webhookResJson && (
+                  <div>
+                    <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center text-green-600">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Success Response
+                    </h3>
+                    <pre className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded p-3 text-xs text-green-900 dark:text-green-100 max-h-40 overflow-auto whitespace-pre-wrap">
+                      {JSON.stringify(selectedCombinedJob.webhook_payload.webhookResJson, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Webhook Log */}
                 <div>
                   <h3 className="font-semibold mb-3 text-lg border-b pb-2 flex items-center">
                     <ExternalLink className="h-5 w-5 mr-2 text-blue-600" />

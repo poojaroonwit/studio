@@ -931,7 +931,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
                             style={{ scrollBehavior: 'smooth' }}
                           >
-                            {candidate.parsedData.job_matches.map((match, index) => {
+                            {(Array.isArray(candidate.parsedData?.job_matches) ? candidate.parsedData.job_matches : []).map((match, index) => {
                               const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === match.job_id) : null;
                               if (!position) return null;
                               
@@ -1053,13 +1053,13 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                       ) : (
                         <div className="relative">
                           {/* Continuous vertical line that connects all education nodes */}
-                          {(candidate.parsedData?.education ?? []).length > 0 && (
-                            <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((candidate.parsedData?.education ?? []).length - 1) * 80}px` }} />
+                          {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).length > 0 && (
+                            <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).length - 1) * 80}px` }} />
                           )}
-                          {(candidate.parsedData?.education ?? []).length === 0 && (
+                          {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).length === 0 && (
                             <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                           )}
-                          {(candidate.parsedData?.education ?? []).map((edu, index) => {
+                          {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).map((edu, index) => {
                             if (typeof edu === 'string') {
                               return (
                                 <div key={`edu-${index}-${edu}`} className="relative mb-8">
@@ -1195,13 +1195,13 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                       ) : (
                         <div className="relative">
                           {/* Continuous vertical line that connects all experience nodes */}
-                          {(isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length > 0 && (
-                            <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length - 1) * 80}px` }} />
+                          {(candidate.parsedData && isCandidateDetails(candidate.parsedData) && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []).length > 0 && (
+                            <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((candidate.parsedData && isCandidateDetails(candidate.parsedData) && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []).length - 1) * 80}px` }} />
                           )}
-                          {(isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length === 0 && (
+                          {(candidate.parsedData && isCandidateDetails(candidate.parsedData) && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []).length === 0 && (
                             <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                           )}
-                          {(isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).map((exp: ExperienceEntry, index: number) => {
+                          {(candidate.parsedData && isCandidateDetails(candidate.parsedData) && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []).map((exp: ExperienceEntry, index: number) => {
                             let start = '', end = '', duration = '';
                             if (exp.period) {
                               const parts = String(exp.period).split(' - ');
@@ -1283,9 +1283,9 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                           </Button>
                         </div>
                       ) : (
-                        (candidate.parsedData?.skills && candidate.parsedData.skills.length > 0) ? (
+                        (Array.isArray(candidate.parsedData?.skills) ? candidate.parsedData.skills : []).length > 0 ? (
                           <ul className="space-y-4">
-                            {candidate.parsedData.skills.map((skillEntry, index) => {
+                            {(Array.isArray(candidate.parsedData?.skills) ? candidate.parsedData.skills : []).map((skillEntry, index) => {
                               if (typeof skillEntry === 'string') {
                                 return (
                                   <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
@@ -1339,20 +1339,24 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                           </Button>
                         </div>
                       ) : (
-                        (isCandidateDetails(candidate.parsedData) && candidate.parsedData.job_suitable && candidate.parsedData.job_suitable.length > 0) ? (
-                          <ul className="space-y-4">
-                            {candidate.parsedData.job_suitable.map((job: JobSuitableEntry, index: number) => (
-                              <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
-                                <div className="space-y-2">
-                                  {job.suitable_career && <div className="text-sm"><span className="font-medium">Career Path:</span> {job.suitable_career}</div>}
-                                  {job.suitable_job_position && <div className="text-sm"><span className="font-medium">Job Position:</span> {job.suitable_job_position}</div>}
-                                  {job.suitable_job_level && <div className="text-sm"><span className="font-medium">Job Level:</span> {job.suitable_job_level}</div>}
-                                  {job.suitable_salary_bath_month && <div className="text-sm"><span className="font-medium">Desired Salary:</span> {job.suitable_salary_bath_month} THB/Month</div>}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : <div className="text-sm text-muted-foreground text-center py-4">No job suitability details provided.</div>
+                        (() => {
+                          const isDetails = candidate.parsedData && isCandidateDetails(candidate.parsedData);
+                          const jobSuitableArr: JobSuitableEntry[] = isDetails && Array.isArray((candidate.parsedData as CandidateDetails).job_suitable) ? (candidate.parsedData as CandidateDetails).job_suitable ?? [] : [];
+                          return jobSuitableArr.length > 0 ? (
+                            <ul className="space-y-4">
+                              {jobSuitableArr.map((job: JobSuitableEntry, index: number) => (
+                                <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
+                                  <div className="space-y-2">
+                                    {job.suitable_career && <div className="text-sm"><span className="font-medium">Career Path:</span> {job.suitable_career}</div>}
+                                    {job.suitable_job_position && <div className="text-sm"><span className="font-medium">Job Position:</span> {job.suitable_job_position}</div>}
+                                    {job.suitable_job_level && <div className="text-sm"><span className="font-medium">Job Level:</span> {job.suitable_job_level}</div>}
+                                    {job.suitable_salary_bath_month && <div className="text-sm"><span className="font-medium">Desired Salary:</span> {job.suitable_salary_bath_month} THB/Month</div>}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : <div className="text-sm text-muted-foreground text-center py-4">No job suitability details provided.</div>;
+                        })()
                       )}
                     </div>
                   )}

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send, MoreHorizontal, X } from 'lucide-react';
+import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send, MoreHorizontal, X, Code } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import WebhookBodyCustomization from './WebhookBodyCustomization';
 
 interface Webhook {
   id: string;
@@ -42,6 +43,12 @@ interface Webhook {
   headers: Record<string, string>;
   retry_count: number;
   timeout: number;
+  // Body customization fields
+  body_template?: string;
+  field_mappings?: any[];
+  include_metadata?: boolean;
+  custom_payload?: boolean;
+  body_configs?: any[];
   created_at: string;
   updated_at: string;
 }
@@ -158,6 +165,7 @@ export default function WebhookManagement() {
   const [selectedWebhooks, setSelectedWebhooks] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<string>('');
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [customizingWebhook, setCustomizingWebhook] = useState<Webhook | null>(null);
   const { error: showError, success: showSuccess } = useToast();
 
   const fetchWebhooks = async () => {
@@ -183,6 +191,12 @@ export default function WebhookManagement() {
           headers: webhook.headers || {},
           retry_count: webhook.retry_count || 3,
           timeout: webhook.timeout || 30,
+          // Body customization fields
+          body_template: webhook.body_template || null,
+          field_mappings: webhook.field_mappings || null,
+          include_metadata: Boolean(webhook.include_metadata),
+          custom_payload: Boolean(webhook.custom_payload),
+          body_configs: webhook.body_configs || [],
           created_at: webhook.created_at || new Date().toISOString(),
           updated_at: webhook.updated_at || new Date().toISOString()
         })) : [];
@@ -505,6 +519,26 @@ export default function WebhookManagement() {
       }
       return newSet;
     });
+  };
+
+  const handleBodyConfigSave = async (webhookId: string, config: any) => {
+    try {
+      const response = await fetch(`/api/settings/webhooks/${webhookId}/body-config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+
+      if (response.ok) {
+        showSuccess('Webhook body configuration updated successfully');
+        fetchWebhooks(); // Refresh the webhooks list
+      } else {
+        const error = await response.json();
+        showError(error.message || 'Failed to update webhook body configuration');
+      }
+    } catch (error) {
+      showError('Failed to update webhook body configuration');
+    }
   };
 
   const handleSelectAll = () => {
@@ -1129,6 +1163,10 @@ export default function WebhookManagement() {
                           <TestTube className="mr-2 h-4 w-4" />
                           Test Webhook
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setCustomizingWebhook(webhook)}>
+                          <Code className="mr-2 h-4 w-4" />
+                          Customize Body
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleEdit(webhook)}>
                           <Edit className="mr-2 h-4 w-4" />
@@ -1336,6 +1374,25 @@ export default function WebhookManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Webhook Body Customization Dialog */}
+      {customizingWebhook && (
+        <WebhookBodyCustomization
+          webhookId={customizingWebhook.id}
+          webhookEvents={customizingWebhook.events}
+          initialConfig={{
+            body_template: customizingWebhook.body_template,
+            field_mappings: customizingWebhook.field_mappings,
+            include_metadata: customizingWebhook.include_metadata,
+            custom_payload: customizingWebhook.custom_payload,
+            body_configs: customizingWebhook.body_configs
+          }}
+          onSave={async (config) => {
+            await handleBodyConfigSave(customizingWebhook.id, config);
+            setCustomizingWebhook(null);
+          }}
+        />
       )}
     </div>
   );

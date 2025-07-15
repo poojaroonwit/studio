@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import { WebhookBodyProcessor } from './webhookBodyProcessor';
 
 export interface WebhookPayload {
   event: string;
@@ -35,16 +36,9 @@ export class WebhookService {
         return;
       }
 
-      // Create payload
-      const payload: WebhookPayload = {
-        event,
-        timestamp: new Date().toISOString(),
-        data
-      };
-
       // Send webhooks in parallel
       const deliveryPromises = webhooks.map(webhook => 
-        this.sendWebhook(webhook, payload)
+        this.sendWebhook(webhook, event, data)
       );
 
       await Promise.allSettled(deliveryPromises);
@@ -56,18 +50,26 @@ export class WebhookService {
   /**
    * Send a single webhook
    */
-  static async sendWebhook(webhook: any, payload: WebhookPayload): Promise<WebhookDeliveryResult> {
+  static async sendWebhook(webhook: any, event: string, data: any): Promise<WebhookDeliveryResult> {
     const startTime = Date.now();
     let result: WebhookDeliveryResult;
+    let processedPayload: any;
 
     try {
+      // Process webhook payload using body processor
+      processedPayload = await WebhookBodyProcessor.processWebhookPayload(
+        webhook.id,
+        event,
+        data
+      );
+
       // Prepare headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'User-Agent': 'Recruitment-System-Webhook/1.0',
         'X-Webhook-ID': webhook.id,
-        'X-Event-Type': payload.event,
-        'X-Timestamp': payload.timestamp
+        'X-Event-Type': event,
+        'X-Timestamp': processedPayload.timestamp
       };
 
       // Add custom headers
@@ -94,7 +96,7 @@ export class WebhookService {
       const response = await fetch(webhook.url, {
         method: webhook.method,
         headers,
-        body: webhook.method !== 'GET' ? JSON.stringify(payload) : undefined,
+        body: webhook.method !== 'GET' ? JSON.stringify(processedPayload) : undefined,
         signal: controller.signal
       });
 
@@ -126,11 +128,11 @@ export class WebhookService {
     }
 
     // Log the webhook delivery
-    await this.logWebhookDelivery(webhook.id, payload, result);
+    await this.logWebhookDelivery(webhook.id, processedPayload, result);
 
     // Retry logic for failed deliveries
     if (!result.success && webhook.retry_count > 0) {
-      await this.retryWebhook(webhook, payload, webhook.retry_count);
+      await this.retryWebhook(webhook, event, data, webhook.retry_count);
     }
 
     return result;
@@ -139,13 +141,13 @@ export class WebhookService {
   /**
    * Retry failed webhook delivery
    */
-  private static async retryWebhook(webhook: any, payload: WebhookPayload, retryCount: number): Promise<void> {
+  private static async retryWebhook(webhook: any, event: string, data: any, retryCount: number): Promise<void> {
     const retryDelays = [1000, 5000, 15000, 30000, 60000]; // Exponential backoff
     
     for (let attempt = 0; attempt < Math.min(retryCount, retryDelays.length); attempt++) {
       await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
       
-      const result = await this.sendWebhook(webhook, payload);
+      const result = await this.sendWebhook(webhook, event, data);
       if (result.success) {
         break;
       }
@@ -157,7 +159,7 @@ export class WebhookService {
    */
   private static async logWebhookDelivery(
     webhookId: string, 
-    payload: WebhookPayload, 
+    payload: any, 
     result: WebhookDeliveryResult
   ): Promise<void> {
     try {
@@ -254,12 +256,19 @@ export class WebhookService {
     await this.sendWebhooks(event, {
       comment: {
         id: comment.id,
-        candidate_id: comment.candidateId,
-        author_id: comment.authorId,
         content: comment.content,
+        author_id: comment.authorId,
+        candidate_id: comment.candidateId,
         created_at: comment.createdAt,
         updated_at: comment.updatedAt
       }
     });
+  }
+
+  /**
+   * Send custom webhook event
+   */
+  static async sendCustomWebhook(event: string, data: any): Promise<void> {
+    await this.sendWebhooks(event, data);
   }
 } 

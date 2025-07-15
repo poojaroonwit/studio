@@ -4,6 +4,13 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
+const fieldMappingSchema = z.object({
+  source_field: z.string(),
+  target_field: z.string(),
+  transform: z.enum(['uppercase', 'lowercase', 'trim', 'date', 'number', 'boolean']).optional(),
+  default_value: z.any().optional(),
+});
+
 const webhookSchema = z.object({
   name: z.string().min(1),
   url: z.string().url(),
@@ -19,6 +26,11 @@ const webhookSchema = z.object({
   headers: z.record(z.string(), z.string()).optional(),
   retry_count: z.number().min(0).max(10).optional(),
   timeout: z.number().min(5).max(300).optional(),
+  // New body customization fields
+  body_template: z.string().optional(),
+  field_mappings: z.array(fieldMappingSchema).optional(),
+  include_metadata: z.boolean().optional(),
+  custom_payload: z.boolean().optional(),
 });
 
 export async function GET(
@@ -30,11 +42,57 @@ export async function GET(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const webhook = await prisma.webhook.findUnique({ where: { id: params.id } });
+    
+    const webhook = await prisma.webhook.findUnique({ 
+      where: { id: params.id },
+      include: {
+        body_configs: {
+          where: { is_active: true },
+          orderBy: { event_type: 'asc' }
+        }
+      }
+    });
+    
     if (!webhook) {
       return NextResponse.json({ error: 'Webhook not found' }, { status: 404 });
     }
-    return NextResponse.json(webhook);
+
+    // Sanitize webhook data
+    const sanitizedWebhook = {
+      id: webhook.id,
+      name: webhook.name,
+      url: webhook.url,
+      events: webhook.events,
+      method: webhook.method,
+      is_active: webhook.is_active,
+      auth_type: webhook.auth_type,
+      auth_username: webhook.auth_username,
+      auth_password: webhook.auth_password,
+      auth_token: webhook.auth_token,
+      auth_header_name: webhook.auth_header_name,
+      auth_header_value: webhook.auth_header_value,
+      headers: webhook.headers,
+      retry_count: webhook.retry_count,
+      timeout: webhook.timeout,
+      // New body customization fields
+      body_template: webhook.body_template,
+      field_mappings: webhook.field_mappings,
+      include_metadata: webhook.include_metadata,
+      custom_payload: webhook.custom_payload,
+      body_configs: webhook.body_configs.map(config => ({
+        id: config.id,
+        event_type: config.event_type,
+        body_template: config.body_template,
+        field_mappings: config.field_mappings,
+        is_active: config.is_active,
+        created_at: config.created_at,
+        updated_at: config.updated_at
+      })),
+      created_at: webhook.created_at,
+      updated_at: webhook.updated_at
+    };
+
+    return NextResponse.json(sanitizedWebhook);
   } catch (error) {
     console.error('Error fetching webhook:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -87,8 +145,9 @@ export async function DELETE(
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    // Delete associated logs first
+    // Delete associated logs and body configs first
     await prisma.webhookLog.deleteMany({ where: { webhook_id: params.id } });
+    await prisma.webhookBodyConfig.deleteMany({ where: { webhook_id: params.id } });
     await prisma.webhook.delete({ where: { id: params.id } });
     return NextResponse.json({ message: 'Webhook deleted' });
   } catch (error) {

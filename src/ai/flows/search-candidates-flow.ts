@@ -77,7 +77,7 @@ function createCandidateSummary(candidate: Candidate): string {
       summaryParts.push("Work Experience:");
       details.experience.forEach((exp: ExperienceEntry, index: number) => {
         let expStr = `  ${index + 1}. Company: ${exp.company || 'N/A'}, Position: ${exp.position || 'N/A'}`;
-        if (exp.postition_level) expStr += ` (Level: ${exp.postition_level})`;
+        if (exp.positionLevel) expStr += ` (Level: ${exp.positionLevel})`;
         if (exp.period) expStr += `, Period: ${exp.period}`;
         if (exp.duration) expStr += `, Duration: ${exp.duration}`;
         if (exp.is_current_position) expStr += ` (Current Position)`;

@@ -157,34 +157,68 @@ export interface ContactInfo {
   phone?: string;
 }
 
+// New structured education entry type
+export interface StructuredEducationEntry {
+  id?: string;
+  university: string;
+  major?: string;
+  field?: string;
+  campus?: string;
+  startMonth: number; // 1-12
+  startYear: number;
+  endMonth?: number; // 1-12 or null for current
+  endYear?: number; // null for current
+  isCurrent: boolean;
+  GPA?: string;
+  duration?: string; // Calculated field
+}
+
+// New structured experience entry type
+export interface StructuredExperienceEntry {
+  id?: string;
+  company: string;
+  position: string;
+  description?: string;
+  startMonth: number; // 1-12
+  startYear: number;
+  endMonth?: number; // 1-12 or null for current
+  endYear?: number; // null for current
+  isCurrent: boolean;
+  positionLevel?: string;
+  duration?: string; // Calculated field
+}
+
+// Legacy types (keep for backward compatibility)
 export interface EducationEntry {
   major?: string;
   field?: string;
-  period?: string;
+  period?: string; // Legacy: "Jan 2022 - Dec 2024"
   duration?: string;
   GPA?: string;
   university?: string;
   campus?: string;
+  // New structured fields (optional for migration)
+  startMonth?: number;
+  startYear?: number;
+  endMonth?: number;
+  endYear?: number;
+  isCurrent?: boolean;
 }
-
-export type PositionLevel =
-  | 'entry level'
-  | 'mid level'
-  | 'senior level'
-  | 'lead'
-  | 'manager'
-  | 'executive'
-  | 'officer'
-  | 'leader';
 
 export interface ExperienceEntry {
   company?: string;
   position?: string;
   description?: string;
-  period?: string;
+  period?: string; // Legacy: "Jan 2022 - Dec 2024"
   duration?: string;
-  is_current_position?: boolean | string; // Allow string for automation, preprocess in Zod
-  postition_level?: string | null | undefined;
+  is_current_position?: boolean;
+  positionLevel?: string;
+  // New structured fields (optional for migration)
+  startMonth?: number;
+  startYear?: number;
+  endMonth?: number;
+  endYear?: number;
+  isCurrent?: boolean;
 }
 
 export interface SkillEntry {
@@ -259,7 +293,7 @@ export interface Position {
   department: string;
   description?: string | null;
   isOpen: boolean;
-  position_level?: string | null;
+  positionLevel?: string | null;
   customAttributes?: Record<string, any> | null;
   createdAt?: string;
   updatedAt?: string;
@@ -534,3 +568,5 @@ export interface DataModel {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export type PositionLevel = string;

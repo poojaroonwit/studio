@@ -70,7 +70,7 @@ export const runtime = 'nodejs';
  *                         title: "Software Engineer"
  *                         department: "Engineering"
  *                         isOpen: true
- *                         position_level: "mid level"
+ *                         positionLevel: "mid level"
  *       401:
  *         description: Unauthorized
  */
@@ -81,7 +81,7 @@ const importPositionSchema = z.object({
   department: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
-  position_level: z.string().optional().nullable(),
+  positionLevel: z.string().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
 });
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           department: row.department,
           description: row.description || null,
           isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
-          position_level: row.position_level || null,
+          positionLevel: row.positionLevel || null,
           custom_attributes: customAttributes,
         };
       });
@@ -160,14 +160,14 @@ export async function POST(request: NextRequest) {
             continue;
           }
           const insertQuery = `
-            INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt")
+            INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
             RETURNING *;
           `;
           const positionId = uuidv4();
           await client.query(insertQuery, [
             positionId, position.title, position.department, position.description, 
-            position.isOpen, position.position_level, position.custom_attributes || {}
+            position.isOpen, position.positionLevel, position.custom_attributes || {}
           ]);
           results.success++;
         } catch (error: any) {
@@ -219,14 +219,14 @@ export async function POST(request: NextRequest) {
           continue;
         }
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt")
+          INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt")
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
           RETURNING *;
         `;
         const positionId = uuidv4();
         await client.query(insertQuery, [
           positionId, position.title, position.department, position.description, 
-          position.isOpen, position.position_level, position.custom_attributes || {}
+          position.isOpen, position.positionLevel, position.custom_attributes || {}
         ]);
         results.success++;
       } catch (error: any) {

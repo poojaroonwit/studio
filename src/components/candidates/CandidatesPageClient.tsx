@@ -898,7 +898,7 @@ export function CandidatesPageClient({
           education: formData.education,
           experience: formData.experience?.map(exp => ({
             ...exp,
-            postition_level: exp.postition_level === "___NOT_SPECIFIED___" || exp.postition_level === null ? undefined : exp.postition_level
+            positionLevel: exp.positionLevel === "___NOT_SPECIFIED___" || exp.positionLevel === null ? undefined : exp.positionLevel
           })),
           skills: formData.skills?.map(s => ({
             segment_skill: s.segment_skill,

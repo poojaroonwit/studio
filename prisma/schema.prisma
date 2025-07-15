@@ -44,7 +44,7 @@ model Position {
   department       String
   description      String?
   isOpen           Boolean     @default(true)
-  positionLevel    String?     @map("position_level")
+  positionLevel    String?     @map("positionLevel")
   customAttributes Json?       @default("{}")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -73,6 +73,11 @@ model Candidate {
   avatarUrl               String?
   dataAiHint              String?
   assignmentJustification String?
+  
+  // New structured education and experience fields
+  educationData           Json?              @default("[]") // Structured education array
+  experienceData          Json?              @default("[]") // Structured experience array
+  
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])

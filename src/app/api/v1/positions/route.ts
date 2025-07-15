@@ -18,7 +18,7 @@ const createPositionSchema = z.object({
   department: z.string().min(1, { message: 'Department is required' }),
   description: z.string().optional().nullable(),
   isOpen: z.boolean({ required_error: 'isOpen status is required' }),
-  position_level: z.string().optional().nullable(),
+  positionLevel: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
@@ -36,11 +36,11 @@ export async function GET(req: NextRequest) {
     const titleFilter = searchParams.get('title');
     const departmentFilter = searchParams.get('department');
     const isOpenFilter = searchParams.get('isOpen');
-    const positionLevelFilter = searchParams.get('position_level');
+    const positionLevelFilter = searchParams.get('positionLevel');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    let query = 'SELECT id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt" FROM "Position"';
+    let query = 'SELECT id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
     const conditions = [];
     const queryParams = [];
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       conditions.push('"isOpen" = FALSE');
     }
     if (positionLevelFilter) {
-      conditions.push(`position_level ILIKE $${paramIndex++}`);
+      conditions.push(`positionLevel ILIKE $${paramIndex++}`);
       queryParams.push(`%${positionLevelFilter}%`);
     }
 
@@ -117,8 +117,8 @@ export async function POST(req: NextRequest) {
   try {
     const newPositionId = uuidv4();
     const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes")
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
       RETURNING *;
     `;
     const values = [
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       validatedData.department,
       validatedData.description || null,
       validatedData.isOpen,
-      validatedData.position_level || null,
+      validatedData.positionLevel || null,
       validatedData.custom_attributes || {},
     ];
     const result = await getPool().query(insertQuery, values);

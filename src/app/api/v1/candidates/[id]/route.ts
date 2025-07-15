@@ -271,8 +271,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       
       // Insert new job matches
       const insertJobMatchQuery = `
-        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       `;
       
       for (const match of updateData.job_matches) {
@@ -290,8 +290,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Create transition record if status changed
     if (updateData.status !== undefined && oldStatus !== updateData.status) {
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW());
+        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       await client.query(insertTransitionQuery, [
         uuidv4(), id, updateData.positionId || existingCandidate.positionId, updateData.status, 'Status changed via API', user.id

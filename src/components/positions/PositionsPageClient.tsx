@@ -354,7 +354,7 @@ export default function PositionsPageClient() {
                       <Badge variant="destructive">Closed</Badge>
                     )}
                   </TableCell>
-                  <TableCell>{position.position_level || '-'}</TableCell>
+                  <TableCell>{position.positionLevel || '-'}</TableCell>
                   <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>

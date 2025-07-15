@@ -529,7 +529,7 @@ Get a list of positions with pagination and filtering.
 - `title` (optional): Filter by title
 - `department` (optional): Filter by department (comma-separated)
 - `isOpen` (optional): Filter by open status
-- `position_level` (optional): Filter by position level
+- `positionLevel` (optional): Filter by position level
 - `limit` (optional): Items per page (default: 20)
 - `offset` (optional): Offset for pagination
 
@@ -543,7 +543,7 @@ Get a list of positions with pagination and filtering.
       "department": "Engineering",
       "description": "Full-stack development role",
       "isOpen": true,
-      "position_level": "Mid-level",
+      "positionLevel": "Mid-level",
       "customAttributes": {},
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -563,7 +563,7 @@ Create a new position.
   "department": "Engineering",                      // Required
   "description": "Full-stack development role",     // Optional
   "isOpen": true,                                   // Optional (default: true)
-  "position_level": "Mid-level",                    // Optional
+  "positionLevel": "Mid-level",                    // Optional
   "customAttributes": {}                            // Optional (default: {})
 }
 ```
@@ -577,7 +577,7 @@ Create a new position.
 **Optional Fields:**
 - `description` - Position description
 - `isOpen` - Whether position is open for applications (default: true)
-- `position_level` - Position level (e.g., "Entry", "Mid-level", "Senior")
+- `positionLevel` - Position level (e.g., "Entry", "Mid-level", "Senior")
 - `customAttributes` - Custom attributes object (default: {})
 
 **Note:** The following fields are automatically handled and should not be included in the request:
@@ -640,7 +640,7 @@ Import positions from JSON.
       "department": "Engineering",                      // Required
       "description": "Full-stack development role",     // Optional
       "isOpen": true,                                   // Optional (default: true)
-      "position_level": "Mid-level",                    // Optional
+      "positionLevel": "Mid-level",                    // Optional
       "customAttributes": {}                            // Optional (default: {})
     }
   ]
@@ -656,7 +656,7 @@ Import positions from JSON.
 **Optional Fields:**
 - `positions[].description` - Position description
 - `positions[].isOpen` - Whether position is open for applications (default: true)
-- `positions[].position_level` - Position level (e.g., "Entry", "Mid-level", "Senior")
+- `positions[].positionLevel` - Position level (e.g., "Entry", "Mid-level", "Senior")
 - `positions[].customAttributes` - Custom attributes object (default: {})
 
 **Note:** The following fields are automatically handled and should not be included in the request:

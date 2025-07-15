@@ -36,7 +36,7 @@ function parseFilters(searchParams: URLSearchParams): PositionFilters {
     title: searchParams.get('title') || undefined,
     department: searchParams.get('department') || undefined,
     isOpen: searchParams.get('isOpen') || undefined,
-    positionLevel: searchParams.get('position_level') || undefined,
+    positionLevel: searchParams.get('positionLevel') || undefined,
     limit: Math.min(parseInt(searchParams.get('limit') || DEFAULT_LIMIT.toString(), 10), MAX_LIMIT),
     offset: parseInt(searchParams.get('offset') || DEFAULT_OFFSET.toString(), 10)
   };
@@ -50,7 +50,7 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
       department, 
       description, 
       "isOpen", 
-      position_level, 
+      positionLevel, 
       "customAttributes", 
       "createdAt", 
       "updatedAt" 
@@ -79,7 +79,7 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
   }
 
   if (filters.positionLevel) {
-    conditions.push(`position_level ILIKE $${paramIndex++}`);
+    conditions.push(`positionLevel ILIKE $${paramIndex++}`);
     params.push(`%${filters.positionLevel}%`);
   }
 

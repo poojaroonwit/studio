@@ -33,7 +33,7 @@ const addPositionFormSchema = z.object({
   department: z.string().min(1, "Department is required"),
   description: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
-  position_level: z.string().optional().nullable(),
+  positionLevel: z.string().optional().nullable(),
 });
 
 export type AddPositionFormValues = z.infer<typeof addPositionFormSchema>;
@@ -54,7 +54,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       department: '',
       description: '',
       isOpen: true,
-      position_level: '',
+      positionLevel: '',
     },
   });
 
@@ -65,7 +65,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         department: '',
         description: '',
         isOpen: true,
-        position_level: '',
+        positionLevel: '',
       });
     }
   }, [isOpen, form]);
@@ -112,15 +112,15 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
             )}
           </div>
           <div>
-            <Label htmlFor="position_level-add">Position Level</Label>
+            <Label htmlFor="positionLevel-add">Position Level</Label>
             <Input 
-              id="position_level-add" 
-              {...form.register('position_level')} 
+              id="positionLevel-add" 
+              {...form.register('positionLevel')} 
               className="mt-1" 
               placeholder="e.g., Senior, Mid-Level, L3"
             />
-            {form.formState.errors.position_level && (
-              <p className="text-sm text-destructive mt-1">{form.formState.errors.position_level.message}</p>
+            {form.formState.errors.positionLevel && (
+              <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
             )}
           </div>
           <div>

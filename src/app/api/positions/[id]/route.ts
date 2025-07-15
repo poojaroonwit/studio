@@ -73,7 +73,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
+    const query = 'SELECT id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -105,7 +105,7 @@ const updatePositionSchema = z.object({
   department: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
-  position_level: z.string().optional().nullable(),
+  positionLevel: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(), // New
 });
 
@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, department, description, isOpen, position_level, custom_attributes } = validationResult.data;
+  const { title, department, description, isOpen, positionLevel, custom_attributes } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -150,12 +150,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updateQuery = `
       UPDATE "Position" 
       SET title = $1, department = $2, description = $3, "isOpen" = $4, 
-          position_level = $5, "customAttributes" = $6, "updatedAt" = NOW()
+          positionLevel = $5, "customAttributes" = $6, "updatedAt" = NOW()
       WHERE id = $7
       RETURNING *;
     `;
     const updateResult = await client.query(updateQuery, [
-      title, department, description, isOpen, position_level, custom_attributes || {}, id
+      title, department, description, isOpen, positionLevel, custom_attributes || {}, id
     ]);
 
     await client.query('COMMIT');

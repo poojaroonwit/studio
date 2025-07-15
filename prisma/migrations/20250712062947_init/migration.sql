@@ -26,7 +26,7 @@ CREATE TABLE "Position" (
     "department" TEXT NOT NULL,
     "description" TEXT,
     "isOpen" BOOLEAN NOT NULL DEFAULT true,
-    "position_level" TEXT,
+    "positionLevel" TEXT,
     "customAttributes" JSONB DEFAULT '{}',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

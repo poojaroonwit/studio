@@ -48,24 +48,30 @@ const contactInfoFormSchema = z.object({
   phone: z.string().optional(),
 });
 
+// Updated Zod schemas for structured date fields
 const educationEntryFormSchema = z.object({
-  major: z.string().optional(),
-  field: z.string().optional(),
-  period: z.string().optional(),
-  duration: z.string().optional(),
-  GPA: z.string().optional(),
-  university: z.string().optional(),
-  campus: z.string().optional(),
+  university: z.string().min(1, "University is required"),
+  major: z.string().optional().nullable(),
+  field: z.string().optional().nullable(),
+  campus: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
+  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().default(false),
+  GPA: z.string().optional().nullable(),
 });
 
 const experienceEntryFormSchema = z.object({
-  company: z.string().optional(),
-  position: z.string().optional(),
-  description: z.string().optional(),
-  period: z.string().optional(),
-  duration: z.string().optional(),
-  is_current_position: z.boolean().optional().default(false),
-  postition_level: z.string().optional().nullable(), 
+  company: z.string().min(1, "Company is required"),
+  position: z.string().min(1, "Position is required"),
+  description: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
+  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().default(false),
+  positionLevel: z.string().optional().nullable(),
 });
 
 const skillEntryFormSchema = z.object({
@@ -80,7 +86,7 @@ const jobSuitableEntryFormSchema = z.object({
   suitable_salary_bath_month: z.string().optional(),
 });
 
-// Main form schema
+// Main form schema updated
 const addCandidateFormSchema = z.object({
   cv_language: z.string().optional(),
   personal_info: personalInfoFormSchema,
@@ -90,7 +96,7 @@ const addCandidateFormSchema = z.object({
   skills: z.array(skillEntryFormSchema).optional(),
   job_suitable: z.array(jobSuitableEntryFormSchema).optional(),
   positionId: z.union([z.string().uuid(), z.null()]).optional(),
-  status: z.string().min(1, "Status is required").default('Applied'), // Changed from enum
+  status: z.string().min(1, "Status is required").default('Applied'),
   fitScore: z.number().min(0).max(100).optional().default(0),
   job_matches: z.any().optional(),
   job_applied: z.any().optional(),
@@ -153,7 +159,17 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
         personal_info: { firstname: '', lastname: '' },
         contact_info: { email: '', phone: '' },
         education: [],
-        experience: [{ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null }],
+        experience: [{
+          company: '',
+          position: '',
+          startMonth: new Date().getMonth() + 1,
+          startYear: new Date().getFullYear(),
+          endMonth: null,
+          endYear: null,
+          isCurrent: true,
+          description: '',
+          positionLevel: null
+        }],
         skills: [{ segment_skill: '', skill_string: '' }],
         job_suitable: [{ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: ''}],
         positionId: null,
@@ -169,7 +185,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
         ...data,
         experience: data.experience?.map(exp => ({
           ...exp,
-          postition_level: exp.postition_level === PLACEHOLDER_VALUE_NONE ? null : exp.postition_level,
+          positionLevel: exp.positionLevel === PLACEHOLDER_VALUE_NONE ? null : exp.positionLevel,
         }))
       };
       await onAddCandidate(processedData);
@@ -319,22 +335,109 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
               <fieldset className="space-y-3 border p-4 rounded-md">
                 <legend className="text-lg font-semibold">Education</legend>
                 {educationFields.map((field, index) => (
-                  <div key={field.id} className="p-3 border rounded-md space-y-2 relative bg-muted/30">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input placeholder="University" {...form.register(`education.${index}.university`)} />
-                      <Input placeholder="Major" {...form.register(`education.${index}.major`)} />
-                      <Input placeholder="Field of Study" {...form.register(`education.${index}.field`)} />
-                      <Input placeholder="Campus" {...form.register(`education.${index}.campus`)} />
-                      <Input placeholder="Period (e.g., 2018-2022)" {...form.register(`education.${index}.period`)} />
-                      <Input placeholder="Duration (e.g., 4y)" {...form.register(`education.${index}.duration`)} />
-                      <Input placeholder="GPA" {...form.register(`education.${index}.GPA`)} />
+                  <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                    <Input placeholder="University" {...form.register(`education.${index}.university`)} />
+                    <Input placeholder="Major" {...form.register(`education.${index}.major`)} />
+                    <Input placeholder="Field of Study" {...form.register(`education.${index}.field`)} />
+                    <Input placeholder="Campus" {...form.register(`education.${index}.campus`)} />
+                    
+                    {/* Structured date inputs */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Start Month</Label>
+                        <Select
+                          value={form.watch(`education.${index}.startMonth`)?.toString() || ''}
+                          onValueChange={(value) => form.setValue(`education.${index}.startMonth`, parseInt(value))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                              <SelectItem key={month} value={month.toString()}>
+                                {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Start Year</Label>
+                        <Input
+                          type="number"
+                          min="1900"
+                          max="2100"
+                          placeholder="Year"
+                          {...form.register(`education.${index}.startYear`, { valueAsNumber: true })}
+                        />
+                      </div>
                     </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Controller
+                        name={`education.${index}.isCurrent`}
+                        control={form.control}
+                        render={({ field }) => (
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
+                      <Label>Currently studying</Label>
+                    </div>
+                    
+                    {!form.watch(`education.${index}.isCurrent`) && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">End Month</Label>
+                          <Select
+                            value={form.watch(`education.${index}.endMonth`)?.toString() || ''}
+                            onValueChange={(value) => form.setValue(`education.${index}.endMonth`, parseInt(value))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                <SelectItem key={month} value={month.toString()}>
+                                  {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">End Year</Label>
+                          <Input
+                            type="number"
+                            min="1900"
+                            max="2100"
+                            placeholder="Year"
+                            {...form.register(`education.${index}.endYear`, { valueAsNumber: true })}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Input placeholder="GPA" {...form.register(`education.${index}.GPA`)} />
                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+                <Button type="button" variant="outline" onClick={() => appendEducation({
+                  university: '',
+                  major: '',
+                  field: '',
+                  campus: '',
+                  startMonth: new Date().getMonth() + 1,
+                  startYear: new Date().getFullYear(),
+                  endMonth: null,
+                  endYear: null,
+                  isCurrent: false,
+                  GPA: ''
+                })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Education
                 </Button>
               </fieldset>
@@ -346,17 +449,15 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <Input placeholder="Company" {...form.register(`experience.${index}.company`)} />
                         <Input placeholder="Position" {...form.register(`experience.${index}.position`)} />
-                        <Input placeholder="Period (e.g., Jan 2022 - Present)" {...form.register(`experience.${index}.period`)} />
-                        <Input placeholder="Duration (e.g., 1y6m)" {...form.register(`experience.${index}.duration`)} />
                          <Controller
-                            name={`experience.${index}.postition_level`}
+                            name={`experience.${index}.positionLevel`}
                             control={form.control}
                             render={({ field: controllerField }) => (
                                 <Select
                                   onValueChange={(value) => controllerField.onChange(value === PLACEHOLDER_VALUE_NONE ? null : value)}
                                   value={controllerField.value ?? PLACEHOLDER_VALUE_NONE}
                                 >
-                                <SelectTrigger id={`experience.${index}.postition_level`}><SelectValue placeholder="Position Level" /></SelectTrigger>
+                                <SelectTrigger id={`experience.${index}.positionLevel`}><SelectValue placeholder="Position Level" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value={PLACEHOLDER_VALUE_NONE}>N/A / Not Specified</SelectItem>
                                     {positionLevelOptions.map(level => <SelectItem key={level} value={level}>{level?.charAt(0)?.toUpperCase() + level?.slice(1) || ''}</SelectItem>)}
@@ -364,29 +465,93 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                                 </Select>
                             )}
                         />
-                        <div className="md:col-span-2 flex items-center space-x-2">
-                            <Controller
-                                name={`experience.${index}.is_current_position`}
-                                control={form.control}
-                                render={({ field: controllerField }) => (
-                                    <Checkbox
-                                        id={`experience.${index}.is_current_position`}
-                                        checked={Boolean(controllerField.value)}
-                                        onCheckedChange={(checked) => controllerField.onChange(checked)}
-                                        className="h-4 w-4"
-                                    />
-                                )}
-                            />
-                            <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
-                        </div>
                      </div>
+                     
+                     {/* Structured date inputs */}
+                     <div className="grid grid-cols-2 gap-2">
+                       <div>
+                         <Label className="text-xs">Start Month</Label>
+                         <Select
+                           value={form.watch(`experience.${index}.startMonth`)?.toString() || ''}
+                           onValueChange={(value) => form.setValue(`experience.${index}.startMonth`, parseInt(value))}
+                         >
+                           <SelectTrigger>
+                             <SelectValue placeholder="Month" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                               <SelectItem key={month} value={month.toString()}>
+                                 {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <div>
+                         <Label className="text-xs">Start Year</Label>
+                         <Input
+                           type="number"
+                           min="1900"
+                           max="2100"
+                           placeholder="Year"
+                           {...form.register(`experience.${index}.startYear`, { valueAsNumber: true })}
+                         />
+                       </div>
+                     </div>
+                     
+                     <div className="flex items-center space-x-2">
+                       <Controller
+                         name={`experience.${index}.isCurrent`}
+                         control={form.control}
+                         render={({ field }) => (
+                           <Checkbox
+                             checked={field.value}
+                             onCheckedChange={field.onChange}
+                           />
+                         )}
+                       />
+                       <Label>Currently working</Label>
+                     </div>
+                     
+                     {!form.watch(`experience.${index}.isCurrent`) && (
+                       <div className="grid grid-cols-2 gap-2">
+                         <div>
+                           <Label className="text-xs">End Month</Label>
+                           <Select
+                             value={form.watch(`experience.${index}.endMonth`)?.toString() || ''}
+                             onValueChange={(value) => form.setValue(`experience.${index}.endMonth`, parseInt(value))}
+                           >
+                             <SelectTrigger>
+                               <SelectValue placeholder="Month" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                 <SelectItem key={month} value={month.toString()}>
+                                   {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <div>
+                           <Label className="text-xs">End Year</Label>
+                           <Input
+                             type="number"
+                             min="1900"
+                             max="2100"
+                             placeholder="Year"
+                             {...form.register(`experience.${index}.endYear`, { valueAsNumber: true })}
+                           />
+                         </div>
+                       </div>
+                     )}
                     <Textarea placeholder="Description" {...form.register(`experience.${index}.description`)} />
                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 ))}
-                <Button type="button" variant="outline" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null })}>
+                <Button type="button" variant="outline" onClick={() => appendExperience({ company: '', position: '', startMonth: new Date().getMonth() + 1, startYear: new Date().getFullYear(), endMonth: null, endYear: null, isCurrent: false, description: '', positionLevel: null })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
                 </Button>
               </fieldset>

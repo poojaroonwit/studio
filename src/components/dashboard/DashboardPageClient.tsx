@@ -710,7 +710,7 @@ export default function DashboardPageClient({
                           </Link>
                         </TableCell>
                         <TableCell>{position.department}</TableCell>
-                        <TableCell>{position.position_level || 'N/A'}</TableCell>
+                        <TableCell>{position.positionLevel || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-green-600 border-green-600">Open</Badge>
                         </TableCell>

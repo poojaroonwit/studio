@@ -38,7 +38,7 @@ const editPositionFormSchema = z.object({
   department: z.string().min(1, "Department is required"),
   description: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
-  position_level: z.string().optional().nullable(),
+  positionLevel: z.string().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -68,7 +68,7 @@ export function EditPositionModal({
       department: '',
       description: '',
       isOpen: true,
-      position_level: '',
+      positionLevel: '',
     },
   });
 
@@ -79,7 +79,7 @@ export function EditPositionModal({
         department: position.department ?? '',
         description: position.description ?? '',
         isOpen: typeof position.isOpen === 'boolean' ? position.isOpen : true,
-        position_level: position.position_level ?? '',
+        positionLevel: position.positionLevel ?? '',
       });
 
       const fetchCandidates = async () => {
@@ -105,7 +105,7 @@ export function EditPositionModal({
       fetchCandidates();
 
     } else if (!isOpen) {
-        form.reset({ title: '', department: '', description: '', isOpen: true, position_level: '' });
+        form.reset({ title: '', department: '', description: '', isOpen: true, positionLevel: '' });
         setAssociatedCandidates([]);
     }
   }, [position?.id, isOpen, form]);
@@ -180,15 +180,15 @@ export function EditPositionModal({
               </div>
               
               <div>
-                <Label htmlFor="position_level-edit">Position Level</Label>
+                <Label htmlFor="positionLevel-edit">Position Level</Label>
                 <Input 
-                  id="position_level-edit" 
-                  {...form.register('position_level')} 
+                  id="positionLevel-edit" 
+                  {...form.register('positionLevel')} 
                   className="mt-1" 
                   placeholder="e.g., Senior, Mid-Level, L3"
                 />
-                {form.formState.errors.position_level && (
-                  <p className="text-sm text-destructive mt-1">{form.formState.errors.position_level.message}</p>
+                {form.formState.errors.positionLevel && (
+                  <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
                 )}
               </div>
               

@@ -149,7 +149,7 @@ export function PositionSelectDropdown({
                     <span className="font-medium">{position.title}</span>
                     <span className="text-sm text-muted-foreground">
                       {position.department}
-                      {position.position_level && ` • ${position.position_level}`}
+                      {position.positionLevel && ` • ${position.positionLevel}`}
                     </span>
                   </div>
                   {showOpenStatus && (

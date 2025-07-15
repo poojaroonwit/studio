@@ -97,7 +97,7 @@ const experienceEntryEditSchema = z.object({
     period: z.string().optional().nullable(),
     duration: z.string().optional().nullable(),
     is_current_position: z.boolean().optional(),
-    postition_level: z.string().optional().nullable(),
+    positionLevel: z.string().optional().nullable(),
 }).deepPartial();
 
 const skillEntryEditSchema = z.object({
@@ -632,7 +632,7 @@ export default function CandidateDetailPage() {
             position?: string | null;
             description?: string | null;
             is_current_position?: boolean;
-            postition_level?: string | null;
+            positionLevel?: string | null;
           }[],
         }
       });
@@ -694,7 +694,7 @@ export default function CandidateDetailPage() {
             })),
             experience: data.parsedData?.experience?.map(exp => ({
                 ...exp,
-                postition_level: exp.postition_level === PLACEHOLDER_VALUE_NONE ? null : exp.postition_level
+                positionLevel: exp.positionLevel === PLACEHOLDER_VALUE_NONE ? null : exp.positionLevel
             })),
             job_matches: data.parsedData?.job_matches?.map(match => ({
                 ...match,
@@ -1852,7 +1852,7 @@ export default function CandidateDetailPage() {
                                           }}
                                         />
                                          <Controller
-                                            name={`parsedData.experience.${index}.postition_level`}
+                                            name={`parsedData.experience.${index}.positionLevel`}
                                             control={control}
                                             render={({ field: controllerField }) => (
                                                 <Input {...controllerField} value={controllerField.value || ''} placeholder="Position Level" />
@@ -1877,7 +1877,7 @@ export default function CandidateDetailPage() {
                                         </Button>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null })}>
+                                <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', positionLevel: null })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
                                 </Button>
                             </div>
@@ -1944,7 +1944,7 @@ export default function CandidateDetailPage() {
                                         <div className="bg-muted/50 rounded-lg p-4 flex-1">
                                           {renderField("Company", exp.company)}
                                           {renderField("Position", exp.position)}
-                                          {renderField("Level", String(exp.postition_level))}
+                                          {renderField("Level", String(exp.positionLevel))}
                                           {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
                                           {exp.description && (
                                             <div>

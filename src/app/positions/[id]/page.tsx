@@ -239,7 +239,7 @@ export default function PositionDetailPage() {
                     {position.title}
                   </CardTitle>
                   <CardDescription className="mt-1 ml-11">
-                    {position.department} {position.position_level && ` - ${position.position_level}`}
+                    {position.department} {position.positionLevel && ` - ${position.positionLevel}`}
                   </CardDescription>
                 </div>
                 <Badge variant={position.isOpen ? "default" : "destructive"} className={position.isOpen ? "bg-green-500 text-primary-foreground" : ""}>

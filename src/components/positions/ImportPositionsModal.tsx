@@ -96,7 +96,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
   };
 
   const handleDownloadCsvTemplate = () => {
-    const headers = ["title", "department", "isOpen", "position_level"];
+    const headers = ["title", "department", "isOpen", "positionLevel"];
     const exampleRows = [
       ["Sample Position", "Engineering", "TRUE", "Senior"]
     ];
@@ -104,7 +104,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     exampleRows.forEach(row => {
       csvContent += row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
     });
-    csvContent += "\nNOTE: isOpen should be TRUE or FALSE. position_level is optional.";
+    csvContent += "\nNOTE: isOpen should be TRUE or FALSE. positionLevel is optional.";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

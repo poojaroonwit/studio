@@ -58,8 +58,8 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         {entry.duration && (
                           <span>Duration: {entry.duration}</span>
                         )}
-                        {entry.postition_level && (
-                          <span>Level: {entry.postition_level}</span>
+                        {entry.positionLevel && (
+                          <span>Level: {entry.positionLevel}</span>
                         )}
                         {entry.is_current_position && (
                           <span className="text-primary font-medium">Current Position</span>

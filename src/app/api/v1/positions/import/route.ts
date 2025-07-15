@@ -11,7 +11,7 @@ const positionImportSchema = z.object({
     department: z.string().min(1),
     description: z.string().optional().nullable(),
     isOpen: z.boolean(),
-    position_level: z.string().optional().nullable(),
+    positionLevel: z.string().optional().nullable(),
     custom_attributes: z.record(z.any()).optional().nullable(),
   }))
 });
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
         // Insert new position
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", position_level, "customAttributes")
+          INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes")
           VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
         
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
           position.department,
           position.description || null,
           position.isOpen,
-          position.position_level || null,
+          position.positionLevel || null,
           position.custom_attributes || {}
         ]);
 
@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
         department: "Engineering",
         description: "Full-stack development role",
         isOpen: true,
-        position_level: "Mid-level",
+        positionLevel: "Mid-level",
         custom_attributes: {}
       }
     ]

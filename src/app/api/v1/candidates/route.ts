@@ -15,7 +15,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 
-// Schema for candidate creation with the new format
+// Updated schema for candidate creation with structured date fields
 const candidateInfoSchema = z.object({
   personal_info: z.object({
     title_honorific: z.string().optional().nullable(),
@@ -37,9 +37,38 @@ const candidateInfoSchema = z.object({
   status: z.string().optional(),
 });
 
+// New structured education schema
+const structuredEducationSchema = z.object({
+  university: z.string().min(1, "University is required"),
+  major: z.string().optional().nullable(),
+  field: z.string().optional().nullable(),
+  campus: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
+  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().default(false),
+  GPA: z.string().optional().nullable(),
+});
+
+// New structured experience schema
+const structuredExperienceSchema = z.object({
+  company: z.string().min(1, "Company is required"),
+  position: z.string().min(1, "Position is required"),
+  description: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
+  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().default(false),
+  positionLevel: z.string().optional().nullable(),
+});
+
 const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema,
-  // job_matches and job_applied removed
+  // New structured fields
+  educationData: z.array(structuredEducationSchema).optional(),
+  experienceData: z.array(structuredExperienceSchema).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -67,7 +96,7 @@ export async function POST(request: NextRequest) {
     return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
-  const { candidate_info } = validationResult.data;
+  const { candidate_info, educationData, experienceData } = validationResult.data;
   const name = `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`;
   const email = candidate_info.contact_info.email;
   const status = candidate_info.status || 'new';
@@ -88,10 +117,10 @@ export async function POST(request: NextRequest) {
       return handleApiError(request, createConflictError('Candidate with this email already exists'));
     }
 
-    // Create candidate
+    // Create candidate with new structured fields
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, status, "parsedData", "applicationDate")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, status, "parsedData", "applicationDate", "educationData", "experienceData")
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8)
       RETURNING *;
     `;
     
@@ -101,7 +130,9 @@ export async function POST(request: NextRequest) {
       email.toLowerCase(),
       candidate_info.contact_info.phone || null,
       status,
-      parsedData
+      parsedData,
+      educationData ? JSON.stringify(educationData) : '[]',
+      experienceData ? JSON.stringify(experienceData) : '[]'
     ]);
 
     const newCandidate = candidateResult.rows[0];

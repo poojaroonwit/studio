@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt"
+      SELECT id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt"
       FROM "Position"
       ORDER BY "createdAt" DESC
     `;
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         `"${(row.department || '').replace(/"/g, '""')}"`,
         `"${(row.description || '').replace(/"/g, '""')}"`,
         row.isOpen ? 'true' : 'false',
-        `"${(row.position_level || '').replace(/"/g, '""')}"`,
+        `"${(row.positionLevel || '').replace(/"/g, '""')}"`,
         row.createdAt || '',
         row.updatedAt || ''
       ];

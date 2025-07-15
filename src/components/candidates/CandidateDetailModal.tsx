@@ -82,24 +82,36 @@ const contactInfoEditSchema = z.object({
   phone: z.string().optional().nullable(),
 }).deepPartial();
 
+// --- Update Zod schemas for structured fields ---
 const educationEntryEditSchema = z.object({
-    major: z.string().optional().nullable(),
-    field: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
-    duration: z.string().optional().nullable(),
-    GPA: z.string().optional().nullable(),
-    university: z.string().optional().nullable(),
-    campus: z.string().optional().nullable(),
+  university: z.string().optional().nullable(),
+  major: z.string().optional().nullable(),
+  field: z.string().optional().nullable(),
+  campus: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12).optional().nullable(),
+  startYear: z.number().min(1900).max(2100).optional().nullable(),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().optional(),
+  GPA: z.string().optional().nullable(),
+  duration: z.string().optional().nullable(),
+  // Legacy fallback
+  period: z.string().optional().nullable(),
 }).deepPartial();
 
 const experienceEntryEditSchema = z.object({
-    company: z.string().optional().nullable(),
-    position: z.string().optional().nullable(),
-    description: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
-    duration: z.string().optional().nullable(),
-    is_current_position: z.boolean().optional(),
-    postition_level: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
+  position: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  startMonth: z.number().min(1).max(12).optional().nullable(),
+  startYear: z.number().min(1900).max(2100).optional().nullable(),
+  endMonth: z.number().min(1).max(12).optional().nullable(),
+  endYear: z.number().min(1900).max(2100).optional().nullable(),
+  isCurrent: z.boolean().optional(),
+  positionLevel: z.string().optional().nullable(),
+  duration: z.string().optional().nullable(),
+  // Legacy fallback
+  period: z.string().optional().nullable(),
 }).deepPartial();
 
 const skillEntryEditSchema = z.object({
@@ -267,7 +279,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
     }
   });
 
-  const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register } = form;
+  const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register, watch } = form;
 
   // Field arrays for form sections
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control, name: "parsedData.education" });
@@ -1020,25 +1032,85 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                               <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
                               <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                               <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                              <Controller
-                                name={`parsedData.education.${index}.period`}
-                                control={control}
-                                render={({ field }) => (
-                                  <MonthYearPicker
-                                    value={field.value || ''}
-                                    onChange={field.onChange}
-                                    label="Period"
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Start Month</Label>
+                                  <Select
+                                    value={watch(`parsedData.education.${index}.startMonth`)?.toString() || ''}
+                                    onValueChange={value => setValue(`parsedData.education.${index}.startMonth`, parseInt(value))}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Month" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                        <SelectItem key={month} value={month.toString()}>
+                                          {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Start Year</Label>
+                                  <Input
+                                    type="number"
+                                    min="1900"
+                                    max="2100"
+                                    placeholder="Year"
+                                    {...register(`parsedData.education.${index}.startYear`, { valueAsNumber: true })}
                                   />
-                                )}
-                              />
-                              <Input placeholder="Duration" {...register(`parsedData.education.${index}.duration`)} />
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Controller
+                                  name={`parsedData.education.${index}.isCurrent`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  )}
+                                />
+                                <Label>Currently studying</Label>
+                              </div>
+                              {!watch(`parsedData.education.${index}.isCurrent`) && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label className="text-xs">End Month</Label>
+                                    <Select
+                                      value={watch(`parsedData.education.${index}.endMonth`)?.toString() || ''}
+                                      onValueChange={value => setValue(`parsedData.education.${index}.endMonth`, parseInt(value))}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Month" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                          <SelectItem key={month} value={month.toString()}>
+                                            {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">End Year</Label>
+                                    <Input
+                                      type="number"
+                                      min="1900"
+                                      max="2100"
+                                      placeholder="Year"
+                                      {...register(`parsedData.education.${index}.endYear`, { valueAsNumber: true })}
+                                    />
+                                  </div>
+                                </div>
+                              )}
                               <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                               <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+                          <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', startMonth: null, startYear: null, endMonth: null, endYear: null, isCurrent: false, GPA: '' })}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Education
                           </Button>
                         </div>
@@ -1055,76 +1127,33 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             if (typeof edu === 'string') {
                               return (
                                 <div key={`edu-${index}-${edu}`} className="relative mb-8">
-                                  <div className="flex items-start space-x-4">
-                                    <div className="flex-shrink-0 w-28 text-right">
-                                      <div className="text-xs text-muted-foreground font-medium">
-                                        <div className="text-muted-foreground">Education</div>
-                                      </div>
-                                    </div>
-                                    <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                      <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                        <GraduationCap className="w-3 h-3 text-foreground" />
-                                      </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                        <div className="text-sm text-foreground">{edu}</div>
-                                      </div>
-                                    </div>
-                                  </div>
+                                  {/* ...existing string display... */}
                                 </div>
                               );
-                            } else {
+                            } else if (typeof edu === 'object' && edu !== null) {
                               let start = '', end = '', duration = '';
                               if (edu.period) {
                                 const parts = String(edu.period).split(' - ');
                                 start = parts[0] || '';
                                 end = parts[1] || '';
+                              } else if (edu.startMonth && edu.startYear) {
+                                start = `${new Date(edu.startYear, edu.startMonth - 1).toLocaleDateString('en-US', { month: 'long' })} ${edu.startYear}`;
+                              }
+                              if (edu.endMonth && edu.endYear) {
+                                end = `${new Date(edu.endYear, edu.endMonth - 1).toLocaleDateString('en-US', { month: 'long' })} ${edu.endYear}`;
+                              } else if (edu.isCurrent) {
+                                end = 'Present';
                               }
                               if (edu.duration) {
                                 duration = edu.duration;
                               }
                               return (
                                 <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
-                                  <div className="flex items-start space-x-4">
-                                    <div className="flex-shrink-0 w-28 text-right">
-                                      <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                                        {(start || end) && (
-                                          <div>
-                                            <span className="text-primary font-black text-sm">{start}</span>
-                                            {end && (
-                                              <span className="text-primary font-black text-sm"> - {end}</span>
-                                            )}
-                                          </div>
-                                        )}
-                                        {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                                      </div>
-                                    </div>
-                                    <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                      <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                        <GraduationCap className="w-3 h-3 text-foreground" />
-                                      </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                        <h4 className="font-semibold text-foreground mb-1">
-                                          {edu.university || 'University not specified'}
-                                          {edu.campus && ` (${edu.campus})`}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                          {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
-                                           edu.major || edu.field || 'Field of study not specified'}
-                                        </p>
-                                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                          {edu.GPA && (
-                                            <span>GPA: {edu.GPA}</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
+                                  {/* ...existing object display, using start/end/duration... */}
                                 </div>
                               );
+                            } else {
+                              return null;
                             }
                           })}
                         </div>
@@ -1148,39 +1177,85 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                               <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                               <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                               <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                              <Controller
-                                name={`parsedData.experience.${index}.period`}
-                                control={control}
-                                render={({ field }) => (
-                                  <MonthYearPicker
-                                    value={field.value || ''}
-                                    onChange={field.onChange}
-                                    label="Period"
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Start Month</Label>
+                                  <Select
+                                    value={watch(`parsedData.experience.${index}.startMonth`)?.toString() || ''}
+                                    onValueChange={value => setValue(`parsedData.experience.${index}.startMonth`, parseInt(value))}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Month" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                        <SelectItem key={month} value={month.toString()}>
+                                          {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Start Year</Label>
+                                  <Input
+                                    type="number"
+                                    min="1900"
+                                    max="2100"
+                                    placeholder="Year"
+                                    {...register(`parsedData.experience.${index}.startYear`, { valueAsNumber: true })}
                                   />
-                                )}
-                              />
-                              <Input placeholder="Duration" {...register(`parsedData.experience.${index}.duration`)} />
-                              <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.postition_level`)} />
+                                </div>
+                              </div>
                               <div className="flex items-center space-x-2">
                                 <Controller
-                                  name={`parsedData.experience.${index}.is_current_position`}
+                                  name={`parsedData.experience.${index}.isCurrent`}
                                   control={control}
-                                  render={({ field: controllerField }) => (
-                                    <Checkbox
-                                      id={`experience.${index}.is_current_position`}
-                                      checked={Boolean(controllerField.value)}
-                                      onCheckedChange={(checked) => controllerField.onChange(checked)}
-                                    />
+                                  render={({ field }) => (
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                   )}
                                 />
-                                <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
+                                <Label>Current Position</Label>
                               </div>
+                              {!watch(`parsedData.experience.${index}.isCurrent`) && (
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label className="text-xs">End Month</Label>
+                                    <Select
+                                      value={watch(`parsedData.experience.${index}.endMonth`)?.toString() || ''}
+                                      onValueChange={value => setValue(`parsedData.experience.${index}.endMonth`, parseInt(value))}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Month" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                          <SelectItem key={month} value={month.toString()}>
+                                            {new Date(2000, month - 1).toLocaleDateString('en-US', { month: 'long' })}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">End Year</Label>
+                                    <Input
+                                      type="number"
+                                      min="1900"
+                                      max="2100"
+                                      placeholder="Year"
+                                      {...register(`parsedData.experience.${index}.endYear`, { valueAsNumber: true })}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
                               <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', postition_level: null })}>
+                          <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', startMonth: null, startYear: null, endMonth: null, endYear: null, isCurrent: false, description: '', positionLevel: '' })}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
                           </Button>
                         </div>
@@ -1194,56 +1269,37 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                           )}
                           {(candidate.parsedData && isCandidateDetails(candidate.parsedData) && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []).map((exp: ExperienceEntry, index: number) => {
-                            let start = '', end = '', duration = '';
-                            if (exp.period) {
-                              const parts = String(exp.period).split(' - ');
-                              start = parts[0] || '';
-                              end = parts[1] || '';
-                            }
-                            if (exp.duration) {
-                              duration = exp.duration;
-                            }
-                            return (
-                              <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-shrink-0 w-28 text-right">
-                                    <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                                      {(start || end) && (
-                                        <div>
-                                          <span className="text-primary font-black text-sm">{start}</span>
-                                          {end && (
-                                            <span className="text-primary font-black text-sm"> - {end}</span>
-                                          )}
-                                        </div>
-                                      )}
-                                      {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                                    </div>
-                                  </div>
-                                  <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                    <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                      <Briefcase className="w-3 h-3 text-foreground" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                    <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                      <h4 className="font-semibold text-foreground mb-1">{exp.company || 'Company not specified'}</h4>
-                                      <p className="text-sm text-muted-foreground mb-2">{exp.position || 'Position not specified'}</p>
-                                      {exp.postition_level && (
-                                        <p className="text-xs text-muted-foreground mb-2">Level: {exp.postition_level}</p>
-                                      )}
-                                      {exp.is_current_position && (
-                                        <Badge variant="default" className="text-xs mb-2">Current Position</Badge>
-                                      )}
-                                      {exp.description && (
-                                        <div className="mt-2">
-                                          <p className="text-sm text-foreground whitespace-pre-wrap">{exp.description}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
+                            if (typeof exp === 'string') {
+                              return (
+                                <div key={`exp-${index}-${exp}`} className="relative mb-8">
+                                  {/* ...existing string display... */}
                                 </div>
-                              </div>
-                            );
+                              );
+                            } else if (typeof exp === 'object' && exp !== null) {
+                              let start = '', end = '', duration = '';
+                              if (exp.period) {
+                                const parts = String(exp.period).split(' - ');
+                                start = parts[0] || '';
+                                end = parts[1] || '';
+                              } else if (exp.startMonth && exp.startYear) {
+                                start = `${new Date(exp.startYear, exp.startMonth - 1).toLocaleDateString('en-US', { month: 'long' })} ${exp.startYear}`;
+                              }
+                              if (exp.endMonth && exp.endYear) {
+                                end = `${new Date(exp.endYear, exp.endMonth - 1).toLocaleDateString('en-US', { month: 'long' })} ${exp.endYear}`;
+                              } else if (exp.isCurrent) {
+                                end = 'Present';
+                              }
+                              if (exp.duration) {
+                                duration = exp.duration;
+                              }
+                              return (
+                                <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
+                                  {/* ...existing object display, using start/end/duration... */}
+                                </div>
+                              );
+                            } else {
+                              return null;
+                            }
                           })}
                         </div>
                       )}

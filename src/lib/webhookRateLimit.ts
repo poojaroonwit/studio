@@ -47,10 +47,10 @@ export class WebhookRateLimiter {
 
     try {
       // Get current requests in the window
-      const requests = await redis.zrangebyscore(key, windowStart, '+inf');
+      const requests = await redis.zRangeByScore(key, windowStart, '+inf');
       
       // Remove expired entries
-      await redis.zremrangebyscore(key, '-inf', windowStart - 1);
+      await redis.zRemRangeByScore(key, '-inf', windowStart - 1);
       
       const currentCount = requests.length;
       const remaining = Math.max(0, this.config.maxRequests - currentCount);
@@ -58,7 +58,7 @@ export class WebhookRateLimiter {
       
       if (allowed) {
         // Add current request
-        await redis.zadd(key, now, now.toString());
+        await redis.zAdd(key, [{ score: now, value: now.toString() }]);
         await redis.expire(key, Math.ceil(this.config.windowMs / 1000));
       }
 
@@ -97,7 +97,7 @@ export class WebhookRateLimiter {
     const windowStart = now - this.config.windowMs;
 
     try {
-      const requests = await redis.zrangebyscore(key, windowStart, '+inf');
+      const requests = await redis.zRangeByScore(key, windowStart, '+inf');
       const currentCount = requests.length;
       const remaining = Math.max(0, this.config.maxRequests - currentCount);
       const allowed = currentCount < this.config.maxRequests;

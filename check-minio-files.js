@@ -10,8 +10,8 @@ const minioClient = new Client({
 
 async function listFiles() {
   try {
-    console.log('Listing files in studio5-production bucket...');
-    const stream = minioClient.listObjects('studio5-production', 'avatars/', true);
+    console.log('Listing files in studio-production bucket...');
+    const stream = minioClient.listObjects('studio-production', 'avatars/', true);
     
     stream.on('data', (obj) => {
       console.log('File:', obj.name, 'Size:', obj.size, 'Last Modified:', obj.lastModified);

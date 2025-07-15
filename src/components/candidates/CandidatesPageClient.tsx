@@ -925,10 +925,14 @@ export function CandidatesPageClient({
       await fetchPaginatedCandidates(filters, page, pageSize);
       setIsAddModalOpen(false);
       toast.success(`${candidate.name} has been successfully added.`);
+      // Optionally force a router refresh for full sync:
+      // router.refresh();
     } catch (error) {
         console.error("Error adding candidate:", error);
         toast.error((error as Error).message);
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAutomatedProcessingStart = () => {

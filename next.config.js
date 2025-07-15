@@ -34,7 +34,7 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '8721',
-        pathname: '/studio5-production/settings/**', // adjust as needed for your MinIO bucket/path
+        pathname: '/studio-production/settings/**', // adjust as needed for your MinIO bucket/path
       },
       {
         protocol: 'http',

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit, Trash2, TestTube, ExternalLink, Copy, Check, History, Activity, CheckCircle, Clock, Send, MoreHorizontal, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -613,84 +613,203 @@ export default function WebhookManagement() {
                 Add Webhook
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                    {editingWebhook ? 'Edit Webhook' : 'Create New Webhook'}
-                  </DialogTitle>
-                <DialogDescription>
-                    Configure webhook settings to receive real-time notifications about application events.
-                  </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Webhook Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter webhook name"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="url">Webhook URL</Label>
-                        <Input
-                      id="url"
-                      type="url"
-                      value={formData.url}
-                      onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                      placeholder="https://your-domain.com/webhook-endpoint"
-                      required
-                    />
+            <DialogContent className="max-w-4xl p-0 overflow-hidden">
+              <div className="flex flex-col md:flex-row h-full">
+                {/* Left: Event Selection */}
+                <div className="w-full md:w-1/2 bg-muted p-6 border-r border-border flex flex-col">
+                  <h3 className="font-semibold text-lg mb-4">Select Events</h3>
+                  <div className="flex flex-col gap-2 overflow-y-auto">
+                    {/* Example event categories, replace with your actual event list and categories */}
+                    <div>
+                      <div className="font-medium text-sm mb-2">Candidate Events</div>
+                      {['candidate.created', 'candidate.updated', 'candidate.deleted', 'candidate.stage_changed'].map(event => (
+                        <label key={event} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.events.includes(event)}
+                            onChange={e => {
+                              setFormData(prev => ({
+                                ...prev,
+                                events: e.target.checked
+                                  ? [...prev.events, event]
+                                  : prev.events.filter(ev => ev !== event)
+                              }));
+                            }}
+                          />
+                          <span className="text-sm">{event.replace('candidate.', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        </label>
+                      ))}
                     </div>
-
-                  <div>
-                    <Label>HTTP Method</Label>
-                      <Select
-                        value={formData.method}
-                        onValueChange={(value: 'GET' | 'POST' | 'PUT' | 'PATCH') => 
-                          setFormData(prev => ({ ...prev, method: value }))
-                        }
-                      >
-                      <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="POST">POST</SelectItem>
-                          <SelectItem value="GET">GET</SelectItem>
-                          <SelectItem value="PUT">PUT</SelectItem>
-                          <SelectItem value="PATCH">PATCH</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div>
+                      <div className="font-medium text-sm mb-2 mt-4">Position Events</div>
+                      {['position.created', 'position.updated', 'position.deleted'].map(event => (
+                        <label key={event} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.events.includes(event)}
+                            onChange={e => {
+                              setFormData(prev => ({
+                                ...prev,
+                                events: e.target.checked
+                                  ? [...prev.events, event]
+                                  : prev.events.filter(ev => ev !== event)
+                              }));
+                            }}
+                          />
+                          <span className="text-sm">{event.replace('position.', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {/* Add more event categories as needed */}
                   </div>
-                  
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="is_active"
-                          checked={formData.is_active}
-                          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                        />
-                    <Label htmlFor="is_active">Active</Label>
+                </div>
+                {/* Right: Postman-style Webhook Config */}
+                <div className="w-full md:w-1/2 p-6 flex flex-col gap-4">
+                  <div className="bg-background border rounded-lg shadow-sm p-4 flex flex-col gap-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className={cn("px-2 py-1 rounded text-xs font-bold", formData.method === 'POST' ? 'bg-green-100 text-green-700' : formData.method === 'GET' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700')}>{formData.method}</span>
+                      <input
+                        type="url"
+                        className="flex-1 bg-transparent border-none outline-none font-mono text-sm px-2 py-1"
+                        value={formData.url}
+                        onChange={e => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                        required
+                        placeholder="https://your-endpoint.com/webhook"
+                        style={{ minWidth: 0 }}
+                      />
+                    </div>
+                    <div className="flex gap-2 items-center mb-2">
+                      <label className="font-medium text-xs">Timeout (s)</label>
+                      <input
+                        type="number"
+                        min={5}
+                        max={300}
+                        className="input input-bordered w-20 text-xs"
+                        value={formData.timeout}
+                        onChange={e => setFormData(prev => ({ ...prev, timeout: Number(e.target.value) }))}
+                      />
+                      <label className="font-medium text-xs ml-4">Retry</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        className="input input-bordered w-16 text-xs"
+                        value={formData.retry_count}
+                        onChange={e => setFormData(prev => ({ ...prev, retry_count: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="border-t pt-3 mt-2">
+                      <div className="font-semibold text-sm mb-1">Headers</div>
+                      <div className="flex flex-col gap-1">
+                        {customHeaders.map((header, idx) => (
+                          <div key={idx} className="flex gap-2 items-center">
+                            <input
+                              type="text"
+                              className="input input-bordered text-xs font-mono"
+                              placeholder="Key"
+                              value={header.key}
+                              onChange={e => updateCustomHeader(idx, 'key', e.target.value)}
+                            />
+                            <input
+                              type="text"
+                              className="input input-bordered text-xs font-mono"
+                              placeholder="Value"
+                              value={header.value}
+                              onChange={e => updateCustomHeader(idx, 'value', e.target.value)}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeCustomHeader(idx)}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" onClick={addCustomHeader} className="mt-1 w-fit">
+                          + Add Header
+                        </Button>
                       </div>
                     </div>
-
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => handleDialogOpen(false)}>
-                  Cancel
-                </Button>
-                  <Button type="submit">
-                  {editingWebhook ? 'Update Webhook' : 'Create Webhook'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                    <div className="border-t pt-3 mt-2">
+                      <div className="font-semibold text-sm mb-1">Authentication</div>
+                      <select
+                        className="input input-bordered w-40 text-xs"
+                        value={formData.auth_type}
+                        onChange={e => setFormData(prev => ({ ...prev, auth_type: e.target.value as any }))}
+                      >
+                        <option value="none">None</option>
+                        <option value="basic">Basic</option>
+                        <option value="bearer">Bearer</option>
+                        <option value="header">Custom Header</option>
+                      </select>
+                      {formData.auth_type === 'basic' && (
+                        <div className="flex gap-2 mt-2">
+                          <input
+                            type="text"
+                            className="input input-bordered text-xs font-mono"
+                            placeholder="Username"
+                            value={formData.auth_username || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, auth_username: e.target.value }))}
+                          />
+                          <input
+                            type="password"
+                            className="input input-bordered text-xs font-mono"
+                            placeholder="Password"
+                            value={formData.auth_password || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, auth_password: e.target.value }))}
+                          />
+                        </div>
+                      )}
+                      {formData.auth_type === 'bearer' && (
+                        <input
+                          type="text"
+                          className="input input-bordered text-xs font-mono mt-2"
+                          placeholder="Bearer Token"
+                          value={formData.auth_token || ''}
+                          onChange={e => setFormData(prev => ({ ...prev, auth_token: e.target.value }))}
+                        />
+                      )}
+                      {formData.auth_type === 'header' && (
+                        <div className="flex gap-2 mt-2">
+                          <input
+                            type="text"
+                            className="input input-bordered text-xs font-mono"
+                            placeholder="Header Name"
+                            value={formData.auth_header_name || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, auth_header_name: e.target.value }))}
+                          />
+                          <input
+                            type="text"
+                            className="input input-bordered text-xs font-mono"
+                            placeholder="Header Value"
+                            value={formData.auth_header_value || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, auth_header_value: e.target.value }))}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t pt-3 mt-2">
+                      <div className="font-semibold text-sm mb-1">Request Body Preview</div>
+                      <pre className="bg-muted rounded p-3 text-xs font-mono overflow-x-auto max-h-40">
+{JSON.stringify({
+  event: formData.events[0] || 'webhook.test',
+  timestamp: new Date().toISOString(),
+  data: { example: '...' }
+}, null, 2)}
+                      </pre>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button type="button" variant="outline" onClick={() => handleDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="btn-primary-gradient">
+                        {editingWebhook ? 'Update Webhook' : 'Create Webhook'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -853,6 +972,42 @@ export default function WebhookManagement() {
           </Table>
         </CardContent>
       </Card>
+      {selectedWebhookForTest && (
+  <Dialog open={!!selectedWebhookForTest} onOpenChange={() => setSelectedWebhookForTest(null)}>
+    <DialogContent className="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Test Webhook Result</DialogTitle>
+        <DialogDescription>
+          {testLoading ? 'Testing webhook...' : `Result for: ${selectedWebhookForTest.name}`}
+        </DialogDescription>
+      </DialogHeader>
+      {testLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Sending test request...</span>
+        </div>
+      ) : testResult ? (
+        <div className="space-y-2">
+          {testResult.message && <div className="text-green-600 font-medium">{testResult.message}</div>}
+          {testResult.error && <div className="text-red-600 font-medium">{testResult.error}</div>}
+          {testResult.status && <div>Status: <span className="font-mono">{testResult.status}</span></div>}
+          {testResult.webhook_id && <div>Webhook ID: <span className="font-mono">{testResult.webhook_id}</span></div>}
+          {testResult.response && (
+            <div>
+              <div className="font-semibold">Response Body:</div>
+              <pre className="bg-muted p-2 rounded text-xs overflow-x-auto max-h-40">{typeof testResult.response === 'string' ? testResult.response : JSON.stringify(testResult.response, null, 2)}</pre>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-muted-foreground">No result yet.</div>
+      )}
+      <DialogFooter>
+        <Button variant="outline" onClick={() => setSelectedWebhookForTest(null)}>Close</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+)}
     </div>
   );
 } 

@@ -788,7 +788,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                                 <p className="text-sm">Click "Add Job Match" to get started.</p>
                               </div>
                             )}
-                            {jobMatchesFields.map((field, index) => (
+                            {jobMatchesFields.map((field, index: number) => (
                               <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-card relative group hover:shadow-md transition-shadow">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
@@ -923,7 +923,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
                             style={{ scrollBehavior: 'smooth' }}
                           >
-                            {(Array.isArray((candidate.parsedData as any)?.job_matches) ? (candidate.parsedData as any).job_matches : []).map((match, index) => {
+                            {(Array.isArray((candidate.parsedData as any)?.job_matches) ? (candidate.parsedData as any).job_matches : []).map((match: AutomationJobMatch, index: number) => {
                               const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === match.job_id) : null;
                               if (!position) return null;
                               
@@ -1014,7 +1014,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
-                          {educationFields.map((field, index) => (
+                          {educationFields.map((field, index: number) => (
                             <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                               <Input placeholder="University" {...register(`parsedData.education.${index}.university`)} />
                               <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
@@ -1051,7 +1051,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                           {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).length === 0 && (
                             <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                           )}
-                          {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).map((edu, index) => {
+                          {(Array.isArray(candidate.parsedData?.education) ? candidate.parsedData.education : []).map((edu, index: number) => {
                             if (typeof edu === 'string') {
                               return (
                                 <div key={`edu-${index}-${edu}`} className="relative mb-8">
@@ -1143,7 +1143,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
-                          {experienceFields.map((field, index) => (
+                          {experienceFields.map((field, index: number) => (
                             <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                               <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                               <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
@@ -1261,7 +1261,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
-                          {skillsFields.map((field, index) => (
+                          {skillsFields.map((field, index: number) => (
                             <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                               <Input placeholder="Skill Segment" {...register(`parsedData.skills.${index}.segment_skill`)} />
                               <Textarea placeholder="Skills (comma-separated)" {...register(`parsedData.skills.${index}.skill_string`)} />
@@ -1277,7 +1277,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                       ) : (
                         (Array.isArray(candidate.parsedData?.skills) ? candidate.parsedData.skills : []).length > 0 ? (
                           <ul className="space-y-4">
-                            {(Array.isArray(candidate.parsedData?.skills) ? candidate.parsedData.skills : []).map((skillEntry, index) => {
+                            {(Array.isArray(candidate.parsedData?.skills) ? candidate.parsedData.skills : []).map((skillEntry, index: number) => {
                               if (typeof skillEntry === 'string') {
                                 return (
                                   <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
@@ -1315,7 +1315,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
-                          {jobSuitableFields.map((field, index) => (
+                          {jobSuitableFields.map((field, index: number) => (
                             <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                               <Input placeholder="Suitable Career Path" {...register(`parsedData.job_suitable.${index}.suitable_career`)} />
                               <Input placeholder="Suitable Job Position" {...register(`parsedData.job_suitable.${index}.suitable_job_position`)} />

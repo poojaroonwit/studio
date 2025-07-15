@@ -1478,7 +1478,7 @@ export default function CandidateDetailPage() {
                                           setJobMatchesScrollPosition(target.scrollLeft);
                                         }}
                                     >
-                                {candidateJobMatches.map((match, index) => {
+                                {candidateJobMatches.map((match: any, index: number) => {
                                   // Try to find position by job_id first, then by job_title
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.job_id) || 
@@ -1517,7 +1517,7 @@ export default function CandidateDetailPage() {
                                                         Reasons ({match.match_reasons.length}):
                                                     </h5>
                                                     <div className="space-y-1 max-h-20 overflow-y-auto">
-                                                        {match.match_reasons.slice(0, 2).map((reason, reasonIndex) => (
+                                                        {match.match_reasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
                                                             <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
                                                                 <span className="text-primary text-xs mt-0.5">•</span>
                                                                 <span className="flex-1 line-clamp-1">{reason}</span>

@@ -125,14 +125,6 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
     await onAddUser(data);
   };
 
-  const getTabStatus = (tabName: string) => {
-    if (tabName === activeTab) return 'active';
-    const tabOrder = ['user-info', 'groups', 'permissions'];
-    const currentIndex = tabOrder.indexOf(activeTab);
-    const tabIndex = tabOrder.indexOf(tabName);
-    return tabIndex < currentIndex ? 'completed' : 'pending';
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       onOpenChange(open);
@@ -141,7 +133,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
         setAvailableGroups([]);
       }
     }}>
-      <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
           <div className="flex items-center justify-between">
             <div>
@@ -160,236 +152,217 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
-            {/* Progress Steps */}
-            <div className="px-6 py-4 border-b bg-muted/30">
-              <div className="flex items-center justify-between">
-                {[
-                  { id: 'user-info', label: 'User Information', icon: User },
-                  { id: 'groups', label: 'Group Assignment', icon: Users },
-                  { id: 'permissions', label: 'Permissions', icon: ShieldCheck }
-                ].map((tab, index) => (
-                  <div key={tab.id} className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200",
-                        getTabStatus(tab.id) === 'active' && "bg-primary text-primary-foreground shadow-md",
-                        getTabStatus(tab.id) === 'completed' && "bg-green-100 text-green-700 hover:bg-green-200",
-                        getTabStatus(tab.id) === 'pending' && "bg-muted text-muted-foreground hover:bg-muted/80"
-                      )}
+            {/* Content Area with Vertical Tabs */}
+            <div className="flex-1 flex">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex">
+                <div className="flex flex-col w-64 border-r bg-muted/20">
+                  <TabsList className="flex flex-col h-auto w-full bg-transparent p-2 space-y-2">
+                    <TabsTrigger 
+                      value="user-info" 
+                      className="flex items-center gap-3 w-full justify-start px-4 py-3 h-auto text-left data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                     >
-                      <tab.icon className="h-4 w-4" />
-                      <span className="font-medium">{tab.label}</span>
-                    </button>
-                    {index < 2 && (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground mx-2" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-                <TabsContent value="user-info" className="mt-0 h-full">
-                  <Card className="border-0 shadow-none">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center text-lg">
-                        <User className="mr-2 h-5 w-5 text-primary" />
-                        Basic Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField 
-                          control={form.control} 
-                          name="name" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel htmlFor="name-add" className="text-sm font-medium">Full Name *</FormLabel>
-                              <FormControl>
-                                <Input id="name-add" {...field} className="h-10" placeholder="Enter full name" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                        
-                        <FormField 
-                          control={form.control} 
-                          name="email" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel htmlFor="email-add" className="text-sm font-medium">Email Address *</FormLabel>
-                              <FormControl>
-                                <Input id="email-add" type="email" {...field} className="h-10" placeholder="user@example.com" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
+                      <User className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">User Information</span>
+                        <span className="text-xs opacity-70">Basic details</span>
                       </div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="groups" 
+                      className="flex items-center gap-3 w-full justify-start px-4 py-3 h-auto text-left data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <Users className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Group Assignment</span>
+                        <span className="text-xs opacity-70">Assign roles</span>
+                      </div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="permissions" 
+                      className="flex items-center gap-3 w-full justify-start px-4 py-3 h-auto text-left data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      <div className="flex flex-col items-start">
+                        <span className="font-medium">Permissions</span>
+                        <span className="text-xs opacity-70">Direct access</span>
+                      </div>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField 
-                          control={form.control} 
-                          name="password" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel htmlFor="password-add" className="text-sm font-medium">Password *</FormLabel>
-                              <FormControl>
-                                <Input id="password-add" type="password" {...field} className="h-10" placeholder="Minimum 6 characters" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                        
-                        <FormField 
-                          control={form.control} 
-                          name="role" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel htmlFor="role-add" className="text-sm font-medium">System Role *</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                <div className="flex-1">
+                  <TabsContent value="user-info" className="mt-0 h-full">
+                    <Card className="border-0 shadow-none">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center text-lg">
+                          <User className="mr-2 h-5 w-5 text-primary" />
+                          Basic Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField 
+                            control={form.control} 
+                            name="name" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="name-add" className="text-sm font-medium">Full Name *</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger id="role-add" className="h-10">
-                                    <SelectValue placeholder="Select a role" />
-                                  </SelectTrigger>
+                                  <Input id="name-add" {...field} className="h-10" placeholder="Enter full name" />
                                 </FormControl>
-                                <SelectContent>
-                                  {userRoleOptions.map(role => (
-                                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField 
-                          control={form.control} 
-                          name="authenticationMethod" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel htmlFor="auth-method-add" className="text-sm font-medium">Authentication Method</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                          
+                          <FormField 
+                            control={form.control} 
+                            name="email" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="email-add" className="text-sm font-medium">Email Address *</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger id="auth-method-add" className="h-10">
-                                    <SelectValue placeholder="Select authentication method" />
-                                  </SelectTrigger>
+                                  <Input id="email-add" type="email" {...field} className="h-10" placeholder="user@example.com" />
                                 </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="basic">Basic (Email/Password)</SelectItem>
-                                  <SelectItem value="azure">Azure AD</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                        
-                        <FormField 
-                          control={form.control} 
-                          name="forcePasswordChange" 
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-8">
-                              <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
-                              <FormLabel className="font-normal text-sm">Force password change on first login</FormLabel>
-                            </FormItem>
-                          )} 
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="groups" className="mt-0 h-full">
-                  <Card className="border-0 shadow-none">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center text-lg">
-                        <Users className="mr-2 h-5 w-5 text-primary" />
-                        Group Assignment
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-base font-medium mb-2">Assign to Groups</h3>
-                          <p className="text-sm text-muted-foreground mb-6">
-                            Choose which groups/roles should be assigned to this user. Users inherit permissions from their assigned groups.
-                          </p>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
                         </div>
-                        
-                        <FormField 
-                          control={form.control} 
-                          name="groupIds" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RoleSelector
-                                  availableRoles={availableGroups}
-                                  selectedRoleIds={field.value || []}
-                                  onRolesChange={field.onChange}
-                                  title="Role Assignment"
-                                  description="Choose which roles should be assigned to this user."
-                                  multiple={true}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
 
-                <TabsContent value="permissions" className="mt-0 h-full">
-                  <Card className="border-0 shadow-none">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="flex items-center text-lg">
-                        <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
-                        Direct Module Permissions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-base font-medium mb-2">Direct Permissions</h3>
-                          <p className="text-sm text-muted-foreground mb-6">
-                            These are direct permissions assigned specifically to this user. The user will also inherit permissions from their assigned groups.
-                          </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField 
+                            control={form.control} 
+                            name="password" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="password-add" className="text-sm font-medium">Password *</FormLabel>
+                                <FormControl>
+                                  <Input id="password-add" type="password" {...field} className="h-10" placeholder="Minimum 6 characters" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                          
+                          <FormField 
+                            control={form.control} 
+                            name="role" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="role-add" className="text-sm font-medium">System Role *</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger id="role-add" className="h-10">
+                                      <SelectValue placeholder="Select a role" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {userRoleOptions.map(role => (
+                                      <SelectItem key={role} value={role}>{role}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
                         </div>
-                        
-                        <FormField 
-                          control={form.control} 
-                          name="modulePermissions" 
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <RolePermissionSelector
-                                  selectedPermissions={field.value || []}
-                                  onPermissionsChange={field.onChange}
-                                  title="Direct Permissions"
-                                  description="These are direct permissions. User also inherits permissions from assigned groups."
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} 
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <FormField 
+                            control={form.control} 
+                            name="authenticationMethod" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel htmlFor="auth-method-add" className="text-sm font-medium">Authentication Method</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger id="auth-method-add" className="h-10">
+                                      <SelectValue placeholder="Select authentication method" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="basic">Basic (Email/Password)</SelectItem>
+                                    <SelectItem value="azure">Azure AD</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                          
+                          <FormField 
+                            control={form.control} 
+                            name="forcePasswordChange" 
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-8">
+                                <FormControl>
+                                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="font-normal text-sm">Force password change on first login</FormLabel>
+                              </FormItem>
+                            )} 
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="groups" className="mt-0 h-full">
+              
+                        <div className="space-y-4">
+                       
+                          
+                          <FormField 
+                            control={form.control} 
+                            name="groupIds" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RoleSelector
+                                    availableRoles={availableGroups}
+                                    selectedRoleIds={field.value || []}
+                                    onRolesChange={field.onChange}
+                                    title="Role Assignment"
+                                    description="Choose which roles should be assigned to this user."
+                                    multiple={true}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                        </div>
+                
+                  </TabsContent>
+
+                  <TabsContent value="permissions" className="mt-0 h-full">
+                   
+                        <div className="space-y-4">
+                       
+                          
+                          <FormField 
+                            control={form.control} 
+                            name="modulePermissions" 
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <RolePermissionSelector
+                                    selectedPermissions={field.value || []}
+                                    onPermissionsChange={field.onChange}
+                                    title="Direct Permissions"
+                                    description="These are direct permissions. User also inherits permissions from assigned groups."
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} 
+                          />
+                        </div>
+                
+                  </TabsContent>
+                </div>
               </Tabs>
             </div>
             
@@ -400,44 +373,15 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                 </DialogClose>
                 
                 <div className="flex items-center gap-3">
-                  {activeTab !== 'user-info' && (
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      size="lg"
-                      onClick={() => {
-                        if (activeTab === 'groups') setActiveTab('user-info');
-                        if (activeTab === 'permissions') setActiveTab('groups');
-                      }}
-                    >
-                      Previous
-                    </Button>
-                  )}
-                  
-                  {activeTab !== 'permissions' ? (
-                    <Button 
-                      type="button" 
-                      variant="default"
-                      size="lg"
-                      onClick={() => {
-                        if (activeTab === 'user-info') setActiveTab('groups');
-                        if (activeTab === 'groups') setActiveTab('permissions');
-                      }}
-                    >
-                      Next
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      type="submit" 
-                      disabled={form.formState.isSubmitting} 
-                      className="btn-primary-gradient"
-                      size="lg"
-                    >
-                      {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2"/> : <UserPlus className="mr-2 h-4 w-4"/>}
-                      {form.formState.isSubmitting ? 'Adding User...' : 'Add User'}
-                    </Button>
-                  )}
+                  <Button 
+                    type="submit" 
+                    disabled={form.formState.isSubmitting} 
+                    className="btn-primary-gradient"
+                    size="lg"
+                  >
+                    {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2"/> : <UserPlus className="mr-2 h-4 w-4"/>}
+                    {form.formState.isSubmitting ? 'Adding User...' : 'Add User'}
+                  </Button>
                 </div>
               </div>
             </DialogFooter>

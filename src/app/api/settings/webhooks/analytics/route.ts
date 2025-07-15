@@ -10,6 +10,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check permissions
+    const canViewWebhookAnalytics = session.user.role === 'Admin' || 
+      session.user.modulePermissions?.includes('WEBHOOK_ANALYTICS_VIEW');
+    
+    if (!canViewWebhookAnalytics) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to view webhook analytics' }, { status: 403 });
+    }
+
     // Get date range for last 24 hours
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);

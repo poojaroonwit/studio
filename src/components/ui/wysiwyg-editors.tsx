@@ -596,7 +596,7 @@ export function CompactEditor({
   };
 
   return (
-    <div className={cn("border rounded-lg overflow-hidden transition-all", className)}>
+    <div className={cn("border rounded-xl overflow-hidden transition-all", className)}>
       {!readOnly && (
         <div className={cn(
           "border-b bg-muted/30 transition-all duration-200",

@@ -14,11 +14,12 @@ import {
 
 interface SidebarHeaderContentProps {
   currentAppName: string;
-  appLogoUrl: string | null;
+  appLogoUrl: string | null; // MinIO URL, not data URL
   isClient: boolean;
+  isLogoLoading?: boolean;
 }
 
-export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient }: SidebarHeaderContentProps) {
+export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
 
   const handleToggle = () => {
@@ -28,8 +29,24 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient }: S
   };
 
   const renderLogo = (isCollapsed: boolean) => {
+    if (isLogoLoading) {
+      return <div className="h-8 w-8 bg-muted rounded-lg animate-pulse" />;
+    }
     if (isClient && appLogoUrl) {
-      return <Image src={appLogoUrl} alt="App Logo" width={32} height={32} className="h-8 w-8 object-contain" data-ai-hint="company logo" />;
+      return (
+        <div className="relative">
+          <img
+            src={appLogoUrl}
+            alt="App Logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+            data-ai-hint="company logo"
+          />
+          {/* Fallback icon that shows if image fails to load */}
+          <Package2 className="h-6 w-6 absolute inset-0 m-auto opacity-0" style={{ pointerEvents: 'none' }} />
+        </div>
+      );
     }
     return <Package2 className="h-6 w-6" />;
   };

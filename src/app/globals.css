@@ -8,53 +8,62 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Soft Off-White for modern light theme */
-    --foreground: 220 25% 25%; /* Darker Grey for text, increased contrast */
+    /* Border radius variable */
+    --radius: 0.375rem;
+    
+    /* Sidebar width variables */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 4rem;
+    
+    /* Modern Light Theme 2025 */
+    --background: 0 0% 100%; /* Pure white */
+    --foreground: 220 25% 25%; /* Dark gray for text */
 
-    --card: 0 0% 100%; /* White for cards to stand out slightly */
-    --card-foreground: 220 25% 20%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 220 25% 25%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 20%;
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 220 25% 25%;
 
     /* Primary Gradient Definition for Light Theme */
-    --primary-gradient-start-l: 231 48% 48%; /* #3F51B5 Deep Blue */
-    --primary-gradient-end-l: 231 55% 60%; /* Slightly lighter/varied blue */
+    --primary-gradient-start-l: 179 67% 66%; /* Default teal */
+    --primary-gradient-end-l: 238 74% 61%;   /* Default purple */
     --primary: hsl(var(--primary-gradient-start-l));
-    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --primary-foreground: hsl(0 0% 100%); /* White text on primary */
 
+    --secondary: 220 14% 96%; /* Very light gray */
+    --secondary-foreground: 220 25% 25%;
 
-    --secondary: 220 20% 94%; /* Lighter grey for secondary elements */
-    --secondary-foreground: 220 25% 30%; /* Dark text for secondary */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 25% 45%;
 
-    --muted: 220 20% 96%; /* Muted grey, slightly lighter */
-    --muted-foreground: 220 15% 50%; /* Muted text */
+    --accent: 220 14% 96%; /* Light accent */
+    --accent-foreground: 220 25% 25%;
 
-    --accent: 187 100% 42%; /* #00BCD4 Cyan */
-    --accent-foreground: 0 0% 100%; /* White text on Cyan */
-
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%; /* Red for destructive actions */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 15% 88%; /* Light grey Border color, slightly softer */
-    --input: 220 15% 88%; /* Light grey Input border */
-    --ring: hsl(var(--primary-gradient-start-l)); /* Ring matches primary */
+    --border: 220 13% 91%; /* Light borders */
+    --input: 220 13% 91%; /* Input borders */
+    --ring: hsl(var(--primary-gradient-start-l));
 
-    --radius: 0.5rem;
-
-    /* Chart colors - can be customized further if specific chart palette is needed */
+    /* Chart colors */
     --chart-1: hsl(var(--primary-gradient-start-l));
-    --chart-2: hsl(var(--accent));
-    --chart-3: 231 48% 68%;
-    --chart-4: 187 100% 62%;
+    --chart-2: hsl(var(--primary-gradient-end-l));
+    --chart-3: 220 14% 70%;
+    --chart-4: 220 14% 65%;
     --chart-5: 220 14% 60%;
 
-    /* Sidebar specific theme variables - Light Theme Updated for "Modern Trend" */
-    --sidebar-background-l: linear-gradient(to bottom, hsl(220 25% 97%), hsl(220 20% 94%)); /* Light gray gradient */
+    /* Sidebar specific theme variables - Light Theme - Dynamic from preferences */
+    --sidebar-background-start-l: 220 25% 97%; /* Default light gray start */
+    --sidebar-background-end-l: 220 20% 94%; /* Default light gray end */
+    --sidebar-background-l: linear-gradient(to bottom, hsl(var(--sidebar-background-start-l)), hsl(var(--sidebar-background-end-l)));
     --sidebar-foreground-l: 220 25% 30%; /* Dark grey text for readability */
 
     /* Active item in light theme: primary gradient background, white text */
-    --sidebar-active-background-l: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
+    --sidebar-active-bg-start-l: var(--primary-gradient-start-l); /* Use primary colors by default */
+    --sidebar-active-bg-end-l: var(--primary-gradient-end-l);
+    --sidebar-active-background-l: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-l)), hsl(var(--sidebar-active-bg-end-l)));
     --sidebar-active-foreground-l: hsl(var(--primary-foreground)); /* This is white */
 
     --sidebar-accent-l: 220 10% 92%;       /* Subtle darker grey for hover background on non-active items */
@@ -69,6 +78,13 @@ body {
   }
 
   .dark {
+    /* Border radius variable */
+    --radius: 0.375rem;
+    
+    /* Sidebar width variables */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 4rem;
+    
     /* Modern Dark Theme 2025 */
     --background: 220 15% 10%; /* Deep dark blue/charcoal */
     --foreground: 210 30% 95%; /* Very light gray, almost white */
@@ -108,12 +124,16 @@ body {
     --chart-4: 200 100% 70%;
     --chart-5: 220 15% 50%;
 
-    /* Sidebar dark theme variables - Modernized */
-    --sidebar-background-d: linear-gradient(to bottom, hsl(220 15% 12%), hsl(220 15% 9%)); /* Retain dark gradient */
+    /* Sidebar dark theme variables - Dynamic from preferences */
+    --sidebar-background-start-d: 220 15% 12%; /* Default dark gray start */
+    --sidebar-background-end-d: 220 15% 9%; /* Default dark gray end */
+    --sidebar-background-d: linear-gradient(to bottom, hsl(var(--sidebar-background-start-d)), hsl(var(--sidebar-background-end-d)));
     --sidebar-foreground-d: 210 30% 85%;
 
     /* Active item in dark theme: primary gradient background, white text */
-    --sidebar-active-background-d: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
+    --sidebar-active-bg-start-d: var(--primary-gradient-start-d); /* Use primary colors by default */
+    --sidebar-active-bg-end-d: var(--primary-gradient-end-d);
+    --sidebar-active-background-d: linear-gradient(to right, hsl(var(--sidebar-active-bg-start-d)), hsl(var(--sidebar-active-bg-end-d)));
     --sidebar-active-foreground-d: hsl(0 0% 100%); /* Explicitly white for selected menu text in dark mode */
 
     --sidebar-accent-d: 220 15% 20%; /* Hover for non-active */
@@ -162,7 +182,7 @@ body {
   :root:not(.dark).sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsl(var(--primary-gradient-start-l));
     background-image: none;
-    color: white !important;
+    color: var(--sidebar-active-foreground-l) !important;
     box-shadow: 0 2px 8px -2px hsla(var(--primary-gradient-start-l), 0.3);
   }
 
@@ -204,7 +224,7 @@ body {
   /* Default gradient style (original) */
   .dark [data-sidebar="menu-button"][data-active="true"] {
     background-image: var(--sidebar-active-background-d);
-    color: white !important;
+    color: var(--sidebar-active-foreground-d) !important;
     box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
   }
 
@@ -212,7 +232,7 @@ body {
   .dark.sidebar-active-solid [data-sidebar="menu-button"][data-active="true"] {
     background-color: hsl(var(--primary-gradient-start-d));
     background-image: none;
-    color: white !important;
+    color: var(--sidebar-active-foreground-d) !important;
     box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
   }
 
@@ -243,19 +263,43 @@ body {
     transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-image 0.15s ease-in-out, filter 0.15s ease-in-out, border 0.15s ease-in-out;
   }
 
+  /* Ensure active text color takes precedence over Tailwind classes */
+  [data-sidebar="menu-button"][data-active="true"] {
+    color: var(--sidebar-active-foreground-l) !important;
+  }
+  
+  .dark [data-sidebar="menu-button"][data-active="true"] {
+    color: var(--sidebar-active-foreground-d) !important;
+  }
+
+  /* Ensure active text color takes precedence for sub-buttons */
+  [data-sidebar="menu-sub-button"][data-active="true"] {
+    color: var(--sidebar-active-foreground-l) !important;
+  }
+  
+  .dark [data-sidebar="menu-sub-button"][data-active="true"] {
+    color: var(--sidebar-active-foreground-d) !important;
+  }
+
   /* Apply gradient to primary buttons */
   .btn-primary-gradient {
     background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
-    color: hsl(var(--primary-foreground));
+    color: var(--sidebar-active-foreground-l) !important;
     border: none;
+    /* Strong, prominent shadow for primary button */
+    box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
   }
   .dark .btn-primary-gradient {
     background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
-    color: hsl(var(--primary-foreground)); 
+    color: var(--sidebar-active-foreground-d) !important;
+    box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
   }
   .btn-primary-gradient:hover {
     filter: brightness(1.1);
-    box-shadow: 0 2px 10px -3px hsla(var(--primary), 0.4);
+    box-shadow: 0 12px 40px 0 hsla(var(--primary-gradient-start-l), 0.45), 0 6px 20px 0 hsla(var(--primary-gradient-start-l), 0.3);
+  }
+  .dark .btn-primary-gradient:hover {
+    box-shadow: 0 12px 40px 0 hsla(var(--primary-gradient-start-d), 0.55), 0 6px 20px 0 hsla(var(--primary-gradient-start-d), 0.35);
   }
 
   /* Blue gradient hover for secondary and outline button types */
@@ -265,7 +309,7 @@ body {
     border-color: transparent !important; /* For outline buttons, ensure border goes away */
     background-color: transparent !important; /* Reset base background to ensure gradient shows */
     filter: none !important; /* Remove any inherited filters like brightness */
-    box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-l), 0.4);
+    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-l), 0.25), 0 2px 4px 0 hsla(var(--primary-gradient-start-l), 0.15);
   }
   .dark .btn-hover-primary-gradient:hover {
     background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
@@ -273,7 +317,7 @@ body {
     border-color: transparent !important;
     background-color: transparent !important;
     filter: none !important;
-    box-shadow: 0 2px 10px -3px hsla(var(--primary-gradient-start-d), 0.4);
+    box-shadow: 0 4px 14px 0 hsla(var(--primary-gradient-start-d), 0.3), 0 2px 4px 0 hsla(var(--primary-gradient-start-d), 0.2);
   }
 
   /* Custom green styles for checked states */
@@ -303,6 +347,84 @@ body {
   /* Custom width for job match cards */
   .w-70 {
     width: 17.5rem; /* 280px */
+  }
+
+  /* Ensure buttons have rounded corners */
+  button, .btn, [role="button"], 
+  button[type="button"], 
+  button[type="submit"], 
+  button[type="reset"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure inputs have rounded corners */
+  input, textarea, select {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure all UI components have rounded corners */
+  .ui-component, [data-ui-component] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Specific rule for Button component */
+  [class*="buttonVariants"] {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Custom button classes */
+  .btn {
+    border-radius: 0.5rem !important;
+  }
+  .btn-primary, .btn-secondary, .btn-outline {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Secondary button gradient with shadow */
+  .btn-secondary-gradient {
+    box-shadow: 0 2px 8px 0 hsla(220, 14%, 96%, 0.3), 0 1px 3px 0 hsla(220, 14%, 96%, 0.2);
+  }
+  .dark .btn-secondary-gradient {
+    box-shadow: 0 2px 8px 0 hsla(220, 15%, 25%, 0.4), 0 1px 3px 0 hsla(220, 15%, 25%, 0.3);
+  }
+  .btn-secondary-gradient:hover {
+    box-shadow: 0 4px 12px 0 hsla(220, 14%, 96%, 0.4), 0 2px 4px 0 hsla(220, 14%, 96%, 0.25);
+  }
+  .dark .btn-secondary-gradient:hover {
+    box-shadow: 0 4px 12px 0 hsla(220, 15%, 25%, 0.5), 0 2px 4px 0 hsla(220, 15%, 25%, 0.35);
+  }
+
+  /* Ensure rounded-lg class works */
+  .rounded-lg {
+    border-radius: 0.5rem !important;
+  }
+
+  /* Ensure rounded-md class works */
+  .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure rounded-xl class works */
+  .rounded-xl {
+    border-radius: 0.75rem !important;
+  }
+
+  /* Ensure rounded-md class works */
+  .rounded-md {
+    border-radius: 0.375rem !important;
+  }
+
+  /* Ensure rounded-full class works */
+  .rounded-full {
+    border-radius: 9999px !important;
+  }
+
+  /* Ensure rounded-sm class works */
+  .rounded-sm {
+    border-radius: 0.125rem !important;
   }
 }
     

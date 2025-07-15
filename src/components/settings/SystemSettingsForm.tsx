@@ -66,6 +66,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
   'appFontFamily',
   'loginPageContent',
+  'loginPageFooter',
   'maxConcurrentProcessors',
 ];
 

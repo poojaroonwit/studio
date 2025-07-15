@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles } from "@/lib/themeUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -251,172 +251,7 @@ interface SidebarColors {
   [key: string]: string;
 }
 
-function setSidebarCSSVars(settings: SidebarColors) {
-  if (typeof window === 'undefined') return;
-  const root = document.documentElement;
-  
-  // Map settings keys to Tailwind CSS variable names
-  const cssVarMapping: Record<string, string> = {
-    // Light theme - Background colors
-    'sidebarBgStartL': '--sidebar-background-start',
-    'sidebarBgEndL': '--sidebar-background-end',
-    'sidebarTextL': '--sidebar-foreground',
-    'sidebarBorderL': '--sidebar-border',
-    'sidebarActiveBgStartL': '--sidebar-primary',
-    'sidebarActiveTextL': '--sidebar-primary-foreground',
-    'sidebarHoverBgL': '--sidebar-accent',
-    'sidebarHoverTextL': '--sidebar-accent-foreground',
-    
-    // Light theme - Font settings
-    'sidebarFontFamilyL': '--sidebar-font-family',
-    'sidebarFontSizeL': '--sidebar-font-size',
-    'sidebarFontWeightL': '--sidebar-font-weight',
-    'sidebarLineHeightL': '--sidebar-line-height',
-    'sidebarLetterSpacingL': '--sidebar-letter-spacing',
-    'sidebarTextTransformL': '--sidebar-text-transform',
-    
-    // Light theme - Border and shadow settings
-    'sidebarBorderWidthL': '--sidebar-border-width',
-    'sidebarBorderStyleL': '--sidebar-border-style',
-    'sidebarBorderRadiusL': '--sidebar-border-radius',
-    'sidebarShadowL': '--sidebar-shadow',
-    'sidebarShadowHoverL': '--sidebar-shadow-hover',
-    'sidebarShadowActiveL': '--sidebar-shadow-active',
-    
-    // Light theme - Spacing and layout
-    'sidebarPaddingXL': '--sidebar-padding-x',
-    'sidebarPaddingYL': '--sidebar-padding-y',
-    'sidebarMarginL': '--sidebar-margin',
-    'sidebarGapL': '--sidebar-gap',
-    'sidebarWidthL': '--sidebar-width',
-    'sidebarWidthCollapsedL': '--sidebar-width-collapsed',
-    'sidebarTransitionDurationL': '--sidebar-transition-duration',
-    'sidebarTransitionTimingL': '--sidebar-transition-timing',
-    
-    // Light theme - Menu item specific settings
-    'sidebarMenuItemBgL': '--sidebar-menu-item-background',
-    'sidebarMenuItemBgHoverL': '--sidebar-menu-item-background-hover',
-    'sidebarMenuItemBgActiveL': '--sidebar-menu-item-background-active',
-    'sidebarMenuItemColorL': '--sidebar-menu-item-color',
-    'sidebarMenuItemColorHoverL': '--sidebar-menu-item-color-hover',
-    'sidebarMenuItemColorActiveL': '--sidebar-menu-item-color-active',
-    'sidebarMenuItemBorderL': '--sidebar-menu-item-border',
-    'sidebarMenuItemBorderHoverL': '--sidebar-menu-item-border-hover',
-    'sidebarMenuItemBorderActiveL': '--sidebar-menu-item-border-active',
-    'sidebarMenuItemBorderRadiusL': '--sidebar-menu-item-border-radius',
-    'sidebarMenuItemPaddingXL': '--sidebar-menu-item-padding-x',
-    'sidebarMenuItemPaddingYL': '--sidebar-menu-item-padding-y',
-    'sidebarMenuItemMarginL': '--sidebar-menu-item-margin',
-    'sidebarMenuItemFontWeightL': '--sidebar-menu-item-font-weight',
-    'sidebarMenuItemFontWeightActiveL': '--sidebar-menu-item-font-weight-active',
-    'sidebarMenuItemFontSizeL': '--sidebar-menu-item-font-size',
-    'sidebarMenuItemLineHeightL': '--sidebar-menu-item-line-height',
-    'sidebarMenuItemTransitionL': '--sidebar-menu-item-transition',
-    
-    // Light theme - Icon settings
-    'sidebarIconSizeL': '--sidebar-icon-size',
-    'sidebarIconColorL': '--sidebar-icon-color',
-    'sidebarIconColorHoverL': '--sidebar-icon-color-hover',
-    'sidebarIconColorActiveL': '--sidebar-icon-color-active',
-    'sidebarIconMarginRightL': '--sidebar-icon-margin-right',
-    'sidebarIconTransitionL': '--sidebar-icon-transition',
-    
-    // Light theme - Group label settings
-    'sidebarGroupLabelColorL': '--sidebar-group-label-color',
-    'sidebarGroupLabelFontSizeL': '--sidebar-group-label-font-size',
-    'sidebarGroupLabelFontWeightL': '--sidebar-group-label-font-weight',
-    'sidebarGroupLabelTextTransformL': '--sidebar-group-label-text-transform',
-    'sidebarGroupLabelLetterSpacingL': '--sidebar-group-label-letter-spacing',
-    'sidebarGroupLabelPaddingL': '--sidebar-group-label-padding-x',
-    'sidebarGroupLabelMarginL': '--sidebar-group-label-margin',
-    
-    // Dark theme - Background colors
-    'sidebarBgStartD': '--sidebar-background-start',
-    'sidebarBgEndD': '--sidebar-background-end',
-    'sidebarTextD': '--sidebar-foreground',
-    'sidebarBorderD': '--sidebar-border',
-    'sidebarActiveBgStartD': '--sidebar-primary',
-    'sidebarActiveTextD': '--sidebar-primary-foreground',
-    'sidebarHoverBgD': '--sidebar-accent',
-    'sidebarHoverTextD': '--sidebar-accent-foreground',
-    
-    // Dark theme - Font settings
-    'sidebarFontFamilyD': '--sidebar-font-family',
-    'sidebarFontSizeD': '--sidebar-font-size',
-    'sidebarFontWeightD': '--sidebar-font-weight',
-    'sidebarLineHeightD': '--sidebar-line-height',
-    'sidebarLetterSpacingD': '--sidebar-letter-spacing',
-    'sidebarTextTransformD': '--sidebar-text-transform',
-    
-    // Dark theme - Border and shadow settings
-    'sidebarBorderWidthD': '--sidebar-border-width',
-    'sidebarBorderStyleD': '--sidebar-border-style',
-    'sidebarBorderRadiusD': '--sidebar-border-radius',
-    'sidebarShadowD': '--sidebar-shadow',
-    'sidebarShadowHoverD': '--sidebar-shadow-hover',
-    'sidebarShadowActiveD': '--sidebar-shadow-active',
-    
-    // Dark theme - Spacing and layout
-    'sidebarPaddingXD': '--sidebar-padding-x',
-    'sidebarPaddingYD': '--sidebar-padding-y',
-    'sidebarMarginD': '--sidebar-margin',
-    'sidebarGapD': '--sidebar-gap',
-    'sidebarWidthD': '--sidebar-width',
-    'sidebarWidthCollapsedD': '--sidebar-width-collapsed',
-    'sidebarTransitionDurationD': '--sidebar-transition-duration',
-    'sidebarTransitionTimingD': '--sidebar-transition-timing',
-    
-    // Dark theme - Menu item specific settings
-    'sidebarMenuItemBgD': '--sidebar-menu-item-background',
-    'sidebarMenuItemBgHoverD': '--sidebar-menu-item-background-hover',
-    'sidebarMenuItemBgActiveD': '--sidebar-menu-item-background-active',
-    'sidebarMenuItemColorD': '--sidebar-menu-item-color',
-    'sidebarMenuItemColorHoverD': '--sidebar-menu-item-color-hover',
-    'sidebarMenuItemColorActiveD': '--sidebar-menu-item-color-active',
-    'sidebarMenuItemBorderD': '--sidebar-menu-item-border',
-    'sidebarMenuItemBorderHoverD': '--sidebar-menu-item-border-hover',
-    'sidebarMenuItemBorderActiveD': '--sidebar-menu-item-border-active',
-    'sidebarMenuItemBorderRadiusD': '--sidebar-menu-item-border-radius',
-    'sidebarMenuItemPaddingXD': '--sidebar-menu-item-padding-x',
-    'sidebarMenuItemPaddingYD': '--sidebar-menu-item-padding-y',
-    'sidebarMenuItemMarginD': '--sidebar-menu-item-margin',
-    'sidebarMenuItemFontWeightD': '--sidebar-menu-item-font-weight',
-    'sidebarMenuItemFontWeightActiveD': '--sidebar-menu-item-font-weight-active',
-    'sidebarMenuItemFontSizeD': '--sidebar-menu-item-font-size',
-    'sidebarMenuItemLineHeightD': '--sidebar-menu-item-line-height',
-    'sidebarMenuItemTransitionD': '--sidebar-menu-item-transition',
-    
-    // Dark theme - Icon settings
-    'sidebarIconSizeD': '--sidebar-icon-size',
-    'sidebarIconColorD': '--sidebar-icon-color',
-    'sidebarIconColorHoverD': '--sidebar-icon-color-hover',
-    'sidebarIconColorActiveD': '--sidebar-icon-color-active',
-    'sidebarIconMarginRightD': '--sidebar-icon-margin-right',
-    'sidebarIconTransitionD': '--sidebar-icon-transition',
-    
-    // Dark theme - Group label settings
-    'sidebarGroupLabelColorD': '--sidebar-group-label-color',
-    'sidebarGroupLabelFontSizeD': '--sidebar-group-label-font-size',
-    'sidebarGroupLabelFontWeightD': '--sidebar-group-label-font-weight',
-    'sidebarGroupLabelTextTransformD': '--sidebar-group-label-text-transform',
-    'sidebarGroupLabelLetterSpacingD': '--sidebar-group-label-letter-spacing',
-    'sidebarGroupLabelPaddingD': '--sidebar-group-label-padding-x',
-    'sidebarGroupLabelMarginD': '--sidebar-group-label-margin',
-  };
 
-  // Set CSS variables based on current theme
-  const isDark = document.documentElement.classList.contains('dark');
-  const themeSuffix = isDark ? 'D' : 'L';
-  
-  SIDEBAR_COLOR_KEYS.forEach(key => {
-    if (key.endsWith(themeSuffix) && settings[key as keyof SidebarColors]) {
-      const cssVarName = cssVarMapping[key];
-      if (cssVarName) {
-        root.style.setProperty(cssVarName, settings[key as keyof SidebarColors]);
-      }
-    }
-  });
-}
 function createInitialSidebarColors() {
   return { ...DEFAULT_SIDEBAR_COLORS_BASE };
 }
@@ -441,12 +276,12 @@ export default function SystemPreferencesPage() {
   // App Logo state
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-  const [savedLogoDataUrl, setSavedLogoDataUrl] = useState<string | null>(null);
+  const [savedLogoUrl, setSavedLogoUrl] = useState<string | null>(null);
   
   // App Favicon state
   const [selectedFaviconFile, setSelectedFaviconFile] = useState<File | null>(null);
   const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
-  const [savedFaviconDataUrl, setSavedFaviconDataUrl] = useState<string | null>(null);
+  const [savedFaviconUrl, setSavedFaviconUrl] = useState<string | null>(null);
   
   // Login page design state
   const [loginBackgroundType, setLoginBackgroundType] = useState<LoginBackgroundType>(DEFAULT_LOGIN_BACKGROUND_TYPE);
@@ -487,12 +322,10 @@ export default function SystemPreferencesPage() {
           const data = await res.json();
           setThemePreference((data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME);
           setAppName(data[APP_NAME_KEY] || DEFAULT_APP_NAME);
-          setSavedLogoDataUrl(data[APP_LOGO_DATA_URL_KEY] || null);
-          setLogoPreviewUrl(data[APP_LOGO_DATA_URL_KEY] || null);
-          
-          // Load favicon settings
-          setSavedFaviconDataUrl(data[APP_FAVICON_DATA_URL_KEY] || null);
-          setFaviconPreviewUrl(data[APP_FAVICON_DATA_URL_KEY] || null);
+          setSavedLogoUrl(data.appLogoDataUrl || null);
+          setLogoPreviewUrl(data.appLogoDataUrl || null);
+          setSavedFaviconUrl(data.appFaviconDataUrl || null);
+          setFaviconPreviewUrl(data.appFaviconDataUrl || null);
           
           // Load login page design settings
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
@@ -510,7 +343,7 @@ export default function SystemPreferencesPage() {
             }
           });
           setSidebarColors(newSidebarColors);
-          setSidebarCSSVars(newSidebarColors);
+          applySidebarStyles(newSidebarColors);
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -525,10 +358,10 @@ export default function SystemPreferencesPage() {
   }, [sessionStatus, router, pathname, signIn]);
 
   useEffect(() => {
-    setSidebarCSSVars(sidebarColors);
+    applySidebarStyles(sidebarColors);
   }, [sidebarColors]);
 
-  const handleLogoFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
@@ -536,37 +369,64 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedLogoFile(file);
-      const url = URL.createObjectURL(file);
-      setLogoPreviewUrl(url);
+      setLogoPreviewUrl(null); // Clear preview until upload completes
+      // Upload to MinIO
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/settings/upload-image', {
+          method: 'PUT',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload logo');
+        const { url } = await res.json();
+        setLogoPreviewUrl(url); // Only use MinIO URL
+        success('Logo uploaded!');
+      } catch (e: any) {
+        error(e.message || 'Failed to upload logo');
+      }
     }
   };
 
-  const handleFaviconFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFaviconFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 1 * 1024 * 1024) { // 1MB limit for favicon
         error('Favicon file size must be less than 1MB');
         return;
       }
-      // Check if it's a valid image format
       if (!file.type.startsWith('image/')) {
         error('Please select a valid image file for favicon');
         return;
       }
       setSelectedFaviconFile(file);
-      const url = URL.createObjectURL(file);
-      setFaviconPreviewUrl(url);
+      setFaviconPreviewUrl(null); // Clear preview until upload completes
+      // Upload to MinIO
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/settings/upload-image', {
+          method: 'PUT',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload favicon');
+        const { url } = await res.json();
+        setFaviconPreviewUrl(url); // Only use MinIO URL
+        success('Favicon uploaded!');
+      } catch (e: any) {
+        error(e.message || 'Failed to upload favicon');
+      }
     }
   };
 
   const clearLogoSelection = () => {
     setSelectedLogoFile(null);
-    setLogoPreviewUrl(savedLogoDataUrl);
+    setLogoPreviewUrl(savedLogoUrl);
   };
 
   const clearFaviconSelection = () => {
     setSelectedFaviconFile(null);
-    setFaviconPreviewUrl(savedFaviconDataUrl);
+    setFaviconPreviewUrl(savedFaviconUrl);
   };
 
   const removeSelectedLogo = (clearSaved: boolean = false) => {
@@ -576,11 +436,11 @@ export default function SystemPreferencesPage() {
         fileInput.value = '';
     }
     if (clearSaved) {
-        setSavedLogoDataUrl(null);
+        setSavedLogoUrl(null);
         setLogoPreviewUrl(null);
         success("Logo Cleared: The application logo has been reset to default.");
     } else {
-        setLogoPreviewUrl(savedLogoDataUrl);
+        setLogoPreviewUrl(savedLogoUrl);
     }
   };
 
@@ -621,8 +481,8 @@ export default function SystemPreferencesPage() {
       const settingsToSave = [
         { key: 'appThemePreference', value: themePreference },
         { key: 'appName', value: appName },
-        { key: 'appLogoDataUrl', value: selectedLogoFile ? logoPreviewUrl : savedLogoDataUrl },
-        { key: 'appFaviconDataUrl', value: selectedFaviconFile ? faviconPreviewUrl : savedFaviconDataUrl },
+        { key: 'appLogoDataUrl', value: logoPreviewUrl || savedLogoUrl },
+        { key: 'appFaviconDataUrl', value: faviconPreviewUrl || savedFaviconUrl },
         { key: 'loginBackgroundType', value: loginBackgroundType },
         { key: 'loginBackgroundGradientStart', value: loginBackgroundGradientStart },
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
@@ -651,13 +511,13 @@ export default function SystemPreferencesPage() {
       }
       
       // Update saved states
-      if (selectedLogoFile) {
-        setSavedLogoDataUrl(logoPreviewUrl);
+      if (logoPreviewUrl) {
+        setSavedLogoUrl(logoPreviewUrl);
         setSelectedLogoFile(null);
       }
       
-      if (selectedFaviconFile) {
-        setSavedFaviconDataUrl(faviconPreviewUrl);
+      if (faviconPreviewUrl) {
+        setSavedFaviconUrl(faviconPreviewUrl);
         setSelectedFaviconFile(null);
       }
       
@@ -746,7 +606,7 @@ export default function SystemPreferencesPage() {
     const suffix = theme === 'Light' ? 'L' : 'D';
     const newSidebarColors = createInitialSidebarColors();
     setSidebarColors(newSidebarColors);
-    setSidebarCSSVars(newSidebarColors);
+    applySidebarStyles(newSidebarColors);
   }
 
   if (loading || sessionStatus === 'loading' || (sessionStatus === 'unauthenticated' && pathname !== '/auth/signin' && !pathname.startsWith('/_next/')) || !isClient) {
@@ -1547,13 +1407,6 @@ export default function SystemPreferencesPage() {
           </div>
         </Tabs>
       </div>
-
-      {/* Success Message */}
-      {successMsg && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
-          Preferences saved successfully!
-        </div>
-      )}
     </div>
   );
 } 

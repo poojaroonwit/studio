@@ -142,7 +142,7 @@ export function RecruitmentPipelineCard({
                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : index + 1}
                   </div>
                   {index < localStages.length - 1 && (
-                    <div className="absolute left-1/2 top-8 w-0.5 h-6 bg-muted transform -translate-x-1/2"></div>
+                    <div className="absolute left-1/2 top-8 w-1 h-6 bg-muted transform -translate-x-1/2"></div>
                   )}
                 </div>
                 
@@ -218,13 +218,11 @@ export function RecruitmentPipelineCard({
                             </PopoverContent>
                           </Popover>
                         )}
-                                              </div>
-                        {isCurrent && (
-                          <p className="text-xs text-muted-foreground mt-1">Current Stage</p>
-                        )}
                       </div>
-                    
-
+                      {isCurrent && (
+                        <p className="text-xs text-muted-foreground mt-1">Current Stage</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

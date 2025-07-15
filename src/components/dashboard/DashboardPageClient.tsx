@@ -53,6 +53,32 @@ export default function DashboardPageClient({
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
 }: DashboardPageClientProps) {
+  const { data: session, status } = useSession();
+
+  // Check permissions
+  const canViewDashboard = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
+  
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return <div>Please sign in to view the dashboard.</div>;
+  }
+
+  if (!canViewDashboard) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You don't have permission to view the dashboard. Please contact your administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
   const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
   const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
   const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
@@ -63,13 +89,11 @@ export default function DashboardPageClient({
   const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
   const [authError, setAuthError] = useState(serverAuthError);
   const [permissionError, setPermissionError] = useState(serverPermissionError);
-
-  const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
-    if (sessionStatus !== 'authenticated' || !session?.user?.id) {
+    if (status !== 'authenticated' || !session?.user?.id) {
       setIsLoading(false);
       return;
     }
@@ -148,7 +172,7 @@ export default function DashboardPageClient({
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, session?.user?.id, session?.user?.role]);
+  }, [status, session?.user?.id, session?.user?.role]);
 
   useEffect(() => {
     // Handle initial state passed from server component
@@ -163,18 +187,18 @@ export default function DashboardPageClient({
     setAuthError(serverAuthError);
     setPermissionError(serverPermissionError);
 
-    if (sessionStatus === 'unauthenticated' && !serverAuthError) {
+    if ((status as string) === 'unauthenticated' && !serverAuthError) {
         signIn(undefined, { callbackUrl: window.location.pathname });
     }
     // Show error as toast popup if present
     if (initialFetchError) {
       toast.error(initialFetchError);
     }
-  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, sessionStatus, session?.user?.role, toast]);
+  }, [initialCandidates, initialPositions, initialUsers, initialFetchError, serverAuthError, serverPermissionError, status, session?.user?.role, toast]);
 
   // Fetch data when session is authenticated and initial data is empty
   useEffect(() => {
-    if (sessionStatus === 'authenticated' && session?.user?.id) {
+    if (status === 'authenticated' && session?.user?.id) {
       // Only fetch if we don't have data already
       const hasData = (initialCandidates && initialCandidates.length > 0) || 
                      (initialPositions && initialPositions.length > 0) || 
@@ -184,7 +208,7 @@ export default function DashboardPageClient({
         fetchDataClientSide();
       }
     }
-  }, [sessionStatus, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
+  }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
   const totalActiveCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];

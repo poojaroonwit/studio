@@ -353,14 +353,57 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status });
-    const updatedCandidate = updateResult.rows[0];
-    broadcastCandidateUpdate({ ...updatedCandidate, custom_attributes: updatedCandidate.customAttributes || {} }); // Broadcast update
-    return NextResponse.json({ 
-      message: 'Candidate updated successfully', 
-      candidate: {
-        ...updatedCandidate,
-        custom_attributes: updatedCandidate.customAttributes || {},
+    // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
+    const candidateResult = await client.query(`
+      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+      FROM "Candidate" c
+      LEFT JOIN "Position" p ON c."positionId" = p.id
+      LEFT JOIN "User" r ON c."recruiterId" = r.id
+      WHERE c.id = $1::uuid;
+    `, [id]);
+    const candidate = candidateResult.rows[0];
+    // Get job matches for this candidate
+    const jobMatchesResult = await client.query(`
+      SELECT jm.*, p.title as "positionTitle"
+      FROM "JobMatch" jm
+      LEFT JOIN "Position" p ON jm."jobId" = p.id
+      WHERE jm."candidateId" = $1::uuid
+      ORDER BY jm."fit_score" DESC;
+    `, [id]);
+    // Get attachment history for this candidate
+    const attachmentsResult = await client.query(`
+      SELECT a.*, u.name as "uploadedByUserName"
+      FROM "Attachment" a
+      LEFT JOIN "User" u ON a."uploadedById" = u.id
+      WHERE a."candidateId" = $1::uuid
+      ORDER BY a."uploadedAt" DESC;
+    `, [id]);
+    // Defensive: always provide customAttributes as an object
+    let customAttributes = {};
+    try {
+      customAttributes = candidate.customAttributes || {};
+      if (typeof customAttributes === 'string') {
+        try {
+          customAttributes = JSON.parse(customAttributes);
+        } catch (parseErr) {
+          customAttributes = {};
+        }
       }
+    } catch (e) {
+      customAttributes = {};
+    }
+    broadcastCandidateUpdate({ ...candidate, customAttributes }); // Broadcast update
+    return NextResponse.json({
+      ...candidate,
+      assignmentJustification: candidate.assignmentJustification || null,
+      customAttributes,
+      position: candidate.positionId ? {
+        title: candidate.positionTitle || null,
+        department: candidate.positionDepartment || null
+      } : null,
+      recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
+      jobMatches: jobMatchesResult.rows || [],
+      attachmentHistory: attachmentsResult.rows || [],
     });
   } catch (error: any) {
     await client.query('ROLLBACK');

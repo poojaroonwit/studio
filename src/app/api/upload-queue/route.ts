@@ -157,6 +157,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check permissions
+  const canManageUploadQueue = session.user.role === 'Admin' || 
+    session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+  
+  if (!canManageUploadQueue) {
+    await logAudit('WARN', `Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`, 'API:UploadQueue:Post', session.user.id);
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
+  }
+
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
     await logAudit('ERROR', `Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:Post', null, { 

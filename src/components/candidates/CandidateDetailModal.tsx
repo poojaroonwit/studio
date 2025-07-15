@@ -48,6 +48,7 @@ import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
+import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -229,6 +230,21 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
   const [educationOpen, setEducationOpen] = useState(true);
+  const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
+  const [filteredRecruiters, setFilteredRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+
+  // Move fetchRecruiters here so it can access setRecruiters
+  const fetchRecruiters = async () => {
+    try {
+      const recruitersRes = await fetch('/api/users?role=Recruiter');
+      if (recruitersRes.ok) {
+        const recruitersData = await recruitersRes.json();
+        setRecruiters(recruitersData);
+      }
+    } catch (error) {
+      // Optionally handle error
+    }
+  };
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -261,52 +277,54 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
   const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
 
   // Fetch candidate details and metadata
+  const fetchData = async () => {
+    try {
+      const [candidateRes, recruitersRes, positionsRes, stagesRes, transitionRes] = await Promise.all([
+        fetch(`/api/candidates/${candidateId}`),
+        fetch('/api/users?role=Recruiter'),
+        fetch('/api/positions/all'),
+        fetch('/api/settings/recruitment-stages'),
+        fetch(`/api/transitions?candidateId=${candidateId}`)
+      ]);
+
+      if (candidateRes.ok) {
+        const candidateData = await candidateRes.json();
+        setCandidate(candidateData);
+      }
+
+      if (recruitersRes.ok) {
+        const recruitersData = await recruitersRes.json();
+        setRecruiters(recruitersData);
+      }
+
+      if (positionsRes.ok) {
+        const positionsData = await positionsRes.json();
+        setAllDbPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
+      } else {
+        setAllDbPositions([]);
+      }
+
+      if (stagesRes.ok) {
+        const stagesData = await stagesRes.json();
+        setAvailableStages(stagesData);
+      }
+
+      if (transitionRes.ok) {
+        const transitionData = await transitionRes.json();
+        setTransitionHistory(transitionData);
+      }
+
+      setIsLoading(false);
+    } catch (error) {
+      setFetchError('Failed to fetch candidate data');
+      setAllDbPositions([]);
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!candidateId || !open) return;
     setIsLoading(true);
-    
-    const fetchData = async () => {
-      try {
-        const [candidateRes, recruitersRes, positionsRes, stagesRes, transitionRes] = await Promise.all([
-          fetch(`/api/candidates/${candidateId}`),
-          fetch('/api/users?role=Recruiter'),
-          fetch('/api/positions/all'),
-          fetch('/api/settings/recruitment-stages'),
-          fetch(`/api/transitions?candidateId=${candidateId}`)
-        ]);
-
-        if (candidateRes.ok) {
-          const candidateData = await candidateRes.json();
-          setCandidate(candidateData);
-        }
-
-        if (recruitersRes.ok) {
-          const recruitersData = await recruitersRes.json();
-          setRecruiters(recruitersData);
-        }
-
-        if (positionsRes.ok) {
-          const positionsData = await positionsRes.json();
-          setAllDbPositions(positionsData);
-        }
-
-        if (stagesRes.ok) {
-          const stagesData = await stagesRes.json();
-          setAvailableStages(stagesData);
-        }
-
-        if (transitionRes.ok) {
-          const transitionData = await transitionRes.json();
-          setTransitionHistory(transitionData);
-        }
-
-        setIsLoading(false);
-      } catch (error) {
-        setFetchError('Failed to fetch candidate data');
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, [candidateId, open]);
 
@@ -327,21 +345,98 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
     }
   }, [candidate, reset]);
 
+  useEffect(() => {
+    if (recruiterSearchTerm.trim() === '') {
+      setFilteredRecruiters(recruiters);
+    } else {
+      const filtered = recruiters.filter(recruiter =>
+        recruiter.name.toLowerCase().includes(recruiterSearchTerm.toLowerCase())
+      );
+      setFilteredRecruiters(filtered);
+    }
+  }, [recruiterSearchTerm, recruiters]);
+
+  const handleAssignRecruiter = async (newRecruiterId: string | null) => {
+    if (!candidate || isAssigningRecruiter) return;
+    setIsAssigningRecruiter(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: candidate.name,
+          email: candidate.email,
+          phone: candidate.phone,
+          positionId: candidate.positionId,
+          recruiterId: newRecruiterId,
+          fitScore: candidate.fitScore,
+          status: candidate.status,
+          parsedData: candidate.parsedData,
+          custom_attributes: candidate.customAttributes ?? {},
+          resumePath: candidate.resumePath ?? null,
+          avatarUrl: candidate.avatarUrl ?? null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to assign recruiter: ${response.statusText}`);
+      }
+      const updatedCandidate: Candidate = await response.json();
+      setCandidate(updatedCandidate);
+      reset({
+        name: updatedCandidate.name,
+        email: updatedCandidate.email,
+        phone: updatedCandidate.phone,
+        positionId: updatedCandidate.positionId,
+        recruiterId: updatedCandidate.recruiterId,
+        fitScore: updatedCandidate.fitScore,
+        status: updatedCandidate.status,
+        parsedData: {
+          ...(updatedCandidate.parsedData as CandidateDetails),
+          skills: (updatedCandidate.parsedData as CandidateDetails)?.skills?.map(s => ({
+            ...s,
+            skill_string: s.skill?.join(', ') || ''
+          })) || [],
+          experience: ((updatedCandidate.parsedData as CandidateDetails)?.experience?.map(exp => ({
+            ...exp,
+            is_current_position: typeof exp.is_current_position === 'string'
+              ? exp.is_current_position === 'true'
+              : !!exp.is_current_position,
+          })) || []) as {
+            period?: string | null;
+            duration?: string | null;
+            company?: string | null;
+            position?: string | null;
+            description?: string | null;
+            is_current_position?: boolean;
+            postition_level?: string | null;
+          }[],
+        }
+      });
+      toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
+      await fetchRecruiters();
+      await fetchData(); // fetchCandidateDetails equivalent in modal
+    } catch (error) {
+      toast((error as Error).message);
+    } finally {
+      setIsAssigningRecruiter(false);
+    }
+  };
+
   // Main layout structure
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogOverlay />
-      <DialogContent className="max-w-6xl w-full h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-full max-h-[90vh] flex flex-col overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">Loading...</div>
         ) : fetchError ? (
           <div className="text-red-500">{fetchError}</div>
         ) : candidate ? (
           <>
-            {/* Header - 2 Columns */}
-            <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
+            {/* Header - 2 Columns - Fixed at top */}
+            <div className="bg-card border-b border-border p-6 flex-shrink-0">
               <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-                {/* Column 1: Candidate Header (6 cols) */}
+                {/* Column 1: Candidate Header (7 cols) */}
                 <div className="lg:col-span-7">
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
@@ -397,12 +492,10 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
-                        {candidate.positionId && allDbPositions.length > 0 && (
+                        {candidate.positionId && Array.isArray(allDbPositions) && allDbPositions.length > 0 && (
                           <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
                         )}
-                        {candidate.recruiterId && recruiters.length > 0 && (
-                          <span>Recruiter: <span className="font-medium text-foreground">{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}</span></span>
-                        )}
+                        {/* Removed recruiter display from header - now shown in button */}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
                         {candidate.email && (
@@ -415,182 +508,122 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     </div>
                   </div>
                 </div>
-                
-                {/* Column 2: Action Buttons (4 cols) */}
+                {/* Column 2: Action Buttons + Recruiter Dropdown (3 cols) */}
                 <div className="lg:col-span-3">
-                  <div className="flex flex-row gap-3">
-                    {/* Edit Actions Button with Dropdown */}
-                    {!isEditing ? (
-                      <div className="w-1/2 relative">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="default"
-                              className="w-full h-18 flex flex-col items-start justify-center p-3"
-                            >
-                              <div className="flex items-center mb-1">
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                <span className="font-bold text-sm">Edit Actions</span>
-                              </div>
-                              <span className="text-xs text-muted-foreground text-left leading-tight">
-                                Edit candidate details,<br />
-                                Manage transitions
-                              </span>
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-48 p-0" align="start">
-                            <div className="py-1">
-                              <button
-                                onClick={() => {
-                                  setIsEditing(true);
-                                  // Populate form with existing candidate data
-                                  if (candidate) {
-                                    reset({
-                                      name: candidate.name || '',
-                                      email: candidate.email || '',
-                                      phone: candidate.phone || '',
-                                      positionId: candidate.positionId || null,
-                                      recruiterId: candidate.recruiterId || null,
-                                      fitScore: candidate.fitScore || null,
-                                      status: candidate.status || '',
-                                      assignmentJustification: (candidate as any).assignmentJustification || '',
-                                      parsedData: (candidate.parsedData as any) || {}
-                                    });
-                                  }
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                              >
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                Edit Candidate Details
-                              </button>
-                              {availableStages.length > 0 && (
-                                <button
-                                  onClick={() => {
-                                    setIsTransitionsModalOpen(true);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                                >
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Manage Transitions
-                                </button>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 w-1/2">
-                        {/* Save/Cancel buttons will be floating */}
-                      </div>
+                  <div className="flex justify-end gap-2 items-center">
+                    {!isEditing && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setIsEditing(true);
+                            if (candidate) {
+                              reset({
+                                name: candidate.name || '',
+                                email: candidate.email || '',
+                                phone: candidate.phone || '',
+                                positionId: candidate.positionId || null,
+                                recruiterId: candidate.recruiterId || null,
+                                fitScore: candidate.fitScore || null,
+                                status: candidate.status || '',
+                                assignmentJustification: (candidate as any).assignmentJustification || '',
+                                parsedData: (candidate.parsedData as any) || {}
+                              });
+                            }
+                          }}
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit Candidate Profile
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            if (candidate?.status) {
+                              setPreselectedStage(candidate.status);
+                            } else if (availableStages.length > 0) {
+                              setPreselectedStage(availableStages[0].name);
+                            } else {
+                              setPreselectedStage(null);
+                            }
+                            setIsTransitionsModalOpen(true);
+                          }}
+                          disabled={availableStages.length === 0}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Manage Transitions
+                        </Button>
+                      </>
                     )}
-                    
-                    {/* Recruiter Assignment Button with Dropdown */}
-                    <div className="w-1/2 relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="default"
-                            disabled={isAssigningRecruiter || !candidate.id}
-                            className="w-full h-18 flex flex-col items-start justify-center p-3"
-                          >
-                            <div className="flex items-center mb-1">
-                              <Users className="h-4 w-4 mr-2" />
-                              <span className="font-bold text-sm">Recruiter Label</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground text-left leading-tight">
-                              {recruiters.length > 0 ? 'Recruiter assign' : 'No recruiters available'}
-                            </span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 p-0" align="start">
-                          <div className="py-1">
-                            {recruiters.length > 0 ? (
-                              <>
-                                <div className="px-4 py-2 text-xs text-muted-foreground border-b">
-                                  Current: {recruiters.find(r => r.id === candidate.recruiterId)?.name || 'Unassigned'}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    // TODO: Implement recruiter assignment
-                                    console.log('Unassign recruiter');
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                                >
-                                  Unassign
-                                </button>
-                                {recruiters.map((recruiter) => (
-                                  <button
-                                    key={recruiter.id}
-                                    onClick={() => {
-                                      // TODO: Implement recruiter assignment
-                                      console.log('Assign recruiter:', recruiter.id);
-                                    }}
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                                  >
-                                    <User className="h-4 w-4 mr-2" />
-                                    {recruiter.name}
-                                  </button>
-                                ))}
-                              </>
-                            ) : (
-                              <div className="px-4 py-2 text-sm text-muted-foreground">
-                                No recruiters available
-                              </div>
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
-              {/* LEFT SIDEBAR: Recruitment Pipeline (20%) */}
-              <div className="lg:col-span-2 bg-card sticky top-6 p-6">
-                {availableStages.length > 0 && candidate && (
-                  <div className="w-full">
-                    <RecruitmentPipelineCard
-                      stages={availableStages}
-                      transitionHistory={transitionHistory}
-                      currentStatus={candidate.status}
-                      onStageClick={(stageName) => {
-                        setPreselectedStage(stageName);
-                        setIsTransitionsModalOpen(true);
-                      }}
-                      editableNotes={true}
-                      onNoteEdit={async (transitionId, newNote) => {
-                        await fetch(`/api/transitions/${transitionId}`, {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ notes: newNote }),
-                        });
-                        // Refresh data
-                        const transitionRes = await fetch(`/api/transitions?candidateId=${candidateId}`);
-                        if (transitionRes.ok) {
-                          const transitionData = await transitionRes.json();
-                          setTransitionHistory(transitionData);
-                        }
-                      }}
-                      candidateId={candidateId}
-                    />
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card min-h-full">
+                {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
+                <div className="lg:col-span-2 bg-card p-6 space-y-6">
+                  {/* Recruitment Pipeline */}
+                  {availableStages.length > 0 && candidate && (
+                    <div className="w-full">
+                      <RecruitmentPipelineCard
+                        stages={availableStages}
+                        transitionHistory={transitionHistory}
+                        currentStatus={candidate.status}
+                        onStageClick={(stageName) => {
+                          setPreselectedStage(stageName);
+                          setIsTransitionsModalOpen(true);
+                        }}
+                        editableNotes={true}
+                        onNoteEdit={async (transitionId, newNote) => {
+                          await fetch(`/api/transitions/${transitionId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ notes: newNote }),
+                          });
+                          // Refresh data
+                          const transitionRes = await fetch(`/api/transitions?candidateId=${candidateId}`);
+                          if (transitionRes.ok) {
+                            const transitionData = await transitionRes.json();
+                            setTransitionHistory(transitionData);
+                          }
+                        }}
+                        candidateId={candidateId}
+                      />
+                    </div>
+                  )}
+
+                  {/* Recruiter Assignment Section - match screenshot */}
+                  <div className="space-y-2">
+                    <div className="font-medium flex items-center gap-2 text-muted-foreground mb-1">
+                      <Users className="h-4 w-4" /> Recruiter Assignment
+                    </div>
+                    <div className="rounded-lg bg-muted p-4">
+                      <div className="mb-2 text-sm text-muted-foreground">Current Recruiter:</div>
+                      <RecruiterAssignmentDropdown
+                        candidateId={candidate?.id || ''}
+                        recruiterId={candidate?.recruiterId || null}
+                        recruiters={recruiters}
+                        isAssigningRecruiter={isAssigningRecruiter}
+                        onAssignRecruiter={handleAssignRecruiter}
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
-              {/* MAIN CONTENT (50%) */}
-              <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
+                </div>
+                {/* MAIN CONTENT (50%) */}
+                <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
                 {/* Job Applied Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setJobAppliedOpen(o => !o)}>
                     <Briefcase className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
                     {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {jobAppliedOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
                           <div className="p-4 border rounded-lg bg-card space-y-4">
@@ -662,7 +695,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                                 e.currentTarget.style.filter = 'brightness(1)';
                               }}
                               onClick={() => {
-                                const position = allDbPositions.find(p => p.id === candidate.positionId);
+                                const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
                                 
                                 if (position) {
                                   const appliedJobData = {
@@ -691,7 +724,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                               >
                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="font-semibold text-foreground text-lg">
-                                    {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position'}
+                                    {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
                                   </h4>
                                   {candidate.fitScore !== null && candidate.fitScore !== undefined && (
                                     <div className="text-2xl font-bold text-primary flex items-center gap-2">
@@ -728,8 +761,8 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                 </section>
 
                 {/* Job Matches Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setJobMatchesOpen(o => !o)}>
                     <ListChecks className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
                       Job Matches
@@ -747,7 +780,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                     {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {jobMatchesOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {/* Edit Section */}
                       {isEditing && (
                         <div className="border rounded-lg p-4 bg-card">
@@ -795,7 +828,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                                           onValueChange={(value) => {
                                             field.onChange(value);
                                             // Update job title when position is selected
-                                            const selectedPosition = allDbPositions.find(p => p.id === value);
+                                            const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
                                             if (selectedPosition) {
                                               setValue(`parsedData.job_matches.${index}.job_title`, selectedPosition.title);
                                             }
@@ -899,7 +932,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                             style={{ scrollBehavior: 'smooth' }}
                           >
                             {candidate.parsedData.job_matches.map((match, index) => {
-                              const position = allDbPositions.find(p => p.id === match.job_id);
+                              const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === match.job_id) : null;
                               if (!position) return null;
                               
                               return (
@@ -979,14 +1012,14 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                 </section>
 
                 {/* Education Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setEducationOpen(o => !o)}>
                     <GraduationCap className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
                     {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {educationOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
                           {educationFields.map((field, index) => (
@@ -1108,14 +1141,14 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                   )}
                 </section>
                 {/* Experience Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setExperienceOpen(o => !o)}>
                     <Briefcase className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
                     {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {experienceOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
                           {experienceFields.map((field, index) => (
@@ -1161,6 +1194,10 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                         </div>
                       ) : (
                         <div className="relative">
+                          {/* Continuous vertical line that connects all experience nodes */}
+                          {(isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length > 0 && (
+                            <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length - 1) * 80}px` }} />
+                          )}
                           {(isCandidateDetails(candidate.parsedData) ? (candidate.parsedData.experience ?? []) : []).length === 0 && (
                             <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                           )}
@@ -1222,14 +1259,14 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                   )}
                 </section>
                 {/* Skills Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setSkillsOpen(o => !o)}>
                     <Star className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
                     {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {skillsOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
                           {skillsFields.map((field, index) => (
@@ -1276,14 +1313,14 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                 </section>
 
                 {/* Job Suitability Section */}
-                <section className="mb-4">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
+                <section className="mb-4 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-all duration-200">
+                  <button type="button" className="flex items-center w-full p-4 group hover:bg-muted/50 transition-colors rounded-t-lg" onClick={() => setJobSuitableOpen(o => !o)}>
                     <UserCog className="mr-2 h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
                     {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                   </button>
                   {jobSuitableOpen && (
-                    <div className="space-y-4 transition-all duration-200">
+                    <div className="space-y-4 transition-all duration-200 p-4 pt-0 border-t border-border">
                       {isEditing ? (
                         <div className="space-y-4">
                           {jobSuitableFields.map((field, index) => (
@@ -1362,103 +1399,104 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Modals */}
-            {candidate && (
-              <>
-                {/* Pipeline Stage/Transitions Modal */}
-                <ManageTransitionsModal
-                  candidate={candidate}
-                  isOpen={isTransitionsModalOpen}
-                  onOpenChange={(open) => {
-                    setIsTransitionsModalOpen(open);
-                    if (!open) setPreselectedStage(null);
-                  }}
-                  onUpdateCandidate={async (id: string, newStatus: string, notes?: string, suppressToast?: boolean) => {
-                    // TODO: Implement status update
-                    console.log('Update candidate status:', id, newStatus, notes);
-                  }}
-                  onRefreshCandidateData={async () => {
-                    // TODO: Implement refresh
-                    console.log('Refresh candidate data');
-                  }}
-                  availableStages={availableStages}
-                  preselectedStage={preselectedStage}
-                  comments={comments}
-                  onCommentsChange={() => {
-                    // TODO: Implement comments change
-                    console.log('Comments changed');
-                  }}
-                />
-              </>
-            )}
-            
-            {selectedPositionForEdit && (
-              <EditPositionModal
-                isOpen={isEditPositionModalOpen}
-                onOpenChange={setIsEditPositionModalOpen}
-                position={selectedPositionForEdit}
-                onEditPosition={async () => {
-                  // TODO: Implement position edit
-                  console.log('Position edited');
+          {/* Modals */}
+          {candidate && (
+            <>
+              {/* Pipeline Stage/Transitions Modal */}
+              <ManageTransitionsModal
+                candidate={candidate}
+                isOpen={isTransitionsModalOpen}
+                onOpenChange={(open) => {
+                  setIsTransitionsModalOpen(open);
+                  if (!open) setPreselectedStage(null);
+                }}
+                onUpdateCandidate={async (id: string, newStatus: string, notes?: string, suppressToast?: boolean) => {
+                  // TODO: Implement status update
+                  console.log('Update candidate status:', id, newStatus, notes);
+                }}
+                onRefreshCandidateData={async () => {
+                  // TODO: Implement refresh
+                  console.log('Refresh candidate data');
+                }}
+                availableStages={availableStages}
+                preselectedStage={preselectedStage}
+                comments={comments}
+                onCommentsChange={() => {
+                  // TODO: Implement comments change
+                  console.log('Comments changed');
                 }}
               />
-            )}
-            
-            {/* Job Match Modal */}
-            <JobMatchModal
-              isOpen={isJobMatchModalOpen}
-              onClose={() => setIsJobMatchModalOpen(false)}
-              jobMatch={selectedJobMatch}
-            />
-            
-            {/* Render UploadResumeModal for drag-and-drop upload */}
-            <UploadResumeModal
-              isOpen={isUploadModalOpen}
-              onOpenChange={setIsUploadModalOpen}
-              candidate={candidate}
-              onUploadSuccess={(updatedCandidate: Candidate) => {
-                // TODO: Implement upload success
-                console.log('Upload success:', updatedCandidate);
+            </>
+          )}
+          
+          {selectedPositionForEdit && (
+            <EditPositionModal
+              isOpen={isEditPositionModalOpen}
+              onOpenChange={setIsEditPositionModalOpen}
+              position={selectedPositionForEdit}
+              onEditPosition={async () => {
+                // TODO: Implement position edit
+                console.log('Position edited');
               }}
             />
+          )}
+          
+          {/* Job Match Modal */}
+          <JobMatchModal
+            isOpen={isJobMatchModalOpen}
+            onClose={() => setIsJobMatchModalOpen(false)}
+            jobMatch={selectedJobMatch}
+          />
+          
+          {/* Render UploadResumeModal for drag-and-drop upload */}
+          <UploadResumeModal
+            isOpen={isUploadModalOpen}
+            onOpenChange={setIsUploadModalOpen}
+            candidate={candidate}
+            onUploadSuccess={(updatedCandidate: Candidate) => {
+              // TODO: Implement upload success
+              console.log('Upload success:', updatedCandidate);
+            }}
+          />
 
-            {/* Floating Save/Cancel Buttons for Edit Mode */}
-            {isEditing && (
-              <div className="fixed bottom-6 right-6 z-50 flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={() => {
-                    setIsEditing(false);
-                    // TODO: Implement cancel edit
-                    console.log('Cancel edit');
-                  }}
-                  className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="lg"
-                  onClick={handleSubmit((data) => {
-                    // TODO: Implement save details
-                    console.log('Save details:', data);
-                  })}
-                  className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </Button>
-              </div>
-            )}
-          </>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
+          {/* Floating Save/Cancel Buttons for Edit Mode */}
+          {isEditing && (
+            <div className="fixed bottom-6 right-6 z-50 flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => {
+                  setIsEditing(false);
+                  // TODO: Implement cancel edit
+                  console.log('Cancel edit');
+                }}
+                className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="lg"
+                onClick={handleSubmit((data) => {
+                  // TODO: Implement save details
+                  console.log('Save details:', data);
+                })}
+                className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
+            </div>
+          )}
+        </>
+      ) : null}
+    </DialogContent>
+  </Dialog>
+);
 };
 
 export default CandidateDetailModal;

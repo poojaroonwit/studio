@@ -248,8 +248,9 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
   }
 
-  // Extract loginPageContent from settings
+  // Extract loginPageContent and loginPageFooter from settings
   const loginPageContent = initialSettings?.find(s => s.key === 'loginPageContent')?.value || '';
+  const loginPageFooter = initialSettings?.find(s => s.key === 'loginPageFooter')?.value || 'By signing in, you agree to our Terms of Service and Privacy Policy';
 
   // Listen for appConfigChanged and force re-render
   useEffect(() => {
@@ -304,8 +305,20 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
-        {isAzureAdConfigured && <AzureAdSignInButton />}
         <CredentialsSignInForm />
+        {isAzureAdConfigured && (
+          <div className="mt-4">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/50" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+            <AzureAdSignInButton />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -362,10 +375,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     <AlertDescription>{errorMessage}</AlertDescription>
                   </Alert>
                 )}
+                <CredentialsSignInForm />
                 {isAzureAdConfigured && (
-                  <div className="space-y-4">
-                    <AzureAdSignInButton />
-                    <div className="relative">
+                  <div className="mt-4">
+                    <div className="relative mb-4">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-border/50" />
                       </div>
@@ -373,14 +386,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                         <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or continue with</span>
                       </div>
                     </div>
+                    <AzureAdSignInButton />
                   </div>
                 )}
-                <CredentialsSignInForm />
          
             {/* Footer */}
             <div className="mt-8 text-center">
               <p className="text-xs text-muted-foreground">
-                By signing in, you agree to our Terms of Service and Privacy Policy
+                {loginPageFooter}
               </p>
             </div>
           </div>
@@ -436,10 +449,11 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </Alert>
             )}
             
+            <CredentialsSignInForm />
+            
             {isAzureAdConfigured && (
-              <div className="space-y-4">
-                <AzureAdSignInButton />
-                <div className="relative">
+              <div className="mt-4">
+                <div className="relative mb-4">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border/50" />
                   </div>
@@ -447,17 +461,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     <span className="bg-card/50 px-2 text-muted-foreground">Or continue with</span>
                   </div>
                 </div>
+                <AzureAdSignInButton />
               </div>
             )}
-            
-            <CredentialsSignInForm />
           </CardContent>
         </Card>
 
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            By signing in, you agree to our Terms of Service and Privacy Policy
+            {loginPageFooter}
           </p>
         </div>
       </div>

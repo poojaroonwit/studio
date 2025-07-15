@@ -200,7 +200,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
       {/* Drag and Drop Zone */}
       <div
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
+          border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200
           ${isDragOver 
             ? 'border-primary bg-primary/5 scale-105 shadow-lg' 
             : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/30'

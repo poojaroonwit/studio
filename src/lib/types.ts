@@ -23,23 +23,51 @@ export interface PlatformModule {
 }
 
 export const PLATFORM_MODULES: PlatformModule[] = [
+  // Candidate Management
   { id: 'CANDIDATES_VIEW', label: 'View Candidates', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing candidate profiles and lists." },
   { id: 'CANDIDATES_MANAGE', label: 'Manage Candidates', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows adding, editing, and deleting candidate profiles." },
   { id: 'CANDIDATES_IMPORT', label: 'Import Candidates', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows bulk importing of candidate data." },
   { id: 'CANDIDATES_EXPORT', label: 'Export Candidates', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows bulk exporting of candidate data." },
+  { id: 'CANDIDATES_COMMENTS', label: 'Manage Candidate Comments', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows adding, editing, and deleting candidate comments and attachments." },
+  { id: 'CANDIDATES_RESUMES', label: 'Manage Candidate Resumes', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows uploading and managing candidate resumes and attachments." },
+  { id: 'CANDIDATES_TRANSITIONS', label: 'Manage Candidate Transitions', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows changing candidate status and managing recruitment pipeline transitions." },
+  { id: 'CANDIDATES_RECRUITER_ASSIGN', label: 'Assign Recruiters', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows assigning candidates to recruiters." },
+  
+  // Position Management
   { id: 'POSITIONS_VIEW', label: 'View Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows viewing job position details and lists." },
   { id: 'POSITIONS_MANAGE', label: 'Manage Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows adding, editing, and deleting job positions." },
   { id: 'POSITIONS_IMPORT', label: 'Import Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows bulk importing of position data." },
   { id: 'POSITIONS_EXPORT', label: 'Export Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows bulk exporting of position data." },
+  
+  // User Access Control
   { id: 'USERS_MANAGE', label: 'Manage Users', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows managing user accounts and their direct permissions (typically Admin only)." },
   { id: 'USER_GROUPS_MANAGE', label: 'Manage Roles (Groups)', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows managing user groups (roles) and their assigned permissions." },
+  { id: 'API_KEYS_MANAGE', label: 'Manage API Keys', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows generating and managing API keys for system integration." },
+  
+  // System Configuration
   { id: 'SYSTEM_SETTINGS_MANAGE', label: 'Manage System Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing global system settings like App Name, Logo, SMTP." },
   { id: 'USER_PREFERENCES_MANAGE', label: 'Manage Own UI Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows users to manage their own UI display preferences for data models." },
   { id: 'RECRUITMENT_STAGES_MANAGE', label: 'Manage Recruitment Stages', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing the stages in the recruitment pipeline." },
   { id: 'CUSTOM_FIELDS_MANAGE', label: 'Manage Custom Fields', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows defining custom data fields for candidates and positions." },
-
-
+  { id: 'WEBHOOK_MAPPING_MANAGE', label: 'Manage Webhooks', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows creating and managing webhook integrations for automation." },
+  { id: 'AI_INTEGRATION_MANAGE', label: 'Manage AI Integration', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows configuring AI services like Gemini for candidate analysis." },
+  
+  // Upload & Automation
+  { id: 'UPLOAD_QUEUE_MANAGE', label: 'Manage Upload Queue', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing the file upload queue and automation processing." },
+  { id: 'AUTOMATION_UPLOAD', label: 'Automation Upload', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows using automation features for bulk candidate uploads." },
+  { id: 'BULK_UPLOAD', label: 'Bulk Upload', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows bulk uploading of candidate resumes and files." },
+  
+  // Logging & Audit
   { id: 'LOGS_VIEW', label: 'View Application Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing system and audit logs." },
+  { id: 'AUDIT_LOGS_VIEW', label: 'View Audit Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing detailed audit logs of system activities." },
+  { id: 'WEBHOOK_LOGS_VIEW', label: 'View Webhook Logs', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing webhook delivery logs and analytics." },
+  
+  // Analytics & Reporting
+  { id: 'DASHBOARD_VIEW', label: 'View Dashboard', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing the main dashboard with analytics and metrics." },
+  { id: 'ANALYTICS_VIEW', label: 'View Analytics', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing detailed analytics and reports." },
+  { id: 'WEBHOOK_ANALYTICS_VIEW', label: 'View Webhook Analytics', category: PLATFORM_MODULE_CATEGORIES.LOGGING_AUDIT, description: "Allows viewing webhook performance analytics." },
+  
+  // Department Management
   { id: 'HR_DEPARTMENT_MANAGE', label: 'Manage HR Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of HR department including users, records, and settings." },
   { id: 'IT_DEPARTMENT_MANAGE', label: 'Manage IT Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of IT department including users, records, and settings." },
   { id: 'FINANCE_DEPARTMENT_MANAGE', label: 'Manage Finance Department', category: PLATFORM_MODULE_CATEGORIES.DEPARTMENT_MANAGEMENT, description: "Allows full management of Finance department including users, records, and settings." },
@@ -443,7 +471,10 @@ export type SystemSettingKey =
   | 'sidebarBorderD'
   | 'appFontFamily'
   | 'loginPageContent'
-  | 'maxConcurrentProcessors';
+  | 'loginPageFooter'
+  | 'maxConcurrentProcessors'
+  | 'manualLink'
+  | 'manualType';
 
 
 export interface SystemSetting {

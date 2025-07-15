@@ -6,33 +6,32 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  Palette, 
-  Zap, 
-  KanbanSquare, 
-  DatabaseZap, 
-  Settings2, 
-  SlidersHorizontal, 
-  UsersRound, 
-  UserCog, 
-  Code2, 
+  Settings,
+  Palette,
+  KanbanSquare,
+  DatabaseZap,
+  Settings2 as CustomFieldsIcon,
+  Webhook,
+  ShieldCheck,
+  UsersRound,
+  Code2,
   ListOrdered,
-  ArrowRight,
-  Webhook
+  ArrowRight
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
 const settingsItems = [
-  { href: "/settings/preferences", label: "Preferences", icon: Palette, description: "Customize your user interface and display preferences." },
-  { href: "/settings/system-settings", label: "Integrations", icon: Zap, description: "Configure webhooks, SMTP, AI settings, and system integrations." },
-  { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage webhooks for real-time event notifications.", permissionId: 'WEBHOOK_MANAGE' as PlatformModuleId },
-  { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Manage your recruitment workflow stages and pipelines.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId },
-  { href: "/settings/data-models", label: "Data Models (Client)", icon: DatabaseZap, description: "Configure client-side data model preferences.", permissionId: 'DATA_MODELS_MANAGE' as PlatformModuleId },
-  { href: "/settings/custom-fields", label: "Custom Fields (Server)", icon: Settings2, description: "Define server-side custom field definitions.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId },
-  { href: "/settings/webhook-mapping", label: "Webhook Payload Mapping", icon: SlidersHorizontal, description: "Configure webhook data field mappings.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId },
-  { href: "/users", label: "Manage Users", icon: UsersRound, description: "Add, edit, or remove system users.", adminOnly: true },
-  { href: "/settings/user-groups", label: "Manage User Groups", icon: UserCog, description: "Configure roles and permissions for user groups.", permissionId: 'USER_GROUPS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/api-docs", label: "API Docs", icon: Code2, description: "Developer API reference and documentation." },
-  { href: "/logs", label: "Logs", icon: ListOrdered, description: "View system and audit logs.", adminOnly: true },
+  { href: "/settings/system-settings", label: "System Settings", icon: Settings, description: "System-wide configuration.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/system-preferences", label: "Preferences", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Define your hiring pipeline.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/data-models", label: "Data Model UI", icon: DatabaseZap, description: "Customize UI for data attributes.", permissionId: 'USER_PREFERENCES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/custom-fields", label: "Custom Fields", icon: CustomFieldsIcon, description: "Define custom fields for entities.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/user-groups", label: "Roles & Permissions", icon: ShieldCheck, description: "Manage user roles and permissions.", permissionId: 'USER_GROUPS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/users", label: "Manage Users", icon: UsersRound, description: "Add, edit, or remove users.", permissionId: 'USERS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/api-key", label: "API Key Management", icon: Code2, description: "Generate and manage your personal API key.", permissionId: 'API_KEYS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference." },
+  { href: "/settings/logs", label: "Application Logs", icon: ListOrdered, description: "View system and audit logs.", permissionId: 'LOGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 ];
 
 export default function SettingsPage() {

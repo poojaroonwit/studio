@@ -201,6 +201,17 @@ function MultiSelect({
   );
 }
 
+// Dynamically extract custom fields from candidates
+function getCustomFieldKeys(candidates: any[]): string[] {
+  const keys = new Set<string>();
+  candidates.forEach(c => {
+    if (c.customAttributes && typeof c.customAttributes === 'object') {
+      Object.keys(c.customAttributes).forEach(k => keys.add(k));
+    }
+  });
+  return Array.from(keys);
+}
+
 export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], columnFieldValues = [] }: CustomizeBoardModalProps) {
   console.log('CustomizeBoardModal: Component rendered with props:', {
     open,
@@ -228,6 +239,14 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const [positions, setPositions] = useState<any[]>([]);
   const [stages, setStages] = useState<string[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
+
+  // Dynamically build candidateFields including custom fields
+  const customFieldKeys = getCustomFieldKeys(candidates);
+  const dynamicCandidateFields = [
+    ...candidateFields,
+    ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }))
+  ];
+  const validCandidateFields = dynamicCandidateFields.filter(f => f.key && f.key.trim() !== '');
   
   // Get all possible values for each field type using actual data
   const getAllPossibleValues = (fieldKey: string) => {
@@ -313,9 +332,9 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         }
         return ['Available', 'Not Available'];
       default:
-        // For any other field, try to get unique values from candidates
+        // For any other field, check both root and customAttributes
         if (candidates.length > 0) {
-          const values = candidates.map(c => c[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
+          const values = candidates.map(c => c[fieldKey] ?? c.customAttributes?.[fieldKey]).filter(v => v !== null && v !== undefined && v !== '');
           const uniqueValues = [...new Set(values)];
           return uniqueValues.length > 0 ? uniqueValues : cleanRowFieldValues.length > 0 ? cleanRowFieldValues : ['Option 1', 'Option 2', 'Option 3'];
         }
@@ -546,15 +565,15 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   };
 
   const getFieldIcon = (key: string) => {
-    return candidateFields.find(f => f.key === key)?.icon || '📋';
+    return dynamicCandidateFields.find(f => f.key === key)?.icon || '📋';
   };
 
   const getFieldLabel = (key: string) => {
-    return candidateFields.find(f => f.key === key)?.label || key;
+    return dynamicCandidateFields.find(f => f.key === key)?.label || key;
   };
 
   // Validate candidateFields before rendering
-  const validCandidateFields = candidateFields.filter(f => f.key && f.key.trim() !== '');
+  // validCandidateFields is now dynamic, so we can use it directly
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

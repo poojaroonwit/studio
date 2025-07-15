@@ -11,6 +11,7 @@ import {
   SidebarGroupLabel,
   SidebarMenuBadge,
   useSidebar,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Tooltip,
@@ -85,6 +86,23 @@ function getManualConfig() {
     };
   }
   return { manualLink: null, manualType: "external", appMenuIcon: null };
+}
+
+// Helper to generate active button styles
+function getActiveButtonStyles(sidebarStyles: { activeGradient?: string; activeText?: string | null }) {
+  const styles: React.CSSProperties = {};
+  
+  if (sidebarStyles.activeGradient) {
+    styles.background = sidebarStyles.activeGradient;
+  }
+  // Remove color property; rely on CSS variable for text color
+  return styles;
+}
+
+// Helper to generate active icon styles
+function getActiveIconStyles(sidebarStyles: { activeText?: string | null }) {
+  // Remove color property; rely on CSS variable for text color
+  return {};
 }
 
 // Helper to get the Lucide icon component by name
@@ -195,7 +213,10 @@ const SidebarNavComponent = function SidebarNav() {
       }
     }
     return (
-      <div className="flex flex-col h-full w-full items-center justify-between py-4">
+      <div 
+        className="flex flex-col h-full w-full items-center justify-between py-4"
+        style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}}
+      >
         {/* App icon/logo at the top - only show if custom icon is set */}
         {menuIcon && (
           <div className="flex flex-col items-center mb-2">
@@ -225,13 +246,17 @@ const SidebarNavComponent = function SidebarNav() {
                 isActive={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href}
                 className={cn(
                   "rounded-full p-2 mx-auto flex items-center justify-center",
-                  activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                  activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? "shadow" : "hover:bg-accent"
                 )}
+                style={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href}
               >
                 <a>
-                  <dashboardNavItem.icon className="h-4 w-4" />
+                  <dashboardNavItem.icon 
+                    className="h-4 w-4" 
+                    style={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -244,14 +269,18 @@ const SidebarNavComponent = function SidebarNav() {
                   isActive={isMyTaskBoardActive}
                   className={cn(
                     "rounded-full p-2 mx-auto flex items-center justify-center",
-                    isMyTaskBoardActive ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                    isMyTaskBoardActive ? "shadow" : "hover:bg-accent"
                   )}
+                  style={isMyTaskBoardActive ? getActiveButtonStyles(sidebarStyles) : {}}
                   size="default"
                   data-active={isMyTaskBoardActive}
                 >
-                  <a>
-                    <myTaskBoardNavItem.icon className="h-4 w-4" />
-                  </a>
+                                  <a>
+                  <myTaskBoardNavItem.icon 
+                    className="h-4 w-4" 
+                    style={isMyTaskBoardActive ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
+                </a>
                 </SidebarMenuButton>
               </Link>
             </MenuItemWithTooltip>
@@ -263,13 +292,17 @@ const SidebarNavComponent = function SidebarNav() {
                 isActive={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href}
                 className={cn(
                   "rounded-full p-2 mx-auto flex items-center justify-center",
-                  activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                  activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? "shadow" : "hover:bg-accent"
                 )}
+                style={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href}
               >
                 <a>
-                  <candidatesNavItem.icon className="h-4 w-4" />
+                  <candidatesNavItem.icon 
+                    className="h-4 w-4" 
+                    style={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -281,13 +314,17 @@ const SidebarNavComponent = function SidebarNav() {
                 isActive={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href}
                 className={cn(
                   "rounded-full p-2 mx-auto flex items-center justify-center",
-                  activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                  activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? "shadow" : "hover:bg-accent"
                 )}
+                style={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href}
               >
                 <a>
-                  <positionsNavItem.icon className="h-4 w-4" />
+                  <positionsNavItem.icon 
+                    className="h-4 w-4" 
+                    style={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -303,13 +340,17 @@ const SidebarNavComponent = function SidebarNav() {
                 isActive={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href}
                 className={cn(
                   "rounded-full p-2 mx-auto flex items-center justify-center",
-                  activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                  activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? "shadow" : "hover:bg-accent"
                 )}
+                style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href}
               >
                 <a>
-                  <bulkUploadNavItem.icon className="h-4 w-4" />
+                  <bulkUploadNavItem.icon 
+                    className="h-4 w-4" 
+                    style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -321,13 +362,17 @@ const SidebarNavComponent = function SidebarNav() {
                 isActive={pathname.startsWith(settingsNavItem.href)}
                 className={cn(
                   "rounded-full p-2 mx-auto flex items-center justify-center",
-                  pathname.startsWith(settingsNavItem.href) ? "bg-primary text-primary-foreground shadow" : "hover:bg-accent"
+                  pathname.startsWith(settingsNavItem.href) ? "shadow" : "hover:bg-accent"
                 )}
+                style={pathname.startsWith(settingsNavItem.href) ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={pathname.startsWith(settingsNavItem.href)}
               >
                 <a>
-                  <settingsNavItem.icon className="h-4 w-4" />
+                  <settingsNavItem.icon 
+                    className="h-4 w-4" 
+                    style={pathname.startsWith(settingsNavItem.href) ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -362,11 +407,15 @@ const SidebarNavComponent = function SidebarNav() {
                 asChild
                 isActive={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href}
                 className="w-full justify-start"
+                style={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href}
               >
                 <a>
-                  <dashboardNavItem.icon className="h-5 w-5" />
+                  <dashboardNavItem.icon 
+                    className="h-5 w-5" 
+                    style={activeMainNavItem && activeMainNavItem.href === dashboardNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                   <span className="truncate group-data-[collapsible=icon]:hidden">{dashboardNavItem.label}</span>
                 </a>
               </SidebarMenuButton>
@@ -381,11 +430,15 @@ const SidebarNavComponent = function SidebarNav() {
                   asChild
                   isActive={isMyTaskBoardActive}
                   className="w-full justify-start"
+                  style={isMyTaskBoardActive ? getActiveButtonStyles(sidebarStyles) : {}}
                   size="default"
                   data-active={isMyTaskBoardActive}
                 >
                   <a>
-                    <myTaskBoardNavItem.icon className="h-5 w-5" />
+                    <myTaskBoardNavItem.icon 
+                      className="h-5 w-5" 
+                      style={isMyTaskBoardActive ? getActiveIconStyles(sidebarStyles) : {}}
+                    />
                     <span className="truncate group-data-[collapsible=icon]:hidden">{myTaskBoardNavItem.label}</span>
                   </a>
                 </SidebarMenuButton>
@@ -393,7 +446,8 @@ const SidebarNavComponent = function SidebarNav() {
             </MenuItemWithTooltip>
           </SidebarMenuItem>
         )}
-        
+        {/* Separator between groups */}
+        <SidebarSeparator className="my-2" />
         {/* Group 2: Candidates, Positions */}
         <SidebarGroupLabel>Recruitment</SidebarGroupLabel>
         <SidebarMenuItem key={candidatesNavItem.href}>
@@ -403,11 +457,15 @@ const SidebarNavComponent = function SidebarNav() {
                 asChild
                 isActive={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href}
                 className="w-full justify-start"
+                style={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href}
               >
                 <a>
-                  <candidatesNavItem.icon className="h-5 w-5" />
+                  <candidatesNavItem.icon 
+                    className="h-5 w-5" 
+                    style={activeMainNavItem && activeMainNavItem.href === candidatesNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                   <span className="truncate group-data-[collapsible=icon]:hidden">{candidatesNavItem.label}</span>
                 </a>
               </SidebarMenuButton>
@@ -421,11 +479,15 @@ const SidebarNavComponent = function SidebarNav() {
                 asChild
                 isActive={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href}
                 className="w-full justify-start"
+                style={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                 size="default"
                 data-active={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href}
               >
                 <a>
-                  <positionsNavItem.icon className="h-5 w-5" />
+                  <positionsNavItem.icon 
+                    className="h-5 w-5" 
+                    style={activeMainNavItem && activeMainNavItem.href === positionsNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
                   <span className="truncate group-data-[collapsible=icon]:hidden">{positionsNavItem.label}</span>
                 </a>
               </SidebarMenuButton>
@@ -437,6 +499,8 @@ const SidebarNavComponent = function SidebarNav() {
       {/* Footer Group: Other (Bulk Actions, Settings, Manual, Power BI) */}
       <div className="mt-auto">
         <SidebarMenu style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}}>
+          {/* Separator between groups */}
+          <SidebarSeparator className="my-2" />
           <SidebarGroupLabel>Other</SidebarGroupLabel>
           <SidebarMenuItem key={bulkUploadNavItem.href}>
             <MenuItemWithTooltip label={bulkUploadNavItem.label}>
@@ -445,11 +509,15 @@ const SidebarNavComponent = function SidebarNav() {
                   asChild
                   isActive={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href}
                   className="w-full justify-start"
+                  style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
                   size="default"
                   data-active={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href}
                 >
                   <a className="flex items-center w-full">
-                    <bulkUploadNavItem.icon className="h-5 w-5" />
+                    <bulkUploadNavItem.icon 
+                      className="h-5 w-5" 
+                      style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
+                    />
                     <span className="truncate group-data-[collapsible=icon]:hidden">{bulkUploadNavItem.label}</span>
                     {pendingError ? (
                       <SidebarMenuBadge className="ml-2 bg-gray-400 text-white">?</SidebarMenuBadge>
@@ -471,13 +539,17 @@ const SidebarNavComponent = function SidebarNav() {
                   asChild
                   isActive={pathname.startsWith(settingsNavItem.href)}
                   className="w-full justify-start"
+                  style={pathname.startsWith(settingsNavItem.href) ? getActiveButtonStyles(sidebarStyles) : {}}
                   size="default"
                   data-active={pathname.startsWith(settingsNavItem.href)}
                 >
-                  <a>
-                    <settingsNavItem.icon className="h-5 w-5" />
-                    <span className="truncate group-data-[collapsible=icon]:hidden">{settingsNavItem.label}</span>
-                  </a>
+                                  <a>
+                  <settingsNavItem.icon 
+                    className="h-5 w-5" 
+                    style={pathname.startsWith(settingsNavItem.href) ? getActiveIconStyles(sidebarStyles) : {}}
+                  />
+                  <span className="truncate group-data-[collapsible=icon]:hidden">{settingsNavItem.label}</span>
+                </a>
                 </SidebarMenuButton>
               </Link>
             </MenuItemWithTooltip>

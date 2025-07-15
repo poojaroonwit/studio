@@ -26,6 +26,15 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
+  // Check permissions
+  const canManageTransitions = session.user.role === 'Admin' || 
+    session.user.modulePermissions?.includes('CANDIDATES_TRANSITIONS');
+  
+  if (!canManageTransitions) {
+    await logAudit('WARN', `Forbidden attempt to update transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Update', actingUserId);
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate transitions' }, { status: 403 });
+  }
+
   let body;
   try {
     body = await request.json();
@@ -84,6 +93,15 @@ export async function DELETE(request: NextRequest) {
   const actingUserId = session?.user?.id;
   if (!actingUserId) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  // Check permissions
+  const canManageTransitions = session.user.role === 'Admin' || 
+    session.user.modulePermissions?.includes('CANDIDATES_TRANSITIONS');
+  
+  if (!canManageTransitions) {
+    await logAudit('WARN', `Forbidden attempt to delete transition by ${session.user.name || session.user.email || 'Unknown'}`, 'API:Transitions:Delete', actingUserId);
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate transitions' }, { status: 403 });
   }
   
   const client = await getPool().connect();

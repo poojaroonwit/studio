@@ -7,6 +7,7 @@ interface FaviconUpdaterProps {
 }
 
 export function FaviconUpdater({ faviconDataUrl }: FaviconUpdaterProps) {
+  // faviconDataUrl is now a MinIO URL, not a data URL
   const [currentFavicon, setCurrentFavicon] = useState<string | null>(null);
 
   useEffect(() => {

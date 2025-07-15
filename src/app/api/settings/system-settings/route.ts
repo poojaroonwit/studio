@@ -93,9 +93,12 @@ const systemSettingKeyEnum = z.enum([
     'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
     'appFontFamily',
     'loginPageContent',
+    'loginPageFooter',
     'maxConcurrentProcessors',
     // Webhook Configuration
     'resumeProcessingWebhookResponseMode', 'generalPdfWebhookResponseMode',
+    // Manual Link Configuration
+    'manualLink', 'manualType',
 ]);
 
 
@@ -195,6 +198,7 @@ export async function POST(request: NextRequest) {
 
   const validationResult = saveSystemSettingsSchema.safeParse(settingsToSave);
   if (!validationResult.success) {
+    console.error('System settings validation failed:', validationResult.error.flatten().fieldErrors);
     return NextResponse.json(
       { message: "Invalid input for system settings", errors: validationResult.error.flatten().fieldErrors },
       { status: 400 }
@@ -202,6 +206,7 @@ export async function POST(request: NextRequest) {
   }
 
   const validatedSettings = validationResult.data;
+  console.log('Saving system settings:', validatedSettings.map(s => ({ key: s.key, valueLength: s.value?.length || 0 })));
   const client = await getPool().connect();
 
   try {
@@ -222,6 +227,7 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
+    console.log('System settings saved successfully');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
     
     // Return all current settings after update as an object (key-value pairs)

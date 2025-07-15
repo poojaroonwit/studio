@@ -16,6 +16,15 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
@@ -101,7 +110,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return positions.map(p => p.id);
     } else {
       // For other fields, get unique values from candidates + any additional values from preferences
-      const candidateValues = Array.from(new Set(candidates.map(c => c[rowField] ?? ''))).filter(Boolean);
+      const candidateValues = Array.from(new Set(candidates.map(c => (c[rowField] ?? c.customAttributes?.[rowField] ?? '')))).filter(Boolean);
       return candidateValues;
     }
   }, [candidates, rowField, stages, recruiters, positions]);
@@ -118,7 +127,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return positions.map(p => p.id);
     } else {
       // For other fields, get unique values from candidates + any additional values from preferences
-      const candidateValues = Array.from(new Set(candidates.map(c => c[columnField] ?? ''))).filter(Boolean);
+      const candidateValues = Array.from(new Set(candidates.map(c => (c[columnField] ?? c.customAttributes?.[columnField] ?? '')))).filter(Boolean);
       return candidateValues;
     }
   }, [candidates, columnField, stages, recruiters, positions]);
@@ -478,89 +487,55 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 visibleColumnValues={visibleColumnValues}
               />
             ) : (
-              // Table View
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {displayedCandidates.map(candidate => (
-                  <Card
-                    key={candidate.id}
-                    className="bg-card hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden border-border"
-                    onClick={() => setSelectedCandidate(candidate)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <img
-                            className="h-12 w-12 rounded-full object-cover"
-                            src={candidate.avatarUrl || `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'C'}`}
-                            alt=""
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-sm font-medium text-foreground truncate">
-                            {candidate.name}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {candidate.email}
-                          </p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {boardPrefs.visibleFields.map(field => {
-                        if (field === 'name' || field === 'email') return null;
-                        if (field === 'phone') return (
-                          <div key={field} className="flex items-center text-sm">
-                            <span className="text-muted-foreground w-16">Phone:</span>
-                            <span className="text-foreground">{candidate.phone}</span>
-                          </div>
-                        );
-                        if (field === 'status') return (
-                          <div key={field} className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">Status:</span>
-                            <Badge className={`${getStatusColor(candidate.status)} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
-                              {candidate.status}
-                            </Badge>
-                          </div>
-                        );
-                        if (field === 'positionId') return (
-                          <div key={field} className="flex items-center text-sm">
-                            <span className="text-muted-foreground w-16">Position:</span>
-                            <span className="text-foreground truncate">{candidate.position?.title || candidate.positionId}</span>
-                          </div>
-                        );
-                        if (field === 'fitScore') return (
-                          <div key={field} className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Fit Score:</span>
-                              <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div 
-                                className="bg-primary h-2 rounded-full transition-all duration-300" 
-                                style={{ width: `${candidate.fitScore}%` }}
-                              ></div>
+              // Table View (styled like candidate list)
+              <div className="border rounded-lg shadow overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[250px]">Task</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead>Recruiter</TableHead>
+                      <TableHead className="w-[100px] hidden sm:table-cell">Fit Score</TableHead>
+                      <TableHead className="text-right w-[80px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayedCandidates.map(candidate => (
+                      <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => setSelectedCandidate(candidate)}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar size="lg" className="border-2 border-border">
+                              <AvatarImage
+                                src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'T'}`}
+                                alt={candidate.name}
+                                onError={e => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'T'}`; }}
+                              />
+                              <AvatarFallback className="text-sm font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'T'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <span className="font-medium text-foreground hover:underline cursor-pointer">{candidate.name}</span>
+                              <div className="text-xs text-muted-foreground">{candidate.email}</div>
                             </div>
                           </div>
-                        );
-                        if (field === 'recruiterId') return (
-                          <div key={field} className="flex items-center text-sm">
-                            <span className="text-muted-foreground w-16">Recruiter:</span>
-                            <span className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</span>
-                          </div>
-                        );
-                        if (field === 'applicationDate') return (
-                          <div key={field} className="flex items-center text-sm">
-                            <span className="text-muted-foreground w-16">Applied:</span>
-                            <span className="text-foreground">
-                              {candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}
-                            </span>
-                          </div>
-                        );
-                        return null;
-                      })}
-                    </CardContent>
-                  </Card>
-                ))}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${getStatusColor(candidate.status)} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
+                            {candidate.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-foreground">{candidate.position?.title || candidate.positionId}</TableCell>
+                        <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-foreground">{candidate.fitScore != null ? `${candidate.fitScore}%` : '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setSelectedCandidate(candidate); }}>
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>

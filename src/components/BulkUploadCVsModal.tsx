@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
@@ -30,6 +30,29 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
   const { data: session } = useSession();
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { successWithDescription, errorWithDescription, error } = useToast();
+
+  // Check permissions
+  const canBulkUpload = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('BULK_UPLOAD');
+  
+  if (!canBulkUpload) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Access Denied</DialogTitle>
+            <DialogDescription>
+              You don't have permission to perform bulk uploads. Please contact your administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,10 +65,10 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         const result = await response.json();
         const data = Array.isArray(result) ? result : (result.data || []);
         setAvailablePositions(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Error fetching positions:", error);
-        toast.error("Could not load positions for selection.");
-      }
+              } catch (error) {
+          console.error("Error fetching positions:", error);
+          errorWithDescription("Could not load positions for selection.", "Please try refreshing the page or contact support if the issue persists.");
+        }
     };
     fetchPositions();
   }, [isOpen]);
@@ -71,10 +94,10 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
       const file = files[i];
       if (file.type !== "application/pdf") {
         invalidFiles.push({ name: file.name, reason: "Invalid file type" });
-        toast.error(`${file.name}: Invalid file type`);
+        errorWithDescription(`${file.name}: Invalid file type`, "Only PDF files are supported for resume uploads.");
       } else if (file.size > MAX_FILE_SIZE) {
         invalidFiles.push({ name: file.name, reason: `File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)` });
-        toast.error(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)`);
+        errorWithDescription(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)`, "Please compress the file or split it into smaller parts.");
       } else {
         newFiles.push(file);
         newBatchMap[file.name] = uuidv4();
@@ -82,9 +105,9 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     }
     setSelectedFiles((prev: File[]) => [...prev, ...newFiles]);
     setFileBatchMap((prev: { [fileName: string]: string }) => ({ ...prev, ...newBatchMap }));
-    if (invalidFiles.length > 0) {
-      toast.error(`${invalidFiles.length} file(s) were invalid and not added.`);
-    }
+          if (invalidFiles.length > 0) {
+        errorWithDescription(`${invalidFiles.length} file(s) were invalid and not added.`, "Please check the file format and size requirements.");
+      }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -129,13 +152,13 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         } catch (parseErr) {
           console.error('Upload queue POST error (non-JSON):', queueRes);
         }
-        toast.error(`${fileName}: ${errorMsg}`);
+        errorWithDescription(`${fileName}: ${errorMsg}`, "The file could not be added to the processing queue.");
         return { success: false, error: errorMsg };
       }
       return { success: true };
     } catch (err) {
       console.error('Network or unexpected error during upload queue POST:', err);
-      toast.error(`${fileName}: Unexpected error adding to upload queue`);
+              errorWithDescription(`${fileName}: Unexpected error adding to upload queue`, "Please try again or contact support if the issue persists.");
       return { success: false, error: 'Unexpected error' };
     }
   }
@@ -162,7 +185,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         } catch (parseErr) {
           console.error('File upload error (non-JSON):', uploadRes);
         }
-        toast.error(errorMsg);
+        errorWithDescription(errorMsg, "Please check your connection and try again.");
         return;
       }
       const { results } = await uploadRes.json();
@@ -198,16 +221,16 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
       const numSuccess = queueResults.filter(r => r.success).length;
       const numError = queueResults.length - numSuccess;
       if (numError === 0) {
-        toast.success(`Bulk upload: ${numSuccess} file(s) queued for processing.`);
+        successWithDescription(`Bulk upload: ${numSuccess} file(s) queued for processing.`, "Your files have been successfully uploaded and are being processed.");
       } else {
-        toast.error(`Bulk upload: ${numError} failed, ${numSuccess} queued.`);
+        errorWithDescription(`Bulk upload: ${numError} failed, ${numSuccess} queued.`, "Some files could not be processed. Check the console for details.");
         console.table(queueResults);
       }
       if (onUploadSuccess) onUploadSuccess();
       window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
     } catch (error) {
       console.error('Bulk upload error:', error);
-      toast.error('Bulk upload failed (unexpected error)');
+      errorWithDescription('Bulk upload failed (unexpected error)', "Please try again or contact support if the issue persists.");
     } finally {
       setUploading(false);
     }

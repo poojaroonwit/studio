@@ -3,7 +3,8 @@ import { Poppins } from 'next/font/google';
 // import { Open_Sans, Roboto, Inter, Montserrat, Lato, Nunito, Source_Sans_3, Raleway, Ubuntu, Quicksand, PT_Sans } from 'next/font/google';
 import './globals.css';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Toaster } from 'react-hot-toast';
+import ToastClient from '@/components/ui/ToastClient';
+import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'lucide-react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -90,17 +91,7 @@ export default async function RootLayout({
                 {children}
               </AppLayout>
             </ErrorBoundary>
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: 'hsl(var(--background))',
-                  color: 'hsl(var(--foreground))',
-                  border: '1px solid hsl(var(--border))',
-                },
-              }}
-            />
+            <ToastClient />
           </AuthProvider>
         </TooltipProvider>
       </body>

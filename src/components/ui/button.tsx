@@ -5,25 +5,25 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "border inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "border inline-flex items-center justify-center whitespace-nowrap !rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [border-radius:0.375rem!important]",
   {
     variants: {
       variant: {
-        default: "btn-primary-gradient text-primary-foreground hover:scale-105",
+        default: "btn-primary-gradient text-primary-foreground hover:scale-105", // Remove shadow utilities
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md hover:shadow-lg",
         outline:
-          "btn-secondary-gradient text-secondary-foreground hover:scale-105",
+          "btn-secondary-gradient text-secondary-foreground hover:scale-105 shadow-md hover:shadow-lg",
         secondary:
-          "btn-secondary-gradient text-secondary-foreground hover:scale-105",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "btn-secondary-gradient text-secondary-foreground hover:scale-105 shadow-md hover:shadow-lg",
+        ghost: "hover:bg-accent hover:text-accent-foreground shadow-sm hover:shadow-md",
+        link: "text-primary underline-offset-4 hover:underline shadow-none",
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        sm: "h-9 !rounded-md px-3 [border-radius:0.375rem!important] shadow-sm hover:shadow-md",
+        lg: "h-11 !rounded-md px-8 [border-radius:0.375rem!important] shadow-lg hover:shadow-xl",
+        icon: "h-10 w-10 !rounded-md [border-radius:0.375rem!important] shadow-md hover:shadow-lg",
       },
     },
     defaultVariants: {

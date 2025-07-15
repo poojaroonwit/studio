@@ -561,15 +561,19 @@ export function FlexibleKanbanView({
     
     // Group candidates by their position
     candidates.forEach(candidate => {
-      const rowValue = candidate[effectiveRowField as keyof Candidate] as string;
-      const colValue = isColumnBased ? (candidate[effectiveColumnField as keyof Candidate] as string) : 'default';
+      const rowValue = (candidate[effectiveRowField as keyof Candidate] ?? candidate.customAttributes?.[effectiveRowField]);
+      let colValue: string | null = 'default';
+      if (isColumnBased && typeof effectiveColumnField === 'string') {
+        const rawCol = candidate[effectiveColumnField as keyof Candidate] ?? candidate.customAttributes?.[effectiveColumnField];
+        colValue = typeof rawCol === 'string' ? rawCol : null;
+      }
       
-      if (rowValue && effectiveRowValues.includes(rowValue)) {
+      if (typeof rowValue === 'string' && rowValue && effectiveRowValues.includes(rowValue)) {
         if (!grouped[rowValue]) {
           grouped[rowValue] = {};
         }
         if (isColumnBased) {
-          if (colValue && effectiveColumnValues.includes(colValue)) {
+          if (typeof colValue === 'string' && colValue && effectiveColumnValues.includes(colValue)) {
             if (!grouped[rowValue][colValue]) {
               grouped[rowValue][colValue] = [];
             }

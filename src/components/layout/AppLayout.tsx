@@ -1,7 +1,7 @@
 "use client";
 
 import React, { type ReactNode, useState, useEffect } from "react";
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarSeparator } from "@/components/ui/sidebar";
 import { Header } from "./Header";
 import { useSession } from "next-auth/react";
 import { GlobalLoadingOverlay } from "./GlobalLoadingOverlay";
@@ -72,9 +72,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const pageTitle = pathname === "/auth/signin" ? "Sign In" : getPageTitle(pathname) || currentAppName; // Use currentAppName in title if needed
   
-  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null);
+  const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null); // MinIO URL, not data URL
   const [isClient, setIsClient] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   const { data: session, status } = useSession();
   const isLoading = usePageLoading();
@@ -92,23 +93,25 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   useEffect(() => {
     setIsClient(true);
-    // Fetch global preferences from system-preferences API
+    // Fetch global preferences from system-settings API
     const fetchGlobalSettings = async () => {
       try {
-        const res = await fetch('/api/settings/system-preferences');
+        setIsLogoLoading(true);
+        const res = await fetch('/api/settings/system-settings');
         const prefs = await res.json();
-        setAppLogoUrl(prefs.appLogoDataUrl || null);
+        setAppLogoUrl(prefs.appLogoDataUrl || null); // MinIO URL
         setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
         setThemeAndColors({
-          themePreference: prefs.themePreference || 'system',
+          themePreference: prefs.appThemePreference || 'system',
           primaryGradientStart: prefs.primaryGradientStart,
           primaryGradientEnd: prefs.primaryGradientEnd,
           sidebarColors: prefs.sidebarColors || {},
         });
       } catch (e) {
-        // fallback to defaults
         setAppLogoUrl(null);
         setCurrentAppName(DEFAULT_APP_NAME);
+      } finally {
+        setIsLogoLoading(false);
       }
     };
     fetchGlobalSettings();
@@ -173,8 +176,11 @@ export function AppLayout({ children }: AppLayoutProps) {
               currentAppName={currentAppName}
               appLogoUrl={appLogoUrl}
               isClient={isClient}
+              isLogoLoading={isLogoLoading}
             />
           </SidebarHeader>
+          {/* Add separator below app name/logo group */}
+          <SidebarSeparator className="my-0" />
           <SidebarContent>
             <SidebarNav />
           </SidebarContent>
@@ -194,9 +200,20 @@ export function AppLayout({ children }: AppLayoutProps) {
 // Component for the expand/collapse button
 function SidebarToggleButton() {
   const { open, toggleSidebar } = useSidebar();
+  const [mounted, setMounted] = useState(false);
+  
+  // Ensure component is mounted before showing
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
   
   return (
-    <div className={`fixed top-2 transform -translate-x-1/2 z-[99999] ${open ? 'left-[var(--sidebar-width)]' : 'left-[var(--sidebar-width-icon)]'}`}>
+    <div className={`fixed top-2 transform -translate-x-1/2 z-[99999] transition-all duration-200 ${open ? 'left-[var(--sidebar-width,16rem)]' : 'left-[var(--sidebar-width-icon,4rem)]'}`}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

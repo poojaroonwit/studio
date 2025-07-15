@@ -38,7 +38,7 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
   };
   return (
     <div
-      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${
+      className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${
         dragActive 
           ? 'border-primary bg-primary/10' 
           : 'border-border bg-muted/30'

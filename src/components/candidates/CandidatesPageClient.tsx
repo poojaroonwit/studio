@@ -1035,9 +1035,11 @@ export function CandidatesPageClient({
   const displayedCandidates = useMemo(() => {
     // Ensure allCandidates is an array before calling filter
     const candidates = Array.isArray(allCandidates) ? allCandidates : [];
+    // Filter out invalid candidates
+    const validCandidates = candidates.filter(c => c && c.id && c.name);
     return aiMatchedCandidateIds !== null
-      ? candidates.filter(c => aiMatchedCandidateIds.includes(c.id))
-      : candidates;
+      ? validCandidates.filter(c => aiMatchedCandidateIds.includes(c.id))
+      : validCandidates;
   }, [allCandidates, aiMatchedCandidateIds]);
 
 
@@ -1191,7 +1193,7 @@ export function CandidatesPageClient({
               <ChevronLeft className="h-5 w-5" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <CandidateFilters
               initialFilters={filters}
               onFilterChange={handleFilterChange}
@@ -1278,7 +1280,7 @@ export function CandidatesPageClient({
           </Alert>
         )}
 
-        {(isLoading || isAiSearching) && displayedCandidates.length === 0 && !fetchError ? ( 
+        {(isLoading || isAiSearching) && !fetchError ? ( 
           <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow"> 
             <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" /> 
             <h3 className="text-xl font-semibold text-foreground"> 
@@ -1367,7 +1369,11 @@ export function CandidatesPageClient({
              <div className="my-4 space-y-2">
               <Label htmlFor="bulk-new-recruiter">Assign to Recruiter</Label>
               <Select value={bulkNewRecruiterId || ''} onValueChange={(value) => setBulkNewRecruiterId(value === '___UNASSIGN___' ? null : value)}>
-                <SelectTrigger id="bulk-new-recruiter"><SelectValue placeholder="Select recruiter..." /></SelectTrigger>
+                <SelectTrigger id="bulk-new-recruiter">
+                  <SelectValue placeholder="Select recruiter...">
+                    {bulkNewRecruiterId ? availableRecruiters.find(r => r.id === bulkNewRecruiterId)?.name || 'Unknown' : 'Select recruiter...'}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="___UNASSIGN___">Unassign</SelectItem>
                     {availableRecruiters.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}

@@ -104,14 +104,21 @@ export default function SystemSettingsPage() {
       { key: 'manualType', value: manualType },
     ];
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch('/api/settings/system-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settingsToSave),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to save settings' }));
-        throw new Error(errorData.message);
+        console.error('Save settings error:', errorData);
+        throw new Error(errorData.message || 'Failed to save settings');
       }
       toast.success('Settings Saved');
       // Find appName and appLogoDataUrl in settingsToSave
@@ -135,7 +142,15 @@ export default function SystemSettingsPage() {
       }
       fetchSystemSettings();
     } catch (error) {
-      toast.error((error as Error).message);
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          toast.error('Request timed out. Please try again.');
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     } finally {
       setIsSaving(false);
     }

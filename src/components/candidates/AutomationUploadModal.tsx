@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUploadArea } from "@/components/ui/FileUploadArea";
 import { Loader2, UploadCloud, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { useSession } from "next-auth/react";
 import type { Position } from '@/lib/types';
 
 interface AutomationUploadModalProps {
@@ -24,6 +25,29 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { data: session } = useSession();
+
+  // Check permissions
+  const canAutomationUpload = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('AUTOMATION_UPLOAD');
+  
+  if (!canAutomationUpload) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Access Denied</DialogTitle>
+            <DialogDescription>
+              You don't have permission to use automation upload. Please contact your administrator.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   React.useEffect(() => {
     if (!isOpen) return;

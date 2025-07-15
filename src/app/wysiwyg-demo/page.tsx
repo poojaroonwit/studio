@@ -12,6 +12,8 @@ import {
   CompactEditor 
 } from '@/components/ui/wysiwyg-editors';
 import { Button } from '@/components/ui/button';
+import { Checkbox, ThreeStateCheckbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { 
   FileText, 
   Zap, 
@@ -20,7 +22,9 @@ import {
   Type, 
   Eye,
   Copy,
-  Download
+  Download,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -74,6 +78,10 @@ export default function WysiwygDemoPage() {
   const [markdownContent, setMarkdownContent] = useState(markdownSample);
   const [compactContent, setCompactContent] = useState(sampleContent);
   const [selectorContent, setSelectorContent] = useState(sampleContent);
+  
+  // Checkbox demo states
+  const [checkboxState, setCheckboxState] = useState<'unchecked' | 'checked' | 'indeterminate'>('unchecked');
+  const [regularChecked, setRegularChecked] = useState(false);
 
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content);
@@ -91,306 +99,222 @@ export default function WysiwygDemoPage() {
     toast.success('File downloaded!');
   };
 
+  const getStateLabel = (state: 'unchecked' | 'checked' | 'indeterminate') => {
+    switch (state) {
+      case 'unchecked': return 'Unchecked';
+      case 'checked': return 'Checked';
+      case 'indeterminate': return 'Indeterminate';
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-8">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold">WYSIWYG Editor Designs</h1>
-        <p className="text-xl text-muted-foreground">
-          Explore different WYSIWYG editor designs for your application
-        </p>
+      <div className="text-center">
+        <h1 className="text-3xl font-bold mb-2">WYSIWYG Editor & Checkbox Demo</h1>
+        <p className="text-muted-foreground">Explore different editor types and the new cycling checkbox functionality</p>
       </div>
 
-      {/* Editor Comparison */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+      {/* Checkbox Demo Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckSquare className="h-5 w-5 text-green-500" />
+            Cycling Checkbox Demo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Regular Checkbox */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Regular Checkbox</h3>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="regular-checkbox" 
+                  checked={regularChecked}
+                  onCheckedChange={checked => setRegularChecked(checked === true)}
+                />
+                <Label htmlFor="regular-checkbox">Regular checkbox with green styling</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                State: <Badge variant={regularChecked ? "default" : "secondary"}>
+                  {regularChecked ? "Checked" : "Unchecked"}
+                </Badge>
+              </p>
+            </div>
+
+            {/* Cycling Checkbox */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Cycling Checkbox</h3>
+              <div className="flex items-center space-x-2">
+                <ThreeStateCheckbox 
+                  id="cycling-checkbox" 
+                  value={checkboxState}
+                  onValueChange={setCheckboxState}
+                />
+                <Label htmlFor="cycling-checkbox">Click to cycle through states</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                State: <Badge variant="outline" className="capitalize">
+                  {getStateLabel(checkboxState)}
+                </Badge>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Cycle: Unchecked → Checked → Indeterminate → Unchecked
+              </p>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Multiple Checkboxes Demo */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Multiple Checkboxes Demo</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['Task 1', 'Task 2', 'Task 3'].map((task, index) => (
+                <div key={index} className="flex items-center space-x-2 p-3 border rounded-lg">
+                  <Checkbox id={`task-${index}`} />
+                  <Label htmlFor={`task-${index}`} className="text-sm">{task}</Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
+      {/* WYSIWYG Editors Section */}
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">WYSIWYG Editors</h2>
+          <p className="text-muted-foreground">Different editor types for various use cases</p>
+        </div>
+
         {/* TipTap Editor */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-blue-500" />
-                <CardTitle>TipTap Editor</CardTitle>
-                <Badge variant="secondary">Modern</Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyToClipboard(tiptapContent)}
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => downloadHtml(tiptapContent, 'tiptap-content.html')}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Modern, extensible editor with rich features and excellent TypeScript support
-            </p>
+            <CardTitle className="flex items-center gap-2">
+              <Type className="h-5 w-5" />
+              TipTap Editor (Full Featured)
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <TipTapEditor
               value={tiptapContent}
               onChange={setTipTapContent}
-              placeholder="Start writing with TipTap..."
-              className=""
+              placeholder="Start typing your content..."
             />
+            <div className="flex gap-2">
+              <Button onClick={() => copyToClipboard(tiptapContent)} size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy HTML
+              </Button>
+              <Button onClick={() => downloadHtml(tiptapContent, 'tiptap-content.html')} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Minimalist Editor */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Type className="h-5 w-5 text-green-500" />
-                <CardTitle>Minimalist Editor</CardTitle>
-                <Badge variant="secondary">Simple</Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyToClipboard(minimalistContent)}
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => downloadHtml(minimalistContent, 'minimalist-content.html')}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Clean, lightweight editor with essential formatting options
-            </p>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Minimalist Editor
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <MinimalistEditor
               value={minimalistContent}
               onChange={setMinimalistContent}
-              placeholder="Start writing with minimalist editor..."
+              placeholder="Simple and clean editor..."
             />
+            <div className="flex gap-2">
+              <Button onClick={() => copyToClipboard(minimalistContent)} size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy HTML
+              </Button>
+              <Button onClick={() => downloadHtml(minimalistContent, 'minimalist-content.html')} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Markdown Editor */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Code className="h-5 w-5 text-purple-500" />
-                <CardTitle>Markdown Editor</CardTitle>
-                <Badge variant="secondary">Markdown</Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyToClipboard(markdownContent)}
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => downloadHtml(markdownContent, 'markdown-content.md')}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Write in Markdown with live preview and syntax highlighting
-            </p>
+            <CardTitle className="flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              Markdown Editor
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <MarkdownEditor
               value={markdownContent}
               onChange={setMarkdownContent}
-              placeholder="# Start writing in Markdown..."
+              placeholder="Write in Markdown..."
             />
+            <div className="flex gap-2">
+              <Button onClick={() => copyToClipboard(markdownContent)} size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Markdown
+              </Button>
+              <Button onClick={() => downloadHtml(markdownContent, 'markdown-content.md')} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Compact Editor */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-orange-500" />
-                <CardTitle>Compact Editor</CardTitle>
-                <Badge variant="secondary">Compact</Badge>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => copyToClipboard(compactContent)}
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => downloadHtml(compactContent, 'compact-content.html')}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Space-efficient editor with collapsible toolbar
-            </p>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Compact Editor
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <CompactEditor
               value={compactContent}
               onChange={setCompactContent}
-              placeholder="Start writing with compact editor..."
+              placeholder="Compact editor for quick edits..."
+            />
+            <div className="flex gap-2">
+              <Button onClick={() => copyToClipboard(compactContent)} size="sm">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy HTML
+              </Button>
+              <Button onClick={() => downloadHtml(compactContent, 'compact-content.html')} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Editor Selector */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Editor Selector
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WysiwygEditorSelector
+              value={selectorContent}
+              onChange={setSelectorContent}
+              placeholder="Choose your editor type..."
             />
           </CardContent>
         </Card>
       </div>
-
-      <Separator />
-
-      {/* Editor Selector */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-pink-500" />
-            <CardTitle>Editor Selector</CardTitle>
-            <Badge variant="secondary">Interactive</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Switch between different editor types dynamically
-          </p>
-        </CardHeader>
-        <CardContent>
-          <WysiwygEditorSelector
-            value={selectorContent}
-            onChange={setSelectorContent}
-            placeholder="Choose your preferred editor type..."
-          />
-        </CardContent>
-      </Card>
-
-      {/* Features Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Features Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-blue-600">TipTap Editor</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>✅ Modern architecture</li>
-                <li>✅ TypeScript support</li>
-                <li>✅ Extensible plugins</li>
-                <li>✅ Collaborative editing</li>
-                <li>✅ Custom extensions</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-semibold text-green-600">Minimalist Editor</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>✅ Lightweight</li>
-                <li>✅ Simple setup</li>
-                <li>✅ Essential features</li>
-                <li>✅ Preview mode</li>
-                <li>✅ Custom styling</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-semibold text-purple-600">Markdown Editor</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>✅ Markdown syntax</li>
-                <li>✅ Live preview</li>
-                <li>✅ Clean output</li>
-                <li>✅ Version control friendly</li>
-                <li>✅ Developer friendly</li>
-              </ul>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-semibold text-orange-600">Compact Editor</h3>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>✅ Space efficient</li>
-                <li>✅ Collapsible toolbar</li>
-                <li>✅ Focus on content</li>
-                <li>✅ Quick formatting</li>
-                <li>✅ Mobile friendly</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Installation Guide */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Installation & Usage</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h3 className="font-semibold mb-2">For TipTap Editor:</h3>
-            <pre className="bg-muted p-3 rounded text-sm overflow-x-auto">
-{`npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-underline @tiptap/extension-link @tiptap/extension-text-align @tiptap/extension-color @tiptap/extension-text-style`}
-            </pre>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-2">Usage Example:</h3>
-            <pre className="bg-muted p-3 rounded text-sm overflow-x-auto">
-{`import { TipTapEditor } from '@/components/ui/wysiwyg-editors';
-
-function MyComponent() {
-  const [content, setContent] = useState('');
-  
-  return (
-    <TipTapEditor
-      value={content}
-      onChange={setContent}
-      placeholder="Start writing..."
-      className=""
-    />
-  );
-}`}
-            </pre>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-2">Replace ReactQuill:</h3>
-            <pre className="bg-muted p-3 rounded text-sm overflow-x-auto">
-{`// Replace this:
-import ReactQuill from 'react-quill';
-
-// With this:
-import { TipTapEditor } from '@/components/ui/wysiwyg-editors';`}
-            </pre>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 } 

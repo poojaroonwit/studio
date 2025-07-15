@@ -7,9 +7,9 @@ let connectionPromise: Promise<void> | null = null;
 
 // Skip Redis initialization during build time
 if (process.env.NEXT_PHASE === 'phase-production-build') {
-  console.log('[REDIS] Skipping Redis initialization during build');
+  // console.log('[REDIS] Skipping Redis initialization during build');
 } else {
-  console.log('Attempting to connect to Redis...');
+  // console.log('Attempting to connect to Redis...');
 }
 
 export async function getRedisClient() {
@@ -47,19 +47,19 @@ export async function getRedisClient() {
     });
 
     redisClient.on('connect', () => {
-      console.log('Redis Client Connected');
+      // console.log('Redis Client Connected');
     });
 
     redisClient.on('ready', () => {
-      console.log('Redis Client Ready');
+      // console.log('Redis Client Ready');
     });
 
     redisClient.on('end', () => {
-      console.log('Redis Client Disconnected');
+      // console.log('Redis Client Disconnected');
     });
 
     redisClient.on('reconnecting', () => {
-      console.log('Reconnecting to Redis server...');
+      // console.log('Reconnecting to Redis server...');
     });
   }
 

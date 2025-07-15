@@ -31,6 +31,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
   'appFontFamily',
   'loginPageContent',
+  'loginPageFooter',
   'maxConcurrentProcessors',
 ];
 

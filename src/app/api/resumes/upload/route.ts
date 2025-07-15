@@ -44,10 +44,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check if user has permission to manage candidates (for resume uploads)
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+  // Check if user has permission to manage candidate resumes
+  const canManageResumes = session.user.role === 'Admin' || 
+    session.user.modulePermissions?.includes('CANDIDATES_RESUMES');
+  
+  if (!canManageResumes) {
     await logAudit('WARN', `Forbidden attempt to upload resume by ${actingUserName}`, 'API:Resumes:Upload', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to upload resumes' }, { status: 403 });
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate resumes' }, { status: 403 });
   }
 
   try {

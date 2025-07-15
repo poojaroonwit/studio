@@ -208,7 +208,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-md">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-lg">
                   <Avatar size="md" className="border border-border">
                     <AvatarImage src={user.image || undefined} alt={user.name || "User"} data-ai-hint={user.image ? undefined : "profile person"} />
                     <AvatarFallback className="text-sm font-medium">{user.name?.charAt(0)?.toUpperCase() || <UserCircle className="h-4 w-4"/>}</AvatarFallback>

@@ -56,8 +56,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    console.log('Positions API: Filters:', { titleFilter, departmentFilter, isOpenFilter, positionLevelFilter });
-
     let query = 'SELECT id, title, department, description, "isOpen", position_level, "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
     const conditions = [];
@@ -99,7 +97,6 @@ export async function GET(request: NextRequest) {
         custom_attributes: row.customAttributes || {},
     }));
     
-    console.log('Positions API: Returning positions:', positions.length);
     return NextResponse.json({ data: positions, total }, { status: 200, headers: handleCors(request) });
   } catch (error) {
     console.error("Failed to fetch positions:", error);
@@ -172,7 +169,6 @@ export async function POST(request: NextRequest) {
     const redisClient = await getRedisClient();
     if (redisClient) {
         await redisClient.del(CACHE_KEY_POSITIONS);
-        console.log('Positions cache invalidated due to new position creation.');
     }
 
     await logAudit('AUDIT', `Position '${newPosition.title}' (ID: ${newPosition.id}) created by ${actingUserName}.`, 'API:Positions:Create', actingUserId, { targetPositionId: newPosition.id, title: newPosition.title, department: newPosition.department, position_level: newPosition.position_level });

@@ -223,7 +223,7 @@ export function ImageUpload({
             <img
               src={previewUrl}
               alt="Preview"
-              className={`${previewSizeClasses[previewSize]} object-cover rounded-lg border shadow-sm`}
+              className={`${previewSizeClasses[previewSize]} object-cover rounded-xl border shadow-sm`}
               onError={() => {
                 setPreviewUrl(null);
                 toast.error('Failed to load image preview');
@@ -248,7 +248,7 @@ export function ImageUpload({
         <div className="space-y-2">
           <Label className="text-sm font-medium">Preview</Label>
           <div className="relative inline-block">
-            <div className={`${previewSizeClasses[previewSize]} bg-muted rounded-lg border flex items-center justify-center`}>
+            <div className={`${previewSizeClasses[previewSize]} bg-muted rounded-xl border flex items-center justify-center`}>
               <ImageIcon className="h-8 w-8 text-muted-foreground" />
             </div>
             <Button

@@ -319,34 +319,44 @@ export async function GET(request: NextRequest) {
     const totalQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereString};`;
     const totalResult = await client.query(totalQuery, queryParams.slice(0, paramIndex - 1));
     const total = parseInt(totalResult.rows[0].count, 10);
-    const candidates = candidatesResult.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      email: row.email,
-      phone: row.phone || null,
-      avatarUrl: row.avatarUrl || null,
-      dataAiHint: row.dataAiHint || null,
-      resumePath: row.resumePath || null,
-      parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
-      customAttributes: row.customAttributes || {},
-      position: row.positionId ? {
-        id: row.positionId,
-        title: row.positionTitle,
-        department: row.positionDepartment,
-        position_level: row.positionLevel
-      } : null,
-      fitScore: row.fitScore || null,
-      status: row.status,
-      applicationDate: row.applicationDate,
-      recruiter: row.recruiterId ? {
-        id: row.recruiterId,
-        name: row.recruiterName,
-        email: null
-      } : null,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      transitionHistory: row.transitionHistory || [],
-    }));
+    const candidates = candidatesResult.rows.map(row => {
+      let customAttributes = row.customAttributes || {};
+      if (typeof customAttributes === 'string') {
+        try {
+          customAttributes = JSON.parse(customAttributes);
+        } catch {
+          customAttributes = {};
+        }
+      }
+      return {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        phone: row.phone || null,
+        avatarUrl: row.avatarUrl || null,
+        dataAiHint: row.dataAiHint || null,
+        resumePath: row.resumePath || null,
+        parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
+        customAttributes,
+        position: row.positionId ? {
+          id: row.positionId,
+          title: row.positionTitle,
+          department: row.positionDepartment,
+          position_level: row.positionLevel
+        } : null,
+        fitScore: row.fitScore || null,
+        status: row.status,
+        applicationDate: row.applicationDate,
+        recruiter: row.recruiterId ? {
+          id: row.recruiterId,
+          name: row.recruiterName,
+          email: null
+        } : null,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        transitionHistory: row.transitionHistory || [],
+      };
+    });
     return NextResponse.json({
       data: candidates,
       pagination: {

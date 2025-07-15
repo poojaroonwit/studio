@@ -38,7 +38,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
   }
 
   const currentAppliedPositionId = candidate.positionId;
-  const currentAppliedPosition = allDbPositions.find(p => p.id === currentAppliedPositionId);
+  const currentAppliedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === currentAppliedPositionId) : null;
   const currentFitScore = candidate.fitScore || 0;
   let bestAlternativeMatch: AutomationJobMatch | null = null;
   let bestAlternativeScore = currentFitScore;

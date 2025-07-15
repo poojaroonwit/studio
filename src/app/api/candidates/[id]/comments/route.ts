@@ -48,6 +48,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!session || !session.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+
+  // Check permissions
+  const canManageComments = session.user.role === 'Admin' || 
+    session.user.modulePermissions?.includes('CANDIDATES_COMMENTS');
+  
+  if (!canManageComments) {
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to manage candidate comments' }, { status: 403 });
+  }
   
   // Support both JSON and multipart/form-data
   let content = '';

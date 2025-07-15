@@ -180,12 +180,15 @@ export function CandidateTable({
         <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" />
         <h3 className="text-xl font-semibold text-foreground">Loading Candidates...</h3>
         <p className="text-muted-foreground">Please wait while we fetch the data.</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          If this takes too long, the server may be starting up. Please wait a moment and refresh.
+        </p>
       </div>
     );
   }
 
 
-  if (candidates.length === 0) {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow">
         <Users className="w-16 h-16 text-muted-foreground mb-4" />
@@ -218,7 +221,7 @@ export function CandidateTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {candidates.map((candidate) => {
+            {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate) => {
               const dateValue = candidate.updatedAt || candidate.createdAt;
               let displayDate = 'N/A';
               if (dateValue && typeof dateValue === 'string') {
@@ -283,7 +286,9 @@ export function CandidateTable({
                   <TableCell key={`${candidate.id}-recruiter`}>
                     <Select value={candidate.recruiter?.id || ''} onValueChange={value => onAssignRecruiter(candidate.id, value === '___UNASSIGN___' ? null : value)}>
                       <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Unassigned" />
+                        <SelectValue placeholder="Unassigned">
+                          {candidate.recruiter?.name || 'Unassigned'}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>

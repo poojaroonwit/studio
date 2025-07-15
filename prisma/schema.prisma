@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,92 +5,81 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Note: This configuration works with the postgres user
-  // Make sure your DATABASE_URL uses: postgresql://postgres:secure_password@postgres:5432/studio5_production
 }
 
 model User {
-  id                String   @id @default(uuid()) @db.Uuid
-  name              String
-  email             String   @unique
-  password          String
-  role              String
-  avatarUrl         String?
-  image             String?
-  dataAiHint        String?
-  modulePermissions String[] @default([])
-  authenticationMethod String? @default("basic") @map("authentication_method")
-  forcePasswordChange Boolean @default(false) @map("force_password_change")
-  emailVerified     DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  apiKey            String?  @unique
-  
-  // Relations
-  candidates        Candidate[] @relation("RecruiterCandidates")
-  userGroups        User_UserGroup[]
-  transitionRecords TransitionRecord[] @relation("ActingUserTransitions")
-  logEntries        LogEntry[] @relation("UserLogEntries")
-  uploadQueue       UploadQueue[] @relation("UserUploadQueue")
-  accounts          Account[]
-  userPreferences   UserUIDisplayPreference[]
-  candidateComments CandidateComment[] @relation("UserComments")
-  attachments       Attachment[] @relation("UserAttachments")
-  
-  // Indexes
+  id                   String                    @id @default(uuid()) @db.Uuid
+  name                 String
+  email                String                    @unique
+  password             String
+  role                 String
+  avatarUrl            String?
+  image                String?
+  dataAiHint           String?
+  modulePermissions    String[]                  @default([])
+  authenticationMethod String?                   @default("basic") @map("authentication_method")
+  forcePasswordChange  Boolean                   @default(false) @map("force_password_change")
+  emailVerified        DateTime?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  apiKey               String?                   @unique
+  accounts             Account[]
+  attachments          Attachment[]              @relation("UserAttachments")
+  candidates           Candidate[]               @relation("RecruiterCandidates")
+  candidateComments    CandidateComment[]        @relation("UserComments")
+  logEntries           LogEntry[]                @relation("UserLogEntries")
+  transitionRecords    TransitionRecord[]        @relation("ActingUserTransitions")
+  userPreferences      UserUIDisplayPreference[]
+  userGroups           User_UserGroup[]
+  uploadQueue          UploadQueue[]             @relation("UserUploadQueue")
+
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
 }
 
 model Position {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String      @id @default(uuid()) @db.Uuid
   title            String
   department       String
   description      String?
-  isOpen           Boolean  @default(true)
-  positionLevel    String?  @map("position_level")
-  customAttributes Json?    @default("{}")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  // Relations
+  isOpen           Boolean     @default(true)
+  positionLevel    String?     @map("position_level")
+  customAttributes Json?       @default("{}")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   candidates       Candidate[]
-  
-  // Indexes
+
   @@index([title])
   @@index([department])
   @@index([isOpen])
 }
 
 model Candidate {
-  id              String   @id @default(uuid()) @db.Uuid
-  name            String
-  email           String   @unique
-  phone           String?
-  positionId      String?  @db.Uuid
-  recruiterId     String?  @db.Uuid
-  fitScore        Int?     @default(0)
-  status          String   @default("Applied")
-  applicationDate DateTime @default(now())
-  parsedData      Json?
-  customAttributes Json?   @default("{}")
-  resumePath      String?
+  id                      String             @id @default(uuid()) @db.Uuid
+  name                    String
+  email                   String             @unique
+  phone                   String?
+  positionId              String?            @db.Uuid
+  recruiterId             String?            @db.Uuid
+  fitScore                Int?               @default(0)
+  status                  String             @default("Applied")
+  applicationDate         DateTime           @default(now())
+  parsedData              Json?
+  customAttributes        Json?              @default("{}")
+  resumePath              String?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  avatarUrl               String?
+  dataAiHint              String?
   assignmentJustification String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  avatarUrl       String?
-  dataAiHint      String?
-  
-  // Relations
-  position        Position? @relation(fields: [positionId], references: [id])
-  recruiter       User?     @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
-  transitionRecords TransitionRecord[]
-  jobMatches      JobMatch[]
-  candidateComments CandidateComment[]
-  attachments     Attachment[]
-  
-  // Indexes
+  attachments             Attachment[]
+  position                Position?          @relation(fields: [positionId], references: [id])
+  recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
+  candidateComments       CandidateComment[]
+  jobMatches              JobMatch[]
+  transitionRecords       TransitionRecord[]
+
   @@index([email])
   @@index([status])
   @@index([positionId])
@@ -106,34 +89,31 @@ model Candidate {
 }
 
 model RecruitmentStage {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  description String?
-  isSystem    Boolean  @map("is_system")
-  sortOrder   Int      @map("sort_order")
-  color_complete String?  // HEX or CSS color for completed stage node
-  color_badge String?  // HEX or CSS color for badge on candidate list
-  // Indexes
+  id             String  @id @default(uuid()) @db.Uuid
+  name           String  @unique
+  description    String?
+  isSystem       Boolean @map("is_system")
+  sortOrder      Int     @map("sort_order")
+  color_complete String?
+  color_badge    String?
+
   @@index([sortOrder])
   @@index([isSystem])
 }
 
 model TransitionRecord {
-  id            String   @id @default(uuid()) @db.Uuid
-  candidateId   String   @db.Uuid
-  positionId    String?  @db.Uuid
-  date          DateTime @default(now())
-  stage         String
-  notes         String?
-  actingUserId  String?  @db.Uuid
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  actingUser    User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
-  
-  // Indexes
+  id           String    @id @default(uuid()) @db.Uuid
+  candidateId  String    @db.Uuid
+  positionId   String?   @db.Uuid
+  date         DateTime  @default(now())
+  stage        String
+  notes        String?
+  actingUserId String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
   @@index([candidateId])
   @@index([actingUserId])
   @@index([date])
@@ -142,19 +122,16 @@ model TransitionRecord {
 }
 
 model LogEntry {
-  id          String   @id @default(uuid()) @db.Uuid
-  timestamp   DateTime @default(now())
-  level       String
-  message     String
-  source      String?
+  id           String   @id @default(uuid()) @db.Uuid
+  timestamp    DateTime @default(now())
+  level        String
+  message      String
+  source       String?
   actingUserId String?  @db.Uuid
-  details     Json?
-  createdAt   DateTime @default(now())
-  
-  // Relations
-  actingUser  User?     @relation("UserLogEntries", fields: [actingUserId], references: [id])
-  
-  // Indexes
+  details      Json?
+  createdAt    DateTime @default(now())
+  actingUser   User?    @relation("UserLogEntries", fields: [actingUserId], references: [id])
+
   @@index([timestamp])
   @@index([level])
   @@index([source])
@@ -162,19 +139,18 @@ model LogEntry {
 }
 
 model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  level       String
-  message     String
-  source      String?
+  id           String   @id @default(uuid()) @db.Uuid
+  level        String
+  message      String
+  source       String?
   actingUserId String?  @db.Uuid
-  details     Json?
-  timestamp   DateTime @default(now())
-  user_id     String?  @db.Uuid
-  action      String?
-  entity      String?
-  entity_id   String?  @db.Uuid
-  
-  // Indexes
+  details      Json?
+  timestamp    DateTime @default(now())
+  user_id      String?  @db.Uuid
+  action       String?
+  entity       String?
+  entity_id    String?  @db.Uuid
+
   @@index([timestamp])
   @@index([level])
   @@index([source])
@@ -183,31 +159,26 @@ model AuditLog {
 }
 
 model UserGroup {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String   @unique
-  description   String?
-  permissions   String[] @default([])
-  isDefault     Boolean  @default(false) @map("is_default")
-  isSystemRole  Boolean  @default(false) @map("is_system_role")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  users         User_UserGroup[]
-  
-  // Indexes
+  id           String           @id @default(uuid()) @db.Uuid
+  name         String           @unique
+  description  String?
+  permissions  String[]         @default([])
+  isDefault    Boolean          @default(false) @map("is_default")
+  isSystemRole Boolean          @default(false) @map("is_system_role")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  users        User_UserGroup[]
+
   @@index([isDefault])
   @@index([isSystemRole])
 }
 
 model User_UserGroup {
-  userId   String   @db.Uuid
-  groupId  String   @db.Uuid
-  
-  // Relations
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group    UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  
+  userId  String    @db.Uuid
+  groupId String    @db.Uuid
+  group   UserGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@id([userId, groupId])
   @@index([userId])
   @@index([groupId])
@@ -217,73 +188,62 @@ model SystemSetting {
   key       String   @id
   value     String?
   updatedAt DateTime @default(now())
-  
-  // Indexes
+
   @@index([updatedAt])
 }
 
-
-
-
-
 model CustomFieldDefinition {
-  id          String   @id @default(uuid()) @db.Uuid
-  modelName   String   @map("model_name")
-  fieldKey    String   @map("field_key")
-  label       String
-  fieldType   String   @map("field_type")
-  options     Json?
-  isRequired  Boolean  @default(false) @map("is_required")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-  
+  id         String   @id @default(uuid()) @db.Uuid
+  modelName  String   @map("model_name")
+  fieldKey   String   @map("field_key")
+  label      String
+  fieldType  String   @map("field_type")
+  options    Json?
+  isRequired Boolean  @default(false) @map("is_required")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
   @@unique([modelName, fieldKey])
   @@index([modelName])
   @@index([sortOrder])
 }
 
 model JobMatch {
-  id                    String   @id @default(uuid()) @db.Uuid
-  candidateId           String   @db.Uuid
-  jobId                 String?  @db.Uuid
-  jobTitle              String?  @map("job_title")
-  fitScore              Int?     @map("fit_score")
-  matchReasons          String[] @map("match_reasons")
-  jobDescriptionSummary String?  @map("job_description_summary")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
-  // Relations
+  id                    String    @id @default(uuid()) @db.Uuid
+  candidateId           String    @db.Uuid
+  jobId                 String?   @db.Uuid
+  jobTitle              String?   @map("job_title")
+  fitScore              Int?      @map("fit_score")
+  matchReasons          String[]  @map("match_reasons")
+  jobDescriptionSummary String?   @map("job_description_summary")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  
-  // Indexes
+
   @@index([candidateId])
   @@index([jobId])
   @@index([fitScore])
 }
 
 model UploadQueue {
-  id             String   @id @default(uuid()) @db.Uuid
-  fileName       String   @map("file_name")
-  fileSize       BigInt   @map("file_size")
+  id             String    @id @default(uuid()) @db.Uuid
+  fileName       String    @map("file_name")
+  fileSize       BigInt    @map("file_size")
   status         String
   error          String?
-  errorDetails   String?  @map("error_details")
+  errorDetails   String?   @map("error_details")
   source         String?
-  uploadDate     DateTime @default(now()) @map("upload_date")
+  uploadDate     DateTime  @default(now()) @map("upload_date")
   completedDate  DateTime? @map("completed_date")
-  uploadId       String?  @map("upload_id")
-  createdBy      String?  @db.Uuid @map("created_by")
-  updatedAt      DateTime @default(now()) @map("updated_at")
-  filePath       String   @map("file_path")
-  webhookPayload Json?    @map("webhook_payload")
-  positionId     String?  @db.Uuid @map("position_id")
-  
-  // Relations
+  uploadId       String?   @map("upload_id")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedAt      DateTime  @default(now()) @map("updated_at")
+  filePath       String    @map("file_path")
+  webhookPayload Json?     @map("webhook_payload")
+  positionId     String?   @map("position_id") @db.Uuid
   createdByUser  User?     @relation("UserUploadQueue", fields: [createdBy], references: [id])
-  
-  // Indexes
+
   @@index([status])
   @@index([uploadDate])
   @@index([completedDate])
@@ -293,23 +253,20 @@ model UploadQueue {
 }
 
 model UserUIDisplayPreference {
-  id            String   @id @default(uuid()) @db.Uuid
-  userId        String   @db.Uuid @map("userId")
-  modelType     String   @map("model_type")
-  attributeKey  String   @map("attribute_key")
-  uiPreference  String   @map("ui_preference")
-  customNote    String?  @map("custom_note")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Indexes
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("userId") @db.Uuid
+  modelType    String   @map("model_type")
+  attributeKey String   @map("attribute_key")
+  uiPreference String   @map("ui_preference")
+  customNote   String?  @map("custom_note")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, modelType, attributeKey])
   @@index([userId])
   @@index([modelType])
   @@index([attributeKey])
-  @@unique([userId, modelType, attributeKey])
 }
 
 model Account {
@@ -318,15 +275,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
@@ -344,45 +300,41 @@ model DataModel {
 }
 
 model SystemPreference {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @db.Uuid
-  key         String
-  value       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  key       String
+  value     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CandidateComment {
-  id          String   @id @default(uuid()) @db.Uuid
-  candidateId String   @db.Uuid
-  authorId    String   @db.Uuid
-  content     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  attachmentIds String[] // Array of Attachment IDs
-
-  // Relations
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  author      User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid()) @db.Uuid
+  candidateId   String    @db.Uuid
+  authorId      String    @db.Uuid
+  content       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  attachmentIds String[]
+  author        User      @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
   @@index([authorId])
 }
 
 model Attachment {
-  id          String   @id @default(uuid()) @db.Uuid
-  candidateId String   @db.Uuid
-  uploadedById String  @db.Uuid
-  filePath    String
-  fileName    String
-  label       String   // e.g. "resume", "certificate", "other"
-  isPrimary   Boolean  @default(false)
-  uploadedAt  DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  uploadedBy  User      @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid()) @db.Uuid
+  candidateId  String    @db.Uuid
+  uploadedById String    @db.Uuid
+  filePath     String
+  fileName     String
+  label        String
+  isPrimary    Boolean   @default(false)
+  uploadedAt   DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedBy   User      @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
   @@index([uploadedById])
@@ -391,49 +343,43 @@ model Attachment {
 }
 
 model Webhook {
-  id                String   @id @default(uuid()) @db.Uuid
+  id                String       @id @default(uuid()) @db.Uuid
   name              String
   url               String
-  events            String[] // Array of event types this webhook listens to
-  method            String   // GET, POST, PUT, PATCH
-  is_active         Boolean  @default(true) @map("is_active")
-  auth_type         String   @default("none") @map("auth_type") // none, basic, bearer, header
-  auth_username     String?  @map("auth_username")
-  auth_password     String?  @map("auth_password")
-  auth_token        String?  @map("auth_token")
-  auth_header_name  String?  @map("auth_header_name")
-  auth_header_value String?  @map("auth_header_value")
-  headers           Json?    // Custom headers as JSON object
-  retry_count       Int      @default(3) @map("retry_count")
-  timeout           Int      @default(30) // Timeout in seconds
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
-  
-  // Relations
+  method            String
+  headers           Json?
+  auth_header_name  String?      @map("auth_header_name")
+  auth_header_value String?      @map("auth_header_value")
+  auth_password     String?      @map("auth_password")
+  auth_token        String?      @map("auth_token")
+  auth_type         String       @default("none") @map("auth_type")
+  auth_username     String?      @map("auth_username")
+  created_at        DateTime     @default(now()) @map("created_at")
+  events            String[]
+  is_active         Boolean      @default(true) @map("is_active")
+  retry_count       Int          @default(3) @map("retry_count")
+  timeout           Int          @default(30)
+  updated_at        DateTime     @updatedAt @map("updated_at")
   logs              WebhookLog[]
-  
-  // Indexes
+
   @@index([is_active])
   @@index([events])
   @@index([created_at])
 }
 
 model WebhookLog {
-  id             String   @id @default(uuid()) @db.Uuid
-  webhook_id     String   @db.Uuid @map("webhook_id")
-  event_type     String   @map("event_type")
-  payload        Json     // The webhook payload that was sent
-  response_status Int?    @map("response_status")
-  response_body  String?  @map("response_body")
-  success        Boolean
-  error_message  String?  @map("error_message")
-  duration_ms    Int      @default(0) @map("duration_ms")
-  created_at     DateTime @default(now()) @map("created_at")
-  
-  // Relations
-  webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
-  
-  // Indexes
+  id              String   @id @default(uuid()) @db.Uuid
+  webhook_id      String   @map("webhook_id") @db.Uuid
+  event_type      String   @map("event_type")
+  payload         Json
+  response_status Int?     @map("response_status")
+  response_body   String?  @map("response_body")
+  success         Boolean
+  error_message   String?  @map("error_message")
+  duration_ms     Int      @default(0) @map("duration_ms")
+  created_at      DateTime @default(now()) @map("created_at")
+  webhook         Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
+
   @@index([webhook_id])
   @@index([event_type])
   @@index([success])

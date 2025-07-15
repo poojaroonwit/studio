@@ -1,7 +1,40 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function ApiKeyManager() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  
+  // Check permissions
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const canManageApiKeys = session.user.role === 'Admin' || 
+        session.user.modulePermissions?.includes('API_KEYS_MANAGE');
+      
+      if (!canManageApiKeys) {
+        router.push('/settings');
+      }
+    } else if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
+
+  if (status === 'unauthenticated') {
+    return null;
+  }
+
+  const canManageApiKeys = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('API_KEYS_MANAGE');
+  
+  if (!canManageApiKeys) {
+    return <div>Access denied. You don't have permission to manage API keys.</div>;
+  }
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,14 +94,14 @@ export default function ApiKeyManager() {
     }
   };
 
-  const status = apiKey ? "Active" : "Not Generated";
+  const apiKeyStatus = apiKey ? "Active" : "Not Generated";
   const statusColor = apiKey ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600";
 
   return (
     <div className="max-w-lg mx-auto mt-12 p-6 bg-card dark:bg-card rounded shadow">
       <h1 className="text-2xl font-bold mb-2">API Key Management</h1>
       <div className="flex items-center mb-4">
-        <span className={`px-2 py-1 rounded text-xs font-semibold mr-2 ${statusColor}`}>{status}</span>
+        <span className={`px-2 py-1 rounded text-xs font-semibold mr-2 ${statusColor}`}>{apiKeyStatus}</span>
         {apiKey && <span className="text-xs text-gray-500">(Keep this key secret)</span>}
       </div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">

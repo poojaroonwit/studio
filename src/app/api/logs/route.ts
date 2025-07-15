@@ -166,6 +166,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = (page - 1) * limit;
     const level = searchParams.get('level') as LogLevel | null;
+    const search = searchParams.get('search');
+    const actingUserId = searchParams.get('actingUserId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     
     let whereClauses: string[] = [];
     let queryParams: any[] = [];
@@ -176,20 +180,48 @@ export async function GET(request: NextRequest) {
         queryParams.push(level);
     }
 
+    if (search && search.trim()) {
+        whereClauses.push(`(message ILIKE $${paramIndex} OR source ILIKE $${paramIndex})`);
+        queryParams.push(`%${search.trim()}%`);
+        paramIndex++;
+    }
+
+    if (actingUserId && actingUserId !== 'ALL') {
+        whereClauses.push(`"actingUserId" = $${paramIndex++}`);
+        queryParams.push(actingUserId);
+    }
+
+    if (startDate) {
+        whereClauses.push(`timestamp >= $${paramIndex++}`);
+        queryParams.push(new Date(startDate));
+    }
+
+    if (endDate) {
+        whereClauses.push(`timestamp <= $${paramIndex++}`);
+        queryParams.push(new Date(endDate));
+    }
+
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const client = await getPool().connect();
     try {
         const logsQuery = `
-            SELECT * FROM "LogEntry"
+            SELECT l.*, u.name as "actingUserName"
+            FROM "LogEntry" l
+            LEFT JOIN "User" u ON l."actingUserId" = u.id
             ${whereString}
-            ORDER BY timestamp DESC
+            ORDER BY l.timestamp DESC
             LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
         `;
         const logsResult = await client.query(logsQuery, [...queryParams, limit, offset]);
         
-        const totalQuery = `SELECT COUNT(*) FROM "LogEntry" ${whereString};`;
-        const totalResult = await client.query(totalQuery, queryParams.slice(0, paramIndex - 1));
+        const totalQuery = `
+            SELECT COUNT(*) 
+            FROM "LogEntry" l
+            LEFT JOIN "User" u ON l."actingUserId" = u.id
+            ${whereString};
+        `;
+        const totalResult = await client.query(totalQuery, queryParams);
         const total = parseInt(totalResult.rows[0].count, 10);
 
         return NextResponse.json({

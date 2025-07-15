@@ -43,6 +43,7 @@ import { RecruitmentPipelineCard } from '@/components/candidates/RecruitmentPipe
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
+import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
@@ -198,6 +199,31 @@ export default function CandidateDetailPage() {
   const router = useRouter();
   const candidateId = params.id as string;
 
+  // Define fetchTransitionHistory before any useEffect that uses it
+  const fetchTransitionHistory = useCallback(async () => {
+    if (!candidateId) return;
+    try {
+      const res = await fetch(`/api/candidates/${candidateId}/logs`);
+      if (!res.ok) throw new Error('Failed to fetch candidate logs');
+      const data = await res.json();
+      // Only keep stage change records
+      const transitions = Array.isArray(data.data)
+        ? data.data.filter((log: any) => log.action === 'Stage changed')
+        : [];
+      // Map to TransitionRecord shape if needed
+      setTransitionHistory(transitions.map((tr: any) => ({
+        id: tr.id,
+        candidateId: candidateId,
+        date: tr.time,
+        stage: tr.stage,
+        notes: tr.note,
+        actingUserName: tr.user,
+      })));
+    } catch (error) {
+      setTransitionHistory([]);
+    }
+  }, [candidateId]);
+
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -232,6 +258,8 @@ export default function CandidateDetailPage() {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
   const [showAllJobMatches, setShowAllJobMatches] = useState(false);
+  const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
+  const [filteredRecruiters, setFilteredRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -278,19 +306,31 @@ export default function CandidateDetailPage() {
     }
   }, [candidate, reset]);
 
+  // Update filtered recruiters when search term or recruiters list changes
+  useEffect(() => {
+    if (recruiterSearchTerm.trim() === '') {
+      setFilteredRecruiters(recruiters);
+    } else {
+      const filtered = recruiters.filter(recruiter =>
+        recruiter.name.toLowerCase().includes(recruiterSearchTerm.toLowerCase())
+      );
+      setFilteredRecruiters(filtered);
+    }
+  }, [recruiterSearchTerm, recruiters]);
+
   useEffect(() => {
     if (!candidateId) return;
     const fetchComments = async () => {
       try {
         const res = await fetch(`/api/candidates/${candidateId}/comments`);
         if (!res.ok) {
-          console.error('Failed to fetch comments:', res.status, res.statusText);
+          // console.error('Failed to fetch comments:', res.status, res.statusText);
           setComments([]);
           return;
         }
         
         const data = await res.json();
-        console.log('Initial comments fetch:', data);
+        // console.log('Initial comments fetch:', data);
         
         // Handle both array and object { data: [...] }
         if (Array.isArray(data)) {
@@ -301,7 +341,7 @@ export default function CandidateDetailPage() {
           setComments([]);
         }
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        // console.error('Error fetching comments:', error);
         setComments([]);
       }
     };
@@ -391,12 +431,12 @@ export default function CandidateDetailPage() {
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments`);
       if (!response.ok) {
-        console.error('Failed to fetch comments:', response.status, response.statusText);
+        // console.error('Failed to fetch comments:', response.status, response.statusText);
         return;
       }
       
       const data = await response.json();
-      console.log('Fetched comments:', data);
+      // console.log('Fetched comments:', data);
       
       // Handle both array and object { data: [...] }
       if (Array.isArray(data)) {
@@ -407,7 +447,7 @@ export default function CandidateDetailPage() {
         setComments([]);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      // console.error('Error fetching comments:', error);
     }
   };
 
@@ -488,8 +528,9 @@ export default function CandidateDetailPage() {
       fetchCandidateDetails();
       fetchRecruiters();
       fetchPositionsAndStages();
+      fetchTransitionHistory();
     }
-  }, [candidateId, sessionStatus, fetchCandidateDetails, fetchRecruiters, fetchPositionsAndStages]);
+  }, [candidateId, sessionStatus, fetchCandidateDetails, fetchRecruiters, fetchPositionsAndStages, fetchTransitionHistory]);
 
   useEffect(() => {
     if (fetchError) {
@@ -500,96 +541,6 @@ export default function CandidateDetailPage() {
   useEffect(() => {
     console.log('Available stages:', availableStages);
   }, [availableStages]);
-
-  // Fetch transition records from logs endpoint
-  const fetchTransitionHistory = useCallback(async () => {
-    if (!candidateId) return;
-    try {
-      const res = await fetch(`/api/candidates/${candidateId}/logs`);
-      if (!res.ok) throw new Error('Failed to fetch candidate logs');
-      const data = await res.json();
-      // Only keep stage change records
-      const transitions = Array.isArray(data.data)
-        ? data.data.filter((log: any) => log.action === 'Stage changed')
-        : [];
-      // Map to TransitionRecord shape if needed
-      setTransitionHistory(transitions.map((tr: any) => ({
-        id: tr.id,
-        candidateId: candidateId,
-        date: tr.time,
-        stage: tr.stage,
-        notes: tr.note,
-        actingUserName: tr.user,
-      })));
-    } catch (error) {
-      setTransitionHistory([]);
-    }
-  }, [candidateId]);
-
-
-  useEffect(() => {
-    // Subscribe to SSE for real-time candidate updates
-    const eventSource = new EventSource('/api/candidates/sse');
-    eventSourceRef.current = eventSource;
-    
-    eventSource.onerror = (error) => {
-      console.error('[SSE] SSE connection error for candidate detail page:', error);
-    };
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const updatedCandidate = JSON.parse(event.data);
-        if (updatedCandidate.id === candidateId) {
-          // Only refresh if the update is for the current candidate
-          fetchCandidateDetails();
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    };
-    // Listen for custom events: comment, resume, transition
-    eventSource.addEventListener('comment', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.candidateId === candidateId) {
-          fetchComments();
-          loadAllAttachments && loadAllAttachments();
-        }
-      } catch (e) {}
-    });
-    eventSource.addEventListener('resume', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.candidateId === candidateId) {
-          fetchResumes();
-          loadAllAttachments && loadAllAttachments();
-        }
-      } catch (e) {}
-    });
-    eventSource.addEventListener('transition', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.candidateId === candidateId) {
-          fetchTransitionHistory && fetchTransitionHistory();
-        }
-      } catch (e) {}
-    });
-
-    // Listen for recruitment stage updates
-    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
-      try {
-        const updatedStages = JSON.parse(event.data);
-        setAvailableStages(updatedStages);
-      } catch (e) {
-        console.error('Error parsing recruitment stages update:', e);
-      }
-    });
-    // Cleanup function
-    return () => {
-      eventSource.close();
-      eventSourceRef.current = null;
-    };
-  }, [candidateId, fetchCandidateDetails, fetchComments, fetchResumes, fetchTransitionHistory, loadAllAttachments]);
 
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
     console.log('handleUploadSuccess called', updatedCandidate);
@@ -697,8 +648,9 @@ export default function CandidateDetailPage() {
 
     const handleJobMatchClick = (jobMatch: any) => {
     // Find the position details - try by job_id first, then by job_title
-    const position = allDbPositions.find(p => p.id === jobMatch.job_id) || 
-                    allDbPositions.find(p => p.title === jobMatch.job_title);
+    const position = Array.isArray(allDbPositions) ? 
+                    (allDbPositions.find(p => p.id === jobMatch.job_id) || 
+                     allDbPositions.find(p => p.title === jobMatch.job_title)) : null;
     
     // Prepare the job match data with position details
     const jobMatchData = {
@@ -977,36 +929,6 @@ export default function CandidateDetailPage() {
   return (
     <div className="h-screen overflow-y-auto">
     
-      {/* Floating Save/Cancel Buttons - Only show when editing */}
-      {isEditing && (
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSubmit(handleSaveDetails)}
-            disabled={isSubmitting}
-            className="shadow-lg"
-          >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {isSubmitting ? 'Saving...' : 'Save'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCancelEdit}
-            disabled={isSubmitting}
-            className="shadow-lg"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Cancel
-          </Button>
-        </div>
-      )}
-    
       <form onSubmit={handleSubmit(handleSaveDetails)}>
           {/* Header - 2 Columns */}
           {candidate && (
@@ -1090,11 +1012,8 @@ export default function CandidateDetailPage() {
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
-                        {candidate.positionId && allDbPositions.length > 0 && (
+                        {candidate.positionId && Array.isArray(allDbPositions) && allDbPositions.length > 0 && (
                           <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
-                        )}
-                        {candidate.recruiterId && recruiters.length > 0 && (
-                          <span>Recruiter: <span className="font-medium text-foreground">{recruiters.find(r => r.id === candidate.recruiterId)?.name || 'N/A'}</span></span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
@@ -1113,125 +1032,57 @@ export default function CandidateDetailPage() {
                 
                 {/* Column 2: Action Buttons (4 cols) */}
                 <div className="lg:col-span-3">
-                  <div className="flex flex-row gap-3">
-                    {/* Edit Actions Button with Dropdown */}
+                  <div className="flex justify-end gap-2">
                     {!isEditing ? (
-                      <div className="w-1/2 relative">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="default"
-                              className="w-full h-18 flex flex-col items-start justify-center p-3"
-                            >
-                              <div className="flex items-center mb-1">
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                <span className="font-bold text-sm">Edit Actions</span>
-                              </div>
-                                                      <span className="text-xs text-muted-foreground text-left leading-tight">
-                          Edit candidate details,<br />
-                          Manage transitions
-                        </span>
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-48 p-0" align="start">
-                            <div className="py-1">
-                              <button
-                                onClick={() => {
-                                  setIsEditing(true);
-                                  // Populate form with existing candidate data
-                                  if (candidate) {
-                                    reset({
-                                      name: candidate.name || '',
-                                      email: candidate.email || '',
-                                      phone: candidate.phone || '',
-                                      positionId: candidate.positionId || null,
-                                      recruiterId: candidate.recruiterId || null,
-                                      fitScore: candidate.fitScore || null,
-                                      status: candidate.status || '',
-                                      assignmentJustification: (candidate as any).assignmentJustification || '',
-                                      parsedData: (candidate.parsedData as any) || {}
-                                    });
-                                  }
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                              >
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                Edit Candidate Details
-                              </button>
-                              {availableStages.length > 0 && (
-                                <button
-                                  onClick={() => {
-                                    setIsTransitionsModalOpen(true);
-                                  }}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                                >
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Manage Transitions
-                                </button>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            setIsEditing(true);
+                            if (candidate) {
+                              reset({
+                                name: candidate.name || '',
+                                email: candidate.email || '',
+                                phone: candidate.phone || '',
+                                positionId: candidate.positionId || null,
+                                recruiterId: candidate.recruiterId || null,
+                                fitScore: candidate.fitScore || null,
+                                status: candidate.status || '',
+                                assignmentJustification: (candidate as any).assignmentJustification || '',
+                                parsedData: (candidate.parsedData as any) || {}
+                              });
+                            }
+                          }}
+                        >
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit Candidate Profile
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={() => {
+                            // Always set preselectedStage to candidate.status or first available stage
+                            if (candidate?.status) {
+                              setPreselectedStage(candidate.status);
+                            } else if (availableStages.length > 0) {
+                              setPreselectedStage(availableStages[0].name);
+                            } else {
+                              setPreselectedStage(null);
+                            }
+                            setIsTransitionsModalOpen(true);
+                          }}
+                          disabled={availableStages.length === 0}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Manage Transitions
+                        </Button>
+                      </>
                     ) : (
-                      <div className="flex gap-2 w-1/2">
-                        {/* Save/Cancel buttons moved to floating position - this div is now empty */}
+                      <div className="flex gap-2">
+                        {/* Save/Cancel buttons will be floating */}
                       </div>
                     )}
-                    
-                    {/* Recruiter Assignment Button with Dropdown */}
-                    <div className="w-1/2 relative">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="default"
-                            disabled={isAssigningRecruiter || !candidate.id}
-                            className="w-full h-18 flex flex-col items-start justify-center p-3"
-                          >
-                            <div className="flex items-center mb-1">
-                              <Users className="h-4 w-4 mr-2" />
-                              <span className="font-bold text-sm">Recruiter Label</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground text-left leading-tight">
-                              {recruiters.length > 0 ? 'Recruiter assign' : 'No recruiters available'}
-                            </span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 p-0" align="start">
-                          <div className="py-1">
-                            {recruiters.length > 0 ? (
-                              <>
-                                <div className="px-4 py-2 text-xs text-muted-foreground border-b">
-                                  Current: {recruiters.find(r => r.id === candidate.recruiterId)?.name || 'Unassigned'}
-                                </div>
-                                <button
-                                  onClick={() => handleAssignRecruiter(null)}
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                                >
-                                  Unassign
-                                </button>
-                                {recruiters.map((recruiter) => (
-                                  <button
-                                    key={recruiter.id}
-                                    onClick={() => handleAssignRecruiter(recruiter.id)}
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
-                                  >
-                                    <User className="h-4 w-4 mr-2" />
-                                    {recruiter.name}
-                                  </button>
-                                ))}
-                              </>
-                            ) : (
-                              <div className="px-4 py-2 text-sm text-muted-foreground">
-                                No recruiters available
-                              </div>
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
                   </div>
                 </div>
                 
@@ -1242,8 +1093,9 @@ export default function CandidateDetailPage() {
           )}
           
           <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
-            {/* LEFT SIDEBAR: Recruitment Pipeline (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6 p-6">
+            {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
+            <div className="lg:col-span-2 bg-card sticky top-6 p-6 space-y-6">
+              {/* Recruitment Pipeline */}
               {availableStages.length > 0 && candidate && (
                 <div className="w-full">
                   <RecruitmentPipelineCard
@@ -1268,13 +1120,14 @@ export default function CandidateDetailPage() {
                   />
                 </div>
               )}
+              {/* Recruiter Assignment Section removed from left sidebar as per requirements */}
             </div>
             {/* MAIN CONTENT (50%) with Tabs */}
             <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
               {/* Tabs for main content */}
 
                   {/* Job Applied Section */}
-                  <section className="mb-4">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
@@ -1353,7 +1206,7 @@ export default function CandidateDetailPage() {
                                   e.currentTarget.style.filter = 'brightness(1)';
                                 }}
                                 onClick={() => {
-                                  const position = allDbPositions.find(p => p.id === candidate.positionId);
+                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
                                   
                                   if (position) {
                                     const appliedJobData = {
@@ -1382,7 +1235,7 @@ export default function CandidateDetailPage() {
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
-                                      {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position'}
+                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
                                     </h4>
                                     {candidate.fitScore !== null && candidate.fitScore !== undefined && (
                                       <div className="text-2xl font-bold text-primary flex items-center gap-2">
@@ -1419,7 +1272,7 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Job Matches Section */}
-                  <section className="mb-4">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
                       <ListChecks className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
@@ -1487,7 +1340,7 @@ export default function CandidateDetailPage() {
                                                         onValueChange={(value) => {
                                                             field.onChange(value);
                                                             // Update job title when position is selected
-                                                            const selectedPosition = allDbPositions.find(p => p.id === value);
+                                                            const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
                                                             if (selectedPosition) {
                                                                 setValue(`parsedData.job_matches.${index}.job_title`, selectedPosition.title);
                                                             }
@@ -1627,8 +1480,9 @@ export default function CandidateDetailPage() {
                                     >
                                 {candidateJobMatches.map((match, index) => {
                                   // Try to find position by job_id first, then by job_title
-                                  const position = allDbPositions.find(p => p.id === match.job_id) || 
-                                                 allDbPositions.find(p => p.title === match.job_title);
+                                  const position = Array.isArray(allDbPositions) ? 
+                                                 (allDbPositions.find(p => p.id === match.job_id) || 
+                                                  allDbPositions.find(p => p.title === match.job_title)) : null;
                                   
                                   return (
                                     <div 
@@ -1694,7 +1548,7 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Collapsible Candidate Info Sections */}
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setInfoOpen(o => !o)}>
                       <UserCircle className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
@@ -1739,7 +1593,7 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Contact Information Section */}
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
                       <Mail className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
@@ -1765,7 +1619,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
                       <GraduationCap className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
@@ -1928,7 +1782,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
@@ -2115,7 +1969,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
                       <Star className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
@@ -2172,7 +2026,7 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 ">
+                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
                       <UserCog className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
@@ -2219,6 +2073,36 @@ export default function CandidateDetailPage() {
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
             <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+              {/* Recruiter Assignment Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center">
+                  <Users className="mr-2 h-5 w-5 text-primary" />
+                  Recruiter Assignment
+                </h3>
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
+                    <Select
+                      value={candidate.recruiterId || 'unassign'}
+                      onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
+                      disabled={isAssigningRecruiter}
+                    >
+                      <SelectTrigger className="min-w-[120px] border-none bg-transparent shadow-none">
+                        <SelectValue placeholder="Assign..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassign">Unassign</SelectItem>
+                        {recruiters.map((recruiter) => (
+                          <SelectItem key={recruiter.id} value={recruiter.id}>
+                            {recruiter.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
               {/* Comments & Activity Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">

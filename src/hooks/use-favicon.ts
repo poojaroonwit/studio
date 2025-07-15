@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 export function useFavicon() {
+  // appFaviconDataUrl is now expected to be a MinIO URL, not a data URL
   const [faviconDataUrl, setFaviconDataUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

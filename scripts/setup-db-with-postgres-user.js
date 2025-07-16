@@ -8,7 +8,7 @@ console.log('🔧 Setting up database with postgres user...');
 // Check if DATABASE_URL is set
 if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL environment variable is not set');
-    console.log('Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/studio5_production');
+    console.log('Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/studio_production');
     process.exit(1);
 }
 

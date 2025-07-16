@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
           const insertQuery = `
-            INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt")
+            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
             RETURNING *;
           `;
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt")
+          INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
           RETURNING *;
         `;

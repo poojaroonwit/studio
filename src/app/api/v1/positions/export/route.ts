@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, title, department, description, "isOpen", positionLevel, "customAttributes", "createdAt", "updatedAt"
+      SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt"
       FROM "Position"
       ORDER BY "createdAt" DESC
     `;

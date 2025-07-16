@@ -306,7 +306,7 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const candidatesQuery = `
-      SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p.positionLevel as "positionLevel",
+      SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
              r.id as "recruiterId", r.name as "recruiterName"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id

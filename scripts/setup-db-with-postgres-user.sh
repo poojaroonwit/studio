@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Database setup script for postgres user and studio5_production database
+# Database setup script for postgres user and studio_production database
 # This script initializes the database with the correct user permissions
 
 echo "🔧 Setting up database with postgres user..."
@@ -8,7 +8,7 @@ echo "🔧 Setting up database with postgres user..."
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ DATABASE_URL environment variable is not set"
-    echo "Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/studio5_production"
+    echo "Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/studio_production"
     exit 1
 fi
 

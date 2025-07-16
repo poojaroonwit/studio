@@ -78,10 +78,10 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
     conditions.push(`"isOpen" = FALSE`);
   }
 
-  if (filters.positionLevel) {
-    conditions.push(`positionLevel ILIKE $${paramIndex++}`);
-    params.push(`%${filters.positionLevel}%`);
-  }
+      if (filters.positionLevel) {
+      conditions.push(`"positionLevel" ILIKE $${paramIndex++}`);
+      params.push(`%${filters.positionLevel}%`);
+    }
 
   // Add WHERE clause if conditions exist
   if (conditions.length > 0) {

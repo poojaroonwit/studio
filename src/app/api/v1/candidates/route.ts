@@ -16,6 +16,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
+import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 
 const prisma = new PrismaClient();
 
@@ -45,44 +46,11 @@ const skillsEntrySchema = z.object({
   skill: z.array(z.string()),
 }).strict();
 
-const candidateInfoSchema = z.object({
-  personal_info: personalInfoSchema,
-  contact_info: contactInfoSchema,
-  cv_language: z.string(),
-  skills: z.array(skillsEntrySchema),
-  job_suitable: z.array(jobSuitableEntrySchema),
-  status: z.string(),
-}).strict();
-
-const structuredEducationSchema = z.object({
-  university: z.string(),
-  major: z.string(),
-  startMonth: z.number(),
-  startYear: z.number(),
-  endMonth: z.number(),
-  endYear: z.number(),
-  isCurrent: z.boolean(),
-  GPA: z.string(),
-}).strict();
-
-const structuredExperienceSchema = z.object({
-  company: z.string(),
-  position: z.string(),
-  startMonth: z.number(),
-  startYear: z.number(),
-  endMonth: z.number().nullable(),
-  endYear: z.number().nullable(),
-  isCurrent: z.boolean(),
-  description: z.string(),
-}).strict();
-
 const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema,
   educationData: z.array(structuredEducationSchema).min(1),
   experienceData: z.array(structuredExperienceSchema).min(1),
 }).strict();
-
-export { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema };
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');

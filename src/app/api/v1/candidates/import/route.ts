@@ -7,7 +7,7 @@ import { handleCors } from '@/lib/cors';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 // Import the schemas from the main candidate route
-import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../route';
+import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
 
 const candidateImportSchema = z.object({
   candidates: z.array(

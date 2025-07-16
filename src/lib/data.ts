@@ -74,6 +74,7 @@ export const mockCandidates: Candidate[] = [
     fitScore: 85,
     status: 'Interview Scheduled',
     applicationDate: new Date('2024-05-01T10:00:00Z').toISOString(),
+    createdAt: new Date('2024-05-01T10:00:00Z').toISOString(),
     updatedAt: new Date('2024-05-15T14:30:00Z').toISOString(),
     parsedData: {
       personal_info: { firstname: 'Alice', lastname: 'Wonderland'},
@@ -81,7 +82,7 @@ export const mockCandidates: Candidate[] = [
       education: [{ major: "Computer Science", university: "Tech University" }],
       skills: [{ segment_skill: 'Programming', skill: ['JavaScript', 'React', 'Node.js', 'Python']}],
     },
-    transitionHistory: [
+    transitionRecords: [
       { id: 'th1-1', date: new Date('2024-05-01T10:00:00Z').toISOString(), stage: 'Applied', notes: 'Applied via company website.' },
       { id: 'th1-2', date: new Date('2024-05-10T11:00:00Z').toISOString(), stage: 'Shortlisted', notes: 'Resume shortlisted by HR.' },
       { id: 'th1-3', date: new Date('2024-05-15T14:30:00Z').toISOString(), stage: 'Interview Scheduled', notes: 'First round technical interview.' },

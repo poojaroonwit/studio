@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
+import { Trash2, Edit } from 'lucide-react';
 
 
 interface CandidatesPageClientProps {
@@ -942,6 +943,10 @@ export function CandidatesPageClient({
     setTimeout(() => { fetchPaginatedCandidates(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
   };
 
+  const handleRefreshCandidatesNoArgs = () => {
+    fetchPaginatedCandidates(filters, page, pageSize);
+  };
+
   const handleDownloadCsvTemplateGuide = () => {
     const headers = [
       "name", "email", "phone", "positionId", "fitScore", "status", "applicationDate",
@@ -1178,4 +1183,206 @@ export function CandidatesPageClient({
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Candidates</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {isMissingTableError && ( <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> <p className="font-semibold">It looks like a required database table (e.g., &quot;Candidate&quot;, &quot;Position&quot;, &quot;User&quot;, &quot;RecruitmentStage&quot;) is missing or not accessible.</p> <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> <p className="mt-2">Please refer to the troubleshooting steps in the `README.md`
+        {isMissingTableError && ( 
+          <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> 
+            <p className="font-semibold">It looks like a required database table (e.g., "Candidate", "Position", "User", "RecruitmentStage") is missing or not accessible.</p> 
+            <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> 
+            <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p>
+          </div>
+        )}
+        <Button onClick={() => fetchPaginatedCandidates(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold text-foreground">Candidates</h1>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Candidate
+          </Button>
+          <Button onClick={handleDownloadCsvTemplateGuide} className="btn-primary-gradient">
+            <FileDown className="mr-2 h-4 w-4" /> Download CSV Template
+          </Button>
+          <Button onClick={handleExportToCsv} className="btn-primary-gradient">
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export to CSV
+          </Button>
+          <Button onClick={() => setIsImportModalOpen(true)} className="btn-primary-gradient">
+            <FileUp className="mr-2 h-4 w-4" /> Import Candidates
+          </Button>
+          <Button onClick={() => setIsCreateViaAutomationModalOpen(true)} className="btn-primary-gradient">
+            <Zap className="mr-2 h-4 w-4" /> Create via Automation
+          </Button>
+          <Button onClick={() => setIsAutomationUploadModalOpen(true)} className="btn-primary-gradient">
+            <FileUp className="mr-2 h-4 w-4" /> Upload via Automation
+          </Button>
+          <Button onClick={() => setIsBulkUploadModalOpen(true)} className="btn-primary-gradient">
+            <FileUp className="mr-2 h-4 w-4" /> Bulk Upload CVs
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="flex-1">
+          <CandidateFilters
+            initialFilters={filters}
+            onFilterChange={handleFilterChange}
+            onClearAllFilters={handleClearAllFilters}
+            availablePositions={availablePositions}
+            availableStages={availableStages}
+            availableRecruiters={availableRecruiters}
+            isLoading={isLoading || isAiSearching}
+            isAiSearching={isAiSearching}
+            advancedQuery={advancedQueryFromUrl}
+            onAiSearch={handleAiSearch}
+          />
+        </div>
+        <div className="w-full md:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="btn-primary-gradient">
+                <ChevronDown className="mr-2 h-4 w-4" />
+                Bulk Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleBulkAction('delete')}>
+                <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                Delete
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleBulkAction('change_status')}>
+                <Edit className="mr-2 h-4 w-4" />
+                Change Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleBulkAction('assign_recruiter')}>
+                <Users className="mr-2 h-4 w-4" />
+                Assign Recruiter
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <CandidateTable
+          candidates={displayedCandidates}
+          availablePositions={availablePositions}
+          availableStages={availableStages}
+          availableRecruiters={availableRecruiters}
+          onAssignRecruiter={handleAssignRecruiter}
+          onUpdateCandidate={handleUpdateCandidateAPI}
+          onDeleteCandidate={handleDeleteCandidate}
+          onOpenUploadModal={handleOpenUploadModal}
+          onEditPosition={handleOpenEditPositionModal}
+          isLoading={(isLoading || isAiSearching) && displayedCandidates.length > 0 && !fetchError}
+          onRefreshCandidateData={refreshCandidateInList}
+          selectedCandidateIds={selectedCandidateIds}
+          onToggleSelectCandidate={handleToggleSelectCandidate}
+          onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
+          isAllCandidatesSelected={isAllCandidatesSelected}
+        />
+      </ScrollArea>
+
+      <AlertDialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add New Candidate</AlertDialogTitle>
+            <AlertDialogDescription>
+              Fill out the form below to add a new candidate to the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AddCandidateModal
+            isOpen={isAddModalOpen}
+            onOpenChange={setIsAddModalOpen}
+            onAddCandidate={handleAddCandidateSubmit}
+            availablePositions={availablePositions}
+            availableStages={availableStages}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import Candidates</AlertDialogTitle>
+            <AlertDialogDescription>
+              Upload a CSV file to import multiple candidates at once.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ImportCandidatesModal
+            isOpen={isImportModalOpen}
+            onOpenChange={setIsImportModalOpen}
+            onImportSuccess={handleRefreshCandidatesNoArgs}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isCreateViaAutomationModalOpen} onOpenChange={setIsCreateViaAutomationModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create Candidate via Automation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Use AI to create a new candidate based on a resume.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AutomationUploadModal
+            isOpen={isAutomationUploadModalOpen}
+            onOpenChange={setIsAutomationUploadModalOpen}
+            onUploadSuccess={handleRefreshCandidatesNoArgs}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isBulkUploadModalOpen} onOpenChange={setIsBulkUploadModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Upload CVs</AlertDialogTitle>
+            <AlertDialogDescription>
+              Upload multiple CVs in a ZIP file to create candidate profiles.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <BulkUploadCVsModal
+            isOpen={isBulkUploadModalOpen}
+            onOpenChange={setIsBulkUploadModalOpen}
+            onUploadSuccess={handleRefreshCandidatesNoArgs}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isAutomationUploadModalOpen} onOpenChange={setIsAutomationUploadModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Upload via Automation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Upload a single resume file and let the AI process it to create a candidate.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AutomationUploadModal
+            isOpen={isAutomationUploadModalOpen}
+            onOpenChange={setIsAutomationUploadModalOpen}
+            onUploadSuccess={handleRefreshCandidatesNoArgs}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isEditPositionModalOpen} onOpenChange={setIsEditPositionModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Position</AlertDialogTitle>
+            <AlertDialogDescription>
+              Modify the details of the selected position.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <EditPositionModal
+            isOpen={isEditPositionModalOpen}
+            onOpenChange={setIsEditPositionModalOpen}
+            position={selectedPositionForEdit}
+            onEditPosition={handlePositionEdited}
+          />
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

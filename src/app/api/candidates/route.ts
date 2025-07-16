@@ -354,7 +354,6 @@ export async function GET(request: NextRequest) {
         } : null,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
-        transitionHistory: row.transitionHistory || [],
       };
     });
     return NextResponse.json({

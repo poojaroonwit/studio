@@ -334,10 +334,21 @@ export interface Candidate {
   educationData?: any;
   experienceData?: any;
   position?: Position | null;
-  recruiter?: User | null;
+  recruiter?: UserProfile | null;
   candidateComments?: CandidateComment[];
   jobMatches?: JobMatch[];
   transitionRecords?: TransitionRecord[];
+}
+
+export interface CandidateComment {
+  id: string;
+  candidateId: string;
+  authorId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  attachmentIds: string[];
+  author?: UserProfile | null; // For display purposes, populated by JOIN
 }
 
 export interface ResumeHistoryEntry {

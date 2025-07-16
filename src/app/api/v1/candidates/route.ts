@@ -139,7 +139,13 @@ export async function POST(request: NextRequest) {
   const name = `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`;
   const email = candidate_info.contact_info.email;
   const status = candidate_info.status || 'new';
-  const parsedData = { candidate_info, educationData, experienceData };
+
+  // Flatten parsedData structure to match UI expectations
+  const parsedData = {
+    ...candidate_info,
+    education: educationData,
+    experience: experienceData
+  };
   const newCandidateId = uuidv4();
 
   try {

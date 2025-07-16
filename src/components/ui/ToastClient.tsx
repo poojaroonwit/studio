@@ -3,6 +3,14 @@ import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'lucide-react';
 import React from 'react';
 
+// Utility to detect dark mode
+function isDarkMode() {
+  if (typeof window !== 'undefined') {
+    return document.documentElement.classList.contains('dark');
+  }
+  return false;
+}
+
 export default function ToastClient() {
   return (
     <Toaster
@@ -25,64 +33,80 @@ export default function ToastClient() {
       }}
     >
       {(t) => {
-        // Determine group (ackgroup) and type
         const ackgroup = t.type;
-        // Map group/type to color and icon
         const groupMap = {
           success: {
             color: 'hsl(142 76% 36%)',
-            bg: 'hsl(142 76% 90%)', // light green
+            bg: 'hsl(142 76% 90%)',
             icon: <CheckCircle className="h-5 w-5 text-green-600" />,
+            colored: true,
           },
           error: {
             color: 'hsl(var(--destructive))',
-            bg: 'hsl(0 84% 95%)', // light red
+            bg: 'hsl(0 84% 95%)',
             icon: <XCircle className="h-5 w-5 text-red-600" />,
+            colored: true,
           },
           warning: {
             color: 'hsl(45 100% 51%)',
-            bg: 'hsl(45 100% 92%)', // light yellow
+            bg: 'hsl(45 100% 92%)',
             icon: <AlertTriangle className="h-5 w-5 text-yellow-500" />,
+            colored: true,
           },
           info: {
             color: 'hsl(210 100% 56%)',
-            bg: 'hsl(210 100% 96%)', // light blue
+            bg: 'hsl(210 100% 96%)',
             icon: <Info className="h-5 w-5 text-blue-600" />,
+            colored: true,
           },
           loading: {
             color: 'hsl(var(--primary))',
-            bg: 'hsl(222 89% 96%)', // light primary
+            bg: 'hsl(222 89% 96%)',
             icon: <Loader2 className="h-5 w-5 animate-spin text-primary" />,
+            colored: true,
           },
           notification: {
             color: 'hsl(262 83% 58%)',
-            bg: 'hsl(262 83% 95%)', // light purple
+            bg: 'hsl(262 83% 95%)',
             icon: <Bell className="h-5 w-5 text-purple-600" />,
+            colored: true,
           },
           custom: {
             color: 'hsl(var(--border))',
             bg: 'hsl(var(--background))',
             icon: <Info className="h-5 w-5 text-muted-foreground" />,
+            colored: false,
           },
           blank: {
             color: 'hsl(var(--border))',
             bg: 'hsl(var(--background))',
             icon: <Info className="h-5 w-5 text-muted-foreground" />,
+            colored: false,
           },
           default: {
             color: 'hsl(var(--border))',
             bg: 'hsl(var(--background))',
             icon: <Info className="h-5 w-5 text-muted-foreground" />,
+            colored: false,
           },
         };
         const group = groupMap[ackgroup] || groupMap[t.type] || groupMap.default;
+        // Determine font color
+        let fontColor = 'hsl(var(--foreground))';
+        if (group.colored) {
+          if (typeof window !== 'undefined' && isDarkMode()) {
+            fontColor = '#fff'; // White text for colored backgrounds in dark mode
+          } else {
+            fontColor = '#222'; // Dark gray text for colored backgrounds in light mode
+          }
+        }
         return (
           <ToastBar
             toast={t}
             style={{
               ...t.style,
               background: group.bg,
-              color: 'hsl(var(--foreground))',
+              color: fontColor,
               border: `2px solid ${group.color}`,
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               borderLeft: `8px solid ${group.color}`,

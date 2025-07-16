@@ -159,3 +159,25 @@ export async function getAllCandidates() {
     recruiter: row.recruiterId ? { name: row.recruiterName } : null,
   }));
 }
+
+/**
+ * Recursively converts string booleans (case-insensitive) and numeric strings to their correct types in an object or array.
+ * - "true"/"false" (any case) => boolean
+ * - Numeric strings => number
+ */
+export function convertStringBooleansAndNumbers(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(convertStringBooleansAndNumbers);
+  } else if (obj !== null && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([key, value]) => [key, convertStringBooleansAndNumbers(value)])
+    );
+  } else if (typeof obj === 'string') {
+    const lower = obj.toLowerCase();
+    if (lower === 'true') return true;
+    if (lower === 'false') return false;
+    // Check if string is a number (integer or float)
+    if (!isNaN(obj as any) && obj.trim() !== '') return Number(obj);
+  }
+  return obj;
+}

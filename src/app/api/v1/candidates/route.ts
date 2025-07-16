@@ -32,8 +32,8 @@ const candidateInfoSchema = z.object({
     email: z.string().email("Invalid email address"),
     phone: z.string().optional().nullable(),
   }),
-  education: z.array(z.any()).optional(),
-  experience: z.array(z.any()).optional(),
+  education: z.array(z.any()).optional(), // now optional
+  experience: z.array(z.any()).optional(), // now optional
   skills: z.array(z.any()).optional(),
   job_suitable: z.array(z.any()).optional(),
   cv_language: z.string().optional().nullable(),

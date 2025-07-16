@@ -961,7 +961,7 @@ export function CandidatesPageClient({
        JSON.stringify([{company:"Company",position:"Position"}]),
        JSON.stringify([{segment_skill:"Skills",skill:["Skill 1","Skill 2"]}]),
        JSON.stringify([{suitable_career:"Career Path"}]),
-       JSON.stringify([{job_title:"Job Title",fitScore:85}])
+       JSON.stringify([{jobTitle:"Job Title",fitScore:85}])
       ],
     ];
      let csvContent = headers.join(',') + '\n';

@@ -236,7 +236,7 @@ export interface JobSuitableEntry {
 
 export interface AutomationJobMatch {
   jobId?: string;
-  job_title?: string | null;
+  jobTitle?: string | null;
   fitScore: number;
   matchReasons?: string[];
   matchReasons_string?: string | null;
@@ -269,7 +269,7 @@ export interface AutomationCandidateWebhookEntry {
   targetpositionLevel?: string | null;
   job_applied?: {
     jobId?: string | null;
-    job_title?: string | null;
+    jobTitle?: string | null;
     fitScore?: number | null;
     justification?: string[];
   } | null;

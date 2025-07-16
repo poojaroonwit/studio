@@ -17,7 +17,7 @@ const CandidateJobMatches: React.FC<CandidateJobMatchesProps> = ({ jobMatches })
           <ul>
             {jobMatches.map((match, idx) => (
               <li key={idx}>
-                {match.job_title} (Fit Score: {match.fitScore}%)
+                {match.jobTitle} (Fit Score: {match.fitScore}%)
               </li>
             ))}
           </ul>

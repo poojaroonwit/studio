@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const jobMatchSchema = z.object({
   jobId: z.string().optional(),
-  job_title: z.string().optional(),
+  jobTitle: z.string().optional(),
   fitScore: z.number().optional(),
   matchReasons: z.array(z.string()).optional(),
   job_description_summary: z.string().optional(),
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
           uuidv4(),
           newCandidateId,
           match.jobId,
-          match.job_title,
+          match.jobTitle,
           match.fitScore,
           match.matchReasons,
           match.job_description_summary

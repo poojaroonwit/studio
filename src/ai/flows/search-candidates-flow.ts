@@ -115,7 +115,7 @@ function createCandidateSummary(candidate: Candidate): string {
     if (details.job_matches && Array.isArray(details.job_matches) && details.job_matches.length > 0) {
       summaryParts.push("Automated Job Matches (from automation):");
       details.job_matches.forEach(match => {
-        summaryParts.push(`  - Job: ${match.job_title || match.jobId || 'N/A'}, Fit: ${match.fitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
+        summaryParts.push(`  - Job: ${match.jobTitle || match.jobId || 'N/A'}, Fit: ${match.fitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
       });
     }
   }

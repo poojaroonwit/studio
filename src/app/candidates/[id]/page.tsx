@@ -115,7 +115,7 @@ const jobSuitableEntryEditSchema = z.object({
 
 const jobMatchEntryEditSchema = z.object({
     jobId: z.string().uuid().optional().nullable(),
-    job_title: z.string().optional().nullable(),
+    jobTitle: z.string().optional().nullable(),
     fitScore: z.number().min(0).max(100).optional().nullable(),
     matchReasons: z.array(z.string()).optional(),
     matchReasons_string: z.string().optional().nullable(),
@@ -316,7 +316,7 @@ export default function CandidateDetailPage() {
           // Include job matches from the API response
           job_matches: (candidate.jobMatches || []).map((match: any) => ({
             jobId: match.jobId,
-            job_title: match.positionTitle,
+            jobTitle: match.positionTitle,
             fitScore: match.fitScore,
             matchReasons: match.matchReasons || [],
             matchReasons_string: Array.isArray(match.matchReasons) 
@@ -669,10 +669,10 @@ export default function CandidateDetailPage() {
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
-    // Find the position details - try by jobId first, then by job_title
+    // Find the position details - try by jobId first, then by jobTitle
     const position = Array.isArray(allDbPositions) ? 
                     (allDbPositions.find(p => p.id === jobMatch.jobId) || 
-                     allDbPositions.find(p => p.title === jobMatch.job_title)) : null;
+                     allDbPositions.find(p => p.title === jobMatch.jobTitle)) : null;
     
     // Prepare the job match data with position details
     const jobMatchData = {
@@ -784,7 +784,7 @@ export default function CandidateDetailPage() {
                         ? match.matchReasons.join('\n')
                         : ''
                 })) || []) as {
-                    job_title?: string | null;
+                    jobTitle?: string | null;
                     fitScore?: number | null;
                     matchReasons?: string[];
                     matchReasons_string?: string | null;
@@ -1243,7 +1243,7 @@ export default function CandidateDetailPage() {
                                   if (position) {
                                     const appliedJobData = {
                                       jobId: candidate.positionId,
-                                      job_title: position.title,
+                                      jobTitle: position.title,
                                       fitScore: candidate.fitScore || 0,
                                       matchReasons: (candidate as any).assignmentJustification ? [(candidate as any).assignmentJustification] : [],
                                       position: {
@@ -1374,7 +1374,7 @@ export default function CandidateDetailPage() {
                                                             // Update job title when position is selected
                                                             const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
                                                             if (selectedPosition) {
-                                                                setValue(`parsedData.job_matches.${index}.job_title`, selectedPosition.title);
+                                                                setValue(`parsedData.job_matches.${index}.jobTitle`, selectedPosition.title);
                                                             }
                                                         }}
                                                         placeholder="Select position..."
@@ -1433,7 +1433,7 @@ export default function CandidateDetailPage() {
                                         className="w-full" 
                                         onClick={() => appendJobMatch({ 
                                             jobId: '',
-                                            job_title: '', 
+                                            jobTitle: '', 
                                             fitScore: 0, 
                                             matchReasons: [], 
                                             is_applied_job: false,
@@ -1511,14 +1511,14 @@ export default function CandidateDetailPage() {
                                         }}
                                     >
                                 {candidateJobMatches.map((match: any, index: number) => {
-                                  // Try to find position by jobId first, then by job_title
+                                  // Try to find position by jobId first, then by jobTitle
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 
-                                                  allDbPositions.find(p => p.title === match.job_title)) : null;
+                                                  allDbPositions.find(p => p.title === match.jobTitle)) : null;
                                   
                                   return (
                                     <div 
-                                      key={`jobmatch-${index}-${match.job_title || index}`} 
+                                      key={`jobmatch-${index}-${match.jobTitle || index}`} 
                                       className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
                                       onClick={() => handleJobMatchClick(match)}
                                     >
@@ -1528,7 +1528,7 @@ export default function CandidateDetailPage() {
                                                         <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
                                                     )}
                                           <h4 className="font-semibold text-foreground text-sm truncate">
-                                            {position?.title || match.job_title || 'Unknown Position'}
+                                            {position?.title || match.jobTitle || 'Unknown Position'}
                                           </h4>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">

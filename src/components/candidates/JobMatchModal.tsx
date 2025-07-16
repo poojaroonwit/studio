@@ -23,7 +23,7 @@ interface JobMatchModalProps {
   onClose: () => void;
   jobMatch: {
     jobId: string;
-    job_title: string;
+    jobTitle: string;
     fitScore: number;
     matchReasons: string[];
     position?: {
@@ -115,7 +115,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              {jobMatch.position?.title || jobMatch.job_title}
+              {jobMatch.position?.title || jobMatch.jobTitle}
             </DialogTitle>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />

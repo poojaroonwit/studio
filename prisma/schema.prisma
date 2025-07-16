@@ -218,7 +218,7 @@ model JobMatch {
   id                    String    @id @default(uuid()) @db.Uuid
   candidateId           String    @db.Uuid
   jobId                 String?   @db.Uuid
-  jobTitle              String?   @map("job_title")
+  jobTitle              String?   @map("jobTitle")
   fitScore              Int?      @map("fitScore")
   matchReasons          String[]  @map("matchReasons")
   jobDescriptionSummary String?   @map("job_description_summary")

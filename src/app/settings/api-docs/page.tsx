@@ -6,9 +6,11 @@ import React, { useEffect, useState } from "react";
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 import "swagger-ui-react/swagger-ui.css";
 
+type Server = { url: string; description?: string };
+const [servers, setServers] = useState<Server[]>([]);
+
 export default function ApiDocsPage() {
   const [swaggerSpec, setSwaggerSpec] = useState(null);
-  const [servers, setServers] = useState([]);
   const [serverUrl, setServerUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,7 +42,7 @@ export default function ApiDocsPage() {
       Array.isArray(swaggerSpec)
     ) return null;
     return {
-      ...swaggerSpec,
+      ...(swaggerSpec as Record<string, any>),
       servers: [
         servers.find(s => s.url === serverUrl) || { url: serverUrl, description: "Custom server" },
         ...servers.filter(s => s.url !== serverUrl)

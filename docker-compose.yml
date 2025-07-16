@@ -100,8 +100,18 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_SERVER_URL: http://localhost:9000
-      MINIO_BROWSER_REDIRECT_URL: http://localhost:${MINIO_CONSOLE_PORT}
+      # MINIO_SERVER_URL: http://localhost:9000
+      # MINIO_BROWSER_REDIRECT_URL: http://localhost:${MINIO_CONSOLE_PORT}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_PUBLIC_BASE_URL}
+
+      # #–– public URL so presigned links stay HTTPS ––
+      MINIO_SERVER_URL: ${MINIO_PUBLIC_BASE_URL}
+      
+      #–– CORS done 100 % here –– (⇠ NO spaces!)
+      MINIO_API_CORS_ALLOW_ORIGIN:  ${PRODUCTION_HOST}
+      MINIO_API_CORS_ALLOW_METHODS: GET,PUT,POST,DELETE
+      MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With
+
     command: server /data --console-address ":9001" --address ":9000"
     # volumes:
     #   - /var/dockers/8021/minio_data:/data

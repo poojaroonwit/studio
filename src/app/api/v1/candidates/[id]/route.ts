@@ -64,6 +64,8 @@ const updateCandidateSchema = z.object({
   }).optional(),
 });
 
+export { updateCandidateSchema };
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];

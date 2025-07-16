@@ -135,6 +135,23 @@ export function getSwaggerSpec() {
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true }
                   },
                   required: ['title', 'department', 'isOpen']
+                },
+                examples: {
+                  'detailed_example': {
+                    summary: 'Full Example (Recommended)',
+                    value: {
+                      title: 'Software Engineer',
+                      department: 'Engineering',
+                      description: 'Full-stack development role',
+                      isOpen: true,
+                      positionLevel: 'Mid-level',
+                      customAttributes: {
+                        remote: true,
+                        salaryRange: '100k-150k',
+                        benefits: ['Health Insurance', 'Stock Options']
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -193,6 +210,23 @@ export function getSwaggerSpec() {
                     isOpen: { type: 'boolean' },
                     positionLevel: { type: 'string', nullable: true },
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true }
+                  }
+                },
+                examples: {
+                  'detailed_update_example': {
+                    summary: 'Full Update Example',
+                    value: {
+                      title: 'Senior Software Engineer',
+                      department: 'Engineering',
+                      description: 'Lead backend development',
+                      isOpen: false,
+                      positionLevel: 'Senior',
+                      customAttributes: {
+                        remote: false,
+                        salaryRange: '150k-200k',
+                        benefits: ['Health Insurance', 'Stock Options', 'Gym Membership']
+                      }
+                    }
                   }
                 }
               }
@@ -314,7 +348,21 @@ export function getSwaggerSpec() {
                             }
                           }
                         },
-                        status: { type: 'string', nullable: true }
+                        status: { type: 'string', nullable: true },
+                        job_suitable: {
+                          type: 'array',
+                          description: 'List of job suitability profiles for the candidate',
+                          items: {
+                            type: 'object',
+                            required: ['suitable_career', 'suitable_job_position', 'suitable_job_level', 'suitable_salary_bath_month'],
+                            properties: {
+                              suitable_career: { type: 'string', description: 'Career path' },
+                              suitable_job_position: { type: 'string', description: 'Job position' },
+                              suitable_job_level: { type: 'string', description: 'Job level' },
+                              suitable_salary_bath_month: { type: 'string', description: 'Desired salary (THB/month)' }
+                            }
+                          }
+                        }
                       },
                       required: ['contact_info', 'personal_info']
                     },
@@ -332,6 +380,62 @@ export function getSwaggerSpec() {
                   required: ['candidate_info']
                 },
                 examples: {
+                  'detailed_example': {
+                    summary: 'Full Example (Recommended)',
+                    value: {
+                      candidate_info: {
+                        personal_info: {
+                          firstname: 'John',
+                          lastname: 'Doe',
+                          title_honorific: 'Mr.',
+                          nickname: 'Johnny',
+                          location: 'Bangkok, Thailand',
+                          introduction_aboutme: 'Experienced software engineer'
+                        },
+                        contact_info: {
+                          email: 'john.doe@example.com',
+                          phone: '+1234567890'
+                        },
+                        cv_language: 'English',
+                        skills: [
+                          { segment_skill: 'Programming', skill: ['JavaScript', 'TypeScript'] }
+                        ],
+                        job_suitable: [
+                          {
+                            suitable_career: 'Software Engineering',
+                            suitable_job_position: 'Full Stack Developer',
+                            suitable_job_level: 'Senior',
+                            suitable_salary_bath_month: '90000'
+                          }
+                        ],
+                        status: 'Applied'
+                      },
+                      educationData: [
+                        {
+                          university: 'Example University',
+                          major: 'Computer Science',
+                          startMonth: 9,
+                          startYear: 2018,
+                          endMonth: 6,
+                          endYear: 2022,
+                          isCurrent: false,
+                          GPA: '3.8'
+                        }
+                      ],
+                      experienceData: [
+                        {
+                          company: 'Tech Corp',
+                          position: 'Developer',
+                          startMonth: 7,
+                          startYear: 2022,
+                          endMonth: null,
+                          endYear: null,
+                          isCurrent: true,
+                          description: 'Developing web applications.'
+                        }
+                      ]
+                    }
+                  },
                   'structured_format': {
                     summary: 'Structured Format (Recommended)',
                     value: {
@@ -612,7 +716,6 @@ export function getSwaggerSpec() {
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true },
                     resumePath: { type: 'string', nullable: true },
                     transitionNotes: { type: 'string', nullable: true },
-
                     // New candidate_info format
                     candidate_info: {
                       type: 'object',
@@ -638,19 +741,80 @@ export function getSwaggerSpec() {
                         education: { type: 'array', items: { type: 'object' } },
                         experience: { type: 'array', items: { type: 'object' } },
                         skills: { type: 'array', items: { type: 'object' } },
-                        job_suitable: { type: 'array', items: { type: 'object' } },
+                        job_suitable: {
+                          type: 'array',
+                          description: 'List of job suitability profiles for the candidate',
+                          items: {
+                            type: 'object',
+                            required: ['suitable_career', 'suitable_job_position', 'suitable_job_level', 'suitable_salary_bath_month'],
+                            properties: {
+                              suitable_career: { type: 'string', description: 'Career path' },
+                              suitable_job_position: { type: 'string', description: 'Job position' },
+                              suitable_job_level: { type: 'string', description: 'Job level' },
+                              suitable_salary_bath_month: { type: 'string', description: 'Desired salary (THB/month)' }
+                            }
+                          }
+                        },
                         cv_language: { type: 'string', nullable: true },
                         status: { type: 'string' }
                       }
                     },
-
                     // Job matches and applied job updates
                     job_matches: {
                       type: 'array',
                       items: { $ref: '#/components/schemas/JobMatch' }
                     },
-
                     job_applied: { $ref: '#/components/schemas/JobApplied' }
+                  }
+                },
+                examples: {
+                  'detailed_update_example': {
+                    summary: 'Full Update Example',
+                    value: {
+                      candidate_info: {
+                        personal_info: {
+                          firstname: 'John',
+                          lastname: 'Doe',
+                          title_honorific: 'Mr.',
+                          nickname: 'Johnny',
+                          location: 'Bangkok, Thailand',
+                          introduction_aboutme: 'Updated about me section'
+                        },
+                        contact_info: {
+                          email: 'john.doe@example.com',
+                          phone: '+1234567890'
+                        },
+                        cv_language: 'English',
+                        education: [
+                          {
+                            major: 'Computer Science',
+                            university: 'University of Technology',
+                            period: '2018-2022'
+                          }
+                        ],
+                        experience: [
+                          {
+                            company: 'Tech Corp',
+                            position: 'Software Engineer',
+                            period: '2022-Present'
+                          }
+                        ],
+                        skills: [
+                          {
+                            segment_skill: 'Programming Languages',
+                            skill: ['JavaScript', 'Python', 'React']
+                          }
+                        ],
+                        job_suitable: [
+                          {
+                            suitable_career: 'Software Engineer',
+                            suitable_job_level: 'Mid-level'
+                          }
+                        ],
+                        status: 'active'
+                      },
+                      transitionNotes: 'Promoted to active after review.'
+                    }
                   }
                 }
               }
@@ -1326,6 +1490,317 @@ export function getSwaggerSpec() {
             '500': { description: 'Database error' }
           }
         }
+      },
+      '/api/v1/health': {
+        get: {
+          summary: 'Health check (v1 API)',
+          description: 'Check the health status of the API and database.',
+          tags: ['V1 Health'],
+          responses: {
+            '200': {
+              description: 'Health status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      database: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          currentTime: { type: 'string' }
+                        }
+                      },
+                      statistics: {
+                        type: 'object',
+                        properties: {
+                          candidates: { type: 'integer' },
+                          positions: { type: 'integer' },
+                          users: { type: 'integer' }
+                        }
+                      },
+                      version: { type: 'string' },
+                      api: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      '/api/v1/positions/bulk-action': {
+        post: {
+          summary: 'Bulk action on positions (v1 API)',
+          description: 'Perform bulk operations on positions.',
+          tags: ['V1 Positions'],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    action: { type: 'string', enum: ['delete', 'update_status', 'update_department'] },
+                    positionIds: { type: 'array', items: { type: 'string', format: 'uuid' } },
+                    data: { type: 'object' }
+                  },
+                  required: ['action', 'positionIds']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'Bulk action completed' },
+            '400': { description: 'Invalid input' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden' }
+          }
+        }
+      },
+      '/api/v1/positions/import': {
+        get: {
+          summary: 'Get position import template (v1 API)',
+          description: 'Returns a template for position import.',
+          tags: ['V1 Positions'],
+          responses: {
+            '200': { description: 'Import template' },
+            '401': { description: 'Unauthorized' }
+          }
+        },
+        post: {
+          summary: 'Import positions (v1 API)',
+          description: 'Import positions from JSON.',
+          tags: ['V1 Positions'],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    positions: { type: 'array', items: { $ref: '#/components/schemas/PositionCreate' } }
+                  },
+                  required: ['positions']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'Import completed' },
+            '400': { description: 'Invalid input' },
+            '401': { description: 'Unauthorized' }
+          }
+        }
+      },
+      '/api/v1/positions/export': {
+        get: {
+          summary: 'Export positions (v1 API)',
+          description: 'Export positions as CSV.',
+          tags: ['V1 Positions'],
+          responses: {
+            '200': { description: 'CSV export' },
+            '401': { description: 'Unauthorized' }
+          }
+        }
+      },
+      '/api/v1/candidates/bulk-action': {
+        post: {
+          summary: 'Bulk action on candidates (v1 API)',
+          description: 'Perform bulk operations on candidates.',
+          tags: ['V1 Candidates'],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    action: { type: 'string', enum: ['delete', 'update_status', 'assign_recruiter', 'assign_position'] },
+                    candidateIds: { type: 'array', items: { type: 'string', format: 'uuid' } },
+                    data: { type: 'object' }
+                  },
+                  required: ['action', 'candidateIds']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'Bulk action completed' },
+            '400': { description: 'Invalid input' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden' }
+          }
+        }
+      },
+      '/api/v1/candidates/{id}/resumes': {
+        get: {
+          summary: 'Get candidate resumes (v1 API)',
+          description: 'Get resumes for a candidate.',
+          tags: ['V1 Candidates'],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: {
+            '200': { description: 'List of resumes' },
+            '401': { description: 'Unauthorized' },
+            '404': { description: 'Candidate not found' }
+          }
+        },
+        post: {
+          summary: 'Upload candidate resume (v1 API)',
+          description: 'Upload a resume for a candidate.',
+          tags: ['V1 Candidates'],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    resume: { type: 'string', format: 'binary', description: 'Resume file' }
+                  },
+                  required: ['resume']
+                }
+              }
+            }
+          },
+          responses: {
+            '201': { description: 'Resume uploaded' },
+            '400': { description: 'Invalid file' },
+            '401': { description: 'Unauthorized' },
+            '404': { description: 'Candidate not found' }
+          }
+        },
+        put: {
+          summary: 'Update candidate resume (v1 API)',
+          description: 'Update resume information for a candidate.',
+          tags: ['V1 Candidates'],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { type: 'object' }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'Resume updated' },
+            '400': { description: 'Invalid input' },
+            '401': { description: 'Unauthorized' },
+            '404': { description: 'Candidate or resume not found' }
+          }
+        },
+        delete: {
+          summary: 'Delete candidate resume (v1 API)',
+          description: 'Delete a resume for a candidate.',
+          tags: ['V1 Candidates'],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: {
+            '200': { description: 'Resume deleted' },
+            '401': { description: 'Unauthorized' },
+            '404': { description: 'Candidate or resume not found' }
+          }
+        }
+      },
+      '/api/v1/users': {
+        post: {
+          summary: 'Create a new user (v1 API)',
+          description: 'Creates a new user. Requires Admin role.',
+          tags: ['V1 Users'],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', minLength: 1 },
+                    email: { type: 'string', format: 'email' },
+                    role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
+                    modulePermissions: { type: 'array', items: { type: 'string' } },
+                    password: { type: 'string', minLength: 6 }
+                  },
+                  required: ['name', 'email', 'role', 'password']
+                },
+                examples: {
+                  'detailed_example': {
+                    summary: 'Full Example (Recommended)',
+                    value: {
+                      name: 'Jane Smith',
+                      email: 'jane.smith@example.com',
+                      role: 'Recruiter',
+                      modulePermissions: ['CANDIDATES_VIEW', 'CANDIDATES_MANAGE'],
+                      password: 'securePassword123'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '201': { description: 'User created successfully' },
+            '400': { description: 'Invalid input data' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '409': { description: 'User with this email already exists' }
+          }
+        }
+      },
+      '/api/v1/users/{id}': {
+        put: {
+          summary: 'Update user by ID (v1 API)',
+          description: 'Updates a user. Requires Admin role.',
+          tags: ['V1 Users'],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'User ID', schema: { type: 'string' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', minLength: 1 },
+                    email: { type: 'string', format: 'email' },
+                    role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
+                    modulePermissions: { type: 'array', items: { type: 'string' } },
+                    password: { type: 'string', minLength: 6 }
+                  }
+                },
+                examples: {
+                  'detailed_update_example': {
+                    summary: 'Full Update Example',
+                    value: {
+                      name: 'Jane Smith',
+                      email: 'jane.smith@example.com',
+                      role: 'Admin',
+                      modulePermissions: ['CANDIDATES_VIEW', 'CANDIDATES_MANAGE', 'USERS_MANAGE']
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'User updated successfully' },
+            '400': { description: 'Invalid input data' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '404': { description: 'User not found' }
+          }
+        }
       }
     },
     components: {
@@ -1837,7 +2312,11 @@ export function getSwaggerSpec() {
       { name: 'V1 Candidates', description: 'External API for candidates' },
       { name: 'Job Applied', description: 'Job application information endpoints' },
       { name: 'Job Matches', description: 'Job matching endpoints' },
-      { name: 'Attachments', description: 'File attachment endpoints' }
+      { name: 'Attachments', description: 'File attachment endpoints' },
+      { name: 'V1 Health', description: 'Health check endpoints' },
+      { name: 'V1 Bulk Actions', description: 'Bulk actions for positions and candidates' },
+      { name: 'V1 Import/Export', description: 'Import/export templates and actions' },
+      { name: 'V1 Users', description: 'External API for users' }
     ]
   };
 }

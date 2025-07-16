@@ -110,7 +110,16 @@ const systemSettingSchema = z.object({
 const saveSystemSettingsSchema = z.array(systemSettingSchema);
 
 export async function GET(request: NextRequest) {
-  // Publicly accessible or light auth check if needed for non-sensitive parts
+  // Debug: Log Azure AD env vars and computed value
+  console.log('[DEBUG] AZURE_AD_CLIENT_ID:', process.env.AZURE_AD_CLIENT_ID);
+  console.log('[DEBUG] AZURE_AD_CLIENT_SECRET:', process.env.AZURE_AD_CLIENT_SECRET);
+  console.log('[DEBUG] AZURE_AD_TENANT_ID:', process.env.AZURE_AD_TENANT_ID);
+  const isAzureAdConfigured = Boolean(
+    process.env.AZURE_AD_CLIENT_ID &&
+    process.env.AZURE_AD_CLIENT_SECRET &&
+    process.env.AZURE_AD_TENANT_ID
+  );
+  console.log('[DEBUG] isAzureAdConfigured:', isAzureAdConfigured);
   try {
     const result = await getPool().query('SELECT key, value, "updatedAt" FROM "SystemSetting"');
     const settings = Object.fromEntries(result.rows.map((row: any) => [row.key, row.value]));
@@ -122,6 +131,8 @@ export async function GET(request: NextRequest) {
     if (!settings.generalPdfWebhookUrl) {
       settings.generalPdfWebhookUrl = process.env.GENERAL_PDF_WEBHOOK_URL || '';
     }
+    // Add Azure AD config status
+    settings.isAzureAdConfigured = isAzureAdConfigured;
     return NextResponse.json(settings, { status: 200 });
   } catch (error) {
     console.error("Failed to fetch system settings:", error);

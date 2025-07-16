@@ -7,9 +7,9 @@ const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 import "swagger-ui-react/swagger-ui.css";
 
 type Server = { url: string; description?: string };
-const [servers, setServers] = useState<Server[]>([]);
 
 export default function ApiDocsPage() {
+  const [servers, setServers] = useState<Server[]>([]);
   const [swaggerSpec, setSwaggerSpec] = useState(null);
   const [serverUrl, setServerUrl] = useState("");
   const [loading, setLoading] = useState(true);

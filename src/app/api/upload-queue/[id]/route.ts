@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const client = await getPool().connect();
   try {
     const res = await client.query(
-      `UPDATE upload_queue SET ${fields.join(', ')}, updatedAt = now() WHERE id = $${idx} RETURNING *`,
+      `UPDATE upload_queue SET ${fields.join(', ')}, "updatedAt" = now() WHERE id = $${idx} RETURNING *`,
       values
     );
     if (res.rows.length === 0) {

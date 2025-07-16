@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // 1. Atomically pick and mark the oldest queued job as 'inprogress'
     const res = await client.query(
       `UPDATE upload_queue
-       SET status = 'inprogress', updatedAt = now()
+       SET status = 'inprogress', "updatedAt" = now()
        WHERE id = (
          SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     if (!job.file_path) {
       console.error(`Job ${job.id} has invalid file_path:`, job.file_path);
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updatedAt = now() WHERE id = $3`,
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), "updatedAt" = now() WHERE id = $3`,
         ['Invalid file_path (null or empty) in job', `file_path: ${job.file_path}`, job.id]
       );
       await logAudit('ERROR', `Upload queue job failed - invalid file_path for job ${job.id}`, 'API:UploadQueue:Process', null, { 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     
     // Update status to indicate file downloaded and ready for webhook
     await client.query(
-      `UPDATE upload_queue SET status = 'inprocess', updatedAt = now() WHERE id = $1`,
+      `UPDATE upload_queue SET status = 'inprocess', "updatedAt" = now() WHERE id = $1`,
       [job.id]
     );
 
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Update job status
     await client.query(
-      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updatedAt = now() WHERE id = $4`,
+      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), "updatedAt" = now() WHERE id = $4`,
       [status, error, error_details, job.id]
     );
 
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (job) {
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updatedAt = now(), webhook_payload = $3 WHERE id = $4`,
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), "updatedAt" = now(), webhook_payload = $3 WHERE id = $4`,
         [(err as Error).message, (err as Error).stack, payload, job.id]
       );
 
@@ -259,7 +259,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (!job.file_path) {
       console.error(`Job ${job.id} has invalid file_path:`, job.file_path);
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updatedAt = now() WHERE id = $3`,
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), "updatedAt" = now() WHERE id = $3`,
         ['Invalid file_path (null or empty) in job', `file_path: ${job.file_path}`, job.id]
       );
       await logAudit('ERROR', `Upload queue job failed - invalid file_path for job ${job.id}`, 'API:UploadQueue:Process', null, {
@@ -551,7 +551,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
     // 4. Update job status
     await client.query(
-      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updatedAt = now(), webhook_payload = $4 WHERE id = $5`,
+      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), "updatedAt" = now(), webhook_payload = $4 WHERE id = $5`,
       [status, error, error_details, payload, job.id]
     );
     // Publish queue update event
@@ -584,8 +584,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
   } catch (err) {
     if (job) {
       await client.query(
-        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updatedAt = now(), webhook_payload = $3 WHERE id = $4`,
-        [(err as Error).message, (err as Error).stack, payload, job.id]
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), "updatedAt" = now(), webhook_payload = $3 WHERE id = $4`,
+        [error, error_details, payload, job.id]
       );
       await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, {
         jobId: job.id,

@@ -266,7 +266,7 @@ export interface AutomationCandidateWebhookEntry {
   targetPositionId?: string | null;
   targetPositionTitle?: string | null;
   targetPositionDescription?: string | null;
-  targetPositionLevel?: string | null;
+  targetpositionLevel?: string | null;
   job_applied?: {
     job_id?: string | null;
     job_title?: string | null;
@@ -569,4 +569,4 @@ export interface DataModel {
   updatedAt?: Date;
 }
 
-export type PositionLevel = string;
+export type positionLevel = string;

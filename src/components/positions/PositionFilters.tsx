@@ -35,7 +35,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
   const [title, setTitle] = useState(initialFilters.title || '');
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(new Set(initialFilters.selectedDepartments || []));
   const [isOpen, setIsOpen] = useState<PositionFilterValues['isOpen']>(initialFilters.isOpen || "all");
-  const [positionLevel, setPositionLevel] = useState(initialFilters.positionLevel || '');
+  const [positionLevel, setpositionLevel] = useState(initialFilters.positionLevel || '');
   
   const [departmentSearch, setDepartmentSearch] = useState('');
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -44,7 +44,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
     setTitle(initialFilters.title || '');
     setSelectedDepartments(new Set(initialFilters.selectedDepartments || []));
     setIsOpen(initialFilters.isOpen || "all");
-    setPositionLevel(initialFilters.positionLevel || '');
+    setpositionLevel(initialFilters.positionLevel || '');
   }, [initialFilters]);
 
 
@@ -61,7 +61,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
     setTitle('');
     setSelectedDepartments(new Set());
     setIsOpen("all");
-    setPositionLevel('');
+    setpositionLevel('');
     onFilterChange({ isOpen: "all", selectedDepartments: undefined }); 
   };
   
@@ -144,7 +144,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
             id="level-search"
             placeholder="Filter by level..."
             value={positionLevel}
-            onChange={(e) => setPositionLevel(e.target.value)}
+            onChange={(e) => setpositionLevel(e.target.value)}
             className="mt-1"
             disabled={isLoading}
           />

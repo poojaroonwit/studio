@@ -50,7 +50,7 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
       department, 
       description, 
       "isOpen", 
-      positionLevel, 
+      "positionLevel", 
       "customAttributes", 
       "createdAt", 
       "updatedAt" 

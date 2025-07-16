@@ -60,14 +60,15 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    setComments(initialComments);
+    setComments(Array.isArray(initialComments) ? initialComments : []);
   }, [initialComments]);
 
   useEffect(() => {
     setLogsLoading(true);
     fetch(`/api/candidates/${candidateId}/logs`)
       .then(res => res.json())
-      .then(data => setLogs(data.data || []))
+      .then(data => setLogs(Array.isArray(data.data) ? data.data : []))
+      .catch(() => setLogs([]))
       .finally(() => setLogsLoading(false));
   }, [candidateId]);
 
@@ -83,21 +84,21 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const combinedActivities: CombinedActivityItem[] = [
     // Add comments
     ...(Array.isArray(comments) ? comments : []).map(comment => ({
-      id: `comment-${comment.id}`,
+      id: `comment-${comment.id || 'unknown'}`,
       type: 'comment' as const,
-      content: comment.content,
-      author: comment.author,
-      createdAt: comment.createdAt,
-      attachments: comment.attachments
+      content: comment.content || '',
+      author: comment.author || 'Unknown',
+      createdAt: comment.createdAt || '',
+      attachments: Array.isArray(comment.attachments) ? comment.attachments : []
     })),
     // Add activity logs
     ...(Array.isArray(logs) ? logs : []).map(log => ({
-      id: `activity-${log.id}`,
+      id: `activity-${log.id || 'unknown'}`,
       type: 'activity' as const,
-      action: log.action,
-      user: log.user,
-      note: log.note,
-      time: log.time
+      action: log.action || '',
+      user: log.user || 'System',
+      note: log.note || '',
+      time: log.time || ''
     }))
   ].sort((a, b) => {
     const dateA = (a as any).createdAt || (a as any).time;
@@ -129,35 +130,40 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     e.preventDefault();
     setDragActive(false);
     const droppedFiles = Array.from(e.dataTransfer.files);
-    setFiles(prev => [...prev, ...droppedFiles]);
-    setLabels(prev => [...prev, ...droppedFiles.map(() => 'other')]);
+    setFiles(prev => Array.isArray(prev) ? [...prev, ...droppedFiles] : droppedFiles);
+    setLabels(prev => Array.isArray(prev) ? [...prev, ...droppedFiles.map(() => 'other')] : droppedFiles.map(() => 'other'));
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    setFiles(prev => [...prev, ...selectedFiles]);
-    setLabels(prev => [...prev, ...selectedFiles.map(() => 'other')]);
+    setFiles(prev => Array.isArray(prev) ? [...prev, ...selectedFiles] : selectedFiles);
+    setLabels(prev => Array.isArray(prev) ? [...prev, ...selectedFiles.map(() => 'other')] : selectedFiles.map(() => 'other'));
     e.target.value = '';
   };
   const handleRemoveFile = (idx: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
-    setLabels(prev => prev.filter((_, i) => i !== idx));
+    setFiles(prev => Array.isArray(prev) ? prev.filter((_, i) => i !== idx) : []);
+    setLabels(prev => Array.isArray(prev) ? prev.filter((_, i) => i !== idx) : []);
   };
   const handleLabelChange = (idx: number, value: string) => {
-    setLabels(prev => prev.map((l, i) => (i === idx ? value : l)));
+    setLabels(prev => Array.isArray(prev) ? prev.map((l, i) => (i === idx ? value : l)) : []);
   };
 
   // Add comment with attachments
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!newComment.trim() && files.length === 0) return;
+    if (!newComment.trim() && (!Array.isArray(files) || files.length === 0)) return;
     
     setSaving(true);
     setError(null);
     
     const formData = new FormData();
     formData.append('content', newComment);
-    files.forEach(file => formData.append('attachments', file));
-    labels.forEach(label => formData.append('labels', label));
+    
+    // Ensure files and labels are arrays before using forEach
+    const safeFiles = Array.isArray(files) ? files : [];
+    const safeLabels = Array.isArray(labels) ? labels : [];
+    
+    safeFiles.forEach(file => formData.append('attachments', file));
+    safeLabels.forEach(label => formData.append('labels', label));
     
     // Create optimistic comment
     const optimisticComment = {
@@ -165,16 +171,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       content: newComment,
       author: { name: 'You' }, // This will be replaced with actual user data
       createdAt: new Date().toISOString(),
-      attachments: files.map((file, idx) => ({
+      attachments: safeFiles.map((file, idx) => ({
         id: `temp-attachment-${Date.now()}-${idx}`,
         fileName: file.name,
-        label: labels[idx],
+        label: safeLabels[idx],
         url: URL.createObjectURL(file)
       }))
     };
     
     // Add optimistic comment to the top
-    setComments(prev => [optimisticComment, ...prev]);
+    setComments(prev => [optimisticComment, ...(Array.isArray(prev) ? prev : [])]);
     
     // Clear form immediately
     setNewComment('');
@@ -228,7 +234,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       setError(errorMessage);
       
       // Remove optimistic comment on error
-      setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
+      setComments(prev => Array.isArray(prev) ? prev.filter(c => c.id !== optimisticComment.id) : []);
     } finally {
       setSaving(false);
     }
@@ -241,8 +247,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     setEditingSaving(id);
     setError(null);
     // Optimistically update comment
-    const prevComments = [...comments];
-    setComments(comments.map(c => c.id === originalId ? { ...c, content: editingContent } : c));
+    const prevComments = Array.isArray(comments) ? [...comments] : [];
+    setComments(Array.isArray(comments) ? comments.map(c => c.id === originalId ? { ...c, content: editingContent } : c) : []);
     setEditingId(null);
     setEditingContent('');
     try {
@@ -268,8 +274,8 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     setDeleteLoading(id);
     setError(null);
     // Optimistically remove comment
-    const prevComments = [...comments];
-    setComments(comments.filter(c => c.id !== originalId));
+    const prevComments = Array.isArray(comments) ? [...comments] : [];
+    setComments(Array.isArray(comments) ? comments.filter(c => c.id !== originalId) : []);
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments/${originalId}`, {
         method: 'DELETE' });
@@ -448,10 +454,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                   {/* Label select */}
                   <select
                     className="border rounded px-2 py-1 text-xs"
-                    value={labels[idx]}
+                    value={Array.isArray(labels) && labels[idx] ? labels[idx] : 'other'}
                     onChange={e => handleLabelChange(idx, e.target.value)}
                   >
-                    {(Array.isArray(LABEL_OPTIONS) ? LABEL_OPTIONS : []).map(opt => (
+                    {LABEL_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
@@ -497,7 +503,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
               <Button
                 type="button"
                 onClick={handleAddComment}
-                disabled={saving || (!newComment.trim() && files.length === 0)}
+                disabled={saving || (!newComment.trim() && (!Array.isArray(files) || files.length === 0))}
                 size="sm"
                 className="p-2"
               >

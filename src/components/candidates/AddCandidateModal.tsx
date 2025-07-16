@@ -28,9 +28,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, PositionLevel, RecruitmentStage } from '@/lib/types';
+import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
 
-const positionLevelOptions: PositionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
+const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
 
 
 // Zod Schemas for form validation (mirroring types and API schemas)

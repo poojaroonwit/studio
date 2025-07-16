@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return new Response(JSON.stringify({ 
       message: 'Job match added successfully', 
-      jobMatch: jobMatch 
+      job_match: jobMatch 
     }), { status: 201, headers: handleCors(req) });
     
   } catch (error) {

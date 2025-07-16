@@ -219,8 +219,8 @@ model JobMatch {
   candidateId           String    @db.Uuid
   jobId                 String?   @db.Uuid
   jobTitle              String?   @map("job_title")
-  fitScore              Int?      @map("fit_score")
-  matchReasons          String[]  @map("match_reasons")
+  fitScore              Int?      @map("fitScore")
+  matchReasons          String[]  @map("matchReasons")
   jobDescriptionSummary String?   @map("job_description_summary")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -243,7 +243,7 @@ model UploadQueue {
   completedDate  DateTime? @map("completed_date")
   uploadId       String?   @map("upload_id")
   createdBy      String?   @map("created_by") @db.Uuid
-  updatedAt      DateTime  @default(now()) @map("updated_at")
+  updatedAt      DateTime  @default(now()) @map("updatedAt")
   filePath       String    @map("file_path")
   webhookPayload Json?     @map("webhook_payload")
   positionId     String?   @map("position_id") @db.Uuid
@@ -359,12 +359,12 @@ model Webhook {
   auth_token        String?  @map("auth_token")
   auth_type         String   @default("none") @map("auth_type")
   auth_username     String?  @map("auth_username")
-  created_at        DateTime @default(now()) @map("created_at")
+  createdAt        DateTime @default(now()) @map("createdAt")
   events            String[]
   is_active         Boolean  @default(true) @map("is_active")
   retry_count       Int      @default(3) @map("retry_count")
   timeout           Int      @default(30)
-  updated_at        DateTime @updatedAt @map("updated_at")
+  updatedAt        DateTime @updatedAt @map("updatedAt")
 
   // Webhook body customization fields
   body_template    String? @map("body_template") // JSON template for custom webhook body
@@ -377,7 +377,7 @@ model Webhook {
 
   @@index([is_active])
   @@index([events])
-  @@index([created_at])
+  @@index([createdAt])
 }
 
 model WebhookBodyConfig {
@@ -387,8 +387,8 @@ model WebhookBodyConfig {
   body_template  String   @map("body_template") // JSON template for this specific event
   field_mappings Json?    @map("field_mappings") // Field mappings for this event
   is_active      Boolean  @default(true) @map("is_active")
-  created_at     DateTime @default(now()) @map("created_at")
-  updated_at     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("createdAt")
+  updatedAt     DateTime @updatedAt @map("updatedAt")
   webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
   @@unique([webhook_id, event_type])
@@ -407,11 +407,11 @@ model WebhookLog {
   success         Boolean
   error_message   String?  @map("error_message")
   duration_ms     Int      @default(0) @map("duration_ms")
-  created_at      DateTime @default(now()) @map("created_at")
+  createdAt      DateTime @default(now()) @map("createdAt")
   webhook         Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
   @@index([webhook_id])
   @@index([event_type])
   @@index([success])
-  @@index([created_at])
+  @@index([createdAt])
 }

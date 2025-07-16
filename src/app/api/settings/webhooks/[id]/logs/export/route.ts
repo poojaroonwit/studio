@@ -28,14 +28,14 @@ export async function GET(
     // Get all logs for this webhook
     const logs = await prisma.webhookLog.findMany({
       where: { webhook_id: id },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         event_type: true,
         success: true,
         response_status: true,
         error_message: true,
         duration_ms: true,
-        created_at: true,
+        createdAt: true,
         payload: true,
         response_body: true
       }
@@ -54,7 +54,7 @@ export async function GET(
     ];
 
     const csvRows = logs.map(log => [
-      log.created_at.toISOString(),
+      log.createdAt.toISOString(),
       log.event_type,
       log.success ? 'Success' : 'Failed',
       log.response_status || '',

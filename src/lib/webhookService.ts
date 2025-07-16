@@ -192,8 +192,8 @@ export class WebhookService {
         status: candidate.status,
         position_id: candidate.positionId,
         application_date: candidate.applicationDate,
-        created_at: candidate.createdAt,
-        updated_at: candidate.updatedAt
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt
       }
     });
   }
@@ -209,8 +209,8 @@ export class WebhookService {
         department: position.department,
         description: position.description,
         is_open: position.isOpen,
-        created_at: position.createdAt,
-        updated_at: position.updatedAt
+        createdAt: position.createdAt,
+        updatedAt: position.updatedAt
       }
     });
   }
@@ -225,8 +225,8 @@ export class WebhookService {
         name: user.name,
         email: user.email,
         role: user.role,
-        created_at: user.createdAt,
-        updated_at: user.updatedAt
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       }
     });
   }
@@ -244,7 +244,7 @@ export class WebhookService {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        created_at: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt
       }
     });
   }
@@ -259,8 +259,8 @@ export class WebhookService {
         content: comment.content,
         author_id: comment.authorId,
         candidate_id: comment.candidateId,
-        created_at: comment.createdAt,
-        updated_at: comment.updatedAt
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt
       }
     });
   }

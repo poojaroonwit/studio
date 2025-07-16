@@ -1028,7 +1028,7 @@ export function getSwaggerSpec() {
                   required: ['job_matches']
                 },
                 example: {
-                  jobMatches: [
+                  job_matches: [
                     {
                       fitScore: 85,
                       jobId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -1086,7 +1086,7 @@ export function getSwaggerSpec() {
                   required: ['job_matches']
                 },
                 example: {
-                  jobMatches: [
+                  job_matches: [
                     {
                       fitScore: 90,
                       jobId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -1171,7 +1171,7 @@ export function getSwaggerSpec() {
                     type: 'object',
                     properties: {
                       message: { type: 'string' },
-                      jobMatch: { $ref: '#/components/schemas/JobMatch' }
+                      job_match: { $ref: '#/components/schemas/JobMatch' }
                     }
                   }
                 }
@@ -1203,7 +1203,7 @@ export function getSwaggerSpec() {
                   schema: {
                     type: 'object',
                     properties: {
-                      jobMatch: { $ref: '#/components/schemas/JobMatch' }
+                      job_match: { $ref: '#/components/schemas/JobMatch' }
                     }
                   }
                 }
@@ -1239,7 +1239,7 @@ export function getSwaggerSpec() {
                     type: 'object',
                     properties: {
                       message: { type: 'string' },
-                      jobMatch: { $ref: '#/components/schemas/JobMatch' }
+                      job_match: { $ref: '#/components/schemas/JobMatch' }
                     }
                   }
                 }

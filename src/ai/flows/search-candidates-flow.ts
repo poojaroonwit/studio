@@ -28,7 +28,7 @@ export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema
 
 // Enhanced helper to create a more comprehensive summary for a candidate
 function createCandidateSummary(candidate: Candidate): string {
-  const { id, name, email, phone, status, fitScore, position, parsedData, customAttributes, applicationDate, recruiter, transitionRecords } = candidate;
+  const { id, name, email, phone, status, fitScore, position, parsedData, customAttributes, applicationDate, recruiter, transitionHistory } = candidate;
   const details = parsedData as CandidateDetails | null;
 
   let summaryParts: string[] = [];
@@ -43,7 +43,7 @@ function createCandidateSummary(candidate: Candidate): string {
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
   
-  const latestTransition = transitionRecords?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  const latestTransition = transitionHistory?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   if (latestTransition) {
     summaryParts.push(`Last Status Update: ${latestTransition.stage} on ${new Date(latestTransition.date).toLocaleDateString()}`);
   }
@@ -115,7 +115,7 @@ function createCandidateSummary(candidate: Candidate): string {
     if (details.job_matches && Array.isArray(details.job_matches) && details.job_matches.length > 0) {
       summaryParts.push("Automated Job Matches (from automation):");
       details.job_matches.forEach(match => {
-        summaryParts.push(`  - Job: ${match.jobTitle || match.jobId || 'N/A'}, Fit: ${match.fitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
+        summaryParts.push(`  - Job: ${match.job_title || match.jobId || 'N/A'}, Fit: ${match.fitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
       });
     }
   }
@@ -163,7 +163,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
             c.*, 
             p.title as "positionTitle",
             rec.name as "recruiterName",
-            COALESCE(th_data.history, '[]'::json) as "transitionRecords"
+            COALESCE(th_data.history, '[]'::json) as "transitionHistory"
         FROM "Candidate" c 
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" rec ON c."recruiterId" = rec.id
@@ -183,7 +183,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
         position: row.positionId ? { id: row.positionId, title: row.positionTitle } : null,
         recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName, email: null } : null,
-        transitionRecords: (row.transitionRecords || []) as TransitionRecord[],
+        transitionHistory: (row.transitionHistory || []) as TransitionRecord[],
         customAttributes: row.customAttributes || {},
     })) as Candidate[];
 

@@ -18,18 +18,25 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-interface JobMatch {
-  id: string;
-  jobTitle: string;
-  fitScore: number;
-  matchReasons: string[];
-  job_description_summary?: string;
-}
-
 interface JobMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  jobMatch: JobMatch | null;
+  jobMatch: {
+    jobId: string;
+    job_title: string;
+    fitScore: number;
+    matchReasons: string[];
+    position?: {
+      id: string;
+      title: string;
+      description?: string;
+      department?: string;
+      location?: string;
+      salary?: string;
+      requirements?: string;
+      isOpen: boolean;
+    };
+  } | null;
   statistics?: {
     totalApplied: number;
     totalMatching: number;
@@ -48,17 +55,17 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
   });
 
   useEffect(() => {
-    if (isOpen && jobMatch?.id) {
+    if (isOpen && jobMatch?.jobId) {
       fetchStatistics();
     }
-  }, [isOpen, jobMatch?.id]);
+  }, [isOpen, jobMatch?.jobId]);
 
   const fetchStatistics = async () => {
-    if (!jobMatch?.id) return;
+    if (!jobMatch?.jobId) return;
     
     setLoadingStats(true);
     try {
-      const response = await fetch(`/api/positions/${jobMatch.id}/statistics`);
+      const response = await fetch(`/api/positions/${jobMatch.jobId}/statistics`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -71,7 +78,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
   };
 
   const handleNavigateToCandidates = (filterType: 'applied' | 'matching' | 'matchingNotApplied') => {
-    if (!jobMatch?.id || isNavigating) return;
+    if (!jobMatch?.jobId || isNavigating) return;
     
     setIsNavigating(true);
     
@@ -79,16 +86,16 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
     switch (filterType) {
       case 'applied':
         // Show candidates who have applied to this position (any status)
-        advancedQuery = `positionId:${jobMatch.id}`;
+        advancedQuery = `positionId:${jobMatch.jobId}`;
         break;
       case 'matching':
         // Show candidates with good fit score for this position using matching fit score
-        advancedQuery = `positionId:${jobMatch.id} matchingFitScoreMin:70 matchingFitScoreMax:100`;
+        advancedQuery = `positionId:${jobMatch.jobId} matchingFitScoreMin:70 matchingFitScoreMax:100`;
         break;
       case 'matchingNotApplied':
         // Show candidates with high fit score who haven't applied yet
         // Use matching fit score with higher threshold
-        advancedQuery = `positionId:${jobMatch.id} matchingFitScoreMin:80 matchingFitScoreMax:100`;
+        advancedQuery = `positionId:${jobMatch.jobId} matchingFitScoreMin:80 matchingFitScoreMax:100`;
         break;
     }
     
@@ -108,7 +115,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              {jobMatch.jobTitle}
+              {jobMatch.position?.title || jobMatch.job_title}
             </DialogTitle>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -130,22 +137,22 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                     <div className="flex items-center gap-2 text-sm">
                       <Building className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Department:</span>
-                      <span className={jobMatch.job_description_summary ? 'text-foreground' : 'text-muted-foreground italic'}>
-                        {jobMatch.job_description_summary || 'Not specified'}
+                      <span className={jobMatch.position?.department ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.department || 'Not specified'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Location:</span>
-                      <span className={jobMatch.job_description_summary ? 'text-foreground' : 'text-muted-foreground italic'}>
-                        {jobMatch.job_description_summary || 'Not specified'}
+                      <span className={jobMatch.position?.location ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.location || 'Not specified'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Salary:</span>
-                      <span className={jobMatch.job_description_summary ? 'text-foreground' : 'text-muted-foreground italic'}>
-                        {jobMatch.job_description_summary || 'Not specified'}
+                      <span className={jobMatch.position?.salary ? 'text-foreground' : 'text-muted-foreground italic'}>
+                        {jobMatch.position?.salary || 'Not specified'}
                       </span>
                     </div>
                   </div>
@@ -153,8 +160,8 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Status:</span>
-                      <Badge variant={jobMatch.job_description_summary ? "default" : "secondary"}>
-                        {jobMatch.job_description_summary || 'Closed'}
+                      <Badge variant={jobMatch.position?.isOpen ? "default" : "secondary"}>
+                        {jobMatch.position?.isOpen ? 'Open' : 'Closed'}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -166,20 +173,20 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                   </div>
                 </div>
 
-                {jobMatch.job_description_summary && (
+                {jobMatch.position?.description && (
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Description:</h4>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {jobMatch.job_description_summary}
+                      {jobMatch.position.description}
                     </p>
                   </div>
                 )}
 
-                {jobMatch.job_description_summary && (
+                {jobMatch.position?.requirements && (
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Requirements:</h4>
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {jobMatch.job_description_summary}
+                      {jobMatch.position.requirements}
                     </p>
                   </div>
                 )}

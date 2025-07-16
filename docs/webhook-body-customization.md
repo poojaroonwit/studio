@@ -80,8 +80,8 @@ CREATE TABLE webhook_body_config (
   body_template     TEXT NOT NULL,
   field_mappings    JSONB,
   is_active         BOOLEAN DEFAULT TRUE,
-  created_at        TIMESTAMP DEFAULT NOW(),
-  updated_at        TIMESTAMP DEFAULT NOW(),
+  createdAt        TIMESTAMP DEFAULT NOW(),
+  updatedAt        TIMESTAMP DEFAULT NOW(),
   
   UNIQUE(webhook_id, event_type)
 );

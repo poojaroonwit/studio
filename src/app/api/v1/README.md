@@ -357,8 +357,8 @@ Get applied job information for a candidate.
 ```json
 {
   "job_applied": {
-    "fit_score": 90,
-    "job_id": "position-uuid",
+    "fitScore": 90,
+    "jobId": "position-uuid",
     "justification": ["Strong technical background", "Relevant experience"]
   }
 }
@@ -370,8 +370,8 @@ Create or update applied job information for a candidate.
 **Request Body:**
 ```json
 {
-  "fit_score": 90,
-  "job_id": "position-uuid",
+  "fitScore": 90,
+  "jobId": "position-uuid",
   "justification": ["Strong technical background", "Relevant experience"]
 }
 ```
@@ -381,8 +381,8 @@ Create or update applied job information for a candidate.
 {
   "message": "Job applied data updated successfully",
   "job_applied": {
-    "fit_score": 90,
-    "job_id": "position-uuid",
+    "fitScore": 90,
+    "jobId": "position-uuid",
     "justification": ["Strong technical background", "Relevant experience"]
   }
 }
@@ -409,12 +409,12 @@ Get all job matches for a candidate.
   "job_matches": [
     {
       "id": "match-uuid",
-      "fit_score": 85,
-      "job_id": "position-uuid",
-      "match_reasons": ["Strong technical skills", "Relevant experience"],
-      "position_title": "Software Engineer",
-      "created_at": "2024-01-01T00:00:00.000Z",
-      "updated_at": "2024-01-01T00:00:00.000Z"
+      "fitScore": 85,
+      "jobId": "position-uuid",
+      "matchReasons": ["Strong technical skills", "Relevant experience"],
+      "positionTitle": "Software Engineer",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
     }
   ]
 }
@@ -428,18 +428,18 @@ Create or update job matches for a candidate.
 {
   "job_matches": [
     {
-      "fit_score": 85,
-      "job_id": "position-uuid",
-      "match_reasons": ["Strong technical skills", "Relevant experience"]
+      "fitScore": 85,
+      "jobId": "position-uuid",
+      "matchReasons": ["Strong technical skills", "Relevant experience"]
     }
   ]
 }
 ```
 
 **Note:** The following fields are automatically handled and should not be included in the request:
-- `position_title`: Automatically retrieved from the Position table based on `job_id`
-- `created_at`: Automatically set to current timestamp when creating new matches
-- `updated_at`: Automatically set to current timestamp when updating matches
+- `positionTitle`: Automatically retrieved from the Position table based on `jobId`
+- `createdAt`: Automatically set to current timestamp when creating new matches
+- `updatedAt`: Automatically set to current timestamp when updating matches
 
 **Response:**
 ```json
@@ -448,9 +448,9 @@ Create or update job matches for a candidate.
   "job_matches": [
     {
       "id": "match-uuid",
-      "fit_score": 85,
-      "job_id": "position-uuid",
-      "match_reasons": ["Strong technical skills", "Relevant experience"]
+      "fitScore": 85,
+      "jobId": "position-uuid",
+      "matchReasons": ["Strong technical skills", "Relevant experience"]
     }
   ]
 }
@@ -476,12 +476,12 @@ Get a specific job match for a candidate.
 {
   "job_match": {
     "id": "match-uuid",
-    "fit_score": 85,
-    "job_id": "position-uuid",
-    "match_reasons": ["Strong technical skills"],
-    "position_title": "Software Engineer",
-    "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "fitScore": 85,
+    "jobId": "position-uuid",
+    "matchReasons": ["Strong technical skills"],
+    "positionTitle": "Software Engineer",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
@@ -492,16 +492,16 @@ Update a specific job match for a candidate.
 **Request Body:**
 ```json
 {
-  "fit_score": 90,
-  "job_id": "position-uuid",
-  "match_reasons": ["Updated match reasons"]
+  "fitScore": 90,
+  "jobId": "position-uuid",
+  "matchReasons": ["Updated match reasons"]
 }
 ```
 
 **Note:** The following fields are automatically handled and should not be included in the request:
-- `position_title`: Automatically retrieved from the Position table based on `job_id`
-- `created_at`: Automatically set to current timestamp when creating new matches
-- `updated_at`: Automatically set to current timestamp when updating matches
+- `positionTitle`: Automatically retrieved from the Position table based on `jobId`
+- `createdAt`: Automatically set to current timestamp when creating new matches
+- `updatedAt`: Automatically set to current timestamp when updating matches
 
 **Response:**
 ```json
@@ -509,10 +509,10 @@ Update a specific job match for a candidate.
   "message": "Job match updated successfully",
   "job_match": {
     "id": "match-uuid",
-    "fit_score": 90,
-    "job_id": "position-uuid",
-    "match_reasons": ["Updated match reasons"],
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "fitScore": 90,
+    "jobId": "position-uuid",
+    "matchReasons": ["Updated match reasons"],
+    "updatedAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```

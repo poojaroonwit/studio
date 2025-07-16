@@ -164,8 +164,8 @@ All webhook payloads follow this structure:
       "status": "Applied",
       "position_id": "550e8400-e29b-41d4-a716-446655440001",
       "application_date": "2024-01-15T10:30:00.000Z",
-      "created_at": "2024-01-15T10:30:00.000Z",
-      "updated_at": "2024-01-15T10:30:00.000Z"
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
     }
   }
 }

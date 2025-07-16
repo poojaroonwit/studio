@@ -25,7 +25,7 @@ model UploadQueue {
   completedDate  DateTime? @map("completed_date")
   uploadId       String?  @map("upload_id")
   createdBy      String?  @db.Uuid @map("created_by")
-  updatedAt      DateTime @default(now()) @map("updated_at")
+  updatedAt      DateTime @default(now()) @map("updatedAt")
   filePath       String   @map("file_path")
   webhookPayload Json?    @map("webhook_payload")
   positionId     String?  @db.Uuid @map("position_id")
@@ -50,8 +50,8 @@ model Webhook {
   headers           Json?    // Custom headers
   retry_count       Int      @default(3) @map("retry_count")
   timeout           Int      @default(30)
-  created_at        DateTime @default(now()) @map("created_at")
-  updated_at        DateTime @updatedAt @map("updated_at")
+  createdAt        DateTime @default(now()) @map("createdAt")
+  updatedAt        DateTime @updatedAt @map("updatedAt")
 }
 ```
 
@@ -67,7 +67,7 @@ model WebhookLog {
   success        Boolean
   error_message  String?  @map("error_message")
   duration_ms    Int      @default(0) @map("duration_ms")
-  created_at     DateTime @default(now()) @map("created_at")
+  createdAt     DateTime @default(now()) @map("createdAt")
 }
 ```
 

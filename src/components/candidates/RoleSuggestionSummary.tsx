@@ -22,11 +22,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     );
   }
 
-  const jobMatches = (candidate.parsedData as CandidateDetails)?.job_matches?.map(jm => ({
-    ...jm,
-    fitScore: jm.fitScore,
-    matchReasons: jm.matchReasons,
-  }));
+  const jobMatches = (candidate.parsedData as CandidateDetails)?.job_matches;
 
   if (!jobMatches || jobMatches.length === 0) {
     return (
@@ -51,7 +47,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
   const openPositionsMap = new Map(allDbPositions.filter(p => p.isOpen).map(p => [p.title.toLowerCase(), p]));
 
   for (const jobMatch of jobMatches) {
-    const jobMatchTitleLower = jobMatch.jobTitle?.toLowerCase();
+    const jobMatchTitleLower = jobMatch.job_title?.toLowerCase();
     if (!jobMatchTitleLower) continue;
     const dbPositionMatch = openPositionsMap.get(jobMatchTitleLower);
     if (dbPositionMatch && dbPositionMatch.id !== currentAppliedPositionId) {
@@ -72,7 +68,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
         {bestAlternativeMatch && bestAlternativePositionInDb ? (
           <div className="p-3 border border-dashed border-primary/50 rounded-md bg-primary/5">
             <p className="text-sm text-foreground">
-              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.jobTitle}</strong> (Open Position).
+              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.job_title}</strong> (Open Position).
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Automated Fit Score for this role: <span className="font-semibold text-foreground">{bestAlternativeMatch.fitScore}%</span>.

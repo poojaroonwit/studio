@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 
 const jobMatchSchema = z.object({
   jobId: z.string().optional(),
-  jobTitle: z.string().optional(),
+  job_title: z.string().optional(),
   fitScore: z.number().optional(),
   matchReasons: z.array(z.string()).optional(),
-  jobDescriptionSummary: z.string().optional(),
+  job_description_summary: z.string().optional(),
 });
 
 const candidateDataSchema = z.object({
@@ -98,10 +98,10 @@ export async function POST(request: NextRequest) {
           uuidv4(),
           newCandidateId,
           match.jobId,
-          match.jobTitle,
+          match.job_title,
           match.fitScore,
           match.matchReasons,
-          match.jobDescriptionSummary
+          match.job_description_summary
         ];
         await client.query(insertMatchQuery, matchParams);
       }

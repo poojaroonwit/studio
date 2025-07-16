@@ -8,7 +8,7 @@ import { normalizePayloadTypes } from '@/lib/apiUtils';
 const jobAppliedSchema = z.object({
   fitScore: z.number().min(0).max(100),
   jobId: z.string().uuid(),
-  justification: z.string().optional(),
+  justification: z.array(z.string()).optional().default([]),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -99,8 +99,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
-      fit_score: fitScore,
-      job_id: jobId,
+      fitScore,
+      jobId,
       justification: justification || [],
     };
 
@@ -188,8 +188,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
-      fit_score: fitScore,
-      job_id: jobId,
+      fitScore,
+      jobId,
       justification: justification || [],
     };
 

@@ -73,8 +73,8 @@ const PAYLOAD_EXAMPLES = {
         status: 'Applied',
         position_id: '550e8400-e29b-41d4-a716-446655440001',
         application_date: '2024-01-15T10:30:00.000Z',
-        created_at: '2024-01-15T10:30:00.000Z',
-        updated_at: '2024-01-15T10:30:00.000Z'
+        createdAt: '2024-01-15T10:30:00.000Z',
+        updatedAt: '2024-01-15T10:30:00.000Z'
       }
     }
   },
@@ -89,8 +89,8 @@ const PAYLOAD_EXAMPLES = {
         status: 'Interview',
         position_id: '550e8400-e29b-41d4-a716-446655440001',
         application_date: '2024-01-15T10:30:00.000Z',
-        created_at: '2024-01-15T10:30:00.000Z',
-        updated_at: '2024-01-15T14:30:00.000Z'
+        createdAt: '2024-01-15T10:30:00.000Z',
+        updatedAt: '2024-01-15T14:30:00.000Z'
       },
       stage_change: {
         old_stage: 'Applied',
@@ -109,8 +109,8 @@ const PAYLOAD_EXAMPLES = {
         department: 'Engineering',
         description: 'We are looking for a senior software engineer...',
         is_open: true,
-        created_at: '2024-01-15T09:00:00.000Z',
-        updated_at: '2024-01-15T09:00:00.000Z'
+        createdAt: '2024-01-15T09:00:00.000Z',
+        updatedAt: '2024-01-15T09:00:00.000Z'
       }
     }
   },
@@ -125,7 +125,7 @@ const PAYLOAD_EXAMPLES = {
         status: 'completed',
         upload_date: '2024-01-15T11:30:00.000Z',
         completed_date: '2024-01-15T11:45:00.000Z',
-        created_at: '2024-01-15T11:30:00.000Z'
+        createdAt: '2024-01-15T11:30:00.000Z'
       }
     }
   }

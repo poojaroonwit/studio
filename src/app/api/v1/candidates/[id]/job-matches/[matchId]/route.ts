@@ -59,7 +59,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
       updatedAt: match.updatedAt,
     };
 
-    return new Response(JSON.stringify({ jobMatch: jobMatch }), { status: 200, headers: handleCors(req) });
+    return new Response(JSON.stringify({ job_match: jobMatch }), { status: 200, headers: handleCors(req) });
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Error fetching job match', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
@@ -146,7 +146,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
 
     return new Response(JSON.stringify({ 
       message: 'Job match updated successfully', 
-      jobMatch: jobMatch 
+      job_match: jobMatch 
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {

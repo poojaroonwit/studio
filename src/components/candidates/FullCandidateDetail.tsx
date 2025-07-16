@@ -468,7 +468,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                              <h4 className="font-semibold">{match.job_title || 'Unknown Position'}</h4>
                               {match.fitScore && (
                                 <Badge variant="outline">{match.fitScore}% Match</Badge>
                               )}

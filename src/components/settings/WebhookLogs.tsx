@@ -23,7 +23,7 @@ interface WebhookLog {
   success: boolean;
   error_message: string | null;
   duration_ms: number;
-  created_at: string;
+  createdAt: string;
 }
 
 interface WebhookLogsProps {
@@ -88,7 +88,7 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
           success: Boolean(log.success),
           error_message: log.error_message || null,
           duration_ms: log.duration_ms || 0,
-          created_at: log.created_at || new Date().toISOString()
+          createdAt: log.createdAt || new Date().toISOString()
         })) || [];
         
         setLogs(sanitizedLogs);
@@ -321,7 +321,7 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {formatDate(log.created_at)}
+                        {formatDate(log.createdAt)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Dialog>
@@ -338,7 +338,7 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                             <DialogHeader>
                               <DialogTitle>Webhook Log Details</DialogTitle>
                               <DialogDescription>
-                                Event: {log.event_type} • {formatDate(log.created_at)}
+                                Event: {log.event_type} • {formatDate(log.createdAt)}
                               </DialogDescription>
                             </DialogHeader>
                             
@@ -409,7 +409,7 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
                                 
                                 <div>
                                   <Label className="text-sm font-medium">Timestamp</Label>
-                                  <div className="mt-1 text-sm">{formatDate(log.created_at)}</div>
+                                  <div className="mt-1 text-sm">{formatDate(log.createdAt)}</div>
                                 </div>
                               </TabsContent>
                             </Tabs>

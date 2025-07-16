@@ -85,11 +85,11 @@ export async function GET(
         body_template: config.body_template,
         field_mappings: config.field_mappings,
         is_active: config.is_active,
-        created_at: config.created_at,
-        updated_at: config.updated_at
+        createdAt: config.createdAt,
+        updatedAt: config.updatedAt
       })),
-      created_at: webhook.created_at,
-      updated_at: webhook.updated_at
+      createdAt: webhook.createdAt,
+      updatedAt: webhook.updatedAt
     };
 
     return NextResponse.json(sanitizedWebhook);
@@ -126,7 +126,7 @@ export async function PUT(
       where: { id: params.id },
       data: {
         ...data,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       },
     });
     return NextResponse.json(webhook);

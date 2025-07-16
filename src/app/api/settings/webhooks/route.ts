@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
 
     const webhooks = await prisma.webhook.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         body_configs: {
           where: { is_active: true },
@@ -79,11 +79,11 @@ export async function GET(req: NextRequest) {
         body_template: config.body_template,
         field_mappings: config.field_mappings,
         is_active: config.is_active,
-        created_at: config.created_at,
-        updated_at: config.updated_at
+        createdAt: config.createdAt,
+        updatedAt: config.updatedAt
       })),
-      created_at: webhook.created_at?.toISOString() || new Date().toISOString(),
-      updated_at: webhook.updated_at?.toISOString() || new Date().toISOString()
+      createdAt: webhook.createdAt?.toISOString() || new Date().toISOString(),
+      updatedAt: webhook.updatedAt?.toISOString() || new Date().toISOString()
     }));
 
     return NextResponse.json(sanitizedWebhooks);

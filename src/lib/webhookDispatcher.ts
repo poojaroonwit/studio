@@ -277,8 +277,8 @@ export class WebhookDispatcher {
         email: candidate.email,
         phone: candidate.phone,
         current_stage: candidate.current_stage,
-        created_at: candidate.created_at,
-        updated_at: candidate.updated_at
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt
       },
       ...additionalData
     });
@@ -295,8 +295,8 @@ export class WebhookDispatcher {
         department: position.department,
         description: position.description,
         status: position.status,
-        created_at: position.created_at,
-        updated_at: position.updated_at
+        createdAt: position.createdAt,
+        updatedAt: position.updatedAt
       },
       ...additionalData
     });
@@ -312,8 +312,8 @@ export class WebhookDispatcher {
         name: user.name,
         email: user.email,
         role: user.role,
-        created_at: user.created_at,
-        updated_at: user.updated_at
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       },
       ...additionalData
     });
@@ -350,8 +350,8 @@ export class WebhookDispatcher {
         content: comment.content,
         author_id: comment.author_id,
         author_name: comment.author_name,
-        created_at: comment.created_at,
-        updated_at: comment.updated_at
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt
       },
       ...additionalData
     });

@@ -64,24 +64,9 @@ const updateCandidateSchema = z.object({
   }).optional(),
 });
 
-const jobAppliedSchema = z.object({
-  fitScore: z.number().min(0).max(100),
-  jobId: z.string().uuid(),
-  justification: z.string().optional(),
-});
-
-const jobMatchesUpdateSchema = z.object({
-  fitScore: z.number().min(0).max(100),
-  jobId: z.string().uuid(),
-  matchReasons: z.array(z.string()).optional().default([]),
-});
-
 export { updateCandidateSchema };
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[Main Candidate API] GET request for candidate ID: ${params.id}`);
-  console.log(`[Main Candidate API] URL: ${req.url}`);
-  
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -129,15 +114,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         department: candidate.positionDepartment
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
-      jobMatches: jobMatchesResult.rows.map(match => ({
-        id: match.id,
-        fitScore: match.fitScore,
-        jobId: match.jobId,
-        matchReasons: match.matchReasons || [],
-        positionTitle: match.positionTitle,
-        createdAt: match.createdAt,
-        updatedAt: match.updatedAt,
-      })),
+      jobMatches: jobMatchesResult.rows,
       resumeHistory: resumeHistoryResult.rows,
     }, 200);
   } catch (error) {
@@ -255,10 +232,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       newParsedData.job_applied = updateData.job_applied;
       hasParsedDataChanges = true;
       // Patch: Sync top-level fields with job_applied
-          if (updateData.job_applied.fitScore !== undefined) {
-      updateFields.push(`"fitScore" = $${paramIndex++}`);
-      updateValues.push(updateData.job_applied.fitScore);
-    }
+      if (updateData.job_applied.fitScore !== undefined) {
+        updateFields.push(`"fitScore" = $${paramIndex++}`);
+        updateValues.push(updateData.job_applied.fitScore);
+      }
       if (updateData.job_applied.justification !== undefined) {
         // Store as a string (join array with newlines) or as JSON if preferred
         updateFields.push(`"assignmentJustification" = $${paramIndex++}`);

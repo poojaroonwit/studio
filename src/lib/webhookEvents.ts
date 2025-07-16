@@ -29,8 +29,8 @@ export class WebhookEvents {
         status: candidate.status,
         position_id: candidate.positionId,
         application_date: candidate.applicationDate,
-        created_at: candidate.createdAt,
-        updated_at: candidate.updatedAt
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt
       },
       stage_change: {
         old_stage: oldStage,
@@ -140,7 +140,7 @@ export class WebhookEvents {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        created_at: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt
       },
       error: error
     });
@@ -156,7 +156,7 @@ export class WebhookEvents {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        created_at: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt
       },
       retry: {
         attempt: attempt,

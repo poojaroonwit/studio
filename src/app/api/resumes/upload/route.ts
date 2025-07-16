@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         inputs: {
           cv_url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`,
           candidate_id: candidateId,
-          job_id: candidate.positionid || candidate.positionId || null, // support both casings
+          jobId: candidate.positionid || candidate.positionId || null, // support both casings
           filename: originalName,
           mimetype: file.type
         },

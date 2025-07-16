@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Get delivery statistics for last 24 hours
     const deliveryStats = await prisma.webhookLog.aggregate({
       where: {
-        created_at: {
+        createdAt: {
           gte: twentyFourHoursAgo
         }
       },
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     // Get success/failure counts
     const successCount = await prisma.webhookLog.count({
       where: {
-        created_at: {
+        createdAt: {
           gte: twentyFourHoursAgo
         },
         success: true
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     const failureCount = await prisma.webhookLog.count({
       where: {
-        created_at: {
+        createdAt: {
           gte: twentyFourHoursAgo
         },
         success: false
@@ -69,18 +69,18 @@ export async function GET(request: NextRequest) {
     // Get recent activity (last 10 deliveries)
     const recentActivity = await prisma.webhookLog.findMany({
       where: {
-        created_at: {
+        createdAt: {
           gte: twentyFourHoursAgo
         }
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 10,
       select: {
         id: true,
         event_type: true,
         success: true,
         response_status: true,
-        created_at: true,
+        createdAt: true,
         webhook: {
           select: {
             name: true
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     const topFailingWebhooks = await prisma.webhookLog.groupBy({
       by: ['webhook_id'],
       where: {
-        created_at: {
+        createdAt: {
           gte: twentyFourHoursAgo
         },
         success: false

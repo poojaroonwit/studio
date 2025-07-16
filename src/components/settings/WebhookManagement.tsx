@@ -49,8 +49,8 @@ interface Webhook {
   include_metadata?: boolean;
   custom_payload?: boolean;
   body_configs?: any[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface WebhookFormData {
@@ -197,8 +197,8 @@ export default function WebhookManagement() {
           include_metadata: Boolean(webhook.include_metadata),
           custom_payload: Boolean(webhook.custom_payload),
           body_configs: webhook.body_configs || [],
-          created_at: webhook.created_at || new Date().toISOString(),
-          updated_at: webhook.updated_at || new Date().toISOString()
+          createdAt: webhook.createdAt || new Date().toISOString(),
+          updatedAt: webhook.updatedAt || new Date().toISOString()
         })) : [];
         setWebhooks(sanitizedWebhooks);
       } else {
@@ -1141,7 +1141,7 @@ export default function WebhookManagement() {
                       {webhook.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{formatDate(webhook.created_at)}</TableCell>
+                  <TableCell>{formatDate(webhook.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1314,7 +1314,7 @@ export default function WebhookManagement() {
                     webhookLogs.map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-xs">
-                          {new Date(log.created_at).toLocaleString()}
+                          {new Date(log.createdAt).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-xs">
                           <Badge variant="outline">{log.event_type}</Badge>

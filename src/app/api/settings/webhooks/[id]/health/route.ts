@@ -105,11 +105,11 @@ export async function POST(
     const recentLogs = await prisma.webhookLog.findMany({
       where: {
         webhook_id: webhook.id,
-        created_at: {
+        createdAt: {
           gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
         }
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 100
     });
 

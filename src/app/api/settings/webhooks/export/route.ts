@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     // Get all webhooks with their configurations
     const webhooks = await prisma.webhook.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         name: true,
@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
         timeout: true,
         retry_count: true,
         is_active: true,
-        created_at: true,
-        updated_at: true
+        createdAt: true,
+        updatedAt: true
       }
     });
 

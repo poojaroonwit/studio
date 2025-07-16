@@ -31,7 +31,7 @@ export interface CandidateJob {
   completed_date?: string;
   upload_id?: string;
   created_by?: string;
-  updated_at?: string;
+  updatedAt?: string;
   file_path?: string;
   file?: File;
   type: CandidateJobType;

@@ -48,7 +48,7 @@ export async function GET(
     // Get logs with pagination
     const logs = await prisma.webhookLog.findMany({
       where,
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       skip: offset,
       take: limit,
       select: {
@@ -60,7 +60,7 @@ export async function GET(
         success: true,
         error_message: true,
         duration_ms: true,
-        created_at: true
+        createdAt: true
       }
     });
 

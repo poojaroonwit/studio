@@ -15,6 +15,7 @@ import {
   createConflictError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const prisma = new PrismaClient();
 
@@ -99,35 +100,9 @@ export async function POST(request: NextRequest) {
   let body;
   try {
     body = await request.json();
+    body = normalizePayloadTypes(body);
   } catch {
     return handleApiError(request, createValidationError('Invalid JSON body'));
-  }
-
-  // Convert 'true'/'false' strings to booleans in educationData and experienceData
-  function convertBooleans(obj: any): any {
-    if (Array.isArray(obj)) {
-      return obj.map(convertBooleans);
-    } else if (obj && typeof obj === 'object') {
-      const newObj: any = {};
-      for (const key in obj) {
-        if (typeof obj[key] === 'string') {
-          if (obj[key] === 'true') newObj[key] = true;
-          else if (obj[key] === 'false') newObj[key] = false;
-          else newObj[key] = obj[key];
-        } else {
-          newObj[key] = convertBooleans(obj[key]);
-        }
-      }
-      return newObj;
-    }
-    return obj;
-  }
-
-  if (body.educationData) {
-    body.educationData = convertBooleans(body.educationData);
-  }
-  if (body.experienceData) {
-    body.experienceData = convertBooleans(body.experienceData);
   }
 
   const validationResult = createCandidateSchema.safeParse(body);

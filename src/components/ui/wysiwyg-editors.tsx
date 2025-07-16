@@ -141,142 +141,141 @@ function TipTapToolbar({ editor }: { editor: any }) {
   if (!editor) return null;
   
   return (
-    <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        data-active={editor.isActive('bold')}
-      >
-        <Bold className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        data-active={editor.isActive('italic')}
-      >
-        <Italic className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        data-active={editor.isActive('underline')}
-      >
-        <Underline className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleStrike().run()}
-        data-active={editor.isActive('strike')}
-      >
-        <Strikethrough className="h-4 w-4" />
-      </Button>
-      
-      <Separator orientation="vertical" className="h-6" />
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        data-active={editor.isActive('heading', { level: 1 })}
-      >
-        <Heading1 className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        data-active={editor.isActive('heading', { level: 2 })}
-      >
-        <Heading2 className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        data-active={editor.isActive('heading', { level: 3 })}
-      >
-        <Heading3 className="h-4 w-4" />
-      </Button>
-      
-      <Separator orientation="vertical" className="h-6" />
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        data-active={editor.isActive('bulletList')}
-      >
-        <List className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        data-active={editor.isActive('orderedList')}
-      >
-        <ListOrdered className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        data-active={editor.isActive('blockquote')}
-      >
-        <Quote className="h-4 w-4" />
-      </Button>
-      
-      <Separator orientation="vertical" className="h-6" />
-      
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        data-active={editor.isActive({ textAlign: 'left' })}
-      >
-        <AlignLeft className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        data-active={editor.isActive({ textAlign: 'center' })}
-      >
-        <AlignCenter className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        data-active={editor.isActive({ textAlign: 'right' })}
-      >
-        <AlignRight className="h-4 w-4" />
-      </Button>
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="h-8 w-8 p-0"
-        onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-        data-active={editor.isActive({ textAlign: 'justify' })}
-      >
-        <AlignJustify className="h-4 w-4" />
-      </Button>
+    <div className="flex flex-col gap-1 p-2 border-b bg-muted/30">
+      {/* Row 1: Text formatting and headings */}
+      <div className="flex items-center gap-1 mb-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          data-active={editor.isActive('bold')}
+        >
+          <Bold className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          data-active={editor.isActive('italic')}
+        >
+          <Italic className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          data-active={editor.isActive('underline')}
+        >
+          <Underline className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          data-active={editor.isActive('strike')}
+        >
+          <Strikethrough className="h-4 w-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          data-active={editor.isActive('heading', { level: 1 })}
+        >
+          <Heading1 className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          data-active={editor.isActive('heading', { level: 2 })}
+        >
+          <Heading2 className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          data-active={editor.isActive('heading', { level: 3 })}
+        >
+          <Heading3 className="h-4 w-4" />
+        </Button>
+      </div>
+      {/* Row 2: Lists, blockquote, alignment */}
+      <div className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          data-active={editor.isActive('bulletList')}
+        >
+          <List className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          data-active={editor.isActive('orderedList')}
+        >
+          <ListOrdered className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          data-active={editor.isActive('blockquote')}
+        >
+          <Quote className="h-4 w-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          data-active={editor.isActive({ textAlign: 'left' })}
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          data-active={editor.isActive({ textAlign: 'center' })}
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          data-active={editor.isActive({ textAlign: 'right' })}
+        >
+          <AlignRight className="h-4 w-4" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-8 w-8 p-0"
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          data-active={editor.isActive({ textAlign: 'justify' })}
+        >
+          <AlignJustify className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

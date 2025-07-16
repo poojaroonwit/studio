@@ -181,3 +181,31 @@ export function convertStringBooleansAndNumbers(obj: any): any {
   }
   return obj;
 }
+
+/**
+ * Recursively converts string booleans ("true", "false") and numeric strings to their respective types in an object or array.
+ * Leaves other types unchanged.
+ */
+export function normalizePayloadTypes<T>(input: T): T {
+  if (Array.isArray(input)) {
+    return input.map(normalizePayloadTypes) as unknown as T;
+  }
+  if (input !== null && typeof input === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(input)) {
+      result[key] = normalizePayloadTypes(value);
+    }
+    return result;
+  }
+  if (typeof input === 'string') {
+    // Boolean conversion (case-insensitive)
+    const lower = input.toLowerCase();
+    if (lower === 'true') return true as unknown as T;
+    if (lower === 'false') return false as unknown as T;
+    // Number conversion (but not empty string)
+    if (input !== '' && !isNaN(Number(input))) {
+      return Number(input) as unknown as T;
+    }
+  }
+  return input;
+}

@@ -3,6 +3,7 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const jobAppliedSchema = z.object({
   fit_score: z.number().min(0).max(100),
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   
   try {
     body = await req.json();
+    body = normalizePayloadTypes(body);
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
   }

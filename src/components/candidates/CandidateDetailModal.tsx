@@ -1,5 +1,5 @@
 "use client";
-import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import FullCandidateDetail from "./FullCandidateDetail";
 
 interface CandidateDetailModalProps {
@@ -11,15 +11,8 @@ interface CandidateDetailModalProps {
 const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailModalProps) => {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogOverlay />
       <DialogContent 
-        className="relative flex flex-col overflow-hidden"
-        style={{
-          width: 'min(90vw, 1200px)',
-          height: 'min(90vh, 800px)',
-          maxWidth: 'calc(100vw - 2rem)',
-          maxHeight: 'calc(100vh - 2rem)',
-        }}
+        className="relative flex flex-col overflow-hidden max-w-[90vw] max-h-[90vh] w-[1200px] h-[800px]"
       >
         {candidateId ? (
           <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />

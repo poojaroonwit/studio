@@ -34,7 +34,11 @@ export default function ApiDocsPage() {
 
   // Update the servers array in the spec when serverUrl changes
   const getPatchedSpec = () => {
-    if (!swaggerSpec) return null;
+    if (
+      !swaggerSpec ||
+      typeof swaggerSpec !== "object" ||
+      Array.isArray(swaggerSpec)
+    ) return null;
     return {
       ...swaggerSpec,
       servers: [

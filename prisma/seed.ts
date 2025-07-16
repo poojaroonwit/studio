@@ -406,36 +406,6 @@ async function main() {
     const sampleWebhooks = [
       {
         id: '50000000-0000-0000-0000-000000000001',
-        name: 'Slack Notifications',
-        url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
-        events: ['candidate.created', 'candidate.updated', 'position.created'],
-        method: 'POST',
-        is_active: true,
-        auth_type: 'none',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CandiTrack-Webhook/1.0'
-        },
-        retry_count: 3,
-        timeout: 30
-      },
-      {
-        id: '50000000-0000-0000-0000-000000000002',
-        name: 'CRM Integration',
-        url: 'https://api.crm.example.com/webhooks/candidates',
-        events: ['candidate.created', 'candidate.stage_changed'],
-        method: 'POST',
-        is_active: true,
-        auth_type: 'bearer',
-        auth_token: 'sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        retry_count: 5,
-        timeout: 60
-      },
-      {
-        id: '50000000-0000-0000-0000-000000000003',
         name: 'Email Service',
         url: 'https://api.emailservice.com/webhook',
         events: ['candidate.created', 'position.filled'],
@@ -447,23 +417,6 @@ async function main() {
         headers: {},
         retry_count: 2,
         timeout: 45
-      },
-      {
-        id: '50000000-0000-0000-0000-000000000004',
-        name: 'Analytics Dashboard',
-        url: 'https://analytics.example.com/webhook/recruitment',
-        events: ['candidate.created', 'candidate.updated', 'candidate.deleted', 'position.created', 'position.updated'],
-        method: 'POST',
-        is_active: true,
-        auth_type: 'header',
-        auth_header_name: 'X-API-Key',
-        auth_header_value: 'analytics_api_key_2024',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Source': 'CandiTrack'
-        },
-        retry_count: 4,
-        timeout: 30
       },
       {
         id: '50000000-0000-0000-0000-000000009999',

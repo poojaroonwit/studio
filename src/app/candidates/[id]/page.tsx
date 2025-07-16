@@ -831,12 +831,12 @@ export default function CandidateDetailPage() {
   const contactInfo = (candidate.parsedData && 'contact_info' in candidate.parsedData)
     ? candidate.parsedData.contact_info
     : undefined;
-  const education = (candidate.parsedData && 'education' in candidate.parsedData)
-    ? candidate.parsedData.education
-    : undefined;
-  const experience = (candidate.parsedData && 'experience' in candidate.parsedData)
-    ? candidate.parsedData.experience
-    : undefined;
+  const education = Array.isArray(candidate.educationData) && candidate.educationData.length > 0
+    ? candidate.educationData
+    : (candidate.parsedData && Array.isArray(candidate.parsedData.education) ? candidate.parsedData.education : []);
+  const experience = Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0
+    ? candidate.experienceData
+    : (candidate.parsedData && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []);
   const skills = (candidate.parsedData && 'skills' in candidate.parsedData)
     ? candidate.parsedData.skills
     : undefined;

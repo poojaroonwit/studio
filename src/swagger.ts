@@ -297,12 +297,12 @@ export function getSwaggerSpec() {
                         education: {
                           type: 'array',
                           items: { type: 'object' },
-                          description: 'Legacy education format (deprecated, use educationData instead)'
+                          description: 'Legacy education format (optional, deprecated, use educationData instead)'
                         },
                         experience: {
                           type: 'array',
                           items: { type: 'object' },
-                          description: 'Legacy experience format (deprecated, use experienceData instead)'
+                          description: 'Legacy experience format (optional, deprecated, use experienceData instead)'
                         },
                         skills: {
                           type: 'array',

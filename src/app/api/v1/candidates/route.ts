@@ -18,61 +18,68 @@ import {
 
 const prisma = new PrismaClient();
 
-// Updated schema for candidate creation with structured date fields
+const contactInfoSchema = z.object({
+  email: z.string(),
+  phone: z.string(),
+}).strict();
+
+const personalInfoSchema = z.object({
+  title_honorific: z.string(),
+  firstname: z.string(),
+  lastname: z.string(),
+  nickname: z.string(),
+  location: z.string(),
+  introduction_aboutme: z.string(),
+}).strict();
+
+const jobSuitableEntrySchema = z.object({
+  suitable_career: z.string(),
+  suitable_job_level: z.string(),
+  suitable_job_position: z.string(),
+  suitable_salary_bath_month: z.string(),
+}).strict();
+
+const skillsEntrySchema = z.object({
+  segment_skill: z.string(),
+  skill: z.array(z.string()),
+}).strict();
+
 const candidateInfoSchema = z.object({
-  personal_info: z.object({
-    title_honorific: z.string().optional().nullable(),
-    firstname: z.string().min(1, "First name is required"),
-    lastname: z.string().min(1, "Last name is required"),
-    nickname: z.string().optional().nullable(),
-    location: z.string().optional().nullable(),
-    introduction_aboutme: z.string().optional().nullable(),
-  }),
-  contact_info: z.object({
-    email: z.string().email("Invalid email address"),
-    phone: z.string().optional().nullable(),
-  }),
-  education: z.array(z.any()).optional(), // now optional
-  experience: z.array(z.any()).optional(), // now optional
-  skills: z.array(z.any()).optional(),
-  job_suitable: z.array(z.any()).optional(),
-  cv_language: z.string().optional().nullable(),
-  status: z.string().optional(),
-});
+  personal_info: personalInfoSchema,
+  contact_info: contactInfoSchema,
+  cv_language: z.string(),
+  skills: z.array(skillsEntrySchema),
+  job_suitable: z.array(jobSuitableEntrySchema),
+  status: z.string(),
+}).strict();
 
-// New structured education schema
 const structuredEducationSchema = z.object({
-  university: z.string().min(1, "University is required"),
-  major: z.string().optional().nullable(),
-  field: z.string().optional().nullable(),
-  campus: z.string().optional().nullable(),
-  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
-  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
-  endMonth: z.number().min(1).max(12).optional().nullable(),
-  endYear: z.number().min(1900).max(2100).optional().nullable(),
-  isCurrent: z.boolean().default(false),
-  GPA: z.string().optional().nullable(),
-});
+  university: z.string(),
+  major: z.string(),
+  startMonth: z.number(),
+  startYear: z.number(),
+  endMonth: z.number(),
+  endYear: z.number(),
+  isCurrent: z.boolean(),
+  GPA: z.string(),
+}).strict();
 
-// New structured experience schema
 const structuredExperienceSchema = z.object({
-  company: z.string().min(1, "Company is required"),
-  position: z.string().min(1, "Position is required"),
-  description: z.string().optional().nullable(),
-  startMonth: z.number().min(1).max(12, "Start month must be 1-12"),
-  startYear: z.number().min(1900).max(2100, "Start year must be between 1900-2100"),
-  endMonth: z.number().min(1).max(12).optional().nullable(),
-  endYear: z.number().min(1900).max(2100).optional().nullable(),
-  isCurrent: z.boolean().default(false),
-  positionLevel: z.string().optional().nullable(),
-});
+  company: z.string(),
+  position: z.string(),
+  startMonth: z.number(),
+  startYear: z.number(),
+  endMonth: z.number().nullable(),
+  endYear: z.number().nullable(),
+  isCurrent: z.boolean(),
+  description: z.string(),
+}).strict();
 
 const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema,
-  // New structured fields
-  educationData: z.array(structuredEducationSchema).optional(),
-  experienceData: z.array(structuredExperienceSchema).optional(),
-});
+  educationData: z.array(structuredEducationSchema).min(1),
+  experienceData: z.array(structuredExperienceSchema).min(1),
+}).strict();
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');

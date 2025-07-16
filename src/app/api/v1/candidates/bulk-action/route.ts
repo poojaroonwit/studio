@@ -3,11 +3,13 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+// Import the schemas from the main candidate route
+import { updateCandidateSchema } from '../[id]/route';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'update_status', 'assign_recruiter', 'assign_position']),
   candidateIds: z.array(z.string().uuid()),
-  data: z.record(z.any()).optional(),
+  data: updateCandidateSchema.optional(), // already uses updateCandidateSchema, which enforces candidate_info validity if present
 });
 
 export async function POST(req: NextRequest) {

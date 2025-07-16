@@ -6,20 +6,31 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
+// Import the schemas from the main candidate route
+import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../route';
 
 const candidateImportSchema = z.object({
-  candidates: z.array(z.object({
-    name: z.string().min(1),
-    email: z.string().email(),
-    phone: z.string().optional().nullable(),
-    status: z.string().min(1),
-    positionId: z.string().uuid().optional().nullable(),
-    recruiterId: z.string().uuid().optional().nullable(),
-    fitScore: z.number().min(0).max(100).optional(),
-    custom_attributes: z.record(z.any()).optional().nullable(),
-    parsedData: z.any().optional().nullable(),
-    resumePath: z.string().optional().nullable(),
-  }))
+  candidates: z.array(
+    z.union([
+      z.object({
+        candidate_info: candidateInfoSchema,
+        educationData: z.array(structuredEducationSchema).optional(),
+        experienceData: z.array(structuredExperienceSchema).optional(),
+      }),
+      z.object({
+        name: z.string(),
+        email: z.string().email(),
+        phone: z.string().optional().nullable(),
+        status: z.string().optional(),
+        positionId: z.string().uuid().optional().nullable(),
+        recruiterId: z.string().uuid().optional().nullable(),
+        fitScore: z.number().min(0).max(100).optional(),
+        custom_attributes: z.record(z.any()).optional().nullable(),
+        parsedData: z.any().optional().nullable(),
+        resumePath: z.string().optional().nullable(),
+      })
+    ])
+  )
 });
 
 export async function POST(req: NextRequest) {

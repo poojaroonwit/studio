@@ -383,10 +383,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                   alt="Application Logo"
                   width={80}
                   height={80}
-                  className="rounded-xl shadow-lg mx-auto mb-4 feature-icon"
+                  className="rounded-xl mx-auto mb-4 feature-icon"
                 />
               ) : (
-                <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-lg mx-auto mb-4 flex items-center justify-center feature-icon">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-xl mx-auto mb-4 flex items-center justify-center feature-icon">
                   <span className="text-2xl font-bold text-primary-foreground">CT</span>
                 </div>
               )}
@@ -443,10 +443,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               alt="Application Logo"
               width={100}
               height={100}
-              className="rounded-2xl shadow-lg mx-auto mb-6 feature-icon"
+              className="rounded-2xl mx-auto mb-6 feature-icon"
             />
           ) : (
-            <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl shadow-lg mx-auto mb-6 flex items-center justify-center feature-icon">
+            <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon">
               <span className="text-3xl font-bold text-primary-foreground">CT</span>
             </div>
           )}

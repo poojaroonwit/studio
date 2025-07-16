@@ -14,16 +14,21 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - Candidate distribution charts
 - Recruitment pipeline visualization
 - Performance analytics
+- New candidates today tracking
+- Positions needing applicants
 
 ### 👥 **Candidate Management**
 - **Comprehensive Profiles**: Detailed candidate information with custom fields
 - **Resume Management**: Upload, version control, and automated parsing
+- **Resume History**: Track all uploaded resumes with timestamps
+- **Profile Images**: Upload and manage candidate avatars
 - **Stage Tracking**: Visual Kanban board with drag-and-drop functionality
-- **Transition History**: Complete audit trail of candidate progress
+- **Transition History**: Complete audit trail of candidate progress with notes
 - **Recruiter Assignment**: Assign candidates to specific team members
-- **Advanced Filtering**: Filter by skills, experience, location, and more
+- **Advanced Filtering**: Filter by name, position, status, education, fit score
 - **Bulk Operations**: Import/export candidates via CSV
 - **AI Integration**: Automated resume parsing and candidate matching
+- **Automation Workflows**: PDF upload for automated candidate creation
 
 ### 💼 **Position Management**
 - **Job Posting Creation**: Rich text editor with custom fields
@@ -31,28 +36,39 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Status Tracking**: Open/closed position management
 - **Candidate Matching**: AI-powered job-candidate matching
 - **Bulk Import/Export**: CSV-based position management
+- **Enhanced Filtering**: Filter by title, department, status, level
 
 ### 👤 **User & Access Management**
 - **Role-Based Access Control (RBAC)**: Admin, Recruiter, Hiring Manager roles
-- **Granular Permissions**: Module-level access control
+- **Granular Permissions**: Module-level access control (import/export, logs, etc.)
 - **User Groups**: Create and manage permission groups
 - **Azure AD Integration**: Single Sign-On (SSO) support
-- **Password Security**: bcrypt hashing with force-change policies
+- **Password Security**: bcrypt hashing with self-service password changes
+- **Permission Inheritance**: User group permissions with individual overrides
+
+### 📋 **Task Management**
+- **My Task Board**: Personalized view for recruiters
+- **Kanban & List Views**: Flexible task visualization
+- **Enhanced Filtering**: Advanced filters for task board
+- **Admin Overview**: Administrators can view all candidates or filter by recruiter
 
 ### ⚙️ **System Configuration**
 - **Custom Fields**: Define custom attributes for candidates and positions
-- **Recruitment Stages**: Customizable hiring pipeline
+- **Recruitment Stages**: Customizable hiring pipeline with deletion/replacement logic
 - **Webhook Integration**: Connect with external automation services
-- **Notification System**: Email and webhook notifications
+- **Notification System**: Configurable events and channels (email/webhook)
 - **Theme Customization**: Branded UI with custom colors and logos
 - **API Documentation**: Built-in Swagger documentation
+- **Data Model Preferences**: User-specific UI display preferences
+- **Application Preferences**: Server-side app name, logo, and theme settings
 
 ### 🔧 **Technical Features**
 - **Real-time Updates**: WebSocket-based live collaboration
 - **File Storage**: MinIO integration for secure file management
 - **Caching**: Redis-powered performance optimization
-- **Audit Logging**: Complete system activity tracking
+- **Audit Logging**: Complete system activity tracking with search/filter
 - **Health Monitoring**: Built-in health checks and monitoring
+- **Background Processing**: Queue-based file processing system
 
 ## 🛠️ Tech Stack
 
@@ -83,20 +99,20 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd studio-2
+   cd studio
    ```
 
 2. **Configure environment variables:**
    ```bash
    # Copy the example environment file
-   cp .env.example .env
+   cp env.local.template .env.local
    
    # Edit with your configuration
-   nano .env
+   nano .env.local
    ```
 
 3. **Deploy with Docker Compose:**
-    ```bash
+   ```bash
    docker-compose up -d
    ```
 
@@ -194,6 +210,10 @@ The application uses Prisma ORM with the following key models:
 - **UserGroup**: Role-based access control
 - **SystemSetting**: Application configuration
 - **AuditLog**: System activity tracking
+- **ResumeHistory**: Resume upload history
+- **TransitionRecord**: Candidate status changes
+- **CustomFieldDefinition**: Custom field definitions
+- **NotificationEvent/Channel/Setting**: Notification configuration
 
 ## 🔄 Database Initialization
 
@@ -210,7 +230,7 @@ The application automatically initializes the database on first startup:
 ## 🚀 Deployment Options
 
 ### 1. **Docker Compose** (Recommended)
-    ```bash
+```bash
 docker-compose up -d
 ```
 
@@ -220,7 +240,7 @@ docker-compose up -d
 - Deploy the stack
 
 ### 3. **Manual Docker**
-        ```bash
+```bash
 # Build the image
 docker build -t candidatrack .
 
@@ -242,12 +262,12 @@ For production environments, consider:
 ## 🔧 Development
 
 ### Local Development Setup
-        ```bash
+```bash
 # Install dependencies
 npm install
 
 # Set up environment
-        cp .env.example .env
+cp env.local.template .env.local
 
 # Run database migrations
 npx prisma db push
@@ -296,11 +316,13 @@ Access the interactive API documentation at:
 - **Input Validation**: Zod schema validation
 - **SQL Injection Prevention**: Parameterized queries
 - **XSS Protection**: Content Security Policy headers
+- **Role-Based Access Control**: Granular permissions
+- **Audit Logging**: Complete system activity tracking
 
 ## 🔄 Backup & Recovery
 
 ### Database Backup
-            ```bash
+```bash
 # Create backup
 docker exec postgres pg_dump -U user database > backup.sql
 
@@ -310,9 +332,20 @@ docker exec -i postgres psql -U user database < backup.sql
 
 ### File Storage Backup
 MinIO data is stored in Docker volumes. Backup the volume:
-        ```bash
+```bash
 docker run --rm -v candidatrack_minio_data:/data -v $(pwd):/backup alpine tar czf /backup/minio-backup.tar.gz -C /data .
 ```
+
+## 📚 Documentation
+
+### Project Documentation
+- **Business Requirements Document**: `documents/BRD.md`
+- **Software Requirements Specification**: `documents/SRS.md`
+- **Test Cases**: `documents/TestCases.md`
+
+### API Documentation
+- **Interactive Swagger UI**: `/api-docs`
+- **API Endpoints**: Comprehensive REST API for all features
 
 ## 🤝 Contributing
 
@@ -341,14 +374,14 @@ For support and questions:
 If you encounter errors like `column u.authenticationMethod does not exist`, it means the database schema is out of sync with the Prisma schema.
 
 #### **Quick Fix (Recommended)**
-        ```bash
+```bash
 # Run the schema fix script
 chmod +x fix-db-schema.sh
 ./fix-db-schema.sh
 ```
 
 #### **Manual Fix**
-    ```bash
+```bash
 # Generate Prisma client
 npx prisma generate
 
@@ -403,10 +436,15 @@ tail -f logs/app.log
 ## 🔄 Changelog
 
 ### Latest Updates
-- ✅ Fixed React rendering errors in Settings page
-- ✅ Improved database initialization and seeding
-- ✅ Enhanced system settings management
-- ✅ Added comprehensive error handling
+- ✅ Enhanced candidate management with resume history tracking
+- ✅ Improved position management with advanced filtering
+- ✅ Added comprehensive user group and permission management
+- ✅ Implemented My Task Board with Kanban and list views
+- ✅ Added server-side application preferences and data model settings
+- ✅ Enhanced audit logging with search and filter capabilities
+- ✅ Improved webhook integration and automation workflows
+- ✅ Added comprehensive test cases and documentation
+- ✅ Fixed React rendering errors and improved error handling
 - ✅ Updated Docker deployment configuration
 
 ---

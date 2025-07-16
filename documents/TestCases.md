@@ -1,9 +1,9 @@
-# Test Cases - Candidate Matching ATS
+# Test Cases - CandiTrack ATS
 
-**Version:** 1.1
-**Date:** 2025-07-03
+**Version:** 2.0
+**Date:** 2025-01-27
 
-> **Note:** This is the latest version as of 2025-07-03. All test cases reflect the current system features and requirements.
+> **Note:** This is the latest version as of 2025-01-27. All test cases reflect the current system features and requirements. Most features have been implemented and tested.
 
 ## CSV Test Cases
 
@@ -26,7 +26,7 @@
 
 *   **Application URL:** `http://localhost:8021` (or production URL)
 *   **Browser:** Latest stable version of Chrome/Firefox/Edge
-*   **Database:** PostgreSQL instance populated with initial data (via updated `init-db.sql`)
+*   **Database:** PostgreSQL instance populated with initial data (via Prisma migrations)
 *   **File Storage:** MinIO instance configured
 *   **Test Users:**
     *   Admin: `admin@ncc.com` / `nccadmin` (or as changed)
@@ -48,7 +48,30 @@ Each test case will follow this structure:
 *   **Status:** Checkbox column to mark test as Passed (`- [x]`) or Failed (`- [ ]`).
 *   **Notes/Bug ID:** Column for any additional comments or defect IDs.
 
-## 4. Test Cases
+## 4. Implementation Status
+
+### ✅ Implemented and Tested Features
+- **Authentication & Authorization**: Complete with Azure AD SSO and credential-based login
+- **Dashboard**: Real-time metrics, charts, and statistics
+- **Candidate Management**: Full CRUD with resume history, profile images, and advanced filtering
+- **Position Management**: Complete position lifecycle with custom fields
+- **User Management**: Role-based access control with user groups and granular permissions
+- **Task Board**: Kanban and list views with enhanced filtering
+- **Settings & Configuration**: Server-side preferences, recruitment stages, custom fields
+- **API Documentation**: Interactive Swagger UI
+- **Audit Logging**: Comprehensive system activity tracking
+- **File Management**: MinIO integration for secure file storage
+- **Bulk Operations**: CSV import/export for candidates and positions
+
+### 🔄 Future Features (Not Yet Implemented)
+- **AI Integration**: Advanced resume parsing and candidate matching
+- **Real-time Features**: Live notifications and collaboration
+- **Notification System**: Actual email/webhook sending
+- **Advanced Analytics**: Comprehensive reporting and insights
+- **Third-party Integrations**: Job board and HRIS connections
+- **Candidate Portal**: Public-facing application system
+
+## 5. Test Cases
 
 ---
 

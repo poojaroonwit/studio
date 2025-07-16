@@ -41,6 +41,11 @@ echo "📊 Current DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
+# Check if migration files exist, if not, create initial migration
+if [ -z "$(ls -A prisma/migrations 2>/dev/null)" ]; then
+  echo "⚠️  No migrations found. Creating initial migration..."
+  npx prisma migrate dev --name init --create-only
+fi
 # Force reset the database schema
 echo "🔄 Running database migrations (safe for production)..."
 npx prisma migrate deploy

@@ -240,7 +240,7 @@ model UploadQueue {
   completedDate  DateTime? @map("completed_date")
   uploadId       String?   @map("upload_id")
   createdBy      String?   @map("created_by") @db.Uuid
-  updatedAt      DateTime  @default(now()) @map("updatedAt")
+  updatedAt      DateTime  @default(now()) @map("updated_at")
   filePath       String    @map("file_path")
   webhookPayload Json?     @map("webhook_payload")
   positionId     String?   @map("position_id") @db.Uuid

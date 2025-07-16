@@ -324,9 +324,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-border">
+      <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-4">
           {isModal && onClose && (
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -362,7 +362,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1 p-6">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-6">
         <div className="space-y-6">
           {/* Basic Information */}
           <Card>
@@ -545,6 +546,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               />
             </CardContent>
           </Card>
+        </div>
         </div>
       </ScrollArea>
 

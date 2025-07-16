@@ -12,12 +12,14 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent 
-        className="relative flex flex-col overflow-hidden max-w-[90vw] max-h-[90vh] w-[1200px] h-[800px]"
+        className="relative flex flex-col overflow-hidden max-w-[95vw] max-h-[95vh] w-[1200px] h-[800px] p-0"
       >
         {candidateId ? (
-          <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
+          <div className="flex flex-col h-full overflow-hidden">
+            <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
+          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
               <p className="text-muted-foreground">No candidate found.</p>
             </div>

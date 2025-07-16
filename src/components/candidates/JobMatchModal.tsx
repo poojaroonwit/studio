@@ -110,8 +110,8 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
@@ -123,9 +123,9 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+        <div className="flex flex-col lg:flex-row gap-6 p-6 flex-1 min-h-0">
           {/* Left Column - Job Information and Match Reasons */}
-          <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-2">
+          <div className="lg:flex-1 space-y-6 overflow-y-auto pr-2">
             {/* Job Information */}
             <Card>
               <CardHeader>
@@ -214,7 +214,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
           </div>
 
           {/* Right Column - Static Candidate Statistics */}
-          <div className="lg:col-span-1">
+          <div className="lg:w-80 flex-shrink-0">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Candidate Statistics</CardTitle>

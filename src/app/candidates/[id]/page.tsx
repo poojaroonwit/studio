@@ -311,7 +311,19 @@ export default function CandidateDetailPage() {
         fitScore: candidate.fitScore || null,
         status: candidate.status || '',
         assignmentJustification: (candidate as any)?.assignmentJustification || '',
-        parsedData: (candidate.parsedData as any) || {}
+        parsedData: {
+          ...(candidate.parsedData as any) || {},
+          // Include job matches from the API response
+          job_matches: (candidate.jobMatches || []).map((match: any) => ({
+            job_id: match.jobId,
+            job_title: match.positionTitle,
+            fit_score: match.fit_score,
+            match_reasons: match.match_reasons || [],
+            match_reasons_string: Array.isArray(match.match_reasons) 
+              ? match.match_reasons.join('\n')
+              : ''
+          }))
+        }
       });
     }
   }, [candidate, reset]);
@@ -801,6 +813,12 @@ export default function CandidateDetailPage() {
     fetchTransitionHistory();
   }, [candidateId, fetchTransitionHistory]);
 
+  // Unified function to open ManageTransitionsModal
+  const openManageTransitionsModal = (stageName?: string) => {
+    setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
+    setIsTransitionsModalOpen(true);
+  };
+
   if (isLoading && !fetchError) {
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
@@ -853,9 +871,8 @@ export default function CandidateDetailPage() {
   const jobSuitable = (candidate.parsedData && 'job_suitable' in candidate.parsedData)
     ? candidate.parsedData.job_suitable
     : undefined;
-  const candidateJobMatches = (candidate.parsedData && 'job_matches' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_matches
-    : undefined;
+  // Use jobMatches from the API response instead of parsedData.job_matches
+  const candidateJobMatches = candidate.jobMatches || [];
   
 
   const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
@@ -1071,17 +1088,7 @@ export default function CandidateDetailPage() {
                         <Button
                           variant="outline"
                           size="default"
-                          onClick={() => {
-                            // Always set preselectedStage to candidate.status or first available stage
-                            if (candidate?.status) {
-                              setPreselectedStage(candidate.status);
-                            } else if (availableStages.length > 0) {
-                              setPreselectedStage(availableStages[0].name);
-                            } else {
-                              setPreselectedStage(null);
-                            }
-                            setIsTransitionsModalOpen(true);
-                          }}
+                          onClick={() => openManageTransitionsModal()}
                           disabled={availableStages.length === 0}
                         >
                           <Users className="h-4 w-4 mr-2" />
@@ -1112,10 +1119,7 @@ export default function CandidateDetailPage() {
                     stages={availableStages}
                     transitionHistory={transitionHistory}
                     currentStatus={candidate.status}
-                    onStageClick={(stageName) => {
-                      setPreselectedStage(stageName);
-                      setIsTransitionsModalOpen(true);
-                    }}
+                    onStageClick={openManageTransitionsModal}
                     editableNotes={true}
                     onNoteEdit={async (transitionId, newNote) => {
                       await fetch(`/api/transitions/${transitionId}`, {

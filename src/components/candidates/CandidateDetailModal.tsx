@@ -44,7 +44,7 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogOverlay />
-      <DialogContent className="max-w-2xl w-full relative">
+      <DialogContent className="w-[90vw] h-[90vh] max-w-5xl max-h-[90vh] relative flex flex-col overflow-auto left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-muted transition"
@@ -53,13 +53,13 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
           <X className="w-6 h-6" />
         </button>
         {loading ? (
-          <div className="flex items-center justify-center h-40">
+          <div className="flex items-center justify-center h-40 flex-1">
             <Loader2 className="animate-spin w-8 h-8 text-primary" />
           </div>
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-500 flex-1 flex items-center justify-center">{error}</div>
         ) : candidate ? (
-          <div>
+          <div className="flex-1 overflow-auto p-4">
             <h2 className="text-2xl font-bold mb-2">{candidate.name}</h2>
             <p className="mb-1"><b>Email:</b> {candidate.email}</p>
             <p className="mb-1"><b>Phone:</b> {candidate.phone}</p>
@@ -67,7 +67,7 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
             {/* Add more fields as needed */}
           </div>
         ) : (
-          <div>No candidate found.</div>
+          <div className="flex-1 flex items-center justify-center">No candidate found.</div>
         )}
       </DialogContent>
     </Dialog>

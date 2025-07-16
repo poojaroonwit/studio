@@ -337,6 +337,7 @@ export interface Candidate {
   transitionHistory: TransitionRecord[];
   educationData?: StructuredEducationEntry[];
   experienceData?: StructuredExperienceEntry[];
+  jobMatches?: JobMatch[]; // Job matches from the JobMatch table
 }
 
 export interface ResumeHistoryEntry {

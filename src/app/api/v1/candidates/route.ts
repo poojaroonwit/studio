@@ -140,6 +140,19 @@ export async function POST(request: NextRequest) {
   const email = candidate_info.contact_info.email;
   const status = candidate_info.status || 'new';
 
+  // Fetch the first recruitment stage (by sortOrder ASC)
+  let appliedStage = 'Applied';
+  try {
+    const firstStage = await prisma.recruitmentStage.findFirst({
+      orderBy: { sortOrder: 'asc' },
+    });
+    if (firstStage && firstStage.name) {
+      appliedStage = firstStage.name;
+    }
+  } catch (e) {
+    // fallback to default 'Applied'
+  }
+
   // Flatten parsedData structure to match UI expectations
   const parsedData = {
     ...candidate_info,
@@ -154,7 +167,7 @@ export async function POST(request: NextRequest) {
         id: newCandidateId,
         name: name,
         email: email.toLowerCase(),
-        status: status,
+        status: appliedStage,
         parsedData: parsedData,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -166,7 +179,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: uuidv4(),
         candidateId: newCandidateId,
-        stage: status,
+        stage: appliedStage,
         notes: 'Initial creation via API',
         actingUserId: user.id,
         date: new Date(),

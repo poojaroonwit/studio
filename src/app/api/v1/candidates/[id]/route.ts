@@ -231,6 +231,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (updateData.job_applied) {
       newParsedData.job_applied = updateData.job_applied;
       hasParsedDataChanges = true;
+      // Patch: Sync top-level fields with job_applied
+      if (updateData.job_applied.fit_score !== undefined) {
+        updateFields.push(`"fitScore" = $${paramIndex++}`);
+        updateValues.push(updateData.job_applied.fit_score);
+      }
+      if (updateData.job_applied.justification !== undefined) {
+        // Store as a string (join array with newlines) or as JSON if preferred
+        updateFields.push(`"assignmentJustification" = $${paramIndex++}`);
+        updateValues.push(Array.isArray(updateData.job_applied.justification) ? updateData.job_applied.justification.join('\n') : updateData.job_applied.justification);
+      }
     }
     
     if (updateData.parsedData) {

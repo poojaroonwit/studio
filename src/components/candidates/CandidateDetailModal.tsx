@@ -50,6 +50,7 @@ import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
 import CandidateDetailView from './CandidateDetailView';
+import FullCandidateDetail from './FullCandidateDetail';
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
@@ -218,7 +219,7 @@ const CandidateDetailModal: React.FC<CandidateDetailModalProps> = ({ candidateId
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogOverlay />
       <DialogContent className="max-w-[95vw] w-full max-h-[90vh] flex flex-col overflow-hidden">
-        <CandidateDetailView candidateId={candidateId} isModal onClose={onClose} />
+        <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
       </DialogContent>
     </Dialog>
   );

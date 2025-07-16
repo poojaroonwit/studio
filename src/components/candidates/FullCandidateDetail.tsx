@@ -2,9 +2,8 @@
 
 "use client";
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Candidate, CandidateDetails, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -45,10 +44,62 @@ import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
 
-// --- All helper functions, schemas, and the main component logic from page.tsx, replacing useParams with candidateId prop ---
-// This will be a direct copy of the CandidateDetailPage body, with only the candidateId source changed.
+const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
+const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
 
-// ... (Due to file size, please copy the full content from CandidateDetailPage here, replacing useParams with the candidateId prop) ...
+const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
+const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
+
+const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+  switch (status) {
+    case 'Hired': case 'Offer Accepted': return 'default';
+    case 'Applied': case 'Screening': case 'Shortlisted': case 'On Hold': return 'secondary';
+    case 'Interview Scheduled': case 'Interviewing': case 'Offer Extended': return 'secondary';
+    case 'Rejected': return 'destructive';
+    default: return 'outline';
+  }
+};
+
+// Form schemas
+const personalInfoEditSchema = z.object({
+  title_honorific: z.string().optional().nullable(),
+  firstname: z.string().min(1, "First name is required"),
+  lastname: z.string().min(1, "Last name is required"),
+  nickname: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  introduction_aboutme: z.string().optional().nullable(),
+  avatar_url: z.string().url().optional().nullable(),
+}).deepPartial();
+
+const contactInfoEditSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional().nullable(),
+}).deepPartial();
+
+const candidateDetailsEditSchema = z.object({
+  cv_language: z.string().optional().nullable(),
+  personal_info: personalInfoEditSchema.optional(),
+  contact_info: contactInfoEditSchema.optional(),
+  education: z.array(z.any()).optional(),
+  experience: z.array(z.any()).optional(),
+  skills: z.array(z.any()).optional(),
+  job_suitable: z.array(z.any()).optional(),
+  job_matches: z.array(z.any()).optional(),
+}).deepPartial();
+
+const editCandidateDetailSchema = z.object({
+  name: z.string().min(1, "Name is required").optional(),
+  email: z.string().email("Invalid email address").optional(),
+  phone: z.string().optional().nullable(),
+  positionId: z.string().uuid().nullable().optional(),
+  recruiterId: z.string().uuid().nullable().optional(),
+  fitScore: z.number().min(0).max(100).nullable().optional(),
+  status: z.string().min(1, "Status is required").optional(),
+  assignmentJustification: z.string().optional(),
+  parsedData: candidateDetailsEditSchema.optional(),
+});
+
+type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 interface FullCandidateDetailProps {
   candidateId: string;
@@ -57,11 +108,499 @@ interface FullCandidateDetailProps {
 }
 
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal, onClose }) => {
-  // ... All state, effects, handlers, and JSX from page.tsx, replacing useParams with candidateId ...
-  // ... (Due to file size, please copy the full content from CandidateDetailPage here, replacing useParams with the candidateId prop) ...
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
+  const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
+  const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
+  const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
+  const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
+  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const { data: session } = useSession();
+
+  const form = useForm<EditCandidateFormValues>({
+    resolver: zodResolver(editCandidateDetailSchema),
+  });
+
+  // Fetch candidate data
+  useEffect(() => {
+    const fetchCandidate = async () => {
+      if (!candidateId) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const res = await fetch(`/api/candidates/${candidateId}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch candidate: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        setCandidate(data);
+        
+        // Set form default values
+        form.reset({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          positionId: data.positionId,
+          recruiterId: data.recruiterId,
+          fitScore: data.fitScore,
+          status: data.status,
+          parsedData: data.parsedData,
+        });
+      } catch (err) {
+        console.error('Error fetching candidate:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch candidate');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCandidate();
+  }, [candidateId, form]);
+
+  // Fetch additional data
+  useEffect(() => {
+    if (!candidateId) return;
+
+    const fetchAdditionalData = async () => {
+      try {
+        // Fetch resumes
+        const resumesRes = await fetch(`/api/candidates/${candidateId}/resumes`);
+        if (resumesRes.ok) {
+          const resumesData = await resumesRes.json();
+          setResumes(Array.isArray(resumesData) ? resumesData : (resumesData.data || []));
+        }
+
+        // Fetch comments
+        const commentsRes = await fetch(`/api/candidates/${candidateId}/comments`);
+        if (commentsRes.ok) {
+          const commentsData = await commentsRes.json();
+          setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
+        }
+
+        // Fetch positions
+        const positionsRes = await fetch('/api/positions');
+        if (positionsRes.ok) {
+          const positionsData = await positionsRes.json();
+          setAllDbPositions(Array.isArray(positionsData) ? positionsData : []);
+        }
+
+        // Fetch stages
+        const stagesRes = await fetch('/api/settings/recruitment-stages');
+        if (stagesRes.ok) {
+          const stagesData = await stagesRes.json();
+          setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
+        }
+      } catch (err) {
+        console.error('Error fetching additional data:', err);
+      }
+    };
+
+    fetchAdditionalData();
+  }, [candidateId]);
+
+  const handleSaveDetails = async (data: EditCandidateFormValues) => {
+    if (!candidate) return;
+
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update candidate');
+      }
+
+      const updatedCandidate = await res.json();
+      setCandidate(updatedCandidate);
+      setIsEditing(false);
+      toast.success('Candidate updated successfully');
+    } catch (err) {
+      console.error('Error updating candidate:', err);
+      toast.error('Failed to update candidate');
+    }
+  };
+
+  const handleAvatarUpload = async (fileUrlOrFile: string | File) => {
+    if (!candidate) return;
+
+    setAvatarUploading(true);
+    setAvatarError(null);
+
+    try {
+      let fileUrl: string;
+      
+      if (typeof fileUrlOrFile === 'string') {
+        fileUrl = fileUrlOrFile;
+      } else {
+        // Handle file upload logic here if needed
+        fileUrl = URL.createObjectURL(fileUrlOrFile);
+      }
+
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: fileUrl }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update avatar');
+      }
+
+      const updatedCandidate = await res.json();
+      setCandidate(updatedCandidate);
+      toast.success('Avatar updated successfully');
+    } catch (err) {
+      console.error('Error updating avatar:', err);
+      setAvatarError('Failed to update avatar');
+      toast.error('Failed to update avatar');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleJobMatchClick = (jobMatch: any) => {
+    setSelectedJobMatch(jobMatch);
+    setIsJobMatchModalOpen(true);
+  };
+
+  const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
+    if (!value) return null;
+    
+    const IconComponent = icon;
+    
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        {IconComponent && <IconComponent className="w-4 h-4 text-muted-foreground" />}
+        <span className="text-muted-foreground">{label}:</span>
+        {isLink && linkHref ? (
+          <Link href={linkHref} target={linkTarget} className="text-primary hover:underline">
+            {value}
+          </Link>
+        ) : (
+          <span className="text-foreground">{value}</span>
+        )}
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+          <p className="text-muted-foreground">Loading candidate details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !candidate) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4 text-center">
+          <ServerCrash className="h-12 w-12 text-destructive" />
+          <div>
+            <h3 className="text-lg font-medium text-foreground">Failed to load candidate</h3>
+            <p className="text-muted-foreground text-sm">{error || 'Candidate not found'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* All JSX from the candidate detail page, using candidateId for data fetching */}
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-border">
+        <div className="flex items-center gap-4">
+          {isModal && onClose && (
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={candidate.avatarUrl || ''} alt={formatCandidateName(candidate)} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">{formatCandidateName(candidate)}</h1>
+              <p className="text-muted-foreground">{candidate.email}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {candidate.status && (
+            <Badge variant={getStatusBadgeVariant(candidate.status)}>
+              {candidate.status}
+            </Badge>
+          )}
+          {candidate.fitScore !== null && candidate.fitScore !== undefined && (
+            <Badge variant="outline" className="text-xs">
+              {candidate.fitScore}% Fit
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <ScrollArea className="flex-1 p-6">
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Basic Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {renderField('Email', candidate.email, Mail)}
+                {renderField('Phone', candidate.phone, Phone)}
+                {renderField('Position', candidate.position?.title, Briefcase)}
+                {renderField('Recruiter', candidate.recruiter?.name, UserCog)}
+                {candidate.applicationDate && renderField('Applied', new Date(candidate.applicationDate).toLocaleDateString(), CalendarDays)}
+                {candidate.fitScore !== null && candidate.fitScore !== undefined && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Percent className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Fit Score:</span>
+                      <span className="font-medium">{candidate.fitScore}%</span>
+                    </div>
+                    <Progress value={candidate.fitScore} className="h-2" />
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Parsed Data */}
+          {candidate.parsedData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Resume Data
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="experience" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="experience">Experience</TabsTrigger>
+                    <TabsTrigger value="education">Education</TabsTrigger>
+                    <TabsTrigger value="skills">Skills</TabsTrigger>
+                    <TabsTrigger value="matches">Job Matches</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="experience" className="space-y-4">
+                    {('experience' in candidate.parsedData) && candidate.parsedData.experience && Array.isArray(candidate.parsedData.experience) && candidate.parsedData.experience.length > 0 ? (
+                      candidate.parsedData.experience.map((exp: any, index: number) => (
+                        <Card key={index} className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold">{exp.position || 'Unknown Position'}</h4>
+                              {exp.period && <span className="text-sm text-muted-foreground">{exp.period}</span>}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{exp.company || 'Unknown Company'}</p>
+                            {exp.description && <p className="text-sm">{exp.description}</p>}
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No experience data available</p>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="education" className="space-y-4">
+                    {('education' in candidate.parsedData) && candidate.parsedData.education && Array.isArray(candidate.parsedData.education) && candidate.parsedData.education.length > 0 ? (
+                      candidate.parsedData.education.map((edu: any, index: number) => (
+                        <Card key={index} className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold">{edu.university || 'Unknown University'}</h4>
+                              {edu.period && <span className="text-sm text-muted-foreground">{edu.period}</span>}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{edu.major || edu.field || 'No major specified'}</p>
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No education data available</p>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="skills" className="space-y-4">
+                    {('skills' in candidate.parsedData) && candidate.parsedData.skills && Array.isArray(candidate.parsedData.skills) && candidate.parsedData.skills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {candidate.parsedData.skills.map((skill: any, index: number) => (
+                          <Badge key={index} variant="secondary">
+                            {skill.skill_string || skill.segment_skill || 'Unknown Skill'}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No skills data available</p>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="matches" className="space-y-4">
+                    {('job_matches' in candidate.parsedData) && candidate.parsedData.job_matches && Array.isArray(candidate.parsedData.job_matches) && candidate.parsedData.job_matches.length > 0 ? (
+                      candidate.parsedData.job_matches.map((match: any, index: number) => (
+                        <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                              {match.fitScore && (
+                                <Badge variant="outline">{match.fitScore}% Match</Badge>
+                              )}
+                            </div>
+                            {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                              <div className="space-y-1">
+                                <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                <ul className="text-sm space-y-1">
+                                  {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                    <li key={reasonIndex} className="flex items-start gap-2">
+                                      <span className="text-primary text-xs mt-1">•</span>
+                                      <span>{reason}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No job matches available</p>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Comments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Comments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CandidateCommentsSection
+                candidateId={candidateId}
+                comments={comments}
+                isEditing={false}
+                onCommentsChange={() => {
+                  // Refresh comments
+                  fetch(`/api/candidates/${candidateId}/comments`)
+                    .then(res => res.json())
+                    .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
+                    .catch(console.error);
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Resumes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Resumes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CandidateResumesSection
+                candidateId={candidateId}
+                resumes={resumes}
+                isEditing={false}
+                onResumesChange={() => {
+                  // Refresh resumes
+                  fetch(`/api/candidates/${candidateId}/resumes`)
+                    .then(res => res.json())
+                    .then(data => setResumes(Array.isArray(data) ? data : (data.data || [])))
+                    .catch(console.error);
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </ScrollArea>
+
+      {/* Modals */}
+      <UploadResumeModal
+        isOpen={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        candidate={candidate}
+        onUploadSuccess={(updatedCandidate) => {
+          setCandidate(updatedCandidate);
+          setIsUploadModalOpen(false);
+        }}
+      />
+
+      <ManageTransitionsModal
+        isOpen={isTransitionsModalOpen}
+        onOpenChange={setIsTransitionsModalOpen}
+        candidate={candidate}
+        availableStages={availableStages}
+        onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+          setCandidate(prev => prev ? { ...prev, status } : null);
+        }}
+        onRefreshCandidateData={async (candidateId: string) => {
+          const response = await fetch(`/api/candidates/${candidateId}`);
+          const updatedCandidate = await response.json();
+          setCandidate(updatedCandidate);
+        }}
+        preselectedStage={null}
+        comments={comments}
+        onCommentsChange={() => {
+          // Refresh comments
+          fetch(`/api/candidates/${candidateId}/comments`)
+            .then(res => res.json())
+            .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
+            .catch(console.error);
+        }}
+      />
+
+      <JobMatchModal
+        isOpen={isJobMatchModalOpen}
+        onClose={() => setIsJobMatchModalOpen(false)}
+        jobMatch={selectedJobMatch}
+      />
+
+      <EditPositionModal
+        isOpen={isEditPositionModalOpen}
+        onOpenChange={setIsEditPositionModalOpen}
+        position={selectedPositionForEdit}
+        onEditPosition={async () => {
+          setIsEditPositionModalOpen(false);
+          // Refresh candidate data
+          const response = await fetch(`/api/candidates/${candidateId}`);
+          const updatedCandidate = await response.json();
+          setCandidate(updatedCandidate);
+        }}
+      />
     </div>
   );
 };

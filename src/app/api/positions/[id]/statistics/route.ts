@@ -84,7 +84,7 @@ export async function GET(
           const jobMatches = parsedData.job_matches;
           if (!Array.isArray(jobMatches)) return false;
           
-          return jobMatches.some((match: any) => match?.job_id === positionId);
+          return jobMatches.some((match: any) => match?.jobId === positionId);
         } catch (error) {
           console.log('Error parsing candidate data:', error);
           return false;

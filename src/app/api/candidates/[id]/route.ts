@@ -119,7 +119,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fit_score" DESC;
+      ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
 
@@ -368,7 +368,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fit_score" DESC;
+      ORDER BY jm."fitScore" DESC;
     `, [id]);
     // Get attachment history for this candidate
     const attachmentsResult = await client.query(`

@@ -6,9 +6,9 @@ import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const jobAppliedSchema = z.object({
-  fit_score: z.number().min(0).max(100),
-  job_id: z.string().uuid(),
-  justification: z.array(z.string()).optional().default([]),
+  fitScore: z.number().min(0).max(100),
+  jobId: z.string().uuid(),
+  justification: z.string().optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fit_score, job_id, justification } = validationResult.data;
+  const { fitScore, jobId, justification } = validationResult.data;
   const client = await getPool().connect();
   
   try {
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Check if position exists
     const positionQuery = 'SELECT id FROM "Position" WHERE id = $1';
-    const positionResult = await client.query(positionQuery, [job_id]);
+    const positionResult = await client.query(positionQuery, [jobId]);
     
     if (positionResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -99,8 +99,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
-      fit_score,
-      job_id,
+      fit_score: fitScore,
+      job_id: jobId,
       justification: justification || [],
     };
 
@@ -159,7 +159,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fit_score, job_id, justification } = validationResult.data;
+  const { fitScore, jobId, justification } = validationResult.data;
   const client = await getPool().connect();
   
   try {
@@ -176,7 +176,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // Check if position exists
     const positionQuery = 'SELECT id FROM "Position" WHERE id = $1';
-    const positionResult = await client.query(positionQuery, [job_id]);
+    const positionResult = await client.query(positionQuery, [jobId]);
     
     if (positionResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -188,8 +188,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     // Update job_applied in parsedData
     parsedData.job_applied = {
-      fit_score,
-      job_id,
+      fit_score: fitScore,
+      job_id: jobId,
       justification: justification || [],
     };
 

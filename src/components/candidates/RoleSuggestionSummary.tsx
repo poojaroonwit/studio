@@ -22,7 +22,11 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
     );
   }
 
-  const jobMatches = (candidate.parsedData as CandidateDetails)?.job_matches;
+  const jobMatches = (candidate.parsedData as CandidateDetails)?.job_matches?.map(jm => ({
+    ...jm,
+    fitScore: jm.fitScore,
+    matchReasons: jm.matchReasons,
+  }));
 
   if (!jobMatches || jobMatches.length === 0) {
     return (
@@ -47,12 +51,12 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
   const openPositionsMap = new Map(allDbPositions.filter(p => p.isOpen).map(p => [p.title.toLowerCase(), p]));
 
   for (const jobMatch of jobMatches) {
-    const jobMatchTitleLower = jobMatch.job_title?.toLowerCase();
+    const jobMatchTitleLower = jobMatch.jobTitle?.toLowerCase();
     if (!jobMatchTitleLower) continue;
     const dbPositionMatch = openPositionsMap.get(jobMatchTitleLower);
     if (dbPositionMatch && dbPositionMatch.id !== currentAppliedPositionId) {
-      if (jobMatch.fit_score > bestAlternativeScore && (jobMatch.fit_score - currentFitScore >= 10)) {
-        bestAlternativeScore = jobMatch.fit_score;
+      if (jobMatch.fitScore > bestAlternativeScore && (jobMatch.fitScore - currentFitScore >= 10)) {
+        bestAlternativeScore = jobMatch.fitScore;
         bestAlternativeMatch = jobMatch;
         bestAlternativePositionInDb = dbPositionMatch;
       }
@@ -68,10 +72,10 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
         {bestAlternativeMatch && bestAlternativePositionInDb ? (
           <div className="p-3 border border-dashed border-primary/50 rounded-md bg-primary/5">
             <p className="text-sm text-foreground">
-              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.job_title}</strong> (Open Position).
+              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.jobTitle}</strong> (Open Position).
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Automated Fit Score for this role: <span className="font-semibold text-foreground">{bestAlternativeMatch.fit_score}%</span>.
+              Automated Fit Score for this role: <span className="font-semibold text-foreground">{bestAlternativeMatch.fitScore}%</span>.
             </p>
             {currentAppliedPosition ? (
               <p className="text-xs text-muted-foreground">
@@ -80,11 +84,11 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
             ) : (
                <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {currentFitScore}%).</p>
             )}
-            {bestAlternativeMatch.match_reasons && bestAlternativeMatch.match_reasons.length > 0 && (
+            {bestAlternativeMatch.matchReasons && bestAlternativeMatch.matchReasons.length > 0 && (
               <div className="mt-1.5">
                 <span className="font-semibold">Match Reasons:</span>
                 <ul className="list-disc list-inside text-xs text-muted-foreground mt-0.5">
-                  {bestAlternativeMatch.match_reasons.map((reason, idx) => (
+                  {bestAlternativeMatch.matchReasons.map((reason, idx) => (
                     <li key={idx}>{reason}</li>
                   ))}
                 </ul>

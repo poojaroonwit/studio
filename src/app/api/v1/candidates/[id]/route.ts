@@ -52,21 +52,36 @@ const updateCandidateSchema = z.object({
   
   // Job matches and applied job updates
   job_matches: z.array(z.object({
-    fit_score: z.number().min(0).max(100),
-    job_id: z.string().uuid(),
-    match_reasons: z.array(z.string()).optional().default([]),
+    fitScore: z.number().min(0).max(100),
+    jobId: z.string().uuid(),
+    matchReasons: z.array(z.string()).optional().default([]),
   })).optional(),
   
   job_applied: z.object({
-    fit_score: z.number().min(0).max(100),
-    job_id: z.string().uuid(),
+    fitScore: z.number().min(0).max(100),
+    jobId: z.string().uuid(),
     justification: z.array(z.string()).optional().default([]),
   }).optional(),
+});
+
+const jobAppliedSchema = z.object({
+  fitScore: z.number().min(0).max(100),
+  jobId: z.string().uuid(),
+  justification: z.string().optional(),
+});
+
+const jobMatchesUpdateSchema = z.object({
+  fitScore: z.number().min(0).max(100),
+  jobId: z.string().uuid(),
+  matchReasons: z.array(z.string()).optional().default([]),
 });
 
 export { updateCandidateSchema };
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[Main Candidate API] GET request for candidate ID: ${params.id}`);
+  console.log(`[Main Candidate API] URL: ${req.url}`);
+  
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -94,7 +109,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1
-      ORDER BY jm."fit_score" DESC;
+      ORDER BY jm."fitScore" DESC;
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
     // Get resume history for this candidate
@@ -114,7 +129,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         department: candidate.positionDepartment
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
-      jobMatches: jobMatchesResult.rows,
+      jobMatches: jobMatchesResult.rows.map(match => ({
+        id: match.id,
+        fitScore: match.fitScore,
+        jobId: match.jobId,
+        matchReasons: match.matchReasons || [],
+        positionTitle: match.positionTitle,
+        createdAt: match.createdAt,
+        updatedAt: match.updatedAt,
+      })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);
   } catch (error) {
@@ -232,10 +255,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       newParsedData.job_applied = updateData.job_applied;
       hasParsedDataChanges = true;
       // Patch: Sync top-level fields with job_applied
-      if (updateData.job_applied.fit_score !== undefined) {
-        updateFields.push(`"fitScore" = $${paramIndex++}`);
-        updateValues.push(updateData.job_applied.fit_score);
-      }
+          if (updateData.job_applied.fitScore !== undefined) {
+      updateFields.push(`"fitScore" = $${paramIndex++}`);
+      updateValues.push(updateData.job_applied.fitScore);
+    }
       if (updateData.job_applied.justification !== undefined) {
         // Store as a string (join array with newlines) or as JSON if preferred
         updateFields.push(`"assignmentJustification" = $${paramIndex++}`);
@@ -292,9 +315,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         await client.query(insertJobMatchQuery, [
           matchId,
           id,
-          match.job_id,
-          match.fit_score,
-          match.match_reasons || [],
+          match.jobId,
+          match.fitScore,
+          match.matchReasons || [],
         ]);
       }
     }

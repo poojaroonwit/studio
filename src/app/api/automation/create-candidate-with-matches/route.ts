@@ -8,11 +8,11 @@ import { logAudit } from '@/lib/auditLog';
 export const dynamic = "force-dynamic";
 
 const jobMatchSchema = z.object({
-  job_id: z.string().optional(),
-  job_title: z.string().optional(),
-  fit_score: z.number().optional(),
-  match_reasons: z.array(z.string()).optional(),
-  job_description_summary: z.string().optional(),
+  jobId: z.string().optional(),
+  jobTitle: z.string().optional(),
+  fitScore: z.number().optional(),
+  matchReasons: z.array(z.string()).optional(),
+  jobDescriptionSummary: z.string().optional(),
 });
 
 const candidateDataSchema = z.object({
@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
         const matchParams = [
           uuidv4(),
           newCandidateId,
-          match.job_id,
-          match.job_title,
-          match.fit_score,
-          match.match_reasons,
-          match.job_description_summary
+          match.jobId,
+          match.jobTitle,
+          match.fitScore,
+          match.matchReasons,
+          match.jobDescriptionSummary
         ];
         await client.query(insertMatchQuery, matchParams);
       }

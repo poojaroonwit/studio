@@ -400,6 +400,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
                 error = webhookError;
                 error_details = JSON.stringify(webhookResJson);
               }
+              // Check for success in webhookResJson (for common Genkit/LLM workflow payloads)
+              else if (
+                webhookResJson?.data?.status === 'succeeded' ||
+                webhookResJson?.status === 'succeeded'
+              ) {
+                status = 'success';
+                // Clear any previous error states
+                webhookError = null;
+                error = null;
+                error_details = null;
+              }
             } catch (jsonErr) {
               candidateInfoPresent = false;
               console.warn('Failed to parse JSON response:', jsonErr);
@@ -425,6 +436,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
                     error = webhookError;
                     error_details = webhookResponseText;
                   }
+                  // Check for success in streaming response
+                  else if (
+                    webhookResJson?.data?.status === 'succeeded' ||
+                    webhookResJson?.status === 'succeeded'
+                  ) {
+                    status = 'success';
+                    // Clear any previous error states
+                    webhookError = null;
+                    error = null;
+                    error_details = null;
+                  }
                 } catch (parseErr) {
                   // Not JSON, treat as plain text
                   console.warn('Streaming response is not JSON:', parseErr);
@@ -448,7 +470,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           }
           
           // Determine final status based on webhook response
-          if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
+          if (webhookResStatus === 200 && status === 'success') {
+            // Status already set to success from workflow response, keep it
+          } else if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
             status = 'success';
           } else if (status !== 'fail') {
             status = 'fail';

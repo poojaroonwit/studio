@@ -235,12 +235,11 @@ export interface JobSuitableEntry {
 }
 
 export interface AutomationJobMatch {
-  job_id?: string;
-  job_title?: string | null;
-  fit_score: number;
-  match_reasons?: string[];
-  match_reasons_string?: string | null;
-  is_applied_job?: boolean;
+  jobId?: string;
+  jobTitle?: string;
+  fitScore: number;
+  matchReasons?: string[];
+  jobDescriptionSummary?: string;
 }
 
 export interface CandidateDetails {
@@ -268,9 +267,9 @@ export interface AutomationCandidateWebhookEntry {
   targetPositionDescription?: string | null;
   targetpositionLevel?: string | null;
   job_applied?: {
-    job_id?: string | null;
-    job_title?: string | null;
-    fit_score?: number | null;
+    jobId?: string | null;
+    jobTitle?: string | null;
+    fitScore?: number | null;
     justification?: string[];
   } | null;
 }
@@ -319,25 +318,26 @@ export interface Candidate {
   name: string;
   email: string;
   phone?: string | null;
-  avatarUrl?: string | null; // For candidate profile image
-  dataAiHint?: string | null; // For candidate profile image
-  resumePath?: string | null; // Current/primary resume
-  parsedData: CandidateDetails | OldParsedResumeData | null;
-  positionId: string | null;
-  position?: Position | null;
-  fitScore: number;
-  status: CandidateStatus;
-  applicationDate: string;
+  positionId?: string | null;
   recruiterId?: string | null;
-  recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;
-  customAttributes?: Record<string, any> | null;
+  fitScore?: number | null;
+  status: string;
+  applicationDate: string;
+  parsedData?: any;
+  customAttributes?: any;
+  resumePath?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  avatarUrl?: string | null;
+  dataAiHint?: string | null;
   assignmentJustification?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-  transitionHistory: TransitionRecord[];
-  educationData?: StructuredEducationEntry[];
-  experienceData?: StructuredExperienceEntry[];
-  jobMatches?: JobMatch[]; // Job matches from the JobMatch table
+  educationData?: any;
+  experienceData?: any;
+  position?: Position | null;
+  recruiter?: User | null;
+  candidateComments?: CandidateComment[];
+  jobMatches?: JobMatch[];
+  transitionRecords?: TransitionRecord[];
 }
 
 export interface ResumeHistoryEntry {
@@ -356,11 +356,11 @@ export interface JobMatch {
   candidateId: string;
   jobId?: string | null;
   jobTitle?: string | null;
-  fitScore: number;
+  fitScore?: number | null;
   matchReasons?: string[] | null;
   jobDescriptionSummary?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Database model for ResumeHistory (matches Prisma schema)

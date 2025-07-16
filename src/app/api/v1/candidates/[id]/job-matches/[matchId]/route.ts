@@ -6,13 +6,13 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 
 const jobMatchSchema = z.object({
-  fit_score: z.number().min(0).max(100),
-  job_id: z.string().uuid(),
-  match_reasons: z.array(z.string()).optional().default([]),
-  // Note: position_title, created_at, and updated_at are automatically handled
-  // - position_title: Retrieved from Position table based on job_id
-  // - created_at: Automatically set to current timestamp
-  // - updated_at: Automatically set to current timestamp
+  fitScore: z.number().min(0).max(100),
+  jobId: z.string().uuid(),
+  matchReasons: z.array(z.string()).optional().default([]),
+  // Note: positionTitle, createdAt, and updatedAt are automatically handled
+  // - positionTitle: Retrieved from Position table based on jobId
+  // - createdAt: Automatically set to current timestamp
+  // - updatedAt: Automatically set to current timestamp
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string; matchId: string } }) {
@@ -51,15 +51,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     const match = jobMatchResult.rows[0];
     const jobMatch = {
       id: match.id,
-      fit_score: match.fit_score,
-      job_id: match.jobId,
-      match_reasons: match.match_reasons || [],
-      position_title: match.positionTitle,
-      created_at: match.createdAt,
-      updated_at: match.updatedAt,
+      fitScore: match.fitScore,
+      jobId: match.jobId,
+      matchReasons: match.matchReasons || [],
+      positionTitle: match.positionTitle,
+      createdAt: match.createdAt,
+      updatedAt: match.updatedAt,
     };
 
-    return new Response(JSON.stringify({ job_match: jobMatch }), { status: 200, headers: handleCors(req) });
+    return new Response(JSON.stringify({ jobMatch: jobMatch }), { status: 200, headers: handleCors(req) });
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Error fetching job match', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fit_score, job_id, match_reasons } = validationResult.data;
+  const { fitScore, jobId, matchReasons } = validationResult.data;
   const client = await getPool().connect();
   
   try {
@@ -126,9 +126,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     `;
     
     const updateResult = await client.query(updateQuery, [
-      job_id,
-      fit_score,
-      match_reasons || [],
+      jobId,
+      fitScore,
+      matchReasons || [],
       matchId,
       id,
     ]);
@@ -138,15 +138,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const updatedMatch = updateResult.rows[0];
     const jobMatch = {
       id: updatedMatch.id,
-      fit_score: updatedMatch.fit_score,
-      job_id: updatedMatch.jobId,
-      match_reasons: updatedMatch.match_reasons || [],
-      updated_at: updatedMatch.updatedAt,
+      fitScore: updatedMatch.fitScore,
+      jobId: updatedMatch.jobId,
+      matchReasons: updatedMatch.matchReasons || [],
+      updatedAt: updatedMatch.updatedAt,
     };
 
     return new Response(JSON.stringify({ 
       message: 'Job match updated successfully', 
-      job_match: jobMatch 
+      jobMatch: jobMatch 
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {

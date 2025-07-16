@@ -6,13 +6,13 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 
 const addJobMatchSchema = z.object({
-  fit_score: z.number().min(0).max(100),
-  job_id: z.string().uuid(),
-  match_reasons: z.array(z.string()).optional().default([]),
-  // Note: position_title, created_at, and updated_at are automatically handled
-  // - position_title: Retrieved from Position table based on job_id
-  // - created_at: Automatically set to current timestamp
-  // - updated_at: Automatically set to current timestamp
+  fitScore: z.number().min(0).max(100),
+  jobId: z.string().uuid(),
+  matchReasons: z.array(z.string()).optional().default([]),
+  // Note: positionTitle, createdAt, and updatedAt are automatically handled
+  // - positionTitle: Retrieved from Position table based on jobId
+  // - createdAt: Automatically set to current timestamp
+  // - updatedAt: Automatically set to current timestamp
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
-  const { fit_score, job_id, match_reasons } = validationResult.data;
+  const { fitScore, jobId, matchReasons } = validationResult.data;
   const client = await getPool().connect();
   
   try {
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Check if position exists
     const positionQuery = 'SELECT id FROM "Position" WHERE id = $1';
-    const positionResult = await client.query(positionQuery, [job_id]);
+    const positionResult = await client.query(positionQuery, [jobId]);
     
     if (positionResult.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Check if job match already exists for this candidate and position
     const existingMatchQuery = 'SELECT id FROM "JobMatch" WHERE "candidateId" = $1 AND "jobId" = $2';
-    const existingMatchResult = await client.query(existingMatchQuery, [id, job_id]);
+    const existingMatchResult = await client.query(existingMatchQuery, [id, jobId]);
     
     if (existingMatchResult.rows.length > 0) {
       await client.query('ROLLBACK');
@@ -84,9 +84,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const insertResult = await client.query(insertJobMatchQuery, [
       matchId,
       id,
-      job_id,
-      fit_score,
-      match_reasons || [],
+      jobId,
+      fitScore,
+      matchReasons || [],
     ]);
 
     await client.query('COMMIT');
@@ -94,16 +94,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newMatch = insertResult.rows[0];
     const jobMatch = {
       id: newMatch.id,
-      fit_score: newMatch.fit_score,
-      job_id: newMatch.jobId,
-      match_reasons: newMatch.match_reasons || [],
-      created_at: newMatch.createdAt,
-      updated_at: newMatch.updatedAt,
+      fitScore: newMatch.fitScore,
+      jobId: newMatch.jobId,
+      matchReasons: newMatch.matchReasons || [],
+      createdAt: newMatch.createdAt,
+      updatedAt: newMatch.updatedAt,
     };
 
     return new Response(JSON.stringify({ 
       message: 'Job match added successfully', 
-      job_match: jobMatch 
+      jobMatch: jobMatch 
     }), { status: 201, headers: handleCors(req) });
     
   } catch (error) {

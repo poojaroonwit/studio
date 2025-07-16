@@ -13,10 +13,10 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogOverlay />
-      <DialogContent className="w-[90vw] h-[90vh] max-w-5xl max-h-[90vh] relative flex flex-col overflow-auto left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <DialogContent className="w-[95vw] h-[95vh] max-w-7xl max-h-[95vh] relative flex flex-col overflow-hidden">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-muted transition"
+          className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-muted transition-colors"
           aria-label="Close"
         >
           <X className="w-6 h-6" />
@@ -24,7 +24,11 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
         {candidateId ? (
           <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
         ) : (
-          <div className="flex-1 flex items-center justify-center">No candidate found.</div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-muted-foreground">No candidate found.</p>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>

@@ -7,17 +7,22 @@ interface CandidateJobMatchesProps {
 }
 
 const CandidateJobMatches: React.FC<CandidateJobMatchesProps> = ({ jobMatches }) => {
+  const normalizedJobMatches = jobMatches?.map(jm => ({
+    ...jm,
+    fitScore: jm.fitScore,
+    matchReasons: jm.matchReasons,
+  }));
   return (
     <Card>
       <CardHeader>
         <CardTitle>Job Matches</CardTitle>
       </CardHeader>
       <CardContent>
-        {jobMatches && jobMatches.length > 0 ? (
+        {normalizedJobMatches && normalizedJobMatches.length > 0 ? (
           <ul>
-            {jobMatches.map((match, idx) => (
+            {normalizedJobMatches.map((match, idx) => (
               <li key={idx}>
-                {match.job_title} (Fit Score: {match.fit_score}%)
+                {match.jobTitle} (Fit Score: {match.fitScore}%)
               </li>
             ))}
           </ul>

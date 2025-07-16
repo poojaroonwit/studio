@@ -114,13 +114,12 @@ const jobSuitableEntryEditSchema = z.object({
 }).deepPartial();
 
 const jobMatchEntryEditSchema = z.object({
-    job_id: z.string().uuid().optional().nullable(),
-    job_title: z.string().optional().nullable(),
-    fit_score: z.number().min(0).max(100).optional().nullable(),
-    match_reasons: z.array(z.string()).optional(),
-    match_reasons_string: z.string().optional().nullable(),
-    is_applied_job: z.boolean().optional(),
-}).deepPartial();
+    jobId: z.string().optional(),
+    jobTitle: z.string().optional(),
+    fitScore: z.number().min(0).max(100).optional().nullable(),
+    matchReasons: z.array(z.string()).optional(),
+    matchReasonsString: z.string().optional(),
+});
 
 const candidateDetailsEditSchema = z.object({
   cv_language: z.string().optional().nullable(),
@@ -313,14 +312,19 @@ export default function CandidateDetailPage() {
         assignmentJustification: (candidate as any)?.assignmentJustification || '',
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          // Include job matches from the API response
-          job_matches: (candidate.jobMatches || []).map((match: any) => ({
-            job_id: match.jobId,
-            job_title: match.positionTitle,
-            fit_score: match.fit_score,
-            match_reasons: match.match_reasons || [],
-            match_reasons_string: Array.isArray(match.match_reasons) 
-              ? match.match_reasons.join('\n')
+          job_matches: (candidate.jobMatches || []).map((match: any): {
+            jobId?: string;
+            jobTitle?: string;
+            fitScore?: number | null;
+            matchReasons?: string[];
+            matchReasonsString?: string;
+          } => ({
+            jobId: match.jobId || '',
+            jobTitle: match.positionTitle || match.jobTitle || '',
+            fitScore: match.fitScore,
+            matchReasons: match.matchReasons || [],
+            matchReasonsString: Array.isArray(match.matchReasons)
+              ? match.matchReasons.join('\n')
               : ''
           }))
         }
@@ -575,7 +579,7 @@ export default function CandidateDetailPage() {
 
   const handleTransitionsUpdated = (updatedHistory: TransitionRecord[], newStatus: string) => {
     if (candidate) {
-      setCandidate({ ...candidate, status: newStatus, transitionHistory: updatedHistory });
+      setCandidate({ ...candidate, status: newStatus });
     }
     fetchCandidateDetails();
   };
@@ -668,11 +672,11 @@ export default function CandidateDetailPage() {
     }
   };
 
-    const handleJobMatchClick = (jobMatch: any) => {
-    // Find the position details - try by job_id first, then by job_title
+  const handleJobMatchClick = (jobMatch: any) => {
+    // Find the position details - try by jobId first, then by jobTitle
     const position = Array.isArray(allDbPositions) ? 
-                    (allDbPositions.find(p => p.id === jobMatch.job_id) || 
-                     allDbPositions.find(p => p.title === jobMatch.job_title)) : null;
+                    (allDbPositions.find(p => p.id === jobMatch.jobId) || 
+                     allDbPositions.find(p => p.title === jobMatch.jobTitle)) : null;
     
     // Prepare the job match data with position details
     const jobMatchData = {
@@ -720,8 +724,8 @@ export default function CandidateDetailPage() {
             })),
             job_matches: data.parsedData?.job_matches?.map(match => ({
                 ...match,
-                match_reasons: match.match_reasons_string 
-                    ? match.match_reasons_string.split('\n').map(reason => reason.trim()).filter(reason => reason)
+                matchReasons: match.matchReasonsString 
+                    ? match.matchReasonsString.split('\n').map((reason: string) => reason.trim()).filter((reason: string) => reason)
                     : []
             }))
         }
@@ -780,15 +784,17 @@ export default function CandidateDetailPage() {
                 }[],
                 job_matches: ((candidate.parsedData as CandidateDetails)?.job_matches?.map(match => ({
                     ...match,
-                    match_reasons_string: Array.isArray(match.match_reasons) 
-                        ? match.match_reasons.join('\n')
+                    jobId: match.jobId || '',
+                    jobTitle: match.jobTitle || '',
+                    matchReasonsString: Array.isArray(match.matchReasons) 
+                        ? match.matchReasons.join('\n')
                         : ''
                 })) || []) as {
-                    job_title?: string | null;
-                    fit_score?: number | null;
-                    match_reasons?: string[];
-                    match_reasons_string?: string | null;
-                    is_applied_job?: boolean;
+                    jobId?: string;
+                    jobTitle?: string;
+                    fitScore?: number | null;
+                    matchReasons?: string[];
+                    matchReasonsString?: string;
                 }[],
             }
         });
@@ -818,6 +824,28 @@ export default function CandidateDetailPage() {
     setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
     setIsTransitionsModalOpen(true);
   };
+
+  // Helper to get education and experience arrays, preferring structured fields
+  function getEducation(candidate: Candidate | null) {
+    if (!candidate) return [];
+    if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
+      return candidate.educationData;
+    }
+    if (candidate.parsedData && Array.isArray((candidate.parsedData as any).education) && (candidate.parsedData as any).education.length > 0) {
+      return (candidate.parsedData as any).education;
+    }
+    return [];
+  }
+  function getExperience(candidate: Candidate | null) {
+    if (!candidate) return [];
+    if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
+      return candidate.experienceData;
+    }
+    if (candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) && (candidate.parsedData as any).experience.length > 0) {
+      return (candidate.parsedData as any).experience;
+    }
+    return [];
+  }
 
   if (isLoading && !fetchError) {
     return (
@@ -859,12 +887,8 @@ export default function CandidateDetailPage() {
   const contactInfo = (candidate.parsedData && 'contact_info' in candidate.parsedData)
     ? candidate.parsedData.contact_info
     : undefined;
-  const education = Array.isArray(candidate.educationData) && candidate.educationData.length > 0
-    ? candidate.educationData
-    : (candidate.parsedData && hasEducationArray(candidate.parsedData) ? candidate.parsedData.education : []);
-  const experience = Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0
-    ? candidate.experienceData
-    : (candidate.parsedData && hasExperienceArray(candidate.parsedData) ? candidate.parsedData.experience : []);
+  const education = getEducation(candidate);
+  const experience = getExperience(candidate);
   const skills = (candidate.parsedData && 'skills' in candidate.parsedData)
     ? candidate.parsedData.skills
     : undefined;
@@ -1223,11 +1247,11 @@ export default function CandidateDetailPage() {
                                   const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
                                   
                                   if (position) {
-                                    const appliedJobData = {
-                                      job_id: candidate.positionId,
-                                      job_title: position.title,
-                                      fit_score: candidate.fitScore || 0,
-                                      match_reasons: (candidate as any).assignmentJustification ? [(candidate as any).assignmentJustification] : [],
+                                                                      const appliedJobData = {
+                                    jobId: candidate.positionId,
+                                    jobTitle: position.title,
+                                    fitScore: candidate.fitScore || 0,
+                                    matchReasons: (candidate as any).assignmentJustification ? [(candidate as any).assignmentJustification] : [],
                                       position: {
                                         id: position.id,
                                         title: position.title,
@@ -1346,7 +1370,7 @@ export default function CandidateDetailPage() {
                                         <div className="space-y-1">
                                             <Label className="text-sm font-medium">Position *</Label>
                                             <Controller
-                                                name={`parsedData.job_matches.${index}.job_id`}
+                                                name={`parsedData.job_matches.${index}.jobId`}
                                                 control={control}
                                                 render={({ field }) => (
                                                     <PositionSelectDropdown
@@ -1356,7 +1380,7 @@ export default function CandidateDetailPage() {
                                                             // Update job title when position is selected
                                                             const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
                                                             if (selectedPosition) {
-                                                                setValue(`parsedData.job_matches.${index}.job_title`, selectedPosition.title);
+                                                                setValue(`parsedData.job_matches.${index}.jobTitle`, selectedPosition.title);
                                                             }
                                                         }}
                                                         placeholder="Select position..."
@@ -1364,9 +1388,9 @@ export default function CandidateDetailPage() {
                                                     />
                                                 )}
                                             />
-                                            {errors.parsedData?.job_matches?.[index]?.job_id && (
+                                            {errors.parsedData?.job_matches?.[index]?.jobId && (
                                                 <p className="text-xs text-destructive">
-                                                    {errors.parsedData.job_matches[index]?.job_id?.message}
+                                                    {errors.parsedData.job_matches[index]?.jobId?.message}
                                                 </p>
                                             )}
                                         </div>
@@ -1378,15 +1402,15 @@ export default function CandidateDetailPage() {
                                                 min="0"
                                                 max="100"
                                                 placeholder="0-100" 
-                                                {...register(`parsedData.job_matches.${index}.fit_score`, { 
-                                                    valueAsNumber: true,
-                                                    min: { value: 0, message: "Score must be at least 0" },
-                                                    max: { value: 100, message: "Score must be at most 100" }
+                                                {...register(`parsedData.job_matches.${index}.fitScore`, {
+                                                  valueAsNumber: true,
+                                                  min: 0,
+                                                  max: 100
                                                 })} 
                                             />
-                                            {errors.parsedData?.job_matches?.[index]?.fit_score && (
-                                                <p className="text-xs text-destructive">
-                                                    {errors.parsedData.job_matches[index]?.fit_score?.message}
+                                            {errors.parsedData?.job_matches?.[index]?.fitScore && (
+                                                <p className="text-sm text-destructive mt-1">
+                                                  {errors.parsedData.job_matches[index]?.fitScore?.message}
                                                 </p>
                                             )}
                                         </div>
@@ -1396,7 +1420,7 @@ export default function CandidateDetailPage() {
                                         <Label className="text-sm font-medium">Match Reasons</Label>
                                         <Textarea 
                                             placeholder="Enter match reasons, one per line&#10;e.g.,&#10;• Strong technical skills&#10;• Relevant experience&#10;• Good cultural fit"
-                                            {...register(`parsedData.job_matches.${index}.match_reasons_string`)}
+                                            {...register(`parsedData.job_matches.${index}.matchReasonsString`)}
                                             rows={4}
                                             className="resize-none"
                                         />
@@ -1414,12 +1438,11 @@ export default function CandidateDetailPage() {
                                         variant="outline" 
                                         className="w-full" 
                                         onClick={() => appendJobMatch({ 
-                                            job_id: '',
-                                            job_title: '', 
-                                            fit_score: 0, 
-                                            match_reasons: [], 
-                                            is_applied_job: false,
-                                            match_reasons_string: ''
+                                            jobId: '',
+                                            jobTitle: '', 
+                                            fitScore: 0, 
+                                            matchReasons: [], 
+                                            matchReasonsString: ''
                                         })}
                                     >
                                         <PlusCircle className="mr-2 h-4 w-4" /> Add Job Match
@@ -1493,14 +1516,14 @@ export default function CandidateDetailPage() {
                                         }}
                                     >
                                 {candidateJobMatches.map((match: any, index: number) => {
-                                  // Try to find position by job_id first, then by job_title
+                                  // Try to find position by jobId first, then by jobTitle
                                   const position = Array.isArray(allDbPositions) ? 
-                                                 (allDbPositions.find(p => p.id === match.job_id) || 
-                                                  allDbPositions.find(p => p.title === match.job_title)) : null;
+                                                 (allDbPositions.find(p => p.id === match.jobId) || 
+                                                  allDbPositions.find(p => p.title === match.jobTitle)) : null;
                                   
                                   return (
                                     <div 
-                                      key={`jobmatch-${index}-${match.job_title || index}`} 
+                                      key={`jobmatch-${index}-${match.jobTitle || index}`} 
                                       className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
                                       onClick={() => handleJobMatchClick(match)}
                                     >
@@ -1509,8 +1532,8 @@ export default function CandidateDetailPage() {
                                                     {(match as any).is_applied_job && (
                                                         <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
                                                     )}
-                                          <h4 className="font-semibold text-foreground text-sm truncate">
-                                            {position?.title || match.job_title || 'Unknown Position'}
+                                                                                      <h4 className="font-semibold text-foreground text-sm truncate">
+                                            {position?.title || match.jobTitle || 'Unknown Position'}
                                           </h4>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
@@ -1519,33 +1542,33 @@ export default function CandidateDetailPage() {
                                                 </div>
                                             </div>
                                             </div>
-                                            {match.fit_score && match.fit_score > 0 && (
-                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fit_score)}`}>
-                                                    {formatScoreWithGrade(match.fit_score)}
+                                            {match.fitScore && match.fitScore > 0 && (
+                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
+                                                    {formatScoreWithGrade(match.fitScore)}
                                                 </div>
                                             )}
-                                            {match.match_reasons && match.match_reasons.length > 0 && (
+                                            {match.matchReasons && match.matchReasons.length > 0 && (
                                                 <div>
                                                     <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
                                                         <Lightbulb className="h-3 w-3" />
-                                                        Reasons ({match.match_reasons.length}):
+                                                        Reasons ({match.matchReasons.length}):
                                                     </h5>
                                                     <div className="space-y-1 max-h-20 overflow-y-auto">
-                                                        {match.match_reasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
+                                                        {match.matchReasons.slice(0, 2).map((reason: string, reasonIndex: number) => (
                                                             <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
                                                                 <span className="text-primary text-xs mt-0.5">•</span>
                                                                 <span className="flex-1 line-clamp-1">{reason}</span>
                                                             </div>
                                                         ))}
-                                                        {match.match_reasons.length > 2 && (
+                                                        {match.matchReasons.length > 2 && (
                                                             <div className="text-xs text-muted-foreground italic">
-                                                                +{match.match_reasons.length - 2} more reasons
+                                                                +{match.matchReasons.length - 2} more reasons
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                             )}
-                                            {(!match.match_reasons || match.match_reasons.length === 0) && (
+                                            {(!match.matchReasons || match.matchReasons.length === 0) && (
                                                 <div className="text-xs text-muted-foreground italic">
                                                     No match reasons provided
                                                 </div>
@@ -1673,13 +1696,13 @@ export default function CandidateDetailPage() {
                         ) : (
                             <div className="relative">
                               {/* Continuous vertical line that connects all education nodes */}
-                              {(education ?? []).length > 0 && (
-                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${((education ?? []).length - 1) * 80}px` }} />
+                              {getEducation(candidate).length > 0 && (
+                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
                               )}
-                              {(education ?? []).length === 0 && (
+                              {getEducation(candidate).length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
-                              {(education ?? []).map((edu, index) => {
+                              {getEducation(candidate).map((edu: any, index: number) => {
                                 if (typeof edu === 'string') {
                                   return (
                                     <div key={`edu-${index}-${edu}`} className="relative mb-8">
@@ -1897,10 +1920,10 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
-                              {(experience ?? []).length === 0 && (
+                              {(getExperience(candidate).length === 0) && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
-                              {(experience ?? []).map((exp, index) => {
+                              {getExperience(candidate).map((exp: any, index: number) => {
                                 // Parse start, end, duration
                                 let start = '', end = '', duration = '';
                                 if (exp.period) {
@@ -1945,7 +1968,7 @@ export default function CandidateDetailPage() {
                                       {/* Timeline line and node */}
                                       <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
                                         {/* Vertical line within this node container */}
-                                        {(experience ?? []).length > 1 && (
+                                        {getExperience(candidate).length > 1 && (
                                           <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-border transform -translate-x-1/2 z-0" />
                                         )}
                                         {/* Node (icon) */}
@@ -2009,7 +2032,7 @@ export default function CandidateDetailPage() {
                     ) : (
                         (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
-                                {skills.map((skillEntry, index) => {
+                                {skills.map((skillEntry: any, index: number) => {
                                     if (typeof skillEntry === 'string') {
                                         // Render string-only skill entry
                                         return (
@@ -2026,7 +2049,7 @@ export default function CandidateDetailPage() {
                                                     <div>
                                                         <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
                                                         <div className="flex flex-wrap gap-1.5 mt-1">
-                                                            {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
+                                                            {skillEntry.skill.map((s: any, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
                                                         </div>
                                                     </div>
                                                 )}
@@ -2068,7 +2091,7 @@ export default function CandidateDetailPage() {
                     ) : (
                         (jobSuitable && jobSuitable.length > 0) ? (
                             <ul className="space-y-4">
-                                {jobSuitable.map((job, index) => (
+                                {jobSuitable.map((job: any, index: number) => (
                                 <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
                                     {renderField("Career Path", job.suitable_career)}
                                     {renderField("Job Position", job.suitable_job_position)}

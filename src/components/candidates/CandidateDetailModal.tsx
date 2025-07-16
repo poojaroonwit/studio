@@ -1,6 +1,5 @@
 "use client";
 import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 import FullCandidateDetail from "./FullCandidateDetail";
 
 interface CandidateDetailModalProps {
@@ -13,14 +12,15 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogOverlay />
-      <DialogContent className="w-[95vw] h-[95vh] max-w-7xl max-h-[95vh] relative flex flex-col overflow-hidden">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-50 p-2 rounded-full hover:bg-muted transition-colors"
-          aria-label="Close"
-        >
-          <X className="w-6 h-6" />
-        </button>
+      <DialogContent 
+        className="relative flex flex-col overflow-hidden"
+        style={{
+          width: 'min(90vw, 1200px)',
+          height: 'min(90vh, 800px)',
+          maxWidth: 'calc(100vw - 2rem)',
+          maxHeight: 'calc(100vh - 2rem)',
+        }}
+      >
         {candidateId ? (
           <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
         ) : (

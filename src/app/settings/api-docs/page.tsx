@@ -1,15 +1,84 @@
 // src/app/api-docs/page.tsx
 "use client";
 import dynamic from "next/dynamic";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 import "swagger-ui-react/swagger-ui.css";
 
 export default function ApiDocsPage() {
+  const [swaggerSpec, setSwaggerSpec] = useState(null);
+  const [servers, setServers] = useState([]);
+  const [serverUrl, setServerUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch server list and OpenAPI spec
+  useEffect(() => {
+    Promise.all([
+      fetch("/api-docs/servers").then(res => res.json()),
+      fetch("/api-docs").then(res => res.json())
+    ])
+      .then(([serverList, spec]) => {
+        setServers(serverList);
+        const defaultServer = serverList[0]?.url || spec.servers?.[0]?.url || window.location.origin;
+        setServerUrl(defaultServer);
+        setSwaggerSpec(spec);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || "Failed to load spec or servers");
+        setLoading(false);
+      });
+  }, []);
+
+  // Update the servers array in the spec when serverUrl changes
+  const getPatchedSpec = () => {
+    if (!swaggerSpec) return null;
+    return {
+      ...swaggerSpec,
+      servers: [
+        servers.find(s => s.url === serverUrl) || { url: serverUrl, description: "Custom server" },
+        ...servers.filter(s => s.url !== serverUrl)
+      ]
+    };
+  };
+
+  if (loading) return <div className="p-4">Loading API documentation...</div>;
+  if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
+
   return (
     <div className="h-full w-full bg-background p-0 overflow-hidden">
-      <SwaggerUI url="/api-docs" docExpansion="list" defaultModelsExpandDepth={-1} />
+      <div className="p-4 bg-white border-b flex items-center gap-2">
+        <label htmlFor="server-url" className="font-medium mr-2">Server:</label>
+        <select
+          id="server-url"
+          value={serverUrl}
+          onChange={e => setServerUrl(e.target.value)}
+          className="border rounded px-2 py-1 w-96 max-w-full"
+        >
+          {servers.map((server) => (
+            <option key={server.url} value={server.url}>
+              {server.description || server.url}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-gray-500 ml-2">(Select the API server to test)</span>
+      </div>
+      <SwaggerUI
+        spec={getPatchedSpec()}
+        docExpansion="list"
+        defaultModelsExpandDepth={-1}
+        tryItOutEnabled={true}
+        requestInterceptor={(request) => {
+          // Add any request interceptors if needed
+          return request;
+        }}
+        responseInterceptor={(response) => {
+          // Add any response interceptors if needed
+          return response;
+        }}
+      />
     </div>
   );
 }

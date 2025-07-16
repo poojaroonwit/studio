@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaClient } from '@prisma/client';
 import { 
   createSuccessResponse, 
   handleApiError, 
@@ -14,6 +15,8 @@ import {
   createConflictError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+
+const prisma = new PrismaClient();
 
 // Updated schema for candidate creation with structured date fields
 const candidateInfoSchema = z.object({
@@ -103,55 +106,33 @@ export async function POST(request: NextRequest) {
   const parsedData = { candidate_info };
   const newCandidateId = uuidv4();
 
-  const client = await getPool().connect();
-  
   try {
-    await client.query('BEGIN');
-
-    // Check if candidate with same email already exists
-    const existingQuery = 'SELECT id FROM "Candidate" WHERE email = $1';
-    const existingResult = await client.query(existingQuery, [email.toLowerCase()]);
-    
-    if (existingResult.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return handleApiError(request, createConflictError('Candidate with this email already exists'));
-    }
-
-    // Create candidate with new structured fields
-    const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, status, "parsedData", "applicationDate", "educationData", "experienceData")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8)
-      RETURNING *;
-    `;
-    
-    const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId,
-      name,
-      email.toLowerCase(),
-      candidate_info.contact_info.phone || null,
-      status,
-      parsedData,
-      educationData ? JSON.stringify(educationData) : '[]',
-      experienceData ? JSON.stringify(experienceData) : '[]'
-    ]);
-
-    const newCandidate = candidateResult.rows[0];
+    const newCandidate = await prisma.candidate.create({
+      data: {
+        id: newCandidateId,
+        name: name,
+        email: email.toLowerCase(),
+        status: status,
+        parsedData: parsedData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        // Add these fields if provided
+        educationData: educationData ?? [],
+        experienceData: experienceData ?? [],
+      },
+    });
 
     // Create initial transition record
-    const insertTransitionQuery = `
-      INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date)
-      VALUES ($1, $2, $3, $4, $5, NOW());
-    `;
-    
-    await client.query(insertTransitionQuery, [
-      uuidv4(),
-      newCandidateId,
-      status,
-      'Initial creation via API',
-      user.id
-    ]);
-
-    await client.query('COMMIT');
+    await prisma.transitionRecord.create({
+      data: {
+        id: uuidv4(),
+        candidateId: newCandidateId,
+        stage: status,
+        notes: 'Initial creation via API',
+        actingUserId: user.id,
+        date: new Date(),
+      },
+    });
 
     return createSuccessResponse(request, {
       message: 'Candidate created successfully',
@@ -168,13 +149,16 @@ export async function POST(request: NextRequest) {
       }
     }, 201);
 
-  } catch (error) {
-    await client.query('ROLLBACK');
-    return handleApiError(request, createInternalServerError('Error creating candidate', { 
-      originalError: (error as Error).message 
+  } catch (error: any) {
+    // Handle unique constraint violation for email
+    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+      return handleApiError(request, createConflictError('A candidate with this email already exists.'));
+    }
+    // Enhanced error logging for debugging
+    return handleApiError(request, createInternalServerError('Error creating candidate', {
+      originalError: (error as Error).message,
+      stack: (error as Error).stack,
     }));
-  } finally {
-    client.release();
   }
 }
 
@@ -195,8 +179,6 @@ export async function GET(request: NextRequest) {
 
   const offset = (page - 1) * limit;
 
-  const client = await getPool().connect();
-  
   try {
     // Build WHERE clause
     let whereClause = 'WHERE 1=1';
@@ -215,61 +197,65 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
 
-    // Get total count
-    const countQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereClause}`;
-    const countResult = await client.query(countQuery, queryParams);
-    const total = parseInt(countResult.rows[0].count);
-
-    // Get candidates with pagination
-    const candidatesQuery = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" r ON c."recruiterId" = r.id
-      ${whereClause}
-      ORDER BY c."createdAt" DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
+    const client = await getPool().connect();
     
-    const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
+    try {
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereClause}`;
+      const countResult = await client.query(countQuery, queryParams);
+      const total = parseInt(countResult.rows[0].count);
 
-    const candidates = candidatesResult.rows.map(candidate => ({
-      id: candidate.id,
-      name: candidate.name,
-      email: candidate.email,
-      phone: candidate.phone,
-      positionId: candidate.positionId,
-      recruiterId: candidate.recruiterId,
-      fitScore: candidate.fitScore,
-      status: candidate.status,
-      applicationDate: candidate.applicationDate,
-      createdAt: candidate.createdAt,
-      updatedAt: candidate.updatedAt,
-      position: candidate.positionId ? {
-        title: candidate.positionTitle,
-        department: candidate.positionDepartment
-      } : null,
-      recruiter: candidate.recruiterId ? {
-        name: candidate.recruiterName
-      } : null
-    }));
+      // Get candidates with pagination
+      const candidatesQuery = `
+        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+        FROM "Candidate" c
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        LEFT JOIN "User" r ON c."recruiterId" = r.id
+        ${whereClause}
+        ORDER BY c."createdAt" DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
 
-    return createSuccessResponse(request, {
-      data: candidates,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    }, 200);
+      const candidates = candidatesResult.rows.map(candidate => ({
+        id: candidate.id,
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        positionId: candidate.positionId,
+        recruiterId: candidate.recruiterId,
+        fitScore: candidate.fitScore,
+        status: candidate.status,
+        applicationDate: candidate.applicationDate,
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt,
+        position: candidate.positionId ? {
+          title: candidate.positionTitle,
+          department: candidate.positionDepartment
+        } : null,
+        recruiter: candidate.recruiterId ? {
+          name: candidate.recruiterName
+        } : null
+      }));
+
+      return createSuccessResponse(request, {
+        data: candidates,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }, 200);
+    } finally {
+      client.release();
+    }
 
   } catch (error) {
     return handleApiError(request, createInternalServerError('Error fetching candidates', { 
       originalError: (error as Error).message 
     }));
-  } finally {
-    client.release();
   }
 }
 

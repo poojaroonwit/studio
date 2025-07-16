@@ -44,7 +44,7 @@ model Position {
   department       String
   description      String?
   isOpen           Boolean     @default(true)
-  positionLevel    String?     @map("positionLevel")
+  positionLevel    String?
   customAttributes Json?       @default("{}")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

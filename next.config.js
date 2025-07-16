@@ -1,4 +1,29 @@
 /** @type {import('next').NextConfig} */
+import process from 'process';
+
+function getMinioRemotePattern() {
+  // Try to get MinIO public URL and bucket from env
+  const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:8721';
+  const minioBucket = process.env.NEXT_PUBLIC_MINIO_BUCKET || 'studio-production';
+  try {
+    const url = new URL(minioUrl);
+    return {
+      protocol: url.protocol.replace(':', ''),
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? '443' : '80'),
+      pathname: `/${minioBucket}/settings/**`,
+    };
+  } catch (e) {
+    // fallback to localhost
+    return {
+      protocol: 'http',
+      hostname: 'localhost',
+      port: '8721',
+      pathname: '/studio-production/settings/**',
+    };
+  }
+}
+
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -34,7 +59,7 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '8721',
-        pathname: '/studio-production/settings/**', // adjust as needed for your MinIO bucket/path
+        pathname: '/studio-production/settings/**',
       },
       {
         protocol: 'http',
@@ -48,6 +73,7 @@ const nextConfig = {
         port: '9000',
         pathname: '/uploads/**',
       },
+      getMinioRemotePattern(),
     ],
   },
   // Increase build timeout and handle static generation issues

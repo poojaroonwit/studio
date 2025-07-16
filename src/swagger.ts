@@ -1,7 +1,8 @@
 // Comprehensive OpenAPI 3.0 specification for Studio API
 
 export function getSwaggerSpec() {
-  const serverUrl = process.env.API_BASE_URL || 'http://localhost:8021';
+  // Use production server URL for Swagger API testing
+  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://localhost:8021';
   return {
     openapi: '3.0.0',
     info: {
@@ -19,8 +20,12 @@ export function getSwaggerSpec() {
     },
     servers: [
       {
-        url: serverUrl,
-        description: 'Current server'
+        url: 'http://10.0.10.71:8021',
+        description: 'Production server'
+      },
+      {
+        url: 'http://localhost:8021',
+        description: 'Local development server'
       }
     ],
     security: [

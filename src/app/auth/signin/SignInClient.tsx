@@ -264,6 +264,31 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     return () => window.removeEventListener('appConfigChanged', handleAppConfigChange);
   }, []);
 
+  // Determine active colors from settings
+  const getActiveColors = () => {
+    let activeFontColor = '';
+    let activeBgStart = '';
+    let activeBgEnd = '';
+    if (initialSettings) {
+      if (isThemeDark) {
+        activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextD')?.value || '#fff';
+        activeBgStart = initialSettings.find(s => s.key === 'sidebarActiveBgStartD')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+        activeBgEnd = initialSettings.find(s => s.key === 'sidebarActiveBgEndD')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+      } else {
+        activeFontColor = initialSettings.find(s => s.key === 'sidebarActiveTextL')?.value || '#fff';
+        activeBgStart = initialSettings.find(s => s.key === 'sidebarActiveBgStartL')?.value || DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+        activeBgEnd = initialSettings.find(s => s.key === 'sidebarActiveBgEndL')?.value || DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+      }
+    } else {
+      // fallback to CSS variables or defaults
+      activeFontColor = '#fff';
+      activeBgStart = DEFAULT_PRIMARY_GRADIENT_START_SIGNIN;
+      activeBgEnd = DEFAULT_PRIMARY_GRADIENT_END_SIGNIN;
+    }
+    return { activeFontColor, activeBgStart, activeBgEnd };
+  };
+  const { activeFontColor, activeBgStart, activeBgEnd } = getActiveColors();
+
   if (status === "loading" || !isClient) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-100 to-sky-100 dark:from-slate-900 dark:to-sky-900 p-4">
@@ -305,7 +330,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
-        <CredentialsSignInForm />
+        <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
         {isAzureAdConfigured && (
           <div className="mt-4">
             <div className="relative mb-4">
@@ -353,7 +378,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             {/* Application Logo and Name */}
             <div className="text-center mb-8">
               {isClient && appLogoUrl ? (
-                <Image
+                <img
                   src={appLogoUrl}
                   alt="Application Logo"
                   width={80}
@@ -375,7 +400,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
                     <AlertDescription>{errorMessage}</AlertDescription>
                   </Alert>
                 )}
-                <CredentialsSignInForm />
+                <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
                 {isAzureAdConfigured && (
                   <div className="mt-4">
                     <div className="relative mb-4">
@@ -413,7 +438,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         {/* Logo and Brand */}
         <div className="text-center mb-8 login-transition">
           {isClient && appLogoUrl ? (
-            <Image
+            <img
               src={appLogoUrl}
               alt="Application Logo"
               width={100}
@@ -449,7 +474,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </Alert>
             )}
             
-            <CredentialsSignInForm />
+            <CredentialsSignInForm activeFontColor={activeFontColor} activeBgStart={activeBgStart} activeBgEnd={activeBgEnd} />
             
             {isAzureAdConfigured && (
               <div className="mt-4">

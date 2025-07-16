@@ -8,7 +8,7 @@ async function main() {
   try {
     // Create default admin user
     console.log('Creating admin user...');
-    const adminEmail = 'admin@ncc.com';
+    const adminEmail = 'admin@qsncc.com';
     const adminPassword = '$2a$10$dwiCxbUtCqnXeB2O8BmiyeWHL0e7rOqahafQAUACsnD4EZ9nGqPx2'; // bcrypt hash for 'nccadmin'
     await prisma.user.upsert({
       where: { email: adminEmail },
@@ -36,7 +36,8 @@ async function main() {
         id: '11111111-1111-1111-1111-111111111111',
         title: 'Software Engineer',
         department: 'Engineering',
-        description: 'Develops and maintains software.'
+        description: 'Develops and maintains software.',
+        positionLevel: 'Senior',
       }
     });
     await prisma.position.upsert({
@@ -46,7 +47,8 @@ async function main() {
         id: '22222222-2222-2222-2222-222222222222',
         title: 'Product Manager',
         department: 'Product',
-        description: 'Oversees product development.'
+        description: 'Oversees product development.',
+        positionLevel: 'Manager',
       }
     });
     console.log('✅ Default positions created/updated');
@@ -136,26 +138,6 @@ async function main() {
           'IT_MANAGE','IT_CREATE','IT_UPDATE','IT_DELETE'
         ],
         isDefault: true,
-        isSystemRole: false
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000013',
-        name: 'Finance',
-        description: 'Finance Department group',
-        permissions: [
-          'FINANCE_MANAGE','FINANCE_CREATE','FINANCE_UPDATE','FINANCE_DELETE'
-        ],
-        isDefault: false,
-        isSystemRole: false
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000014',
-        name: 'Marketing',
-        description: 'Marketing Department group',
-        permissions: [
-          'MARKETING_MANAGE','MARKETING_CREATE','MARKETING_UPDATE','MARKETING_DELETE'
-        ],
-        isDefault: false,
         isSystemRole: false
       }
     ];

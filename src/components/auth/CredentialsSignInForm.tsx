@@ -21,7 +21,7 @@ const credentialsSchema = z.object({
 
 type CredentialsFormValues = z.infer<typeof credentialsSchema>;
 
-export function CredentialsSignInForm() {
+export function CredentialsSignInForm({ activeFontColor, activeBgStart, activeBgEnd }: { activeFontColor?: string, activeBgStart?: string, activeBgEnd?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +121,17 @@ export function CredentialsSignInForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full btn-primary-gradient" disabled={isLoading}>
+        <Button
+          type="submit"
+          className="w-full"
+          style={{
+            background: activeBgStart && activeBgEnd ? `linear-gradient(90deg, hsl(${activeBgStart}), hsl(${activeBgEnd}))` : undefined,
+            color: activeFontColor || undefined,
+            border: 'none',
+            boxShadow: activeBgStart ? `0 8px 32px 0 hsla(${activeBgStart}, 0.35), 0 4px 16px 0 hsla(${activeBgStart}, 0.25)` : undefined,
+          }}
+          disabled={isLoading}
+        >
           {isLoading ? (
             <div className="animate-spin rounded-md h-5 w-5 border-b-2 border-primary-foreground"></div>
           ) : (

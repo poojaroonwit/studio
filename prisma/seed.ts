@@ -455,7 +455,7 @@ async function main() {
     const sampleWebhookLogs = [
       {
         id: '60000000-0000-0000-0000-000000000001',
-        webhook_id: '50000000-0000-0000-0000-000000000001',
+        webhook_id: '50000000-0000-0000-0000-000000000001', // exists
         event_type: 'candidate.created',
         payload: {
           candidate: {
@@ -473,8 +473,8 @@ async function main() {
       },
       {
         id: '60000000-0000-0000-0000-000000000002',
-        webhook_id: '50000000-0000-0000-0000-000000000002',
-        event_type: 'candidate.stage_changed',
+        webhook_id: '50000000-0000-0000-0000-000000009999', // updated to existing
+        event_type: 'upload_queue.completed', // matches supported event for this webhook
         payload: {
           candidate: {
             id: '70000000-0000-0000-0000-000000000002',
@@ -493,8 +493,8 @@ async function main() {
       },
       {
         id: '60000000-0000-0000-0000-000000000003',
-        webhook_id: '50000000-0000-0000-0000-000000000003',
-        event_type: 'candidate.created',
+        webhook_id: '50000000-0000-0000-0000-000000000001', // updated to existing
+        event_type: 'position.filled', // matches supported event for this webhook
         payload: {
           candidate: {
             id: '70000000-0000-0000-0000-000000000003',
@@ -512,8 +512,8 @@ async function main() {
       },
       {
         id: '60000000-0000-0000-0000-000000000004',
-        webhook_id: '50000000-0000-0000-0000-000000000004',
-        event_type: 'position.created',
+        webhook_id: '50000000-0000-0000-0000-000000009999', // updated to existing
+        event_type: 'upload_queue.failed', // matches supported event for this webhook
         payload: {
           position: {
             id: '11111111-1111-1111-1111-111111111111',

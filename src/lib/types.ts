@@ -335,6 +335,8 @@ export interface Candidate {
   createdAt?: string;
   updatedAt?: string;
   transitionHistory: TransitionRecord[];
+  educationData?: StructuredEducationEntry[];
+  experienceData?: StructuredExperienceEntry[];
 }
 
 export interface ResumeHistoryEntry {

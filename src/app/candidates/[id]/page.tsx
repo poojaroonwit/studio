@@ -194,6 +194,16 @@ function hasFitScore(obj: any): obj is { fitScore: number } {
   return typeof obj === 'object' && obj !== null && 'fitScore' in obj && typeof obj.fitScore === 'number';
 }
 
+// Type guard for experience array
+function hasExperienceArray(data: any): data is { experience: any[] } {
+  return data && Array.isArray(data.experience);
+}
+
+// Type guard for education array
+function hasEducationArray(data: any): data is { education: any[] } {
+  return data && Array.isArray(data.education);
+}
+
 export default function CandidateDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -833,10 +843,10 @@ export default function CandidateDetailPage() {
     : undefined;
   const education = Array.isArray(candidate.educationData) && candidate.educationData.length > 0
     ? candidate.educationData
-    : (candidate.parsedData && Array.isArray(candidate.parsedData.education) ? candidate.parsedData.education : []);
+    : (candidate.parsedData && hasEducationArray(candidate.parsedData) ? candidate.parsedData.education : []);
   const experience = Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0
     ? candidate.experienceData
-    : (candidate.parsedData && Array.isArray(candidate.parsedData.experience) ? candidate.parsedData.experience : []);
+    : (candidate.parsedData && hasExperienceArray(candidate.parsedData) ? candidate.parsedData.experience : []);
   const skills = (candidate.parsedData && 'skills' in candidate.parsedData)
     ? candidate.parsedData.skills
     : undefined;

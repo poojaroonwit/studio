@@ -81,6 +81,8 @@ const createCandidateSchema = z.object({
   experienceData: z.array(structuredExperienceSchema).min(1),
 }).strict();
 
+export { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema };
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];

@@ -939,6 +939,14 @@ export default function CandidateDetailPage() {
     return parts.pop() || "View Resume";
   };
 
+  const getGradeFromScore = (score: number): string => {
+    if (score >= 80) return 'A';
+    if (score >= 60) return 'B';
+    if (score >= 40) return 'C';
+    if (score >= 20) return 'D';
+    return 'E';
+  };
+
   // Add this function to handle avatar upload
   const handleAvatarUpload = async (fileUrlOrFile: string | File) => {
     setAvatarUploading(true);
@@ -1284,7 +1292,7 @@ export default function CandidateDetailPage() {
                                     {appliedFitScore !== null && appliedFitScore !== undefined && (
                                       <div className="text-2xl font-bold text-primary flex items-center gap-2">
                                         <span>{appliedFitScore}%</span>
-                                        <span className="text-lg font-bold text-primary">(A)</span>
+                                        <span className="text-lg font-bold text-primary">({getGradeFromScore(appliedFitScore)})</span>
                                       </div>
                                     )}
                                    </div>

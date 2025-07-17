@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { signIn, useSession, updateSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { toast } from 'react-hot-toast';
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
@@ -41,7 +41,7 @@ const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const router = useRouter();
   const pathname = usePathname(); 
   const [fetchError, setFetchError] = useState<string | null>(null);

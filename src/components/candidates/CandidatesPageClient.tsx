@@ -1143,6 +1143,33 @@ export function CandidatesPageClient({
     };
   }, [filters, page, pageSize, fetchPaginatedCandidates]);
 
+  // Refresh data when page becomes visible (e.g., when navigating back from candidate detail)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && sessionStatus === 'authenticated' && !isLoading) {
+        console.log('Page became visible, refreshing candidate data...');
+        // Refresh data when page becomes visible
+        fetchPaginatedCandidates(filters, page, pageSize);
+      }
+    };
+
+    const handleFocus = () => {
+      if (sessionStatus === 'authenticated' && !isLoading) {
+        console.log('Window gained focus, refreshing candidate data...');
+        // Refresh data when window regains focus
+        fetchPaginatedCandidates(filters, page, pageSize);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [sessionStatus, isLoading, fetchPaginatedCandidates, filters, page, pageSize]);
+
   if (sessionStatus === 'loading') {
     // Show a loading spinner while session is being established
     return (

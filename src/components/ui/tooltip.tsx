@@ -12,10 +12,10 @@ const Tooltip = TooltipPrimitive.Root
 
 // Wrap the trigger to debug children
 const TooltipTrigger = React.forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>>(
-  function TooltipTriggerWithDebug(props, ref) {
+  function TooltipTriggerWithDebug({ asChild, ...props }, ref) {
     logIfInvalidSingleChild(props.children, "TooltipTrigger");
     return (
-      <TooltipPrimitive.Trigger {...props} ref={ref}>
+      <TooltipPrimitive.Trigger asChild={asChild} {...props} ref={ref}>
         {props.children}
       </TooltipPrimitive.Trigger>
     );

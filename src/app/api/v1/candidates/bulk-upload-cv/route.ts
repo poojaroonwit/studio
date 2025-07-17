@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
-import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL, ensureBucketExists } from '@/lib/minio';
+import { minioClient, ensureBucketExists } from '@/lib/minio';
+import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 
 export const runtime = 'nodejs';
 

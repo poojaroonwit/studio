@@ -165,9 +165,12 @@ export default {
   		textDecoration: {
   			'sidebar': 'var(--sidebar-text-decoration)',
   		},
-  		fontFamily: {
-  			'sidebar': 'var(--sidebar-font-family)',
-  		},
+  				fontFamily: {
+			'sidebar': 'var(--sidebar-font-family)',
+			'inter': ['var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
+			'anuphan': ['var(--font-anuphan)', 'var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
+		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',
   			'sidebar-y': 'var(--sidebar-padding-y)',

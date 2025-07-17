@@ -127,79 +127,81 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid md:grid-cols-2 gap-6 flex-grow overflow-hidden p-6"> {/* Main content area with padding */}
-          {/* Left Column: Form */}
-          <ScrollArea className="h-full"> {/* Ensure ScrollArea takes full height of its container */}
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div>
-                <Label htmlFor="title-edit">Position Title *</Label>
-                <Input id="title-edit" {...form.register('title')} className="mt-1" />
-                {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow">
+          <div className="grid md:grid-cols-2 gap-6 flex-grow overflow-hidden p-6"> {/* Main content area with padding */}
+            {/* Left Column: Form */}
+            <ScrollArea className="h-full"> {/* Ensure ScrollArea takes full height of its container */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title-edit">Position Title *</Label>
+                  <Input id="title-edit" {...form.register('title')} className="mt-1" />
+                  {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="department-edit">Department *</Label>
+                  <Input id="department-edit" {...form.register('department')} className="mt-1" />
+                  {form.formState.errors.department && <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="positionLevel-edit">Position Level</Label>
+                  <Input id="positionLevel-edit" {...form.register('positionLevel')} className="mt-1" placeholder="e.g., Senior, Mid-Level, L3"/>
+                  {form.formState.errors.positionLevel && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>}
+                </div>
+                <div className="flex items-center space-x-2 pt-2">
+                  <Controller
+                      name="isOpen"
+                      control={form.control}
+                      render={({ field }) => (
+                          <Switch
+                              id="is-active"
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                          />
+                      )}
+                  />
+                  <Label htmlFor="is-active">Position is Open</Label>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="department-edit">Department *</Label>
-                <Input id="department-edit" {...form.register('department')} className="mt-1" />
-                {form.formState.errors.department && <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="positionLevel-edit">Position Level</Label>
-                <Input id="positionLevel-edit" {...form.register('positionLevel')} className="mt-1" placeholder="e.g., Senior, Mid-Level, L3"/>
-                {form.formState.errors.positionLevel && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>}
-              </div>
-              <div className="flex items-center space-x-2 pt-2">
+            </ScrollArea>
+            {/* Right Column: Job Description Card */}
+            <Card className="h-full flex flex-col">
+              <CardHeader>
+                <CardTitle>Job Description</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
                 <Controller
-                    name="isOpen"
-                    control={form.control}
-                    render={({ field }) => (
-                        <Switch
-                            id="is-active"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                        />
-                    )}
+                  name="description"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="mt-1 flex-1 flex flex-col">
+                      <TipTapEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Enter job description"
+                        className="bg-background flex-1 min-h-[200px]"
+                      />
+                      {form.formState.errors.description && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
+                      )}
+                    </div>
+                  )}
                 />
-                <Label htmlFor="is-active">Position is Open</Label>
-              </div>
-            </form>
-          </ScrollArea>
-          {/* Right Column: Job Description Card */}
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <CardTitle>Job Description</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              <Controller
-                name="description"
-                control={form.control}
-                render={({ field }) => (
-                  <div className="mt-1 flex-1 flex flex-col">
-                    <TipTapEditor
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      placeholder="Enter job description"
-                      className="bg-background flex-1 min-h-[200px]"
-                    />
-                    {form.formState.errors.description && (
-                      <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
-                    )}
-                  </div>
-                )}
-              />
-            </CardContent>
-          </Card>
-        </div>
-        
-        <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
+              </CardContent>
+            </Card>
+          </div>
+          
+          <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={form.formState.isSubmitting} className="btn-primary-gradient">
+              {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
-          </DialogClose>
-          <Button type="submit" disabled={form.formState.isSubmitting} className="btn-primary-gradient">
-            {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </DialogFooter>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

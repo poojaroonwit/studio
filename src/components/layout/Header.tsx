@@ -20,6 +20,7 @@ import type { UserProfile } from "@/lib/types";
 import * as React from 'react';
 import { usePathname } from "next/navigation";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
+import { AutoFont } from "@/components/ui/auto-font";
 
 
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
@@ -147,6 +148,13 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
 
   const toggleTheme = () => {
     document.documentElement.classList.toggle('dark');
+    
+    // Re-apply sidebar colors when theme changes
+    setTimeout(() => {
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    }, 50);
   };
 
   const handleEditProfile = async (userId: string, data: EditUserFormValues) => {
@@ -218,7 +226,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+                    <AutoFont className="text-sm font-medium leading-none">{user.name || "User"}</AutoFont>
                     {user.email && ( <p className="text-xs leading-none text-muted-foreground"> {user.email} </p> )}
                   </div>
                 </DropdownMenuLabel>

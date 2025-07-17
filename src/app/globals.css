@@ -3,7 +3,51 @@
 @tailwind utilities;
 
 body {
-  font-family: var(--font-open-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Language-specific font rules */
+[lang="th"], 
+[lang="th-TH"],
+.thai-text {
+  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Default font for English and other languages */
+[lang="en"],
+[lang="en-US"],
+[lang="en-GB"],
+.english-text {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Auto-font utility classes */
+.font-auto {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Apply Thai font to elements containing Thai text */
+.font-auto:lang(th),
+.font-auto[lang="th"],
+.font-auto[lang="th-TH"] {
+  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+/* Ensure proper font rendering for Thai text */
+.thai-text,
+[lang="th"],
+[lang="th-TH"] {
+  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
+/* Ensure proper font rendering for English text */
+.english-text,
+[lang="en"],
+[lang="en-US"],
+[lang="en-GB"] {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
 }
 
 @layer base {
@@ -70,6 +114,59 @@ body {
     --sidebar-accent-foreground-l: 220 25% 25%; /* Darker text for hover */
     --sidebar-border-l: 220 15% 85%;     /* Slightly more defined, but still light border */
     --sidebar-ring-l: hsl(var(--ring));
+
+    /* Additional sidebar variables for light theme */
+    --sidebar-font-family-l: inherit;
+    --sidebar-font-size-l: 0.875rem;
+    --sidebar-font-weight-l: 400;
+    --sidebar-line-height-l: 1.25rem;
+    --sidebar-letter-spacing-l: 0;
+    --sidebar-text-transform-l: none;
+    --sidebar-border-width-l: 1px;
+    --sidebar-border-style-l: solid;
+    --sidebar-border-radius-l: 0.5rem;
+    --sidebar-shadow-l: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-hover-l: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --sidebar-shadow-active-l: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --sidebar-padding-x-l: 0.75rem;
+    --sidebar-padding-y-l: 0.5rem;
+    --sidebar-margin-l: 0.25rem;
+    --sidebar-gap-l: 0.5rem;
+    --sidebar-width-l: 16rem;
+    --sidebar-width-collapsed-l: 3rem;
+    --sidebar-transition-duration-l: 0.2s;
+    --sidebar-transition-timing-l: ease-in-out;
+    --sidebar-menu-item-background-l: transparent;
+    --sidebar-menu-item-background-hover-l: hsl(220 10% 92%);
+    --sidebar-menu-item-background-active-l: hsl(179 67% 66%);
+    --sidebar-menu-item-color-l: hsl(220 25% 30%);
+    --sidebar-menu-item-color-hover-l: hsl(220 25% 25%);
+    --sidebar-menu-item-color-active-l: hsl(0 0% 100%);
+    --sidebar-menu-item-border-l: transparent;
+    --sidebar-menu-item-border-hover-l: transparent;
+    --sidebar-menu-item-border-active-l: transparent;
+    --sidebar-menu-item-border-radius-l: 0.375rem;
+    --sidebar-menu-item-padding-x-l: 0.75rem;
+    --sidebar-menu-item-padding-y-l: 0.5rem;
+    --sidebar-menu-item-margin-l: 0.125rem;
+    --sidebar-menu-item-font-weight-l: 400;
+    --sidebar-menu-item-font-weight-active-l: 600;
+    --sidebar-menu-item-font-size-l: 0.875rem;
+    --sidebar-menu-item-line-height-l: 1.25rem;
+    --sidebar-menu-item-transition-l: all 0.2s ease-in-out;
+    --sidebar-icon-size-l: 1.25rem;
+    --sidebar-icon-color-l: hsl(220 25% 30%);
+    --sidebar-icon-color-hover-l: hsl(220 25% 25%);
+    --sidebar-icon-color-active-l: hsl(0 0% 100%);
+    --sidebar-icon-margin-right-l: 0.75rem;
+    --sidebar-icon-transition-l: all 0.2s ease-in-out;
+    --sidebar-group-label-color-l: hsl(220 25% 45%);
+    --sidebar-group-label-font-size-l: 0.75rem;
+    --sidebar-group-label-font-weight-l: 600;
+    --sidebar-group-label-text-transform-l: uppercase;
+    --sidebar-group-label-letter-spacing-l: 0.05em;
+    --sidebar-group-label-padding-x-l: 0.75rem;
+    --sidebar-group-label-margin-l: 1rem 0 0.5rem 0;
 
     /* Green color for specific checked states */
     --custom-green-checked: 142 76% 36%;
@@ -141,7 +238,60 @@ body {
     --sidebar-border-d: 220 15% 18%;
     --sidebar-ring-d: hsl(var(--primary-gradient-start-d));
 
-     /* Green color for specific checked states */
+    /* Additional sidebar variables for dark theme */
+    --sidebar-font-family-d: inherit;
+    --sidebar-font-size-d: 0.875rem;
+    --sidebar-font-weight-d: 400;
+    --sidebar-line-height-d: 1.25rem;
+    --sidebar-letter-spacing-d: 0;
+    --sidebar-text-transform-d: none;
+    --sidebar-border-width-d: 1px;
+    --sidebar-border-style-d: solid;
+    --sidebar-border-radius-d: 0.5rem;
+    --sidebar-shadow-d: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-hover-d: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --sidebar-shadow-active-d: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --sidebar-padding-x-d: 0.75rem;
+    --sidebar-padding-y-d: 0.5rem;
+    --sidebar-margin-d: 0.25rem;
+    --sidebar-gap-d: 0.5rem;
+    --sidebar-width-d: 16rem;
+    --sidebar-width-collapsed-d: 3rem;
+    --sidebar-transition-duration-d: 0.2s;
+    --sidebar-transition-timing-d: ease-in-out;
+    --sidebar-menu-item-background-d: transparent;
+    --sidebar-menu-item-background-hover-d: hsl(220 15% 20%);
+    --sidebar-menu-item-background-active-d: hsl(179 67% 66%);
+    --sidebar-menu-item-color-d: hsl(210 30% 85%);
+    --sidebar-menu-item-color-hover-d: hsl(210 30% 90%);
+    --sidebar-menu-item-color-active-d: hsl(0 0% 100%);
+    --sidebar-menu-item-border-d: transparent;
+    --sidebar-menu-item-border-hover-d: transparent;
+    --sidebar-menu-item-border-active-d: transparent;
+    --sidebar-menu-item-border-radius-d: 0.375rem;
+    --sidebar-menu-item-padding-x-d: 0.75rem;
+    --sidebar-menu-item-padding-y-d: 0.5rem;
+    --sidebar-menu-item-margin-d: 0.125rem;
+    --sidebar-menu-item-font-weight-d: 400;
+    --sidebar-menu-item-font-weight-active-d: 600;
+    --sidebar-menu-item-font-size-d: 0.875rem;
+    --sidebar-menu-item-line-height-d: 1.25rem;
+    --sidebar-menu-item-transition-d: all 0.2s ease-in-out;
+    --sidebar-icon-size-d: 1.25rem;
+    --sidebar-icon-color-d: hsl(210 30% 85%);
+    --sidebar-icon-color-hover-d: hsl(210 30% 90%);
+    --sidebar-icon-color-active-d: hsl(0 0% 100%);
+    --sidebar-icon-margin-right-d: 0.75rem;
+    --sidebar-icon-transition-d: all 0.2s ease-in-out;
+    --sidebar-group-label-color-d: hsl(210 25% 70%);
+    --sidebar-group-label-font-size-d: 0.75rem;
+    --sidebar-group-label-font-weight-d: 600;
+    --sidebar-group-label-text-transform-d: uppercase;
+    --sidebar-group-label-letter-spacing-d: 0.05em;
+    --sidebar-group-label-padding-x-d: 0.75rem;
+    --sidebar-group-label-margin-d: 1rem 0 0.5rem 0;
+
+    /* Green color for specific checked states */
     --custom-green-checked: 147 80% 40%;
     --custom-green-checked-foreground: 0 0% 100%;
   }

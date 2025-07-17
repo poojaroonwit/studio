@@ -224,6 +224,9 @@ export function CandidateTable({
           </TableHeader>
           <TableBody>
             {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate) => {
+              // Debug logging for fit score and application date
+              console.log(`Candidate ${candidate.name}: fitScore=${candidate.fitScore}, applicationDate=${candidate.applicationDate}`);
+              
               const dateValue = candidate.updatedAt || candidate.createdAt;
               let displayDate = 'N/A';
               if (dateValue && typeof dateValue === 'string') {
@@ -274,13 +277,20 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell key={`${candidate.id}-position`}>
                     {candidate.position?.title ? (
-                      <span
-                        className="font-medium text-primary hover:underline cursor-pointer"
-                        onClick={() => handleEditPositionClick(candidate.positionId)}
-                        title={`Edit ${candidate.position.title}`}
-                      >
-                        {candidate.position.title}
-                      </span>
+                      <div className="space-y-1">
+                        <span
+                          className="font-medium text-primary hover:underline cursor-pointer"
+                          onClick={() => handleEditPositionClick(candidate.positionId)}
+                          title={`Edit ${candidate.position.title}`}
+                        >
+                          {candidate.position.title}
+                        </span>
+                        {candidate.applicationDate && (
+                          <div className="text-xs text-muted-foreground">
+                            Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">N/A</span>
                     )}

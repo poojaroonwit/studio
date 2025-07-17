@@ -29,9 +29,21 @@ import {
   Undo,
   Redo,
   Eye,
-  EyeOff
+  EyeOff,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ===== DYNAMIC ICON COMPONENT =====
+interface DynamicIconProps {
+  rows: number;
+  className?: string;
+}
+
+function DynamicIcon({ rows, className }: DynamicIconProps) {
+  // Always use FileText, since FileText2+ do not exist in lucide-react
+  return <FileText className={cn("h-4 w-4", className)} />;
+}
 
 // ===== TIP TAP EDITOR (Modern, Extensible) =====
 interface TipTapEditorProps {
@@ -40,6 +52,7 @@ interface TipTapEditorProps {
   placeholder?: string;
   className?: string;
   readOnly?: boolean;
+  initialRows?: number;
 }
 
 export function TipTapEditor({
@@ -48,12 +61,31 @@ export function TipTapEditor({
   placeholder = "Start writing...",
   className,
   readOnly = false,
+  initialRows = 8,
 }: TipTapEditorProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [editorInstance, setEditorInstance] = useState<any>(null);
+  const [rowCount, setRowCount] = useState(initialRows);
   const editorRef = useRef<HTMLDivElement>(null);
   const tiptapEditorRef = useRef<any>(null);
   const isSettingContent = useRef(false);
+
+  // Generate initial content with multiple empty paragraphs
+  const generateInitialContent = (rows: number) => {
+    if (value && value.trim() !== '') return value;
+    const paragraphs = Array(rows).fill('<p><br></p>').join('');
+    return paragraphs;
+  };
+
+  // Count rows in content
+  const countRows = (content: string) => {
+    if (!content) return initialRows;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const lines = tempDiv.textContent?.split('\n') || [];
+    const paragraphs = content.match(/<p[^>]*>/g) || [];
+    return Math.max(lines.length, paragraphs.length, initialRows);
+  };
 
   // Initialize editor only once
   useEffect(() => {
@@ -79,11 +111,13 @@ export function TipTapEditor({
             Color.default,
             TextStyle.default,
           ],
-          content: value || "",
+          content: generateInitialContent(initialRows),
           editable: !readOnly,
           onUpdate: ({ editor }) => {
             if (isSettingContent.current) return;
-            onChange(editor.getHTML());
+            const html = editor.getHTML();
+            onChange(html);
+            setRowCount(countRows(html));
           },
           editorProps: {
             attributes: {
@@ -108,22 +142,23 @@ export function TipTapEditor({
       }
     };
     // eslint-disable-next-line
-  }, []);
+  }, [initialRows]);
 
   // Sync content from parent to editor
   useEffect(() => {
     const editor = tiptapEditorRef.current;
     if (editor && editor.getHTML() !== value) {
       isSettingContent.current = true;
-      editor.commands.setContent(value || "", false);
+      editor.commands.setContent(value || generateInitialContent(initialRows), false);
       isSettingContent.current = false;
+      setRowCount(countRows(value || generateInitialContent(initialRows)));
     }
-  }, [value]);
+  }, [value, initialRows]);
 
   return (
     <div className={cn("border rounded-lg overflow-hidden", className)}>
       {!readOnly && editorInstance && (
-        <TipTapToolbar editor={editorInstance} />
+        <TipTapToolbar editor={editorInstance} rowCount={rowCount} />
       )}
       <div
         ref={editorRef}
@@ -137,13 +172,17 @@ export function TipTapEditor({
 }
 
 // Toolbar implementation
-function TipTapToolbar({ editor }: { editor: any }) {
+function TipTapToolbar({ editor, rowCount }: { editor: any; rowCount: number }) {
   if (!editor) return null;
   
   return (
     <div className="flex flex-col gap-1 p-2 border-b bg-muted/30">
       {/* Row 1: Text formatting and headings */}
       <div className="flex items-center gap-1 mb-1">
+        <div className="flex items-center gap-2 mr-2 px-2 py-1 bg-background rounded border">
+          <DynamicIcon rows={rowCount} />
+          <span className="text-xs text-muted-foreground">{rowCount} rows</span>
+        </div>
         <Button 
           variant="ghost" 
           size="sm" 
@@ -287,6 +326,7 @@ interface MinimalistEditorProps {
   placeholder?: string;
   className?: string;
   readOnly?: boolean;
+  initialRows?: number;
 }
 
 export function MinimalistEditor({ 
@@ -294,14 +334,28 @@ export function MinimalistEditor({
   onChange, 
   placeholder = "Start writing...", 
   className,
-  readOnly = false 
+  readOnly = false,
+  initialRows = 8
 }: MinimalistEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
+  const [rowCount, setRowCount] = useState(initialRows);
   const editorRef = useRef<HTMLDivElement>(null);
+
+  // Count rows in content
+  const countRows = (content: string) => {
+    if (!content) return initialRows;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const lines = tempDiv.textContent?.split('\n') || [];
+    const paragraphs = content.match(/<p[^>]*>/g) || [];
+    return Math.max(lines.length, paragraphs.length, initialRows);
+  };
 
   const handleInput = () => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      onChange(html);
+      setRowCount(countRows(html));
     }
   };
 
@@ -323,6 +377,10 @@ export function MinimalistEditor({
       {!readOnly && (
         <div className="flex items-center justify-between p-2 border-b bg-muted/30">
           <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 mr-2 px-2 py-1 bg-background rounded border">
+              <DynamicIcon rows={rowCount} />
+              <span className="text-xs text-muted-foreground">{rowCount} rows</span>
+            </div>
             <Button 
               variant="ghost" 
               size="sm" 

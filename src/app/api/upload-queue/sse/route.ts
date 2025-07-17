@@ -6,15 +6,51 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
-  
+  const url = new URL(request.url);
+  const fileName = url.searchParams.get('file_name');
+  const status = url.searchParams.get('status');
+  const dateStart = url.searchParams.get('date_start');
+  const dateEnd = url.searchParams.get('date_end');
+  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+  // Helper to build WHERE clause
+  function buildWhere() {
+    const whereClauses = [];
+    const values = [];
+    let paramIdx = 1;
+    if (fileName) {
+      whereClauses.push(`file_name ILIKE $${paramIdx++}`);
+      values.push(`%${fileName}%`);
+    }
+    if (status) {
+      whereClauses.push(`status = $${paramIdx++}`);
+      values.push(status);
+    }
+    if (dateStart) {
+      whereClauses.push(`upload_date >= $${paramIdx++}`);
+      values.push(dateStart);
+    }
+    if (dateEnd) {
+      whereClauses.push(`upload_date <= $${paramIdx++}`);
+      values.push(dateEnd);
+    }
+    return { whereSQL: whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '', values, paramIdx };
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       // Send initial data
       try {
         const client = await getPool().connect();
-        const res = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC');
+        const { whereSQL, values, paramIdx } = buildWhere();
+        values.push(limit);
+        values.push(offset);
+        const res = await client.query(
+          `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+          values
+        );
         client.release();
-        
         const data = JSON.stringify({ type: 'queue', data: res.rows });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
       } catch (error) {
@@ -39,9 +75,14 @@ export async function GET(request: NextRequest) {
               if (msg.type === 'queue_updated') {
                 // Fetch updated data and send to client
                 const client = await getPool().connect();
-                const res = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC');
+                const { whereSQL, values, paramIdx } = buildWhere();
+                values.push(limit);
+                values.push(offset);
+                const res = await client.query(
+                  `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+                  values
+                );
                 client.release();
-                
                 const data = JSON.stringify({ type: 'queue', data: res.rows });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
               }

@@ -149,6 +149,13 @@ export function AppLayout({ children }: AppLayoutProps) {
           primaryGradientEnd: prefs.primaryGradientEnd,
           sidebarColors,
         });
+        
+        // Ensure sidebar styles are applied after a small delay
+        setTimeout(() => {
+          import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+            reapplyCurrentSidebarColors();
+          });
+        }, 200);
       } catch (e) {
         setAppLogoUrl(null);
         setCurrentAppName(DEFAULT_APP_NAME);
@@ -186,6 +193,49 @@ export function AppLayout({ children }: AppLayoutProps) {
     return () => {
       window.removeEventListener('appConfigChanged', handleAppConfigChange);
     };
+  }, []);
+
+  // Add theme change listener to re-apply sidebar colors when theme changes
+  useEffect(() => {
+    const handleThemeChange = () => {
+      // Re-apply current sidebar colors when theme changes
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    };
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', handleThemeChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleThemeChange);
+    };
+  }, []);
+
+  // Re-apply sidebar styles when pathname changes (navigation)
+  useEffect(() => {
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      // Re-apply current sidebar colors after navigation
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [pathname]);
+
+  // Ensure sidebar styles are applied on initial load
+  useEffect(() => {
+    // Apply sidebar styles after a short delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Handle page loading state

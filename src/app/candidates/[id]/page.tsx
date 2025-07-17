@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -46,7 +46,7 @@ import JobMatchModal from '@/components/candidates/JobMatchModal';
 import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
 
 
-const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:9847`;
+const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8721`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
@@ -713,6 +713,37 @@ export default function CandidateDetailPage() {
     }
   };
 
+  const handleExportCandidate = async () => {
+    if (!candidate) return;
+    
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/export`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error exporting candidate data." }));
+        throw new Error(errorData.message || 'Failed to export candidate');
+      }
+      
+      const blob = await response.blob();
+      const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `candidate_${candidate.name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Candidate details exported successfully!');
+    } catch (error) {
+      console.error('Error exporting candidate:', error);
+      toast.error((error as Error).message || 'Failed to export candidate details');
+    }
+  };
+
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
     console.log('handleSaveDetails called', data);
@@ -1132,6 +1163,14 @@ export default function CandidateDetailPage() {
                           <Users className="h-4 w-4 mr-2" />
                           Manage Transitions
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={handleExportCandidate}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export to Excel
+                        </Button>
                       </>
                     ) : (
                       <div className="flex gap-2">
@@ -1303,9 +1342,15 @@ export default function CandidateDetailPage() {
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
-                                      <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
-                                        {appliedJustification}
-                                      </div>
+                                      {appliedJustification.trim().endsWith('.') ? (
+                                        <div className="text-sm text-foreground bg-primary/10 border border-primary/30 px-3 py-2 rounded shadow-sm whitespace-pre-wrap">
+                                          {appliedJustification}
+                                        </div>
+                                      ) : (
+                                        <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
+                                          {appliedJustification}
+                                        </div>
+                                      )}
                                      </div>
                                    )}
                                  </div>
@@ -1752,28 +1797,28 @@ export default function CandidateDetailPage() {
                                     </div>
                                   );
                                 } else {
-                                  // Parse start, end, duration
+                                  // Only use structured fields for timeline
                                   let start = '', end = '', duration = '';
-                                  if (edu.period) {
-                                    const parts = String(edu.period).split(' - ');
-                                    start = parts[0] || '';
-                                    end = parts[1] || '';
-                                  }
-                                  if (edu.duration) {
-                                    duration = edu.duration;
-                                  } else if (start && end) {
-                                    // Try to parse and calculate duration
-                                    const startDate = parseDate(start);
-                                    const endDate = parseDate(end);
-                                    if (startDate && endDate) {
-                                      const months = differenceInMonths(endDate, startDate);
-                                      const years = Math.floor(months / 12);
-                                      const remMonths = months % 12;
-                                      duration = [
-                                        years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                                        remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                                      ].filter(Boolean).join(' ');
+                                  if (edu.startMonth && edu.startYear) {
+                                    const startDate = new Date(edu.startYear, edu.startMonth - 1);
+                                    start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                                    if (edu.endMonth && edu.endYear) {
+                                      const endDate = new Date(edu.endYear, edu.endMonth - 1);
+                                      end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                                    } else if (edu.isCurrent) {
+                                      end = 'Present';
                                     }
+                                  }
+                                  if (start && end && end !== 'Present') {
+                                    const startDate = new Date(edu.startYear, edu.startMonth - 1);
+                                    const endDate = new Date(edu.endYear, edu.endMonth - 1);
+                                    const months = differenceInMonths(endDate, startDate);
+                                    const years = Math.floor(months / 12);
+                                    const remMonths = months % 12;
+                                    duration = [
+                                      years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                                      remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                                    ].filter(Boolean).join(' ');
                                   }
                                   return (
                                     <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
@@ -1939,28 +1984,28 @@ export default function CandidateDetailPage() {
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
                               {getExperience(candidate).map((exp: any, index: number) => {
-                                // Parse start, end, duration
+                                // Only use structured fields for timeline
                                 let start = '', end = '', duration = '';
-                                if (exp.period) {
-                                  const parts = String(exp.period).split(' - ');
-                                  start = parts[0] || '';
-                                  end = parts[1] || '';
-                                }
-                                if (exp.duration) {
-                                  duration = exp.duration;
-                                } else if (start && end) {
-                                  // Try to parse and calculate duration
-                                  const startDate = parseDate(start);
-                                  const endDate = parseDate(end);
-                                  if (startDate && endDate) {
-                                    const months = differenceInMonths(endDate, startDate);
-                                    const years = Math.floor(months / 12);
-                                    const remMonths = months % 12;
-                                    duration = [
-                                      years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                                      remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                                    ].filter(Boolean).join(' ');
+                                if (exp.startMonth && exp.startYear) {
+                                  const startDate = new Date(exp.startYear, exp.startMonth - 1);
+                                  start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                                  if (exp.endMonth && exp.endYear) {
+                                    const endDate = new Date(exp.endYear, exp.endMonth - 1);
+                                    end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                                  } else if (exp.is_current_position) {
+                                    end = 'Present';
                                   }
+                                }
+                                if (start && end && end !== 'Present') {
+                                  const startDate = new Date(exp.startYear, exp.startMonth - 1);
+                                  const endDate = new Date(exp.endYear, exp.endMonth - 1);
+                                  const months = differenceInMonths(endDate, startDate);
+                                  const years = Math.floor(months / 12);
+                                  const remMonths = months % 12;
+                                  duration = [
+                                    years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                                    remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                                  ].filter(Boolean).join(' ');
                                 }
                                 return (
                                   <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">

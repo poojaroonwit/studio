@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
-import { minioClient, MINIO_BUCKET } from '@/lib/minio';
+import { minioClient } from '@/lib/minio';
+import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getSystemSetting } from '@/lib/settings';
@@ -284,7 +285,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       // Build JSON payload as required
-      const publicUrl = `${process.env.MINIO_PUBLIC_BASE_URL || ''}/${MINIO_BUCKET}/${job.file_path}`;
+      const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
       
       // Get targetPositionId from webhook_payload if available
       let targetPositionId = null;

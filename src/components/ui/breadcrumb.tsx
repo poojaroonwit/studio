@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { AutoFont } from "./auto-font";
 
 export interface BreadcrumbItem {
   label: string;
@@ -30,7 +31,7 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
               className="flex items-center text-foreground font-medium"
             >
               {Icon && <Icon className="mr-1 h-4 w-4" />}
-              {item.label}
+              <AutoFont>{item.label}</AutoFont>
             </span>
           );
         }
@@ -43,12 +44,12 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
                 className="flex items-center hover:text-foreground transition-colors"
               >
                 {Icon && <Icon className="mr-1 h-4 w-4" />}
-                {item.label}
+                <AutoFont>{item.label}</AutoFont>
               </Link>
             ) : (
               <span className="flex items-center">
                 {Icon && <Icon className="mr-1 h-4 w-4" />}
-                {item.label}
+                <AutoFont>{item.label}</AutoFont>
               </span>
             )}
             <ChevronRight className="h-4 w-4" />

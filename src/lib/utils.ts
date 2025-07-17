@@ -25,3 +25,28 @@ export function sanitizeHtml(html: string): string {
     .replace(/data:/gi, '')
     .replace(/<a\b[^>]*href\s*=\s*["'](javascript|vbscript|data):[^"']*["'][^>]*>/gi, '');
 }
+
+// Thai text detection utility
+export function containsThaiText(text: string): boolean {
+  if (!text) return false;
+  
+  // Thai Unicode range: \u0E00-\u0E7F
+  const thaiRegex = /[\u0E00-\u0E7F]/;
+  return thaiRegex.test(text);
+}
+
+// Get appropriate font class based on text content
+export function getFontClass(text: string, defaultClass: string = 'font-sans'): string {
+  if (containsThaiText(text)) {
+    return 'font-anuphan';
+  }
+  return 'font-inter';
+}
+
+// Get appropriate font family CSS value based on text content
+export function getFontFamily(text: string): string {
+  if (containsThaiText(text)) {
+    return 'var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif';
+  }
+  return 'var(--font-inter), Arial, Helvetica, sans-serif';
+}

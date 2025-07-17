@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
-import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL, ensureBucketExists } from '@/lib/minio';
+import { minioClient, ensureBucketExists } from '@/lib/minio';
+import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { verifyApiToken } from '@/lib/auth';

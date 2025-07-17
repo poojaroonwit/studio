@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { useSession } from 'next-auth/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type CandidateJobType = "upload" | "import";
 
@@ -75,11 +76,17 @@ export const CandidateQueueProvider: React.FC<{ children: React.ReactNode }> = (
   );
 };
 
-export const CandidateImportUploadQueue: React.FC = () => {
+export const CandidateImportUploadQueue: React.FC<{
+  initialPage?: number;
+  initialPageSize?: number;
+  onPaginationChange?: (page: number, pageSize: number) => void;
+}> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
   const [jobs, setJobs] = useState<CandidateJob[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [showErrorLogId, setShowErrorLogId] = useState<string | null>(null);
   const [showCombinedDialogId, setShowCombinedDialogId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -94,6 +101,7 @@ export const CandidateImportUploadQueue: React.FC = () => {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+  const [jumpToPage, setJumpToPage] = useState<string>("");
   const { success, error } = useToast();
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
     const end = new Date();
@@ -101,23 +109,106 @@ export const CandidateImportUploadQueue: React.FC = () => {
     return { start, end };
   });
   const { data: session } = useSession();
+  const isFetchingRef = useRef(false);
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
-    let isMounted = true;
-    const params = new URLSearchParams({
-      limit: String(pageSize),
-      offset: String((page - 1) * pageSize),
-    });
-    const res = await fetch(`/api/upload-queue?${params.toString()}`);
-    if (!res.ok) return;
-    const { data, total } = await res.json();
-    if (isMounted) {
-      setJobs(Array.isArray(data) ? data : []);
-      setTotal(total);
+    if (isFetchingRef.current) {
+      console.log('[fetchJobs] Skipped: already fetching');
+      return;
     }
-    return () => { isMounted = false; };
-  }, [page, pageSize]);
+    isFetchingRef.current = true;
+    console.log('[fetchJobs] Start');
+    let isMounted = true;
+    setIsLoading(true);
+    setFetchError(null);
+    
+    try {
+      const params = new URLSearchParams({
+        limit: String(pageSize),
+        offset: String((page - 1) * pageSize),
+      });
+      const res = await fetch(`/api/upload-queue?${params.toString()}`);
+      if (!res.ok) {
+        let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
+        try {
+          const errorData = await res.json();
+          if (errorData && errorData.error) {
+            errorMsg += ` - ${errorData.error}`;
+          }
+        } catch {}
+        throw new Error(errorMsg);
+      }
+      const { data, total } = await res.json();
+      if (isMounted) {
+        setJobs(Array.isArray(data) ? data : []);
+        setTotal(total);
+      }
+    } catch (err) {
+      if (isMounted) {
+        setFetchError((err as Error).message);
+        error((err as Error).message);
+      }
+    } finally {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+      isFetchingRef.current = false;
+      console.log('[fetchJobs] End');
+    }
+  }, [page, pageSize, error]);
+
+  // Update browser title with current page
+  useEffect(() => {
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages > 1) {
+      document.title = `Upload Queue - Page ${page} of ${totalPages} | Studio`;
+    } else {
+      document.title = 'Upload Queue | Studio';
+    }
+  }, [page, total, pageSize]);
+
+  // Keyboard shortcuts for pagination
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts when not typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      const totalPages = Math.ceil(total / pageSize);
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          if (page > 1) {
+            e.preventDefault();
+            handlePageChange(page - 1);
+          }
+          break;
+        case 'ArrowRight':
+          if (page < totalPages) {
+            e.preventDefault();
+            handlePageChange(page + 1);
+          }
+          break;
+        case 'Home':
+          if (page > 1) {
+            e.preventDefault();
+            handlePageChange(1);
+          }
+          break;
+        case 'End':
+          if (page < totalPages) {
+            e.preventDefault();
+            handlePageChange(totalPages);
+          }
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [page, total, pageSize]);
 
   // Manual refresh function
   const handleManualRefresh = useCallback(async () => {
@@ -126,24 +217,35 @@ export const CandidateImportUploadQueue: React.FC = () => {
 
   // Fallback polling (less frequent since we have SSE)
   useEffect(() => {
+    if (isRealtimeActive) return;
+    console.log('[Polling] Polling enabled');
     const interval = setInterval(() => {
+      console.log('[Polling] Polling fetchJobs');
       fetchJobs();
     }, 30000); // Poll every 30 seconds as fallback
-    
-    return () => clearInterval(interval);
-  }, [fetchJobs]);
+    return () => {
+      clearInterval(interval);
+      console.log('[Polling] Polling cleaned up');
+    };
+  }, [fetchJobs, isRealtimeActive]);
 
   useEffect(() => {
+    console.log('[useEffect] fetchJobs on mount or fetchJobs change');
     fetchJobs();
+    return () => {
+      // No cleanup needed here
+    };
   }, [fetchJobs]);
 
   useEffect(() => {
     function handleRefreshEvent() {
+      console.log('[Event] refreshCandidateQueue');
       fetchJobs();
     }
     window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
+      console.log('[Event] refreshCandidateQueue cleaned up');
     };
   }, [fetchJobs]);
 
@@ -152,63 +254,95 @@ export const CandidateImportUploadQueue: React.FC = () => {
     let eventSource: EventSource | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
-    const reconnectDelay = 2000;
-    
+    const baseReconnectDelay = 2000;
+    const maxReconnectDelay = 30000; // 30 seconds
+    let debounceTimeout: NodeJS.Timeout | null = null;
+    let latestSSEData: any = null;
+
+    // Helper to format date as yyyy-MM-dd
+    function formatDate(date: Date) {
+      return date ? format(date, 'yyyy-MM-dd') : '';
+    }
+
+    const applySSEUpdate = () => {
+      if (latestSSEData) {
+        setJobs(latestSSEData.data);
+        setTotal(latestSSEData.data.length);
+        latestSSEData = null;
+        setIsLoading(false); // Set isLoading to false when SSE update is applied
+      }
+    };
+
     const connectSSE = () => {
       try {
-        const sseUrl = '/api/upload-queue/sse';
+        const params = new URLSearchParams();
+        if (filter) params.set('file_name', filter);
+        if (statusFilter) params.set('status', statusFilter);
+        if (dateRange.start) params.set('date_start', formatDate(dateRange.start));
+        if (dateRange.end) params.set('date_end', formatDate(dateRange.end));
+        params.set('limit', String(pageSize));
+        params.set('offset', String((page - 1) * pageSize));
+        const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
         eventSource = new EventSource(sseUrl);
-        
+        console.log('[SSE] Connecting to', sseUrl);
+
         eventSource.onopen = () => {
           setIsRealtimeActive(true);
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          console.log('[SSE] Connected');
         };
-        
+
         eventSource.onerror = (error) => {
-          console.warn('SSE connection error:', error);
+          console.warn('[SSE] Connection error:', error);
           setIsRealtimeActive(false);
-          
+
           // Attempt to reconnect if under max attempts
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
+            const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
+            console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
             setTimeout(() => {
               if (eventSource) {
                 eventSource.close();
                 connectSSE();
               }
-            }, reconnectDelay * reconnectAttempts);
+            }, delay);
+          } else {
+            console.warn('[SSE] Max reconnect attempts reached');
           }
         };
-        
+
         eventSource.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'queue') {
-              // Handle full queue data updates
-              if (msg.data && Array.isArray(msg.data)) {
-                setJobs(msg.data);
-                setTotal(msg.data.length);
-              }
+              // Debounce UI update
+              latestSSEData = msg;
+              if (debounceTimeout) clearTimeout(debounceTimeout);
+              debounceTimeout = setTimeout(applySSEUpdate, 500);
+              console.log('[SSE] Received queue update');
             } else if (msg.type === 'error') {
-              console.error('SSE error:', msg.message);
+              console.error('[SSE] Error:', msg.message);
             }
           } catch (error) {
-            console.warn('Error parsing SSE message:', error);
+            console.warn('[SSE] Error parsing message:', error);
           }
         };
       } catch (error) {
-        console.error('Failed to create SSE connection:', error);
+        console.error('[SSE] Failed to create connection:', error);
       }
     };
-    
+
     connectSSE();
-    
+
     return () => {
       if (eventSource) {
         eventSource.close();
+        console.log('[SSE] Connection closed');
       }
+      if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, []);
+  }, [filter, statusFilter, dateRange, page, pageSize]);
 
   function formatBytes(bytes: number) {
     if (bytes === 0) return "0 Bytes";
@@ -239,6 +373,45 @@ export const CandidateImportUploadQueue: React.FC = () => {
     }
   }
 
+  // Helper function to check if date is in range
+  const isInRange = (dateString?: string) => {
+    if (!dateString) return true;
+    const date = new Date(dateString);
+    return isAfter(date, dateRange.start) && isBefore(date, addDays(dateRange.end, 1));
+  };
+
+  // Helper function to get display status for filtering
+  const getDisplayStatus = (status: string) => {
+    switch (status) {
+      case 'inprogress':
+      case 'inprocess':
+        return 'inprogress';
+      case 'error':
+      case 'fail':
+        return 'error';
+      default:
+        return status;
+    }
+  };
+
+  // Helper function to get display label and color for status
+  const getStatusDisplayLabelAndColor = (status: string) => {
+    switch (status) {
+      case 'queued':
+        return { label: 'Queued', className: 'bg-blue-200 text-blue-900 border-blue-200' };
+      case 'inprogress':
+      case 'inprocess':
+        return { label: 'In Progress', className: 'bg-yellow-200 text-yellow-900 border-yellow-200' };
+      case 'success':
+        return { label: 'Success', className: 'bg-green-200 text-green-900 border-green-200' };
+      case 'error':
+      case 'fail':
+        return { label: 'Error', className: 'bg-red-200 text-red-900 border-red-200' };
+      default:
+        return { label: status.charAt(0).toUpperCase() + status.slice(1), className: 'bg-gray-100 text-gray-700 border-gray-200' };
+    }
+  };
+
   // Real-time duration updates for in-progress jobs
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -251,106 +424,135 @@ export const CandidateImportUploadQueue: React.FC = () => {
 
   // Filtering logic (client-side for now)
   const filteredJobs = jobs.filter(job => {
-    if (job.source !== "bulk") return false;
+    // Show all jobs, regardless of source
     const matchesName = job.file_name?.toLowerCase().includes(filter.toLowerCase());
-    const matchesStatus = statusFilter ? job.status === statusFilter : true;
-    return matchesName && matchesStatus;
+    const matchesStatus = statusFilter ? getDisplayStatus(job.status) === statusFilter : true;
+    // Date range filter
+    const inDateRange = isInRange(job.upload_date);
+    return matchesName && matchesStatus && inDateRange;
   });
-  const totalBulkJobs = total; // Show total from API
-  const totalPages = Math.ceil(totalBulkJobs / pageSize);
 
-  // Add checkbox selection logic with indeterminate state
+  // Status counts - Updated to use filtered jobs
+  const numQueued = filteredJobs.filter(j => j.status === 'queued').length;
+  const numInProgress = filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess').length;
+  const numSuccess = filteredJobs.filter(j => j.status === 'success').length;
+  const numError = filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
+
+  // Collect all unique statuses from jobs for the filter dropdown
+  const allStatuses = Array.from(new Set(jobs.map(j => j.status))).sort();
+
+  // Helper to get the selected job for the combined dialog:
+  const selectedCombinedJob = jobs.find(j => j.id === showCombinedDialogId);
+
+  // Enhanced pagination logic
+  const totalPages = Math.ceil(total / pageSize);
+  const startItem = (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, total);
+
+  // Generate page numbers with ellipsis
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 7;
+    
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      if (page > 4) {
+        pages.push('...');
+      }
+      
+      // Show pages around current page
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (page < totalPages - 3) {
+        pages.push('...');
+      }
+      
+      // Always show last page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page when changing page size
+    onPaginationChange?.(1, newPageSize);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    onPaginationChange?.(newPage, pageSize);
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpToPage, 10);
+    if (pageNum >= 1 && pageNum <= totalPages) {
+      handlePageChange(pageNum);
+      setJumpToPage("");
+    }
+  };
+
+  // Helper function to get display label for status
+  const getStatusDisplayLabel = (status: string) => {
+    switch (status) {
+      case 'queued':
+        return 'Queued';
+      case 'inprogress':
+      case 'inprocess':
+        return 'In Progress';
+      case 'success':
+        return 'Success';
+      case 'error':
+      case 'fail':
+        return 'Error';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+  // Bulk selection logic
   const allSelected = filteredJobs.length > 0 && bulkDeleteIds.length === filteredJobs.length;
   const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < filteredJobs.length;
-  const handleCheckboxChange = (id: string, checked: boolean) => {
-    setBulkDeleteIds(prev => checked ? [...prev, id] : prev.filter(i => i !== id));
-  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setBulkDeleteIds(filteredJobs.map(j => j.id));
+      setBulkDeleteIds(filteredJobs.map(job => job.id));
     } else {
       setBulkDeleteIds([]);
     }
   };
 
-  // Helper to check if a date is in range
-  function isInRange(dateStr?: string) {
-    if (!dateStr) return false;
-    const date = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
-    return isAfter(date, dateRange.start) && isBefore(date, addDays(dateRange.end, 1));
-  }
+  const handleCheckboxChange = (jobId: string, checked: boolean) => {
+    if (checked) {
+      setBulkDeleteIds(prev => [...prev, jobId]);
+    } else {
+      setBulkDeleteIds(prev => prev.filter(id => id !== jobId));
+    }
+  };
 
-  // Status counts
-  const numQueued = jobs.filter(j => j.source === 'bulk' && j.status === 'queued').length;
-  const numInProgress = jobs.filter(j => j.source === 'bulk' && (j.status === 'uploading' || j.status === 'importing' || j.status === 'processing')).length;
-  const numSuccess = jobs.filter(j => j.source === 'bulk' && j.status === 'success' && isInRange(j.completed_date)).length;
-  const numError = jobs.filter(j => j.source === 'bulk' && j.status === 'error' && isInRange(j.completed_date)).length;
-
-  // Helper to get the selected job for the combined dialog:
-  const selectedCombinedJob = jobs.find(j => j.id === showCombinedDialogId);
+  const handleBulkDelete = useCallback(async () => {
+    setShowBulkDeleteConfirm(true);
+  }, []);
 
   return (
     <div className="mb-6">
-      {/* Summary Status Cards */}
-      <div className="mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Queued</p>
-                  <p className="text-2xl font-bold text-foreground">{numQueued}</p>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">Q</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                  <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">P</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Success</p>
-                  <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Error</p>
-                  <p className="text-2xl font-bold text-foreground">{numError}</p>
-                </div>
-                <div className="h-8 w-8 rounded-full bg-destructive flex items-center justify-center">
-                  <XCircle className="h-4 w-4 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
       {/* Filters and Bulk Actions in Card */}
       <Card className="mb-4 p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 shadow-none border">
         <div className="flex flex-wrap items-center gap-2 flex-1">
@@ -367,14 +569,10 @@ export const CandidateImportUploadQueue: React.FC = () => {
             className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
           >
             <option value="">All Statuses</option>
-            <option value="queued">Queued</option>
-            <option value="uploading">Uploading</option>
-            <option value="processing">Processing</option>
-            <option value="importing">Importing</option>
-            <option value="inprocess">In Process</option>
-            <option value="success">Success</option>
-            <option value="error">Error</option>
-            <option value="cancelled">Cancelled</option>
+            {/* Dynamically render all statuses found in jobs */}
+            {allStatuses.map(status => (
+              <option key={status} value={status}>{getStatusDisplayLabel(status)}</option>
+            ))}
           </select>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Date:</span>
@@ -425,16 +623,18 @@ export const CandidateImportUploadQueue: React.FC = () => {
             className="scale-110"
           />
           <span className="text-sm">Select All</span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={bulkDeleteIds.length === 0 || bulkRetryLoading}
-            onClick={() => setShowBulkRetryConfirm(true)}
-            aria-label="Retry selected jobs"
-          >
-            {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
-            Retry Selected
-          </Button>
+          {bulkDeleteIds.length > 0 && filteredJobs.filter(job => bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")).length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkRetryLoading}
+              onClick={() => setShowBulkRetryConfirm(true)}
+              aria-label="Retry selected jobs"
+            >
+              {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+              Retry Selected
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -447,15 +647,95 @@ export const CandidateImportUploadQueue: React.FC = () => {
           </Button>
         </div>
       </Card>
-      <div className="mb-2 flex items-center justify-between">
-        <div className="font-semibold">All Upload Jobs: {totalBulkJobs}</div>
-        <div className="flex items-center gap-2 text-sm">
-          <div className={`flex items-center gap-1 ${isRealtimeActive ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
-            <div className={`w-2 h-2 rounded-full ${isRealtimeActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-            {isRealtimeActive ? 'Live Updates Active' : 'Polling Every 5s'}
-          </div>
+      {/* Summary Status Cards */}
+      <div className="mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+          {/* All Upload Jobs Card */}
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">All Upload Jobs</p>
+                  <p className="text-2xl font-bold text-foreground">{jobs.length}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">A</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Queued</p>
+                  <p className="text-2xl font-bold text-foreground">{numQueued}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">Q</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                  <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">P</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Success</p>
+                  <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Error</p>
+                  <p className="text-2xl font-bold text-foreground">{numError}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-destructive flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+      {/* Bulk Action Bar - show only when items are selected */}
+      {bulkDeleteIds.length > 0 && (
+        <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-muted-foreground/10">
+          <span className="text-sm">{bulkDeleteIds.length} selected</span>
+          <button
+            className="ml-2 px-3 py-1 rounded bg-destructive text-white hover:bg-destructive/90 text-sm font-medium shadow"
+            onClick={handleBulkDelete}
+          >
+            Delete Selected
+          </button>
+        </div>
+      )}
+      {isLoading && jobs.length > 0 && !isRealtimeActive && (
+        <div className="flex items-center gap-2 mb-2 text-muted-foreground text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Refreshing...</span>
+        </div>
+      )}
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
@@ -470,176 +750,219 @@ export const CandidateImportUploadQueue: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredJobs.length === 0 ? (
+            {isLoading && jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">No import/upload jobs in queue.</TableCell>
+                <TableCell colSpan={7} className="text-center py-8">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Loading upload queue...</span>
+                  </div>
+                </TableCell>
               </TableRow>
-            ) : filteredJobs.map((item) => (
-              <React.Fragment key={item.id}>
-                <TableRow>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={bulkDeleteIds.includes(item.id)}
-                      onChange={e => handleCheckboxChange(item.id, e.target.checked)}
-                      aria-label={`Select job ${item.file_name}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium flex items-center gap-2">
-                    {item.file_path ? (
-                      <a
-                        href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${item.file_path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline hover:text-primary/80 truncate max-w-xs"
-                        title={item.file_name}
-                      >
-                        {item.file_name}
-                      </a>
-                    ) : (
-                      <span className="truncate max-w-xs" title={item.file_name}>{item.file_name}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatBytes(item.file_size)}</TableCell>
-                  <TableCell>
-                    {(() => {
-                      const status = item.status;
-                      let variant: any = 'default';
-                      let customClass = '';
-                      switch (status) {
-                        case 'queued': variant = 'secondary'; break;
-                        case 'uploading':
-                        case 'processing':
-                        case 'importing':
-                          variant = undefined;
-                          customClass = 'bg-yellow-400 text-yellow-900 border-yellow-400';
-                          break;
-                        case 'success': variant = 'success'; break;
-                        case 'error': variant = 'destructive'; break;
-                        case 'cancelled': variant = 'secondary'; break;
-                        default: variant = 'secondary';
-                      }
-                      return (
-                        <Badge variant={variant} className={`capitalize ${customClass}`}>
-                          {status}
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
-                  <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
-                  <TableCell className="flex gap-1">
-                    {item.file_path && (
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="icon"
-                        title="Download CV"
-                      >
+            ) : fetchError ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-destructive">
+                  <div className="flex flex-col items-center gap-2">
+                    <AlertCircle className="h-6 w-6 text-destructive" />
+                    <span>{fetchError.includes('401') ? 'You are not authorized to view the upload queue. Please sign in again.' : fetchError}</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredJobs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  {total === 0 ? 'No upload jobs found' : 'No jobs match the current filters'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredJobs.map((item) => (
+                <React.Fragment key={item.id}>
+                  <TableRow>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={bulkDeleteIds.includes(item.id)}
+                        onChange={e => handleCheckboxChange(item.id, e.target.checked)}
+                        aria-label={`Select job ${item.file_name}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      {item.file_path ? (
                         <a
                           href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${item.file_path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          download={item.file_name}
+                          className="text-primary underline hover:text-primary/80 truncate max-w-xs"
+                          title={item.file_name}
                         >
-                          <FileText className="h-4 w-4 text-primary" />
+                          {item.file_name}
                         </a>
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Details & Webhook Log"
-                      onClick={() => setShowCombinedDialogId(item.id)}
-                    >
-                      <Eye className="h-4 w-4 text-primary" />
-                    </Button>
-                    {item.status === "error" && (
-                      <Button variant="ghost" size="icon" onClick={() => setShowErrorLogId(item.id)} title="View error log">
-                        <Eye className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Retry"
-                      onClick={async () => {
-                        await fetch(`/api/upload-queue/${item.id}`, {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
-                        });
-                        fetchJobs();
-                      }}
-                    >
-                      <RotateCcw className="h-4 w-4 text-primary" />
-                    </Button>
-                    {(item.status === "queued" || item.status === "uploading") && (
+                      ) : (
+                        <span className="truncate max-w-xs" title={item.file_name}>{item.file_name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{formatBytes(item.file_size)}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const status = item.status;
+                        const { label, className } = getStatusDisplayLabelAndColor(status);
+                        return (
+                          <Badge className={`capitalize border ${className}`}>
+                            {label}
+                          </Badge>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
+                    <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
+                    <TableCell className="flex gap-1">
+                      {item.file_path && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          title="Download CV"
+                        >
+                          <a
+                            href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${item.file_path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={item.file_name}
+                          >
+                            <FileText className="h-4 w-4 text-primary" />
+                          </a>
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Cancel"
-                        disabled={cancelLoading}
-                        onClick={() => setCancelId(item.id)}
+                        title="Details & Webhook Log"
+                        onClick={() => setShowCombinedDialogId(item.id)}
                       >
-                        {cancelLoading && cancelId === item.id ? <Loader2 className="animate-spin h-4 w-4" /> : <X className="h-4 w-4 text-orange-500" />}
+                        <Eye className="h-4 w-4 text-primary" />
                       </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              </React.Fragment>
-            ))}
+                      {(item.status === "error" || item.status === "fail") && (
+                        <Button variant="ghost" size="icon" onClick={() => setShowErrorLogId(item.id)} title="View error log">
+                          <Eye className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                      {(item.status === "error" || item.status === "fail") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Retry"
+                          onClick={async () => {
+                            await fetch(`/api/upload-queue/${item.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
+                            });
+                            fetchJobs();
+                          }}
+                        >
+                          <RotateCcw className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
+                      {(item.status === "queued" || item.status === "uploading") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Cancel"
+                          disabled={cancelLoading}
+                          onClick={() => setCancelId(item.id)}
+                        >
+                          {cancelLoading && cancelId === item.id ? <Loader2 className="animate-spin h-4 w-4" /> : <X className="h-4 w-4 text-orange-500" />}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-      {/* Pagination controls */}
-      <div className="flex justify-center items-center gap-2 mt-4">
-        <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>Prev</Button>
-        {Array.from({ length: totalPages }, (_, i) => (
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center gap-2">
           <Button
-            key={i + 1}
-            variant={page === i + 1 ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setPage(i + 1)}
+            variant="ghost"
+            size="icon"
+            onClick={() => handlePageChange(1)}
+            disabled={page === 1}
+            aria-label="First page"
           >
-            {i + 1}
+            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 -ml-2" />
           </Button>
-        ))}
-        <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page === totalPages}>Next</Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {page} of {Math.ceil(total / pageSize)}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === Math.ceil(total / pageSize)}
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handlePageChange(Math.ceil(total / pageSize))}
+            disabled={page === Math.ceil(total / pageSize)}
+            aria-label="Last page"
+          >
+            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 -ml-2" />
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Rows per page:</span>
+          <select
+            value={pageSize}
+            onChange={e => handlePageSizeChange(Number(e.target.value))}
+            className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
+          >
+            {[10, 20, 50, 100].map(size => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      {/* Confirm single delete */}
-      <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>Confirm Delete</AlertDialogHeader>
-          <div>Are you sure you want to delete this job from the queue?</div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleteLoading}
-              onClick={async () => {
-                if (deleteId) {
-                  setDeleteLoading(true);
-                  try {
-                    const res = await fetch(`/api/upload-queue/${deleteId}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Delete failed');
-                    success('Job deleted successfully');
-                  } catch (err) {
-                    error('Failed to delete job');
-                  } finally {
-                    setDeleteLoading(false);
-                    setDeleteId(null);
-                  }
-                }
-              }}
-            >{deleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      {/* Confirm bulk delete */}
+
+      {/* Error Dialog */}
+      <Dialog open={!!showErrorLogId} onOpenChange={open => !open && setShowErrorLogId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Error Log</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-60 overflow-auto text-sm text-destructive">
+            {filteredJobs.find(j => j.id === showErrorLogId)?.error_details || 'No error details available.'}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirm Dialog */}
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={open => !open && setShowBulkDeleteConfirm(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>Confirm Bulk Delete</AlertDialogHeader>
-          <div>Are you sure you want to delete the selected jobs from the queue?</div>
+          <div>Are you sure you want to delete the selected jobs?</div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowBulkDeleteConfirm(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -647,13 +970,12 @@ export const CandidateImportUploadQueue: React.FC = () => {
               onClick={async () => {
                 setBulkDeleteLoading(true);
                 try {
-                  const results = await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, { method: 'DELETE' })));
-                  if (results.some(res => !res.ok)) throw new Error('Some deletes failed');
-                  success('Selected jobs deleted successfully');
+                  await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, { method: 'DELETE' })));
+                  setBulkDeleteIds([]);
+                  await fetchJobs();
                 } catch (err) {
                   error('Failed to delete some jobs');
                 } finally {
-                  setBulkDeleteIds([]);
                   setBulkDeleteLoading(false);
                   setShowBulkDeleteConfirm(false);
                 }
@@ -662,11 +984,12 @@ export const CandidateImportUploadQueue: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Confirm bulk retry */}
+
+      {/* Bulk Retry Confirm Dialog */}
       <AlertDialog open={showBulkRetryConfirm} onOpenChange={open => !open && setShowBulkRetryConfirm(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>Confirm Bulk Retry</AlertDialogHeader>
-          <div>Are you sure you want to retry the selected jobs? This will add them back to the queue.</div>
+          <div>Are you sure you want to retry the selected failed jobs? This will add them back to the queue for reprocessing.</div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowBulkRetryConfirm(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -674,27 +997,29 @@ export const CandidateImportUploadQueue: React.FC = () => {
               onClick={async () => {
                 setBulkRetryLoading(true);
                 try {
-                  const results = await Promise.all(bulkDeleteIds.map(id => fetch(`/api/upload-queue/${id}`, {
+                  const jobsToRetry = filteredJobs.filter(job => 
+                    bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")
+                  );
+                  await Promise.all(jobsToRetry.map(job => fetch(`/api/upload-queue/${job.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
                   })));
-                  if (results.some(res => !res.ok)) throw new Error('Some retries failed');
-                  success('Selected jobs retried successfully');
+                  setBulkDeleteIds([]);
                   await fetchJobs();
                 } catch (err) {
                   error('Failed to retry some jobs');
                 } finally {
                   setBulkRetryLoading(false);
                   setShowBulkRetryConfirm(false);
-                  setBulkDeleteIds([]);
                 }
               }}
             >{bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}Retry All</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Confirm cancel */}
+
+      {/* Cancel Job Confirm Dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={open => !open && setCancelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>Confirm Cancel</AlertDialogHeader>
@@ -726,7 +1051,9 @@ export const CandidateImportUploadQueue: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={!!selectedCombinedJob} onOpenChange={open => !open && setShowCombinedDialogId(null)}>
+
+      {/* Details & Webhook Log Dialog */}
+      <Dialog open={!!showCombinedDialogId} onOpenChange={open => !open && setShowCombinedDialogId(null)}>
         <DialogContent className="max-w-6xl w-full max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Job Details & Webhook Log</DialogTitle>
@@ -749,8 +1076,8 @@ export const CandidateImportUploadQueue: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium text-muted-foreground">Status:</span>
-                        <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : selectedCombinedJob.status === 'fail' ? 'destructive' : 'secondary'}>
-                          {selectedCombinedJob.status}
+                        <Badge variant={selectedCombinedJob.status === 'success' ? 'default' : (selectedCombinedJob.status === 'error' || selectedCombinedJob.status === 'fail') ? 'destructive' : 'secondary'}>
+                          {getStatusDisplayLabel(selectedCombinedJob.status)}
                         </Badge>
                       </div>
                       <div className="flex justify-between">

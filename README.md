@@ -69,13 +69,14 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Audit Logging**: Complete system activity tracking with search/filter
 - **Health Monitoring**: Built-in health checks and monitoring
 - **Background Processing**: Queue-based file processing system
+- **Multi-language Font Support**: Automatic font switching between Inter (English) and Anuphan (Thai)
 
 ## 🛠️ Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | **Frontend** | Next.js 14 (App Router), React 18, TypeScript |
-| **UI Framework** | Tailwind CSS, ShadCN UI Components |
+| **UI Framework** | Tailwind CSS, ShadCN UI Components, Inter & Anuphan Fonts |
 | **Backend** | Next.js API Routes, Prisma ORM |
 | **Database** | PostgreSQL 15 |
 | **Authentication** | NextAuth.js (Azure AD + Credentials) |

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     
     // Find orphaned account entries (where userId doesn't exist in User table)
     const orphanedResult = await client.query(`
-      SELECT a.id, a."userId", a.provider, a."providerAccountId" 
+      SELECT a.id, a."userId", a.provider, a."providerAccountId", a."access_token" 
       FROM "Account" a 
       LEFT JOIN "User" u ON a."userId" = u.id 
       WHERE a.provider = 'azure-ad' AND u.id IS NULL
@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
     
     for (const orphanedAccount of orphanedResult.rows) {
       try {
-        // Try to find a user by email (this is a fallback approach)
-        // In a real scenario, you might need to map providerAccountId to user email
+        console.log(`[DEBUG] Found orphaned account: ${orphanedAccount.id} with userId: ${orphanedAccount.userId}`);
+        
+        // Try to find a user by email using the access_token (if it contains user info)
         // For now, we'll delete orphaned accounts as they can't be safely linked
         
         console.log(`[DEBUG] Deleting orphaned account: ${orphanedAccount.id} with userId: ${orphanedAccount.userId}`);
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
         fixedAccounts.push({
           accountId: orphanedAccount.id,
           action: 'deleted',
-          reason: 'orphaned_user_id_not_found'
+          reason: 'orphaned_user_id_not_found',
+          orphanedUserId: orphanedAccount.userId
         });
         
       } catch (error) {
@@ -47,19 +49,58 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    const data = {
-      totalOrphanedAccounts: orphanedResult.rows.length,
+    // Also check for duplicate account entries for the same provider/providerAccountId
+    const duplicateResult = await client.query(`
+      SELECT "providerAccountId", COUNT(*) as count, array_agg(id) as account_ids
+      FROM "Account" 
+      WHERE provider = 'azure-ad' 
+      GROUP BY "providerAccountId" 
+      HAVING COUNT(*) > 1
+    `);
+    
+    for (const duplicate of duplicateResult.rows) {
+      try {
+        console.log(`[DEBUG] Found duplicate accounts for providerAccountId: ${duplicate.providerAccountId}`);
+        
+        // Keep the first account, delete the rest
+        const accountIds = duplicate.account_ids;
+        const keepId = accountIds[0];
+        const deleteIds = accountIds.slice(1);
+        
+        for (const deleteId of deleteIds) {
+          console.log(`[DEBUG] Deleting duplicate account: ${deleteId}`);
+          await client.query('DELETE FROM "Account" WHERE id = $1', [deleteId]);
+          
+          fixedAccounts.push({
+            accountId: deleteId,
+            action: 'deleted',
+            reason: 'duplicate_account_entry',
+            providerAccountId: duplicate.providerAccountId
+          });
+        }
+        
+      } catch (error) {
+        console.error(`[DEBUG] Error fixing duplicate accounts for ${duplicate.providerAccountId}:`, error);
+        errors.push({
+          providerAccountId: duplicate.providerAccountId,
+          error: (error as Error).message
+        });
+      }
+    }
+    
+    console.log(`[DEBUG] Fixed ${fixedAccounts.length} accounts, ${errors.length} errors`);
+    
+    return createSuccessResponse(req, {
+      message: 'Azure AD accounts fixed successfully',
       fixedAccounts,
       errors,
       summary: {
-        success: fixedAccounts.length,
-        failed: errors.length
+        totalFixed: fixedAccounts.length,
+        totalErrors: errors.length,
+        orphanedAccountsFixed: fixedAccounts.filter(a => a.reason === 'orphaned_user_id_not_found').length,
+        duplicateAccountsFixed: fixedAccounts.filter(a => a.reason === 'duplicate_account_entry').length
       }
-    };
-    
-    console.log('[DEBUG] Azure AD account fix results:', data);
-    
-    return createSuccessResponse(req, data);
+    });
     
   } catch (error) {
     console.error('[DEBUG] Error fixing Azure AD accounts:', error);

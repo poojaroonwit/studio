@@ -204,26 +204,6 @@ async function main() {
     console.log('Creating upload queue sample data...');
     const uploadQueueItems = [
       {
-        id: '40000000-0000-0000-0000-000000000001',
-        fileName: 'john_doe_resume.pdf',
-        fileSize: BigInt(245760), // 240KB
-        status: 'pending',
-        source: 'manual_upload',
-        filePath: '/uploads/resumes/john_doe_resume.pdf',
-        positionId: '11111111-1111-1111-1111-111111111111',
-        webhookPayload: {
-          candidate: {
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '+1-555-0123'
-          },
-          position: {
-            title: 'Software Engineer',
-            department: 'Engineering'
-          }
-        }
-      },
-      {
         id: '40000000-0000-0000-0000-000000000002',
         fileName: 'jane_smith_cv.docx',
         fileSize: BigInt(512000), // 500KB
@@ -276,26 +256,6 @@ async function main() {
         positionId: '22222222-2222-2222-2222-222222222222'
       },
       {
-        id: '40000000-0000-0000-0000-000000000005',
-        fileName: 'david_brown_resume.docx',
-        fileSize: BigInt(307200), // 300KB
-        status: 'pending',
-        source: 'webhook_trigger',
-        filePath: '/uploads/resumes/david_brown_resume.docx',
-        positionId: '11111111-1111-1111-1111-111111111111',
-        webhookPayload: {
-          candidate: {
-            name: 'David Brown',
-            email: 'david.brown@example.com',
-            phone: '+1-555-0321'
-          },
-          position: {
-            title: 'Software Engineer',
-            department: 'Engineering'
-          }
-        }
-      },
-      {
         id: '40000000-0000-0000-0000-000000000006',
         fileName: 'emma_davis_cv.pdf',
         fileSize: BigInt(409600), // 400KB
@@ -346,26 +306,6 @@ async function main() {
         source: 'api_upload',
         filePath: '/uploads/resumes/lisa_anderson_cv.docx',
         positionId: '22222222-2222-2222-2222-222222222222'
-      },
-      {
-        id: '40000000-0000-0000-0000-000000000009',
-        fileName: 'robert_lee_resume.pdf',
-        fileSize: BigInt(204800), // 200KB
-        status: 'pending',
-        source: 'webhook_trigger',
-        filePath: '/uploads/resumes/robert_lee_resume.pdf',
-        positionId: '11111111-1111-1111-1111-111111111111',
-        webhookPayload: {
-          candidate: {
-            name: 'Robert Lee',
-            email: 'robert.lee@example.com',
-            phone: '+1-555-0123'
-          },
-          position: {
-            title: 'Software Engineer',
-            department: 'Engineering'
-          }
-        }
       },
       {
         id: '40000000-0000-0000-0000-000000000010',

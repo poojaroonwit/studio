@@ -230,11 +230,14 @@ export const authOptions: NextAuthOptions = {
                   console.log('[AZURE AD SIGNIN] User OID:', oid);
                   console.log('[AZURE AD SIGNIN] User name:', profile.name);
 
-                  // Check if user exists
+                  // Check if user exists by email
                   let res = await client.query('SELECT * FROM "User" WHERE email = $1', [profile.email]);
                   let dbUser = res.rows[0];
                   
                   console.log('[AZURE AD SIGNIN] Existing user found:', !!dbUser);
+                  if (dbUser) {
+                      console.log('[AZURE AD SIGNIN] Existing user ID:', dbUser.id);
+                  }
 
                   if (!dbUser) {
                       console.log('[AZURE AD SIGNIN] Creating new user in database');
@@ -262,13 +265,26 @@ export const authOptions: NextAuthOptions = {
                   res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
                   if (res.rows.length === 0) {
                       console.log('[AZURE AD SIGNIN] Creating account entry');
-                       await client.query(
+                      await client.query(
                           'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
                           [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
                       );
                       console.log('[AZUREAD SIGNIN] Account entry created successfully');
                   } else {
                       console.log('[AZUREAD SIGNIN] Account entry already exists');
+                      // Check if the existing account entry has the correct userId
+                      const existingAccount = res.rows[0];
+                      if (existingAccount.userId !== userId) {
+                          console.log('[AZURE AD SIGNIN] Updating existing account entry with correct userId');
+                          console.log('[AZURE AD SIGNIN] Old userId:', existingAccount.userId, 'New userId:', userId);
+                          await client.query(
+                              'UPDATE "Account" SET "userId" = $1, access_token = $2, expires_at = $3, scope = $4, token_type = $5, id_token = $6 WHERE id = $7',
+                              [userId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token, existingAccount.id]
+                          );
+                          console.log('[AZURE AD SIGNIN] Account entry updated successfully');
+                      } else {
+                          console.log('[AZURE AD SIGNIN] Account entry already has correct userId');
+                      }
                   }
                   
                   console.log('[AZURE AD SIGNIN] Azure AD sign-in completed successfully');

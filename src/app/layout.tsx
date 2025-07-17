@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
-// import { Open_Sans, Roboto, Inter, Montserrat, Lato, Nunito, Source_Sans_3, Raleway, Ubuntu, Quicksand, PT_Sans } from 'next/font/google';
+import { Inter, Anuphan } from 'next/font/google';
+// import { Open_Sans, Roboto, Montserrat, Lato, Nunito, Source_Sans_3, Raleway, Ubuntu, Quicksand, PT_Sans } from 'next/font/google';
 import './globals.css';
 import { AppLayout } from '@/components/layout/AppLayout';
 import ToastClient from '@/components/ui/ToastClient';
@@ -14,11 +14,16 @@ import { authOptions } from "@/lib/auth"
 // import { getServerSession } from "next-auth/next"
 // import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
-
-
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-poppins',
+  variable: '--font-inter',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
+const anuphan = Anuphan({
+  subsets: ['thai', 'latin'],
+  variable: '--font-anuphan',
   display: 'swap',
   weight: ['400', '500', '600', '700'],
 });
@@ -82,7 +87,7 @@ export default async function RootLayout({
 
 
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang="en" className={`${inter.variable} ${anuphan.variable}`}>
       <body className="min-h-screen bg-background font-sans antialiased">
         <TooltipProvider>
           <AuthProvider>

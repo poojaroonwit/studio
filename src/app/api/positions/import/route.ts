@@ -88,6 +88,45 @@ const importPositionSchema = z.object({
 // Schema for array of positions
 const importPositionsArraySchema = z.array(importPositionSchema);
 
+// Helper function to detect and convert encoding
+function detectAndConvertEncoding(buffer: Buffer): string {
+  // Try UTF-8 first (most common)
+  try {
+    const utf8String = buffer.toString('utf-8');
+    // Check if it looks like valid UTF-8 by trying to parse as CSV
+    try {
+      parseCsv(utf8String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
+      return utf8String;
+    } catch {
+      // UTF-8 parsing failed, try other encodings
+    }
+  } catch {
+    // UTF-8 conversion failed
+  }
+
+  // Try Windows-1252 (common for files saved from Excel)
+  try {
+    const win1252String = buffer.toString('latin1');
+    try {
+      parseCsv(win1252String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
+      return win1252String;
+    } catch {
+      // Windows-1252 parsing failed
+    }
+  } catch {
+    // Windows-1252 conversion failed
+  }
+
+  // Try ISO-8859-1 as fallback
+  try {
+    const isoString = buffer.toString('latin1');
+    return isoString;
+  } catch {
+    // If all else fails, return as UTF-8 and let it fail with a clear error
+    return buffer.toString('utf-8');
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;
@@ -114,9 +153,38 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
     let positions = [];
     if (fileName.endsWith('.csv')) {
-      // Parse CSV
-      const csvString = buffer.toString('utf-8');
-      const records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
+      // Parse CSV with automatic encoding detection
+      let csvString = detectAndConvertEncoding(buffer);
+      
+      // Strip UTF-8 BOM if present
+      if (csvString.charCodeAt(0) === 0xFEFF) {
+        csvString = csvString.slice(1);
+      }
+      
+      let records;
+      try {
+        records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
+      } catch (parseError) {
+        return NextResponse.json({ 
+          message: 'CSV parsing failed. Please ensure the file is a valid CSV with correct headers. Supported encodings: UTF-8, Windows-1252, ISO-8859-1.', 
+          error: parseError.message 
+        }, { status: 400 });
+      }
+      
+      // Validate that we have the required headers
+      if (records.length === 0) {
+        return NextResponse.json({ 
+          message: 'CSV file appears to be empty or has no valid data rows.' 
+        }, { status: 400 });
+      }
+      
+      const firstRecord = records[0];
+      if (!firstRecord.title) {
+        return NextResponse.json({ 
+          message: 'CSV must have a "title" column. Please check your CSV headers.' 
+        }, { status: 400 });
+      }
+
       positions = records.map((row: any) => {
         let customAttributes = {};
         if (row.custom_attributes && typeof row.custom_attributes === 'string' && row.custom_attributes.trim() !== '') {

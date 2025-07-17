@@ -30,6 +30,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
   const { data: session } = useSession();
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const { successWithDescription, errorWithDescription, error } = useToast();
 
   // Check permissions
@@ -75,15 +76,18 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
 
   useEffect(() => {
     if (selectedFiles.length > 0) {
-      const url = URL.createObjectURL(selectedFiles[0]);
+      // Use the selected file index, defaulting to 0 if out of bounds
+      const index = Math.min(selectedFileIndex, selectedFiles.length - 1);
+      const url = URL.createObjectURL(selectedFiles[index]);
       setPreviewUrl(url);
       return () => {
         URL.revokeObjectURL(url);
       };
     } else {
       setPreviewUrl(null);
+      setSelectedFileIndex(0);
     }
-  }, [selectedFiles]);
+  }, [selectedFiles, selectedFileIndex]);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -127,12 +131,18 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     handleFiles(e.target.files);
   };
   const removeFile = (file: File) => {
+    const fileIndex = selectedFiles.findIndex(f => f === file);
     setSelectedFiles((prev: File[]) => prev.filter((f: File) => f !== file));
     setFileBatchMap((prev: { [fileName: string]: string }) => {
       const newMap = { ...prev };
       delete newMap[file.name];
       return newMap;
     });
+    
+    // Adjust selected file index if the removed file was selected
+    if (fileIndex <= selectedFileIndex && selectedFileIndex > 0) {
+      setSelectedFileIndex(prev => Math.max(0, prev - 1));
+    }
   };
 
   // Helper to add a file to the upload queue and handle errors
@@ -189,11 +199,19 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         return;
       }
       const { results } = await uploadRes.json();
+      // Close modal immediately after upload to MinIO
+      setSelectedFiles([]);
+      setSelectedPositionId("");
+      setFileBatchMap({});
+      setSelectedFileIndex(0);
+      onOpenChange(false);
+      successWithDescription('Files uploaded! Now adding to processing queue...', 'Your files are being queued for processing.');
+      // Continue queueing in the background
       let queueResults: any[] = [];
       await Promise.all(results.map(async (result: any, idx: number) => {
         if (result.status === 'success') {
           const file = selectedFiles[idx];
-          const batchId = fileBatchMap[file.name] || uuidv4();
+          const batchId = fileBatchMap[file?.name] || uuidv4();
           const queueData = {
             file_name: result.file_name,
             file_size: file?.size || 0,
@@ -213,11 +231,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
           queueResults.push({ file: result.file_name, success: false, error: result.error || 'Upload failed' });
         }
       }));
-      setSelectedFiles([]);
-      setSelectedPositionId("");
-      setFileBatchMap({});
-      onOpenChange(false);
-      // Show summary to user
+      // Show summary to user (optional, can be removed if not needed)
       const numSuccess = queueResults.filter(r => r.success).length;
       const numError = queueResults.length - numSuccess;
       if (numError === 0) {
@@ -242,6 +256,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
       if (!open) {
         setSelectedFiles([]);
         setSelectedPositionId("");
+        setSelectedFileIndex(0);
       }
     }}>
       <DialogContent className="max-w-4xl w-full">
@@ -285,7 +300,15 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 <Label>Selected Files ({totalFiles})</Label>
                 <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
                   {selectedFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-background rounded px-3 py-2 border border-border">
+                    <div 
+                      key={idx} 
+                      className={`flex items-center justify-between bg-background rounded px-3 py-2 border cursor-pointer transition-colors ${
+                        idx === selectedFileIndex 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setSelectedFileIndex(idx)}
+                    >
                       <div className="flex-1 min-w-0">
                         <span className="truncate block text-sm font-medium">{file.name}</span>
                         <span className="text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>
@@ -300,7 +323,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
             )}
             {/* PDF Preview */}
             <div className="mt-4">
-              <Label>Preview</Label>
+              <Label>Preview {totalFiles > 0 && `(${selectedFileIndex + 1} of ${totalFiles})`}</Label>
               {previewUrl ? (
                 <iframe
                   src={previewUrl}

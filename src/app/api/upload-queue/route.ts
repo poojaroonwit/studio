@@ -129,11 +129,47 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
-  
+  const fileName = url.searchParams.get('file_name');
+  const status = url.searchParams.get('status');
+  const dateStart = url.searchParams.get('date_start');
+  const dateEnd = url.searchParams.get('date_end');
+
+  // Build dynamic WHERE clause
+  const whereClauses = [];
+  const values = [];
+  let paramIdx = 1;
+  if (fileName) {
+    whereClauses.push(`file_name ILIKE $${paramIdx++}`);
+    values.push(`%${fileName}%`);
+  }
+  if (status) {
+    whereClauses.push(`status = $${paramIdx++}`);
+    values.push(status);
+  }
+  if (dateStart) {
+    whereClauses.push(`upload_date >= $${paramIdx++}`);
+    values.push(dateStart);
+  }
+  if (dateEnd) {
+    whereClauses.push(`upload_date <= $${paramIdx++}`);
+    values.push(dateEnd);
+  }
+  const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  // Add pagination
+  values.push(limit);
+  values.push(offset);
+
   const client = await getPool().connect();
   try {
-    const dataRes = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC LIMIT $1 OFFSET $2', [limit, offset]);
-    const countRes = await client.query('SELECT COUNT(*) FROM upload_queue');
+    const dataRes = await client.query(
+      `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      values
+    );
+    const countRes = await client.query(
+      `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+      values.slice(0, values.length - 2)
+    );
     
     await logAudit('AUDIT', `Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, 'API:UploadQueue:Get', actingUserId, { 
       limit, 

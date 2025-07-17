@@ -32,7 +32,40 @@ export async function GET(request: NextRequest) {
     }
 
     webSocket.accept();
-    
+
+    // Parse filters from query string
+    const url = new URL(request.url);
+    const fileName = url.searchParams.get('file_name');
+    const status = url.searchParams.get('status');
+    const dateStart = url.searchParams.get('date_start');
+    const dateEnd = url.searchParams.get('date_end');
+    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+    // Helper to build WHERE clause
+    function buildWhere() {
+      const whereClauses = [];
+      const values = [];
+      let paramIdx = 1;
+      if (fileName) {
+        whereClauses.push(`file_name ILIKE $${paramIdx++}`);
+        values.push(`%${fileName}%`);
+      }
+      if (status) {
+        whereClauses.push(`status = $${paramIdx++}`);
+        values.push(status);
+      }
+      if (dateStart) {
+        whereClauses.push(`upload_date >= $${paramIdx++}`);
+        values.push(dateStart);
+      }
+      if (dateEnd) {
+        whereClauses.push(`upload_date <= $${paramIdx++}`);
+        values.push(dateEnd);
+      }
+      return { whereSQL: whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '', values, paramIdx };
+    }
+
     // Add to clients set
     clients.add(webSocket);
 
@@ -49,7 +82,7 @@ export async function GET(request: NextRequest) {
 
     // Send initial queue data
     try {
-      await sendQueue(webSocket);
+      await sendQueue(webSocket, buildWhere, limit, offset);
     } catch (error) {
       console.error('[WEBSOCKET] Failed to send initial queue data:', error);
       webSocket.send(JSON.stringify({ 
@@ -59,7 +92,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Set up Redis subscription for real-time updates
-    setupRedisSubscription();
+    setupRedisSubscription(webSocket, buildWhere, limit, offset);
 
     return new Response(null, { status: 101 });
   } catch (error) {
@@ -68,11 +101,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function sendQueue(socket: WebSocket) {
+async function sendQueue(socket: WebSocket, buildWhere: () => { whereSQL: string, values: any[], paramIdx: number }, limit: number, offset: number) {
   try {
     const client = await getPool().connect();
     try {
-      const res = await client.query('SELECT * FROM upload_queue ORDER BY upload_date DESC');
+      const { whereSQL, values, paramIdx } = buildWhere();
+      values.push(limit);
+      values.push(offset);
+      const res = await client.query(
+        `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+        values
+      );
       const message = JSON.stringify({ type: 'queue', data: res.rows });
       socket.send(message);
     } finally {
@@ -87,30 +126,21 @@ async function sendQueue(socket: WebSocket) {
   }
 }
 
-// Subscribe to Redis channel for queue updates and broadcast to all clients
-let subscribed = false;
-
-function setupRedisSubscription() {
-  if (subscribed) {
-    return;
-  }
-
-  subscribed = true;
-
+// Subscribe to Redis channel for queue updates and broadcast to this client
+function setupRedisSubscription(socket: WebSocket, buildWhere: () => { whereSQL: string, values: any[], paramIdx: number }, limit: number, offset: number) {
   subscribeToChannel('candidate_upload_queue', async (message) => {
     try {
       // Only broadcast if the message is a queue_updated event
       const msg = JSON.parse(message);
       if (msg.type === 'queue_updated') {
-        await broadcastQueueUpdate();
+        await sendQueue(socket, buildWhere, limit, offset);
       }
     } catch (e) {
       console.error('[WEBSOCKET] Error processing Redis message:', e);
       // fallback: always broadcast
-      await broadcastQueueUpdate();
+      await sendQueue(socket, buildWhere, limit, offset);
     }
   }).catch(error => {
     console.error('[WEBSOCKET] Failed to subscribe to Redis channel:', error);
-    subscribed = false; // Allow retry
   });
 } 

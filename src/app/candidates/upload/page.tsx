@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -34,6 +35,22 @@ function UploadPageContent() {
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [uploading, setUploading] = useState(false);
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get initial pagination state from URL
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
+  const initialPageSize = parseInt(searchParams.get('pageSize') || '20', 10);
+
+  // Update URL when pagination changes
+  const updateURL = (page: number, pageSize: number) => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set('page', page.toString());
+    if (pageSize !== 20) params.set('pageSize', pageSize.toString());
+    
+    const newURL = params.toString() ? `?${params.toString()}` : '';
+    router.replace(`/candidates/upload${newURL}`, { scroll: false });
+  };
 
   // Fetch available positions
   useEffect(() => {
@@ -184,7 +201,14 @@ function UploadPageContent() {
   return (
     <div className="mx-auto py-3 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Bulk Upload Candidate CVs</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Bulk Upload Candidate CVs</h1>
+          {initialPage > 1 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Page {initialPage} • {initialPageSize} items per page
+            </p>
+          )}
+        </div>
         <Button onClick={() => setIsBulkUploadModalOpen(true)}>
           <UploadCloud className="mr-2 h-4 w-4" />
           Upload CVs
@@ -195,7 +219,11 @@ function UploadPageContent() {
         onOpenChange={setIsBulkUploadModalOpen}
         onUploadSuccess={handleUploadSuccess}
       />
-      <CandidateImportUploadQueue />
+      <CandidateImportUploadQueue 
+        initialPage={initialPage}
+        initialPageSize={initialPageSize}
+        onPaginationChange={updateURL}
+      />
     </div>
   );
 }

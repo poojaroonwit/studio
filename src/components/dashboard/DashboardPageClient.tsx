@@ -28,8 +28,9 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
 
 
 
@@ -511,6 +512,15 @@ export default function DashboardPageClient({
                           label: function(context) {
                             return ` ${context.parsed.x} candidates`;
                           }
+                        }
+                      },
+                      datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#22223b',
+                        font: { weight: 'bold', size: 14 },
+                        formatter: function(value) {
+                          return value;
                         }
                       }
                     },

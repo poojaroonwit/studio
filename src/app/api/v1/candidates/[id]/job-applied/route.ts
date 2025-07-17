@@ -62,12 +62,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     body = await req.json();
     body = normalizePayloadTypes(body);
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobAppliedSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { fitScore, jobId, justification } = validationResult.data;
@@ -151,12 +151,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobAppliedSchema.safeParse(body);
   if (!validationResult.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
+    return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-applied', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { fitScore, jobId, justification } = validationResult.data;

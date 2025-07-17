@@ -204,7 +204,12 @@ export function normalizePayloadTypes<T>(input: T): T {
     if (lower === 'false') return false as unknown as T;
     // Number conversion (but not empty string)
     if (input !== '' && !isNaN(Number(input))) {
-      return Number(input) as unknown as T;
+      const num = Number(input);
+      // If the number is an integer (e.g., 42.0), return as integer
+      if (Number.isInteger(num)) {
+        return Math.trunc(num) as unknown as T;
+      }
+      return num as unknown as T;
     }
   }
   return input;

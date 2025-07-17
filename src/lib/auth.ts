@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 // Cache for user validation to reduce database calls
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
@@ -184,11 +185,11 @@ export const authOptions: NextAuthOptions = {
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
           console.log('[JWT CALLBACK] Token updated with user data');
         }
-        // If token.id exists but modulePermissions is missing, fetch merged permissions (for session refreshes)
-        if (token.id && !token.modulePermissions) {
+        // If token.id exists, always fetch fresh merged permissions (for session refreshes and permission updates)
+        if (token.id) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
-            console.log('[JWT CALLBACK] Fetched module permissions for existing token');
+            console.log('[JWT CALLBACK] Fetched fresh module permissions for token');
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching module permissions:', e);
             token.modulePermissions = [];
@@ -252,8 +253,8 @@ export const authOptions: NextAuthOptions = {
                   if (res.rows.length === 0) {
                       console.log('[AZURE AD SIGNIN] Creating account entry');
                        await client.query(
-                          'INSERT INTO "Account" ("userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                          [oid, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
+                          'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+                          [uuidv4(), oid, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
                       );
                       console.log('[AZUREAD SIGNIN] Account entry created successfully');
                   } else {

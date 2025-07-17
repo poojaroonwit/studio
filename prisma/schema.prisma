@@ -272,7 +272,7 @@ model UserUIDisplayPreference {
 }
 
 model Account {
-  id                String  @id @default(uuid())
+  id                String  @id @default(uuid()) @db.Uuid
   userId            String  @db.Uuid
   type              String
   provider          String

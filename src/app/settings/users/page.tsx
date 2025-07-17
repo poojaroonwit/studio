@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession, updateSession } from "next-auth/react";
 import { toast } from 'react-hot-toast';
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
@@ -166,6 +166,13 @@ export default function ManageUsersPage() {
       toast.success(`User ${result.name} updated successfully.`);
       setIsEditUserModalOpen(false);
       setSelectedUserForEdit(null);
+
+      // If the current user is editing their own permissions, refresh the session
+      if (session?.user?.id === userId && data.modulePermissions) {
+        // Force a session refresh to update permissions
+        await updateSession();
+        toast.success("Your session has been refreshed with the new permissions.");
+      }
     } catch (error) {
       toast.error((error as Error).message);
     }

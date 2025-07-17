@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { removeUserPresence } from '@/lib/redis';
+import { PlatformModuleId } from '@/lib/types';
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -16,6 +17,8 @@ const updateUserSchema = z.object({
   authenticationMethod: z.enum(['basic', 'azure']).optional(),
   forcePasswordChange: z.boolean().optional(),
   newPassword: z.string().min(8, "New password must be at least 8 characters").optional(),
+  modulePermissions: z.array(z.string()).optional(),
+  groupIds: z.array(z.string().uuid()).optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -66,15 +69,33 @@ export async function GET(request: NextRequest) {
                 avatarUrl: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
+                modulePermissions: true,
                 createdAt: true,
-                updatedAt: true
+                updatedAt: true,
+                userGroups: {
+                    include: {
+                        group: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
         if (!user) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
-        return NextResponse.json(user, { status: 200 });
+
+        const userToReturn = {
+            ...user,
+            groups: user.userGroups.map((ug: any) => ug.group),
+            modulePermissions: user.modulePermissions || []
+        };
+
+        return NextResponse.json(userToReturn, { status: 200 });
     } catch (error: any) {
         console.error(`Failed to fetch user ${id}:`, error);
         return NextResponse.json({ message: "Error fetching user", error: error.message }, { status: 500 });
@@ -132,9 +153,9 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, groupIds, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && !newPassword) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && !newPassword && !groupIds) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
     
@@ -152,9 +173,30 @@ export async function PUT(request: NextRequest) {
             updateData.password = await bcrypt.hash(newPassword, saltRounds);
         }
 
+        // Handle user groups update
+        let userGroupsUpdate: any = undefined;
+        if (groupIds !== undefined) {
+            // Delete existing user groups
+            await prisma.user_UserGroup.deleteMany({
+                where: { userId: id }
+            });
+            
+            // Create new user groups if any
+            if (groupIds.length > 0) {
+                userGroupsUpdate = {
+                    create: groupIds.map(groupId => ({
+                        groupId
+                    }))
+                };
+            }
+        }
+
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: updateData,
+            data: {
+                ...updateData,
+                ...(userGroupsUpdate && { userGroups: userGroupsUpdate })
+            },
             select: {
                 id: true,
                 name: true,
@@ -162,16 +204,33 @@ export async function PUT(request: NextRequest) {
                 role: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
+                modulePermissions: true,
                 createdAt: true,
-                updatedAt: true
+                updatedAt: true,
+                userGroups: {
+                    include: {
+                        group: {
+                            select: {
+                                id: true,
+                                name: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
         // Clear user validation cache for the updated user
         clearUserValidationCache(id);
 
+        const userToReturn = {
+            ...updatedUser,
+            groups: updatedUser.userGroups.map((ug: any) => ug.group),
+            modulePermissions: updatedUser.modulePermissions || []
+        };
+
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });
-        return NextResponse.json(updatedUser, { status: 200 });
+        return NextResponse.json(userToReturn, { status: 200 });
 
     } catch (error: any) {
         console.error(`Failed to update user ${id}:`, error);

@@ -1,96 +1,52 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Only allow in development or with a secret key
+  if (process.env.NODE_ENV === 'production' && !request.nextUrl.searchParams.get('debug_key')) {
+    return NextResponse.json({ error: 'Debug endpoint not available in production', status: 403 });
+  }
+
+  const debugKey = request.nextUrl.searchParams.get('debug_key');
+  if (process.env.NODE_ENV === 'production' && debugKey !== process.env.DEBUG_SECRET_KEY) {
+    return NextResponse.json({ error: 'Invalid debug key', status: 403 });
+  }
+
   try {
-    console.log('[DEBUG] Testing database connection and session...');
+    // Check Azure AD configuration
+    const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
+    const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
+    const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
     
-    // Test basic database connection
-    const pool = getPool();
-    const client = await pool.connect();
-    
-    // Test simple query
-    const simpleResult = await client.query('SELECT NOW() as current_time');
-    console.log('[DEBUG] Simple query result:', simpleResult.rows[0]);
-    
-    // Test candidates table
-    let candidatesResult;
-    try {
-      candidatesResult = await client.query('SELECT COUNT(*) as count FROM "Candidate"');
-      console.log('[DEBUG] Candidates count:', candidatesResult.rows[0].count);
-    } catch (error) {
-      console.error('[DEBUG] Candidates query error:', error);
-      candidatesResult = { error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-    
-    // Test positions table
-    let positionsResult;
-    try {
-      positionsResult = await client.query('SELECT COUNT(*) as count FROM "Position"');
-      console.log('[DEBUG] Positions count:', positionsResult.rows[0].count);
-    } catch (error) {
-      console.error('[DEBUG] Positions query error:', error);
-      positionsResult = { error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-    
-    // Test session
-    let session;
-    try {
-      session = await getServerSession(authOptions);
-      console.log('[DEBUG] Session:', session ? 'exists' : 'null');
-      if (session) {
-        console.log('[DEBUG] Session user ID:', session.user?.id);
-        console.log('[DEBUG] Session user role:', session.user?.role);
-        console.log('[DEBUG] Session user permissions:', session.user?.modulePermissions);
-      }
-    } catch (error) {
-      console.error('[DEBUG] Session error:', error);
-      session = { error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-    
-    // Test the exact query from candidates endpoint
-    let candidatesComplexQuery;
-    try {
-      const candidatesComplexQuery = `
-        SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
-               r.id as "recruiterId", r.name as "recruiterName"
-        FROM "Candidate" c
-        LEFT JOIN "Position" p ON c."positionId" = p.id
-        LEFT JOIN "User" r ON c."recruiterId" = r.id
-        ORDER BY c."applicationDate" DESC
-        LIMIT 20 OFFSET 0;
-      `;
-      const complexResult = await client.query(candidatesComplexQuery);
-      console.log('[DEBUG] Complex candidates query result count:', complexResult.rows.length);
-    } catch (error) {
-      console.error('[DEBUG] Complex candidates query error:', error);
-      candidatesComplexQuery = { error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-    
-    client.release();
-    
+    const isAzureAdConfigured = hasClientId && hasClientSecret && hasTenantId;
+
     return NextResponse.json({
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      database: {
-        connection: 'success',
-        currentTime: simpleResult.rows[0].current_time,
-        candidates: candidatesResult,
-        positions: positionsResult,
-        complexCandidatesQuery: candidatesComplexQuery
+      environment: process.env.NODE_ENV,
+      azureAd: {
+        isConfigured: isAzureAdConfigured,
+        hasClientId,
+        hasClientSecret,
+        hasTenantId,
+        clientIdLength: process.env.AZURE_AD_CLIENT_ID?.length || 0,
+        clientSecretLength: process.env.AZURE_AD_CLIENT_SECRET?.length || 0,
+        tenantIdLength: process.env.AZURE_AD_TENANT_ID?.length || 0
       },
-      session: session
-    });
-    
-  } catch (error) {
-    console.error('[DEBUG] General error:', error);
-    return NextResponse.json({
-      status: 'error',
+      nextAuth: {
+        hasSecret: !!process.env.NEXTAUTH_SECRET,
+        secretLength: process.env.NEXTAUTH_SECRET?.length || 0,
+        hasUrl: !!process.env.NEXTAUTH_URL,
+        url: process.env.NEXTAUTH_URL,
+      },
+      database: {
+        hasUrl: !!process.env.DATABASE_URL,
+        urlLength: process.env.DATABASE_URL?.length || 0
+      },
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    }, { status: 500 });
+    });
+  } catch (error) {
+    console.error('[DEBUG] Error in debug endpoint:', error);
+    return NextResponse.json({ error: 'Debug endpoint error', status: 500 });
   }
 } 

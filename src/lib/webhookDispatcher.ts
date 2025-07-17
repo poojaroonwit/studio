@@ -364,18 +364,18 @@ export class WebhookDispatcher {
     return this.dispatch(event, {
       upload_queue: {
         id: uploadQueueItem.id,
-        file_name: uploadQueueItem.fileName,
-        file_size: uploadQueueItem.fileSize,
+        file_name: uploadQueueItem.file_name || uploadQueueItem.fileName,
+        file_size: uploadQueueItem.file_size || uploadQueueItem.fileSize,
         status: uploadQueueItem.status,
         error: uploadQueueItem.error,
-        error_details: uploadQueueItem.errorDetails,
+        error_details: uploadQueueItem.error_details || uploadQueueItem.errorDetails,
         source: uploadQueueItem.source,
-        upload_date: uploadQueueItem.uploadDate,
-        completed_date: uploadQueueItem.completedDate,
-        file_path: uploadQueueItem.filePath,
-        position_id: uploadQueueItem.positionId,
-        created_by: uploadQueueItem.createdBy,
-        webhook_payload: uploadQueueItem.webhookPayload
+        upload_date: uploadQueueItem.upload_date || uploadQueueItem.uploadDate,
+        completed_date: uploadQueueItem.completed_date || uploadQueueItem.completedDate,
+        file_path: uploadQueueItem.file_path || uploadQueueItem.filePath,
+        position_id: uploadQueueItem.position_id || uploadQueueItem.positionId,
+        created_by: uploadQueueItem.created_by || uploadQueueItem.createdBy,
+        webhook_payload: uploadQueueItem.webhook_payload || uploadQueueItem.webhookPayload
       },
       ...additionalData
     });

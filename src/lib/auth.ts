@@ -13,12 +13,19 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Check if Azure AD is configured
 const isAzureADConfigured = () => {
-  return process.env.AZURE_AD_CLIENT_ID && 
-         process.env.AZURE_AD_CLIENT_SECRET && 
-         process.env.AZURE_AD_TENANT_ID &&
-         process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
-         process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
-         process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
+  const hasClientId = process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id';
+  const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
+  const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
+  
+  console.log('Checking Azure AD configuration:');
+  console.log(' - AZURE_AD_CLIENT_ID:', hasClientId ? 'SET' : 'NOT SET or DEFAULT');
+  console.log(' - AZURE_AD_CLIENT_SECRET:', hasClientSecret ? 'SET' : 'NOT SET or DEFAULT');
+  console.log(' - AZURE_AD_TENANT_ID:', hasTenantId ? 'SET' : 'NOT SET or DEFAULT');
+  
+  const isConfigured = hasClientId && hasClientSecret && hasTenantId;
+  console.log('Azure AD is configured:', isConfigured);
+  
+  return isConfigured;
 };
 
 /**
@@ -165,70 +172,112 @@ export const authOptions: NextAuthOptions = {
     },
     callbacks: {
       async jwt({ token, user, account }) {
-        // console.log('[AUTH DEBUG] JWT callback input:', { token, user, account });
+        console.log('[JWT CALLBACK] JWT callback triggered');
+        console.log('[JWT CALLBACK] token.id:', token.id);
+        console.log('[JWT CALLBACK] user:', user ? { id: user.id, email: user.email } : 'no user');
+        console.log('[JWT CALLBACK] account provider:', account?.provider);
+        
         if (account && user) {
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
+          console.log('[JWT CALLBACK] Token updated with user data');
         }
         // If token.id exists but modulePermissions is missing, fetch merged permissions (for session refreshes)
         if (token.id && !token.modulePermissions) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
+            console.log('[JWT CALLBACK] Fetched module permissions for existing token');
           } catch (e) {
+            console.error('[JWT CALLBACK] Error fetching module permissions:', e);
             token.modulePermissions = [];
           }
         }
-        // console.log('[AUTH DEBUG] JWT callback output:', token);
+        console.log('[JWT CALLBACK] Final token:', {id: token.id, role: token.role, hasPermissions: !!token.modulePermissions });
         return token;
       },
       async session({ session, token }) {
-        // console.log('[AUTH DEBUG] Session callback input:', { session, token });
+        console.log('[SESSION CALLBACK] Session callback triggered');
+        console.log('[SESSION CALLBACK] token.id:', token.id);
+        console.log('[SESSION CALLBACK] session.user:', session.user ? { email: session.user.email } : 'no user');
+        
         if (session.user) {
           session.user.id = token.id as string;
           session.user.role = token.role as UserProfile['role'];
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[];
+          console.log('[SESSION CALLBACK] Session updated with user data');
         }
-        // console.log('[AUTH DEBUG] Session callback output:', session);
+        console.log('[SESSION CALLBACK] Final session:', { userId: session.user?.id, role: session.user?.role });
         return session;
       },
       async signIn({ user, account, profile }) {
+          console.log('[AZURE AD SIGNIN] signIn callback triggered');
+          console.log('[AZUREAD SIGNIN] account provider:', account?.provider);
+          console.log('[AZUREAD SIGNIN] profile email:', profile?.email);
+          console.log('[AZURE AD SIGNIN] isAzureADConfigured():', isAzureADConfigured());
+          
           // Only handle Azure AD sign-in if Azure AD is configured and this is an Azure AD sign-in
           if (isAzureADConfigured() && account?.provider === 'azure-ad' && profile?.email) {
+              console.log('[AZURE ADSIGNIN] Processing Azure AD sign-in for:', profile.email);
               const client = await getPool().connect();
               try {
                   // Use profile.sub as the unique user ID (OID) if oid is not present
                   const oid = (profile as any).oid ?? (profile as any).sub ?? profile.email;
                   const picture = (profile as any).picture ?? null;
-  
+                  
+                  console.log('[AZURE AD SIGNIN] User OID:', oid);
+                  console.log('[AZURE AD SIGNIN] User name:', profile.name);
+
                   // Check if user exists
                   let res = await client.query('SELECT * FROM "User" WHERE email = $1', [profile.email]);
                   let dbUser = res.rows[0];
-  
+                  
+                  console.log('[AZURE AD SIGNIN] Existing user found:', !!dbUser);
+
                   if (!dbUser) {
+                      console.log('[AZURE AD SIGNIN] Creating new user in database');
                       // If not, create a new user
                       await client.query(
                           'INSERT INTO "User" (id, name, email, "emailVerified", image, role) VALUES ($1, $2, $3, $4, $5, $6)',
                           [oid, profile.name, profile.email, new Date(), picture, 'Recruiter'] // Default role
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', oid);
+                      console.log('[AZURE AD SIGNIN] New user created successfully');
                   }
                   
                   // Also create an account entry for the provider
+                  console.log('[AZURE AD SIGNIN] Checking for existing account entry');
                   res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
                   if (res.rows.length === 0) {
+                      console.log('[AZURE AD SIGNIN] Creating account entry');
                        await client.query(
                           'INSERT INTO "Account" ("userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
                           [oid, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
                       );
+                      console.log('[AZUREAD SIGNIN] Account entry created successfully');
+                  } else {
+                      console.log('[AZUREAD SIGNIN] Account entry already exists');
                   }
+                  
+                  console.log('[AZURE AD SIGNIN] Azure AD sign-in completed successfully');
               } catch (err) {
-                  console.error("Error during Azure AD sign-in DB operations:", err);
+                  console.error('[AZURE AD SIGNIN] Error during Azure AD sign-in DB operations:', err);
+                  console.error('[AZURE AD SIGNIN] Error details:', {
+                      message: err instanceof Error ? err.message : 'Unknown error',
+                      stack: err instanceof Error ? err.stack : undefined,
+                      profile: { email: profile.email, name: profile.name },
+                      account: { provider: account.provider, providerAccountId: account.providerAccountId }
+                  });
                   return false; // Prevent sign-in on DB error
               } finally {
                   client.release();
               }
+          } else {
+              console.log('[AZURE AD SIGNIN] Not an Azure AD sign-in or Azure AD not configured');
+              console.log('[AZURE AD SIGNIN] - isAzureADConfigured():', isAzureADConfigured());
+              console.log('[AZURE AD SIGNIN] - account.provider:', account?.provider);
+              console.log('[AZURE AD SIGNIN] - profile.email:', profile?.email);
           }
           return true;
       }

@@ -110,33 +110,37 @@ const systemSettingSchema = z.object({
 const saveSystemSettingsSchema = z.array(systemSettingSchema);
 
 export async function GET(request: NextRequest) {
-  // Debug: Log Azure AD env vars and computed value
-  console.log('[DEBUG] AZURE_AD_CLIENT_ID:', process.env.AZURE_AD_CLIENT_ID);
-  console.log('[DEBUG] AZURE_AD_CLIENT_SECRET:', process.env.AZURE_AD_CLIENT_SECRET);
-  console.log('[DEBUG] AZURE_AD_TENANT_ID:', process.env.AZURE_AD_TENANT_ID);
-  const isAzureAdConfigured = Boolean(
-    process.env.AZURE_AD_CLIENT_ID &&
-    process.env.AZURE_AD_CLIENT_SECRET &&
-    process.env.AZURE_AD_TENANT_ID
-  );
-  console.log('[DEBUG] isAzureAdConfigured:', isAzureAdConfigured);
   try {
-    const result = await getPool().query('SELECT key, value, "updatedAt" FROM "SystemSetting"');
-    const settings = Object.fromEntries(result.rows.map((row: any) => [row.key, row.value]));
-    // Fallback for resumeProcessingWebhookUrl
-    if (!settings.resumeProcessingWebhookUrl || settings.resumeProcessingWebhookUrl === '') {
-      settings.resumeProcessingWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || 'http://localhost:5678/webhook';
-    }
-    // Fallback for generalPdfWebhookUrl
-    if (!settings.generalPdfWebhookUrl) {
-      settings.generalPdfWebhookUrl = process.env.GENERAL_PDF_WEBHOOK_URL || '';
-    }
-    // Add Azure AD config status
-    settings.isAzureAdConfigured = isAzureAdConfigured;
-    return NextResponse.json(settings, { status: 200 });
+    console.log('[SYSTEM SETTINGS] Fetching system settings');
+    const pool = getPool();
+    const result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
+    const settings = result.rows;
+    console.log('[SYSTEM SETTINGS] Found', settings.length, 'settings');
+    
+    // Check Azure AD configuration
+    const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID && 
+                               process.env.AZURE_AD_CLIENT_SECRET && 
+                               process.env.AZURE_AD_TENANT_ID &&
+                               process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
+                               process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
+                               process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
+    
+    console.log('[SYSTEM SETTINGS] Azure AD configuration check:');
+    console.log('[SYSTEM SETTINGS] - AZURE_AD_CLIENT_ID:', process.env.AZURE_AD_CLIENT_ID ? 'SET' : 'NOT SET');
+    console.log('[SYSTEM SETTINGS] - AZURE_AD_CLIENT_SECRET:', process.env.AZURE_AD_CLIENT_SECRET ? 'SET' : 'NOT SET');
+    console.log('[SYSTEM SETTINGS] - AZURE_AD_TENANT_ID:', process.env.AZURE_AD_TENANT_ID ? 'SET' : 'NOT SET');
+    console.log('[SYSTEM SETTINGS] - isAzureAdConfigured:', isAzureAdConfigured);
+
+    return NextResponse.json({
+      settings,
+      isAzureAdConfigured
+    });
   } catch (error) {
-    console.error("Failed to fetch system settings:", error);
-    return NextResponse.json({ message: "Error fetching system settings", error: (error as Error).message }, { status: 500 });
+    console.error('[SYSTEM SETTINGS] Error fetching system settings:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch system settings' },
+      { status: 500 }
+    );
   }
 }
 

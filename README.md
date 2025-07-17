@@ -148,7 +148,7 @@ NEXTAUTH_URL=http://your-domain:8021
 NEXTAUTH_SECRET=your-secret-key
 
 # Database
-DATABASE_URL=postgresql://user:password@postgres:5432/dbname
+DATABASE_URL=postgresql://user:password@postgres:8521/dbname
 
 # MinIO Storage
 MINIO_ENDPOINT=minio
@@ -184,7 +184,7 @@ GOOGLE_API_KEY=your-google-ai-key
 | **Main App** | 8021 | 8021 | Next.js application |
 | **MinIO API** | 9000 | 9847 | Object storage API |
 | **MinIO Console** | 9001 | 9848 | Storage management UI |
-| **PostgreSQL** | 5432 | 5432 | Database |
+| **PostgreSQL** | 8521 | 5432 | Database |
 | **Redis** | 6379 | 9849 | Cache |
 
 ## 🔐 Authentication

@@ -98,7 +98,7 @@ NODE_ENV=development
 APP_PORT=8021
 
 # Database Configuration
-DATABASE_URL=postgresql://postgres:password@localhost:5432/studio5_local
+DATABASE_URL=postgresql://postgres:password@localhost:8521/studio5_local
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=password
 POSTGRES_DB=studio5_local

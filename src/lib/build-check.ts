@@ -26,7 +26,7 @@ export const getBuildSafeConfig = () => {
         url: 'redis://redis:6379'
       },
       database: {
-        url: process.env.DATABASE_URL || 'postgresql://postgres:secure_password@postgres:5432/studio_production'
+        url: process.env.DATABASE_URL || 'postgresql://postgres:secure_password@postgres:8521/studio_production'
       }
     };
   }
@@ -44,7 +44,7 @@ export const getBuildSafeConfig = () => {
       url: process.env.REDIS_URL || 'redis://redis:6379'
     },
     database: {
-      url: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/db'
+      url: process.env.DATABASE_URL || 'postgresql://user:password@localhost:8521/db'
     }
   };
 };

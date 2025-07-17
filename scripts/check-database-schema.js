@@ -114,7 +114,7 @@ async function checkDatabaseSchema() {
     console.log('\n📊 Database connection info:');
     const urlParts = new URL(databaseUrl);
     console.log(`   Host: ${urlParts.hostname}`);
-    console.log(`   Port: ${urlParts.port || '5432'}`);
+    console.log(`   Port: ${urlParts.port || '8521'}`);
     console.log(`   Database: ${urlParts.pathname.slice(1)}`);
     console.log(`   User: ${urlParts.username}`);
     

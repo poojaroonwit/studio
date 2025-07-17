@@ -8,7 +8,7 @@ echo "🔧 Setting up database with postgres user..."
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ DATABASE_URL environment variable is not set"
-    echo "Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/studio_production"
+    echo "Please set DATABASE_URL=postgresql://postgres:secure_password@postgres:8521/studio_production"
     exit 1
 fi
 

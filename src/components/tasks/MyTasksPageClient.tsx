@@ -479,7 +479,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 candidates={displayedCandidates}
                 statuses={stages}
                 onMoveCandidate={handleMoveCandidate}
-                onCardClick={setSelectedCandidate}
+                onCardClick={(candidate) => {
+                  console.log('MyTasksPageClient: Card clicked:', candidate);
+                  setSelectedCandidate(candidate);
+                }}
                 rowField={rowField}
                 columnField={columnField}
                 visibleFields={boardPrefs.visibleFields}
@@ -502,7 +505,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   </TableHeader>
                   <TableBody>
                     {displayedCandidates.map(candidate => (
-                      <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => setSelectedCandidate(candidate)}>
+                      <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => {
+                        console.log('MyTasksPageClient: Table row clicked:', candidate);
+                        setSelectedCandidate(candidate);
+                      }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar size="lg" className="border-2 border-border">
@@ -528,7 +534,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         <TableCell className="text-foreground">{candidate.recruiter?.name || candidate.recruiterId}</TableCell>
                         <TableCell className="hidden sm:table-cell text-foreground">{candidate.fitScore != null ? `${candidate.fitScore}%` : '-'}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setSelectedCandidate(candidate); }}>
+                          <Button size="sm" variant="outline" onClick={e => { 
+                            e.stopPropagation(); 
+                            console.log('MyTasksPageClient: View button clicked:', candidate);
+                            setSelectedCandidate(candidate); 
+                          }}>
                             View
                           </Button>
                         </TableCell>
@@ -551,11 +561,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       />
 
       {selectedCandidate && (
-        <CandidateDetailModal
-          candidateId={selectedCandidate.id}
-          open={!!selectedCandidate}
-          onClose={() => setSelectedCandidate(null)}
-        />
+        <>
+          {console.log('MyTasksPageClient: Rendering modal with candidate:', selectedCandidate)}
+          <CandidateDetailModal
+            candidateId={selectedCandidate.id}
+            open={!!selectedCandidate}
+            onClose={() => {
+              console.log('MyTasksPageClient: Closing modal');
+              setSelectedCandidate(null);
+            }}
+          />
+        </>
       )}
     </div>
   );

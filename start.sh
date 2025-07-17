@@ -35,7 +35,7 @@ if [ -f /.dockerenv ]; then
     echo "🐳 Running in Docker container"
     
     # Wait for database
-    check_service "PostgreSQL" 5432 || exit 1
+    check_service "PostgreSQL" 8521 || exit 1
     
     # Wait for MinIO
     check_service "MinIO" 9000 || exit 1

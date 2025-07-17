@@ -1,6 +1,7 @@
 "use client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useEffect } from "react";
 import FullCandidateDetail from "./FullCandidateDetail";
+import { X } from "lucide-react";
 
 interface CandidateDetailModalProps {
   candidateId: string | null;
@@ -9,11 +10,52 @@ interface CandidateDetailModalProps {
 }
 
 const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailModalProps) => {
+  console.log('CandidateDetailModal: Props received:', { candidateId, open, onClose });
+  
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent 
-        className="relative flex flex-col overflow-hidden max-w-[95vw] max-h-[90vh] w-[1200px] h-[800px] p-0 top-[80px] left-1/2 -translate-x-1/2 translate-y-0"
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/80 z-50"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div 
+        className="fixed top-[80px] left-1/2 transform -translate-x-1/2 z-50 bg-background border border-border rounded-lg shadow-lg max-w-[95vw] max-h-[90vh] w-[1200px] h-[800px] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-muted transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        
+        {/* Content */}
         {candidateId ? (
           <div className="flex flex-col h-full overflow-hidden">
             <FullCandidateDetail candidateId={candidateId} isModal onClose={onClose} />
@@ -25,8 +67,8 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
             </div>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </>
   );
 };
 

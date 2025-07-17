@@ -898,8 +898,16 @@ export default function CandidateDetailPage() {
   // Use jobMatches from the API response instead of parsedData.job_matches
   const candidateJobMatches = candidate.jobMatches || [];
   
+  // Calculate applied job data from parsedData.job_applied or fallback to top-level fields
+  const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
+    ? (candidate.parsedData as any).job_applied
+    : undefined;
 
-
+  const appliedJobId = jobApplied?.jobId || candidate.positionId;
+  const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
+  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+    ? jobApplied.justification.join('\n')
+    : (candidate.assignmentJustification || '');
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;
@@ -1227,7 +1235,7 @@ export default function CandidateDetailPage() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {candidate.positionId ? (
+                            {appliedJobId ? (
                               <div 
                                 className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
                                 style={{
@@ -1242,14 +1250,14 @@ export default function CandidateDetailPage() {
                                   e.currentTarget.style.filter = 'brightness(1)';
                                 }}
                                 onClick={() => {
-                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
+                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                                   
                                   if (position) {
                                     const appliedJobData = {
-                                      jobId: candidate.positionId,
+                                      jobId: appliedJobId,
                                       jobTitle: position.title,
-                                      fitScore: candidate.fitScore || 0,
-                                      matchReasons: (candidate as any).assignmentJustification ? [(candidate as any).assignmentJustification] : [],
+                                      fitScore: appliedFitScore || 0,
+                                      matchReasons: appliedJustification ? [appliedJustification] : [],
                                       position: {
                                         id: position.id,
                                         title: position.title,
@@ -1271,24 +1279,24 @@ export default function CandidateDetailPage() {
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
-                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
+                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                                     </h4>
-                                    {candidate.fitScore !== null && candidate.fitScore !== undefined && (
+                                    {appliedFitScore !== null && appliedFitScore !== undefined && (
                                       <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                        <span>{candidate.fitScore}%</span>
+                                        <span>{appliedFitScore}%</span>
                                         <span className="text-lg font-bold text-primary">(A)</span>
                                       </div>
                                     )}
                                    </div>
                                    
-                                  {(candidate as any).assignmentJustification && (
+                                  {appliedJustification && (
                                      <div className="mt-3">
                                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
                                       <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
-                                        {(candidate as any).assignmentJustification}
+                                        {appliedJustification}
                                       </div>
                                      </div>
                                    )}

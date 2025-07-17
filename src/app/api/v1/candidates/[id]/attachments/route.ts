@@ -3,14 +3,31 @@ import prisma from '@/lib/prisma';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { verifyApiToken } from '@/lib/auth';
+import { 
+  createSuccessResponse, 
+  handleApiError, 
+  createUnauthorizedError, 
+  createForbiddenError, 
+  createValidationError, 
+  createNotFoundError, 
+  createInternalServerError 
+} from '@/lib/apiErrorHandler';
 
 const ENDPOINT = '/api/v1/candidates/[id]/attachments';
 
 // GET: List attachments for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
+  
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const user = token ? await verifyApiToken(token) : null;
+  
+  if (!user) {
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
+  }
+
   try {
     const attachments = await prisma.attachment.findMany({
       where: { candidateId: id },
@@ -21,26 +38,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ...a,
       url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${a.filePath}`
     }));
-    return NextResponse.json({ data: attachmentsWithUrl });
+    return createSuccessResponse(req, attachmentsWithUrl);
   } catch (err) {
-    return NextResponse.json({ error: 'Error fetching attachments', code: 'INTERNAL_ERROR', endpoint: ENDPOINT, details: String(err) }, { status: 500 });
+    return handleApiError(req, createInternalServerError('Error fetching attachments', { 
+      originalError: String(err) 
+    }));
   }
 }
 
 // POST: Upload an attachment (multipart/form-data)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED', endpoint: ENDPOINT, details: { message: 'No valid session' } }, { status: 401 });
+  
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const user = token ? await verifyApiToken(token) : null;
+  
+  if (!user) {
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
+
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
+  }
+
   const formData = await req.formData();
   const file = formData.get('attachment');
   if (!file || typeof file === 'string') {
-    return NextResponse.json({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: ENDPOINT, details: { attachment: ['No file uploaded'] } }, { status: 400 });
+    return handleApiError(req, createValidationError('Invalid input', { 
+      attachment: ['No file uploaded'] 
+    }));
   }
+  
   const ext = (file.name || 'pdf').split('.').pop();
   const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
+  
   try {
     const arrayBuffer = await file.arrayBuffer();
     await minioClient.putObject(
@@ -55,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newAttachment = await prisma.attachment.create({
       data: {
         candidateId: id,
-        uploadedById: session.user.id,
+        uploadedById: user.id,
         filePath: objectName,
         fileName: file.name,
         isPrimary,
@@ -63,66 +95,106 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
-    return NextResponse.json({ data: { ...newAttachment, url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` } }, { status: 201 });
+    return createSuccessResponse(req, { 
+      ...newAttachment, 
+      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` 
+    }, 201);
   } catch (err) {
-    return NextResponse.json({ error: 'Error uploading attachment', code: 'INTERNAL_ERROR', endpoint: ENDPOINT, details: String(err) }, { status: 500 });
+    return handleApiError(req, createInternalServerError('Error uploading attachment', { 
+      originalError: String(err) 
+    }));
   }
 }
 
 // PUT: Set an attachment as primary
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED', endpoint: ENDPOINT, details: { message: 'No valid session' } }, { status: 401 });
+  
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const user = token ? await verifyApiToken(token) : null;
+  
+  if (!user) {
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
+
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    return handleApiError(req, createForbiddenError('Insufficient permissions to manage attachments'));
+  }
+
   let attachmentId;
   try {
     const body = await req.json();
     attachmentId = body.attachmentId;
     if (!attachmentId) {
-      return NextResponse.json({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: ENDPOINT, details: { attachmentId: ['Missing attachmentId'] } }, { status: 400 });
+      return handleApiError(req, createValidationError('Invalid input', { 
+        attachmentId: ['Missing attachmentId'] 
+      }));
     }
   } catch {
-    return NextResponse.json({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: ENDPOINT, details: { message: 'Invalid JSON body' } }, { status: 400 });
+    return handleApiError(req, createValidationError('Invalid input', { 
+      message: 'Invalid JSON body' 
+    }));
   }
+  
   try {
     await prisma.attachment.updateMany({ where: { candidateId: id }, data: { isPrimary: false } });
     const updated = await prisma.attachment.update({ where: { id: attachmentId, candidateId: id }, data: { isPrimary: true } });
-    return NextResponse.json({ data: updated });
+    return createSuccessResponse(req, updated);
   } catch (err) {
-    return NextResponse.json({ error: 'Error setting primary attachment', code: 'INTERNAL_ERROR', endpoint: ENDPOINT, details: String(err) }, { status: 500 });
+    return handleApiError(req, createInternalServerError('Error setting primary attachment', { 
+      originalError: String(err) 
+    }));
   }
 }
 
 // DELETE: Remove an attachment
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED', endpoint: ENDPOINT, details: { message: 'No valid session' } }, { status: 401 });
+  
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const user = token ? await verifyApiToken(token) : null;
+  
+  if (!user) {
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
+
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    return handleApiError(req, createForbiddenError('Insufficient permissions to delete attachments'));
+  }
+
   let attachmentId;
   try {
     const body = await req.json();
     attachmentId = body.attachmentId;
     if (!attachmentId) {
-      return NextResponse.json({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: ENDPOINT, details: { attachmentId: ['Missing attachmentId'] } }, { status: 400 });
+      return handleApiError(req, createValidationError('Invalid input', { 
+        attachmentId: ['Missing attachmentId'] 
+      }));
     }
   } catch {
-    return NextResponse.json({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: ENDPOINT, details: { message: 'Invalid JSON body' } }, { status: 400 });
+    return handleApiError(req, createValidationError('Invalid input', { 
+      message: 'Invalid JSON body' 
+    }));
   }
+  
   try {
     const attachment = await prisma.attachment.findUnique({ where: { id: attachmentId, candidateId: id } });
-    if (!attachment) return NextResponse.json({ error: 'Attachment not found', code: 'NOT_FOUND', endpoint: ENDPOINT, details: { attachmentId: ['Attachment not found'] } }, { status: 404 });
+    if (!attachment) {
+      return handleApiError(req, createNotFoundError('Attachment not found'));
+    }
+    
     await minioClient.removeObject(MINIO_BUCKET, attachment.filePath);
     await prisma.attachment.delete({ where: { id: attachmentId, candidateId: id } });
     const remaining = await prisma.attachment.findMany({ where: { candidateId: id }, orderBy: { uploadedAt: 'desc' } });
     if (attachment.isPrimary && remaining.length > 0) {
       await prisma.attachment.update({ where: { id: remaining[0].id }, data: { isPrimary: true } });
     }
-    return NextResponse.json({ message: 'Deleted' });
+    return createSuccessResponse(req, { message: 'Deleted' });
   } catch (err) {
-    return NextResponse.json({ error: 'Error deleting attachment', code: 'INTERNAL_ERROR', endpoint: ENDPOINT, details: String(err) }, { status: 500 });
+    return handleApiError(req, createInternalServerError('Error deleting attachment', { 
+      originalError: String(err) 
+    }));
   }
 } 

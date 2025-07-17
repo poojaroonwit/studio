@@ -899,15 +899,15 @@ export default function CandidateDetailPage() {
   const candidateJobMatches = candidate.jobMatches || [];
   
   // Calculate applied job data from parsedData.job_applied or fallback to top-level fields
-  const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_applied
-    : undefined;
+  // const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
+  //   ? (candidate.parsedData as any).job_applied
+  //   : undefined;
 
-  const appliedJobId = jobApplied?.jobId || candidate.positionId;
-  const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
-  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification.join('\n')
-    : (candidate.assignmentJustification || '');
+  // const appliedJobId = jobApplied?.jobId || candidate.positionId;
+  // const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
+  // const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+  //   ? jobApplied.justification.join('\n')
+  //   : (candidate.assignmentJustification || '');
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;

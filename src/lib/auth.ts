@@ -239,13 +239,23 @@ export const authOptions: NextAuthOptions = {
                   if (!dbUser) {
                       console.log('[AZURE AD SIGNIN] Creating new user in database');
                       // If not, create a new user
+                      // For Azure AD users, we need to provide a placeholder password since the field is required
+                      // This password will never be used for authentication since Azure AD handles that
+                      const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
                       await client.query(
                           'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authenticationMethod") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                          [oid, profile.name, profile.email, new Date(), picture, 'Recruiter', null, 'azure'] // Set authenticationMethod to 'azure' and password to null
+                          [oid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure'] // Set authenticationMethod to 'azure' and use placeholder password
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', oid);
                       console.log('[AZURE AD SIGNIN] New user created successfully');
+                      // After creating user, fetch it to get the ID
+                      res = await client.query('SELECT * FROM "User" WHERE email = $1', [profile.email]);
+                      dbUser = res.rows[0];
                   }
+                  
+                  // Use the user's actual ID (either existing or newly created)
+                  const userId = dbUser.id;
+                  console.log('[AZURE AD SIGNIN] Using user ID for account creation:', userId);
                   
                   // Also create an account entry for the provider
                   console.log('[AZURE AD SIGNIN] Checking for existing account entry');
@@ -254,7 +264,7 @@ export const authOptions: NextAuthOptions = {
                       console.log('[AZURE AD SIGNIN] Creating account entry');
                        await client.query(
                           'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
-                          [uuidv4(), oid, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
+                          [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
                       );
                       console.log('[AZUREAD SIGNIN] Account entry created successfully');
                   } else {

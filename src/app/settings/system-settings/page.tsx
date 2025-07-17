@@ -51,7 +51,18 @@ export default function SystemSettingsPage() {
         const errorData = await response.json().catch(() => ({ message: 'Failed to load system settings' }));
         throw new Error(errorData.message);
       }
-      const settings = await response.json();
+      const responseData = await response.json();
+      
+      // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+      let settings: any = {};
+      if (responseData.settings && Array.isArray(responseData.settings)) {
+        // Convert array format to object format
+        settings = Object.fromEntries(responseData.settings.map((setting: any) => [setting.key, setting.value]));
+      } else {
+        // Already in object format
+        settings = responseData;
+      }
+      
       setMaxConcurrentProcessors(parseInt(settings.maxConcurrentProcessors || '5', 10));
       setSmtpHost(settings.smtpHost || '');
       setSmtpPort(settings.smtpPort || '');

@@ -89,7 +89,18 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         try {
           const response = await fetch('/api/settings/system-settings');
           if (response.ok) {
-            const settings = await response.json();
+            const data = await response.json();
+            
+            // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+            let settings: any = {};
+            if (data.settings && Array.isArray(data.settings)) {
+              // Convert array format to object format
+              settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+            } else {
+              // Already in object format
+              settings = data;
+            }
+            
             appName = settings.appName || DEFAULT_APP_NAME;
             logoUrl = settings.appLogoDataUrl || null;
             loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
@@ -222,8 +233,20 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
       try {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
-          const settings = await res.json();
-          setIsAzureAdConfigured(settings.isAzureAdConfigured === true || settings.isAzureAdConfigured === 'true');
+          const data = await res.json();
+          
+          // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+          let settings: any = {};
+          if (data.settings && Array.isArray(data.settings)) {
+            // Convert array format to object format
+            settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+            // For Azure AD config, we need to check the original data object
+            setIsAzureAdConfigured(data.isAzureAdConfigured === true || data.isAzureAdConfigured === 'true');
+          } else {
+            // Already in object format
+            settings = data;
+            setIsAzureAdConfigured(settings.isAzureAdConfigured === true || settings.isAzureAdConfigured === 'true');
+          }
         }
       } catch (e) {
         // Optionally handle error

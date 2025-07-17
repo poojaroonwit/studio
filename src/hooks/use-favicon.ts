@@ -18,7 +18,18 @@ export function useFavicon() {
         }
         
         const data = await response.json();
-        setFaviconDataUrl(data.appFaviconDataUrl || null);
+        
+        // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+        let settings: any = {};
+        if (data.settings && Array.isArray(data.settings)) {
+          // Convert array format to object format
+          settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+        } else {
+          // Already in object format
+          settings = data;
+        }
+        
+        setFaviconDataUrl(settings.appFaviconDataUrl || null);
       } catch (err) {
         console.error('Error fetching favicon:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -40,7 +51,17 @@ export function useFavicon() {
       fetch('/api/settings/system-settings')
         .then(response => response.json())
         .then(data => {
-          setFaviconDataUrl(data.appFaviconDataUrl || null);
+          // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+          let settings: any = {};
+          if (data.settings && Array.isArray(data.settings)) {
+            // Convert array format to object format
+            settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+          } else {
+            // Already in object format
+            settings = data;
+          }
+          
+          setFaviconDataUrl(settings.appFaviconDataUrl || null);
           setError(null);
         })
         .catch(err => {

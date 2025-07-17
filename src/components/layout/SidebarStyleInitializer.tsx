@@ -16,7 +16,17 @@ export function SidebarStyleInitializer() {
       try {
         const res = await fetch('/api/settings/system-settings');
         if (res.ok) {
-          const data = await res.json();
+          const responseData = await res.json();
+          
+          // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+          let data: any = {};
+          if (responseData.settings && Array.isArray(responseData.settings)) {
+            // Convert array format to object format
+            data = Object.fromEntries(responseData.settings.map((setting: any) => [setting.key, setting.value]));
+          } else {
+            // Already in object format
+            data = responseData;
+          }
           
           // Extract sidebar color settings
           const sidebarColors: Record<string, string> = {};

@@ -542,8 +542,17 @@ export default function SystemPreferencesPage() {
         sidebarColors,
       });
       
-      // Dispatch event for real-time updates
-      window.dispatchEvent(new CustomEvent('appConfigChanged'));
+      // Dispatch event for real-time updates with sidebar colors
+      window.dispatchEvent(new CustomEvent('appConfigChanged', {
+        detail: {
+          appName,
+          logoUrl: logoPreviewUrl || savedLogoUrl,
+          themePreference,
+          primaryGradientStart: sidebarColors.sidebarActiveBgStartL,
+          primaryGradientEnd: sidebarColors.sidebarActiveBgEndL,
+          sidebarColors,
+        }
+      }));
       
     } catch (e: any) {
       setErrorMsg(e.message);

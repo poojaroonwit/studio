@@ -98,14 +98,56 @@ export function AppLayout({ children }: AppLayoutProps) {
       try {
         setIsLogoLoading(true);
         const res = await fetch('/api/settings/system-settings');
-        const prefs = await res.json();
+        const data = await res.json();
+        
+        // Handle both response formats (GET returns {settings: [...], isAzureAdConfigured: boolean})
+        let prefs: any = {};
+        if (data.settings && Array.isArray(data.settings)) {
+          // Convert array format to object format
+          prefs = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+        } else {
+          // Already in object format
+          prefs = data;
+        }
+        
         setAppLogoUrl(prefs.appLogoDataUrl || null); // MinIO URL
         setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
+        
+        // Extract sidebar colors from individual settings
+        const sidebarColors: Record<string, string> = {};
+        const sidebarColorKeys = [
+          'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL', 'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
+          'sidebarHoverBgL', 'sidebarHoverTextL', 'sidebarBorderL', 'sidebarBgStartD', 'sidebarBgEndD', 'sidebarTextD',
+          'sidebarActiveBgStartD', 'sidebarActiveBgEndD', 'sidebarActiveTextD', 'sidebarHoverBgD', 'sidebarHoverTextD', 'sidebarBorderD',
+          'sidebarFontFamilyL', 'sidebarFontSizeL', 'sidebarFontWeightL', 'sidebarLineHeightL', 'sidebarLetterSpacingL', 'sidebarTextTransformL',
+          'sidebarFontFamilyD', 'sidebarFontSizeD', 'sidebarFontWeightD', 'sidebarLineHeightD', 'sidebarLetterSpacingD', 'sidebarTextTransformD',
+          'sidebarBorderWidthL', 'sidebarBorderStyleL', 'sidebarBorderRadiusL', 'sidebarShadowL', 'sidebarShadowHoverL', 'sidebarShadowActiveL',
+          'sidebarBorderWidthD', 'sidebarBorderStyleD', 'sidebarBorderRadiusD', 'sidebarShadowD', 'sidebarShadowHoverD', 'sidebarShadowActiveD',
+          'sidebarPaddingXL', 'sidebarPaddingYL', 'sidebarMarginL', 'sidebarGapL', 'sidebarWidthL', 'sidebarWidthCollapsedL', 'sidebarTransitionDurationL', 'sidebarTransitionTimingL',
+          'sidebarPaddingXD', 'sidebarPaddingYD', 'sidebarMarginD', 'sidebarGapD', 'sidebarWidthD', 'sidebarWidthCollapsedD', 'sidebarTransitionDurationD', 'sidebarTransitionTimingD',
+          'sidebarMenuItemBgL', 'sidebarMenuItemBgHoverL', 'sidebarMenuItemBgActiveL', 'sidebarMenuItemColorL', 'sidebarMenuItemColorHoverL', 'sidebarMenuItemColorActiveL',
+          'sidebarMenuItemBorderL', 'sidebarMenuItemBorderHoverL', 'sidebarMenuItemBorderActiveL', 'sidebarMenuItemBorderRadiusL', 'sidebarMenuItemPaddingXL', 'sidebarMenuItemPaddingYL',
+          'sidebarMenuItemMarginL', 'sidebarMenuItemFontWeightL', 'sidebarMenuItemFontWeightActiveL', 'sidebarMenuItemFontSizeL', 'sidebarMenuItemLineHeightL', 'sidebarMenuItemTransitionL',
+          'sidebarMenuItemBgD', 'sidebarMenuItemBgHoverD', 'sidebarMenuItemBgActiveD', 'sidebarMenuItemColorD', 'sidebarMenuItemColorHoverD', 'sidebarMenuItemColorActiveD',
+          'sidebarMenuItemBorderD', 'sidebarMenuItemBorderHoverD', 'sidebarMenuItemBorderActiveD', 'sidebarMenuItemBorderRadiusD', 'sidebarMenuItemPaddingXD', 'sidebarMenuItemPaddingYD',
+          'sidebarMenuItemMarginD', 'sidebarMenuItemFontWeightD', 'sidebarMenuItemFontWeightActiveD', 'sidebarMenuItemFontSizeD', 'sidebarMenuItemLineHeightD', 'sidebarMenuItemTransitionD',
+          'sidebarIconSizeL', 'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
+          'sidebarIconSizeD', 'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
+          'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
+          'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
+        ];
+        
+        sidebarColorKeys.forEach(key => {
+          if (prefs[key]) {
+            sidebarColors[key] = prefs[key];
+          }
+        });
+        
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
           primaryGradientStart: prefs.primaryGradientStart,
           primaryGradientEnd: prefs.primaryGradientEnd,
-          sidebarColors: prefs.sidebarColors || {},
+          sidebarColors,
         });
       } catch (e) {
         setAppLogoUrl(null);
@@ -124,12 +166,18 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (customEvent.detail.logoUrl !== undefined) {
           setAppLogoUrl(customEvent.detail.logoUrl);
         }
-        setThemeAndColors({
-          themePreference: (customEvent.detail.themePreference || 'system') as 'system' | 'light' | 'dark',
-          primaryGradientStart: customEvent.detail.primaryGradientStart,
-          primaryGradientEnd: customEvent.detail.primaryGradientEnd,
-          sidebarColors: customEvent.detail.sidebarColors || {},
-        });
+        
+        // If sidebarColors are provided in the event, use them; otherwise fetch fresh data
+        if (customEvent.detail.sidebarColors) {
+          setThemeAndColors({
+            themePreference: (customEvent.detail.themePreference || 'system') as 'system' | 'light' | 'dark',
+            primaryGradientStart: customEvent.detail.primaryGradientStart,
+            primaryGradientEnd: customEvent.detail.primaryGradientEnd,
+            sidebarColors: customEvent.detail.sidebarColors,
+          });
+        } else {
+          fetchGlobalSettings();
+        }
       } else {
         fetchGlobalSettings();
       }

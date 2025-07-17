@@ -15,26 +15,128 @@ export const dynamic = "force-dynamic";
 // Core statuses for fallback, full list comes from DB
 const coreCandidateStatusValues: [CandidateStatus, ...CandidateStatus[]] = ['Applied', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewing', 'Offer Extended', 'Offer Accepted', 'Hired', 'Rejected', 'On Hold'];
 
-// Zod schema for candidate import
+// Enhanced Zod schema for candidate import with new template format
 const importCandidateSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("A valid email is required"),
+  // Basic fields (from template headers)
+  'Name*': z.string().min(1, "Name is required"),
+  'Email*': z.string().email("A valid email is required"),
+  'Phone': z.string().optional().nullable(),
+  'Position ID': z.string().uuid().optional().nullable(),
+  'Recruiter ID': z.string().uuid().optional().nullable(),
+  'Fit Score (0-100)': z.string().optional().nullable(),
+  'Status*': z.string().min(1, "Status is required"),
+  'Application Date': z.string().optional().nullable(),
+  'Location': z.string().optional().nullable(),
+  'Introduction/About Me': z.string().optional().nullable(),
+  'Education (JSON)': z.string().optional().nullable(),
+  'Experience (JSON)': z.string().optional().nullable(),
+  'Skills (JSON)': z.string().optional().nullable(),
+  'Job Suitable (JSON)': z.string().optional().nullable(),
+  'Custom Attributes (JSON)': z.string().optional().nullable(),
+  
+  // Legacy fields for backward compatibility
+  name: z.string().min(1, "Name is required").optional(),
+  email: z.string().email("A valid email is required").optional(),
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
   fitScore: z.number().min(0).max(100).optional(),
-  status: z.string().min(1),
+  status: z.string().min(1).optional(),
   parsedData: z.any().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
   resumePath: z.string().optional().nullable(),
-  // Add other fields as needed
 });
 
 // Schema for array of candidates
 const importCandidatesArraySchema = z.array(importCandidateSchema);
 
-// The overall input for the API is now a single file, not an array of candidates
-// The validation below will apply to each row extracted from the Excel file.
+// Helper function to parse JSON strings safely
+function parseJsonSafely(jsonString: string | null | undefined): any {
+  if (!jsonString || jsonString.trim() === '') return null;
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    throw new Error(`Invalid JSON format: ${jsonString}`);
+  }
+}
+
+// Helper function to parse date safely
+function parseDateSafely(dateString: string | null | undefined): Date | null {
+  if (!dateString || dateString.trim() === '') return null;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date format: ${dateString}. Use YYYY-MM-DD format.`);
+  }
+  return date;
+}
+
+// Helper function to parse fit score safely
+function parseFitScoreSafely(scoreString: string | null | undefined): number | null {
+  if (!scoreString || scoreString.trim() === '') return null;
+  const score = parseFloat(scoreString);
+  if (isNaN(score) || score < 0 || score > 100) {
+    throw new Error(`Invalid fit score: ${scoreString}. Must be a number between 0-100.`);
+  }
+  return score;
+}
+
+// Helper function to transform template data to internal format
+function transformTemplateData(row: any): any {
+  // Handle both new template format and legacy format
+  const name = row['Name*'] || row.name;
+  const email = row['Email*'] || row.email;
+  const phone = row['Phone'] || row.phone;
+  const positionId = row['Position ID'] || row.positionId;
+  const recruiterId = row['Recruiter ID'] || row.recruiterId;
+  const fitScore = parseFitScoreSafely(row['Fit Score (0-100)']) || row.fitScore;
+  const status = row['Status*'] || row.status;
+  const applicationDate = parseDateSafely(row['Application Date']);
+  const location = row['Location'];
+  const introduction = row['Introduction/About Me'];
+  
+  // Parse JSON fields
+  const education = parseJsonSafely(row['Education (JSON)']);
+  const experience = parseJsonSafely(row['Experience (JSON)']);
+  const skills = parseJsonSafely(row['Skills (JSON)']);
+  const jobSuitable = parseJsonSafely(row['Job Suitable (JSON)']);
+  const customAttributes = parseJsonSafely(row['Custom Attributes (JSON)']) || row.custom_attributes;
+
+  // Build parsedData object
+  const parsedData: any = {};
+  if (location || introduction) {
+    parsedData.personal_info = {
+      firstname: name?.split(' ')[0] || '',
+      lastname: name?.split(' ').slice(1).join(' ') || '',
+      location: location || null,
+      introduction_aboutme: introduction || null,
+    };
+  }
+  
+  if (email || phone) {
+    parsedData.contact_info = {
+      email: email || '',
+      phone: phone || null,
+    };
+  }
+
+  if (education) parsedData.education = education;
+  if (experience) parsedData.experience = experience;
+  if (skills) parsedData.skills = skills;
+  if (jobSuitable) parsedData.job_suitable = jobSuitable;
+
+  return {
+    name,
+    email,
+    phone,
+    positionId,
+    recruiterId,
+    fitScore,
+    status,
+    applicationDate,
+    parsedData: Object.keys(parsedData).length > 0 ? parsedData : null,
+    custom_attributes: customAttributes,
+  };
+}
 
 /**
  * @openapi
@@ -115,7 +217,14 @@ export async function POST(request: NextRequest) {
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-    candidates = json;
+    
+    // Filter out instruction rows and transform data
+    candidates = json
+      .filter((row: any) => {
+        // Skip rows that are clearly instructions (no email or name)
+        return row['Email*'] || row.email || (row['Name*'] && row['Email*']);
+      })
+      .map(transformTemplateData);
   } else {
     // Fallback: try to parse JSON body
     let body;
@@ -124,7 +233,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
     }
-    candidates = body;
+    candidates = body.map(transformTemplateData);
   }
 
   // Validate candidates
@@ -157,14 +266,14 @@ export async function POST(request: NextRequest) {
         // Insert candidate
         const insertQuery = `
           INSERT INTO "Candidate" (id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "parsedData", "customAttributes", "resumePath", "applicationDate", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
           RETURNING *;
         `;
         const candidateId = uuidv4();
         await client.query(insertQuery, [
           candidateId, candidate.name, candidate.email, candidate.phone, candidate.positionId, 
           candidate.recruiterId, candidate.fitScore, candidate.status, candidate.parsedData, 
-          candidate.custom_attributes, candidate.resumePath
+          candidate.custom_attributes, candidate.resumePath, candidate.applicationDate || new Date()
         ]);
 
         // Create initial transition record

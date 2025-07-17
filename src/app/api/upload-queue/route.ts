@@ -252,6 +252,16 @@ export async function POST(request: NextRequest) {
       console.error('Failed to dispatch upload queue created webhook:', webhookError);
       // Don't fail the request if webhook fails
     }
+
+    // Publish queue update event for SSE/WS real-time updates
+    try {
+      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
+      if (redisClient) {
+        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+      }
+    } catch (redisError) {
+      console.error('Failed to publish queue_updated event to Redis:', redisError);
+    }
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

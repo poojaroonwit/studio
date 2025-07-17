@@ -394,6 +394,70 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             </CardContent>
           </Card>
 
+          {/* Personal Information from Parsed Data */}
+          {candidate.parsedData && (candidate.parsedData.candidate_info?.personal_info || candidate.parsedData.personal_info) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCircle className="w-5 h-5" />
+                  Personal Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
+                    return (
+                      <>
+                        {personalInfo?.title_honorific && renderField('Title', personalInfo.title_honorific, User)}
+                        {personalInfo?.firstname && renderField('First Name', personalInfo.firstname, User)}
+                        {personalInfo?.lastname && renderField('Last Name', personalInfo.lastname, User)}
+                        {personalInfo?.nickname && renderField('Nickname', personalInfo.nickname, User)}
+                        {personalInfo?.location && renderField('Location', personalInfo.location, MapPin)}
+                        {personalInfo?.introduction_aboutme && (
+                          <div className="md:col-span-2">
+                            <div className="flex items-start gap-2">
+                              <Info className="w-4 h-4 text-muted-foreground mt-0.5" />
+                              <div>
+                                <span className="text-muted-foreground text-sm">About:</span>
+                                <p className="text-sm mt-1">{personalInfo.introduction_aboutme}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Contact Information from Parsed Data */}
+          {candidate.parsedData && (candidate.parsedData.candidate_info?.contact_info || candidate.parsedData.contact_info) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="w-5 h-5" />
+                  Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
+                    return (
+                      <>
+                        {contactInfo?.email && renderField('Email', contactInfo.email, Mail, true, `mailto:${contactInfo.email}`)}
+                        {contactInfo?.phone && renderField('Phone', contactInfo.phone, Phone, true, `tel:${contactInfo.phone}`)}
+                      </>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Parsed Data */}
           {candidate.parsedData && (
             <Card>
@@ -405,94 +469,149 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="experience" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="experience">Experience</TabsTrigger>
                     <TabsTrigger value="education">Education</TabsTrigger>
                     <TabsTrigger value="skills">Skills</TabsTrigger>
+                    <TabsTrigger value="suitable">Job Suitable</TabsTrigger>
                     <TabsTrigger value="matches">Job Matches</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="experience" className="space-y-4">
-                    {('experience' in candidate.parsedData) && candidate.parsedData.experience && Array.isArray(candidate.parsedData.experience) && candidate.parsedData.experience.length > 0 ? (
-                      candidate.parsedData.experience.map((exp: any, index: number) => (
-                        <Card key={index} className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">{exp.position || 'Unknown Position'}</h4>
-                              {exp.period && <span className="text-sm text-muted-foreground">{exp.period}</span>}
+                    {(() => {
+                      const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
+                      return experience && Array.isArray(experience) && experience.length > 0 ? (
+                        experience.map((exp: any, index: number) => (
+                          <Card key={index} className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">{exp.position || 'Unknown Position'}</h4>
+                                {exp.period && <span className="text-sm text-muted-foreground">{exp.period}</span>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{exp.company || 'Unknown Company'}</p>
+                              {exp.description && <p className="text-sm">{exp.description}</p>}
                             </div>
-                            <p className="text-sm text-muted-foreground">{exp.company || 'Unknown Company'}</p>
-                            {exp.description && <p className="text-sm">{exp.description}</p>}
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No experience data available</p>
-                    )}
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No experience data available</p>
+                      );
+                    })()}
                   </TabsContent>
                   
                   <TabsContent value="education" className="space-y-4">
-                    {('education' in candidate.parsedData) && candidate.parsedData.education && Array.isArray(candidate.parsedData.education) && candidate.parsedData.education.length > 0 ? (
-                      candidate.parsedData.education.map((edu: any, index: number) => (
-                        <Card key={index} className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">{edu.university || 'Unknown University'}</h4>
-                              {edu.period && <span className="text-sm text-muted-foreground">{edu.period}</span>}
+                    {(() => {
+                      const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
+                      return education && Array.isArray(education) && education.length > 0 ? (
+                        education.map((edu: any, index: number) => (
+                          <Card key={index} className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">{edu.university || 'Unknown University'}</h4>
+                                {edu.period && <span className="text-sm text-muted-foreground">{edu.period}</span>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{edu.major || edu.field || 'No major specified'}</p>
                             </div>
-                            <p className="text-sm text-muted-foreground">{edu.major || edu.field || 'No major specified'}</p>
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No education data available</p>
-                    )}
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No education data available</p>
+                      );
+                    })()}
                   </TabsContent>
                   
                   <TabsContent value="skills" className="space-y-4">
-                    {('skills' in candidate.parsedData) && candidate.parsedData.skills && Array.isArray(candidate.parsedData.skills) && candidate.parsedData.skills.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {candidate.parsedData.skills.map((skill: any, index: number) => (
-                          <Badge key={index} variant="secondary">
-                            {skill.skill_string || skill.segment_skill || 'Unknown Skill'}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No skills data available</p>
-                    )}
+                    {(() => {
+                      const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
+                      return skills && Array.isArray(skills) && skills.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {skills.map((skill: any, index: number) => (
+                            <Badge key={index} variant="secondary">
+                              {skill.skill_string || skill.segment_skill || 'Unknown Skill'}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No skills data available</p>
+                      );
+                    })()}
+                  </TabsContent>
+                  
+                  <TabsContent value="suitable" className="space-y-4">
+                    {(() => {
+                      const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
+                      return jobSuitable && Array.isArray(jobSuitable) && jobSuitable.length > 0 ? (
+                        jobSuitable.map((suitable: any, index: number) => (
+                          <Card key={index} className="p-4">
+                            <div className="space-y-2">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {suitable.suitable_career && (
+                                  <div>
+                                    <span className="text-sm text-muted-foreground">Career:</span>
+                                    <p className="font-medium">{suitable.suitable_career}</p>
+                                  </div>
+                                )}
+                                {suitable.suitable_job_position && (
+                                  <div>
+                                    <span className="text-sm text-muted-foreground">Position:</span>
+                                    <p className="font-medium">{suitable.suitable_job_position}</p>
+                                  </div>
+                                )}
+                                {suitable.suitable_job_level && (
+                                  <div>
+                                    <span className="text-sm text-muted-foreground">Level:</span>
+                                    <p className="font-medium">{suitable.suitable_job_level}</p>
+                                  </div>
+                                )}
+                                {suitable.suitable_salary_bath_month && (
+                                  <div>
+                                    <span className="text-sm text-muted-foreground">Expected Salary:</span>
+                                    <p className="font-medium">{suitable.suitable_salary_bath_month}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No job suitable data available</p>
+                      );
+                    })()}
                   </TabsContent>
                   
                   <TabsContent value="matches" className="space-y-4">
-                    {('job_matches' in candidate.parsedData) && candidate.parsedData.job_matches && Array.isArray(candidate.parsedData.job_matches) && candidate.parsedData.job_matches.length > 0 ? (
-                      candidate.parsedData.job_matches.map((match: any, index: number) => (
-                        <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
-                              {match.fitScore && (
-                                <Badge variant="outline">{match.fitScore}% Match</Badge>
+                    {(() => {
+                      const jobMatches = candidate.parsedData?.job_matches || [];
+                      return jobMatches && Array.isArray(jobMatches) && jobMatches.length > 0 ? (
+                        jobMatches.map((match: any, index: number) => (
+                          <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                                {match.fitScore && (
+                                  <Badge variant="outline">{match.fitScore}% Match</Badge>
+                                )}
+                              </div>
+                              {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                  <ul className="text-sm space-y-1">
+                                    {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                      <li key={reasonIndex} className="flex items-start gap-2">
+                                        <span className="text-primary text-xs mt-1">•</span>
+                                        <span>{reason}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               )}
                             </div>
-                            {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">Match reasons:</p>
-                                <ul className="text-sm space-y-1">
-                                  {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
-                                    <li key={reasonIndex} className="flex items-start gap-2">
-                                      <span className="text-primary text-xs mt-1">•</span>
-                                      <span>{reason}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No job matches available</p>
-                    )}
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No job matches available</p>
+                      );
+                    })()}
                   </TabsContent>
                 </Tabs>
               </CardContent>

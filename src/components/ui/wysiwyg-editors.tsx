@@ -33,6 +33,7 @@ import {
   FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
 
 // ===== DYNAMIC ICON COMPONENT =====
 interface DynamicIconProps {
@@ -162,10 +163,10 @@ export function TipTapEditor({
       )}
       <div
         ref={editorRef}
-        className="min-h-[200px] p-4 bg-white"
+        className="min-h-[320px] p-4 bg-white"
       />
       {!isLoaded && (
-        <div className="min-h-[200px] p-4 bg-muted/50 animate-pulse rounded-md" />
+        <div className="min-h-[320px] p-4 bg-muted/50 animate-pulse rounded-md" />
       )}
     </div>
   );
@@ -722,6 +723,52 @@ export function CompactEditor({
         onFocus={() => setShowToolbar(true)}
         onBlur={() => setShowToolbar(false)}
         dangerouslySetInnerHTML={{ __html: value }}
+      />
+    </div>
+  );
+} 
+
+// ===== QUILL EDITOR (ReactQuill) =====
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+
+interface QuillEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  readOnly?: boolean;
+  rows?: number; // Number of visible rows (lines)
+}
+
+export function QuillEditor({
+  value,
+  onChange,
+  placeholder = 'Start writing...',
+  className,
+  readOnly = false,
+  rows = 5,
+}: QuillEditorProps) {
+  // Estimate height: 1 row ≈ 32px (default line height + padding)
+  const minHeight = `${rows * 2}px`;
+  return (
+    <div className={className}>
+      <ReactQuill
+        value={value}
+        onChange={onChange}
+        readOnly={readOnly}
+        placeholder={placeholder}
+        style={{ 
+          minHeight, 
+          height: '100%',
+          border: '1px solid transparent',
+          background: 'transparent',
+          borderRadius: '1px',
+          overflow: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'hsl(var(--muted-foreground)) hsl(var(--muted))'
+        }}
+        theme="snow"
       />
     </div>
   );

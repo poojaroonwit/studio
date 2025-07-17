@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 
 // Import the new WYSIWYG editors
-import { TipTapEditor } from '@/components/ui/wysiwyg-editors';
+import { TipTapEditor, QuillEditor } from '@/components/ui/wysiwyg-editors';
 
 const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -129,11 +129,12 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
               name="description"
               control={form.control}
               render={({ field }) => (
-                <TipTapEditor
+                <QuillEditor
                   value={field.value || ''}
                   onChange={field.onChange}
                   placeholder="Enter job description"
-                  className="mt-1 bg-background border border-input rounded-md"
+                  className=""
+                  rows={5}
                 />
               )}
             />

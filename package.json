@@ -22,7 +22,11 @@
     "setup:local": "node scripts/setup-local-dev.js",
     "db:check": "node scripts/check-database-schema.js",
     "build:processor": "tsc --project tsconfig.processor.json",
-    "seed:upload-queue": "node scripts/seed-upload-queue.js"
+    "seed:upload-queue": "node scripts/seed-upload-queue.js",
+    "start:docker": "docker-compose up -d",
+    "start:docker:ps": "powershell -ExecutionPolicy Bypass -File scripts/start-app.ps1",
+    "stop:docker": "docker-compose down",
+    "logs:docker": "docker-compose logs -f"
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.14.0",

@@ -18,15 +18,14 @@ const isAzureADConfigured = () => {
   const hasClientSecret = process.env.AZURE_AD_CLIENT_SECRET && process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value';
   const hasTenantId = process.env.AZURE_AD_TENANT_ID && process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
   
-  console.log('Checking Azure AD configuration:');
-  console.log(' - AZURE_AD_CLIENT_ID:', hasClientId ? 'SET' : 'NOT SET or DEFAULT');
-  console.log(' - AZURE_AD_CLIENT_SECRET:', hasClientSecret ? 'SET' : 'NOT SET or DEFAULT');
-  console.log(' - AZURE_AD_TENANT_ID:', hasTenantId ? 'SET' : 'NOT SET or DEFAULT');
-  
-  const isConfigured = hasClientId && hasClientSecret && hasTenantId;
-  console.log('Azure AD is configured:', isConfigured);
-  
-  return isConfigured;
+  // Commented out to reduce log spam
+  // console.log('Checking Azure AD configuration:');
+  // console.log(' - AZURE_AD_CLIENT_ID:', hasClientId ? 'SET' : 'NOT SET');
+  // console.log(' - AZURE_AD_CLIENT_SECRET:', hasClientSecret ? 'SET' : 'NOT SET');
+  // console.log(' - AZURE_AD_TENANT_ID:', hasTenantId ? 'SET' : 'NOT SET');
+  // console.log('Azure AD is configured:', hasClientId && hasClientSecret && hasTenantId);
+
+  return hasClientId && hasClientSecret && hasTenantId;
 };
 
 /**

@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
+import { HealthCheck } from '@/components/ui/health-check';
 
 
 interface CandidatesPageClientProps {
@@ -100,7 +101,7 @@ export function CandidatesPageClient({
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false initially
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -129,12 +130,15 @@ export function CandidatesPageClient({
   const [bulkTransitionNotes, setBulkTransitionNotes] = useState<string>('');
 
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
 
   const canImportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_IMPORT');
   const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT');
   const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE');
+
+  // Calculate total pages for pagination
+  const totalPages = Math.ceil(total / pageSize);
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
@@ -261,6 +265,14 @@ export function CandidatesPageClient({
     setPermissionError(false);
     setAiMatchedCandidateIds(null);
     setAiSearchReasoning(null);
+    
+    // Add a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.error('Loading timeout: Candidates fetch took too long');
+      setIsLoading(false);
+      setIsFetching(false);
+      setFetchError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
+    }, 30000); // 30 second timeout
     try {
       const query = new URLSearchParams();
       if (currentFilters.name) query.append('name', currentFilters.name);
@@ -335,6 +347,7 @@ export function CandidatesPageClient({
       }
       setAllCandidates([]);
     } finally {
+      clearTimeout(loadingTimeout); // Clear the loading timeout
       setIsLoading(false);
       setIsFetching(false);
       currentRequestRef.current = null; // Clear the current request ref
@@ -377,20 +390,26 @@ export function CandidatesPageClient({
   };
 
   useEffect(() => {
-    // Set initial loading state
-    if (safeInitialCandidates.length === 0 && !initialFetchError) {
+    // Set initial loading state - simplified logic
+    if (sessionStatus === 'loading') {
       setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
-    
-    if (sessionStatus === 'authenticated' && !serverAuthError && !serverPermissionError) {
-      // Use a longer delay to give server time to start up
+    } else if (sessionStatus === 'authenticated') {
+      // Only show loading if we don't have initial data and no errors
+      if (safeInitialCandidates.length === 0 && !initialFetchError && !serverAuthError && !serverPermissionError) {
+        setIsLoading(true);
+      } else {
+        setIsLoading(false);
+      }
+      
+      // Fetch recruiters with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
-      fetchRecruiters(); // Fetch recruiters on client side
-      }, 1000); // Increased delay to 1 second
+        fetchRecruiters();
+      }, 1000);
       
       return () => clearTimeout(timeoutId);
+    } else {
+      // Not authenticated or has errors
+      setIsLoading(false);
     }
   }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, safeInitialCandidates.length, initialFetchError]);
 
@@ -942,42 +961,34 @@ export function CandidatesPageClient({
     setTimeout(() => { fetchPaginatedCandidates(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
   };
 
-  const handleDownloadCsvTemplateGuide = () => {
-    const headers = [
-      "name", "email", "phone", "positionId", "fitScore", "status", "applicationDate",
-      "parsedData.cv_language",
-      "parsedData.personal_info.firstname", "parsedData.personal_info.lastname",
-      "parsedData.personal_info.title_honorific", "parsedData.personal_info.nickname",
-      "parsedData.personal_info.location", "parsedData.personal_info.introduction_aboutme",
-      "parsedData.contact_info.email", "parsedData.contact_info.phone",
-      "parsedData.education", "parsedData.experience", "parsedData.skills",
-      "parsedData.job_suitable", "parsedData.job_matches"
-    ];
-    const exampleRows = [
-      ["Sample Candidate", "candidate@example.com", "555-0000", "position-uuid", "85", "Applied", new Date().toISOString(),
-       "EN", "Sample", "Candidate", "Mr.", "Sam", "City, Country", "Professional summary.",
-       "candidate@example.com", "555-0000",
-       JSON.stringify([{university:"University",major:"Field of Study"}]),
-       JSON.stringify([{company:"Company",position:"Position"}]),
-       JSON.stringify([{segment_skill:"Skills",skill:["Skill 1","Skill 2"]}]),
-       JSON.stringify([{suitable_career:"Career Path"}]),
-       JSON.stringify([{jobTitle:"Job Title",fitScore:85}])
-      ],
-    ];
-     let csvContent = headers.join(',') + '\n';
-    exampleRows.forEach(row => {
-        csvContent += row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
-    });
-    csvContent += "\nNOTE: For array fields, provide a valid JSON string representation of the array of objects, or leave blank (e.g., []).";
-
-    downloadFile(csvContent, 'candidates_template.csv', 'text/csv;charset=utf-8;');
-    toast.success('A CSV template for candidates has been downloaded.');
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch('/api/candidates/import/template');
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'candidate_import_template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Import template downloaded successfully!');
+    } catch (error: any) {
+      toast.error(`Failed to download template: ${error.message}`);
+    }
   };
 
-  const handleExportToCsv = async () => {
+  const handleExportToExcel = async () => {
     setIsLoading(true);
     try {
       const query = new URLSearchParams();
+      query.append('format', 'excel');
       if (filters.name) query.append('name', filters.name);
       if (filters.email) query.append('email', filters.email);
       if (filters.phone) query.append('phone', filters.phone);
@@ -990,6 +1001,37 @@ export function CandidatesPageClient({
       if (filters.applicationDateEnd) query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
       if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
 
+      const response = await fetch(`/api/candidates/export?${query.toString()}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Error exporting candidate data." }));
+        throw new Error(errorData.message);
+      }
+      const blob = await response.blob();
+      const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'candidates_export.xlsx';
+      downloadFile(await blob.text(), filename, blob.type);
+
+      toast.success('Candidates exported as Excel.');
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally { setIsLoading(false); }
+  };
+
+  const handleExportToCsv = async () => {
+    setIsLoading(true);
+    try {
+      const query = new URLSearchParams();
+      query.append('format', 'csv');
+      if (filters.name) query.append('name', filters.name);
+      if (filters.email) query.append('email', filters.email);
+      if (filters.phone) query.append('phone', filters.phone);
+      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) query.append('positionId', filters.selectedPositionIds.join(','));
+      if (filters.selectedStatuses && filters.selectedStatuses.length > 0) query.append('status', filters.selectedStatuses.join(','));
+      if (filters.education) query.append('education', filters.education);
+      if (filters.minFitScore !== undefined) query.append('minFitScore', String(filters.minFitScore));
+      if (filters.maxFitScore !== undefined) query.append('maxFitScore', String(filters.maxFitScore));
+      if (filters.applicationDateStart) query.append('applicationDateStart', filters.applicationDateStart.toISOString());
+      if (filters.applicationDateEnd) query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
+      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
 
       const response = await fetch(`/api/candidates/export?${query.toString()}`);
       if (!response.ok) {
@@ -1107,9 +1149,6 @@ export function CandidatesPageClient({
       setBulkActionType(null);
     }
   };
-
-  // Pagination controls
-  const totalPages = Math.ceil(total / pageSize);
 
   // Add handler for assigning recruiter inline
   const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
@@ -1293,8 +1332,17 @@ export function CandidatesPageClient({
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
                     </DropdownMenuItem>
                   )}
-                  {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadCsvTemplateGuide}> <FileDown className="mr-2 h-4 w-4" /> Download CSV Template </DropdownMenuItem>)}
-                  {canExportCandidates && (<DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) </DropdownMenuItem>)}
+                  {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadTemplate}> <FileDown className="mr-2 h-4 w-4" /> Download Import Template </DropdownMenuItem>)}
+                                      {canExportCandidates && (
+                      <>
+                        <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}> 
+                          <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel) 
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> 
+                          <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) 
+                        </DropdownMenuItem>
+                      </>
+                    )}
               
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1321,9 +1369,23 @@ export function CandidatesPageClient({
             </h3> 
             <p className="text-muted-foreground">Please wait while we fetch the data.</p> 
             {isLoading && (
-              <p className="text-sm text-muted-foreground mt-2">
-                If this takes too long, the server may be starting up. Please wait a moment and refresh.
-              </p>
+              <div className="flex flex-col items-center mt-4 w-full max-w-md">
+                <p className="text-sm text-muted-foreground mb-3">
+                  If this takes too long, the server may be starting up.
+                </p>
+                <div className="w-full mb-3">
+                  <HealthCheck />
+                </div>
+                <Button 
+                  onClick={() => fetchPaginatedCandidates(filters, page, pageSize)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Loader2 className="h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -1346,19 +1408,67 @@ export function CandidatesPageClient({
           />
         )}
 
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>Prev</Button>
-          {Array.from({ length: totalPages }, (_, i) => (
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2">
             <Button
-              key={i + 1}
-              variant={page === i + 1 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPage(i + 1)}
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              aria-label="First page"
             >
-              {i + 1}
+              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 -ml-2" />
             </Button>
-          ))}
-          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page === totalPages}>Next</Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages}
+              aria-label="Last page"
+            >
+              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 -ml-2" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={e => {
+                const newPageSize = Number(e.target.value);
+                setPageSize(newPageSize);
+                setPage(1); // Reset to first page when changing page size
+              }}
+              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
+            >
+              {[10, 20, 50, 100].map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </main>
 

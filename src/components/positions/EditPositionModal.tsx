@@ -30,7 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 
 // Import the new WYSIWYG editors
-import { TipTapEditor } from '@/components/ui/wysiwyg-editors';
+import { TipTapEditor, QuillEditor } from '@/components/ui/wysiwyg-editors';
 
 const editPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -168,17 +168,18 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               <CardHeader>
                 <CardTitle>Job Description</CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
+              <CardContent className="flex-1 flex flex-col p-0">
                 <Controller
                   name="description"
                   control={form.control}
                   render={({ field }) => (
                     <div className="mt-1 flex-1 flex flex-col">
-                      <TipTapEditor
+                      <QuillEditor
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter job description"
-                        className="bg-background flex-1 min-h-[200px]"
+                        className="flex-1"
+                        rows={5}
                       />
                       {form.formState.errors.description && (
                         <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>

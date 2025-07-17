@@ -110,10 +110,15 @@ const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isL
   return (
     <div className="space-y-6">
       {Object.entries(groupedSettings).map(([category, categorySettings]) => (
-        <Card key={category}>
+        <Card
+          key={category}
+          className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+              <span className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                <Settings className="h-5 w-5 text-white" />
+              </span>
               {category} Settings
             </CardTitle>
           </CardHeader>

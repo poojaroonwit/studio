@@ -862,8 +862,9 @@ export default function CandidateDetailPage() {
     if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
       return candidate.educationData;
     }
-    if (candidate.parsedData && Array.isArray((candidate.parsedData as any).education) && (candidate.parsedData as any).education.length > 0) {
-      return (candidate.parsedData as any).education;
+    const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
+    if (Array.isArray(education) && education.length > 0) {
+      return education;
     }
     return [];
   }
@@ -872,8 +873,9 @@ export default function CandidateDetailPage() {
     if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
       return candidate.experienceData;
     }
-    if (candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) && (candidate.parsedData as any).experience.length > 0) {
-      return (candidate.parsedData as any).experience;
+    const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
+    if (Array.isArray(experience) && experience.length > 0) {
+      return experience;
     }
     return [];
   }
@@ -912,20 +914,12 @@ export default function CandidateDetailPage() {
   }
 
   // Use type guards for flat properties on parsedData
-  const personalInfo = (candidate.parsedData && 'personal_info' in candidate.parsedData)
-    ? candidate.parsedData.personal_info
-    : undefined;
-  const contactInfo = (candidate.parsedData && 'contact_info' in candidate.parsedData)
-    ? candidate.parsedData.contact_info
-    : undefined;
+  const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
+  const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
   const education = getEducation(candidate);
   const experience = getExperience(candidate);
-  const skills = (candidate.parsedData && 'skills' in candidate.parsedData)
-    ? candidate.parsedData.skills
-    : undefined;
-  const jobSuitable = (candidate.parsedData && 'job_suitable' in candidate.parsedData)
-    ? candidate.parsedData.job_suitable
-    : undefined;
+  const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
+  const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
   // Use jobMatches from the API response instead of parsedData.job_matches
   const candidateJobMatches = candidate.jobMatches || [];
   
@@ -1163,14 +1157,7 @@ export default function CandidateDetailPage() {
                           <Users className="h-4 w-4 mr-2" />
                           Manage Transitions
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          onClick={handleExportCandidate}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Export to Excel
-                        </Button>
+                        {/* Removed Export to Excel button as per requirements */}
                       </>
                     ) : (
                       <div className="flex gap-2">

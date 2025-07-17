@@ -13,6 +13,7 @@ const Switch = React.forwardRef<
       "peer inline-flex h-6 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-700",
       className
     )}
+    style={{ borderRadius: '9999px' }}
     {...props}
     ref={ref}
   >
@@ -20,6 +21,7 @@ const Switch = React.forwardRef<
       className={cn(
         "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
       )}
+      style={{ borderRadius: '9999px' }}
     />
   </SwitchPrimitives.Root>
 ))
@@ -63,6 +65,7 @@ const ThreeStateSwitch = React.forwardRef<
         !isChecked && !isIndeterminate && "data-[state=unchecked]:bg-gray-200 dark:data-[state=unchecked]:bg-gray-700",
         className
       )}
+      style={{ borderRadius: '9999px' }}
       {...props}
     >
       <SwitchPrimitives.Thumb
@@ -72,6 +75,7 @@ const ThreeStateSwitch = React.forwardRef<
           isIndeterminate && "data-[state=checked]:translate-x-2.5",
           !isChecked && !isIndeterminate && "data-[state=unchecked]:translate-x-0"
         )}
+        style={{ borderRadius: '9999px' }}
       />
     </SwitchPrimitives.Root>
   );

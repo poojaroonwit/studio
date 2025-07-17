@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X } from "lucide-react";
+import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
@@ -18,19 +18,20 @@ import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Bar } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  ArcElement, // <-- add this
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ChartDataLabels);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend, ChartDataLabels);
 
 
 
@@ -236,6 +237,18 @@ export default function DashboardPageClient({
       } catch { return false; }
     }).length;
   }, [allCandidates]);
+
+  const rejectedThisMonthAdmin = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const now = new Date();
+    return safeAllCandidates.filter((c: Candidate) => {
+      if (c.status !== 'Rejected' || !c.applicationDate || typeof c.applicationDate !== 'string') return false;
+      try {
+        const appDate = parseISO(c.applicationDate);
+        return appDate.getMonth() === now.getMonth() && appDate.getFullYear() === now.getFullYear();
+      } catch { return false; }
+    }).length;
+  }, [allCandidates]);
   const totalActiveRecruiters = useMemo(() => {
     const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
     return safeAllUsers.filter((u: UserProfile) => u.role === 'Recruiter').length;
@@ -316,6 +329,34 @@ export default function DashboardPageClient({
     );
   }, [allCandidates]);
 
+  // Calculate Average Time to Hire (in days)
+  const averageTimeToHire = useMemo(() => {
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    const hiredCandidates = safeAllCandidates.filter((c: Candidate) => 
+      c.status === 'Hired' && c.applicationDate && typeof c.applicationDate === 'string'
+    );
+
+    if (hiredCandidates.length === 0) return 0;
+
+    const totalDays = hiredCandidates.reduce((total, candidate) => {
+      try {
+        const applicationDate = parseISO(candidate.applicationDate);
+        // Find the last transition to 'Hired'
+        const hiredTransition = candidate.transitionHistory
+          .filter(t => t.stage === 'Hired')
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        const hireDate = hiredTransition ? parseISO(hiredTransition.date) : null;
+        if (!hireDate) return total;
+        const daysDiff = Math.ceil((hireDate.getTime() - applicationDate.getTime()) / (1000 * 60 * 60 * 24));
+        return total + Math.max(0, daysDiff); // Ensure non-negative values
+      } catch {
+        return total;
+      }
+    }, 0);
+
+    return Math.round(totalDays / hiredCandidates.length);
+  }, [allCandidates]);
+
   const highPriorityCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => 
@@ -374,6 +415,42 @@ export default function DashboardPageClient({
     });
   }, [myAssignedCandidates]);
 
+  // On-process candidates (not in BACKLOG_EXCLUSION_STATUSES)
+  const onProcessCandidates = useMemo(() => {
+    return allCandidates.filter(
+      (c) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)
+    );
+  }, [allCandidates]);
+
+  // Pie chart: On-process by stage
+  const onProcessByStage = useMemo(() => {
+    const stageCounts: Record<string, number> = {};
+    onProcessCandidates.forEach((c) => {
+      stageCounts[c.status] = (stageCounts[c.status] || 0) + 1;
+    });
+    return stageCounts;
+  }, [onProcessCandidates]);
+
+  // Bar chart: On-process by recruiter
+  const onProcessByRecruiter = useMemo(() => {
+    const recruiterCounts: Record<string, number> = {};
+    onProcessCandidates.forEach((c) => {
+      if (c.recruiterId) {
+        recruiterCounts[c.recruiterId] = (recruiterCounts[c.recruiterId] || 0) + 1;
+      }
+    });
+    return recruiterCounts;
+  }, [onProcessCandidates]);
+
+  // Map recruiterId to name
+  const recruiterIdToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    allUsers.forEach((u) => {
+      map[u.id] = u.name || u.email || u.id;
+    });
+    return map;
+  }, [allUsers]);
+
   if (authError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You need to be signed in to view the dashboard."}</p> <Button onClick={() => signIn(undefined, { callbackUrl: window.location.pathname })} className="btn-hover-primary-gradient">Sign In</Button> </div> );
   if (permissionError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have permission to view this page."}</p> <Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Home</Button> </div> );
   if (fetchError && !isLoading && initialFetchError) return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center"> <ServerCrash className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Data Loading Error</h2> <p className="text-muted-foreground mb-6 max-w-md"> Could not load dashboard data: {fetchError} </p> <Button onClick={fetchDataClientSide} className="btn-hover-primary-gradient">Try Again</Button> </div> );
@@ -383,40 +460,279 @@ export default function DashboardPageClient({
   // Unified Dashboard - Show all metrics to everyone
   return (
     <div className="space-y-8 p-6">
-      {/* Dashboard Header with Clear All Button */}
+    
+      {/* Dashboard Header */}
+     
+
+      {/* Section 1: Key Statics - Row 1 */}
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+            
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Key Statics</h2>
+              <p className="text-sm text-muted-foreground mt-1">Real-time metrics and insights</p>
+            </div>
+          </div>
         <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-primary rounded-full"></div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          {isLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-muted-foreground">Live Data</span>
         </div>
-        {/* Removed Clear All Filters button as per request */}
       </div>
 
-      {/* Section 1: Key Performance Indicators */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-primary rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Key Performance Indicators</h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {[
-            { title: "Total Active Candidates", value: totalActiveCandidates, icon: Users, color: "text-primary", bgColor: "bg-primary/10" },
-            { title: "Open Positions", value: totalOpenPositions, icon: Briefcase, color: "text-accent", bgColor: "bg-accent/10" },
-            { title: "Hired This Month", value: hiredThisMonthAdmin, icon: CheckCircle2, color: "text-green-500", bgColor: "bg-green-500/10" },
-            { title: "Active Recruiters", value: totalActiveRecruiters, icon: Users2, color: "text-purple-500", bgColor: "bg-purple-500/10"},
-            { title: "Unassigned Candidates", value: unassignedCandidatesCount, icon: UserRoundSearch, color: "text-orange-500", bgColor: "bg-orange-500/10"}
-        ].map(stat => (
-            <Card key={stat.title} className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-4">
+          {[ // Row 1 KPI cards array
+            { // This Week's Applications
+              title: "This Week's Applications",
+              value: recentApplications.length,
+              icon: CalendarIcon,
+              color: "text-blue-500 dark:text-blue-400",
+              bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
+              borderColor: "border-blue-200 dark:border-blue-800",
+              description: "New candidates this week",
+              button: {
+                label: "View All",
+                onClick: () => {
+                  const today = new Date();
+                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                  const query = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)} applicationDateEnd:${today.toISOString().slice(0, 10)}`;
+                  router.push('/candidates?query=' + encodeURIComponent(query));
+                }
+              }
+            },
+            { 
+              title: "Hired This Month", 
+              value: hiredThisMonthAdmin, 
+              icon: CheckCircle2, 
+              color: "text-green-500 dark:text-green-400", 
+              bgColor: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50",
+              borderColor: "border-green-200 dark:border-green-800",
+              description: "Successful placements",
+              button: {
+                label: "View All",
+                onClick: () => {
+                  const now = new Date();
+                  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  const query = `status:Hired applicationDateStart:${monthStart.toISOString().slice(0, 10)} applicationDateEnd:${monthEnd.toISOString().slice(0, 10)}`;
+                  router.push('/candidates?query=' + encodeURIComponent(query));
+                }
+              }
+            },
+            { 
+              title: "Rejected This Month", 
+              value: rejectedThisMonthAdmin, 
+              icon: XCircle, 
+              color: "text-red-500 dark:text-red-400", 
+              bgColor: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50",
+              borderColor: "border-red-200 dark:border-red-800",
+              description: "Declined candidates",
+              button: {
+                label: "View All",
+                onClick: () => {
+                  const now = new Date();
+                  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  const query = `status:Rejected applicationDateStart:${monthStart.toISOString().slice(0, 10)} applicationDateEnd:${monthEnd.toISOString().slice(0, 10)}`;
+                  router.push('/candidates?query=' + encodeURIComponent(query));
+                }
+              }
+            },
+            { 
+              title: "Avg Time to Hire", 
+              value: averageTimeToHire, 
+              icon: Timer, 
+              color: "text-teal-500 dark:text-teal-400", 
+              bgColor: "bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/50 dark:to-teal-900/50",
+              borderColor: "border-teal-200 dark:border-teal-800",
+              description: "Days to hire",
+              button: {
+                label: "View All",
+                onClick: () => {
+                  const query = `status:Hired`;
+                  router.push('/candidates?query=' + encodeURIComponent(query));
+                }
+              }
+            }
+          ].map((stat, index) => (
+            <Card 
+              key={stat.title} 
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm shadow-lg`}
+              style={{
+                animationDelay: `${index * 100}ms`
+              }}
+            >
+              {/* Always show the gradient background as active */}
+              <div className={`absolute inset-0 ${stat.bgColor} opacity-100 transition-opacity duration-300`}></div>
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                    {stat.title}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground/70">{stat.description}</p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
                 </div>
             </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">
-                  {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : stat.value}
+              <CardContent className="relative">
+                <div className="flex items-baseline space-x-2 justify-between">
+                  <div className="flex items-baseline space-x-2">
+                    <div className="text-3xl font-bold text-foreground group-hover:text-foreground transition-colors">
+                      {isLoading ? (
+        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <span className="text-lg">...</span>
+        </div>
+                      ) : (
+                        stat.value.toLocaleString()
+                      )}
+                    </div>
+                    {!isLoading && (
+                      <div className="text-xs text-muted-foreground">
+                        {stat.title === "Hired This Month" || stat.title === "Rejected This Month" ? "this month" : 
+                          stat.title === "Avg Time to Hire" ? "days" : "total"}
+                      </div>
+                    )}
+                  </div>
+                  {stat.button && (
+                    <button 
+                      className="text-xs text-muted-foreground transition-colors px-2 py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-1 group"
+                      onClick={stat.button.onClick}
+                    >
+                      <span>{stat.button.label}</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  )}
+                </div>
+              </CardContent>
+          </Card>
+        ))}
+        </div>
+      </div>
+
+
+
+      {/* Section 2: Recruiter Metrics - Row 2 */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Recruiter</h2>
+              <p className="text-sm text-muted-foreground mt-1">Recruitment pipeline metrics</p>
+            </div>
+          </div>
+        <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-muted-foreground">Pipeline</span>
+        </div>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[ // Row 2 Recruiter cards array
+            { 
+              title: "Active Candidates", 
+              value: totalActiveCandidates, 
+              icon: Users, 
+              color: "text-blue-500 dark:text-blue-400", 
+              bgColor: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50",
+              borderColor: "border-blue-200 dark:border-blue-800",
+              description: "On process candidates",
+              button: {
+                label: "View All",
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Active'))
+              }
+            },
+            { 
+              title: "Open Positions", 
+              value: totalOpenPositions, 
+              icon: Briefcase, 
+              color: "text-emerald-500 dark:text-emerald-400", 
+              bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50",
+              borderColor: "border-emerald-200 dark:border-emerald-800",
+              description: "Available roles",
+              button: {
+                label: "View All",
+                onClick: () => router.push('/positions?query=' + encodeURIComponent('status:Open'))
+              }
+            },
+            { // High Priority
+              title: "High Priority",
+              value: highPriorityCandidates.length,
+              icon: UserRoundSearch,
+              color: "text-yellow-500 dark:text-yellow-400", 
+              bgColor: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50",
+              borderColor: "border-yellow-200 dark:border-yellow-800",
+              description: "Need attention",
+              button: {
+                label: "View All",
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100'))
+              }
+            },
+            { 
+              title: "Unassigned", 
+              value: unassignedCandidatesCount, 
+              icon: UserRoundSearch, 
+              color: "text-orange-500 dark:text-orange-400", 
+              bgColor: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50",
+              borderColor: "border-orange-200 dark:border-orange-800",
+              description: "Need attention",
+              button: {
+                label: "View All",
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('assignedRecruiterId:null'))
+              }
+            }
+          ].map((stat, index) => (
+            <Card 
+              key={stat.title} 
+              className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm`}
+              style={{
+                animationDelay: `${index * 100}ms`
+              }}
+            >
+              <div className={`absolute inset-0 ${stat.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+                <div className="space-y-1">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                    {stat.title}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground/70">{stat.description}</p>
+                </div>
+                <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
+                </div>
+            </CardHeader>
+              <CardContent className="relative">
+                <div className="flex items-baseline space-x-2 justify-between">
+                  <div className="flex items-baseline space-x-2">
+                    <div className="text-3xl font-bold text-foreground group-hover:text-foreground transition-colors">
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <span className="text-lg">...</span>
+                        </div>
+                      ) : (
+                        stat.value.toLocaleString()
+                      )}
+                    </div>
+                    {!isLoading && (
+                      <div className="text-xs text-muted-foreground">
+                        {stat.title === "Hired This Month" ? "this month" : 
+                          stat.title === "Avg Time to Hire" ? "days" : "total"}
+                      </div>
+                    )}
+                  </div>
+                  {stat.button && (
+                    <button 
+                      className="text-xs text-muted-foreground transition-colors px-2 py-1.5 rounded-md border border-transparent hover:border-gray-300 hover:bg-muted/40 hover:text-foreground focus:outline-none flex items-center space-x-1 group"
+                      onClick={stat.button.onClick}
+                    >
+                      <span>{stat.button.label}</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  )}
                 </div>
               </CardContent>
           </Card>
@@ -426,50 +742,273 @@ export default function DashboardPageClient({
 
       {/* Section 2: Recruiter Performance (if applicable) */}
       {session?.user?.role === 'Recruiter' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">My Performance</h2>
+                <p className="text-sm text-muted-foreground mt-1">Personal recruitment metrics</p>
+              </div>
+            </div>
           <div className="flex items-center space-x-2">
-            <div className="h-6 w-1 bg-purple-500 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-foreground">My Performance</h2>
+              <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-muted-foreground">Personal</span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">My Active Candidates</CardTitle>
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Users className="h-5 w-5 text-purple-500" />
+                </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              { 
+                title: "Active Candidates", 
+                value: myActiveCandidatesList.length, 
+                icon: Users, 
+                color: "text-purple-600", 
+                bgColor: "bg-gradient-to-br from-purple-50 to-purple-100",
+                borderColor: "border-purple-200",
+                description: "In my pipeline",
+                button: {
+                  label: "View All",
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Active`)}`)
+                }
+              },
+              { 
+                title: "In Interview", 
+                value: myCandidatesInInterviewCount, 
+                icon: UserRoundSearch, 
+                color: "text-indigo-600", 
+                bgColor: "bg-gradient-to-br from-indigo-50 to-indigo-100",
+                borderColor: "border-indigo-200",
+                description: "Currently interviewing",
+                button: {
+                  label: "View All",
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Interview`)}`)
+                }
+              },
+              { 
+                title: "New Today", 
+                value: newCandidatesAssignedToMeTodayList.length, 
+                icon: CalendarClock, 
+                color: "text-cyan-600", 
+                bgColor: "bg-gradient-to-br from-cyan-50 to-cyan-100",
+                borderColor: "border-cyan-200",
+                description: "Assigned today",
+                button: {
+                  label: "View All",
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} applicationDate:${new Date().toISOString().slice(0, 10)}`)}`)
+                }
+              }
+            ].map((stat, index) => (
+              <Card 
+                key={stat.title} 
+                className={`group relative overflow-hidden border-2 ${stat.borderColor} hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-white/50 backdrop-blur-sm`}
+                style={{
+                  animationDelay: `${index * 150}ms`
+                }}
+              >
+                <div className={`absolute inset-0 ${stat.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+                  <div className="space-y-1">
+                    <CardTitle className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                      {stat.title}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground/70">{stat.description}</p>
+                </div>
+                  <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm`}>
+                    <stat.icon className={`h-6 w-6 ${stat.color} group-hover:drop-shadow-sm`} />
                 </div>
               </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-foreground">{myActiveCandidatesList.length}</div></CardContent>
+                <CardContent className="relative">
+                  <div className="flex items-baseline space-x-2 justify-between">
+                    <div className="flex items-baseline space-x-2">
+                      <div className="text-3xl font-bold text-foreground group-hover:text-gray-900 transition-colors">
+                        {isLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            <span className="text-lg">...</span>
+                          </div>
+                        ) : (
+                          stat.value.toLocaleString()
+                        )}
+                      </div>
+                      {!isLoading && (
+                        <div className="text-xs text-muted-foreground">
+                          candidates
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                </CardContent>
             </Card>
-            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">My Candidates in Interview</CardTitle>
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <UserRoundSearch className="h-5 w-5 text-purple-500" />
+            ))}
                 </div>
-              </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-foreground">{myCandidatesInInterviewCount}</div></CardContent>
-            </Card>
-            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">New Candidates Today (Assigned)</CardTitle>
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <CalendarClock className="h-5 w-5 text-purple-500" />
-                </div>
-              </CardHeader>
-              <CardContent><div className="text-2xl font-bold text-foreground">{newCandidatesAssignedToMeTodayList.length}</div></CardContent>
-        </Card>
-          </div>
         </div>
       )}
 
-      {/* Section 3: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-blue-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Candidate Scoring Analysis</h2>
+      {/* Section 3: Pipeline Analytics - Charts */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Pipeline Analytics</h2>
+              <p className="text-sm text-muted-foreground mt-1">Recruitment pipeline metrics</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-muted-foreground">Analytics</span>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-2">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pie Chart: On-process by Stage */}
+          <Card className="group relative overflow-hidden border-2 border-purple-200 dark:border-purple-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Stage</CardTitle>
+              <CardDescription className="text-muted-foreground/70 text-xs">Current pipeline distribution</CardDescription>
+              </CardHeader>
+            <CardContent className="relative">
+              <div className="h-48 flex items-center justify-center">
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+                ) : (
+                  <Pie
+                    data={{
+                      labels: Object.keys(onProcessByStage),
+                      datasets: [
+                        {
+                          data: Object.values(onProcessByStage),
+                          backgroundColor: [
+                            'rgba(147, 51, 234, 0.8)',  // purple-600
+                            'rgba(59, 130, 246, 0.8)',  // blue-600
+                            'rgba(34, 197, 94, 0.8)',   // green-600
+                            'rgba(249, 115, 22, 0.8)',  // orange-600
+                            'rgba(239, 68, 68, 0.8)',   // red-600
+                            'rgba(168, 85, 247, 0.8)',  // violet-600
+                            'rgba(236, 72, 153, 0.8)',  // pink-600
+                            'rgba(14, 165, 233, 0.8)',  // sky-600
+                            'rgba(245, 158, 11, 0.8)',  // amber-600
+                            'rgba(16, 185, 129, 0.8)',  // emerald-600
+                          ],
+                          borderWidth: 2,
+                          borderColor: 'rgba(255, 255, 255, 0.8)',
+                        },
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        legend: {
+                          display: true,
+                          position: 'right',
+                          labels: { 
+                            color: 'rgb(100, 116, 139)', 
+                            font: { size: 13 },
+                            usePointStyle: true,
+                            padding: 15
+                          },
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          titleColor: 'white',
+                          bodyColor: 'white',
+                          borderColor: 'rgba(147, 51, 234, 0.3)',
+                          borderWidth: 1,
+                        }
+                      },
+                      responsive: true,
+                      maintainAspectRatio: false,
+                    }}
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bar Chart: On-process by Recruiter */}
+          <Card className="group relative overflow-hidden border-2 border-purple-200 dark:border-purple-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <CardTitle className="text-base font-semibold text-foreground group-hover:text-foreground transition-colors">On-Process Candidates by Recruiter</CardTitle>
+              <CardDescription className="text-muted-foreground/70 text-xs">Current recruiter workload</CardDescription>
+              </CardHeader>
+            <CardContent className="relative">
+              <div className="h-48 flex items-center justify-center">
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <Bar
+                    data={{
+                      labels: Object.keys(onProcessByRecruiter).map((id) => recruiterIdToName[id] || id),
+                      datasets: [
+                        {
+                          label: 'Candidates',
+                          data: Object.values(onProcessByRecruiter),
+                          backgroundColor: 'rgba(147, 51, 234, 0.8)', // purple-600
+                          borderRadius: 8,
+                          borderSkipped: false,
+                          barPercentage: 0.7,
+                          borderColor: 'rgba(147, 51, 234, 0.3)',
+                          borderWidth: 1,
+                        },
+                      ],
+                    }}
+                    options={{
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          titleColor: 'white',
+                          bodyColor: 'white',
+                          borderColor: 'rgba(147, 51, 234, 0.3)',
+                          borderWidth: 1,
+                        }
+                      },
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        x: {
+                          grid: { color: 'rgba(100,116,139,0.1)' },
+                          ticks: { color: 'rgb(100, 116, 139)', font: { size: 13 } },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: { color: 'rgba(100,116,139,0.1)' },
+                          ticks: { color: 'rgb(100, 116, 139)', font: { size: 13 } },
+                        },
+                      },
+                    }}
+                  />
+                )}
+              </div>
+            </CardContent>
+        </Card>
+          </div>
+        </div>
+
+      {/* Section 4: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Candidate Scoring Analysis</h2>
+              <p className="text-sm text-muted-foreground mt-1">Distribution by fit score quality</p>
+            </div>
+          </div>
+        <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-muted-foreground">Interactive</span>
+        </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
         {/* Sort score ranges by count descending */}
         {(() => {
           const sortedScoreRanges = [...candidateScoreRanges].sort((b, a) => b.count - a.count);
@@ -561,21 +1100,21 @@ export default function DashboardPageClient({
       </div>
 
 
-      {/* Section 5: Unassigned Candidates */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="h-6 w-1 bg-orange-500 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-foreground">Unassigned Candidates</h2>
-          </div>
-          <Link href="/candidates?query=recruiterId:unassigned" passHref>
-            <Button variant="outline" size="sm">
-              View All ({unassignedCandidatesCount})
-            </Button>
-          </Link>
-        </div>
+      {/* Section 5: Unassigned Candidates and Positions Needing Applicants */}
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* Unassigned Candidates */}
         <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-          <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <UserRoundSearch className="mr-2 h-5 w-5 text-orange-500" />
+                Unassigned Candidates ({unassignedCandidatesCount})
+              </CardTitle>
+              <CardDescription>
+                Candidates needing recruiter assignment
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -588,7 +1127,6 @@ export default function DashboardPageClient({
                     <TableHead>Position</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Fit Score</TableHead>
-                    <TableHead>Applied</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -608,7 +1146,6 @@ export default function DashboardPageClient({
                         <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
                       </TableCell>
                       <TableCell className={getScoreColor(candidate.fitScore)}>{formatScoreWithGrade(candidate.fitScore)}</TableCell>
-                      <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -619,68 +1156,6 @@ export default function DashboardPageClient({
                 <p className="text-sm text-muted-foreground">All candidates have been assigned to recruiters!</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Section 6: Recent Activity - Tables */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-orange-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
-        </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {/* Unassigned Candidates */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Users className="mr-2 h-5 w-5 text-red-500" />
-                Unassigned Candidates ({unassignedCandidatesCount})
-              </CardTitle>
-              <CardDescription>
-                Candidates not assigned to any recruiter
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{unassignedCandidatesCount}</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('recruiterId:unassigned'))}
-                >
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* New Candidates Today */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <UserPlus className="mr-2 h-5 w-5 text-orange-500" /> 
-                New Candidates Today ({newCandidatesTodayAdminList.length})
-              </CardTitle>
-              <CardDescription>
-                Candidates who applied today
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{newCandidatesTodayAdminList.length}</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date().toISOString().slice(0, 10);
-                    const query = `applicationDateStart:${today} applicationDateEnd:${today}`;
-                    router.push('/candidates?query=' + encodeURIComponent(query));
-                  }}
-                >
-                  View All
-                </Button>
-                </div>
             </CardContent>
           </Card>
 
@@ -708,7 +1183,6 @@ export default function DashboardPageClient({
                       <TableHead>Department</TableHead>
                       <TableHead>Level</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead></TableHead> {/* For View button */}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -723,11 +1197,6 @@ export default function DashboardPageClient({
                         <TableCell>{position.positionLevel || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-green-600 border-green-600">Open</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Link href={`/candidates?query=${encodeURIComponent(`positionId:${position.id}`)}`} passHref>
-                            <Button variant="outline" size="sm">View</Button>
-                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -853,271 +1322,6 @@ export default function DashboardPageClient({
           </div>
         </div>
       )}
-
-      {/* Section 8: Status-based Statistics */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-purple-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Status Overview</h2>
         </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {/* High Priority Candidates */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <AlertTriangle className="mr-2 h-5 w-5 text-orange-500" />
-                High Priority Candidates ({highPriorityCandidates.length})
-              </CardTitle>
-              <CardDescription>Candidates with high fit scores (&gt;80) in active stages.</CardDescription>
-              {/* View button for high priority candidates */}
-              <Link href={`/candidates?query=${encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100 status:Applied,Screening,Interview Scheduled,Interviewing')}`} passHref>
-                <Button variant="outline" size="sm" className="mt-2">View High Priority</Button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {highPriorityCandidates.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Fit Score</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {highPriorityCandidates.slice(0, 5).map(candidate => (
-                      <TableRow key={candidate.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                            <Avatar size="sm" className="border border-border">
-                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                              <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{formatCandidateName(candidate)}</span>
-                          </Link>
-                        </TableCell>
-                        <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-green-600 font-semibold">{formatScoreWithGrade(candidate.fitScore)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
-                  <p className="text-sm text-muted-foreground">No high priority candidates at the moment.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      );}
 
-          {/* Recent Applications */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Clock className="mr-2 h-5 w-5 text-blue-500" />
-                Recent Applications ({recentApplications.length})
-              </CardTitle>
-              <CardDescription>Candidates who applied in the last 7 days.</CardDescription>
-              {/* View button for recent applications */}
-              <Link href={`/candidates?query=${encodeURIComponent(`applicationDateStart:${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)} applicationDateEnd:${new Date().toISOString().slice(0, 10)}`)}`} passHref>
-                <Button variant="outline" size="sm" className="mt-2">View Recent</Button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : recentApplications.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Candidate</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Applied</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentApplications.slice(0, 5).map(candidate => (
-                      <TableRow key={candidate.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                            <Avatar size="sm" className="border border-border">
-                              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                              <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{formatCandidateName(candidate)}</span>
-                          </Link>
-                        </TableCell>
-                        <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">{candidate.status}</Badge>
-                        </TableCell>
-                        <TableCell>{candidate.applicationDate ? new Date(candidate.applicationDate).toLocaleDateString() : 'N/A'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <Clock className="h-12 w-12 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground">No recent applications.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Section 9: Analytics Chart */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-indigo-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Analytics Overview</h2>
-        </div>
-        {isLoading ? (
-        <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle>Candidates per Position</CardTitle>
-              <CardDescription>Overview of candidate distribution across open positions.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-        ) : (
-          <CandidatesPerPositionChart candidates={allCandidates} positions={openPositions} />
-        )}
-      </div>
-
-      {/* Section 8: High Priority Candidates */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-green-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">High Priority Candidates</h2>
-        </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {/* High Fit Score Candidates */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Star className="mr-2 h-5 w-5 text-yellow-500" />
-                High Fit Score (80+)
-              </CardTitle>
-              <CardDescription>
-                Candidates with excellent fit scores
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">High Score</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100'))}
-                >
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Active Stage Candidates */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Target className="mr-2 h-5 w-5 text-purple-500" />
-                Active Stages
-              </CardTitle>
-              <CardDescription>
-                Candidates in active recruitment stages
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">Active</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Interview Scheduled,Interviewing'))}
-                >
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Section 9: Recent Activity */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <div className="h-6 w-1 bg-blue-500 rounded-full"></div>
-          <h2 className="text-xl font-semibold text-foreground">Recent Activity</h2>
-        </div>
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          {/* This Week's Applications */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <CalendarIcon className="mr-2 h-5 w-5 text-blue-500" />
-                This Week's Applications
-              </CardTitle>
-              <CardDescription>
-                Candidates who applied this week
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">This Week</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    const today = new Date();
-                    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    const query = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)} applicationDateEnd:${today.toISOString().slice(0, 10)}`;
-                    router.push('/candidates?query=' + encodeURIComponent(query));
-                  }}
-                >
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Engineering Candidates */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Code className="mr-2 h-5 w-5 text-green-500" />
-                Engineering Candidates
-              </CardTitle>
-              <CardDescription>
-                Candidates with engineering background
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">Engineering</div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push('/candidates?query=' + encodeURIComponent('education:Engineering,Computer Science,Software'))}
-                >
-                  View All
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-}

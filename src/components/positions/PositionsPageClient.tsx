@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2 } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -45,43 +45,53 @@ export default function PositionsPageClient() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const { data: session } = useSession();
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
 
-  // Fetch positions
+  // Calculate total pages for pagination
+  const totalPages = Math.ceil(total / pageSize);
+
+  // Fetch positions with pagination
   const fetchPositions = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/positions');
+      const query = new URLSearchParams();
+      if (searchTerm) query.append('title', searchTerm);
+      if (statusFilter !== 'all') query.append('isOpen', statusFilter === 'open' ? 'true' : 'false');
+      if (departmentFilter !== 'all') query.append('department', departmentFilter);
+      query.append('limit', String(pageSize));
+      query.append('offset', String((page - 1) * pageSize));
+      
+      const response = await fetch(`/api/positions?${query.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
       const data = await response.json();
       setPositions(data.data || []);
+      setTotal(data.total || 0);
     } catch (error) {
       toast.error('Failed to load positions');
       console.error('Error fetching positions:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
 
   useEffect(() => {
     fetchPositions();
   }, [fetchPositions]);
 
-  // Filter positions
-  const filteredPositions = positions.filter(position => {
-    const matchesSearch = (position.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (position.department || "").toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'open' && position.isOpen) ||
-                         (statusFilter === 'closed' && !position.isOpen);
-    const matchesDepartment = departmentFilter === 'all' || position.department === departmentFilter;
-    
-    return matchesSearch && matchesStatus && matchesDepartment;
-  });
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, departmentFilter]);
+
+  // Use positions directly since filtering is now done server-side
+  const filteredPositions = positions;
 
   // Get unique departments for filter
   const departments = Array.from(new Set(positions.map(p => p.department || ""))).sort();
@@ -152,8 +162,8 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Stats
-  const totalPositions = positions.length;
+  // Stats - Note: These are now per-page stats since we're using pagination
+  const totalPositions = total; // Use total from API
   const openPositions = positions.filter(p => p.isOpen).length;
   const closedPositions = positions.filter(p => !p.isOpen).length;
 
@@ -198,39 +208,52 @@ export default function PositionsPageClient() {
     <div className="space-y-6 p-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        {/* Total Positions Card - Blue */}
+        <Card
+          className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Positions</p>
-                <p className="text-2xl font-bold">{totalPositions}</p>
+                <p className="text-2xl font-bold text-foreground">{totalPositions}</p>
               </div>
-              <Briefcase className="h-8 w-8 text-primary" />
+              <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                <Briefcase className="h-5 w-5 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        
+        {/* Open Positions Card - Green */}
+        <Card
+          className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Open Positions</p>
-                <p className="text-2xl font-bold text-green-600">{openPositions}</p>
+                <p className="text-2xl font-bold text-foreground">{openPositions}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-green-600 text-sm font-bold">O</span>
+              <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                <span className="text-white text-sm font-bold">O</span>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        
+        {/* Closed Positions Card - Gray */}
+        <Card
+          className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
+        >
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Closed Positions</p>
-                <p className="text-2xl font-bold text-muted-foreground">{closedPositions}</p>
+                <p className="text-2xl font-bold text-foreground">{closedPositions}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-muted-foreground text-sm font-bold">C</span>
+              <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                <span className="text-white text-sm font-bold">C</span>
               </div>
             </div>
           </CardContent>
@@ -283,7 +306,7 @@ export default function PositionsPageClient() {
         )}
       </div>
       {/* Positions List */}
-      {filteredPositions.length === 0 ? (
+      {total === 0 ? (
         <div className="text-center py-12">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No positions found</h3>
@@ -387,6 +410,72 @@ export default function PositionsPageClient() {
           </Table>
         </div>
       )}
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              aria-label="First page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 -ml-2" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(page - 1)}
+              disabled={page === 1}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(page + 1)}
+              disabled={page === totalPages}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPage(totalPages)}
+              disabled={page === totalPages}
+              aria-label="Last page"
+            >
+              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 -ml-2" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={e => {
+                const newPageSize = Number(e.target.value);
+                setPageSize(newPageSize);
+                setPage(1); // Reset to first page when changing page size
+              }}
+              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
+            >
+              {[10, 20, 50, 100].map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+      
       {/* Modals */}
       {canManagePositions && (
         <AddPositionModal 

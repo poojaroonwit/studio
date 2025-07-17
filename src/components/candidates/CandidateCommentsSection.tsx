@@ -49,9 +49,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Debug logging
-  console.log('CandidateCommentsSection props:', { candidateId, initialComments, isEditing });
-  console.log('Current comments state:', comments);
   // Drag-and-drop and file state
   const [files, setFiles] = useState<File[]>([]);
   const [labels, setLabels] = useState<string[]>([]);

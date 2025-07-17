@@ -509,6 +509,11 @@ body {
   input[type="reset"] {
     border-radius: 0.375rem !important;
   }
+  
+  /* Exception for switch components - they should be round */
+  [role="switch"] {
+    border-radius: 9999px !important;
+  }
 
   /* Ensure inputs have rounded corners */
   input, textarea, select {
@@ -575,6 +580,48 @@ body {
   /* Ensure rounded-sm class works */
   .rounded-sm {
     border-radius: 0.125rem !important;
+  }
+
+  /* Override global button styling for switch components only */
+  [role="switch"][data-state] {
+    border-radius: 9999px !important;
+  }
+  
+  /* Ensure switch components are always round */
+  [role="switch"].peer[data-state] {
+    border-radius: 9999px !important;
+  }
+  
+  /* Ensure switch thumb is always round */
+  [role="switch"].peer[data-state] > * {
+    border-radius: 9999px !important;
+  }
+  
+  /* Additional specificity for switch components */
+  [role="switch"] {
+    border-radius: 9999px !important;
+  }
+  
+  [role="switch"] > * {
+    border-radius: 9999px !important;
+  }
+  
+  /* Force round styling specifically for switch components */
+  [role="switch"].peer.inline-flex.h-6.w-12 {
+    border-radius: 9999px !important;
+  }
+  
+  [role="switch"].peer.inline-flex.h-6.w-12 > * {
+    border-radius: 9999px !important;
+  }
+  
+  /* Override any conflicting styles for switch components only */
+  [role="switch"][data-state="checked"], [role="switch"][data-state="unchecked"] {
+    border-radius: 9999px !important;
+  }
+  
+  [role="switch"][data-state="checked"] > *, [role="switch"][data-state="unchecked"] > * {
+    border-radius: 9999px !important;
   }
 }
     

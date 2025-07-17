@@ -103,16 +103,17 @@ export const CandidateImportUploadQueue: React.FC<{
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [jumpToPage, setJumpToPage] = useState<string>("");
   const { success, error } = useToast();
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(() => {
-    const end = new Date();
-    const start = subDays(end, 30);
-    return { start, end };
-  });
+  // Change: default dateRange is null (no filter)
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
   const { data: session } = useSession();
   const isFetchingRef = useRef(false);
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
+    if (isRealtimeActive) {
+      // If SSE is active, do not set loading or fetch
+      return;
+    }
     if (isFetchingRef.current) {
       console.log('[fetchJobs] Skipped: already fetching');
       return;
@@ -128,6 +129,10 @@ export const CandidateImportUploadQueue: React.FC<{
         limit: String(pageSize),
         offset: String((page - 1) * pageSize),
       });
+      if (filter) params.set('file_name', filter);
+      if (statusFilter) params.set('status', statusFilter);
+      if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
+      if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       const res = await fetch(`/api/upload-queue?${params.toString()}`);
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
@@ -156,7 +161,7 @@ export const CandidateImportUploadQueue: React.FC<{
       isFetchingRef.current = false;
       console.log('[fetchJobs] End');
     }
-  }, [page, pageSize, error]);
+  }, [page, pageSize, error, isRealtimeActive, filter, statusFilter, dateRange]);
 
   // Update browser title with current page
   useEffect(() => {
@@ -288,6 +293,7 @@ export const CandidateImportUploadQueue: React.FC<{
 
         eventSource.onopen = () => {
           setIsRealtimeActive(true);
+          setIsLoading(false); // Ensure loading is off as soon as SSE connects
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
           console.log('[SSE] Connected');
         };
@@ -376,8 +382,11 @@ export const CandidateImportUploadQueue: React.FC<{
   // Helper function to check if date is in range
   const isInRange = (dateString?: string) => {
     if (!dateString) return true;
+    if (!dateRange.start && !dateRange.end) return true;
     const date = new Date(dateString);
-    return isAfter(date, dateRange.start) && isBefore(date, addDays(dateRange.end, 1));
+    if (dateRange.start && date < dateRange.start) return false;
+    if (dateRange.end && date > addDays(dateRange.end, 1)) return false;
+    return true;
   };
 
   // Helper function to get display status for filtering
@@ -578,15 +587,15 @@ export const CandidateImportUploadQueue: React.FC<{
             <span className="text-sm text-muted-foreground whitespace-nowrap">Date:</span>
             <input
               type="date"
-              value={format(dateRange.start, 'yyyy-MM-dd')}
-              onChange={e => setDateRange(r => ({ ...r, start: new Date(e.target.value) }))}
+              value={dateRange.start ? format(dateRange.start, 'yyyy-MM-dd') : ''}
+              onChange={e => setDateRange(r => ({ ...r, start: e.target.value ? new Date(e.target.value) : null }))}
               className="border rounded bg-background px-2 py-1 text-sm"
             />
             <span className="text-sm text-muted-foreground">-</span>
             <input
               type="date"
-              value={format(dateRange.end, 'yyyy-MM-dd')}
-              onChange={e => setDateRange(r => ({ ...r, end: new Date(e.target.value) }))}
+              value={dateRange.end ? format(dateRange.end, 'yyyy-MM-dd') : ''}
+              onChange={e => setDateRange(r => ({ ...r, end: e.target.value ? new Date(e.target.value) : null }))}
               className="border rounded bg-background px-2 py-1 text-sm"
             />
           </div>
@@ -605,7 +614,7 @@ export const CandidateImportUploadQueue: React.FC<{
             onClick={() => {
               setFilter("");
               setStatusFilter("");
-              setDateRange({ start: subDays(new Date(), 30), end: new Date() });
+              setDateRange({ start: null, end: null });
             }}
             className=""
           >
@@ -650,67 +659,85 @@ export const CandidateImportUploadQueue: React.FC<{
       {/* Summary Status Cards */}
       <div className="mb-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-          {/* All Upload Jobs Card */}
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          {/* All Upload Jobs Card - Black */}
+          <Card
+            className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">All Upload Jobs</p>
+                  <p className="text-sm font-medium text-muted-foreground">All Jobs</p>
                   <p className="text-2xl font-bold text-foreground">{jobs.length}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">A</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          
+          {/* Queued Card - Blue */}
+          <Card
+            className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Queued</p>
+                  <p className="text-sm font-medium text-muted-foreground">Queue</p>
                   <p className="text-2xl font-bold text-foreground">{numQueued}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">Q</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          
+          {/* In Progress Card - Yellow */}
+          <Card
+            className="group relative overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 backdrop-blur-sm"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                  <p className="text-sm font-medium text-muted-foreground">In Process</p>
                   <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">P</span>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          
+          {/* Success Card - Green */}
+          <Card
+            className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Success</p>
                   <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-success flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <CheckCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
+          
+          {/* Error Card - Red */}
+          <Card
+            className="group relative overflow-hidden border-2 border-red-200 dark:border-red-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 backdrop-blur-sm"
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Error</p>
                   <p className="text-2xl font-bold text-foreground">{numError}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-destructive flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <XCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
@@ -771,7 +798,14 @@ export const CandidateImportUploadQueue: React.FC<{
             ) : filteredJobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  {total === 0 ? 'No upload jobs found' : 'No jobs match the current filters'}
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span>Loading upload queue...</span>
+                    </div>
+                  ) : (
+                    'No queue'
+                  )}
                 </TableCell>
               </TableRow>
             ) : (

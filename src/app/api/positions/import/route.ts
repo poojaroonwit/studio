@@ -80,6 +80,7 @@ const importPositionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   department: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  job_description: z.string().optional().nullable(), // <-- Added
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
@@ -198,6 +199,7 @@ export async function POST(request: NextRequest) {
           title: row.title,
           department: row.department,
           description: row.description || null,
+          job_description: row.job_description || null, // <-- Added
           isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
           positionLevel: row.positionLevel || null,
           custom_attributes: customAttributes,
@@ -228,14 +230,14 @@ export async function POST(request: NextRequest) {
             continue;
           }
           const insertQuery = `
-            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt", job_description)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8)
             RETURNING *;
           `;
           const positionId = uuidv4();
           await client.query(insertQuery, [
             positionId, position.title, position.department, position.description, 
-            position.isOpen, position.positionLevel, position.custom_attributes || {}
+            position.isOpen, position.positionLevel, position.custom_attributes || {}, position.job_description || null
           ]);
           results.success++;
         } catch (error: any) {

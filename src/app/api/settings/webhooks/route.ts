@@ -79,8 +79,8 @@ export async function GET(req: NextRequest) {
         body_template: config.body_template,
         field_mappings: config.field_mappings,
         is_active: config.is_active,
-        createdAt: config.createdAt,
-        updatedAt: config.updatedAt
+        created_at: config.created_at,
+        updated_at: config.updated_at
       })),
       createdAt: webhook.createdAt?.toISOString() || new Date().toISOString(),
       updatedAt: webhook.updatedAt?.toISOString() || new Date().toISOString()

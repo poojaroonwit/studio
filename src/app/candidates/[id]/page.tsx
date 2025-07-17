@@ -274,6 +274,17 @@ export default function CandidateDetailPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Calculate applied job data early to avoid temporal dead zone
+  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
+    ? (candidate.parsedData as any).job_applied
+    : undefined;
+
+  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
+  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
+  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+    ? jobApplied.justification.join('\n')
+    : (candidate?.assignmentJustification || '');
+
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({
     resolver: zodResolver(editCandidateDetailSchema),
@@ -888,15 +899,7 @@ export default function CandidateDetailPage() {
   const candidateJobMatches = candidate.jobMatches || [];
   
 
-  const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_applied
-    : undefined;
 
-  const appliedJobId = jobApplied?.jobId || candidate.positionId;
-  const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
-  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification.join('\n')
-    : (candidate.assignmentJustification || '');
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;

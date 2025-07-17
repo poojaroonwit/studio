@@ -381,8 +381,8 @@ model WebhookBodyConfig {
   body_template  String   @map("body_template")
   field_mappings Json?    @map("field_mappings")
   is_active      Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("createdAt")
-  updatedAt      DateTime @updatedAt @map("updatedAt")
+  created_at     DateTime @default(now()) @map("created_at")
+  updated_at     DateTime @updatedAt @map("updated_at")
   webhook        Webhook  @relation(fields: [webhook_id], references: [id], onDelete: Cascade)
 
   @@unique([webhook_id, event_type])

@@ -71,8 +71,8 @@ export async function GET(
         body_template: config.body_template,
         field_mappings: config.field_mappings,
         is_active: config.is_active,
-        createdAt: config.createdAt,
-        updatedAt: config.updatedAt
+        created_at: config.created_at,
+        updated_at: config.updated_at
       }))
     });
   } catch (error) {
@@ -147,7 +147,7 @@ export async function POST(
         body_template: data.body_template,
         field_mappings: data.field_mappings ?? undefined,
         is_active: data.is_active ?? true,
-        updatedAt: new Date()
+        updated_at: new Date()
       },
       create: {
         webhook_id: webhookId,
@@ -249,7 +249,7 @@ export async function PUT(
             body_template: config.body_template,
             field_mappings: config.field_mappings ?? undefined,
             is_active: config.is_active ?? true,
-            updatedAt: new Date()
+            updated_at: new Date()
           },
           create: {
             webhook_id: webhookId,

@@ -12,7 +12,7 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <DialogContent 
-        className="relative flex flex-col overflow-hidden max-w-[95vw] max-h-[95vh] w-[1200px] h-[800px] p-0"
+        className="relative flex flex-col overflow-hidden max-w-[95vw] max-h-[90vh] w-[1200px] h-[800px] p-0 top-[80px] left-1/2 -translate-x-1/2 translate-y-0"
       >
         {candidateId ? (
           <div className="flex flex-col h-full overflow-hidden">

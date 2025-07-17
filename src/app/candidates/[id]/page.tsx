@@ -281,11 +281,11 @@ export default function CandidateDetailPage() {
       name: candidate?.name || '',
       email: candidate?.email || '',
       phone: candidate?.phone || '',
-      positionId: candidate?.positionId || null,
-      recruiterId: candidate?.recruiterId || null,
-      fitScore: candidate?.fitScore || null,
+      positionId: appliedJobId || null,
+      fitScore: appliedFitScore || null,
+      assignmentJustification: appliedJustification || '',
       status: candidate?.status || '',
-      assignmentJustification: (candidate as any)?.assignmentJustification || '',
+      recruiterId: candidate?.recruiterId || null,
       parsedData: (candidate?.parsedData as any) || {}
     }
   });
@@ -306,11 +306,11 @@ export default function CandidateDetailPage() {
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
-        positionId: candidate.positionId || null,
-        recruiterId: candidate.recruiterId || null,
-        fitScore: candidate.fitScore || null,
+        positionId: appliedJobId || null,
+        fitScore: appliedFitScore || null,
+        assignmentJustification: appliedJustification || '',
         status: candidate.status || '',
-        assignmentJustification: (candidate as any)?.assignmentJustification || '',
+        recruiterId: candidate.recruiterId || null,
         parsedData: {
           ...(candidate.parsedData as any) || {},
           // Include job matches from the API response
@@ -326,7 +326,7 @@ export default function CandidateDetailPage() {
         }
       });
     }
-  }, [candidate, reset]);
+  }, [candidate, reset, appliedJobId, appliedFitScore, appliedJustification]);
 
   // Update filtered recruiters when search term or recruiters list changes
   useEffect(() => {
@@ -706,25 +706,20 @@ export default function CandidateDetailPage() {
     if (!candidate) return;
     console.log('handleSaveDetails called', data);
     
+    // Patch: update parsedData.job_applied as well as top-level fields
+    const newJobApplied = {
+      jobId: data.positionId,
+      fitScore: data.fitScore,
+      justification: data.assignmentJustification
+        ? data.assignmentJustification.split('\n').map((j) => j.trim()).filter(Boolean)
+        : [],
+    };
     const processedData = {
-        ...data,
-        parsedData: {
-            ...data.parsedData,
-            skills: data.parsedData?.skills?.map(s => ({
-                segment_skill: s.segment_skill,
-                skill: s.skill_string?.split(',').map(sk => sk.trim()).filter(sk => sk) || [],
-            })),
-            experience: data.parsedData?.experience?.map(exp => ({
-                ...exp,
-                positionLevel: exp.positionLevel === PLACEHOLDER_VALUE_NONE ? null : exp.positionLevel
-            })),
-            job_matches: data.parsedData?.job_matches?.map(match => ({
-                ...match,
-                matchReasons: match.matchReasons_string 
-                    ? match.matchReasons_string.split('\n').map(reason => reason.trim()).filter(reason => reason)
-                    : []
-            }))
-        }
+      ...data,
+      parsedData: {
+        ...data.parsedData,
+        job_applied: newJobApplied,
+      },
     };
     try {
         const response = await fetch(`/api/candidates/${candidate.id}`, {
@@ -751,11 +746,11 @@ export default function CandidateDetailPage() {
             name: candidate.name,
             email: candidate.email,
             phone: candidate.phone,
-            positionId: candidate.positionId,
-            recruiterId: candidate.recruiterId,
-            fitScore: candidate.fitScore,
+            positionId: appliedJobId || null,
+            fitScore: appliedFitScore || null,
+            assignmentJustification: appliedJustification || '',
             status: candidate.status,
-            assignmentJustification: (candidate as any).assignmentJustification || '',
+            recruiterId: candidate.recruiterId || null,
             parsedData: {
                 ...(candidate.parsedData as CandidateDetails),
                 skills: (candidate.parsedData as CandidateDetails)?.skills?.map(s => ({
@@ -896,6 +891,12 @@ export default function CandidateDetailPage() {
   const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
     ? (candidate.parsedData as any).job_applied
     : undefined;
+
+  const appliedJobId = jobApplied?.jobId || candidate.positionId;
+  const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
+  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+    ? jobApplied.justification.join('\n')
+    : (candidate.assignmentJustification || '');
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;
@@ -1090,11 +1091,11 @@ export default function CandidateDetailPage() {
                                 name: candidate.name || '',
                                 email: candidate.email || '',
                                 phone: candidate.phone || '',
-                                positionId: candidate.positionId || null,
-                                recruiterId: candidate.recruiterId || null,
-                                fitScore: candidate.fitScore || null,
+                                positionId: appliedJobId || null,
+                                fitScore: appliedFitScore || null,
+                                assignmentJustification: appliedJustification || '',
                                 status: candidate.status || '',
-                                assignmentJustification: (candidate as any).assignmentJustification || '',
+                                recruiterId: candidate.recruiterId || null,
                                 parsedData: (candidate.parsedData as any) || {}
                               });
                             }

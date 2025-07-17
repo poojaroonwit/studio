@@ -239,8 +239,8 @@ export const authOptions: NextAuthOptions = {
                       console.log('[AZURE AD SIGNIN] Creating new user in database');
                       // If not, create a new user
                       await client.query(
-                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role) VALUES ($1, $2, $3, $4, $5, $6)',
-                          [oid, profile.name, profile.email, new Date(), picture, 'Recruiter'] // Default role
+                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authenticationMethod") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                          [oid, profile.name, profile.email, new Date(), picture, 'Recruiter', null, 'azure'] // Set authenticationMethod to 'azure' and password to null
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', oid);
                       console.log('[AZURE AD SIGNIN] New user created successfully');

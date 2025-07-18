@@ -48,6 +48,7 @@ export default function PositionsPageClient() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
+  const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const { data: session } = useSession();
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
@@ -81,9 +82,32 @@ export default function PositionsPageClient() {
     }
   }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
 
+  // Fetch statistics based on current filters
+  const fetchStatistics = useCallback(async () => {
+    try {
+      const query = new URLSearchParams();
+      if (searchTerm) query.append('title', searchTerm);
+      if (statusFilter !== 'all') query.append('isOpen', statusFilter === 'open' ? 'true' : 'false');
+      if (departmentFilter !== 'all') query.append('department', departmentFilter);
+      
+      const response = await fetch(`/api/positions/statistics?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch statistics');
+      }
+      const data = await response.json();
+      setStatistics(data);
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  }, [searchTerm, statusFilter, departmentFilter]);
+
   useEffect(() => {
     fetchPositions();
   }, [fetchPositions]);
+
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -162,10 +186,10 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Stats - Note: These are now per-page stats since we're using pagination
-  const totalPositions = total; // Use total from API
-  const openPositions = positions.filter(p => p.isOpen).length;
-  const closedPositions = positions.filter(p => !p.isOpen).length;
+  // Stats - Use filtered statistics from API
+  const totalPositions = statistics.total;
+  const openPositions = statistics.open;
+  const closedPositions = statistics.closed;
 
   // Bulk selection logic
   const allSelected = filteredPositions.length > 0 && selectedIds.length === filteredPositions.length;
@@ -206,6 +230,53 @@ export default function PositionsPageClient() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Filters on top */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search positions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter || ''} onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="open">Open Only</SelectItem>
+              <SelectItem value="closed">Closed Only</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={departmentFilter || ''} onValueChange={setDepartmentFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by department" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Departments</SelectItem>
+              {departments.filter(Boolean).map(dept => (
+                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {canManagePositions && (
+          <div className="flex gap-2">
+            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Position
+            </Button>
+            <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="whitespace-nowrap">
+              Import Positions
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Positions Card - Blue */}
@@ -259,54 +330,8 @@ export default function PositionsPageClient() {
           </CardContent>
         </Card>
       </div>
-      {/* Filters on top */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search positions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter || ''} onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="open">Open Only</SelectItem>
-              <SelectItem value="closed">Closed Only</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={departmentFilter || ''} onValueChange={setDepartmentFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.filter(Boolean).map(dept => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {canManagePositions && (
-          <div className="flex gap-2">
-            <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Position
-            </Button>
-            <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="whitespace-nowrap">
-              Import Positions
-            </Button>
-          </div>
-        )}
-      </div>
       {/* Positions List */}
-      {total === 0 ? (
+      {totalPositions === 0 ? (
         <div className="text-center py-12">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No positions found</h3>

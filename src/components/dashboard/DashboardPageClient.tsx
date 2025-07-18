@@ -616,20 +616,7 @@ export default function DashboardPageClient({
 
       {/* Section 2: Recruiter Metrics - Row 2 */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-purple-400 rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Recruiter</h2>
-              <p className="text-sm text-muted-foreground mt-1">Recruitment pipeline metrics</p>
-            </div>
-          </div>
-        <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 bg-purple-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-muted-foreground">Pipeline</span>
-        </div>
-        </div>
-        
+      
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[ // Row 2 Recruiter cards array
             { 

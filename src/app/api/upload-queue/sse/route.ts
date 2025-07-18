@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
       try {
         const client = await getPool().connect();
         const { whereSQL, values, paramIdx } = buildWhere();
-        values.push(limit);
-        values.push(offset);
+        values.push(limit.toString());
+        values.push(offset.toString());
         const res = await client.query(
           `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
           values
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
                 // Fetch updated data and send to client
                 const client = await getPool().connect();
                 const { whereSQL, values, paramIdx } = buildWhere();
-                values.push(limit);
-                values.push(offset);
+                values.push(limit.toString());
+                values.push(offset.toString());
                 const res = await client.query(
                   `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
                   values

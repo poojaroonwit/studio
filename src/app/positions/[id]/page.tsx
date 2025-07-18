@@ -58,7 +58,10 @@ export default function PositionDetailPage() {
         console.error(`Failed to fetch candidates for position ${positionId}: ${candidatesRes.statusText}`);
         setAssociatedCandidates([]);
       } else {
-        const candidatesData: Candidate[] = await candidatesRes.json();
+        let candidatesData: Candidate[] = await candidatesRes.json();
+        if (!Array.isArray(candidatesData)) {
+          candidatesData = [];
+        }
         const sortedCandidates = candidatesData.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
         setAssociatedCandidates(sortedCandidates);
       }
@@ -123,7 +126,9 @@ export default function PositionDetailPage() {
             const candidatesRes = await fetch(`/api/candidates?positionId=${positionId}`);
             if (candidatesRes.ok) {
                 const candidatesData: Candidate[] = await candidatesRes.json();
-                const sortedCandidates = candidatesData.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
+                const sortedCandidates = Array.isArray(candidatesData)
+                  ? candidatesData.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0))
+                  : [];
                 setAssociatedCandidates(sortedCandidates);
             }
         } catch (error) {

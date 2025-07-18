@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2 } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -103,11 +103,63 @@ type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 interface FullCandidateDetailProps {
   candidateId: string;
-  isModal?: boolean;
-  onClose?: () => void;
+  // isModal?: boolean;
+  // onClose?: () => void;
 }
 
-const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal, onClose }) => {
+// Timeline component for experience and education
+const TimelineItem = ({ 
+  icon: Icon, 
+  title, 
+  subtitle, 
+  period, 
+  description, 
+  isLast = false 
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle?: string;
+  period?: string;
+  description?: string;
+  isLast?: boolean;
+}) => (
+  <div className="flex gap-4">
+    {/* Timeline line and icon */}
+    <div className="flex flex-col items-center">
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20">
+        <Icon className="w-5 h-5 text-primary" />
+      </div>
+      {!isLast && (
+        <div className="w-0.5 h-8 bg-border mt-2"></div>
+      )}
+    </div>
+    
+    {/* Content */}
+    <div className="flex-1 pb-6">
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h4 className="font-semibold text-foreground">{title}</h4>
+            {subtitle && (
+              <p className="text-sm text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          {period && (
+            <Badge variant="outline" className="text-xs whitespace-nowrap">
+              <Clock className="w-3 h-3 mr-1" />
+              {period}
+            </Badge>
+          )}
+        </div>
+        {description && (
+          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId }) => {
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -278,6 +330,24 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     setIsJobMatchModalOpen(true);
   };
 
+  // Helper function to safely extract properties from parsedData
+  const getParsedDataProperty = (propertyName: string) => {
+    const parsedData = candidate?.parsedData;
+    if (!parsedData || typeof parsedData !== 'object') return undefined;
+    
+    // Check for new candidate_info structure
+    if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+      return (parsedData.candidate_info as any)[propertyName];
+    }
+    
+    // Check for direct property
+    if (propertyName in parsedData) {
+      return (parsedData as any)[propertyName];
+    }
+    
+    return undefined;
+  };
+
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (!value) return null;
     
@@ -324,89 +394,102 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
-        <div className="flex items-center gap-4">
-          {isModal && onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-          )}
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={candidate.avatarUrl || ''} alt={formatCandidateName(candidate)} />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{formatCandidateName(candidate)}</h1>
-              <p className="text-muted-foreground">{candidate.email}</p>
+    <div className="h-screen overflow-y-auto">
+      {/* Header - 2 Columns */}
+      {candidate && (
+        <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+            {/* Column 1: Candidate Header (7 cols) */}
+            <div className="lg:col-span-7">
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  <Avatar className="w-20 h-20 text-3xl">
+                    <AvatarImage src={candidate.avatarUrl || ''} alt={formatCandidateName(candidate)} />
+                    <AvatarFallback>{formatCandidateName(candidate)?.[0] || '?'}</AvatarFallback>
+                  </Avatar>
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{formatCandidateName(candidate)}</span>
+                    {candidate.status && (
+                      <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
+                    {candidate.positionId && candidate.position && (
+                      <span>Applied Job: <span className="font-medium text-foreground">{candidate.position.title}</span></span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
+                    {candidate.email && (
+                      <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
+                    )}
+                    {candidate.phone && (
+                      <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Column 2: Action Buttons (3 cols) */}
+            <div className="lg:col-span-3">
+              <div className="flex justify-end gap-2">
+                <Link href={`/candidates/${candidateId}`}>
+                  <Button variant="outline" size="default" className="gap-2">
+                    <Eye className="w-4 h-4" />
+                    View Full Details
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {candidate.status && (
-            <Badge variant={getStatusBadgeVariant(candidate.status)}>
-              {candidate.status}
-            </Badge>
-          )}
-          {candidate.fitScore !== null && candidate.fitScore !== undefined && (
-            <Badge variant="outline" className="text-xs">
-              {candidate.fitScore}% Fit
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-6">
-        <div className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Basic Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderField('Email', candidate.email, Mail)}
-                {renderField('Phone', candidate.phone, Phone)}
-                {renderField('Position', candidate.position?.title, Briefcase)}
-                {renderField('Recruiter', candidate.recruiter?.name, UserCog)}
-                {candidate.applicationDate && renderField('Applied', new Date(candidate.applicationDate).toLocaleDateString(), CalendarDays)}
-                {candidate.fitScore !== null && candidate.fitScore !== undefined && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Percent className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Fit Score:</span>
-                      <span className="font-medium">{candidate.fitScore}%</span>
-                    </div>
-                    <Progress value={candidate.fitScore} className="h-2" />
+      )}
+      
+      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
+        {/* LEFT SIDEBAR: Recruitment Pipeline (20%) */}
+        <div className="lg:col-span-2 bg-card sticky top-6 p-6 space-y-6">
+          {/* Basic Info Card */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <User className="mr-2 h-5 w-5 text-primary" />
+              Basic Information
+            </h3>
+            <div className="bg-muted rounded-lg p-4 space-y-3">
+              {renderField('Email', candidate?.email, Mail)}
+              {renderField('Phone', candidate?.phone, Phone)}
+              {renderField('Position', candidate?.position?.title, Briefcase)}
+              {renderField('Recruiter', candidate?.recruiter?.name, UserCog)}
+              {candidate?.applicationDate && renderField('Applied', new Date(candidate.applicationDate).toLocaleDateString(), CalendarDays)}
+              {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Fit Score:</span>
+                    <span className="font-medium">{candidate.fitScore}%</span>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <Progress value={candidate.fitScore} className="h-2" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-          {/* Personal Information from Parsed Data */}
-          {candidate.parsedData && (candidate.parsedData.candidate_info?.personal_info || candidate.parsedData.personal_info) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserCircle className="w-5 h-5" />
-                  Personal Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        {/* MAIN CONTENT (50%) with Sections */}
+        <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
+          {/* Personal Information Section */}
+          {candidate?.parsedData && (getParsedDataProperty('personal_info')) && (
+            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+              <button type="button" className="flex items-center mb-6 w-full group">
+                <UserCircle className="mr-2 h-6 w-6 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
+              </button>
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
-                    const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
+                    const personalInfo = getParsedDataProperty('personal_info');
                     return (
                       <>
                         {personalInfo?.title_honorific && renderField('Title', personalInfo.title_honorific, User)}
@@ -429,23 +512,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     );
                   })()}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
 
-          {/* Contact Information from Parsed Data */}
-          {candidate.parsedData && (candidate.parsedData.candidate_info?.contact_info || candidate.parsedData.contact_info) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="w-5 h-5" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {/* Contact Information Section */}
+          {candidate?.parsedData && (getParsedDataProperty('contact_info')) && (
+            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+              <button type="button" className="flex items-center mb-6 w-full group">
+                <Mail className="mr-2 h-6 w-6 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
+              </button>
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(() => {
-                    const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
+                    const contactInfo = getParsedDataProperty('contact_info');
                     return (
                       <>
                         {contactInfo?.email && renderField('Email', contactInfo.email, Mail, true, `mailto:${contactInfo.email}`)}
@@ -454,20 +535,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     );
                   })()}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
 
-          {/* Parsed Data */}
-          {candidate.parsedData && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Resume Data
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          {/* Resume Data Section */}
+          {candidate?.parsedData && (
+            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+              <button type="button" className="flex items-center mb-6 w-full group">
+                <FileText className="mr-2 h-6 w-6 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Resume Data</h2>
+              </button>
+              <div className="space-y-4">
                 <Tabs defaultValue="experience" className="w-full">
                   <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="experience">Experience</TabsTrigger>
@@ -479,20 +558,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   
                   <TabsContent value="experience" className="space-y-4">
                     {(() => {
-                      const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
+                      const experience = getParsedDataProperty('experience');
                       return experience && Array.isArray(experience) && experience.length > 0 ? (
-                        experience.map((exp: any, index: number) => (
-                          <Card key={index} className="p-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold">{exp.position || 'Unknown Position'}</h4>
-                                {exp.period && <span className="text-sm text-muted-foreground">{exp.period}</span>}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{exp.company || 'Unknown Company'}</p>
-                              {exp.description && <p className="text-sm">{exp.description}</p>}
-                            </div>
-                          </Card>
-                        ))
+                        <div className="space-y-6">
+                          {experience.map((exp: any, index: number) => (
+                            <TimelineItem
+                              key={index}
+                              icon={Building2}
+                              title={exp.position || 'Unknown Position'}
+                              subtitle={exp.company || 'Unknown Company'}
+                              period={exp.period}
+                              description={exp.description}
+                              isLast={index === experience.length - 1}
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <p className="text-muted-foreground text-center py-4">No experience data available</p>
                       );
@@ -501,19 +581,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   
                   <TabsContent value="education" className="space-y-4">
                     {(() => {
-                      const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
+                      const education = getParsedDataProperty('education');
                       return education && Array.isArray(education) && education.length > 0 ? (
-                        education.map((edu: any, index: number) => (
-                          <Card key={index} className="p-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold">{edu.university || 'Unknown University'}</h4>
-                                {edu.period && <span className="text-sm text-muted-foreground">{edu.period}</span>}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{edu.major || edu.field || 'No major specified'}</p>
-                            </div>
-                          </Card>
-                        ))
+                        <div className="space-y-6">
+                          {education.map((edu: any, index: number) => (
+                            <TimelineItem
+                              key={index}
+                              icon={GraduationCap}
+                              title={edu.university || 'Unknown University'}
+                              subtitle={edu.major || edu.field || 'No major specified'}
+                              period={edu.period}
+                              description={edu.description}
+                              isLast={index === education.length - 1}
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <p className="text-muted-foreground text-center py-4">No education data available</p>
                       );
@@ -522,7 +604,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   
                   <TabsContent value="skills" className="space-y-4">
                     {(() => {
-                      const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
+                      const skills = getParsedDataProperty('skills');
                       return skills && Array.isArray(skills) && skills.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {skills.map((skill: any, index: number) => (
@@ -539,7 +621,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   
                   <TabsContent value="suitable" className="space-y-4">
                     {(() => {
-                      const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
+                      const jobSuitable = getParsedDataProperty('job_suitable');
                       return jobSuitable && Array.isArray(jobSuitable) && jobSuitable.length > 0 ? (
                         jobSuitable.map((suitable: any, index: number) => (
                           <Card key={index} className="p-4">
@@ -614,19 +696,20 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     })()}
                   </TabsContent>
                 </Tabs>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
           )}
+        </div>
 
-          {/* Comments */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
+        <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+          {/* Comments & Activity Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+              Comments & Activity
+            </h3>
+            <div className="bg-muted rounded-lg p-4">
               <CandidateCommentsSection
                 candidateId={candidateId}
                 comments={comments}
@@ -639,18 +722,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     .catch(console.error);
                 }}
               />
-            </CardContent>
-          </Card>
-
-          {/* Resumes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Resumes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            </div>
+          </div>
+          
+          {/* Attachments Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+              Attachments
+            </h3>
+            <div className="bg-muted rounded-lg p-4">
               <CandidateResumesSection
                 candidateId={candidateId}
                 resumes={resumes}
@@ -663,11 +744,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     .catch(console.error);
                 }}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
-        </div>
-      </ScrollArea>
+      </div>
 
       {/* Modals */}
       <UploadResumeModal

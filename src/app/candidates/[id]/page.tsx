@@ -862,9 +862,23 @@ export default function CandidateDetailPage() {
     if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
       return candidate.educationData;
     }
-    const education = candidate.parsedData?.candidate_info?.education || candidate.parsedData?.education;
-    if (Array.isArray(education) && education.length > 0) {
-      return education;
+    // Type-safe access to education data
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      // Check for new candidate_info structure
+      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+        const education = (parsedData.candidate_info as any).education;
+        if (Array.isArray(education) && education.length > 0) {
+          return education;
+        }
+      }
+      // Check for direct education property
+      if ('education' in parsedData) {
+        const education = (parsedData as any).education;
+        if (Array.isArray(education) && education.length > 0) {
+          return education;
+        }
+      }
     }
     return [];
   }
@@ -873,9 +887,23 @@ export default function CandidateDetailPage() {
     if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
       return candidate.experienceData;
     }
-    const experience = candidate.parsedData?.candidate_info?.experience || candidate.parsedData?.experience;
-    if (Array.isArray(experience) && experience.length > 0) {
-      return experience;
+    // Type-safe access to experience data
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      // Check for new candidate_info structure
+      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+        const experience = (parsedData.candidate_info as any).experience;
+        if (Array.isArray(experience) && experience.length > 0) {
+          return experience;
+        }
+      }
+      // Check for direct experience property
+      if ('experience' in parsedData) {
+        const experience = (parsedData as any).experience;
+        if (Array.isArray(experience) && experience.length > 0) {
+          return experience;
+        }
+      }
     }
     return [];
   }
@@ -913,13 +941,31 @@ export default function CandidateDetailPage() {
     );
   }
 
+  // Helper function to safely extract properties from parsedData
+  const getParsedDataProperty = (propertyName: string) => {
+    const parsedData = candidate.parsedData;
+    if (!parsedData || typeof parsedData !== 'object') return undefined;
+    
+    // Check for new candidate_info structure
+    if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+      return (parsedData.candidate_info as any)[propertyName];
+    }
+    
+    // Check for direct property
+    if (propertyName in parsedData) {
+      return (parsedData as any)[propertyName];
+    }
+    
+    return undefined;
+  };
+
   // Use type guards for flat properties on parsedData
-  const personalInfo = candidate.parsedData?.candidate_info?.personal_info || candidate.parsedData?.personal_info;
-  const contactInfo = candidate.parsedData?.candidate_info?.contact_info || candidate.parsedData?.contact_info;
+  const personalInfo = getParsedDataProperty('personal_info');
+  const contactInfo = getParsedDataProperty('contact_info');
   const education = getEducation(candidate);
   const experience = getExperience(candidate);
-  const skills = candidate.parsedData?.candidate_info?.skills || candidate.parsedData?.skills;
-  const jobSuitable = candidate.parsedData?.candidate_info?.job_suitable || candidate.parsedData?.job_suitable;
+  const skills = getParsedDataProperty('skills');
+  const jobSuitable = getParsedDataProperty('job_suitable');
   // Use jobMatches from the API response instead of parsedData.job_matches
   const candidateJobMatches = candidate.jobMatches || [];
   
@@ -2079,7 +2125,7 @@ export default function CandidateDetailPage() {
                     ) : (
                         (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
-                                {skills.map((skillEntry, index) => {
+                                {skills.map((skillEntry: any, index: number) => {
                                     if (typeof skillEntry === 'string') {
                                         // Render string-only skill entry
                                         return (
@@ -2096,7 +2142,7 @@ export default function CandidateDetailPage() {
                                                     <div>
                                                         <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
                                                         <div className="flex flex-wrap gap-1.5 mt-1">
-                                                            {skillEntry.skill.map((s, i) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
+                                                            {skillEntry.skill.map((s: string, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
                                                         </div>
                                                     </div>
                                                 )}
@@ -2138,7 +2184,7 @@ export default function CandidateDetailPage() {
                     ) : (
                         (jobSuitable && jobSuitable.length > 0) ? (
                             <ul className="space-y-4">
-                                {jobSuitable.map((job, index) => (
+                                {jobSuitable.map((job: any, index: number) => (
                                 <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
                                     {renderField("Career Path", job.suitable_career)}
                                     {renderField("Job Position", job.suitable_job_position)}

@@ -166,9 +166,10 @@ export async function POST(request: NextRequest) {
       try {
         records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
       } catch (parseError) {
+        const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
         return NextResponse.json({ 
           message: 'CSV parsing failed. Please ensure the file is a valid CSV with correct headers. Supported encodings: UTF-8, Windows-1252, ISO-8859-1.', 
-          error: parseError.message 
+          error: errorMessage 
         }, { status: 400 });
       }
       

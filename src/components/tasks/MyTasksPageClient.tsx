@@ -42,8 +42,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [boardPrefs, setBoardPrefs] = useState({
     rowField: 'status',
-    columnField: 'recruiterId',
+    columnField: 'none',
     visibleFields: ['name', 'email', 'status', 'fitScore'],
+    visibleRowValues: [],
+    visibleColumnValues: [],
   });
   const { data: session } = useSession();
   const [visibleRowValues, setVisibleRowValues] = useState<string[]>([]);
@@ -135,28 +137,21 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Load preferences (including visibleRowValues/visibleColumnValues) on mount and after modal save
   const loadBoardPrefs = useCallback(() => {
     fetch('/api/settings/user-preferences')
-      .then(res => {
-        return res.json();
-      })
+      .then(res => res.json())
       .then(prefs => {
         const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-        
         const newRowField = rowPref ? rowPref.customNote || 'status' : 'status';
-        const newColumnField = colPref ? colPref.customNote || 'recruiterId' : 'recruiterId';
-        
+        const newColumnField = colPref ? colPref.customNote || 'none' : 'none';
         setRowField(newRowField);
         setColumnField(newColumnField);
-        
-        // Update boardPrefs state to match
         setBoardPrefs(prev => ({
           ...prev,
           rowField: newRowField,
           columnField: newColumnField,
         }));
-        
         if (visibleRowPref) {
           try {
             const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
@@ -165,7 +160,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             setVisibleRowValues([]);
           }
         } else {
-          setVisibleRowValues(uniqueRowValues);
+          // Default to single row mode: only first stage
+          setVisibleRowValues(stages.length > 0 ? [stages[0]] : []);
         }
         if (visibleColPref) {
           try {
@@ -175,28 +171,25 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             setVisibleColumnValues([]);
           }
         } else {
-          setVisibleColumnValues(uniqueColumnValues);
+          setVisibleColumnValues([]);
         }
-        
-        // Fallback: if visibleRowValues is still empty, use stages as default
         if (uniqueRowValues.length === 0 && stages.length > 0) {
-          setVisibleRowValues(stages);
+          setVisibleRowValues([stages[0]]);
         }
       })
       .catch((error) => {
         console.error('MyTasksPageClient: Error loading board preferences:', error);
-        // Set defaults on error
         setRowField('status');
-        setColumnField('recruiterId');
+        setColumnField('none');
         setBoardPrefs(prev => ({
           ...prev,
           rowField: 'status',
-          columnField: 'recruiterId',
+          columnField: 'none',
         }));
-        setVisibleRowValues(uniqueRowValues);
-        setVisibleColumnValues(uniqueColumnValues);
+        setVisibleRowValues(stages.length > 0 ? [stages[0]] : []);
+        setVisibleColumnValues([]);
       });
-  }, [uniqueRowValues, uniqueColumnValues]);
+  }, [uniqueRowValues, uniqueColumnValues, stages]);
 
   useEffect(() => {
     if (metadataLoaded) {
@@ -305,6 +298,19 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     setFilters({});
     setTimeout(() => setFilters(currentFilters), 100);
   };
+
+  if (!metadataLoaded) {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-sm">Loading your board preferences...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // --- UI ---
   return (

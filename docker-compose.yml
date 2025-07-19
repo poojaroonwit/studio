@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        BUILD_DATE: ${BUILD_DATE:-$(date +%s)}
+      # args:
+      #   BUILD_DATE: ${BUILD_DATE:-$(date +%s)}
     ports:
       - "${APP_PORT:-8021}:8021"
     # For production deployments, you typically want the application code to be self-contained

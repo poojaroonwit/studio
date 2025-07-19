@@ -21,6 +21,7 @@ const jobMatchesUpdateSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[JOB-MATCHES] GET request to: ${req.nextUrl.pathname}`);
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[JOB-MATCHES] POST request to: ${req.nextUrl.pathname}`);
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;

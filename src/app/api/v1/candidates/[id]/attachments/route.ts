@@ -18,6 +18,17 @@ const ENDPOINT = '/api/v1/candidates/[id]/attachments';
 
 // GET: List attachments for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[ATTACHMENTS] GET request to: ${req.nextUrl.pathname}`);
+  
+  // Check if this request is actually meant for attachments
+  if (req.nextUrl.pathname.includes('/job-matches')) {
+    console.log(`[ATTACHMENTS] Request appears to be for job-matches, redirecting`);
+    return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
+      status: 404, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+  }
+  
   const { id } = params;
   
   const authHeader = req.headers.get('authorization');
@@ -48,6 +59,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST: Upload an attachment (multipart/form-data)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[ATTACHMENTS] POST request to: ${req.nextUrl.pathname}`);
+  console.log(`[ATTACHMENTS] Content-Type: ${req.headers.get('content-type')}`);
+  
+  // Check if this request is actually meant for attachments
+  if (req.nextUrl.pathname.includes('/job-matches')) {
+    console.log(`[ATTACHMENTS] Request appears to be for job-matches, redirecting`);
+    return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
+      status: 404, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
+  }
+  
   const { id } = params;
   
   const authHeader = req.headers.get('authorization');
@@ -60,6 +83,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
+  }
+
+  // Check if this is actually a multipart/form-data request
+  const contentType = req.headers.get('content-type');
+  if (!contentType || !contentType.includes('multipart/form-data')) {
+    return handleApiError(req, createValidationError('Invalid content type', { 
+      contentType: ['Expected multipart/form-data'] 
+    }));
   }
 
   const formData = await req.formData();

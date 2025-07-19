@@ -149,7 +149,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             `This error typically occurs when a form field is created without an actual file.`
           ] 
         }));
+      } else {
+        // Use the first valid file found
+        file = validFiles[0];
       }
+    }
+    
+    // At this point, file should be a valid File object
+    if (!file || !(file instanceof File)) {
+      return handleApiError(req, createValidationError('Invalid input', { 
+        attachment: ['No valid file found'] 
+      }));
     }
     
     // Validate file size

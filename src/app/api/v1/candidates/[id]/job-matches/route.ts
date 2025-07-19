@@ -7,7 +7,7 @@ import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const jobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100),
+  fitScore: z.number().min(0).max(100).transform(val => Math.round(val * 100)), // Convert decimal to integer (0.7 -> 70)
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     const jobMatches = jobMatchesResult.rows.map(match => ({
       id: match.id,
-      fitScore: match.fitScore,
+      fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       
       insertedMatches.push({
         id: matchId,
-        fitScore: match.fitScore,
+        fitScore: match.fitScore / 100, // Convert integer back to decimal for response
         jobId: match.jobId,
         matchReasons: match.matchReasons || [],
       });
@@ -220,7 +220,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       
       insertedMatches.push({
         id: matchId,
-        fitScore: match.fitScore,
+        fitScore: match.fitScore / 100, // Convert integer back to decimal for response
         jobId: match.jobId,
         matchReasons: match.matchReasons || [],
       });

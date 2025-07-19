@@ -114,7 +114,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         department: candidate.positionDepartment
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
-      jobMatches: jobMatchesResult.rows,
+      jobMatches: jobMatchesResult.rows.map(match => ({
+        ...match,
+        fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
+      })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);
   } catch (error) {
@@ -293,7 +296,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           matchId,
           id,
           match.jobId,
-          match.fitScore,
+          Math.round(match.fitScore * 100), // Convert decimal to integer
           match.matchReasons || [],
         ]);
       }

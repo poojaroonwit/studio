@@ -91,22 +91,8 @@ export default function ToastClient() {
           },
         };
         const group = groupMap[ackgroup] || groupMap[t.type] || groupMap.default;
-        // Determine font color
-        let fontColor = 'hsl(var(--foreground))';
-        if (group.colored) {
-          if (typeof window !== 'undefined' && isDarkMode()) {
-            fontColor = '#fff'; // White text for colored backgrounds in dark mode
-          } else {
-            fontColor = '#000'; // Black text for colored backgrounds in light mode for better contrast
-          }
-        } else {
-          // For non-colored toasts, use dark text for better readability
-          if (typeof window !== 'undefined' && isDarkMode()) {
-            fontColor = '#fff'; // White text in dark mode
-          } else {
-            fontColor = '#000'; // Black text in light mode
-          }
-        }
+        // Determine font color - always use dark text for better readability
+        let fontColor = '#222'; // Dark text for both light and dark themes
         return (
           <ToastBar
             toast={t}

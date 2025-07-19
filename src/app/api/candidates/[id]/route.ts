@@ -159,7 +159,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         department: candidate.positionDepartment || null
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
-      jobMatches: jobMatchesResult.rows || [],
+      jobMatches: jobMatchesResult.rows.map(match => ({
+        ...match,
+        fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
+      })) || [],
       attachmentHistory: attachmentsResult.rows || [],
     });
   } catch (error: any) {

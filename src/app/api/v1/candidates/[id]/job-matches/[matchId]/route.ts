@@ -6,7 +6,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 
 const jobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100),
+  fitScore: z.number().min(0).max(100).transform(val => Math.round(val * 100)), // Convert decimal to integer (0.7 -> 70)
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     const match = jobMatchResult.rows[0];
     const jobMatch = {
       id: match.id,
-      fitScore: match.fitScore,
+      fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -138,7 +138,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const updatedMatch = updateResult.rows[0];
     const jobMatch = {
       id: updatedMatch.id,
-      fitScore: updatedMatch.fitScore,
+      fitScore: updatedMatch.fitScore ? updatedMatch.fitScore / 100 : 0, // Convert integer back to decimal
       jobId: updatedMatch.jobId,
       matchReasons: updatedMatch.matchReasons || [],
       updatedAt: updatedMatch.updatedAt,

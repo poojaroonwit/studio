@@ -334,8 +334,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           phone: data.phone,
           positionId: data.positionId,
           recruiterId: data.recruiterId,
-          fitScore: data.fitScore,
-          status: data.status,
+          fitScore: data.fitScore || null,
+          status: data.status || '',
           parsedData: data.parsedData,
         });
       } catch (err) {
@@ -999,15 +999,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                 <Info className="h-3 w-3" />
                                 Justification:
                               </h5>
-                              {candidate.assignmentJustification.trim().endsWith('.') ? (
-                                <div className="text-sm text-foreground bg-primary/10 border border-primary/30 px-3 py-2 rounded shadow-sm whitespace-pre-wrap">
-                                  {candidate.assignmentJustification}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
-                                  {candidate.assignmentJustification}
-                                </div>
-                              )}
+                              <div className="space-y-2">
+                                {candidate.assignmentJustification.split('\n').map((sentence: string, index: number) => {
+                                  const trimmedSentence = sentence.trim();
+                                  if (!trimmedSentence) return null;
+                                  
+                                  return (
+                                    <div 
+                                      key={index}
+                                      className={`text-sm text-foreground px-3 py-2 rounded shadow-sm ${
+                                        trimmedSentence.endsWith('.') 
+                                          ? 'bg-primary/10 border border-primary/30' 
+                                          : 'bg-muted/50'
+                                      }`}
+                                    >
+                                      {trimmedSentence}
+                                    </div>
+                                  );
+                                })}
+                              </div>
                              </div>
                            )}
                          </div>
@@ -1738,15 +1748,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               <Info className="h-3 w-3" />
                               Justification:
                             </h5>
-                            {candidate.assignmentJustification.trim().endsWith('.') ? (
-                              <div className="text-sm text-foreground bg-primary/10 border border-primary/30 px-3 py-2 rounded shadow-sm whitespace-pre-wrap">
-                                {candidate.assignmentJustification}
+                            <div className="space-y-2">
+                              {candidate.assignmentJustification.split('\n').map((sentence: string, index: number) => {
+                                const trimmedSentence = sentence.trim();
+                                if (!trimmedSentence) return null;
+                                
+                                return (
+                                  <div 
+                                    key={index}
+                                    className={`text-sm text-foreground px-3 py-2 rounded shadow-sm ${
+                                      trimmedSentence.endsWith('.') 
+                                        ? 'bg-primary/10 border border-primary/30' 
+                                        : 'bg-muted/50'
+                                    }`}
+                                  >
+                                    {trimmedSentence}
+                                  </div>
+                                );
+                              })}
                             </div>
-                            ) : (
-                              <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
-                                {candidate.assignmentJustification}
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>

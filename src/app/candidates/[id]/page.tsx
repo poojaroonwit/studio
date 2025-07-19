@@ -1375,15 +1375,25 @@ export default function CandidateDetailPage() {
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
-                                      {appliedJustification.trim().endsWith('.') ? (
-                                        <div className="text-sm text-foreground bg-primary/10 border border-primary/30 px-3 py-2 rounded shadow-sm whitespace-pre-wrap">
-                                          {appliedJustification}
-                                        </div>
-                                      ) : (
-                                        <div className="text-sm text-foreground bg-muted/50 px-3 py-2 rounded whitespace-pre-wrap">
-                                          {appliedJustification}
-                                        </div>
-                                      )}
+                                      <div className="space-y-2">
+                                        {appliedJustification.split('\n').map((sentence: string, index: number) => {
+                                          const trimmedSentence = sentence.trim();
+                                          if (!trimmedSentence) return null;
+                                          
+                                          return (
+                                            <div 
+                                              key={index}
+                                              className={`text-sm text-foreground px-3 py-2 rounded shadow-sm ${
+                                                trimmedSentence.endsWith('.') 
+                                                  ? 'bg-primary/10 border border-primary/30' 
+                                                  : 'bg-muted/50'
+                                              }`}
+                                            >
+                                              {trimmedSentence}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                      </div>
                                    )}
                                  </div>

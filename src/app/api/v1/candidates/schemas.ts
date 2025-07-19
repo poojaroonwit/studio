@@ -45,12 +45,12 @@ export const candidateInfoSchema = z.union([
 ]).transform((data) => {
   // Ensure all fields are properly typed
   return {
-    personal_info: data.personal_info || {},
-    contact_info: data.contact_info || {},
-    cv_language: data.cv_language || '',
-    skills: data.skills || [],
-    job_suitable: data.job_suitable || [],
-    status: data.status || '',
+    personal_info: (data as any).personal_info || {},
+    contact_info: (data as any).contact_info || {},
+    cv_language: (data as any).cv_language || '',
+    skills: (data as any).skills || [],
+    job_suitable: (data as any).job_suitable || [],
+    status: (data as any).status || '',
   };
 });
 

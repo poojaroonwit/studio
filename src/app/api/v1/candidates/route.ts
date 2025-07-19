@@ -105,14 +105,15 @@ export async function POST(request: NextRequest) {
 
   const { candidate_info, educationData, experienceData } = validationResult.data;
   
-  // Handle optional fields with defaults
-  const personalInfo = candidate_info?.personal_info || {};
-  const contactInfo = candidate_info?.contact_info || {};
+  // Handle optional fields with defaults - use validated data structure
+  const candidateInfo = candidate_info as any;
+  const personalInfo = candidateInfo.personal_info || {};
+  const contactInfo = candidateInfo.contact_info || {};
   const name = personalInfo.firstname && personalInfo.lastname 
     ? `${personalInfo.firstname} ${personalInfo.lastname}` 
     : 'Unknown Candidate';
   const email = contactInfo.email || 'no-email@example.com';
-  const status = candidate_info?.status || 'new';
+  const status = candidateInfo.status || 'new';
 
   console.log('Processed data:', {
     name,

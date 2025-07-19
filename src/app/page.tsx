@@ -31,8 +31,8 @@ export default async function DashboardPageServer() {
     try {
       // Fetch candidates
       const candidatesQuery = `
-        SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
-               r.id as "recruiterId", r.name as "recruiterName"
+        SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
+               r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -68,19 +68,22 @@ export default async function DashboardPageServer() {
           resumePath: row.resumePath || null,
           parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
           customAttributes,
+          positionId: row.positionId || null,
           position: row.positionId ? {
             id: row.positionId,
             title: row.positionTitle,
             department: row.positionDepartment,
-            positionLevel: row.positionLevel
+            positionLevel: row.positionLevel,
+            isOpen: row.positionIsOpen || false
           } : null,
           fitScore: row.fitScore || null,
           status: row.status,
           applicationDate: row.applicationDate,
+          recruiterId: row.recruiterId || null,
           recruiter: row.recruiterId ? {
             id: row.recruiterId,
             name: row.recruiterName,
-            email: null
+            email: row.recruiterEmail || ''
           } : null,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,

@@ -1,6 +1,6 @@
 services:
   app:
-    image: studio-6-app:${IMAGE_TAG:-latest}
+    # image: studio-6-app:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

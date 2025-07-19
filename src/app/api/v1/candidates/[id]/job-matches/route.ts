@@ -122,23 +122,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
     }
 
-    // Insert new job matches (without deleting existing ones)
+    // Insert or update job matches
     const insertJobMatchQuery = `
       INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      ON CONFLICT ("candidateId", "jobId") DO UPDATE SET
-        "fitScore" = EXCLUDED."fitScore",
-        "matchReasons" = EXCLUDED."matchReasons",
-        "updatedAt" = NOW()
+    `;
+
+    const updateJobMatchQuery = `
+      UPDATE "JobMatch" 
+      SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
+      WHERE "candidateId" = $3 AND "jobId" = $4
       RETURNING *
+    `;
+
+    const checkExistingQuery = `
+      SELECT id FROM "JobMatch" WHERE "candidateId" = $1 AND "jobId" = $2
     `;
 
     const insertedMatches = [];
     
     for (const match of job_matches) {
-      const matchId = uuidv4();
-      console.log('[JOB-MATCHES] Inserting/updating match:', {
-        matchId,
+      console.log('[JOB-MATCHES] Processing match:', {
         candidateId: id,
         jobId: match.jobId,
         fitScore: match.fitScore,
@@ -146,29 +150,47 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
       
       try {
-        const result = await client.query(insertJobMatchQuery, [
-          matchId,
-          id,
-          match.jobId,
-          match.fitScore,
-          match.matchReasons || [],
-        ]);
+        // Check if job match already exists
+        const existingResult = await client.query(checkExistingQuery, [id, match.jobId]);
         
-        const insertedMatch = result.rows[0];
+        let result;
+        if (existingResult.rows.length > 0) {
+          // Update existing match
+          console.log('[JOB-MATCHES] Updating existing match:', existingResult.rows[0].id);
+          result = await client.query(updateJobMatchQuery, [
+            match.fitScore,
+            match.matchReasons || [],
+            id,
+            match.jobId,
+          ]);
+        } else {
+          // Insert new match
+          const matchId = uuidv4();
+          console.log('[JOB-MATCHES] Inserting new match:', matchId);
+          result = await client.query(insertJobMatchQuery, [
+            matchId,
+            id,
+            match.jobId,
+            match.fitScore,
+            match.matchReasons || [],
+          ]);
+        }
+        
+        const processedMatch = result.rows[0];
         insertedMatches.push({
-          id: insertedMatch.id,
-          fitScore: insertedMatch.fitScore / 100, // Convert integer back to decimal for response
-          jobId: insertedMatch.jobId,
-          matchReasons: insertedMatch.matchReasons || [],
+          id: processedMatch.id,
+          fitScore: processedMatch.fitScore / 100, // Convert integer back to decimal for response
+          jobId: processedMatch.jobId,
+          matchReasons: processedMatch.matchReasons || [],
         });
       } catch (insertError) {
-        console.error('[JOB-MATCHES] Insert error for match:', match, 'Error:', insertError);
+        console.error('[JOB-MATCHES] Error for match:', match, 'Error:', insertError);
         throw insertError;
       }
     }
 
     await client.query('COMMIT');
-    console.log('[JOB-MATCHES] Successfully inserted/updated', insertedMatches.length, 'job matches');
+    console.log('[JOB-MATCHES] Successfully processed', insertedMatches.length, 'job matches');
     
     return new Response(JSON.stringify({ 
       message: 'Job matches added/updated successfully', 
@@ -237,22 +259,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Update existing job matches or insert new ones
-    const upsertJobMatchQuery = `
+    const insertJobMatchQuery = `
       INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-      ON CONFLICT ("candidateId", "jobId") DO UPDATE SET
-        "fitScore" = EXCLUDED."fitScore",
-        "matchReasons" = EXCLUDED."matchReasons",
-        "updatedAt" = NOW()
+    `;
+
+    const updateJobMatchQuery = `
+      UPDATE "JobMatch" 
+      SET "fitScore" = $1, "matchReasons" = $2, "updatedAt" = NOW()
+      WHERE "candidateId" = $3 AND "jobId" = $4
       RETURNING *
+    `;
+
+    const checkExistingQuery = `
+      SELECT id FROM "JobMatch" WHERE "candidateId" = $1 AND "jobId" = $2
     `;
 
     const updatedMatches = [];
     
     for (const match of job_matches) {
-      const matchId = uuidv4();
-      console.log('[JOB-MATCHES] PATCH Upserting match:', {
-        matchId,
+      console.log('[JOB-MATCHES] PATCH Processing match:', {
         candidateId: id,
         jobId: match.jobId,
         fitScore: match.fitScore,
@@ -260,29 +286,47 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       });
       
       try {
-        const result = await client.query(upsertJobMatchQuery, [
-          matchId,
-          id,
-          match.jobId,
-          match.fitScore,
-          match.matchReasons || [],
-        ]);
+        // Check if job match already exists
+        const existingResult = await client.query(checkExistingQuery, [id, match.jobId]);
         
-        const updatedMatch = result.rows[0];
+        let result;
+        if (existingResult.rows.length > 0) {
+          // Update existing match
+          console.log('[JOB-MATCHES] PATCH Updating existing match:', existingResult.rows[0].id);
+          result = await client.query(updateJobMatchQuery, [
+            match.fitScore,
+            match.matchReasons || [],
+            id,
+            match.jobId,
+          ]);
+        } else {
+          // Insert new match
+          const matchId = uuidv4();
+          console.log('[JOB-MATCHES] PATCH Inserting new match:', matchId);
+          result = await client.query(insertJobMatchQuery, [
+            matchId,
+            id,
+            match.jobId,
+            match.fitScore,
+            match.matchReasons || [],
+          ]);
+        }
+        
+        const processedMatch = result.rows[0];
         updatedMatches.push({
-          id: updatedMatch.id,
-          fitScore: updatedMatch.fitScore / 100, // Convert integer back to decimal for response
-          jobId: updatedMatch.jobId,
-          matchReasons: updatedMatch.matchReasons || [],
+          id: processedMatch.id,
+          fitScore: processedMatch.fitScore / 100, // Convert integer back to decimal for response
+          jobId: processedMatch.jobId,
+          matchReasons: processedMatch.matchReasons || [],
         });
       } catch (upsertError) {
-        console.error('[JOB-MATCHES] Upsert error for match:', match, 'Error:', upsertError);
+        console.error('[JOB-MATCHES] PATCH Error for match:', match, 'Error:', upsertError);
         throw upsertError;
       }
     }
 
     await client.query('COMMIT');
-    console.log('[JOB-MATCHES] PATCH Successfully upserted', updatedMatches.length, 'job matches');
+    console.log('[JOB-MATCHES] PATCH Successfully processed', updatedMatches.length, 'job matches');
     
     return new Response(JSON.stringify({ 
       message: 'Job matches updated successfully', 

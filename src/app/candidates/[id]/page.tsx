@@ -1169,7 +1169,7 @@ export default function CandidateDetailPage() {
       // Get end date
       if (exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
-      } else if (exp.is_current_position || (exp.period && exp.period.includes('Present'))) {
+      } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
         endDate = new Date(); // Current date for current positions
       } else if (exp.period) {
         // Extract end date from period string
@@ -2201,13 +2201,17 @@ export default function CandidateDetailPage() {
                               {getExperience(candidate).map((exp: any, index: number) => {
                                 // Only use structured fields for timeline
                                 let start = '', end = '', duration = '';
+                                
+                                // Check for current position using both field names
+                                const isCurrentPosition = exp.is_current_position === true || exp.isCurrent === true;
+                                
                                 if (exp.startMonth && exp.startYear) {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
                                   start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                                   if (exp.endMonth && exp.endYear) {
                                     const endDate = new Date(exp.endYear, exp.endMonth - 1);
                                     end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                                  } else if (exp.is_current_position) {
+                                  } else if (isCurrentPosition) {
                                     end = 'Present';
                                   }
                                 }
@@ -2218,7 +2222,7 @@ export default function CandidateDetailPage() {
                                   if (exp.endMonth && exp.endYear) {
                                     // Past position with end date
                                     endDate = new Date(exp.endYear, exp.endMonth - 1);
-                                  } else if (exp.is_current_position) {
+                                  } else if (isCurrentPosition) {
                                     // Current position - use current date
                                     endDate = new Date();
                                   } else {

@@ -36,7 +36,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
       // Get end date
       if (exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
-      } else if (exp.is_current_position || (exp.period && exp.period.includes('Present'))) {
+      } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
         endDate = new Date(); // Current date for current positions
       } else if (exp.period) {
         // Extract end date from period string
@@ -102,7 +102,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
     
     if (entry.endYear && entry.endMonth) {
       endDate = new Date(entry.endYear, entry.endMonth - 1);
-    } else if (entry.is_current_position) {
+    } else if (entry.is_current_position === true || entry.isCurrent === true) {
       endDate = new Date(); // Current date for current positions
     } else if (entry.period && entry.period.includes('Present')) {
       endDate = new Date(); // Current date for "Present" end dates

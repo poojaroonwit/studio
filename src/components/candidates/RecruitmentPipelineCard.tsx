@@ -102,7 +102,7 @@ export function RecruitmentPipelineCard({
     currentStageToRecords[record.stage].push(record);
   });
 
-  const currentStageIndex = localStages.findIndex(s => s.name === localCurrentStatus);
+  const currentStageIndex = localStages?.findIndex(s => s.name === localCurrentStatus) ?? -1;
 
   return (
     <Card className="w-full border-0 shadow-none">
@@ -114,7 +114,13 @@ export function RecruitmentPipelineCard({
       </CardHeader>
       <CardContent>
         <div className="relative">
-          {localStages.map((stage, index) => {
+          {!localStages || localStages.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <Activity className="mx-auto h-8 w-8 mb-2 opacity-50" />
+              <p className="text-sm">Loading recruitment stages...</p>
+            </div>
+          ) : (
+            localStages.map((stage, index) => {
             const records = currentStageToRecords[stage.name] || [];
             const isCompleted = index <= currentStageIndex;
             const isCurrent = localCurrentStatus === stage.name;
@@ -141,7 +147,7 @@ export function RecruitmentPipelineCard({
                   }>
                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : index + 1}
                   </div>
-                  {index < localStages.length - 1 && (
+                  {index < (localStages?.length ?? 0) - 1 && (
                     <div className="absolute left-1/2 top-8 w-1 h-6 bg-muted transform -translate-x-1/2"></div>
                   )}
                 </div>
@@ -222,7 +228,8 @@ export function RecruitmentPipelineCard({
                 </div>
               </div>
             );
-          })}
+          })
+          )}
         </div>
       </CardContent>
     </Card>

@@ -172,43 +172,29 @@ export const authOptions: NextAuthOptions = {
     },
     callbacks: {
       async jwt({ token, user, account }) {
-        console.log('[JWT CALLBACK] JWT callback triggered');
-        console.log('[JWT CALLBACK] token.id:', token.id);
-        console.log('[JWT CALLBACK] user:', user ? { id: user.id, email: user.email } : 'no user');
-        console.log('[JWT CALLBACK] account provider:', account?.provider);
-        
         if (account && user) {
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
-          console.log('[JWT CALLBACK] Token updated with user data');
         }
         // If token.id exists, always fetch fresh merged permissions (for session refreshes and permission updates)
         if (token.id) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
-            console.log('[JWT CALLBACK] Fetched fresh module permissions for token');
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching module permissions:', e);
             token.modulePermissions = [];
           }
         }
-        console.log('[JWT CALLBACK] Final token:', {id: token.id, role: token.role, hasPermissions: !!token.modulePermissions });
         return token;
       },
       async session({ session, token }) {
-        console.log('[SESSION CALLBACK] Session callback triggered');
-        console.log('[SESSION CALLBACK] token.id:', token.id);
-        console.log('[SESSION CALLBACK] session.user:', session.user ? { email: session.user.email } : 'no user');
-        
         if (session.user) {
           session.user.id = token.id as string;
           session.user.role = token.role as UserProfile['role'];
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[];
-          console.log('[SESSION CALLBACK] Session updated with user data');
         }
-        console.log('[SESSION CALLBACK] Final session:', { userId: session.user?.id, role: session.user?.role });
         return session;
       },
       async signIn({ user, account, profile }) {

@@ -18,20 +18,23 @@ import { useRouter } from 'next/navigation';
 import { toast } from "react-hot-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie, Bar, Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement, // <-- add this
+  ArcElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend, ChartDataLabels);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend, ChartDataLabels);
 
 
 
@@ -466,20 +469,7 @@ export default function DashboardPageClient({
 
       {/* Section 1: Key Statics - Row 1 */}
       <div className="space-y-6">
-      <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
-            
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Key Statics</h2>
-              <p className="text-sm text-muted-foreground mt-1">Real-time metrics and insights</p>
-            </div>
-          </div>
-        <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-muted-foreground">Live Data</span>
-        </div>
-      </div>
+   
 
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-4">
           {[ // Row 1 KPI cards array
@@ -725,6 +715,12 @@ export default function DashboardPageClient({
           </Card>
         ))}
         </div>
+
+        {/* New Applications Time Series Chart */}
+        <NewApplicationsTimeSeriesChart 
+          candidates={allCandidates} 
+          isLoading={isLoading} 
+        />
       </div>
 
       {/* Section 2: Recruiter Performance (if applicable) */}

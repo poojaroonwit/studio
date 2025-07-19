@@ -195,13 +195,12 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
                 beginAtZero: true,
                     grid: { 
                       color: 'rgba(100,116,139,0.1)',
-                      drawBorder: false,
                     },
                     ticks: {
                       color: '#6b7280',
                       font: {
                         size: 12,
-                        weight: '500'
+                        weight: 500
                       },
                       padding: 8,
                     },
@@ -212,13 +211,12 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
               y: {
                     grid: { 
                       display: false,
-                      drawBorder: false,
                     },
                     ticks: {
                       color: '#6b7280',
                       font: {
                         size: 12,
-                        weight: '500'
+                        weight: 500
                       },
                       padding: 8,
                     },
@@ -250,7 +248,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
                         const x = model.x;
                         const y = model.y;
                         
-                        if (data > 0) {
+                        if (data && typeof data === 'number' && data > 0) {
                           ctx.fillText(data.toString(), x + 15, y);
                         }
                         ctx.restore();

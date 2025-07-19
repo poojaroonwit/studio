@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setThemeAndColors, applySidebarStyles } from "@/lib/themeUtils";
+import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle } from "@/lib/themeUtils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -300,6 +300,7 @@ export default function SystemPreferencesPage() {
 
   // Sidebar color state
   const [sidebarColors, setSidebarColors] = useState<SidebarColors>(DEFAULT_SIDEBAR_COLORS_BASE);
+  const [sidebarActiveStyle, setSidebarActiveStyle] = useState<SidebarActiveStyle>('gradient');
   const [appMenuIcon, setAppMenuIcon] = useState<string>("");
   const [appMenuIconType, setAppMenuIconType] = useState<"lucide"|"image">("lucide");
 
@@ -344,6 +345,14 @@ export default function SystemPreferencesPage() {
           });
           setSidebarColors(newSidebarColors);
           applySidebarStyles(newSidebarColors);
+
+          // Initialize sidebar active style from backend or localStorage
+          const backendSidebarStyle = data.sidebarActiveStylePreference;
+          if (backendSidebarStyle) {
+            setSidebarActiveStyle(backendSidebarStyle);
+          } else {
+            setSidebarActiveStyle(getSidebarActiveStyle());
+          }
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -488,6 +497,7 @@ export default function SystemPreferencesPage() {
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
         { key: 'loginPageBackgroundImageUrl', value: selectedLoginImageFile ? loginImagePreviewUrl : savedLoginImageDataUrl },
+        { key: 'sidebarActiveStylePreference', value: sidebarActiveStyle },
       ];
       
       // Add sidebar colors
@@ -551,6 +561,7 @@ export default function SystemPreferencesPage() {
           primaryGradientStart: sidebarColors.sidebarActiveBgStartL,
           primaryGradientEnd: sidebarColors.sidebarActiveBgEndL,
           sidebarColors,
+          sidebarActiveStyle,
         }
       }));
       
@@ -1049,6 +1060,47 @@ export default function SystemPreferencesPage() {
             <TabsContent value="sidebar" className="h-full">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
+                  {/* Sidebar Active Style */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <SidebarIcon className="h-5 w-5 text-primary" />
+                        Sidebar Active Menu Style
+                      </CardTitle>
+                      <CardDescription>
+                        Choose how selected menu items appear in the sidebar
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="sidebar-active-style" className="text-sm font-medium">
+                            Active Menu Style
+                          </Label>
+                          <Select
+                            value={sidebarActiveStyle}
+                            onValueChange={(value: SidebarActiveStyle) => {
+                              setSidebarActiveStyle(value);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gradient">Gradient Background</SelectItem>
+                              <SelectItem value="solid">Solid Background</SelectItem>
+                              <SelectItem value="outline">Outline Border</SelectItem>
+                              <SelectItem value="subtle">Subtle Highlight</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Changes apply immediately for preview. Save to persist the setting.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Sidebar Colors */}
                   <Card>
                     <CardHeader>

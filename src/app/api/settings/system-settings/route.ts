@@ -112,11 +112,9 @@ const saveSystemSettingsSchema = z.array(systemSettingSchema);
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('[SYSTEM SETTINGS] Fetching system settings');
     const pool = getPool();
     const result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
     const settings = result.rows;
-    console.log('[SYSTEM SETTINGS] Found', settings.length, 'settings');
     
     // Check Azure AD configuration
     const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID && 
@@ -125,12 +123,6 @@ export async function GET(request: NextRequest) {
                                process.env.AZURE_AD_CLIENT_ID !== 'your_azure_ad_application_client_id' &&
                                process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
                                process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
-    
-    console.log('[SYSTEM SETTINGS] Azure AD configuration check:');
-    console.log('[SYSTEM SETTINGS] - AZURE_AD_CLIENT_ID:', process.env.AZURE_AD_CLIENT_ID ? 'SET' : 'NOT SET');
-    console.log('[SYSTEM SETTINGS] - AZURE_AD_CLIENT_SECRET:', process.env.AZURE_AD_CLIENT_SECRET ? 'SET' : 'NOT SET');
-    console.log('[SYSTEM SETTINGS] - AZURE_AD_TENANT_ID:', process.env.AZURE_AD_TENANT_ID ? 'SET' : 'NOT SET');
-    console.log('[SYSTEM SETTINGS] - isAzureAdConfigured:', isAzureAdConfigured);
 
     return NextResponse.json({
       settings,
@@ -222,7 +214,6 @@ export async function POST(request: NextRequest) {
   }
 
   const validatedSettings = validationResult.data;
-  console.log('Saving system settings:', validatedSettings.map(s => ({ key: s.key, valueLength: s.value?.length || 0 })));
   const client = await getPool().connect();
 
   try {
@@ -243,7 +234,6 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
-    console.log('System settings saved successfully');
     await logAudit('AUDIT', `System settings updated by ${session.user.name}. Keys: ${validatedSettings.map((s: any)=>s.key).join(', ')}`, 'API:SystemSettings:Update', session.user.id, { updatedKeys: validatedSettings.map((s: any)=>s.key) });
     
     // Return all current settings after update as an object (key-value pairs)

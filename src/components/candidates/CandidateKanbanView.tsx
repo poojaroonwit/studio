@@ -42,6 +42,58 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
   const [loading, setLoading] = useState(false); // For skeleton loader
   const [addingStatus, setAddingStatus] = useState<CandidateStatus | null>(null);
 
+  // Drag and drop handlers
+  const handleDragStart = (candidate: Candidate) => {
+    setDraggedCandidate(candidate);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCandidate(null);
+    setDragOverStatus(null);
+  };
+
+  const handleDragOver = (status: CandidateStatus, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverStatus(status);
+  };
+
+  const handleDrop = (status: CandidateStatus) => {
+    if (draggedCandidate && draggedCandidate.status !== status) {
+      onMoveCandidate?.(draggedCandidate, status);
+    }
+    setDraggedCandidate(null);
+    setDragOverStatus(null);
+  };
+
+  const handleCardClick = (candidate: Candidate) => {
+    if (onCardClick) {
+      onCardClick(candidate);
+    } else {
+      // Validate parsedData to ensure it has the expected structure
+      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
+        ...candidate.parsedData,
+        // Ensure array fields are actually arrays
+        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
+        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
+        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
+        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
+        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
+      } : {};
+      
+      setSelectedCandidateSummary({
+        id: candidate.id,
+        name: formatCandidateName(candidate),
+        email: candidate.email,
+        phone: candidate.phone,
+        status: candidate.status,
+        position: candidate.position,
+        fitScore: candidate.fitScore,
+        parsedData: validatedParsedData
+      });
+      setIsModalOpen(true);
+    }
+  };
+
   // Lowercase/trimmed statuses for robust matching
   const normalizedStatuses = statuses.map(s => s.toLowerCase().trim());
 
@@ -167,7 +219,8 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
   }
 
   return (
-    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+    <>
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
       {statuses.map(status => (
         <div
           key={status}
@@ -381,6 +434,19 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
         </div>
       )}
     </div>
+    
+    {/* Candidate Detail Modal */}
+    {selectedCandidateSummary && (
+      <CandidateDetailModal
+        candidateId={selectedCandidateSummary.id}
+        open={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedCandidateSummary(null);
+        }}
+      />
+    )}
+  </>
   );
 }
 
@@ -663,7 +729,9 @@ export function FlexibleKanbanView({
   // If no specific layout is configured, default to row-based with status
   const effectiveRowField = isRowBased ? rowField : 'status';
   const effectiveColumnField = isColumnBased ? columnField : null;
-  const effectiveRowValues = isRowBased ? visibleRowValues : statuses;
+  
+  // For status field, always show all available stages, regardless of visibleRowValues
+  const effectiveRowValues = (effectiveRowField === 'status') ? statuses : (isRowBased ? visibleRowValues : statuses);
   const effectiveColumnValues = isColumnBased ? visibleColumnValues : [];
 
   console.log('FlexibleKanbanView: Layout detection:', {

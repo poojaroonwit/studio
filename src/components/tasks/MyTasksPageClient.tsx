@@ -160,8 +160,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             setVisibleRowValues([]);
           }
         } else {
-          // Default to single row mode: only first stage
-          setVisibleRowValues(stages.length > 0 ? [stages[0]] : []);
+          // Default to showing all stages when row field is status
+          setVisibleRowValues(stages.length > 0 ? stages : []);
         }
         if (visibleColPref) {
           try {
@@ -174,7 +174,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           setVisibleColumnValues([]);
         }
         if (uniqueRowValues.length === 0 && stages.length > 0) {
-          setVisibleRowValues([stages[0]]);
+          setVisibleRowValues(stages);
         }
       })
       .catch((error) => {
@@ -186,7 +186,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           rowField: 'status',
           columnField: 'none',
         }));
-        setVisibleRowValues(stages.length > 0 ? [stages[0]] : []);
+        setVisibleRowValues(stages.length > 0 ? stages : []);
         setVisibleColumnValues([]);
       });
   }, [uniqueRowValues, uniqueColumnValues, stages]);
@@ -201,6 +201,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Fallback: ensure visibleRowValues has a value when stages are loaded
   useEffect(() => {
     if (stages.length > 0 && visibleRowValues.length === 0 && rowField === 'status') {
+      setVisibleRowValues(stages);
+    }
+    // Also ensure that when row field is status, we always show all stages
+    if (stages.length > 0 && rowField === 'status' && visibleRowValues.length > 0 && visibleRowValues.length < stages.length) {
       setVisibleRowValues(stages);
     }
   }, [stages, visibleRowValues.length, rowField]);

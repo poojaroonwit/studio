@@ -61,6 +61,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   console.log(`[ATTACHMENTS] POST request to: ${req.nextUrl.pathname}`);
   console.log(`[ATTACHMENTS] Content-Type: ${req.headers.get('content-type')}`);
+  console.log(`[ATTACHMENTS] User-Agent: ${req.headers.get('user-agent')}`);
+  console.log(`[ATTACHMENTS] Referer: ${req.headers.get('referer')}`);
+  console.log(`[ATTACHMENTS] Origin: ${req.headers.get('origin')}`);
+  console.log(`[ATTACHMENTS] Host: ${req.headers.get('host')}`);
   
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
@@ -93,37 +97,82 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }));
   }
 
-  const formData = await req.formData();
-  
-  // Try both field names for compatibility
-  let file = formData.get('attachment');
-  if (!file || typeof file === 'string') {
-    // Try plural form as fallback
-    const files = formData.getAll('attachments');
-    if (files.length > 0 && typeof files[0] !== 'string') {
-      file = files[0];
-    }
-  }
-  
-  if (!file || typeof file === 'string') {
-    const availableFields = Array.from(formData.keys());
-    console.log(`[ATTACHMENTS] No valid file found. Available fields:`, availableFields);
-    console.log(`[ATTACHMENTS] Form data entries:`, Array.from(formData.entries()).map(([key, value]) => ({
+  try {
+    const formData = await req.formData();
+    
+    // Log all form data for debugging
+    const formEntries = Array.from(formData.entries());
+    console.log(`[ATTACHMENTS] Form data entries:`, formEntries.map(([key, value]) => ({
       key,
       type: typeof value,
       isFile: value instanceof File,
-      size: value instanceof File ? value.size : 'N/A'
+      size: value instanceof File ? value.size : 'N/A',
+      name: value instanceof File ? value.name : 'N/A'
     })));
     
-    return handleApiError(req, createValidationError('Invalid input', { 
-      attachment: [`No file uploaded. Available fields: ${availableFields.join(', ')}. Expected field name: "attachment" or "attachments"`] 
-    }));
-  }
-  
-  const ext = (file.name || 'pdf').split('.').pop();
-  const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
-  
-  try {
+    // Try both field names for compatibility
+    let file = formData.get('attachment');
+    if (!file || typeof file === 'string') {
+      // Try plural form as fallback
+      const files = formData.getAll('attachments');
+      if (files.length > 0 && typeof files[0] !== 'string') {
+        file = files[0];
+      }
+    }
+    
+    if (!file || typeof file === 'string') {
+      const availableFields = Array.from(formData.keys());
+      console.log(`[ATTACHMENTS] No valid file found. Available fields:`, availableFields);
+      
+      // Check if there are any files at all
+      const allFiles = formData.getAll('attachment').concat(formData.getAll('attachments'));
+      const validFiles = allFiles.filter(f => f instanceof File && f.size > 0);
+      
+      if (validFiles.length === 0) {
+        console.log(`[ATTACHMENTS] ERROR: Empty form field detected. This might be from an external client or automation tool.`);
+        console.log(`[ATTACHMENTS] Request details:`, {
+          url: req.nextUrl.toString(),
+          method: req.method,
+          userAgent: req.headers.get('user-agent'),
+          referer: req.headers.get('referer'),
+          origin: req.headers.get('origin'),
+          availableFields,
+          totalFiles: allFiles.length,
+          validFiles: validFiles.length
+        });
+        
+        return handleApiError(req, createValidationError('Invalid input', { 
+          attachment: [
+            `No file uploaded. Available fields: ${availableFields.join(', ')}. ` +
+            `Expected field name: "attachment" or "attachments". ` +
+            `Found ${allFiles.length} total files, ${validFiles.length} valid files. ` +
+            `This error typically occurs when a form field is created without an actual file.`
+          ] 
+        }));
+      }
+    }
+    
+    // Validate file size
+    if (file.size === 0) {
+      console.log(`[ATTACHMENTS] ERROR: Zero-byte file detected: ${file.name}`);
+      return handleApiError(req, createValidationError('Invalid input', { 
+        attachment: ['File is empty (0 bytes)'] 
+      }));
+    }
+    
+    // Validate file name
+    if (!file.name || file.name.trim() === '') {
+      console.log(`[ATTACHMENTS] ERROR: File with no name detected`);
+      return handleApiError(req, createValidationError('Invalid input', { 
+        attachment: ['File has no name'] 
+      }));
+    }
+    
+    const ext = (file.name || 'pdf').split('.').pop();
+    const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
+    
+    console.log(`[ATTACHMENTS] Processing file: ${file.name} (${file.size} bytes) -> ${objectName}`);
+    
     const arrayBuffer = await file.arrayBuffer();
     await minioClient.putObject(
       MINIO_BUCKET,
@@ -145,11 +194,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
+    
+    console.log(`[ATTACHMENTS] Successfully uploaded: ${file.name} -> ${newAttachment.id}`);
+    
     return createSuccessResponse(req, { 
       ...newAttachment, 
       url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` 
     }, 201);
   } catch (err) {
+    console.error(`[ATTACHMENTS] Error uploading attachment:`, err);
     return handleApiError(req, createInternalServerError('Error uploading attachment', { 
       originalError: String(err) 
     }));

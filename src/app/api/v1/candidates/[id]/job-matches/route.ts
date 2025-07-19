@@ -63,6 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     return new Response(JSON.stringify({ job_matches: jobMatches }), { status: 200, headers: handleCors(req) });
   } catch (error) {
+    console.error('[JOB-MATCHES] GET Error:', error);
     return new Response(JSON.stringify({ error: 'Error fetching job matches', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();
@@ -87,17 +88,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   
   try {
     body = await req.json();
+    console.log('[JOB-MATCHES] Request body:', JSON.stringify(body, null, 2));
     body = normalizePayloadTypes(body);
-  } catch {
+  } catch (error) {
+    console.error('[JOB-MATCHES] JSON parse error:', error);
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: { message: 'Invalid JSON body' } }), { status: 400, headers: handleCors(req) });
   }
 
   const validationResult = jobMatchesUpdateSchema.safeParse(body);
   if (!validationResult.success) {
+    console.error('[JOB-MATCHES] Validation error:', validationResult.error.flatten());
     return new Response(JSON.stringify({ error: 'Invalid input', code: 'BAD_REQUEST', endpoint: '/api/v1/candidates/[id]/job-matches', details: validationResult.error.flatten().fieldErrors }), { status: 400, headers: handleCors(req) });
   }
 
   const { job_matches } = validationResult.data;
+  console.log('[JOB-MATCHES] Validated job_matches:', JSON.stringify(job_matches, null, 2));
+  
   const client = await getPool().connect();
   
   try {
@@ -113,35 +119,50 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Delete existing job matches for this candidate
+    console.log('[JOB-MATCHES] Deleting existing job matches for candidate:', id);
     await client.query('DELETE FROM "JobMatch" WHERE "candidateId" = $1', [id]);
 
     // Insert new job matches
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `;
 
     const insertedMatches = [];
     
     for (const match of job_matches) {
       const matchId = uuidv4();
-      await client.query(insertJobMatchQuery, [
+      console.log('[JOB-MATCHES] Inserting match:', {
         matchId,
-        id,
-        match.jobId,
-        match.fitScore,
-        match.matchReasons || [],
-      ]);
-      
-      insertedMatches.push({
-        id: matchId,
-        fitScore: match.fitScore / 100, // Convert integer back to decimal for response
+        candidateId: id,
         jobId: match.jobId,
-        matchReasons: match.matchReasons || [],
+        fitScore: match.fitScore,
+        matchReasons: match.matchReasons || []
       });
+      
+      try {
+        await client.query(insertJobMatchQuery, [
+          matchId,
+          id,
+          match.jobId,
+          match.fitScore,
+          match.matchReasons || [],
+        ]);
+        
+        insertedMatches.push({
+          id: matchId,
+          fitScore: match.fitScore / 100, // Convert integer back to decimal for response
+          jobId: match.jobId,
+          matchReasons: match.matchReasons || [],
+        });
+      } catch (insertError) {
+        console.error('[JOB-MATCHES] Insert error for match:', match, 'Error:', insertError);
+        throw insertError;
+      }
     }
 
     await client.query('COMMIT');
+    console.log('[JOB-MATCHES] Successfully inserted', insertedMatches.length, 'job matches');
     
     return new Response(JSON.stringify({ 
       message: 'Job matches updated successfully', 
@@ -150,7 +171,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
   } catch (error) {
     await client.query('ROLLBACK');
-    return new Response(JSON.stringify({ error: 'Error updating job matches', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
+    console.error('[JOB-MATCHES] Database error:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Error updating job matches', 
+      details: (error as Error).message,
+      stack: (error as Error).stack 
+    }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();
   }
@@ -202,8 +228,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // Insert new job matches
     const insertJobMatchQuery = `
-      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons")
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
     `;
 
     const insertedMatches = [];

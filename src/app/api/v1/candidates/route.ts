@@ -20,36 +20,12 @@ import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSch
 
 const prisma = new PrismaClient();
 
-const contactInfoSchema = z.object({
-  email: z.string(),
-  phone: z.string(),
-}).strict();
-
-const personalInfoSchema = z.object({
-  title_honorific: z.string(),
-  firstname: z.string(),
-  lastname: z.string(),
-  nickname: z.string(),
-  location: z.string(),
-  introduction_aboutme: z.string(),
-}).strict();
-
-const jobSuitableEntrySchema = z.object({
-  suitable_career: z.string(),
-  suitable_job_level: z.string(),
-  suitable_job_position: z.string(),
-  suitable_salary_bath_month: z.string(),
-}).strict();
-
-const skillsEntrySchema = z.object({
-  segment_skill: z.string(),
-  skill: z.array(z.string()),
-}).strict();
+// These schemas are now imported from ./schemas.ts
 
 const createCandidateSchema = z.object({
-  candidate_info: candidateInfoSchema,
-  educationData: z.array(structuredEducationSchema).min(1),
-  experienceData: z.array(structuredExperienceSchema).min(1),
+  candidate_info: candidateInfoSchema.optional(),
+  educationData: z.array(structuredEducationSchema).optional(),
+  experienceData: z.array(structuredExperienceSchema).optional(),
 }).strict();
 
 export async function POST(request: NextRequest) {
@@ -79,9 +55,15 @@ export async function POST(request: NextRequest) {
   }
 
   const { candidate_info, educationData, experienceData } = validationResult.data;
-  const name = `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`;
-  const email = candidate_info.contact_info.email;
-  const status = candidate_info.status || 'new';
+  
+  // Handle optional fields with defaults
+  const personalInfo = candidate_info?.personal_info || {};
+  const contactInfo = candidate_info?.contact_info || {};
+  const name = personalInfo.firstname && personalInfo.lastname 
+    ? `${personalInfo.firstname} ${personalInfo.lastname}` 
+    : 'Unknown Candidate';
+  const email = contactInfo.email || 'no-email@example.com';
+  const status = candidate_info?.status || 'new';
 
   // Fetch the first recruitment stage (by sortOrder ASC)
   let appliedStage = 'Applied';
@@ -99,8 +81,8 @@ export async function POST(request: NextRequest) {
   // Flatten parsedData structure to match UI expectations
   const parsedData = {
     ...candidate_info,
-    education: educationData,
-    experience: experienceData
+    education: educationData || [],
+    experience: experienceData || []
   };
   const newCandidateId = uuidv4();
 
@@ -110,6 +92,7 @@ export async function POST(request: NextRequest) {
         id: newCandidateId,
         name: name,
         email: email.toLowerCase(),
+        phone: contactInfo.phone || null,
         status: appliedStage,
         parsedData: parsedData,
         createdAt: new Date(),

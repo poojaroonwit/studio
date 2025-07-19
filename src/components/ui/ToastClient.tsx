@@ -97,7 +97,14 @@ export default function ToastClient() {
           if (typeof window !== 'undefined' && isDarkMode()) {
             fontColor = '#fff'; // White text for colored backgrounds in dark mode
           } else {
-            fontColor = '#222'; // Dark gray text for colored backgrounds in light mode
+            fontColor = '#000'; // Black text for colored backgrounds in light mode for better contrast
+          }
+        } else {
+          // For non-colored toasts, use dark text for better readability
+          if (typeof window !== 'undefined' && isDarkMode()) {
+            fontColor = '#fff'; // White text in dark mode
+          } else {
+            fontColor = '#000'; // Black text in light mode
           }
         }
         return (

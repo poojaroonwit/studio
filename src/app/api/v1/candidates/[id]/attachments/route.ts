@@ -94,10 +94,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const formData = await req.formData();
-  const file = formData.get('attachment');
+  
+  // Try both field names for compatibility
+  let file = formData.get('attachment');
   if (!file || typeof file === 'string') {
+    // Try plural form as fallback
+    const files = formData.getAll('attachments');
+    if (files.length > 0 && typeof files[0] !== 'string') {
+      file = files[0];
+    }
+  }
+  
+  if (!file || typeof file === 'string') {
+    const availableFields = Array.from(formData.keys());
+    console.log(`[ATTACHMENTS] No valid file found. Available fields:`, availableFields);
+    console.log(`[ATTACHMENTS] Form data entries:`, Array.from(formData.entries()).map(([key, value]) => ({
+      key,
+      type: typeof value,
+      isFile: value instanceof File,
+      size: value instanceof File ? value.size : 'N/A'
+    })));
+    
     return handleApiError(req, createValidationError('Invalid input', { 
-      attachment: ['No file uploaded'] 
+      attachment: [`No file uploaded. Available fields: ${availableFields.join(', ')}. Expected field name: "attachment" or "attachments"`] 
     }));
   }
   

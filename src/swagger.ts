@@ -1308,15 +1308,15 @@ export function getSwaggerSpec() {
           requestBody: {
             required: true,
             content: {
-              'multipart/form-data': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    attachment: { type: 'string', format: 'binary', description: 'Attachment file (PDF, DOC, DOCX, RTF, TXT, JPG, PNG, GIF)' }
-                  },
-                  required: ['attachment']
-                }
-              }
+                                'multipart/form-data': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        attachment: { type: 'string', format: 'binary', description: 'Attachment file (PDF, DOC, DOCX, RTF, TXT, JPG, PNG, GIF). Also accepts "attachments" field name.' }
+                      },
+                      required: ['attachment']
+                    }
+                  }
             }
           },
           responses: {

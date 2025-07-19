@@ -951,8 +951,8 @@ export default function CandidateDetailPage() {
     // Sort experience: current jobs first, then by timeline (latest first)
     return experienceArray.sort((a, b) => {
       // First, prioritize current positions
-      const aIsCurrent = a.is_current_position === true;
-      const bIsCurrent = b.is_current_position === true;
+      const aIsCurrent = a.is_current_position === true || a.isCurrent === true;
+      const bIsCurrent = b.is_current_position === true || b.isCurrent === true;
       
       if (aIsCurrent && !bIsCurrent) return -1;
       if (!aIsCurrent && bIsCurrent) return 1;
@@ -1167,7 +1167,12 @@ export default function CandidateDetailPage() {
       }
       
       // Get end date
-      if (exp.endYear && exp.endMonth) {
+      // Check for valid end date (not future dates like 9999)
+      const hasValidEndDate = exp.endYear && exp.endMonth && 
+        exp.endYear <= new Date().getFullYear() + 1 && 
+        exp.endYear >= 1900;
+      
+      if (hasValidEndDate && exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
       } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
         endDate = new Date(); // Current date for current positions
@@ -2208,7 +2213,13 @@ export default function CandidateDetailPage() {
                                 if (exp.startMonth && exp.startYear) {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
                                   start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                                  if (exp.endMonth && exp.endYear) {
+                                  
+                                  // Check for valid end date (not future dates like 9999)
+                                  const hasValidEndDate = exp.endMonth && exp.endYear && 
+                                    exp.endYear <= new Date().getFullYear() + 1 && 
+                                    exp.endYear >= 1900;
+                                  
+                                  if (hasValidEndDate && exp.endYear && exp.endMonth) {
                                     const endDate = new Date(exp.endYear, exp.endMonth - 1);
                                     end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
                                   } else if (isCurrentPosition) {
@@ -2219,7 +2230,12 @@ export default function CandidateDetailPage() {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
                                   let endDate: Date;
                                   
-                                  if (exp.endMonth && exp.endYear) {
+                                  // Check for valid end date (not future dates like 9999)
+                                  const hasValidEndDate = exp.endMonth && exp.endYear && 
+                                    exp.endYear <= new Date().getFullYear() + 1 && 
+                                    exp.endYear >= 1900;
+                                  
+                                  if (hasValidEndDate && exp.endYear && exp.endMonth) {
                                     // Past position with end date
                                     endDate = new Date(exp.endYear, exp.endMonth - 1);
                                   } else if (isCurrentPosition) {

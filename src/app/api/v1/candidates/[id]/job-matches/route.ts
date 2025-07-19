@@ -7,12 +7,13 @@ import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const jobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100).transform(val => {
+  fitScore: z.number().min(0).max(100).optional().transform(val => {
+    if (val === undefined || val === null) return null;
     if (val >= 0 && val <= 100) return Math.round(val);
     if (val > 0 && val < 1) return Math.round(val * 100);
     return Math.max(0, Math.min(100, Math.round(val)));
   }), // Convert decimal to integer if needed (0.7 -> 70, 70 -> 70)
-  jobId: z.string().uuid(),
+  jobId: z.string().uuid().optional(), // Make optional to match database nullable field
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
   // - positionTitle: Retrieved from Position table based on jobId
@@ -108,18 +109,48 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { job_matches } = validationResult.data;
   console.log('[JOB-MATCHES] Validated job_matches:', JSON.stringify(job_matches, null, 2));
   
-  const client = await getPool().connect();
+  let client;
+  try {
+    console.log('[JOB-MATCHES] Getting database connection...');
+    client = await getPool().connect();
+    console.log('[JOB-MATCHES] Database connection established');
+  } catch (dbError) {
+    console.error('[JOB-MATCHES] Database connection error:', dbError);
+    return new Response(JSON.stringify({ 
+      error: 'Database connection failed', 
+      details: (dbError as Error).message 
+    }), { status: 500, headers: handleCors(req) });
+  }
   
   try {
+    console.log('[JOB-MATCHES] Starting transaction...');
     await client.query('BEGIN');
+    console.log('[JOB-MATCHES] Transaction started');
     
     // Check if candidate exists
+    console.log('[JOB-MATCHES] Checking if candidate exists:', id);
     const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
+    console.log('[JOB-MATCHES] Candidate query result:', candidateResult.rows.length, 'rows');
     
     if (candidateResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
+    }
+
+    // Check if JobMatch table exists
+    console.log('[JOB-MATCHES] Checking JobMatch table structure...');
+    try {
+      const tableCheckQuery = `
+        SELECT column_name, data_type, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name = 'JobMatch' 
+        ORDER BY ordinal_position
+      `;
+      const tableResult = await client.query(tableCheckQuery);
+      console.log('[JOB-MATCHES] JobMatch table columns:', tableResult.rows);
+    } catch (tableError) {
+      console.error('[JOB-MATCHES] Table check error:', tableError);
     }
 
     // Insert or update job matches
@@ -144,25 +175,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     for (const match of job_matches) {
       console.log('[JOB-MATCHES] Processing match:', {
         candidateId: id,
-        jobId: match.jobId,
-        fitScore: match.fitScore,
+        jobId: match.jobId || null,
+        fitScore: match.fitScore || null,
         matchReasons: match.matchReasons || []
       });
       
       try {
         // Check if job match already exists
-        const existingResult = await client.query(checkExistingQuery, [id, match.jobId]);
+        console.log('[JOB-MATCHES] Checking for existing match...');
+        const existingResult = await client.query(checkExistingQuery, [id, match.jobId || null]);
+        console.log('[JOB-MATCHES] Existing match check result:', existingResult.rows.length, 'rows');
         
         let result;
         if (existingResult.rows.length > 0) {
           // Update existing match
           console.log('[JOB-MATCHES] Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
-            match.fitScore,
+            match.fitScore || null,
             match.matchReasons || [],
             id,
-            match.jobId,
+            match.jobId || null,
           ]);
+          console.log('[JOB-MATCHES] Update result:', result.rows[0]);
         } else {
           // Insert new match
           const matchId = uuidv4();
@@ -170,25 +204,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           result = await client.query(insertJobMatchQuery, [
             matchId,
             id,
-            match.jobId,
-            match.fitScore,
+            match.jobId || null,
+            match.fitScore || null,
             match.matchReasons || [],
           ]);
+          console.log('[JOB-MATCHES] Insert result:', result.rows[0]);
         }
         
         const processedMatch = result.rows[0];
         insertedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore / 100, // Convert integer back to decimal for response
-          jobId: processedMatch.jobId,
+          fitScore: processedMatch.fitScore ? processedMatch.fitScore / 100 : 0, // Convert integer back to decimal for response
+          jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
       } catch (insertError) {
         console.error('[JOB-MATCHES] Error for match:', match, 'Error:', insertError);
+        console.error('[JOB-MATCHES] Error details:', {
+          message: (insertError as Error).message,
+          stack: (insertError as Error).stack,
+          code: (insertError as any).code
+        });
         throw insertError;
       }
     }
 
+    console.log('[JOB-MATCHES] Committing transaction...');
     await client.query('COMMIT');
     console.log('[JOB-MATCHES] Successfully processed', insertedMatches.length, 'job matches');
     
@@ -198,15 +239,37 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('[JOB-MATCHES] Database error:', error);
+    console.error('[JOB-MATCHES] Error details:', {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+      code: (error as any).code,
+      detail: (error as any).detail,
+      hint: (error as any).hint
+    });
+    
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+        console.log('[JOB-MATCHES] Transaction rolled back');
+      } catch (rollbackError) {
+        console.error('[JOB-MATCHES] Rollback error:', rollbackError);
+      }
+    }
+    
     return new Response(JSON.stringify({ 
       error: 'Error adding/updating job matches', 
       details: (error as Error).message,
-      stack: (error as Error).stack 
+      stack: (error as Error).stack,
+      code: (error as any).code,
+      detail: (error as any).detail,
+      hint: (error as any).hint
     }), { status: 500, headers: handleCors(req) });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+      console.log('[JOB-MATCHES] Database connection released');
+    }
   }
 }
 
@@ -280,24 +343,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     for (const match of job_matches) {
       console.log('[JOB-MATCHES] PATCH Processing match:', {
         candidateId: id,
-        jobId: match.jobId,
-        fitScore: match.fitScore,
+        jobId: match.jobId || null,
+        fitScore: match.fitScore || null,
         matchReasons: match.matchReasons || []
       });
       
       try {
         // Check if job match already exists
-        const existingResult = await client.query(checkExistingQuery, [id, match.jobId]);
+        const existingResult = await client.query(checkExistingQuery, [id, match.jobId || null]);
         
         let result;
         if (existingResult.rows.length > 0) {
           // Update existing match
           console.log('[JOB-MATCHES] PATCH Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
-            match.fitScore,
+            match.fitScore || null,
             match.matchReasons || [],
             id,
-            match.jobId,
+            match.jobId || null,
           ]);
         } else {
           // Insert new match
@@ -306,8 +369,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           result = await client.query(insertJobMatchQuery, [
             matchId,
             id,
-            match.jobId,
-            match.fitScore,
+            match.jobId || null,
+            match.fitScore || null,
             match.matchReasons || [],
           ]);
         }
@@ -315,8 +378,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const processedMatch = result.rows[0];
         updatedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore / 100, // Convert integer back to decimal for response
-          jobId: processedMatch.jobId,
+          fitScore: processedMatch.fitScore ? processedMatch.fitScore / 100 : 0, // Convert integer back to decimal for response
+          jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
       } catch (upsertError) {
@@ -403,15 +466,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       await client.query(insertJobMatchQuery, [
         matchId,
         id,
-        match.jobId,
-        match.fitScore,
+        match.jobId || null,
+        match.fitScore || null,
         match.matchReasons || [],
       ]);
       
       insertedMatches.push({
         id: matchId,
-        fitScore: match.fitScore / 100, // Convert integer back to decimal for response
-        jobId: match.jobId,
+        fitScore: (match.fitScore || 0) / 100, // Convert integer back to decimal for response
+        jobId: match.jobId || null,
         matchReasons: match.matchReasons || [],
       });
     }

@@ -27,6 +27,8 @@ model User {
   attachments          Attachment[]              @relation("UserAttachments")
   candidates           Candidate[]               @relation("RecruiterCandidates")
   candidateComments    CandidateComment[]        @relation("UserComments")
+  Dashboard            Dashboard[]
+  DashboardShare       DashboardShare[]
   logEntries           LogEntry[]                @relation("UserLogEntries")
   transitionRecords    TransitionRecord[]        @relation("ActingUserTransitions")
   userPreferences      UserUIDisplayPreference[]
@@ -408,4 +410,57 @@ model WebhookLog {
   @@index([event_type])
   @@index([success])
   @@index([createdAt])
+}
+
+model Dashboard {
+  id              String            @id @db.Uuid
+  name            String
+  description     String?
+  userId          String            @db.Uuid
+  layout          String            @default("grid")
+  theme           String            @default("default")
+  isPublic        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  DashboardShare  DashboardShare[]
+  DashboardWidget DashboardWidget[]
+
+  @@index([createdAt])
+  @@index([isPublic])
+  @@index([updatedAt])
+  @@index([userId])
+}
+
+model DashboardShare {
+  id          String    @id @db.Uuid
+  dashboardId String    @db.Uuid
+  userId      String    @db.Uuid
+  permission  String    @default("view")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dashboardId, userId])
+  @@index([dashboardId])
+  @@index([permission])
+  @@index([userId])
+}
+
+model DashboardWidget {
+  id          String    @id @db.Uuid
+  dashboardId String    @db.Uuid
+  type        String
+  title       String
+  config      Json?
+  position    Json?
+  dataSource  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  Dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([dashboardId])
+  @@index([type])
 }

@@ -34,7 +34,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
       }
       
       // Get end date
-      if (exp.endYear && exp.endMonth) {
+      // Check for valid end date (not future dates like 9999)
+      const hasValidEndDate = exp.endYear && exp.endMonth && 
+        exp.endYear <= new Date().getFullYear() + 1 && 
+        exp.endYear >= 1900;
+      
+      if (hasValidEndDate && exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
       } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
         endDate = new Date(); // Current date for current positions
@@ -100,7 +105,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
       }
     }
     
-    if (entry.endYear && entry.endMonth) {
+    // Check for valid end date (not future dates like 9999)
+    const hasValidEndDate = entry.endYear && entry.endMonth && 
+      entry.endYear <= new Date().getFullYear() + 1 && 
+      entry.endYear >= 1900;
+    
+    if (hasValidEndDate && entry.endYear && entry.endMonth) {
       endDate = new Date(entry.endYear, entry.endMonth - 1);
     } else if (entry.is_current_position === true || entry.isCurrent === true) {
       endDate = new Date(); // Current date for current positions
@@ -134,8 +144,8 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
   // Sort experience: current jobs first, then by timeline (latest first)
   const sortedExperience = [...experience].sort((a, b) => {
     // First, prioritize current positions
-    const aIsCurrent = a.is_current_position === true;
-    const bIsCurrent = b.is_current_position === true;
+    const aIsCurrent = a.is_current_position === true || a.isCurrent === true;
+    const bIsCurrent = b.is_current_position === true || b.isCurrent === true;
     
     if (aIsCurrent && !bIsCurrent) return -1;
     if (!aIsCurrent && bIsCurrent) return 1;
@@ -211,7 +221,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         {calculateDuration(entry) && (
                           <span>Duration: {calculateDuration(entry)}</span>
                         )}
-                        {entry.is_current_position && (
+                        {(entry.is_current_position === true || entry.isCurrent === true) && (
                           <span className="text-primary font-medium">Current Position</span>
                         )}
                       </div>

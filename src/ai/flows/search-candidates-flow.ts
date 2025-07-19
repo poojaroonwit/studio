@@ -80,7 +80,7 @@ function createCandidateSummary(candidate: Candidate): string {
         if (exp.positionLevel) expStr += ` (Level: ${exp.positionLevel})`;
         if (exp.period) expStr += `, Period: ${exp.period}`;
         if (exp.duration) expStr += `, Duration: ${exp.duration}`;
-        if (exp.is_current_position) expStr += ` (Current Position)`;
+        if (exp.is_current_position === true || exp.isCurrent === true) expStr += ` (Current Position)`;
         if (exp.description) expStr += `\n    Description: ${exp.description.substring(0, 250)}${exp.description.length > 250 ? '...' : ''}`;
         summaryParts.push(expStr);
       });

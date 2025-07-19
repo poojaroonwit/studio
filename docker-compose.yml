@@ -139,12 +139,9 @@ services:
       - docker_internal
 
   upload-queue-processor:
-    image: studio-6-processor:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        BUILD_DATE: ${BUILD_DATE:-$(date +%s)}
     command: ["node", "dist/process-upload-queue-with-server.js"]
     ports:
       - "${PROCESSOR_PORT:-8080}:8080"

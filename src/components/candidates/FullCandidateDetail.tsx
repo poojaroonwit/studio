@@ -1662,7 +1662,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                     <span className="text-primary font-semibold">
                                       {exp.position || 'Position not specified'}
                                     </span>
-                                    {exp.positionLevel && (
+                                    {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
                                       <span className="text-foreground font-semibold">
                                         {' '}({exp.positionLevel})
                                       </span>

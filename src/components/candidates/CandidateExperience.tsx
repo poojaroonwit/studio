@@ -185,7 +185,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         <span className="text-primary font-semibold">
                           {entry.position || 'Position not specified'}
                         </span>
-                        {entry.positionLevel && (
+                        {entry.positionLevel && entry.positionLevel !== 'undefined' && entry.positionLevel !== undefined && (
                           <span className="text-foreground font-semibold">
                             {' '}({entry.positionLevel})
                           </span>

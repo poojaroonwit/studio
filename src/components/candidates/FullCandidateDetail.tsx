@@ -521,6 +521,74 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     return result || '0 months';
   };
 
+  // Function to calculate total experience duration
+  const calculateTotalExperienceDuration = (experienceArray: any[]) => {
+    let totalMonths = 0;
+    
+    experienceArray.forEach((exp: any) => {
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      // Get start date
+      if (exp.startYear && exp.startMonth) {
+        startDate = new Date(exp.startYear, exp.startMonth - 1);
+      } else if (exp.period) {
+        // Extract start date from period string
+        const startMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})/);
+        if (startMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            startDate = new Date(parseInt(startMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Get end date
+      if (exp.endYear && exp.endMonth) {
+        endDate = new Date(exp.endYear, exp.endMonth - 1);
+      } else if (exp.isCurrent || (exp.period && exp.period.includes('Present'))) {
+        endDate = new Date(); // Current date for current positions
+      } else if (exp.period) {
+        // Extract end date from period string
+        const endMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+        if (endMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            endDate = new Date(parseInt(endMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Calculate duration for this experience
+      if (startDate && endDate) {
+        const months = differenceInMonths(endDate, startDate);
+        if (months > 0) {
+          totalMonths += months;
+        }
+      }
+    });
+    
+    // Convert total months to years and months
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    
+    if (years === 0 && months === 0) {
+      return '';
+    }
+    
+    const parts = [];
+    if (years > 0) {
+      parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    }
+    if (months > 0) {
+      parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' ');
+  };
+
   // Type guards
   const hasFitScore = (obj: any): obj is { fitScore: number } => {
     return typeof obj === 'object' && obj !== null && 'fitScore' in obj && typeof obj.fitScore === 'number';
@@ -1359,9 +1427,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             end = 'Present';
                           }
                         }
-                        if (start && end && end !== 'Present') {
+                        if (start) {
                           const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                          const endDate = new Date(edu.endYear, edu.endMonth - 1);
+                          let endDate: Date;
+                          
+                          if (edu.endMonth && edu.endYear) {
+                            // Past education with end date
+                            endDate = new Date(edu.endYear, edu.endMonth - 1);
+                          } else if (edu.isCurrent) {
+                            // Current education - use current date
+                            endDate = new Date();
+                          } else {
+                            // No end date specified
+                            endDate = startDate;
+                          }
+                          
                           const months = differenceInMonths(endDate, startDate);
                           const years = Math.floor(months / 12);
                           const remMonths = months % 12;
@@ -1434,7 +1514,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           <section className="mb-4 border border-border rounded-lg p-4 bg-card">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
               <Briefcase className="mr-2 h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
+              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
+              Experience
+              {(() => {
+                const totalDuration = calculateTotalExperienceDuration(getExperience(candidate));
+                return totalDuration ? ` (${totalDuration})` : '';
+              })()}
+            </h2>
               {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
             </button>
             {experienceOpen && (
@@ -1520,9 +1606,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             end = 'Present';
                           }
                         }
-                        if (start && end && end !== 'Present') {
+                        if (start) {
                           const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                          const endDate = new Date(exp.endYear, exp.endMonth - 1);
+                          let endDate: Date;
+                          
+                          if (exp.endMonth && exp.endYear) {
+                            // Past position with end date
+                            endDate = new Date(exp.endYear, exp.endMonth - 1);
+                          } else if (exp.isCurrent) {
+                            // Current position - use current date
+                            endDate = new Date();
+                          } else {
+                            // No end date specified
+                            endDate = startDate;
+                          }
+                          
                           const months = differenceInMonths(endDate, startDate);
                           const years = Math.floor(months / 12);
                           const remMonths = months % 12;
@@ -1559,18 +1657,36 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               {/* Content */}
                               <div className="flex-1 min-w-0 pb-0 flex items-center">
                                 <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                  <h4 className="font-semibold text-foreground mb-1">
-                                    {exp.position || 'Position not specified'}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    {exp.company || 'Company not specified'}
-                                  </p>
-                                  {exp.description && (
-                                    <p className="text-sm text-muted-foreground">{exp.description}</p>
+                                  {/* Position and Level */}
+                                  <div className="mb-2">
+                                    <span className="text-primary font-semibold">
+                                      {exp.position || 'Position not specified'}
+                                    </span>
+                                    {exp.positionLevel && (
+                                      <span className="text-foreground font-semibold">
+                                        {' '}({exp.positionLevel})
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Company with Building Icon */}
+                                  {exp.company && (
+                                    <div className="mb-3 flex items-center gap-2">
+                                      <span className="text-foreground">at</span>
+                                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                                      <span className="font-semibold text-foreground">
+                                        {exp.company}
+                                      </span>
+                                    </div>
                                   )}
-                                  {exp.positionLevel && (
-                                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
-                                      <span>Level: {exp.positionLevel}</span>
+                                  
+                                  {/* Description */}
+                                  {exp.description && (
+                                    <div className="mt-3">
+                                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                                      <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                                        {exp.description}
+                                      </p>
                                     </div>
                                   )}
                                 </div>

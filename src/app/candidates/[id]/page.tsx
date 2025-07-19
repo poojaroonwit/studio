@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -859,53 +859,137 @@ export default function CandidateDetailPage() {
   // Helper to get education and experience arrays, preferring structured fields
   function getEducation(candidate: Candidate | null) {
     if (!candidate) return [];
+    
+    let educationArray: any[] = [];
+    
     if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
-      return candidate.educationData;
-    }
-    // Type-safe access to education data
-    const parsedData = candidate.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      // Check for new candidate_info structure
-      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
-        const education = (parsedData.candidate_info as any).education;
-        if (Array.isArray(education) && education.length > 0) {
-          return education;
+      educationArray = candidate.educationData;
+    } else {
+      // Type-safe access to education data
+      const parsedData = candidate.parsedData;
+      if (parsedData && typeof parsedData === 'object') {
+        // Check for new candidate_info structure
+        if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+          const education = (parsedData.candidate_info as any).education;
+          if (Array.isArray(education) && education.length > 0) {
+            educationArray = education;
+          }
+        }
+        // Check for direct education property
+        if ('education' in parsedData) {
+          const education = (parsedData as any).education;
+          if (Array.isArray(education) && education.length > 0) {
+            educationArray = education;
+          }
         }
       }
-      // Check for direct education property
-      if ('education' in parsedData) {
-        const education = (parsedData as any).education;
-        if (Array.isArray(education) && education.length > 0) {
-          return education;
-        }
-      }
     }
-    return [];
+    
+    // Sort education by timeline (latest first)
+    return educationArray.sort((a, b) => {
+      const getStartYear = (edu: any) => {
+        if (edu.startYear) return edu.startYear;
+        if (edu.period) {
+          const yearMatch = edu.period.match(/(\d{4})/);
+          return yearMatch ? parseInt(yearMatch[1]) : 0;
+        }
+        return 0;
+      };
+      
+      const getStartMonth = (edu: any) => {
+        if (edu.startMonth) return edu.startMonth;
+        if (edu.period) {
+          const monthMatch = edu.period.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+          if (monthMatch) {
+            const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+            return months.indexOf(monthMatch[1].toLowerCase()) + 1;
+          }
+        }
+        return 0;
+      };
+      
+      const yearA = getStartYear(a);
+      const yearB = getStartYear(b);
+      
+      if (yearA !== yearB) return yearB - yearA; // Latest year first
+      
+      // If years are the same, sort by month (latest month first)
+      const monthA = getStartMonth(a);
+      const monthB = getStartMonth(b);
+      
+      return monthB - monthA; // Latest month first
+    });
   }
   function getExperience(candidate: Candidate | null) {
     if (!candidate) return [];
+    
+    let experienceArray: any[] = [];
+    
     if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
-      return candidate.experienceData;
-    }
-    // Type-safe access to experience data
-    const parsedData = candidate.parsedData;
-    if (parsedData && typeof parsedData === 'object') {
-      // Check for new candidate_info structure
-      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
-        const experience = (parsedData.candidate_info as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          return experience;
+      experienceArray = candidate.experienceData;
+    } else {
+      // Type-safe access to experience data
+      const parsedData = candidate.parsedData;
+      if (parsedData && typeof parsedData === 'object') {
+        // Check for new candidate_info structure
+        if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+          const experience = (parsedData.candidate_info as any).experience;
+          if (Array.isArray(experience) && experience.length > 0) {
+            experienceArray = experience;
+          }
+        }
+        // Check for direct experience property
+        if ('experience' in parsedData) {
+          const experience = (parsedData as any).experience;
+          if (Array.isArray(experience) && experience.length > 0) {
+            experienceArray = experience;
+          }
         }
       }
-      // Check for direct experience property
-      if ('experience' in parsedData) {
-        const experience = (parsedData as any).experience;
-        if (Array.isArray(experience) && experience.length > 0) {
-          return experience;
-        }
-      }
     }
-    return [];
+    
+    // Sort experience: current jobs first, then by timeline (latest first)
+    return experienceArray.sort((a, b) => {
+      // First, prioritize current positions
+      const aIsCurrent = a.is_current_position === true;
+      const bIsCurrent = b.is_current_position === true;
+      
+      if (aIsCurrent && !bIsCurrent) return -1;
+      if (!aIsCurrent && bIsCurrent) return 1;
+      
+      // If both are current or both are not current, sort by start date (latest first)
+      const getStartYear = (exp: any) => {
+        if (exp.startYear) return exp.startYear;
+        if (exp.period) {
+          const yearMatch = exp.period.match(/(\d{4})/);
+          return yearMatch ? parseInt(yearMatch[1]) : 0;
+        }
+        return 0;
+      };
+      
+      const getStartMonth = (exp: any) => {
+        if (exp.startMonth) return exp.startMonth;
+        if (exp.period) {
+          const monthMatch = exp.period.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+          if (monthMatch) {
+            const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+            return months.indexOf(monthMatch[1].toLowerCase()) + 1;
+          }
+        }
+        return 0;
+      };
+      
+      const yearA = getStartYear(a);
+      const yearB = getStartYear(b);
+      
+      if (yearA !== yearB) return yearB - yearA; // Latest year first
+      
+      // If years are the same, sort by month (latest month first)
+      const monthA = getStartMonth(a);
+      const monthB = getStartMonth(b);
+      
+      return monthB - monthA; // Latest month first
+    });
   }
 
   if (isLoading && !fetchError) {
@@ -1057,6 +1141,74 @@ export default function CandidateDetailPage() {
   const parseDate = (str: string) => {
     const d = parse(str, 'MMM yyyy', new Date());
     return isValid(d) ? d : null;
+  };
+
+  // Function to calculate total experience duration
+  const calculateTotalExperienceDuration = (experienceArray: any[]) => {
+    let totalMonths = 0;
+    
+    experienceArray.forEach((exp: any) => {
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      // Get start date
+      if (exp.startYear && exp.startMonth) {
+        startDate = new Date(exp.startYear, exp.startMonth - 1);
+      } else if (exp.period) {
+        // Extract start date from period string
+        const startMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})/);
+        if (startMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            startDate = new Date(parseInt(startMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Get end date
+      if (exp.endYear && exp.endMonth) {
+        endDate = new Date(exp.endYear, exp.endMonth - 1);
+      } else if (exp.is_current_position || (exp.period && exp.period.includes('Present'))) {
+        endDate = new Date(); // Current date for current positions
+      } else if (exp.period) {
+        // Extract end date from period string
+        const endMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+        if (endMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            endDate = new Date(parseInt(endMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Calculate duration for this experience
+      if (startDate && endDate) {
+        const months = differenceInMonths(endDate, startDate);
+        if (months > 0) {
+          totalMonths += months;
+        }
+      }
+    });
+    
+    // Convert total months to years and months
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    
+    if (years === 0 && months === 0) {
+      return '';
+    }
+    
+    const parts = [];
+    if (years > 0) {
+      parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    }
+    if (months > 0) {
+      parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' ');
   };
 
 
@@ -1852,9 +2004,21 @@ export default function CandidateDetailPage() {
                                       end = 'Present';
                                     }
                                   }
-                                  if (start && end && end !== 'Present') {
+                                  if (start) {
                                     const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                                    const endDate = new Date(edu.endYear, edu.endMonth - 1);
+                                    let endDate: Date;
+                                    
+                                    if (edu.endMonth && edu.endYear) {
+                                      // Past education with end date
+                                      endDate = new Date(edu.endYear, edu.endMonth - 1);
+                                    } else if (edu.isCurrent) {
+                                      // Current education - use current date
+                                      endDate = new Date();
+                                    } else {
+                                      // No end date specified
+                                      endDate = startDate;
+                                    }
+                                    
                                     const months = differenceInMonths(endDate, startDate);
                                     const years = Math.floor(months / 12);
                                     const remMonths = months % 12;
@@ -1925,7 +2089,13 @@ export default function CandidateDetailPage() {
                   <section className="mb-4 border border-border rounded-lg p-4 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
-                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
+                      <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
+                        Experience
+                        {(() => {
+                          const totalDuration = calculateTotalExperienceDuration(getExperience(candidate));
+                          return totalDuration ? ` (${totalDuration})` : '';
+                        })()}
+                      </h2>
                       {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
                     {experienceOpen && (
@@ -2039,9 +2209,21 @@ export default function CandidateDetailPage() {
                                     end = 'Present';
                                   }
                                 }
-                                if (start && end && end !== 'Present') {
+                                if (start) {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                                  const endDate = new Date(exp.endYear, exp.endMonth - 1);
+                                  let endDate: Date;
+                                  
+                                  if (exp.endMonth && exp.endYear) {
+                                    // Past position with end date
+                                    endDate = new Date(exp.endYear, exp.endMonth - 1);
+                                  } else if (exp.is_current_position) {
+                                    // Current position - use current date
+                                    endDate = new Date();
+                                  } else {
+                                    // No end date specified
+                                    endDate = startDate;
+                                  }
+                                  
                                   const months = differenceInMonths(endDate, startDate);
                                   const years = Math.floor(months / 12);
                                   const remMonths = months % 12;
@@ -2082,14 +2264,36 @@ export default function CandidateDetailPage() {
                                       {/* Content */}
                                       <div className="flex-1 min-w-0 pb-0 flex items-center">
                                         <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                          {renderField("Company", exp.company)}
-                                          {renderField("Position", exp.position)}
-                                          {renderField("Level", String(exp.positionLevel))}
-                                          {exp.is_current_position !== undefined && renderField("Current Position", String(exp.is_current_position))}
+                                          {/* Position and Level */}
+                                          <div className="mb-2">
+                                            <span className="text-primary font-semibold">
+                                              {exp.position || 'Position not specified'}
+                                            </span>
+                                            {exp.positionLevel && (
+                                              <span className="text-foreground font-semibold">
+                                                {' '}({exp.positionLevel})
+                                              </span>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Company with Building Icon */}
+                                          {exp.company && (
+                                            <div className="mb-3 flex items-center gap-2">
+                                              <span className="text-foreground">at</span>
+                                              <Building className="h-4 w-4 text-muted-foreground" />
+                                              <span className="font-semibold text-foreground">
+                                                {exp.company}
+                                              </span>
+                                            </div>
+                                          )}
+                                          
+                                          {/* Description */}
                                           {exp.description && (
-                                            <div>
-                                              <h4 className="text-sm font-medium text-muted-foreground mt-2 mb-1">Description:</h4>
-                                              <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-2 rounded">{exp.description}</p>
+                                            <div className="mt-3">
+                                              <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                                              <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                                                {exp.description}
+                                              </p>
                                             </div>
                                           )}
                                         </div>

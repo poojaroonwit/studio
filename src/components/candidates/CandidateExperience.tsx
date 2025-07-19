@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ExperienceEntry } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Building } from 'lucide-react';
+import { differenceInMonths } from 'date-fns';
 
 interface CandidateExperienceProps {
   experience: ExperienceEntry[];
@@ -9,9 +10,137 @@ interface CandidateExperienceProps {
 }
 
 const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience }) => {
-  // Sort experience by period (most recent first)
+  // Function to calculate total experience duration
+  const calculateTotalExperienceDuration = (experienceArray: ExperienceEntry[]) => {
+    let totalMonths = 0;
+    
+    experienceArray.forEach((exp: ExperienceEntry) => {
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      // Get start date
+      if (exp.startYear && exp.startMonth) {
+        startDate = new Date(exp.startYear, exp.startMonth - 1);
+      } else if (exp.period) {
+        // Extract start date from period string
+        const startMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})/);
+        if (startMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            startDate = new Date(parseInt(startMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Get end date
+      if (exp.endYear && exp.endMonth) {
+        endDate = new Date(exp.endYear, exp.endMonth - 1);
+      } else if (exp.is_current_position || (exp.period && exp.period.includes('Present'))) {
+        endDate = new Date(); // Current date for current positions
+      } else if (exp.period) {
+        // Extract end date from period string
+        const endMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+        if (endMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            endDate = new Date(parseInt(endMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Calculate duration for this experience
+      if (startDate && endDate) {
+        const months = differenceInMonths(endDate, startDate);
+        if (months > 0) {
+          totalMonths += months;
+        }
+      }
+    });
+    
+    // Convert total months to years and months
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    
+    if (years === 0 && months === 0) {
+      return '';
+    }
+    
+    const parts = [];
+    if (years > 0) {
+      parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    }
+    if (months > 0) {
+      parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' ');
+  };
+
+  // Helper function to calculate dynamic duration for current positions
+  const calculateDuration = (entry: ExperienceEntry) => {
+    if (entry.duration) return entry.duration; // Use existing duration if available
+    
+    // Try to calculate from period string or structured fields
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    
+    if (entry.startYear && entry.startMonth) {
+      startDate = new Date(entry.startYear, entry.startMonth - 1);
+    } else if (entry.period) {
+      // Extract start date from period string (e.g., "Jan 2022 - Present" or "Jan 2022 - Dec 2023")
+      const startMatch = entry.period.match(/([A-Za-z]+)\s+(\d{4})/);
+      if (startMatch) {
+        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+        if (monthIndex !== -1) {
+          startDate = new Date(parseInt(startMatch[2]), monthIndex);
+        }
+      }
+    }
+    
+    if (entry.endYear && entry.endMonth) {
+      endDate = new Date(entry.endYear, entry.endMonth - 1);
+    } else if (entry.is_current_position) {
+      endDate = new Date(); // Current date for current positions
+    } else if (entry.period && entry.period.includes('Present')) {
+      endDate = new Date(); // Current date for "Present" end dates
+    } else if (entry.period) {
+      // Extract end date from period string
+      const endMatch = entry.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+      if (endMatch) {
+        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+        if (monthIndex !== -1) {
+          endDate = new Date(parseInt(endMatch[2]), monthIndex);
+        }
+      }
+    }
+    
+    if (startDate && endDate) {
+      const months = differenceInMonths(endDate, startDate);
+      const years = Math.floor(months / 12);
+      const remMonths = months % 12;
+      return [
+        years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+        remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+      ].filter(Boolean).join(' ');
+    }
+    
+    return entry.duration || '';
+  };
+
+  // Sort experience: current jobs first, then by timeline (latest first)
   const sortedExperience = [...experience].sort((a, b) => {
-    // Extract years from period strings (assuming format like "Jan 2022 - Present" or "2018-2022")
+    // First, prioritize current positions
+    const aIsCurrent = a.is_current_position === true;
+    const bIsCurrent = b.is_current_position === true;
+    
+    if (aIsCurrent && !bIsCurrent) return -1;
+    if (!aIsCurrent && bIsCurrent) return 1;
+    
+    // If both are current or both are not current, sort by start date (latest first)
     const getYear = (period: string) => {
       const yearMatch = period.match(/(\d{4})/);
       return yearMatch ? parseInt(yearMatch[1]) : 0;
@@ -26,7 +155,13 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Work Experience</CardTitle>
+        <CardTitle>
+          Work Experience
+          {(() => {
+            const totalDuration = calculateTotalExperienceDuration(experience);
+            return totalDuration ? ` (${totalDuration})` : '';
+          })()}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {sortedExperience && sortedExperience.length > 0 ? (
@@ -45,30 +180,50 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                   {/* Content */}
                   <div className="flex-1 min-w-0 pb-12">
                     <div className="bg-muted/50 rounded-lg p-4">
-                      <h4 className="font-semibold text-foreground mb-1">
-                        {entry.position || 'Position not specified'}
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {entry.company || 'Company not specified'}
-                      </p>
+                      {/* Position and Level */}
+                      <div className="mb-2">
+                        <span className="text-primary font-semibold">
+                          {entry.position || 'Position not specified'}
+                        </span>
+                        {entry.positionLevel && (
+                          <span className="text-foreground font-semibold">
+                            {' '}({entry.positionLevel})
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Company with Building Icon */}
+                      {entry.company && (
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="text-foreground">at</span>
+                          <Building className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-semibold text-foreground">
+                            {entry.company}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Period and Duration */}
                       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-3">
                         {entry.period && (
                           <span>Period: {entry.period}</span>
                         )}
-                        {entry.duration && (
-                          <span>Duration: {entry.duration}</span>
-                        )}
-                        {entry.positionLevel && (
-                          <span>Level: {entry.positionLevel}</span>
+                        {calculateDuration(entry) && (
+                          <span>Duration: {calculateDuration(entry)}</span>
                         )}
                         {entry.is_current_position && (
                           <span className="text-primary font-medium">Current Position</span>
                         )}
                       </div>
+                      
+                      {/* Description */}
                       {entry.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {entry.description}
-                        </p>
+                        <div className="mt-3">
+                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                          <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                            {entry.description}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

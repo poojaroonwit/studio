@@ -111,6 +111,9 @@ export function CandidatesPageClient({
   const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
   const [isClearingFilters, setIsClearingFilters] = useState(false);
 
+  // Add debouncing for fetch requests
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCreateViaAutomationModalOpen, setIsCreateViaAutomationModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -258,6 +261,11 @@ export function CandidatesPageClient({
       return;
     }
     
+    // Clear any pending timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
     setIsFetching(true);
     setIsLoading(true);
     setFetchError(null);
@@ -353,6 +361,28 @@ export function CandidatesPageClient({
       currentRequestRef.current = null; // Clear the current request ref
     }
   }, []); // Removed sessionStatus dependency to prevent recreation
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Create a debounced version for refresh events
+  const debouncedFetchPaginatedCandidates = useCallback((currentFilters: CandidateFilterValues, page: number, pageSize: number) => {
+    // Clear any pending timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    // Set a new timeout
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchPaginatedCandidates(currentFilters, page, pageSize);
+    }, 300); // 300ms debounce
+  }, [fetchPaginatedCandidates]);
 
   const handleAiSearch = async (aiQuery: string) => {
     if (!aiQuery.trim()) {
@@ -1174,29 +1204,38 @@ export function CandidatesPageClient({
 
   useEffect(() => {
     const handleRefresh = () => {
-      fetchPaginatedCandidates(filters, page, pageSize);
+      debouncedFetchPaginatedCandidates(filters, page, pageSize);
     };
     window.addEventListener('refreshCandidateQueue', handleRefresh);
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefresh);
     };
-  }, [filters, page, pageSize, fetchPaginatedCandidates]);
+  }, [filters, page, pageSize, debouncedFetchPaginatedCandidates]);
 
   // Refresh data when page becomes visible (e.g., when navigating back from candidate detail)
   useEffect(() => {
+    let visibilityTimeout: NodeJS.Timeout;
+    let focusTimeout: NodeJS.Timeout;
+    
     const handleVisibilityChange = () => {
       if (!document.hidden && sessionStatus === 'authenticated' && !isLoading) {
-        console.log('Page became visible, refreshing candidate data...');
-        // Refresh data when page becomes visible
-        fetchPaginatedCandidates(filters, page, pageSize);
+        // Add a small delay to prevent rapid refreshes when modals open/close
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          console.log('Page became visible, refreshing candidate data...');
+          debouncedFetchPaginatedCandidates(filters, page, pageSize);
+        }, 500);
       }
     };
 
     const handleFocus = () => {
       if (sessionStatus === 'authenticated' && !isLoading) {
-        console.log('Window gained focus, refreshing candidate data...');
-        // Refresh data when window regains focus
-        fetchPaginatedCandidates(filters, page, pageSize);
+        // Add a small delay to prevent rapid refreshes when modals open/close
+        clearTimeout(focusTimeout);
+        focusTimeout = setTimeout(() => {
+          console.log('Window gained focus, refreshing candidate data...');
+          debouncedFetchPaginatedCandidates(filters, page, pageSize);
+        }, 500);
       }
     };
 
@@ -1206,8 +1245,10 @@ export function CandidatesPageClient({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      clearTimeout(visibilityTimeout);
+      clearTimeout(focusTimeout);
     };
-  }, [sessionStatus, isLoading, fetchPaginatedCandidates, filters, page, pageSize]);
+  }, [sessionStatus, isLoading, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
 
   if (sessionStatus === 'loading') {
     // Show a loading spinner while session is being established
@@ -1477,13 +1518,11 @@ export function CandidatesPageClient({
       <AutomationUploadModal
         isOpen={isAutomationUploadModalOpen}
         onOpenChange={setIsAutomationUploadModalOpen}
-        onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
       />
       {canManageCandidates && (
         <BulkUploadCVsModal
           isOpen={isBulkUploadModalOpen}
           onOpenChange={setIsBulkUploadModalOpen}
-          onUploadSuccess={() => fetchPaginatedCandidates(filters, page, pageSize)}
         />
       )}
 

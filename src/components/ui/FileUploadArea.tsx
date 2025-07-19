@@ -22,20 +22,32 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
 }) => {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
     onFilesChange(e.dataTransfer.files);
   };
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(true);
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
   };
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFilesChange(e.target.files);
   };
+  
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+  
   return (
     <div
       className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${
@@ -46,11 +58,11 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onClick={() => document.getElementById('file-upload-area-input')?.click()}
+      onClick={handleClick}
       style={{ cursor: 'pointer' }}
     >
       <Input
-        id="file-upload-area-input"
+        ref={fileInputRef}
         type="file"
         accept={accept}
         multiple={multiple}

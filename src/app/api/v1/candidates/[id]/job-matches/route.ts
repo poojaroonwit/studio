@@ -157,6 +157,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const insertJobMatchQuery = `
       INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING *
     `;
 
     const updateJobMatchQuery = `
@@ -325,6 +326,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const insertJobMatchQuery = `
       INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING *
     `;
 
     const updateJobMatchQuery = `
@@ -457,13 +459,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const insertJobMatchQuery = `
       INSERT INTO "JobMatch" (id, "candidateId", "jobId", "fitScore", "matchReasons", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING *
     `;
 
     const insertedMatches = [];
     
     for (const match of job_matches) {
       const matchId = uuidv4();
-      await client.query(insertJobMatchQuery, [
+      const result = await client.query(insertJobMatchQuery, [
         matchId,
         id,
         match.jobId || null,
@@ -471,11 +474,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         match.matchReasons || [],
       ]);
       
+      const processedMatch = result.rows[0];
       insertedMatches.push({
-        id: matchId,
-        fitScore: (match.fitScore || 0) / 100, // Convert integer back to decimal for response
-        jobId: match.jobId || null,
-        matchReasons: match.matchReasons || [],
+        id: processedMatch.id,
+        fitScore: processedMatch.fitScore ? processedMatch.fitScore / 100 : 0, // Convert integer back to decimal for response
+        jobId: processedMatch.jobId || null,
+        matchReasons: processedMatch.matchReasons || [],
       });
     }
 

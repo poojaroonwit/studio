@@ -41,7 +41,9 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
       
       if (hasValidEndDate && exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
-      } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
+      } else if (exp.is_current_position === true || exp.isCurrent === true || 
+                 (exp.period && (exp.period.includes('Present') || exp.period.includes('present'))) ||
+                 !exp.endMonth || !exp.endYear) {
         endDate = new Date(); // Current date for current positions
       } else if (exp.period) {
         // Extract end date from period string
@@ -112,10 +114,10 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
     
     if (hasValidEndDate && entry.endYear && entry.endMonth) {
       endDate = new Date(entry.endYear, entry.endMonth - 1);
-    } else if (entry.is_current_position === true || entry.isCurrent === true) {
+    } else if (entry.is_current_position === true || entry.isCurrent === true ||
+               (entry.period && (entry.period.includes('Present') || entry.period.includes('present'))) ||
+               !entry.endMonth || !entry.endYear) {
       endDate = new Date(); // Current date for current positions
-    } else if (entry.period && entry.period.includes('Present')) {
-      endDate = new Date(); // Current date for "Present" end dates
     } else if (entry.period) {
       // Extract end date from period string
       const endMatch = entry.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
@@ -144,8 +146,12 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
   // Sort experience: current jobs first, then by timeline (latest first)
   const sortedExperience = [...experience].sort((a, b) => {
     // First, prioritize current positions
-    const aIsCurrent = a.is_current_position === true || a.isCurrent === true;
-    const bIsCurrent = b.is_current_position === true || b.isCurrent === true;
+    const aIsCurrent = a.is_current_position === true || a.isCurrent === true || 
+                      (a.period && (a.period.includes('Present') || a.period.includes('present'))) ||
+                      !a.endMonth || !a.endYear;
+    const bIsCurrent = b.is_current_position === true || b.isCurrent === true || 
+                      (b.period && (b.period.includes('Present') || b.period.includes('present'))) ||
+                      !b.endMonth || !b.endYear;
     
     if (aIsCurrent && !bIsCurrent) return -1;
     if (!aIsCurrent && bIsCurrent) return 1;
@@ -221,7 +227,9 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         {calculateDuration(entry) && (
                           <span>Duration: {calculateDuration(entry)}</span>
                         )}
-                        {(entry.is_current_position === true || entry.isCurrent === true) && (
+                        {(entry.is_current_position === true || entry.isCurrent === true ||
+                          (entry.period && (entry.period.includes('Present') || entry.period.includes('present'))) ||
+                          !entry.endMonth || !entry.endYear) && (
                           <span className="text-primary font-medium">Current Position</span>
                         )}
                       </div>

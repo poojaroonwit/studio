@@ -115,6 +115,7 @@ export function ImageUpload({
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    event.stopPropagation();
     const files = event.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
@@ -132,6 +133,7 @@ export function ImageUpload({
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    event.stopPropagation();
   };
 
   return (
@@ -186,7 +188,13 @@ export function ImageUpload({
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            onClick={() => !disabled && fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!disabled && fileInputRef.current) {
+                fileInputRef.current.click();
+              }
+            }}
           >
             <input
               ref={fileInputRef}

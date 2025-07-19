@@ -951,8 +951,12 @@ export default function CandidateDetailPage() {
     // Sort experience: current jobs first, then by timeline (latest first)
     return experienceArray.sort((a, b) => {
       // First, prioritize current positions
-      const aIsCurrent = a.is_current_position === true || a.isCurrent === true;
-      const bIsCurrent = b.is_current_position === true || b.isCurrent === true;
+      const aIsCurrent = a.is_current_position === true || a.isCurrent === true || 
+                        (a.period && (a.period.includes('Present') || a.period.includes('present'))) ||
+                        !a.endMonth || !a.endYear;
+      const bIsCurrent = b.is_current_position === true || b.isCurrent === true || 
+                        (b.period && (b.period.includes('Present') || b.period.includes('present'))) ||
+                        !b.endMonth || !b.endYear;
       
       if (aIsCurrent && !bIsCurrent) return -1;
       if (!aIsCurrent && bIsCurrent) return 1;
@@ -1174,7 +1178,9 @@ export default function CandidateDetailPage() {
       
       if (hasValidEndDate && exp.endYear && exp.endMonth) {
         endDate = new Date(exp.endYear, exp.endMonth - 1);
-      } else if (exp.is_current_position === true || exp.isCurrent === true || (exp.period && exp.period.includes('Present'))) {
+      } else if (exp.is_current_position === true || exp.isCurrent === true || 
+                 (exp.period && (exp.period.includes('Present') || exp.period.includes('present'))) ||
+                 !exp.endMonth || !exp.endYear) {
         endDate = new Date(); // Current date for current positions
       } else if (exp.period) {
         // Extract end date from period string
@@ -2207,8 +2213,25 @@ export default function CandidateDetailPage() {
                                 // Only use structured fields for timeline
                                 let start = '', end = '', duration = '';
                                 
-                                // Check for current position using both field names
-                                const isCurrentPosition = exp.is_current_position === true || exp.isCurrent === true;
+                                // Check for current position using multiple indicators
+                                const isCurrentPosition = exp.is_current_position === true || 
+                                                         exp.isCurrent === true || 
+                                                         (exp.period && exp.period.includes('Present')) ||
+                                                         (exp.period && exp.period.includes('present'));
+                                
+                                // Debug logging
+                                console.log('Experience entry:', {
+                                  company: exp.company,
+                                  position: exp.position,
+                                  startMonth: exp.startMonth,
+                                  startYear: exp.startYear,
+                                  endMonth: exp.endMonth,
+                                  endYear: exp.endYear,
+                                  is_current_position: exp.is_current_position,
+                                  isCurrent: exp.isCurrent,
+                                  period: exp.period,
+                                  isCurrentPosition: isCurrentPosition
+                                });
                                 
                                 if (exp.startMonth && exp.startYear) {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
@@ -2222,7 +2245,8 @@ export default function CandidateDetailPage() {
                                   if (hasValidEndDate && exp.endYear && exp.endMonth) {
                                     const endDate = new Date(exp.endYear, exp.endMonth - 1);
                                     end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                                  } else if (isCurrentPosition) {
+                                  } else if (isCurrentPosition || !exp.endMonth || !exp.endYear) {
+                                    // If it's marked as current position OR has no end date, treat as current
                                     end = 'Present';
                                   }
                                 }
@@ -2238,7 +2262,7 @@ export default function CandidateDetailPage() {
                                   if (hasValidEndDate && exp.endYear && exp.endMonth) {
                                     // Past position with end date
                                     endDate = new Date(exp.endYear, exp.endMonth - 1);
-                                  } else if (isCurrentPosition) {
+                                  } else if (isCurrentPosition || !exp.endMonth || !exp.endYear) {
                                     // Current position - use current date
                                     endDate = new Date();
                                   } else {

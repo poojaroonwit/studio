@@ -19,7 +19,6 @@ export default function ToastClient() {
       toastOptions={{
         duration: 4000,
         style: {
-          color: 'hsl(var(--foreground))',
           border: '1px solid hsl(var(--border))',
           borderRadius: '8px',
           padding: '12px 16px',

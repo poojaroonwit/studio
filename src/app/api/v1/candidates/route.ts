@@ -28,6 +28,34 @@ const createCandidateSchema = z.object({
   experienceData: z.array(structuredExperienceSchema).optional(),
 }).strict();
 
+// Helper function to recursively normalize boolean strings and numeric strings
+function normalizeDataTypes(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeDataTypes);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = normalizeDataTypes(value);
+    }
+    return result;
+  }
+  if (typeof obj === 'string') {
+    const lower = obj.toLowerCase();
+    // Handle boolean strings
+    if (lower === 'true') return true;
+    if (lower === 'false') return false;
+    
+    // Handle numeric strings for common fields
+    const numericFields = ['startMonth', 'startYear', 'endMonth', 'endYear', 'gpa'];
+    if (numericFields.some(field => obj.includes(field) || obj.match(/^\d+$/))) {
+      const num = parseInt(obj);
+      if (!isNaN(num)) return num;
+    }
+  }
+  return obj;
+}
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -44,13 +72,20 @@ export async function POST(request: NextRequest) {
   let body;
   try {
     body = await request.json();
+    console.log('Original request body:', JSON.stringify(body, null, 2));
+    
+    // Apply multiple normalization steps
     body = normalizePayloadTypes(body);
+    body = normalizeDataTypes(body);
+    
+    console.log('Normalized request body:', JSON.stringify(body, null, 2));
   } catch {
     return handleApiError(request, createValidationError('Invalid JSON body'));
   }
 
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
+    console.error('Validation errors:', JSON.stringify(validationResult.error.flatten(), null, 2));
     return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 

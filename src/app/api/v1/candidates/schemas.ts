@@ -20,7 +20,8 @@ const jobSuitableEntrySchema = z.object({
   suitable_job_position: z.string().optional(),
   suitable_salary_bath_month: z.union([
     z.string(),
-    z.number().transform(val => val.toString())
+    z.number().transform(val => val.toString()),
+    z.boolean().transform(() => ''),
   ]).optional(),
 }).strict();
 
@@ -29,14 +30,29 @@ const skillsEntrySchema = z.object({
   skill: z.array(z.string()).optional(),
 }).strict();
 
-export const candidateInfoSchema = z.object({
-  personal_info: personalInfoSchema.optional(),
-  contact_info: contactInfoSchema.optional(),
-  cv_language: z.string().optional(),
-  skills: z.array(skillsEntrySchema).optional(),
-  job_suitable: z.array(jobSuitableEntrySchema).optional(),
-  status: z.string().optional(),
-}).strict();
+export const candidateInfoSchema = z.union([
+  z.object({
+    personal_info: personalInfoSchema.optional(),
+    contact_info: contactInfoSchema.optional(),
+    cv_language: z.string().optional(),
+    skills: z.array(skillsEntrySchema).optional(),
+    job_suitable: z.array(jobSuitableEntrySchema).optional(),
+    status: z.string().optional(),
+  }).strict(),
+  z.string().transform(() => ({})),
+  z.number().transform(() => ({})),
+  z.boolean().transform(() => ({})),
+]).transform((data) => {
+  // Ensure all fields are properly typed
+  return {
+    personal_info: data.personal_info || {},
+    contact_info: data.contact_info || {},
+    cv_language: data.cv_language || '',
+    skills: data.skills || [],
+    job_suitable: data.job_suitable || [],
+    status: data.status || '',
+  };
+});
 
 export const structuredEducationSchema = z.object({
   university: z.string().optional(),
@@ -46,28 +62,32 @@ export const structuredEducationSchema = z.object({
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   startYear: z.union([
     z.number(),
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   endMonth: z.union([
     z.number(),
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   endYear: z.union([
     z.number(),
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   isCurrent: z.union([
     z.boolean(),
@@ -76,11 +96,13 @@ export const structuredEducationSchema = z.object({
       if (lower === 'true') return true;
       if (lower === 'false') return false;
       return false; // default to false for any other string
-    })
+    }),
+    z.number().transform((val) => val === 1 || val === 0 ? val === 1 : false),
   ]).optional(),
   GPA: z.union([
     z.string(),
-    z.number().transform(val => val.toString())
+    z.number().transform(val => val.toString()),
+    z.boolean().transform(() => ''),
   ]).optional(),
 }).strict();
 
@@ -92,14 +114,16 @@ export const structuredExperienceSchema = z.object({
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   startYear: z.union([
     z.number(),
     z.string().transform((val) => {
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
-    })
+    }),
+    z.boolean().transform(() => undefined),
   ]).optional(),
   endMonth: z.union([
     z.number(),
@@ -107,6 +131,7 @@ export const structuredExperienceSchema = z.object({
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
     }),
+    z.boolean().transform(() => undefined),
     z.null()
   ]).nullable().optional(),
   endYear: z.union([
@@ -115,6 +140,7 @@ export const structuredExperienceSchema = z.object({
       const num = parseInt(val);
       return isNaN(num) ? undefined : num;
     }),
+    z.boolean().transform(() => undefined),
     z.null()
   ]).nullable().optional(),
   isCurrent: z.union([
@@ -124,7 +150,8 @@ export const structuredExperienceSchema = z.object({
       if (lower === 'true') return true;
       if (lower === 'false') return false;
       return false; // default to false for any other string
-    })
+    }),
+    z.number().transform((val) => val === 1 || val === 0 ? val === 1 : false),
   ]).optional(),
   description: z.string().optional(),
 }).strict(); 

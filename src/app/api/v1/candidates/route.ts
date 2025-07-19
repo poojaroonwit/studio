@@ -26,7 +26,14 @@ const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema.optional(),
   educationData: z.array(structuredEducationSchema).optional(),
   experienceData: z.array(structuredExperienceSchema).optional(),
-}).strict();
+}).strict().transform((data) => {
+  // Ensure candidate_info is always an object
+  return {
+    candidate_info: data.candidate_info || {},
+    educationData: data.educationData || [],
+    experienceData: data.experienceData || [],
+  };
+});
 
 // Helper function to recursively normalize boolean strings and numeric strings
 function normalizeDataTypes(obj: any): any {
@@ -47,7 +54,7 @@ function normalizeDataTypes(obj: any): any {
     if (lower === 'false') return false;
     
     // Handle numeric strings for common fields
-    const numericFields = ['startMonth', 'startYear', 'endMonth', 'endYear', 'gpa'];
+    const numericFields = ['startMonth', 'startYear', 'endMonth', 'endYear', 'gpa', 'fitScore'];
     if (numericFields.some(field => obj.includes(field) || obj.match(/^\d+$/))) {
       const num = parseInt(obj);
       if (!isNaN(num)) return num;
@@ -73,12 +80,18 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
     console.log('Original request body:', JSON.stringify(body, null, 2));
+    console.log('Original body type:', typeof body);
+    console.log('candidate_info type:', typeof body?.candidate_info);
+    console.log('candidate_info value:', body?.candidate_info);
     
     // Apply multiple normalization steps
     body = normalizePayloadTypes(body);
     body = normalizeDataTypes(body);
     
     console.log('Normalized request body:', JSON.stringify(body, null, 2));
+    console.log('Normalized body type:', typeof body);
+    console.log('Normalized candidate_info type:', typeof body?.candidate_info);
+    console.log('Normalized candidate_info value:', body?.candidate_info);
   } catch {
     return handleApiError(request, createValidationError('Invalid JSON body'));
   }
@@ -86,6 +99,7 @@ export async function POST(request: NextRequest) {
   const validationResult = createCandidateSchema.safeParse(body);
   if (!validationResult.success) {
     console.error('Validation errors:', JSON.stringify(validationResult.error.flatten(), null, 2));
+    console.error('Body that failed validation:', JSON.stringify(body, null, 2));
     return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
@@ -99,6 +113,16 @@ export async function POST(request: NextRequest) {
     : 'Unknown Candidate';
   const email = contactInfo.email || 'no-email@example.com';
   const status = candidate_info?.status || 'new';
+
+  console.log('Processed data:', {
+    name,
+    email,
+    status,
+    personalInfo,
+    contactInfo,
+    educationDataLength: educationData?.length || 0,
+    experienceDataLength: experienceData?.length || 0
+  });
 
   // Fetch the first recruitment stage (by sortOrder ASC)
   let appliedStage = 'Applied';

@@ -260,92 +260,102 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
       }
     }}>
       <DialogContent className="max-w-4xl w-full">
-        <DialogHeader>
-          <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
-          <DialogDescription>
-            Upload multiple PDF resumes and (optionally) assign them to a position.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2 p-4 pb-6">
-          {/* Left Column - Position Selection and File Upload Area */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="position-select">Assign to Position (optional)</Label>
-              <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
-                <SelectTrigger id="position-select" className="mt-2">
-                  <SelectValue placeholder="Select a position..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__NONE__">None (General Application)</SelectItem>
-                  {availablePositions.map(pos => (
-                    <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <FileUploadArea
-              accept="application/pdf"
-              multiple={true}
-              maxFileSize={MAX_FILE_SIZE}
-              onFilesChange={handleFiles}
-              dragActive={dragActive}
-              setDragActive={setDragActive}
-            />
-          </div>
-          {/* Right Column - Uploaded Files List and Preview */}
-          <div className="space-y-4">
-            {/* Uploaded Files List - Show selected files in right column */}
-            {totalFiles > 0 && (
-              <div className="space-y-2">
-                <Label>Selected Files ({totalFiles})</Label>
-                <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
-                  {selectedFiles.map((file, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`flex items-center justify-between bg-background rounded px-3 py-2 border cursor-pointer transition-colors ${
-                        idx === selectedFileIndex 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                      onClick={() => setSelectedFileIndex(idx)}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="truncate block text-sm font-medium">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>
-                      </div>
-                      <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(file); }}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
+            <DialogDescription>
+              Upload multiple PDF resumes and (optionally) assign them to a position.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2 p-4 pb-6">
+            {/* Left Column - Position Selection and File Upload Area */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="position-select">Assign to Position (optional)</Label>
+                <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
+                  <SelectTrigger id="position-select" className="mt-2">
+                    <SelectValue placeholder="Select a position..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__NONE__">None (General Application)</SelectItem>
+                    {availablePositions.map(pos => (
+                      <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-            {/* PDF Preview */}
-            <div className="mt-4">
-              <Label>Preview {totalFiles > 0 && `(${selectedFileIndex + 1} of ${totalFiles})`}</Label>
-              {previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  title="PDF Preview"
-                  className="w-full h-64 border rounded"
-                  style={{ minHeight: '16rem' }}
-                />
-              ) : (
-                <div className="text-muted-foreground italic">No file selected for preview.</div>
+              <FileUploadArea
+                accept="application/pdf"
+                multiple={true}
+                maxFileSize={MAX_FILE_SIZE}
+                onFilesChange={handleFiles}
+                dragActive={dragActive}
+                setDragActive={setDragActive}
+              />
+            </div>
+            {/* Right Column - Uploaded Files List and Preview */}
+            <div className="space-y-4">
+              {/* Uploaded Files List - Show selected files in right column */}
+              {totalFiles > 0 && (
+                <div className="space-y-2">
+                  <Label>Selected Files ({totalFiles})</Label>
+                  <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
+                    {selectedFiles.map((file, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`flex items-center justify-between bg-background rounded px-3 py-2 border cursor-pointer transition-colors ${
+                          idx === selectedFileIndex 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        onClick={() => setSelectedFileIndex(idx)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span className="truncate block text-sm font-medium">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">ID: {fileBatchMap[file.name]}</span>
+                        </div>
+                        <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(file); }}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
+              {/* PDF Preview */}
+              <div className="mt-4">
+                <Label>Preview {totalFiles > 0 && `(${selectedFileIndex + 1} of ${totalFiles})`}</Label>
+                {previewUrl ? (
+                  <iframe
+                    src={previewUrl}
+                    title="PDF Preview"
+                    className="w-full h-64 border rounded"
+                    style={{ minHeight: '16rem' }}
+                  />
+                ) : (
+                  <div className="text-muted-foreground italic">No file selected for preview.</div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
-          </DialogClose>
-          <Button onClick={handleConfirmUpload} disabled={selectedFiles.length === 0 || uploading}>
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
+            </DialogClose>
+            <Button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleConfirmUpload();
+              }} 
+              disabled={selectedFiles.length === 0 || uploading}
+            >
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {uploading ? 'Uploading...' : 'Upload'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

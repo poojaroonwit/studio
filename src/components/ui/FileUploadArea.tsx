@@ -1,5 +1,5 @@
 // Reusable drag-and-drop file upload area for selecting files
-import React, { FC } from "react";
+import React, { FC, useRef } from "react";
 import { UploadCloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -20,34 +20,42 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
   dragActive,
   setDragActive,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     onFilesChange(e.dataTransfer.files);
   };
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(true);
   };
+
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
   };
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     onFilesChange(e.target.files);
+    // Reset the input value to allow selecting the same file again
+    if (e.target) {
+      e.target.value = '';
+    }
   };
-  
-  const handleClick = (e: React.MouseEvent) => {
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     fileInputRef.current?.click();
   };
-  
+
   return (
     <div
       className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center ${

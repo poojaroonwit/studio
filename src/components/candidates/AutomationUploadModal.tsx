@@ -171,56 +171,66 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
       }
     }}>
       <DialogContent className="max-w-md w-full">
-        <DialogHeader>
-          <DialogTitle>Automated Resume Upload</DialogTitle>
-          <DialogDescription>
-            Upload a PDF resume to trigger automated candidate creation. Optionally, assign to a position.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div>
-            <Label htmlFor="position-select">Assign to Position (optional)</Label>
-            <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
-              <SelectTrigger id="position-select" className="mt-2">
-                <SelectValue placeholder="Select a position..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__NONE__">None (General Application)</SelectItem>
-                {availablePositions.map(pos => (
-                  <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <FileUploadArea
-            accept="application/pdf"
-            multiple={false}
-            maxFileSize={MAX_FILE_SIZE}
-            onFilesChange={handleFiles}
-            dragActive={dragActive}
-            setDragActive={setDragActive}
-          />
-          {selectedFile && (
-            <div className="flex items-center justify-between bg-background rounded px-3 py-2 border border-border">
-              <div className="flex-1 min-w-0">
-                <span className="truncate block text-sm font-medium">{selectedFile.name}</span>
-                <span className="text-xs text-muted-foreground">{(selectedFile.size / (1024*1024)).toFixed(2)} MB</span>
-              </div>
-              <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(); }}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Automated Resume Upload</DialogTitle>
+            <DialogDescription>
+              Upload a PDF resume to trigger automated candidate creation. Optionally, assign to a position.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="position-select">Assign to Position (optional)</Label>
+              <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
+                <SelectTrigger id="position-select" className="mt-2">
+                  <SelectValue placeholder="Select a position..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__NONE__">None (General Application)</SelectItem>
+                  {availablePositions.map(pos => (
+                    <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
-          </DialogClose>
-          <Button onClick={handleConfirmUpload} disabled={!selectedFile || uploading}>
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
-        </DialogFooter>
+            <FileUploadArea
+              accept="application/pdf"
+              multiple={false}
+              maxFileSize={MAX_FILE_SIZE}
+              onFilesChange={handleFiles}
+              dragActive={dragActive}
+              setDragActive={setDragActive}
+            />
+            {selectedFile && (
+              <div className="flex items-center justify-between bg-background rounded px-3 py-2 border border-border">
+                <div className="flex-1 min-w-0">
+                  <span className="truncate block text-sm font-medium">{selectedFile.name}</span>
+                  <span className="text-xs text-muted-foreground">{(selectedFile.size / (1024*1024)).toFixed(2)} MB</span>
+                </div>
+                <Button type="button" size="icon" variant="ghost" onClick={e => { e.stopPropagation(); removeFile(); }}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
+            </DialogClose>
+            <Button 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleConfirmUpload();
+              }} 
+              disabled={!selectedFile || uploading}
+            >
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+              {uploading ? 'Uploading...' : 'Upload'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

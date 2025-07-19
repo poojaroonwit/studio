@@ -81,7 +81,6 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     if (!disabled) {
       setIsDragOver(true);
     }
@@ -110,6 +109,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
   }, [disabled, processFiles]);
 
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     const files = e.target.files;
     if (files && files.length > 0) {
       const validFiles = processFiles(files);
@@ -122,6 +122,14 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
       fileInputRef.current.value = '';
     }
   }, [processFiles]);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, [disabled]);
 
   const handleUpload = async (files: File[]) => {
     try {
@@ -213,13 +221,7 @@ const DragDropUpload: React.FC<DragDropUploadProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!disabled && fileInputRef.current) {
-            fileInputRef.current.click();
-          }
-        }}
+        onClick={handleClick}
       >
         <UploadCloud className={`mx-auto h-12 w-12 mb-4 transition-all duration-200 ${isDragOver ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
         <div className="space-y-2">

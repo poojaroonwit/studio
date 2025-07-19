@@ -223,6 +223,7 @@ model JobMatch {
   updatedAt             DateTime  @updatedAt
   candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
+  @@unique([candidateId, jobId])
   @@index([candidateId])
   @@index([jobId])
   @@index([fitScore])

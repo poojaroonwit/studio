@@ -197,7 +197,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
             {jobMatch.matchReasons && jobMatch.matchReasons.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Match Reasons</CardTitle>
+                  <CardTitle className="text-lg">Justification</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">

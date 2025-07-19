@@ -10,7 +10,15 @@ export const dynamic = "force-dynamic";
 const jobMatchSchema = z.object({
   jobId: z.string().optional(),
   jobTitle: z.string().optional(),
-  fitScore: z.number().optional().transform(val => val ? Math.round(val * 100) : null), // Convert decimal to integer
+  fitScore: z.number().optional().transform(val => {
+    if (val === null || val === undefined) return null;
+    // If the value is already in the 0-100 range, use it as is
+    if (val >= 0 && val <= 100) return Math.round(val);
+    // If the value is a decimal (0-1), convert to percentage
+    if (val > 0 && val < 1) return Math.round(val * 100);
+    // For any other case, ensure it's within 0-100 range
+    return Math.max(0, Math.min(100, Math.round(val)));
+  }),
   matchReasons: z.array(z.string()).optional(),
   job_description_summary: z.string().optional(),
 });

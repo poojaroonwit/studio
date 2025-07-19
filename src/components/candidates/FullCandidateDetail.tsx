@@ -1029,7 +1029,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               jobId: candidate.positionId,
                               jobTitle: position.title,
                               fitScore: candidate.fitScore || 0,
-                              matchReasons: candidate.assignmentJustification ? [candidate.assignmentJustification] : [],
+                              matchReasons: candidate.assignmentJustification 
+                                ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+                                : [],
                               position: {
                                 id: position.id,
                                 title: position.title,
@@ -1828,7 +1830,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             jobId: candidate.positionId,
                             jobTitle: position.title,
                             fitScore: candidate.fitScore || 0,
-                            matchReasons: candidate.assignmentJustification ? [candidate.assignmentJustification] : [],
+                            matchReasons: candidate.assignmentJustification 
+                              ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+                              : [],
                             position: {
                               id: position.id,
                               title: position.title,

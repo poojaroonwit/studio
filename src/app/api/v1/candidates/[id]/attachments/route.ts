@@ -16,6 +16,41 @@ import {
 
 const ENDPOINT = '/api/v1/candidates/[id]/attachments';
 
+// Helper function to download file from URL
+async function downloadFileFromUrl(url: string): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+    }
+    
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    
+    // Extract filename from URL or use default
+    let fileName = 'downloaded-file';
+    const urlPath = new URL(url).pathname;
+    const pathParts = urlPath.split('/');
+    const lastPart = pathParts[pathParts.length - 1];
+    if (lastPart && lastPart.includes('.')) {
+      fileName = lastPart;
+    } else {
+      // Try to get filename from content-disposition header
+      const contentDisposition = response.headers.get('content-disposition');
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+    }
+    
+    return { buffer, fileName, contentType };
+  } catch (error) {
+    throw new Error(`Failed to download file from URL: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 // GET: List attachments for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   console.log(`[ATTACHMENTS] GET request to: ${req.nextUrl.pathname}`);
@@ -214,6 +249,117 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   } catch (err) {
     console.error(`[ATTACHMENTS] Error uploading attachment:`, err);
     return handleApiError(req, createInternalServerError('Error uploading attachment', { 
+      originalError: String(err) 
+    }));
+  }
+}
+
+// PATCH: Upload an attachment from URL
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[ATTACHMENTS] PATCH request to: ${req.nextUrl.pathname}`);
+  
+  const { id } = params;
+  
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
+  const user = token ? await verifyApiToken(token) : null;
+  
+  if (!user) {
+    return handleApiError(req, createUnauthorizedError('Authentication required'));
+  }
+
+  if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    return handleApiError(req, createForbiddenError('Insufficient permissions to upload attachments'));
+  }
+
+  let fileUrl: string;
+  let label: string = 'resume';
+  
+  try {
+    const body = await req.json();
+    fileUrl = body.fileUrl;
+    label = body.label || 'resume';
+    
+    if (!fileUrl) {
+      return handleApiError(req, createValidationError('Invalid input', { 
+        fileUrl: ['Missing fileUrl'] 
+      }));
+    }
+    
+    // Validate URL format
+    try {
+      new URL(fileUrl);
+    } catch {
+      return handleApiError(req, createValidationError('Invalid input', { 
+        fileUrl: ['Invalid URL format'] 
+      }));
+    }
+  } catch {
+    return handleApiError(req, createValidationError('Invalid input', { 
+      message: 'Invalid JSON body' 
+    }));
+  }
+
+  try {
+    console.log(`[ATTACHMENTS] Downloading file from URL: ${fileUrl}`);
+    
+    // Download file from URL
+    const { buffer, fileName, contentType } = await downloadFileFromUrl(fileUrl);
+    
+    // Validate file size
+    if (buffer.length === 0) {
+      return handleApiError(req, createValidationError('Invalid input', { 
+        fileUrl: ['Downloaded file is empty (0 bytes)'] 
+      }));
+    }
+    
+    // Validate file name
+    if (!fileName || fileName.trim() === '') {
+      return handleApiError(req, createValidationError('Invalid input', { 
+        fileUrl: ['Could not determine filename from URL'] 
+      }));
+    }
+    
+    const ext = fileName.split('.').pop() || 'bin';
+    const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
+    
+    console.log(`[ATTACHMENTS] Processing downloaded file: ${fileName} (${buffer.length} bytes) -> ${objectName}`);
+    
+    // Upload to MinIO
+    await minioClient.putObject(
+      MINIO_BUCKET,
+      objectName,
+      buffer,
+      undefined,
+      { 'Content-Type': contentType }
+    );
+    
+    // Check if this is the first attachment
+    const count = await prisma.attachment.count({ where: { candidateId: id } });
+    const isPrimary = count === 0;
+    
+    // Store in DB
+    const newAttachment = await prisma.attachment.create({
+      data: {
+        candidateId: id,
+        uploadedById: user.id,
+        filePath: objectName,
+        fileName: fileName,
+        isPrimary,
+        label: label,
+      },
+      include: { uploadedBy: { select: { id: true, name: true, email: true } } },
+    });
+    
+    console.log(`[ATTACHMENTS] Successfully uploaded from URL: ${fileName} -> ${newAttachment.id}`);
+    
+    return createSuccessResponse(req, { 
+      ...newAttachment, 
+      url: `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}` 
+    }, 201);
+  } catch (err) {
+    console.error(`[ATTACHMENTS] Error uploading attachment from URL:`, err);
+    return handleApiError(req, createInternalServerError('Error uploading attachment from URL', { 
       originalError: String(err) 
     }));
   }

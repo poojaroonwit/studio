@@ -195,9 +195,9 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                       {/* Company with Building Icon */}
                       {entry.company && (
                         <div className="mb-3 flex items-center gap-2">
-                          <span className="text-foreground">at</span>
+                          {/* <span className="text-foreground">at</span> */}
                           <Building className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-semibold text-foreground">
+                          <span className="text-foreground">
                             {entry.company}
                           </span>
                         </div>

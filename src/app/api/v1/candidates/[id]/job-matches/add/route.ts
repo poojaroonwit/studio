@@ -6,7 +6,11 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 
 const addJobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100).transform(val => Math.round(val * 100)), // Convert decimal to integer (0.7 -> 70)
+  fitScore: z.number().min(0).max(100).transform(val => {
+    if (val >= 0 && val <= 100) return Math.round(val);
+    if (val > 0 && val < 1) return Math.round(val * 100);
+    return Math.max(0, Math.min(100, Math.round(val)));
+  }), // Convert decimal to integer if needed (0.7 -> 70, 70 -> 70)
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled

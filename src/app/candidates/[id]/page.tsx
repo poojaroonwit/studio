@@ -1489,7 +1489,9 @@ export default function CandidateDetailPage() {
                                       jobId: appliedJobId,
                                       jobTitle: position.title,
                                       fitScore: appliedFitScore || 0,
-                                      matchReasons: appliedJustification ? [appliedJustification] : [],
+                                      matchReasons: appliedJustification 
+                                        ? appliedJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+                                        : [],
                                       position: {
                                         id: position.id,
                                         title: position.title,

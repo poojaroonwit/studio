@@ -296,7 +296,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           matchId,
           id,
           match.jobId,
-          Math.round(match.fitScore * 100), // Convert decimal to integer
+          (() => {
+      const score = match.fitScore;
+      if (score >= 0 && score <= 100) return Math.round(score);
+      if (score > 0 && score < 1) return Math.round(score * 100);
+      return Math.max(0, Math.min(100, Math.round(score)));
+    })(), // Convert decimal to integer if needed
           match.matchReasons || [],
         ]);
       }

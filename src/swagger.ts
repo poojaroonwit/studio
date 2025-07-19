@@ -1337,6 +1337,57 @@ export function getSwaggerSpec() {
             '401': { description: 'Unauthorized' }
           }
         },
+        patch: {
+          summary: 'Upload an attachment from URL for a candidate (v1 API)',
+          description: 'Downloads a file from a URL and uploads it as an attachment for the specified candidate. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          tags: ['V1 Candidates', 'Attachments'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    fileUrl: { 
+                      type: 'string', 
+                      format: 'uri', 
+                      description: 'URL of the file to download and upload as attachment' 
+                    },
+                    label: { 
+                      type: 'string', 
+                      description: 'Label for the attachment (default: "resume")',
+                      default: 'resume'
+                    }
+                  },
+                  required: ['fileUrl']
+                }
+              }
+            }
+          },
+          responses: {
+            '201': {
+              description: 'Attachment uploaded successfully from URL',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      data: { $ref: '#/components/schemas/Attachment' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid URL or missing fileUrl' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '500': { description: 'Error downloading or uploading file' }
+          }
+        },
         put: {
           summary: 'Set an attachment as primary (v1 API)',
           description: 'Sets the specified attachment as the primary attachment for the candidate. Requires Bearer token authentication.',

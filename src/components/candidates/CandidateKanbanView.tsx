@@ -185,7 +185,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               <span className="font-medium">Education:</span>
             </div>
             <div className="text-xs text-muted-foreground pl-4">
-              {education.slice(0, 2).map((edu, idx) => (
+              {education.slice(0, 2).map((edu: any, idx: number) => (
                 <div key={idx} className="truncate">
                   {edu.major || edu.field || 'Degree'} {edu.university && `at ${edu.university}`}
                 </div>
@@ -205,7 +205,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               <span className="font-medium">Experience:</span>
             </div>
             <div className="text-xs text-muted-foreground pl-4">
-              {experience.slice(0, 2).map((exp, idx) => (
+              {experience.slice(0, 2).map((exp: any, idx: number) => (
                 <div key={idx} className="truncate">
                   {exp.position || 'Position'} {exp.company && `at ${exp.company}`}
                 </div>
@@ -225,7 +225,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               <span className="font-medium">Skills:</span>
             </div>
             <div className="flex flex-wrap gap-1 pl-4">
-              {skills.slice(0, 3).map((skill, idx) => (
+              {skills.slice(0, 3).map((skill: any, idx: number) => (
                 <Badge key={idx} variant="outline" className="text-xs px-1 py-0">
                   {skill.skill_string || skill.segment_skill || 'Skill'}
                 </Badge>

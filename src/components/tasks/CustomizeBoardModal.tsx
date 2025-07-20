@@ -204,7 +204,8 @@ function MultiSelect({
 // Dynamically extract custom fields from candidates
 function getCustomFieldKeys(candidates: any[]): string[] {
   const keys = new Set<string>();
-  candidates.forEach(c => {
+  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  safeCandidates.forEach(c => {
     if (c.customAttributes && typeof c.customAttributes === 'object') {
       Object.keys(c.customAttributes).forEach(k => keys.add(k));
     }

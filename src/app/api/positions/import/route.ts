@@ -181,8 +181,15 @@ export async function POST(request: NextRequest) {
       
       const firstRecord = records[0];
       if (!firstRecord.title) {
+        // Provide more detailed error information
+        const availableHeaders = Object.keys(firstRecord);
         return NextResponse.json({ 
-          message: 'CSV must have a "title" column. Please check your CSV headers.' 
+          message: 'CSV must have a "title" column. Please check your CSV headers.',
+          details: {
+            availableHeaders,
+            expectedHeaders: ['title', 'department', 'description', 'isOpen', 'positionLevel', 'custom_attributes'],
+            missingHeaders: ['title'].filter(h => !availableHeaders.includes(h))
+          }
         }, { status: 400 });
       }
 

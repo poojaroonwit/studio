@@ -525,7 +525,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const calculateTotalExperienceDuration = (experienceArray: any[]) => {
     let totalMonths = 0;
     
-    experienceArray.forEach((exp: any) => {
+    const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
+    safeExperienceArray.forEach((exp: any) => {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
       

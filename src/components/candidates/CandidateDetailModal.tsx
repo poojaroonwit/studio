@@ -451,7 +451,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const calculateTotalExperienceDuration = (experienceArray: any[]) => {
     let totalMonths = 0;
     
-    experienceArray.forEach(exp => {
+    const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
+    safeExperienceArray.forEach(exp => {
       if (exp.period) {
         const duration = calculateDuration(exp.period);
         const match = duration.match(/(\d+) year[s]?/);

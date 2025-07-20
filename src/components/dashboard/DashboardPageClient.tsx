@@ -420,7 +420,8 @@ export default function DashboardPageClient({
 
   // On-process candidates (not in BACKLOG_EXCLUSION_STATUSES)
   const onProcessCandidates = useMemo(() => {
-    return allCandidates.filter(
+    const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
+    return safeAllCandidates.filter(
       (c) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)
     );
   }, [allCandidates]);
@@ -448,7 +449,8 @@ export default function DashboardPageClient({
   // Map recruiterId to name
   const recruiterIdToName = useMemo(() => {
     const map: Record<string, string> = {};
-    allUsers.forEach((u) => {
+    const safeAllUsers = Array.isArray(allUsers) ? allUsers : [];
+    safeAllUsers.forEach((u) => {
       map[u.id] = u.name || u.email || u.id;
     });
     return map;

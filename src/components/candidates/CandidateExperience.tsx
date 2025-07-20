@@ -14,7 +14,8 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
   const calculateTotalExperienceDuration = (experienceArray: ExperienceEntry[]) => {
     let totalMonths = 0;
     
-    experienceArray.forEach((exp: ExperienceEntry) => {
+    const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
+    safeExperienceArray.forEach((exp: ExperienceEntry) => {
       let startDate: Date | null = null;
       let endDate: Date | null = null;
       

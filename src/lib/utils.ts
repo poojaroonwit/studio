@@ -50,3 +50,47 @@ export function getFontFamily(text: string): string {
   }
   return 'var(--font-inter), Arial, Helvetica, sans-serif';
 }
+
+/**
+ * Safely ensures a value is an array, returning an empty array if it's not
+ * This helps prevent "forEach is not a function" errors
+ */
+export function ensureArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+/**
+ * Safely executes forEach on a value, ensuring it's an array first
+ * This helps prevent "forEach is not a function" errors
+ */
+export function safeForEach<T>(
+  value: T[] | null | undefined, 
+  callback: (item: T, index: number, array: T[]) => void
+): void {
+  const array = ensureArray(value);
+  array.forEach(callback);
+}
+
+/**
+ * Safely executes map on a value, ensuring it's an array first
+ * This helps prevent "map is not a function" errors
+ */
+export function safeMap<T, U>(
+  value: T[] | null | undefined, 
+  callback: (item: T, index: number, array: T[]) => U
+): U[] {
+  const array = ensureArray(value);
+  return array.map(callback);
+}
+
+/**
+ * Safely executes filter on a value, ensuring it's an array first
+ * This helps prevent "filter is not a function" errors
+ */
+export function safeFilter<T>(
+  value: T[] | null | undefined, 
+  callback: (item: T, index: number, array: T[]) => boolean
+): T[] {
+  const array = ensureArray(value);
+  return array.filter(callback);
+}

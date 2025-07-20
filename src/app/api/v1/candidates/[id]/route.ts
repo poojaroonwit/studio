@@ -138,7 +138,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
+        fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newMatch = insertResult.rows[0];
     const jobMatch = {
       id: newMatch.id,
-      fitScore: newMatch.fitScore ? newMatch.fitScore / 100 : 0, // Convert integer back to decimal
+              fitScore: newMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       jobId: newMatch.jobId,
       matchReasons: newMatch.matchReasons || [],
       createdAt: newMatch.createdAt,

@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     const match = jobMatchResult.rows[0];
     const jobMatch = {
       id: match.id,
-      fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
+              fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -142,7 +142,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const updatedMatch = updateResult.rows[0];
     const jobMatch = {
       id: updatedMatch.id,
-      fitScore: updatedMatch.fitScore ? updatedMatch.fitScore / 100 : 0, // Convert integer back to decimal
+              fitScore: updatedMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       jobId: updatedMatch.jobId,
       matchReasons: updatedMatch.matchReasons || [],
       updatedAt: updatedMatch.updatedAt,

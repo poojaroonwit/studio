@@ -80,7 +80,6 @@ const importPositionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   department: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
-  job_description: z.string().optional().nullable(), // <-- Added
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
@@ -196,11 +195,23 @@ export async function POST(request: NextRequest) {
             customAttributes = {};
           }
         }
+        
+        // Combine description and job_description into a single description field
+        let combinedDescription = '';
+        if (row.description) {
+          combinedDescription += row.description;
+        }
+        if (row.job_description) {
+          if (combinedDescription) {
+            combinedDescription += '\n\n';
+          }
+          combinedDescription += row.job_description;
+        }
+        
         return {
           title: row.title,
           department: row.department,
-          description: row.description || null,
-          job_description: row.job_description || null, // <-- Added
+          description: combinedDescription || null,
           isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
           positionLevel: row.positionLevel || null,
           custom_attributes: customAttributes,
@@ -231,14 +242,14 @@ export async function POST(request: NextRequest) {
             continue;
           }
           const insertQuery = `
-            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt", job_description)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8)
+            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
             RETURNING *;
           `;
           const positionId = uuidv4();
           await client.query(insertQuery, [
             positionId, position.title, position.department, position.description, 
-            position.isOpen, position.positionLevel, position.custom_attributes || {}, position.job_description || null
+            position.isOpen, position.positionLevel, position.custom_attributes || {}
           ]);
           results.success++;
         } catch (error: any) {

@@ -100,7 +100,6 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       "title",
       "department",
       "description",
-      "job_description",
       "isOpen",
       "positionLevel",
       "custom_attributes"
@@ -109,8 +108,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       [
         "Software Engineer",
         "Engineering",
-        "Develops software",
-        "Responsible for backend and frontend",
+        "Develops software applications. Responsible for backend and frontend development.",
         "TRUE",
         "Mid-Level",
         '{"remote":true}'
@@ -118,8 +116,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
       [
         "Product Manager",
         "Product",
-        "Manages product lifecycle",
-        "Leads product strategy",
+        "Manages product lifecycle and leads product strategy.",
         "TRUE",
         "Senior",
         '{"remote":false}'
@@ -129,7 +126,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     exampleRows.forEach(row => {
       csvContent += row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
     });
-    csvContent += '\nNOTE: Save as UTF-8. isOpen should be TRUE or FALSE. positionLevel, description, job_description, and custom_attributes are optional.';
+    csvContent += '\nNOTE: Save as UTF-8. isOpen should be TRUE or FALSE. positionLevel, description, and custom_attributes are optional.';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);

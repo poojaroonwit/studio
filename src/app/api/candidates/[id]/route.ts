@@ -152,7 +152,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
-      fitScore: candidate.fitScore ? candidate.fitScore / 100 : null, // Convert integer back to decimal for consistency
+              fitScore: candidate.fitScore, // Keep as integer (0-100) for consistency with scoreUtils
       assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
       position: candidate.positionId ? {
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: match.fitScore ? match.fitScore / 100 : 0, // Convert integer back to decimal
+        fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
     });

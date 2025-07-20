@@ -159,16 +159,14 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               >
                 {nameInfo.name}
               </p>
+              <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
+                <Target className="w-3 h-3 inline mr-1" />
+                {candidate.position?.title || 'N/A'}
+              </p>
             </div>
           </div>
         );
       })()}
-          <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-            <Target className="w-3 h-3 inline mr-1" />
-            {candidate.position?.title || 'N/A'}
-          </p>
-        </div>
-      </div>
       
       <div className="space-y-2">
         {candidate.fitScore !== undefined && candidate.fitScore !== null && (
@@ -1218,10 +1216,11 @@ export function FlexibleKanbanView({
       </>
     );
   }
-    // Render row-based layout (rows = rowField values)
-    return (
-      <>
-        <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+
+  // Render row-based layout (rows = rowField values)
+  return (
+    <>
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
           {(shouldShowAllCandidates ? ['All Candidates'] : finalRowValuesWithFallback).map(rowValue => {
             const rowCandidates = candidatesByPosition[rowValue]?.['default'] || [];
@@ -1232,92 +1231,92 @@ export function FlexibleKanbanView({
             });
             
             return (
-            <div
-              key={rowValue}
-              className={cn(
-                "flex flex-row items-center gap-4 transition-all duration-200 border border-border rounded-lg p-4 bg-card shadow-sm",
-                dragOverRow === rowValue && "ring-2 ring-primary/60 bg-primary/5"
-              )}
-              onDragOver={(e) => handleDragOver(rowValue, 'default', e)}
-              onDrop={() => handleDrop(rowValue, 'default')}
-            >
-              <div className="w-40 flex-shrink-0 flex flex-col items-center">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-3 h-3 rounded-full bg-primary"></div>
-                  <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
-                </div>
-                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {rowCandidates.length} candidates
-                </Badge>
-              </div>
-              <div className="flex-1 min-h-[80px]">
-                {rowCandidates.length > 0 ? (
-                  shouldUseSingleRow ? (
-                    <div className="flex flex-row gap-4 overflow-x-auto py-4">
-                      {rowCandidates.map(candidate => {
-                        console.log('FlexibleKanbanView: Rendering candidate card:', {
-                          candidateId: candidate.id,
-                          candidateName: candidate.name
-                        });
-                        return (
-                        <div
-                          key={candidate.id}
-                          className={cn(
-                            "group w-64 max-w-xs",
-                            draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                          )}
-                        >
-                          <EnhancedCandidateCard
-                            candidate={candidate}
-                            isDragged={draggedCandidate?.id === candidate.id}
-                            onClick={() => handleCardClick(candidate)}
-                            onDragStart={() => handleDragStart(candidate)}
-                            onDragEnd={handleDragEnd}
-                          />
-                        </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-row flex-wrap gap-3">
-                      {rowCandidates.map(candidate => {
-                        console.log('FlexibleKanbanView: Rendering candidate card (wrap):', {
-                          candidateId: candidate.id,
-                          candidateName: candidate.name
-                        });
-                        return (
-                        <div
-                          key={candidate.id}
-                          className={cn(
-                            "group w-64 max-w-xs",
-                            draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                          )}
-                        >
-                          <EnhancedCandidateCard
-                            candidate={candidate}
-                            isDragged={draggedCandidate?.id === candidate.id}
-                            onClick={() => handleCardClick(candidate)}
-                            onDragStart={() => handleDragStart(candidate)}
-                            onDragEnd={handleDragEnd}
-                          />
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )
-                ) : (
-                  <div className="flex items-center justify-center w-full py-8">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">No candidates in this {effectiveRowField}</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
-                    </div>
-                  </div>
+              <div
+                key={rowValue}
+                className={cn(
+                  "flex flex-row items-center gap-4 transition-all duration-200 border border-border rounded-lg p-4 bg-card shadow-sm",
+                  dragOverRow === rowValue && "ring-2 ring-primary/60 bg-primary/5"
                 )}
+                onDragOver={(e) => handleDragOver(rowValue, 'default', e)}
+                onDrop={() => handleDrop(rowValue, 'default')}
+              >
+                <div className="w-40 flex-shrink-0 flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 rounded-full bg-primary"></div>
+                    <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {rowCandidates.length} candidates
+                  </Badge>
+                </div>
+                <div className="flex-1 min-h-[80px]">
+                  {rowCandidates.length > 0 ? (
+                    shouldUseSingleRow ? (
+                      <div className="flex flex-row gap-4 overflow-x-auto py-4">
+                        {rowCandidates.map(candidate => {
+                          console.log('FlexibleKanbanView: Rendering candidate card:', {
+                            candidateId: candidate.id,
+                            candidateName: candidate.name
+                          });
+                          return (
+                            <div
+                              key={candidate.id}
+                              className={cn(
+                                "group w-64 max-w-xs",
+                                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                              )}
+                            >
+                              <EnhancedCandidateCard
+                                candidate={candidate}
+                                isDragged={draggedCandidate?.id === candidate.id}
+                                onClick={() => handleCardClick(candidate)}
+                                onDragStart={() => handleDragStart(candidate)}
+                                onDragEnd={handleDragEnd}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-row flex-wrap gap-3">
+                        {rowCandidates.map(candidate => {
+                          console.log('FlexibleKanbanView: Rendering candidate card (wrap):', {
+                            candidateId: candidate.id,
+                            candidateName: candidate.name
+                          });
+                          return (
+                            <div
+                              key={candidate.id}
+                              className={cn(
+                                "group w-64 max-w-xs",
+                                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                              )}
+                            >
+                              <EnhancedCandidateCard
+                                candidate={candidate}
+                                isDragged={draggedCandidate?.id === candidate.id}
+                                onClick={() => handleCardClick(candidate)}
+                                onDragStart={() => handleDragStart(candidate)}
+                                onDragEnd={handleDragEnd}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )
+                  ) : (
+                    <div className="flex items-center justify-center w-full py-8">
+                      <div className="text-center">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+                          <Plus className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">No candidates in this {effectiveRowField}</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
@@ -1341,17 +1340,23 @@ export function FlexibleKanbanView({
                 <EnhancedCandidateCard
                   candidate={candidate}
                   onClick={() => handleCardClick(candidate)}
-                      onDragStart={() => handleDragStart(candidate)}
-                      onDragEnd={handleDragEnd}
-                    />
-                  </div>
-                ))}
+                  onDragStart={() => handleDragStart(candidate)}
+                  onDragEnd={handleDragEnd}
+                />
               </div>
-            </div>
-          );
-        }
-        return null;
-      })()}
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Candidate Detail Modal - only show if onCardClick is not provided */}
+      {!onCardClick && selectedCandidateSummary && (
+        <CandidateDetailModal
+          candidateId={selectedCandidateSummary.id}
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </>
   );
 }

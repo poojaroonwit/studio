@@ -285,7 +285,6 @@ export function CandidateTable({
                           </>
                         );
                       })()}
-                      </div>
                     </div>
                   </TableCell>
                   <TableCell key={`${candidate.id}-position`}>

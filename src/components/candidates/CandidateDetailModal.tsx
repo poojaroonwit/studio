@@ -543,7 +543,7 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
                   <CardContent>
                     {skills && skills.length > 0 ? (
                       <div className="space-y-4">
-                        {skills.map((skill, index) => (
+                        {skills.map((skill: SkillEntry, index: number) => (
                           <div key={index} className="p-4 border rounded-lg">
                             <div className="flex items-center gap-2 mb-2">
                               <HardDrive className="h-4 w-4 text-primary" />
@@ -585,7 +585,7 @@ const CandidateDetailModal = ({ candidateId, open, onClose }: CandidateDetailMod
                         {candidateJobMatches.map((match, index) => (
                           <div key={index} className="p-4 border rounded-lg">
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium">{match.positionTitle || 'Position'}</h4>
+                              <h4 className="font-medium">{match.jobTitle || 'Position'}</h4>
                               <div className="flex items-center gap-2">
                                 <span className="text-lg font-bold text-primary">{match.fitScore || 0}%</span>
                                 <Badge variant="outline">{getScoreGrade(match.fitScore || 0)}</Badge>

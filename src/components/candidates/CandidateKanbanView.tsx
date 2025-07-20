@@ -943,7 +943,7 @@ export function FlexibleKanbanView({
         effectiveRowField,
         effectiveColumnField,
         rowValueIncluded: finalRowValues.includes(rowValue),
-        colValueIncluded: effectiveColumnValues.includes(colValue)
+        colValueIncluded: colValue ? effectiveColumnValues.includes(colValue) : false
       });
       
       // If rowValue is not in finalRowValues, try to find a fallback

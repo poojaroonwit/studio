@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const jobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).optional().transform(val => {
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     const jobMatches = jobMatchesResult.rows.map(match => ({
       id: match.id,
-              fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const processedMatch = result.rows[0];
         insertedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+          fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -380,7 +381,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const processedMatch = result.rows[0];
         updatedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+          fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -477,7 +478,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const processedMatch = result.rows[0];
       insertedMatches.push({
         id: processedMatch.id,
-        fitScore: processedMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
         jobId: processedMatch.jobId || null,
         matchReasons: processedMatch.matchReasons || [],
       });

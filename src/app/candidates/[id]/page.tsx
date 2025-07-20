@@ -533,13 +533,12 @@ export default function CandidateDetailPage() {
   const fetchPositionsAndStages = useCallback(async () => {
     try {
       const [posResponse, stagesResponse] = await Promise.all([
-        fetch('/api/positions'),
+        fetch('/api/positions/all'),
         fetch('/api/settings/recruitment-stages')
       ]);
 
       if (posResponse.ok) {
         const posData = await posResponse.json();
-        // The API returns { data: positions, total } not { positions }
         setAllDbPositions(posData.data || []);
       } else {
         console.error("Failed to fetch positions");
@@ -1832,7 +1831,7 @@ export default function CandidateDetailPage() {
                                           setJobMatchesScrollPosition(target.scrollLeft);
                                         }}
                                     >
-                                {candidateJobMatches.map((match: any, index: number) => {
+                                {candidateJobMatches.filter((match: any) => match.fitScore >= 70).map((match: any, index: number) => {
                                   // Try to find position by jobId first, then by jobTitle
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 

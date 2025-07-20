@@ -142,4 +142,23 @@ export function getScoreRangesForChart(): Array<{ label: string; min: number; ma
     max: grade.max,
     letter: grade.letter
   }));
+}
+
+/**
+ * Normalizes a fit score to ensure it's in the correct 0-100 integer format
+ * Handles conversion from decimal (0-1) to percentage (0-100)
+ * @param score - The raw score value (can be decimal, integer, null, or undefined)
+ * @returns Normalized score as integer (0-100)
+ */
+export function normalizeFitScore(score: number | null | undefined): number {
+  if (score === null || score === undefined) return 0;
+  
+  // If score is a decimal (0-1), convert to percentage
+  if (score > 0 && score < 1) return Math.round(score * 100);
+  
+  // If score is already in 0-100 range, use as is
+  if (score >= 0 && score <= 100) return Math.round(score);
+  
+  // For any other case, ensure it's within 0-100 range
+  return Math.max(0, Math.min(100, Math.round(score)));
 } 

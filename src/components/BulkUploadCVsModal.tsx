@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import { FileUploadArea } from "@/components/ui/FileUploadArea";
+import { toast } from "react-hot-toast";
+import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -25,17 +27,18 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
-  const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [uploading, setUploading] = useState(false);
   const { data: session } = useSession();
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const { successWithDescription, errorWithDescription, error } = useToast();
-
-  // Check permissions
-  const canBulkUpload = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('BULK_UPLOAD');
+  
+  // Memoize the permission check to prevent unnecessary re-renders
+  const canBulkUpload = useMemo(() => {
+    return session?.user?.role === 'Admin' || 
+      session?.user?.modulePermissions?.includes('BULK_UPLOAD');
+  }, [session?.user?.role, session?.user?.modulePermissions]);
   
   if (!canBulkUpload) {
     return (
@@ -56,25 +59,6 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
   }
 
   useEffect(() => {
-    if (!isOpen) return;
-    const fetchPositions = async () => {
-      try {
-        const response = await fetch('/api/positions');
-        if (!response.ok) {
-          throw new Error('Failed to fetch positions');
-        }
-        const result = await response.json();
-        const data = Array.isArray(result) ? result : (result.data || []);
-        setAvailablePositions(Array.isArray(data) ? data : []);
-              } catch (error) {
-          console.error("Error fetching positions:", error);
-          errorWithDescription("Could not load positions for selection.", "Please try refreshing the page or contact support if the issue persists.");
-        }
-    };
-    fetchPositions();
-  }, [isOpen]);
-
-  useEffect(() => {
     if (selectedFiles.length > 0) {
       // Use the selected file index, defaulting to 0 if out of bounds
       const index = Math.min(selectedFileIndex, selectedFiles.length - 1);
@@ -89,51 +73,64 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     }
   }, [selectedFiles, selectedFileIndex]);
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
     
-    // Prevent default form submission behavior
-    const newFiles: File[] = [];
-    const invalidFiles: { name: string; reason: string }[] = [];
-    const newBatchMap: { [fileName: string]: string } = {};
+    const validFiles: File[] = [];
+    const errors: string[] = [];
     
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    Array.from(files).forEach((file) => {
       if (file.type !== "application/pdf") {
-        invalidFiles.push({ name: file.name, reason: "Invalid file type" });
-      } else if (file.size > MAX_FILE_SIZE) {
-        invalidFiles.push({ name: file.name, reason: `File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)` });
-      } else {
-        newFiles.push(file);
-        newBatchMap[file.name] = uuidv4();
+        errors.push(`${file.name}: Invalid file type (PDF only)`);
+        return;
       }
-    }
-    
-    // Update state with new files
-    setSelectedFiles((prev: File[]) => [...prev, ...newFiles]);
-    setFileBatchMap((prev: { [fileName: string]: string }) => ({ ...prev, ...newBatchMap }));
-    
-    // Show consolidated error message for invalid files
-    if (invalidFiles.length > 0) {
-      const errorMessages = invalidFiles.map(f => `${f.name}: ${f.reason}`).join(', ');
-      errorWithDescription(`Invalid files: ${errorMessages}`, "Only PDF files under 500MB are supported.");
-    }
-  };
-
-  const removeFile = (file: File) => {
-    const fileIndex = selectedFiles.findIndex(f => f === file);
-    setSelectedFiles((prev: File[]) => prev.filter((f: File) => f !== file));
-    setFileBatchMap((prev: { [fileName: string]: string }) => {
-      const newMap = { ...prev };
-      delete newMap[file.name];
-      return newMap;
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)`);
+        return;
+      }
+      validFiles.push(file);
     });
     
-    // Adjust selected file index if the removed file was selected
-    if (fileIndex <= selectedFileIndex && selectedFileIndex > 0) {
-      setSelectedFileIndex(prev => Math.max(0, prev - 1));
+    if (errors.length > 0) {
+      errors.forEach(error => toast.error(error));
     }
-  };
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => {
+        const newFiles = [...prev, ...validFiles];
+        // Generate batch IDs for new files
+        const newBatchMap = { ...fileBatchMap };
+        validFiles.forEach(file => {
+          if (!newBatchMap[file.name]) {
+            newBatchMap[file.name] = uuidv4();
+          }
+        });
+        setFileBatchMap(newBatchMap);
+        return newFiles;
+      });
+    }
+  }, [fileBatchMap]);
+
+  const handleDragActiveChange = useCallback((active: boolean) => {
+    setDragActive(active);
+  }, []);
+
+  const removeFile = useCallback((fileToRemove: File) => {
+    setSelectedFiles(prev => prev.filter(file => file !== fileToRemove));
+    setFileBatchMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[fileToRemove.name];
+      return newMap;
+    });
+  }, []);
+
+  const handleFileIndexChange = useCallback((index: number) => {
+    setSelectedFileIndex(index);
+  }, []);
+
+  const handlePositionChange = useCallback((value: string) => {
+    setSelectedPositionId(value);
+  }, []);
 
   // Helper to add a file to the upload queue and handle errors
   async function addToUploadQueueNonBlocking(queueData: any, fileName: string) {
@@ -163,7 +160,21 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     }
   }
 
-  const handleConfirmUpload = async () => {
+  const handleRefreshClick = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
+    onUploadSuccess?.();
+  }, [onUploadSuccess]);
+
+  const handleModalClose = useCallback((open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      setSelectedFiles([]);
+      setSelectedPositionId("");
+      setSelectedFileIndex(0);
+    }
+  }, [onOpenChange]);
+
+  const handleConfirmUpload = useCallback(async () => {
     setUploading(true);
     const now = new Date().toISOString();
     try {
@@ -239,17 +250,10 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
     } finally {
       setUploading(false);
     }
-  };
+  }, [selectedFiles, selectedPositionId, fileBatchMap, onOpenChange, successWithDescription, errorWithDescription, onUploadSuccess]);
   const totalFiles = selectedFiles.length;
   return (
-    <Dialog open={isOpen} onOpenChange={open => {
-      onOpenChange(open);
-      if (!open) {
-        setSelectedFiles([]);
-        setSelectedPositionId("");
-        setSelectedFileIndex(0);
-      }
-    }}>
+    <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-4xl w-full">
         <DialogHeader>
           <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
@@ -260,27 +264,27 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2 p-4 pb-6">
           {/* Left Column - Position Selection and File Upload Area */}
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="position-select">Assign to Position (optional)</Label>
-              <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
-                <SelectTrigger id="position-select" className="mt-2">
-                  <SelectValue placeholder="Select a position..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__NONE__">None (General Application)</SelectItem>
-                  {availablePositions.map(pos => (
-                    <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                          <div>
+                <Label htmlFor="position-select">Assign to Position (optional)</Label>
+                <div className="mt-2">
+                  <PositionSelectDropdown
+                    value={selectedPositionId}
+                    onValueChange={handlePositionChange}
+                    placeholder="Select a position..."
+                    showOpenStatus={true}
+                    filterOpenOnly={false}
+                    showNoneOption={true}
+                  />
+                </div>
+              </div>
             <FileUploadArea
+              key="bulk-upload-area"
               accept="application/pdf"
               multiple={true}
               maxFileSize={MAX_FILE_SIZE}
               onFilesChange={handleFiles}
               dragActive={dragActive}
-              setDragActive={setDragActive}
+              setDragActive={handleDragActiveChange}
             />
           </div>
           {/* Right Column - Uploaded Files List and Preview */}
@@ -298,7 +302,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                           ? 'border-primary bg-primary/5' 
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => setSelectedFileIndex(idx)}
+                      onClick={() => handleFileIndexChange(idx)}
                     >
                       <div className="flex-1 min-w-0">
                         <span className="truncate block text-sm font-medium">{file.name}</span>
@@ -340,10 +344,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
             <Button 
               type="button" 
               variant="secondary" 
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
-                onUploadSuccess?.();
-              }}
+              onClick={handleRefreshClick}
               disabled={uploading}
             >
               Refresh List

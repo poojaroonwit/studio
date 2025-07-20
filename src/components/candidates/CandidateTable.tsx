@@ -326,12 +326,22 @@ export function CandidateTable({
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       {/* Fit Score as Badge */}
-                      <Badge
-                        variant={getScoreColor(candidate.fitScore) === 'text-green-600' ? 'success' : getScoreColor(candidate.fitScore) === 'text-yellow-600' ? 'secondary' : getScoreColor(candidate.fitScore) === 'text-red-600' ? 'destructive' : 'outline'}
-                        className="min-w-[48px] justify-center"
-                      >
-                        {formatScoreWithGrade(candidate.fitScore)}
-                      </Badge>
+                      {(() => {
+                        // Extract fit score from job_applied if available, otherwise use candidate.fitScore
+                        const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
+                          ? (candidate.parsedData as any).job_applied
+                          : undefined;
+                        const displayFitScore = jobApplied?.fitScore ?? candidate.fitScore;
+                        
+                        return (
+                          <Badge
+                            variant={getScoreColor(displayFitScore) === 'text-green-600' ? 'success' : getScoreColor(displayFitScore) === 'text-yellow-600' ? 'secondary' : getScoreColor(displayFitScore) === 'text-red-600' ? 'destructive' : 'outline'}
+                            className="min-w-[48px] justify-center"
+                          >
+                            {formatScoreWithGrade(displayFitScore)}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell key={`${candidate.id}-status`}>

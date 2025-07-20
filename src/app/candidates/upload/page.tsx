@@ -56,13 +56,12 @@ function UploadPageContent() {
   useEffect(() => {
     const fetchPositions = async () => {
       try {
-        const response = await fetch('/api/positions');
+        const response = await fetch('/api/positions/all');
         if (!response.ok) {
           throw new Error('Failed to fetch positions');
         }
         const result = await response.json();
-        const data = Array.isArray(result) ? result : (result.data || []);
-        setAvailablePositions(Array.isArray(data) ? data : []);
+        setAvailablePositions(result.data || []);
       } catch (error) {
         console.error("Error fetching positions:", error);
         toast.error("Could not load positions for selection.");

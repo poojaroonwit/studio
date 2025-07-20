@@ -29,6 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
+import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
 
 const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
 
@@ -108,13 +109,12 @@ interface AddCandidateModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onAddCandidate: (data: AddCandidateFormValues) => Promise<void>;
-  availablePositions: Position[];
-  availableStages: RecruitmentStage[]; // New prop
+  availableStages: RecruitmentStage[]; // Remove availablePositions prop
 }
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
 
-export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availablePositions, availableStages }: AddCandidateModalProps) {
+export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availableStages }: AddCandidateModalProps) {
   const form = useForm<AddCandidateFormValues>({
     resolver: zodResolver(addCandidateFormSchema),
     defaultValues: {
@@ -268,20 +268,13 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                             name="positionId"
                             control={form.control}
                             render={({ field }) => (
-                                <Select
-                                  onValueChange={(value) => field.onChange(value === "___NONE___" ? null : value)}
-                                  value={field.value ?? "___NONE___"}
-                                >
-                                <SelectTrigger id="positionId" className="mt-1">
-                                    <SelectValue placeholder="Select position or None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="___NONE___">No specific position / General Application</SelectItem>
-                                    {availablePositions.map(pos => (
-                                    <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
+                                <PositionSelectDropdown
+                                  value={field.value || ""}
+                                  onValueChange={(value) => field.onChange(value || null)}
+                                  placeholder="Select position..."
+                                  showOpenStatus={true}
+                                  filterOpenOnly={false}
+                                />
                             )}
                         />
                         {form.formState.errors.positionId && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionId.message}</p>}

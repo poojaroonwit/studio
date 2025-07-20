@@ -38,7 +38,7 @@ export default function ApiDocsUIPage() {
 
   if (error) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ padding: '20px' }}>
         <h2>API Documentation Error</h2>
         <p>Failed to load API documentation: {error}</p>
         <p>Please try refreshing the page or contact support if the issue persists.</p>
@@ -48,7 +48,7 @@ export default function ApiDocsUIPage() {
 
   if (!swaggerSpec) {
     return (
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ padding: '20px' }}>
         <h2>Loading API Documentation...</h2>
         <p>Please wait while we load the API documentation.</p>
       </div>

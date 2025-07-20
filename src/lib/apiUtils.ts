@@ -2,6 +2,7 @@
 import { getPool } from './db';
 import type { Position, RecruitmentStage, Candidate, UserProfile } from './types';
 import { getRedisClient, CACHE_KEY_POSITIONS, CACHE_EXPIRY_SECONDS_POSITIONS, CACHE_KEY_RECRUITMENT_STAGES, CACHE_EXPIRY_SECONDS_STAGES, CACHE_KEY_USERS, CACHE_EXPIRY_SECONDS_USERS } from './redis';
+import { normalizeFitScore } from './scoreUtils';
 
 export async function fetchAllPositionsDb(): Promise<Position[]> {
   const redisClient = await getRedisClient();
@@ -120,7 +121,7 @@ export async function fetchInitialDashboardCandidatesDb(limit: number = 10): Pro
     const result = await pool.query(query, [limit]);
     return result.rows.map((row: Candidate) => ({
       ...row,
-      fitScore: row.fitScore || 0, // Convert null to 0 for consistency with scoreUtils
+      fitScore: normalizeFitScore(row.fitScore),
     }));
   } catch (error) {
     console.error("Error fetching initial dashboard candidates from DB:", error);

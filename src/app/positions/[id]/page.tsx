@@ -88,9 +88,9 @@ export default function PositionDetailPage() {
   }, [positionId, sessionStatus, fetchPositionAndCandidates]);
 
   useEffect(() => {
-    fetch('/api/positions')
+    fetch('/api/positions/all')
       .then(res => res.json())
-      .then(data => setAvailablePositions(data.positions || []));
+      .then(data => setAvailablePositions(data.data || []));
     fetch('/api/settings/recruitment-stages')
       .then(res => res.json())
       .then(data => setAvailableStages(data.stages || []));

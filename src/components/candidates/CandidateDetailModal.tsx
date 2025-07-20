@@ -207,14 +207,14 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   const fetchMetadata = async () => {
     try {
       const [positionsRes, stagesRes, recruitersRes] = await Promise.all([
-        fetch('/api/positions'),
+        fetch('/api/positions/all'),
         fetch('/api/settings/recruitment-stages'),
         fetch('/api/users?role=Recruiter')
       ]);
       
       if (positionsRes.ok) {
         const positionsData = await positionsRes.json();
-        setAllDbPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
+        setAllDbPositions(positionsData.data || []);
       }
       
       if (stagesRes.ok) {

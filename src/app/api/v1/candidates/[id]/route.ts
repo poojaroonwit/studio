@@ -13,6 +13,7 @@ import {
   createNotFoundError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const updateCandidateSchema = z.object({
   // Legacy fields for backward compatibility
@@ -138,7 +139,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);

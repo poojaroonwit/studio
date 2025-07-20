@@ -169,7 +169,7 @@ export default {
 			'sidebar': 'var(--sidebar-font-family)',
 			'inter': ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
 			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': 'var(--font-family-primary)',
 		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',

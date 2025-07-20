@@ -17,7 +17,7 @@ export function AutoFont({
   const text = typeof children === 'string' ? children : '';
   const isThai = containsThaiText(text);
   
-  const fontClass = isThai ? 'font-anuphan' : 'font-inter';
+  const fontClass = isThai ? 'font-ibm-plex-sans-thai' : 'font-sans';
   
   return (
     <Component 
@@ -39,7 +39,7 @@ export function withAutoFont<P extends object>(
     const text = typeof children === 'string' ? children : '';
     const isThai = containsThaiText(text);
     
-    const fontClass = isThai ? 'font-anuphan' : 'font-inter';
+    const fontClass = isThai ? 'font-ibm-plex-sans-thai' : 'font-sans';
     
     return (
       <Component
@@ -59,7 +59,7 @@ export function useAutoFont(text: string) {
   const isThai = containsThaiText(text);
   
   return {
-    fontClass: isThai ? 'font-anuphan' : 'font-inter',
+    fontClass: isThai ? 'font-ibm-plex-sans-thai' : 'font-sans',
     lang: isThai ? 'th' : 'en',
     isThai,
   };

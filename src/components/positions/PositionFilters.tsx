@@ -99,7 +99,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
             </PopoverTrigger>
             <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
               <Command>
-                <CommandInput placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs" />
+                <Input placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
                 <CommandList>
                   <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
                   <ScrollArea className="max-h-48">

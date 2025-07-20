@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const positionLevelFilter = searchParams.get('positionLevel');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const includeStats = searchParams.get('includeStats') === 'true';
 
     let query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
@@ -96,8 +97,38 @@ export async function GET(request: NextRequest) {
         ...row,
         custom_attributes: row.customAttributes || {},
     }));
+
+    // Include statistics if requested
+    let statistics = null;
+    if (includeStats) {
+      const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+      const statsParams = queryParams.slice(0, paramIndex - 1);
+
+      // Use a single query with conditional aggregation for better performance
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"${whereClause}
+      `;
+      
+      const statsResult = await getPool().query(statsQuery, statsParams);
+      const stats = statsResult.rows[0];
+      
+      statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+    }
     
-    return NextResponse.json({ data: positions, total }, { status: 200, headers: handleCors(request) });
+    const response = { data: positions, total };
+    if (statistics) {
+      response.statistics = statistics;
+    }
+    
+    return NextResponse.json(response, { status: 200, headers: handleCors(request) });
   } catch (error) {
     console.error("Failed to fetch positions:", error);
     await logAudit('ERROR', `Failed to fetch positions. Error: ${(error as Error).message}`, 'API:Positions:GetAll', session?.user?.id);

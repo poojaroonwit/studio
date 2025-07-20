@@ -1,30 +1,25 @@
 // src/components/tasks/MyTasksPageClient.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { FlexibleKanbanView } from '@/components/candidates/CandidateKanbanView';
-import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { CustomizeBoardModal } from './CustomizeBoardModal';
-import { Settings, Grid3X3, List, Kanban, Users, Calendar, Target, Search, RefreshCw, Eye, EyeOff, Plus, MoreHorizontal } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
-import { cn } from '@/lib/utils';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Filter, Settings, RefreshCw, Kanban, List, Users, MoreHorizontal, Calendar, Target, User, TrendingUp } from 'lucide-react';
+import { CustomizeBoardModal } from './CustomizeBoardModal';
+import { MyTasksFilterModal } from './MyTasksFilterModal';
+import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
+import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
@@ -53,6 +48,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [rowField, setRowField] = useState('status');
   const [columnField, setColumnField] = useState('recruiterId');
   const [metadataLoaded, setMetadataLoaded] = useState(false);
+  
+  // Add debouncing for search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Permission check: can view all recruiters?
   const canViewAllRecruiters = userSession?.role === 'Admin' || (session?.user?.modulePermissions?.includes('MANAGE_ALL_TASKS'));
@@ -98,6 +96,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       eventSource.close();
     };
   }, []);
+
+  // Initial load of candidates
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/candidates');
+        const data = await res.json();
+        setCandidates(Array.isArray(data) ? data : (data.data || []));
+      } catch (e) {
+        console.error('Error fetching candidates:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCandidates();
+  }, []); // Only run on mount
 
   // Get all possible values for row and column fields (not just from current candidates)
   const uniqueRowValues = useMemo(() => {
@@ -245,26 +260,41 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   };
 
-  // Fetch candidates when filters change
+  // Debounced fetch candidates when filters change
   useEffect(() => {
-    const fetchCandidates = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        if (filters.name) params.append('name', filters.name);
-        if (filters.positionId) params.append('positionId', filters.positionId);
-        if (filters.stage) params.append('status', filters.stage);
-        if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
-        const res = await fetch(`/api/candidates?${params.toString()}`);
-        const data = await res.json();
-        setCandidates(Array.isArray(data) ? data : (data.data || []));
-      } catch (e) {
-        console.error('Error fetching candidates:', e);
-      } finally {
-        setLoading(false);
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      const fetchCandidates = async () => {
+        setLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (filters.name) params.append('name', filters.name);
+          if (filters.positionId) params.append('positionId', filters.positionId);
+          if (filters.stage) params.append('status', filters.stage);
+          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+          const res = await fetch(`/api/candidates?${params.toString()}`);
+          const data = await res.json();
+          setCandidates(Array.isArray(data) ? data : (data.data || []));
+        } catch (e) {
+          console.error('Error fetching candidates:', e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCandidates();
+    }, 300); // 300ms delay
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
-    fetchCandidates();
   }, [filters]);
 
   // Filter candidates based on user role and permissions
@@ -356,27 +386,31 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             <div className="flex flex-wrap items-center gap-3 flex-1">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                {loading ? (
+                  <RefreshCw className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                )}
                 <Input
                   className="pl-10 h-9 w-64 text-sm"
                   placeholder="Search candidates..."
                   value={filters.name || ''}
                   onChange={e => setFilters((f: any) => ({ ...f, name: e.target.value }))}
+                  disabled={loading}
                 />
               </div>
 
               {/* Quick Filters */}
-              <Select value={filters.positionId || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, positionId: v === 'all' ? '' : v }))}>
-                <SelectTrigger className="h-9 w-48 text-sm">
-                  <SelectValue placeholder="All Positions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Positions</SelectItem>
-                  {positions.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="w-48">
+                <PositionSelectDropdown
+                  value={filters.positionId || ""}
+                  onValueChange={v => setFilters((f: any) => ({ ...f, positionId: v || "" }))}
+                  placeholder="All Positions"
+                  showOpenStatus={true}
+                  filterOpenOnly={false}
+                  showNoneOption={true}
+                />
+              </div>
 
               <Select value={filters.stage || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, stage: v === 'all' ? '' : v }))}>
                 <SelectTrigger className="h-9 w-40 text-sm">
@@ -513,20 +547,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <FlexibleKanbanView
-                candidates={displayedCandidates}
-                statuses={stages}
-                onMoveCandidate={handleMoveCandidate}
-                onCardClick={(candidate) => {
-                  console.log('MyTasksPageClient: Card clicked:', candidate);
-                  setSelectedCandidate(candidate);
-                }}
-                rowField={rowField}
-                columnField={columnField}
-                visibleFields={boardPrefs.visibleFields}
-                visibleRowValues={visibleRowValues}
-                visibleColumnValues={visibleColumnValues}
-              />
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Kanban view is being updated...</p>
+              </div>
             ) : (
               // Table View (styled like candidate list)
               <div className="border rounded-lg shadow overflow-hidden">

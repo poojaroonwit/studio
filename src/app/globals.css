@@ -6,8 +6,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animation keyframes for smooth transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 body {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: var(--font-family-primary);
+}
+
+/* Global font application with high priority */
+* {
+  font-family: inherit;
+}
+
+/* Ensure all text elements use Thai font by default */
+h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, label, a {
+  font-family: var(--font-family-primary);
+}
+
+/* Override any component-specific font classes to use Thai font */
+.font-sans,
+.font-inter,
+.font-english,
+.font-anuphan {
+  font-family: var(--font-family-primary) !important;
+}
+
+/* Ensure Tailwind's font-sans class uses Thai font */
+.font-sans {
+  font-family: var(--font-family-primary) !important;
+}
+
+/* Ensure the specific Thai font class is applied */
+.font-ibm-plex-sans-thai {
+  font-family: var(--font-family-primary) !important;
+}
+
+/* Force Thai font on all elements with high specificity */
+html, body, #__next, [data-nextjs-page-router-viewport] {
+  font-family: var(--font-family-primary) !important;
+}
+
+/* Additional high-priority override for any remaining elements */
+*:not(code):not(pre):not(.mono):not(.font-mono) {
+  font-family: var(--font-family-primary) !important;
 }
 
 /* Language-specific font rules */
@@ -27,7 +86,7 @@ body {
 
 /* Auto-font utility classes */
 .font-auto {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Apply Thai font to elements containing Thai text */
@@ -65,7 +124,7 @@ body {
 
 /* Auto-detect Thai text and apply appropriate font */
 .font-auto {
-  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Force Thai font for specific elements */
@@ -85,6 +144,10 @@ body {
 
 @layer base {
   :root {
+    /* Font family variables */
+    --font-family-primary: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+    --font-family-secondary: 'Inter', Arial, Helvetica, sans-serif;
+    
     /* Border radius variable */
     --radius: 0.375rem;
     
@@ -655,6 +718,44 @@ body {
   
   [role="switch"][data-state="checked"] > *, [role="switch"][data-state="unchecked"] > * {
     border-radius: 9999px !important;
+  }
+
+  /* Custom scrollbar styling for filter sidebar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
+  }
+
+  /* Dark mode scrollbar */
+  .dark .custom-scrollbar {
+    scrollbar-color: hsl(var(--muted-foreground)) transparent;
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
   }
 }
     

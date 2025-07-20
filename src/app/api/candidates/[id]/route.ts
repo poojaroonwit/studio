@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 /**
  * @openapi
@@ -152,7 +153,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
-              fitScore: candidate.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: normalizeFitScore(candidate.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
       position: candidate.positionId ? {
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: normalizeFitScore(match.fitScore), // Convert decimal to integer if needed (0.70 -> 70, 70 -> 70)
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
     }, {

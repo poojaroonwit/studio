@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const addJobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).transform(val => {
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newMatch = insertResult.rows[0];
     const jobMatch = {
       id: newMatch.id,
-              fitScore: newMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: normalizeFitScore(newMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       jobId: newMatch.jobId,
       matchReasons: newMatch.matchReasons || [],
       createdAt: newMatch.createdAt,

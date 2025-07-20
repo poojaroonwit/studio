@@ -32,10 +32,20 @@ export default async function DashboardPageServer() {
       // Fetch candidates
       const candidatesQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
-               r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail"
+               r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail",
+               COALESCE(th_data.history, '[]'::json) as "transitionHistory"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN LATERAL (
+          SELECT json_agg(
+            json_build_object(
+              'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
+            ) ORDER BY th.date DESC
+          ) AS history
+          FROM "TransitionRecord" th
+          WHERE th."candidateId" = c.id
+        ) AS th_data ON true
         ORDER BY c."applicationDate" DESC;
       `;
       const candidatesResult = await client.query(candidatesQuery);
@@ -78,15 +88,15 @@ export default async function DashboardPageServer() {
           } : null,
           fitScore: row.fitScore || null,
           status: row.status,
-          applicationDate: row.applicationDate,
+          applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
           recruiterId: row.recruiterId || null,
           recruiter: row.recruiterId ? {
             id: row.recruiterId,
             name: row.recruiterName,
             email: row.recruiterEmail || ''
           } : null,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
+          createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
+          updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
           transitionHistory: row.transitionHistory || [],
         };
       });
@@ -100,8 +110,8 @@ export default async function DashboardPageServer() {
         requirements: row.requirements,
         isOpen: row.isOpen,
         positionLevel: row.positionLevel,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
+        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
       // Transform users data
@@ -112,8 +122,8 @@ export default async function DashboardPageServer() {
         role: row.role,
         avatarUrl: row.avatarUrl,
         modulePermissions: row.modulePermissions || [],
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
+        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));
 
     } finally {

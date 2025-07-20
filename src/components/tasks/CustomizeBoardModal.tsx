@@ -448,10 +448,10 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         
         // Fetch positions
         console.log('CustomizeBoardModal: Fetching positions...');
-        const positionsRes = await fetch('/api/positions');
+        const positionsRes = await fetch('/api/positions/all');
         const positionsData = await positionsRes.json();
         console.log('CustomizeBoardModal: Positions response:', positionsData);
-        setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
+        setPositions(positionsData.data || []);
         
         // Fetch stages
         console.log('CustomizeBoardModal: Fetching stages...');

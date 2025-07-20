@@ -13,16 +13,16 @@ const CandidateJobMatches: React.FC<CandidateJobMatchesProps> = ({ jobMatches })
         <CardTitle>Job Matches</CardTitle>
       </CardHeader>
       <CardContent>
-        {jobMatches && jobMatches.length > 0 ? (
+        {jobMatches && jobMatches.filter((match) => match.fitScore >= 70).length > 0 ? (
           <ul>
-            {jobMatches.map((match, idx) => (
+            {jobMatches.filter((match) => match.fitScore >= 70).map((match, idx) => (
               <li key={idx}>
                 {match.jobTitle} (Fit Score: {match.fitScore}%)
               </li>
             ))}
           </ul>
         ) : (
-          <div>No job matches found.</div>
+          <div>No job matches with 70% or higher fit score found.</div>
         )}
       </CardContent>
     </Card>

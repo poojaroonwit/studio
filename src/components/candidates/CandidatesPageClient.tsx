@@ -8,7 +8,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
 import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
 import { HealthCheck } from '@/components/ui/health-check';
+import { Badge } from '@/components/ui/badge';
 
 
 interface CandidatesPageClientProps {
@@ -106,6 +107,7 @@ export function CandidatesPageClient({
   const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
   const [aiMatchedCandidateIds, setAiMatchedCandidateIds] = useState<string[] | null>(null);
+  const [isAiSearchActive, setIsAiSearchActive] = useState(false);
   const [hasInitialFetch, setHasInitialFetch] = useState(false);
   const [hasInitialDataFetch, setHasInitialDataFetch] = useState(false);
   const [advancedQueryFromUrl, setAdvancedQueryFromUrl] = useState<string>('');
@@ -271,8 +273,11 @@ export function CandidatesPageClient({
     setFetchError(null);
     setAuthError(false);
     setPermissionError(false);
-    setAiMatchedCandidateIds(null);
-    setAiSearchReasoning(null);
+    // Only clear AI results if AI search is not active
+    if (!isAiSearchActive) {
+      setAiMatchedCandidateIds(null);
+      setAiSearchReasoning(null);
+    }
     
     // Add a timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
@@ -393,12 +398,30 @@ export function CandidatesPageClient({
     setFetchError(null);
     setAiSearchReasoning(null);
     setAiMatchedCandidateIds(null);
+    setIsAiSearchActive(true);
+    
+    // Add timeout for AI search
+    const timeoutId = setTimeout(() => {
+      setIsAiSearching(false);
+      setIsAiSearchActive(false);
+      toast.error("AI search timed out. Please try again with a more specific query.");
+    }, 30000); // 30 second timeout
+    
     try {
+      const controller = new AbortController();
+      const timeoutId2 = setTimeout(() => controller.abort(), 25000); // 25 second timeout for fetch
+      
       const response = await fetch('/api/ai/search-candidates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: aiQuery }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId2);
+      
+      clearTimeout(timeoutId); // Clear timeout on successful response
+      
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.message || `AI search failed with status: ${response.status}`);
@@ -411,9 +434,17 @@ export function CandidatesPageClient({
         toast.success(result.aiReasoning || "No strong matches found by AI for your query.");
       }
     } catch (error) {
+      clearTimeout(timeoutId); // Clear timeout on error
       console.error("AI Search Error:", error);
-      toast.error((error as Error).message);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error("AI search request was cancelled due to timeout. Please try again.");
+      } else {
+        toast.error((error as Error).message);
+      }
+      
       setAiMatchedCandidateIds([]);
+      setIsAiSearchActive(false);
     } finally {
       setIsAiSearching(false);
     }
@@ -623,15 +654,20 @@ export function CandidatesPageClient({
       const fetchPositionsAndStages = async () => {
         try {
           const [posResponse, stagesResponse] = await Promise.all([
-            fetch('/api/positions'),
+            fetch('/api/positions/all'),
             fetch('/api/settings/recruitment-stages')
           ]);
 
           if (posResponse.ok) {
             const posData = await posResponse.json();
-            setAvailablePositions(posData.positions || posData.data || []);
+            console.log('Positions fetched:', posData);
+            console.log('Positions data length:', posData.data?.length || 0);
+            console.log('First few positions:', posData.data?.slice(0, 3));
+            setAvailablePositions(posData.data || []);
           } else {
             console.error("Failed to fetch positions");
+            console.error("Response status:", posResponse.status);
+            console.error("Response status text:", posResponse.statusText);
             toast.error("Could not load the list of available positions.");
           }
 
@@ -739,12 +775,20 @@ export function CandidatesPageClient({
         return;
       }
       
+      // Check if this is an AI search query being applied
+      const isAiSearchQuery = newFilters.aiSearchQuery !== undefined;
+      
       // Update URL parameters to reflect the new filters
       const params = new URLSearchParams();
       
       // Check if all filters are cleared (reset to defaults)
       const isAllFiltersCleared = !combinedFilters.name && !combinedFilters.email && !combinedFilters.phone && 
-          !combinedFilters.education && !combinedFilters.selectedPositionIds?.length && 
+          !combinedFilters.education && !combinedFilters.skills && !combinedFilters.location && 
+          !combinedFilters.cvLanguage && !combinedFilters.jobSuitableCareer && 
+          !combinedFilters.jobSuitableLevel && !combinedFilters.jobSuitablePosition &&
+          (combinedFilters.minExperienceYears === undefined || combinedFilters.minExperienceYears === 0) &&
+          (combinedFilters.maxExperienceYears === undefined || combinedFilters.maxExperienceYears === 50) &&
+          !combinedFilters.selectedPositionIds?.length && 
           !combinedFilters.selectedStatuses?.length && !combinedFilters.selectedRecruiterIds?.length &&
           combinedFilters.minFitScore === 0 && combinedFilters.maxFitScore === 100 &&
           combinedFilters.matchingMinFitScore === 70 && combinedFilters.matchingMaxFitScore === 100 &&
@@ -764,6 +808,18 @@ export function CandidatesPageClient({
           if (combinedFilters.email) params.set('email', combinedFilters.email);
           if (combinedFilters.phone) params.set('phone', combinedFilters.phone);
           if (combinedFilters.education) params.set('education', combinedFilters.education);
+          if (combinedFilters.skills) params.set('skills', combinedFilters.skills);
+          if (combinedFilters.location) params.set('location', combinedFilters.location);
+          if (combinedFilters.cvLanguage) params.set('cvLanguage', combinedFilters.cvLanguage);
+          if (combinedFilters.jobSuitableCareer) params.set('jobSuitableCareer', combinedFilters.jobSuitableCareer);
+          if (combinedFilters.jobSuitableLevel) params.set('jobSuitableLevel', combinedFilters.jobSuitableLevel);
+          if (combinedFilters.jobSuitablePosition) params.set('jobSuitablePosition', combinedFilters.jobSuitablePosition);
+          if (combinedFilters.minExperienceYears !== undefined && combinedFilters.minExperienceYears > 0) {
+            params.set('minExperienceYears', String(combinedFilters.minExperienceYears));
+          }
+          if (combinedFilters.maxExperienceYears !== undefined && combinedFilters.maxExperienceYears < 50) {
+            params.set('maxExperienceYears', String(combinedFilters.maxExperienceYears));
+          }
           if (combinedFilters.selectedPositionIds && combinedFilters.selectedPositionIds.length > 0) {
             params.set('positionId', combinedFilters.selectedPositionIds.join(','));
           }
@@ -799,9 +855,37 @@ export function CandidatesPageClient({
       router.replace(newUrl, { scroll: false });
       
       // Always apply the filters - the useEffect will handle deduplication
-    setFilters(combinedFilters);
-    setAiMatchedCandidateIds(null);
-    setAiSearchReasoning(null);
+      setFilters(combinedFilters);
+      
+      // Only clear AI search results if this is a significant filter change from the user
+      // AND AI search is not currently active
+      const isSignificantFilterChange = 
+        combinedFilters.name !== filters.name ||
+        combinedFilters.email !== filters.email ||
+        combinedFilters.phone !== filters.phone ||
+        combinedFilters.education !== filters.education ||
+        combinedFilters.skills !== filters.skills ||
+        combinedFilters.location !== filters.location ||
+        combinedFilters.cvLanguage !== filters.cvLanguage ||
+        combinedFilters.jobSuitableCareer !== filters.jobSuitableCareer ||
+        combinedFilters.jobSuitableLevel !== filters.jobSuitableLevel ||
+        combinedFilters.jobSuitablePosition !== filters.jobSuitablePosition ||
+        combinedFilters.minExperienceYears !== filters.minExperienceYears ||
+        combinedFilters.maxExperienceYears !== filters.maxExperienceYears ||
+        JSON.stringify(combinedFilters.selectedPositionIds) !== JSON.stringify(filters.selectedPositionIds) ||
+        JSON.stringify(combinedFilters.selectedStatuses) !== JSON.stringify(filters.selectedStatuses) ||
+        JSON.stringify(combinedFilters.selectedRecruiterIds) !== JSON.stringify(filters.selectedRecruiterIds) ||
+        combinedFilters.minFitScore !== filters.minFitScore ||
+        combinedFilters.maxFitScore !== filters.maxFitScore ||
+        combinedFilters.applicationDateStart !== filters.applicationDateStart ||
+        combinedFilters.applicationDateEnd !== filters.applicationDateEnd;
+      
+      if (isSignificantFilterChange && !isAiSearchActive) {
+        setAiMatchedCandidateIds(null);
+        setAiSearchReasoning(null);
+        setIsAiSearchActive(false);
+      }
+      
       // Reset page to 1 when filters change
       setPage(1);
     }, 300); // 300ms debounce
@@ -825,6 +909,14 @@ export function CandidatesPageClient({
       email: undefined,
       phone: undefined,
       education: undefined,
+      skills: undefined,
+      location: undefined,
+      cvLanguage: undefined,
+      jobSuitableCareer: undefined,
+      jobSuitableLevel: undefined,
+      jobSuitablePosition: undefined,
+      minExperienceYears: undefined,
+      maxExperienceYears: undefined,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
@@ -841,6 +933,7 @@ export function CandidatesPageClient({
     setFilters(clearedFilters);
     setAiMatchedCandidateIds(null);
     setAiSearchReasoning(null);
+    setIsAiSearchActive(false);
     setAdvancedQueryFromUrl(''); // Clear advanced query from URL
     setPage(1);
     
@@ -1087,8 +1180,11 @@ export function CandidatesPageClient({
     toast.success('Position details have been saved.');
     setIsEditPositionModalOpen(false);
     if (sessionStatus === 'authenticated') {
-        const posResponse = await fetch('/api/positions'); // Re-fetch all positions
-        if (posResponse.ok) setAvailablePositions(await posResponse.json());
+        const posResponse = await fetch('/api/positions/all'); // Re-fetch all positions
+        if (posResponse.ok) {
+          const posData = await posResponse.json();
+          setAvailablePositions(posData.data || []);
+        }
         fetchPaginatedCandidates(filters, page, pageSize); // Refresh candidates list
     }
   };
@@ -1220,7 +1316,7 @@ export function CandidatesPageClient({
     const MIN_REFRESH_INTERVAL = 2000; // Minimum 2 seconds between refreshes
     
     const handleVisibilityChange = () => {
-      if (!document.hidden && sessionStatus === 'authenticated' && !isLoading) {
+      if (!document.hidden && sessionStatus === 'authenticated' && !isLoading && !isAiSearchActive) {
         const now = Date.now();
         if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
           return; // Skip refresh if too soon
@@ -1237,7 +1333,7 @@ export function CandidatesPageClient({
     };
 
     const handleFocus = () => {
-      if (sessionStatus === 'authenticated' && !isLoading) {
+      if (sessionStatus === 'authenticated' && !isLoading && !isAiSearchActive) {
         const now = Date.now();
         if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
           return; // Skip refresh if too soon
@@ -1262,7 +1358,7 @@ export function CandidatesPageClient({
       clearTimeout(visibilityTimeout);
       clearTimeout(focusTimeout);
     };
-  }, [sessionStatus, isLoading, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
+  }, [sessionStatus, isLoading, isAiSearchActive, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
 
   if (sessionStatus === 'loading') {
     // Show a loading spinner while session is being established
@@ -1309,8 +1405,8 @@ export function CandidatesPageClient({
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {showFilters && (
-        <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col">
-          <div className="flex justify-between items-center p-4 border-b">
+        <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen">
+          <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
             <span className="font-bold text-lg">Filters</span>
             <button
               className="ml-2 p-1 rounded hover:bg-muted"
@@ -1320,7 +1416,7 @@ export function CandidatesPageClient({
               <ChevronLeft className="h-5 w-5" />
             </button>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             <CandidateFilters
               initialFilters={filters}
               onFilterChange={handleFilterChange}
@@ -1348,6 +1444,186 @@ export function CandidatesPageClient({
       )}
       {/* Main Content */}
       <main className="flex-1 w-full space-y-6 min-w-0 p-6">
+        {/* Active Filters Bar */}
+        {(() => {
+          const hasActiveFilters = 
+            filters.name || 
+            filters.email || 
+            filters.phone || 
+            filters.education ||
+            filters.skills ||
+            filters.location ||
+            filters.cvLanguage ||
+            filters.jobSuitableCareer ||
+            filters.jobSuitableLevel ||
+            filters.jobSuitablePosition ||
+            (filters.minExperienceYears !== undefined && filters.minExperienceYears > 0) ||
+            (filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50) ||
+            (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) ||
+            (filters.selectedStatuses && filters.selectedStatuses.length > 0) ||
+            (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) ||
+            filters.minFitScore !== 0 ||
+            filters.maxFitScore !== 100 ||
+            (filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore !== 70) ||
+            (filters.matchingMaxFitScore !== undefined && filters.matchingMaxFitScore !== 100) ||
+            filters.applicationDateStart ||
+            filters.applicationDateEnd ||
+            aiSearchReasoning;
+
+          if (!hasActiveFilters) return null;
+
+          return (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+              <Filter className="h-4 w-4" />
+              <span>Active filters:</span>
+              {filters.name && (
+                <Badge variant="secondary" className="text-xs">
+                  Name: "{filters.name}"
+                </Badge>
+              )}
+              {filters.email && (
+                <Badge variant="secondary" className="text-xs">
+                  Email: "{filters.email}"
+                </Badge>
+              )}
+              {filters.phone && (
+                <Badge variant="secondary" className="text-xs">
+                  Phone: "{filters.phone}"
+                </Badge>
+              )}
+              {filters.education && (
+                <Badge variant="secondary" className="text-xs">
+                  Education: "{filters.education}"
+                </Badge>
+              )}
+              {filters.skills && (
+                <Badge variant="secondary" className="text-xs">
+                  Skills: "{filters.skills}"
+                </Badge>
+              )}
+              {filters.location && (
+                <Badge variant="secondary" className="text-xs">
+                  Location: "{filters.location}"
+                </Badge>
+              )}
+              {filters.cvLanguage && (
+                <Badge variant="secondary" className="text-xs">
+                  CV Language: "{filters.cvLanguage}"
+                </Badge>
+              )}
+              {filters.jobSuitableCareer && (
+                <Badge variant="secondary" className="text-xs">
+                  Career: "{filters.jobSuitableCareer}"
+                </Badge>
+              )}
+              {filters.jobSuitableLevel && (
+                <Badge variant="secondary" className="text-xs">
+                  Level: "{filters.jobSuitableLevel}"
+                </Badge>
+              )}
+              {filters.jobSuitablePosition && (
+                <Badge variant="secondary" className="text-xs">
+                  Position: "{filters.jobSuitablePosition}"
+                </Badge>
+              )}
+              {filters.minExperienceYears !== undefined && filters.minExperienceYears > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Min Experience: {filters.minExperienceYears} years
+                </Badge>
+              )}
+              {filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50 && (
+                <Badge variant="secondary" className="text-xs">
+                  Max Experience: {filters.maxExperienceYears} years
+                </Badge>
+              )}
+              {filters.selectedPositionIds && filters.selectedPositionIds.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Position{filters.selectedPositionIds.length > 1 ? 's' : ''}: {filters.selectedPositionIds.map(id => {
+                    const position = availablePositions.find(p => p.id === id);
+                    return position ? position.title : id;
+                  }).join(', ')}
+                </Badge>
+              )}
+              {filters.selectedStatuses && filters.selectedStatuses.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Pipeline{filters.selectedStatuses.length > 1 ? ' Stages' : ' Stage'}: {filters.selectedStatuses.join(', ')}
+                </Badge>
+              )}
+              {filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Recruiter{filters.selectedRecruiterIds.length > 1 ? 's' : ''}: {filters.selectedRecruiterIds.map(id => {
+                    if (id === 'unassigned') return 'Unassigned';
+                    const recruiter = availableRecruiters.find(r => r.id === id);
+                    return recruiter ? recruiter.name : id;
+                  }).join(', ')}
+                </Badge>
+              )}
+              {filters.minFitScore !== 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Min Score: {filters.minFitScore}
+                </Badge>
+              )}
+              {filters.maxFitScore !== 100 && (
+                <Badge variant="secondary" className="text-xs">
+                  Max Score: {filters.maxFitScore}
+                </Badge>
+              )}
+              {filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore !== 70 && (
+                <Badge variant="secondary" className="text-xs">
+                  Matching Min: {filters.matchingMinFitScore}
+                </Badge>
+              )}
+              {filters.matchingMaxFitScore !== undefined && filters.matchingMaxFitScore !== 100 && (
+                <Badge variant="secondary" className="text-xs">
+                  Matching Max: {filters.matchingMaxFitScore}
+                </Badge>
+              )}
+              {filters.applicationDateStart && (
+                <Badge variant="secondary" className="text-xs">
+                  From: {filters.applicationDateStart.toLocaleDateString()}
+                </Badge>
+              )}
+              {filters.applicationDateEnd && (
+                <Badge variant="secondary" className="text-xs">
+                  To: {filters.applicationDateEnd.toLocaleDateString()}
+                </Badge>
+              )}
+              {aiSearchReasoning && (
+                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                  AI Search Active
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-6 px-2 text-xs"
+                onClick={handleClearAllFilters}
+              >
+                Clear all
+              </Button>
+            </div>
+          );
+        })()}
+
+        {/* Loading Indicator for Filter Changes */}
+        {(isLoading || isAiSearching) && (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 rounded-md border border-amber-200 dark:border-amber-800">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{isAiSearching ? 'AI Searching...' : 'Loading candidates...'}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto h-6 px-2 text-xs text-amber-600 hover:text-amber-700"
+              onClick={() => {
+                // Force a new search
+                fetchPaginatedCandidates(filters, page, pageSize);
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
@@ -1527,7 +1803,7 @@ export function CandidatesPageClient({
         </div>
       </main>
 
-      {canManageCandidates && <AddCandidateModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddCandidate={handleAddCandidateSubmit} availablePositions={availablePositions} availableStages={availableStages} />}
+      {canManageCandidates && <AddCandidateModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddCandidate={handleAddCandidateSubmit} availableStages={availableStages} />}
       {selectedPositionForEdit && ( <EditPositionModal isOpen={isEditPositionModalOpen} onOpenChange={(isOpen) => { setIsEditPositionModalOpen(isOpen); if (!isOpen) setSelectedPositionForEdit(null); }} position={selectedPositionForEdit} onEditPosition={handlePositionEdited} /> )}
       <AutomationUploadModal
         isOpen={isAutomationUploadModalOpen}

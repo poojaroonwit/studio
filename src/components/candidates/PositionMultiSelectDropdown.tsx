@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { Check, ChevronsUpDown, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
@@ -11,32 +18,29 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Position } from "@/lib/types";
 
-interface PositionSelectDropdownProps {
-  value?: string;
-  onValueChange: (value: string) => void;
+interface PositionMultiSelectDropdownProps {
+  selectedIds: Set<string>;
+  onSelectionChange: (selectedIds: Set<string>) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
   showOpenStatus?: boolean;
   filterOpenOnly?: boolean;
-  showNoneOption?: boolean;
 }
 
-export function PositionSelectDropdown({
-  value,
-  onValueChange,
-  placeholder = "Select position...",
+export function PositionMultiSelectDropdown({
+  selectedIds,
+  onSelectionChange,
+  placeholder = "Select positions...",
   disabled = false,
   className,
   showOpenStatus = true,
-  filterOpenOnly = false,
-  showNoneOption = false
-}: PositionSelectDropdownProps) {
+  filterOpenOnly = false
+}: PositionMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [fallbackMode, setFallbackMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -60,7 +64,6 @@ export function PositionSelectDropdown({
       } catch (error) {
         console.error('Error fetching positions:', error);
         setError(true);
-        setFallbackMode(true);
       } finally {
         setLoading(false);
       }
@@ -76,25 +79,76 @@ export function PositionSelectDropdown({
     (position.positionLevel && position.positionLevel.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const selectedPosition = positions.find(position => position.id === value);
+  const selectedPositions = positions.filter(position => selectedIds.has(position.id));
 
-  // Fallback mode - show simple text input
-  if (fallbackMode) {
+  const handleTogglePosition = (positionId: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(positionId)) {
+      newSelected.delete(positionId);
+    } else {
+      newSelected.add(positionId);
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const handleRemovePosition = (positionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedIds);
+    newSelected.delete(positionId);
+    onSelectionChange(newSelected);
+  };
+
+  const renderTrigger = () => {
+    if (selectedIds.size === 0) {
+      return <span className="text-muted-foreground">{placeholder}</span>;
+    }
+    
+    if (selectedIds.size === 1) {
+      const position = selectedPositions[0];
+      return (
+        <div className="flex items-center gap-2">
+          <span className="truncate text-foreground">{position.title}</span>
+          {showOpenStatus && (
+            <Badge 
+              variant={position.isOpen ? "default" : "secondary"}
+              className="text-xs"
+            >
+              {position.isOpen ? "Open" : "Closed"}
+            </Badge>
+          )}
+        </div>
+      );
+    }
+    
     return (
-      <div className="space-y-2">
-        <Input
-          placeholder="Enter position title (API unavailable)"
-          value={value || ''}
-          onChange={(e) => onValueChange(e.target.value)}
-          disabled={disabled}
-          className={className}
-        />
-        <p className="text-xs text-muted-foreground">
-          Database connection unavailable. Please enter position title manually.
-        </p>
+      <div className="flex items-center gap-1">
+        <span className="text-foreground">{selectedIds.size} selected</span>
+        <div className="flex items-center gap-1 ml-2">
+          {selectedPositions.slice(0, 2).map((position) => (
+            <Badge
+              key={position.id}
+              variant="secondary"
+              className="text-xs px-1 py-0 h-5"
+            >
+              {position.title}
+              <button
+                type="button"
+                onClick={(e) => handleRemovePosition(position.id, e)}
+                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+              >
+                <X className="w-2 h-2" />
+              </button>
+            </Badge>
+          ))}
+          {selectedIds.size > 2 && (
+            <Badge variant="outline" className="text-xs">
+              +{selectedIds.size - 2} more
+            </Badge>
+          )}
+        </div>
       </div>
     );
-  }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -108,20 +162,8 @@ export function PositionSelectDropdown({
         >
           {loading ? (
             <span className="text-foreground">Loading positions...</span>
-          ) : selectedPosition ? (
-            <div className="flex items-center gap-2">
-              <span className="truncate text-foreground">{selectedPosition.title}</span>
-              {showOpenStatus && (
-                <Badge 
-                  variant={selectedPosition.isOpen ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {selectedPosition.isOpen ? "Open" : "Closed"}
-                </Badge>
-              )}
-            </div>
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            renderTrigger()
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
@@ -141,47 +183,22 @@ export function PositionSelectDropdown({
           
           {/* Positions List */}
           <div className="max-h-[300px] overflow-y-auto">
-            {filteredPositions.length === 0 && !showNoneOption ? (
+            {filteredPositions.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No position found.
               </div>
             ) : (
               <div className="p-1">
-                {showNoneOption && (
-                  <div
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
-                    onClick={() => {
-                      onValueChange("");
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === "" ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">None (General Application)</span>
-                      <span className="text-sm text-muted-foreground">
-                        No specific position assigned
-                      </span>
-                    </div>
-                  </div>
-                )}
                 {filteredPositions.map((position) => (
                   <div
                     key={position.id}
                     className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
-                    onClick={() => {
-                      onValueChange(position.id);
-                      setOpen(false);
-                    }}
+                    onClick={() => handleTogglePosition(position.id)}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value === position.id ? "opacity-100" : "opacity-0"
+                        selectedIds.has(position.id) ? "opacity-100" : "opacity-0"
                       )}
                     />
                     <div className="flex flex-col">

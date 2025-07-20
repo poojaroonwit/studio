@@ -372,10 +372,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         }
 
         // Fetch positions
-        const positionsRes = await fetch('/api/positions');
+        const positionsRes = await fetch('/api/positions/all');
         if (positionsRes.ok) {
           const positionsData = await positionsRes.json();
-          setAllDbPositions(Array.isArray(positionsData) ? positionsData : []);
+          setAllDbPositions(positionsData.data || []);
         }
 
         // Fetch stages
@@ -1253,7 +1253,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                        <div className="space-y-4">
                          {candidateJobMatches && candidateJobMatches.length > 0 ? (
                            <div className="grid gap-4">
-                             {candidateJobMatches.map((match: any, index: number) => (
+                             {candidateJobMatches.filter((match: any) => match.fitScore >= 70).map((match: any, index: number) => (
                                <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
                                  <div className="space-y-2">
                                    <div className="flex items-center justify-between">
@@ -1282,7 +1282,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                          ) : (
                            <div className="text-center py-8 text-muted-foreground">
                              <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                             <p>No job matches available.</p>
+                             <p>No job matches with 70% or higher fit score available.</p>
                              <p className="text-sm">Click "Edit" to add job matches for this candidate.</p>
                            </div>
                          )}
@@ -1944,9 +1944,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             </button>
             {jobMatchesOpen && (
               <div className="space-y-4 transition-all duration-200">
-                                {getJobMatches() && Array.isArray(getJobMatches()) && getJobMatches().length > 0 ? (
+                                {getJobMatches() && Array.isArray(getJobMatches()) && getJobMatches().filter((match: any) => match.fitScore >= 70).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">    
-                    {getJobMatches().map((match: any, index: number) => (
+                    {getJobMatches().filter((match: any) => match.fitScore >= 70).map((match: any, index: number) => (
                       <div
                         key={index}
                         className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground border border-border"
@@ -1999,7 +1999,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>No job matches available.</p>
+                    <p>No job matches with 70% or higher fit score available.</p>
                     <p className="text-sm">Click "Add Job Match" to get started.</p>
               </div>
           )}

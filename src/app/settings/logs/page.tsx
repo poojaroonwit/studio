@@ -234,11 +234,11 @@ export default function ApplicationLogsPage() {
                   </PopoverTrigger>
                   <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
                     <Command>
-                      <CommandInput
+                      <Input
                         placeholder="Search user..."
                         value={userSearch}
                         onChange={e => setUserSearch(e.target.value)}
-                        className="h-9"
+                        className="h-9 border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
                       />
                       <CommandList>
                         <CommandEmpty>{userSearch ? 'No user found.' : 'Type to search users.'}</CommandEmpty>

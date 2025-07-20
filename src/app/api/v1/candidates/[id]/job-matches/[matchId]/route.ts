@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const jobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).transform(val => {
@@ -55,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     const match = jobMatchResult.rows[0];
     const jobMatch = {
       id: match.id,
-              fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -142,7 +143,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const updatedMatch = updateResult.rows[0];
     const jobMatch = {
       id: updatedMatch.id,
-              fitScore: updatedMatch.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: normalizeFitScore(updatedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
       jobId: updatedMatch.jobId,
       matchReasons: updatedMatch.matchReasons || [],
       updatedAt: updatedMatch.updatedAt,

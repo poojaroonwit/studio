@@ -9,8 +9,8 @@ interface PositionFilters {
   department?: string;
   isOpen?: string;
   positionLevel?: string;
-  limit: number;
-  offset: number;
+  limit?: number; // Optional since we don't use pagination
+  offset?: number; // Optional since we don't use pagination
 }
 
 interface Position {
@@ -26,9 +26,9 @@ interface Position {
 }
 
 // Constants
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 1000; // Much higher limit for "all" endpoint
 const DEFAULT_OFFSET = 0;
-const MAX_LIMIT = 100;
+const MAX_LIMIT = 10000; // Very high max limit for "all" endpoint
 
 // Helper functions
 function parseFilters(searchParams: URLSearchParams): PositionFilters {
@@ -37,8 +37,8 @@ function parseFilters(searchParams: URLSearchParams): PositionFilters {
     department: searchParams.get('department') || undefined,
     isOpen: searchParams.get('isOpen') || undefined,
     positionLevel: searchParams.get('positionLevel') || undefined,
-    limit: Math.min(parseInt(searchParams.get('limit') || DEFAULT_LIMIT.toString(), 10), MAX_LIMIT),
-    offset: parseInt(searchParams.get('offset') || DEFAULT_OFFSET.toString(), 10)
+    limit: 0, // Not used for "all" endpoint
+    offset: 0  // Not used for "all" endpoint
   };
 }
 
@@ -59,16 +59,15 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
   
   const conditions: string[] = [];
   const params: any[] = [];
-  let paramIndex = 1;
 
   // Add filters
   if (filters.title) {
-    conditions.push(`title ILIKE $${paramIndex++}`);
+    conditions.push(`title ILIKE $${conditions.length + 1}`);
     params.push(`%${filters.title}%`);
   }
 
   if (filters.department) {
-    conditions.push(`department = ANY($${paramIndex++}::text[])`);
+    conditions.push(`department = ANY($${conditions.length + 1}::text[])`);
     params.push(filters.department.split(','));
   }
 
@@ -78,20 +77,18 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
     conditions.push(`"isOpen" = FALSE`);
   }
 
-      if (filters.positionLevel) {
-      conditions.push(`"positionLevel" ILIKE $${paramIndex++}`);
-      params.push(`%${filters.positionLevel}%`);
-    }
+  if (filters.positionLevel) {
+    conditions.push(`"positionLevel" ILIKE $${conditions.length + 1}`);
+    params.push(`%${filters.positionLevel}%`);
+  }
 
   // Add WHERE clause if conditions exist
   if (conditions.length > 0) {
     query += ' WHERE ' + conditions.join(' AND ');
   }
 
-  // Add ORDER BY and LIMIT/OFFSET
+  // Add ORDER BY only - no pagination for "all" endpoint
   query += ' ORDER BY "createdAt" DESC';
-  query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-  params.push(filters.limit, filters.offset);
 
   return { query, params };
 }
@@ -176,9 +173,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       data: positions,
       meta: {
-        count: positions.length,
-        limit: filters.limit,
-        offset: filters.offset
+        count: positions.length
       }
     }, { status: 200 });
 

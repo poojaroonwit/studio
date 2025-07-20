@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
 interface MyTasksFilterModalProps {
   open: boolean;
@@ -112,20 +113,14 @@ export function MyTasksFilterModal({
                     <Target className="w-4 h-4" />
                     Position
                   </Label>
-                  <Select
+                  <PositionSelectDropdown
                     value={localFilters.positionId || ""}
                     onValueChange={val => setLocalFilters({ ...localFilters, positionId: val || undefined })}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="All positions" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Positions</SelectItem>
-                      {positions.map((pos: any) => (
-                        <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="All positions"
+                    showOpenStatus={true}
+                    filterOpenOnly={false}
+                    showNoneOption={true}
+                  />
                 </div>
 
                 <Separator />

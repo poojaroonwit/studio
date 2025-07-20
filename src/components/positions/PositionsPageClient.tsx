@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import { ImportPositionsModal } from '@/components/positions/ImportPositionsModa
 export default function PositionsPageClient() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -50,15 +51,49 @@ export default function PositionsPageClient() {
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const { data: session } = useSession();
+  
+  // Add debouncing for search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchStuckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
 
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
 
-  // Fetch positions with pagination
-  const fetchPositions = useCallback(async () => {
-    setIsLoading(true);
+  // Auto-reset search state if stuck for too long
+  useEffect(() => {
+    if (isSearching) {
+      // Set a timeout to auto-reset search state after 10 seconds
+      searchStuckTimeoutRef.current = setTimeout(() => {
+        console.warn('Search stuck for too long, auto-resetting...');
+        setIsSearching(false);
+      }, 10000); // 10 seconds
+    } else {
+      // Clear timeout if search is not stuck
+      if (searchStuckTimeoutRef.current) {
+        clearTimeout(searchStuckTimeoutRef.current);
+        searchStuckTimeoutRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (searchStuckTimeoutRef.current) {
+        clearTimeout(searchStuckTimeoutRef.current);
+      }
+    };
+  }, [isSearching]);
+
+  // Fetch positions with pagination and statistics
+  const fetchPositions = useCallback(async (isSearch = false) => {
+    if (isSearch) {
+      setIsSearching(true);
+    } else {
+      setIsLoading(true);
+    }
+    
     try {
       const query = new URLSearchParams();
       if (searchTerm) query.append('title', searchTerm);
@@ -66,6 +101,7 @@ export default function PositionsPageClient() {
       if (departmentFilter !== 'all') query.append('department', departmentFilter);
       query.append('limit', String(pageSize));
       query.append('offset', String((page - 1) * pageSize));
+      query.append('includeStats', 'true'); // Include statistics in the same call
       
       const response = await fetch(`/api/positions?${query.toString()}`);
       if (!response.ok) {
@@ -74,51 +110,149 @@ export default function PositionsPageClient() {
       const data = await response.json();
       setPositions(data.data || []);
       setTotal(data.total || 0);
+      
+      // Update statistics if included in response
+      if (data.statistics) {
+        setStatistics(data.statistics);
+      }
     } catch (error) {
       toast.error('Failed to load positions');
       console.error('Error fetching positions:', error);
     } finally {
-      setIsLoading(false);
+      // Always ensure search state is reset
+      setIsSearching(false);
+      if (!isSearch) {
+        setIsLoading(false);
+      }
     }
   }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
 
-  // Fetch statistics based on current filters
-  const fetchStatistics = useCallback(async () => {
-    try {
-      const query = new URLSearchParams();
-      if (searchTerm) query.append('title', searchTerm);
-      if (statusFilter !== 'all') query.append('isOpen', statusFilter === 'open' ? 'true' : 'false');
-      if (departmentFilter !== 'all') query.append('department', departmentFilter);
-      
-      const response = await fetch(`/api/positions/statistics?${query.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch statistics');
+  // Remove the separate fetchStatistics function since it's now combined
+  // const fetchStatistics = useCallback(async () => { ... }, [searchTerm, statusFilter, departmentFilter]);
+
+  // Initial load
+  useEffect(() => {
+    const initialLoad = async () => {
+      setIsLoading(true);
+      try {
+        await fetchPositions(false); // This now includes statistics
+      } finally {
+        setIsLoading(false);
       }
-      const data = await response.json();
-      setStatistics(data);
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
+    };
+    initialLoad();
+  }, []); // Only run on mount
+
+  // Improved debounced search effect with better performance and error handling
+  useEffect(() => {
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }, [searchTerm, statusFilter, departmentFilter]);
 
-  useEffect(() => {
-    fetchPositions();
-  }, [fetchPositions]);
+    // Set new timeout for search with longer delay for better performance
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setPage(1); // Reset to first page when searching
+        await fetchPositions(true); // Pass true to indicate this is a search operation
+      } catch (error) {
+        console.error('Search error:', error);
+        setIsSearching(false); // Ensure search state is reset on error
+      }
+    }, 500); // Increased to 500ms for better performance
 
-  useEffect(() => {
-    fetchStatistics();
-  }, [fetchStatistics]);
+    // Cleanup timeout on unmount
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm, statusFilter, departmentFilter, fetchPositions]);
 
-  // Reset page to 1 when filters change
+  // Reset page to 1 when filters change (but not on every search term change)
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, departmentFilter]);
+  }, [statusFilter, departmentFilter]);
+
+  // Handle search input focus and blur
+  const handleSearchFocus = () => {
+    // Ensure search input stays responsive
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  // Handle clear search with focus management
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    // Focus back to search input after clearing
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 0);
+  };
+
+  // Handle search input change with better state management
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    // If search is stuck, force reset the search state
+    if (isSearching && value === '') {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle keyboard events to ensure search stays responsive
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow all keyboard input even during search
+    if (e.key === 'Escape') {
+      setSearchTerm('');
+      if (searchInputRef.current) {
+        searchInputRef.current.blur();
+      }
+    }
+    
+    // If search seems stuck, force a reset
+    if (isSearching && e.key !== 'Escape') {
+      // Allow the key press to continue
+    }
+  };
+
+  // Handle search input blur to ensure proper state management
+  const handleSearchBlur = () => {
+    // Don't reset search state on blur, just ensure input is still functional
+    setTimeout(() => {
+      if (searchInputRef.current && document.activeElement !== searchInputRef.current) {
+        // Input lost focus, but don't disable it
+      }
+    }, 100);
+  };
 
   // Use positions directly since filtering is now done server-side
-  const filteredPositions = positions;
+  const filteredPositions = useMemo(() => positions, [positions]);
 
   // Get unique departments for filter
-  const departments = Array.from(new Set(positions.map(p => p.department || ""))).sort();
+  const departments = useMemo(() => 
+    Array.from(new Set(positions.map(p => p.department || ""))).sort(), 
+    [positions]
+  );
+
+  // Memoize computed values for better performance
+  const totalPositions = useMemo(() => statistics.total, [statistics.total]);
+  const openPositions = useMemo(() => statistics.open, [statistics.open]);
+  const closedPositions = useMemo(() => statistics.closed, [statistics.closed]);
+  
+  const allSelected = useMemo(() => 
+    selectedIds.length > 0 && selectedIds.length === filteredPositions.length, 
+    [selectedIds.length, filteredPositions.length]
+  );
+  
+  const someSelected = useMemo(() => 
+    selectedIds.length > 0 && selectedIds.length < filteredPositions.length, 
+    [selectedIds.length, filteredPositions.length]
+  );
 
   // Handle add position
   const handleAddPosition = async (formData: AddPositionFormValues) => {
@@ -186,14 +320,7 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Stats - Use filtered statistics from API
-  const totalPositions = statistics.total;
-  const openPositions = statistics.open;
-  const closedPositions = statistics.closed;
-
   // Bulk selection logic
-  const allSelected = filteredPositions.length > 0 && selectedIds.length === filteredPositions.length;
-  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredPositions.length;
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(filteredPositions.map(p => p.id));
@@ -234,16 +361,40 @@ export default function PositionsPageClient() {
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            {isSearching ? (
+              <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+            ) : (
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
             <Input
               placeholder="Search positions..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              onChange={handleSearchChange}
+              onFocus={handleSearchFocus}
+              onKeyDown={handleSearchKeyDown}
+              onBlur={handleSearchBlur}
+              className={`pl-10 pr-10 transition-all duration-200 ${isSearching ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+              ref={searchInputRef}
+              autoComplete="off"
+              spellCheck="false"
             />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
-          <Select value={statusFilter || ''} onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}>
-            <SelectTrigger>
+          <Select 
+            value={statusFilter || ''} 
+            onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
+          >
+            <SelectTrigger className={isSearching ? 'opacity-50' : ''}>
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -252,8 +403,11 @@ export default function PositionsPageClient() {
               <SelectItem value="closed">Closed Only</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={departmentFilter || ''} onValueChange={setDepartmentFilter}>
-            <SelectTrigger>
+          <Select 
+            value={departmentFilter || ''} 
+            onValueChange={setDepartmentFilter}
+          >
+            <SelectTrigger className={isSearching ? 'opacity-50' : ''}>
               <SelectValue placeholder="Filter by department" />
             </SelectTrigger>
             <SelectContent>
@@ -276,6 +430,70 @@ export default function PositionsPageClient() {
           </div>
         )}
       </div>
+
+      {/* Search Status Indicator */}
+      {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+          <Filter className="h-4 w-4" />
+          <span>Active filters:</span>
+          {searchTerm && (
+            <Badge variant="secondary" className="text-xs">
+              Title: "{searchTerm}"
+            </Badge>
+          )}
+          {statusFilter !== 'all' && (
+            <Badge variant="secondary" className="text-xs">
+              Status: {statusFilter === 'open' ? 'Open' : 'Closed'}
+            </Badge>
+          )}
+          {departmentFilter !== 'all' && (
+            <Badge variant="secondary" className="text-xs">
+              Department: {departmentFilter}
+            </Badge>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 px-2 text-xs"
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('all');
+              setDepartmentFilter('all');
+              setIsSearching(false); // Force reset search state
+            }}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
+
+      {/* Search Stuck Indicator */}
+      {isSearching && (
+        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 rounded-md border border-amber-200 dark:border-amber-800">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Searching...</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 px-2 text-xs text-amber-600 hover:text-amber-700"
+            onClick={() => {
+              setIsSearching(false);
+              // Clear stuck timeout
+              if (searchStuckTimeoutRef.current) {
+                clearTimeout(searchStuckTimeoutRef.current);
+                searchStuckTimeoutRef.current = null;
+              }
+              // Force a new search
+              if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+              }
+              fetchPositions(true);
+            }}
+          >
+            Reset
+          </Button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -349,6 +567,16 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-background">
+          {/* Loading Skeleton for Search */}
+          {isSearching && (
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Searching positions...</span>
+              </div>
+            </div>
+          )}
+          
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-4 p-3 bg-muted border-b border-border">
@@ -383,8 +611,15 @@ export default function PositionsPageClient() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPositions.map((position) => (
-                <TableRow key={position.id} className="hover:bg-muted/50">
+              {filteredPositions.map((position, index) => (
+                <TableRow 
+                  key={position.id} 
+                  className="hover:bg-muted/50 transition-all duration-200"
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    animation: isSearching ? 'none' : 'fadeInUp 0.3s ease-out forwards'
+                  }}
+                >
                   <TableCell>
                     <input
                       type="checkbox"

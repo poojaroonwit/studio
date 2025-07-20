@@ -10,6 +10,9 @@ import { Loader2, UploadCloud, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import type { Position } from '@/lib/types';
+import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 interface AutomationUploadModalProps {
   isOpen: boolean;
@@ -17,14 +20,11 @@ interface AutomationUploadModalProps {
   onUploadSuccess?: () => void;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
 export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ isOpen, onOpenChange, onUploadSuccess }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
-  const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
-  const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const { data: session } = useSession();
 
   // Check permissions
@@ -49,25 +49,6 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
     );
   }
 
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const fetchPositions = async () => {
-      try {
-        const response = await fetch('/api/positions');
-        if (!response.ok) {
-          throw new Error('Failed to fetch positions');
-        }
-        const result = await response.json();
-        const data = Array.isArray(result) ? result : (result.data || []);
-        setAvailablePositions(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Error fetching positions:", error);
-        toast.error("Could not load positions for selection.");
-      }
-    };
-    fetchPositions();
-  }, [isOpen]);
-
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
@@ -84,6 +65,10 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
 
   const removeFile = () => {
     setSelectedFile(null);
+  };
+
+  const handlePositionChange = (value: string) => {
+    setSelectedPositionId(value);
   };
 
   const handleConfirmUpload = async () => {
@@ -178,20 +163,19 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div>
-            <Label htmlFor="position-select">Assign to Position (optional)</Label>
-            <Select value={(selectedPositionId === "" ? "__NONE__" : selectedPositionId) || ''} onValueChange={value => setSelectedPositionId(value === "__NONE__" ? "" : value)}>
-              <SelectTrigger id="position-select" className="mt-2">
-                <SelectValue placeholder="Select a position..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__NONE__">None (General Application)</SelectItem>
-                {availablePositions.map(pos => (
-                  <SelectItem key={pos.id} value={pos.id}>{pos.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                      <div>
+              <Label htmlFor="position-select">Assign to Position (optional)</Label>
+              <div className="mt-2">
+                <PositionSelectDropdown
+                  value={selectedPositionId}
+                  onValueChange={handlePositionChange}
+                  placeholder="Select a position..."
+                  showOpenStatus={true}
+                  filterOpenOnly={false}
+                  showNoneOption={true}
+                />
+              </div>
+            </div>
           <FileUploadArea
             accept="application/pdf"
             multiple={false}

@@ -120,6 +120,7 @@ export async function fetchInitialDashboardCandidatesDb(limit: number = 10): Pro
     const result = await pool.query(query, [limit]);
     return result.rows.map((row: Candidate) => ({
       ...row,
+      fitScore: row.fitScore ? row.fitScore / 100 : null, // Convert integer back to decimal for consistency
     }));
   } catch (error) {
     console.error("Error fetching initial dashboard candidates from DB:", error);

@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
           department: row.positionDepartment,
           positionLevel: row.positionLevel
         } : null,
-        fitScore: row.fitScore || null,
+        fitScore: row.fitScore ? row.fitScore / 100 : null, // Convert integer back to decimal for consistency
         status: row.status,
         applicationDate: row.applicationDate,
         recruiter: row.recruiterId ? {

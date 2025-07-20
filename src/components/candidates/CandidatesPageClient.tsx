@@ -1216,26 +1216,40 @@ export function CandidatesPageClient({
   useEffect(() => {
     let visibilityTimeout: NodeJS.Timeout;
     let focusTimeout: NodeJS.Timeout;
+    let lastRefreshTime = 0;
+    const MIN_REFRESH_INTERVAL = 2000; // Minimum 2 seconds between refreshes
     
     const handleVisibilityChange = () => {
       if (!document.hidden && sessionStatus === 'authenticated' && !isLoading) {
+        const now = Date.now();
+        if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+          return; // Skip refresh if too soon
+        }
+        
         // Add a small delay to prevent rapid refreshes when modals open/close
         clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
           console.log('Page became visible, refreshing candidate data...');
+          lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
-        }, 500);
+        }, 1000); // Increased delay to 1 second
       }
     };
 
     const handleFocus = () => {
       if (sessionStatus === 'authenticated' && !isLoading) {
+        const now = Date.now();
+        if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+          return; // Skip refresh if too soon
+        }
+        
         // Add a small delay to prevent rapid refreshes when modals open/close
         clearTimeout(focusTimeout);
         focusTimeout = setTimeout(() => {
           console.log('Window gained focus, refreshing candidate data...');
+          lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
-        }, 500);
+        }, 1000); // Increased delay to 1 second
       }
     };
 

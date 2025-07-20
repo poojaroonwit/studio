@@ -9,13 +9,239 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState, useMemo, useEffect } from 'react';
 import CandidateDetailModal from './CandidateDetailModal';
-import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users } from 'lucide-react';
+import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+// Helper function to extract parsed data properties (similar to FullCandidateDetail)
+const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
+  const parsedData = candidate.parsedData;
+  if (!parsedData || typeof parsedData !== 'object') return undefined;
+  
+  // Check for new candidate_info structure
+  if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+    return (parsedData.candidate_info as any)[propertyName];
+  }
+  
+  // Check for direct property
+  if (propertyName in parsedData) {
+    return (parsedData as any)[propertyName];
+  }
+  
+  return undefined;
+};
 
+// Helper function to get education data
+const getEducation = (candidate: Candidate) => {
+  if (!candidate) return [];
+  
+  let educationArray: any[] = [];
+  
+  if (Array.isArray(candidate.educationData) && candidate.educationData.length > 0) {
+    educationArray = candidate.educationData;
+  } else {
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      // Check for new candidate_info structure
+      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+        const education = (parsedData.candidate_info as any).education;
+        if (Array.isArray(education) && education.length > 0) {
+          educationArray = education;
+        }
+      }
+      // Check for direct education property
+      if ('education' in parsedData) {
+        const education = (parsedData as any).education;
+        if (Array.isArray(education) && education.length > 0) {
+          educationArray = education;
+        }
+      }
+    }
+  }
+  
+  return educationArray;
+};
+
+// Helper function to get experience data
+const getExperience = (candidate: Candidate) => {
+  if (!candidate) return [];
+  
+  let experienceArray: any[] = [];
+  
+  if (Array.isArray(candidate.experienceData) && candidate.experienceData.length > 0) {
+    experienceArray = candidate.experienceData;
+  } else {
+    const parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object') {
+      // Check for new candidate_info structure
+      if ('candidate_info' in parsedData && parsedData.candidate_info && typeof parsedData.candidate_info === 'object') {
+        const experience = (parsedData.candidate_info as any).experience;
+        if (Array.isArray(experience) && experience.length > 0) {
+          experienceArray = experience;
+        }
+      }
+      // Check for direct experience property
+      if ('experience' in parsedData) {
+        const experience = (parsedData as any).experience;
+        if (Array.isArray(experience) && experience.length > 0) {
+          experienceArray = experience;
+        }
+      }
+    }
+  }
+  
+  return experienceArray;
+};
+
+// Helper function to get skills data
+const getSkills = (candidate: Candidate) => {
+  return getParsedDataProperty(candidate, 'skills') || [];
+};
+
+// Enhanced candidate card component
+const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd }: {
+  candidate: Candidate;
+  isDragged?: boolean;
+  onClick: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) => {
+  const education = getEducation(candidate);
+  const experience = getExperience(candidate);
+  const skills = getSkills(candidate);
+  const personalInfo = getParsedDataProperty(candidate, 'personal_info');
+  const contactInfo = getParsedDataProperty(candidate, 'contact_info');
+
+  return (
+    <Card 
+      className={cn(
+        "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-pointer",
+        isDragged && "opacity-60 scale-95"
+      )}
+      onClick={onClick}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div className="flex items-start gap-3">
+        <Avatar className="h-10 w-10 flex-shrink-0">
+          <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} data-ai-hint="person avatar"/>
+          <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
+          <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
+            <Target className="w-3 h-3 inline mr-1" />
+            {candidate.position?.title || 'N/A'}
+          </p>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Fit Score</span>
+              <span className="font-medium text-foreground">{candidate.fitScore}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
+                style={{ width: `${candidate.fitScore}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Contact Information */}
+        <div className="space-y-1">
+          {candidate.email && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Mail className="w-3 h-3 mr-1" />
+              <span className="truncate">{candidate.email}</span>
+            </div>
+          )}
+          {candidate.phone && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Phone className="w-3 h-3 mr-1" />
+              <span className="truncate">{candidate.phone}</span>
+            </div>
+          )}
+          {candidate.applicationDate && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Calendar className="w-3 h-3 mr-1" />
+              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+
+        {/* Education Summary */}
+        {education && education.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <GraduationCap className="w-3 h-3 mr-1" />
+              <span className="font-medium">Education:</span>
+            </div>
+            <div className="text-xs text-muted-foreground pl-4">
+              {education.slice(0, 2).map((edu, idx) => (
+                <div key={idx} className="truncate">
+                  {edu.major || edu.field || 'Degree'} {edu.university && `at ${edu.university}`}
+                </div>
+              ))}
+              {education.length > 2 && (
+                <div className="text-xs text-muted-foreground/60">+{education.length - 2} more</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Experience Summary */}
+        {experience && experience.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Briefcase className="w-3 h-3 mr-1" />
+              <span className="font-medium">Experience:</span>
+            </div>
+            <div className="text-xs text-muted-foreground pl-4">
+              {experience.slice(0, 2).map((exp, idx) => (
+                <div key={idx} className="truncate">
+                  {exp.position || 'Position'} {exp.company && `at ${exp.company}`}
+                </div>
+              ))}
+              {experience.length > 2 && (
+                <div className="text-xs text-muted-foreground/60">+{experience.length - 2} more</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Skills Summary */}
+        {skills && skills.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <HardDrive className="w-3 h-3 mr-1" />
+              <span className="font-medium">Skills:</span>
+            </div>
+            <div className="flex flex-wrap gap-1 pl-4">
+              {skills.slice(0, 3).map((skill, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs px-1 py-0">
+                  {skill.skill_string || skill.segment_skill || 'Skill'}
+                </Badge>
+              ))}
+              {skills.length > 3 && (
+                <Badge variant="outline" className="text-xs px-1 py-0">
+                  +{skills.length - 3}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 interface CandidateKanbanViewProps {
   candidates: Candidate[];
@@ -140,67 +366,18 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
         <div className="flex flex-row gap-4 overflow-x-auto py-4">
           {candidatesInRow.length > 0 ? (
             candidatesInRow.map(candidate => (
-              <div
-                key={candidate?.id || Math.random()}
-                onClick={() => handleCardClick(candidate)}
-                className="cursor-pointer group"
-                draggable
-                onDragStart={() => handleDragStart(candidate)}
-                onDragEnd={handleDragEnd}
-              >
-                <Card className={cn(
-                  "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
-                  draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                )}>
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} data-ai-hint="person avatar"/>
-                      <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
-                      <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                        <Target className="w-3 h-3 inline mr-1" />
-                        {candidate.position?.title || 'N/A'}
-                      </p>
-          </div>
-                  </div>
-                  <div className="space-y-2">
-                    {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Fit Score</span>
-                          <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                            style={{ width: `${candidate.fitScore}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-                    {candidate.email && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Mail className="w-3 h-3 mr-1" />
-                        {candidate.email}
-                      </div>
-                    )}
-                    {candidate.phone && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Phone className="w-3 h-3 mr-1" />
-                        {candidate.phone}
-                      </div>
-                    )}
-                    {candidate.applicationDate && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </div>
+                                  <div
+                            key={candidate?.id || Math.random()}
+                      className="group"
+                    >
+                      <EnhancedCandidateCard
+                        candidate={candidate}
+                        isDragged={draggedCandidate?.id === candidate.id}
+                        onClick={() => handleCardClick(candidate)}
+                        onDragStart={() => handleDragStart(candidate)}
+                        onDragEnd={handleDragEnd}
+                      />
+                </div>
             ))
           ) : (
             <div className="flex items-center justify-center w-full py-8">
@@ -367,64 +544,15 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                   return (
                     <div
                       key={candidate.id}
-                      onClick={() => handleCardClick(candidate)}
-                      className="cursor-pointer group"
-                      draggable
-                      onDragStart={() => handleDragStart(candidate)}
-                      onDragEnd={handleDragEnd}
+                      className="group"
                     >
-                      <Card className={cn(
-                        "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
-                        draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                      )}>
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} data-ai-hint="person avatar"/>
-                            <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
-                            <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                              <Target className="w-3 h-3 inline mr-1" />
-                              {candidate.position?.title || 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">Fit Score</span>
-                                <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                              </div>
-                              <div className="w-full bg-muted rounded-full h-2">
-                                <div 
-                                  className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                  style={{ width: `${candidate.fitScore}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          )}
-                          {candidate.email && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Mail className="w-3 h-3 mr-1" />
-                              {candidate.email}
-                            </div>
-                          )}
-                          {candidate.phone && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3 mr-1" />
-                              {candidate.phone}
-                            </div>
-                          )}
-                          {candidate.applicationDate && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      </Card>
+                      <EnhancedCandidateCard
+                        candidate={candidate}
+                        isDragged={draggedCandidate?.id === candidate.id}
+                        onClick={() => handleCardClick(candidate)}
+                        onDragStart={() => handleDragStart(candidate)}
+                        onDragEnd={handleDragEnd}
+                      />
                     </div>
                   );
                 })}
@@ -921,44 +1049,17 @@ export function FlexibleKanbanView({
                                   <div
                                     key={candidate.id}
                                     className={cn(
-                                      "cursor-pointer group p-3 bg-card border border-border rounded-lg hover:shadow-sm transition-all duration-200",
+                                      "group",
                                       draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                                     )}
-                                    draggable
-                                    onDragStart={() => handleDragStart(candidate)}
-                                    onDragEnd={handleDragEnd}
-                                    onClick={() => handleCardClick(candidate)}
                                   >
-                                    <div className="flex items-start gap-2">
-                                      <Avatar className="h-6 w-6 flex-shrink-0">
-                                        <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                          {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-medium text-foreground truncate" title={formatCandidateName(candidate)}>
-                                          {formatCandidateName(candidate)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground truncate" title={candidate.position?.title || 'N/A'}>
-                                          {candidate.position?.title || 'N/A'}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                                      <div className="mt-2 space-y-1">
-                                        <div className="flex items-center justify-between text-xs">
-                                          <span className="text-muted-foreground">Fit</span>
-                                          <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                                        </div>
-                                        <div className="w-full bg-muted rounded-full h-1">
-                                          <div 
-                                            className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                            style={{ width: `${candidate.fitScore}%` }}
-                                          ></div>
-                                        </div>
-                                      </div>
-                                    )}
+                                    <EnhancedCandidateCard
+                                      candidate={candidate}
+                                      isDragged={draggedCandidate?.id === candidate.id}
+                                      onClick={() => handleCardClick(candidate)}
+                                      onDragStart={() => handleDragStart(candidate)}
+                                      onDragEnd={handleDragEnd}
+                                    />
                                   </div>
                                 ))}
                               </div>
@@ -1024,63 +1125,17 @@ export function FlexibleKanbanView({
                         <div
                           key={candidate.id}
                           className={cn(
-                            "cursor-pointer group w-64 max-w-xs",
+                            "group w-64 max-w-xs",
                             draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                           )}
-                          draggable
-                          onDragStart={() => handleDragStart(candidate)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => handleCardClick(candidate)}
                         >
-                          <Card className="p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative">
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10 flex-shrink-0">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
-                                <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                                  <Target className="w-3 h-3 inline mr-1" />
-                                  {candidate.position?.title || 'N/A'}
-                                </p>
-                        </div>
-                      </div>
-                            <div className="space-y-2">
-                              {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                                <div className="space-y-1">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">Fit Score</span>
-                                    <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                                  </div>
-                                  <div className="w-full bg-muted rounded-full h-2">
-                                    <div 
-                                      className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                      style={{ width: `${candidate.fitScore}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              )}
-                              {candidate.email && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Mail className="w-3 h-3 mr-1" />
-                                  {candidate.email}
-                                </div>
-                              )}
-                              {candidate.phone && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Phone className="w-3 h-3 mr-1" />
-                                  {candidate.phone}
-                                </div>
-                              )}
-                              {candidate.applicationDate && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                                </div>
-                              )}
-                            </div>
-                          </Card>
+                          <EnhancedCandidateCard
+                            candidate={candidate}
+                            isDragged={draggedCandidate?.id === candidate.id}
+                            onClick={() => handleCardClick(candidate)}
+                            onDragStart={() => handleDragStart(candidate)}
+                            onDragEnd={handleDragEnd}
+                          />
                         </div>
                       ))}
                     </div>
@@ -1090,84 +1145,17 @@ export function FlexibleKanbanView({
                         <div
                           key={candidate.id}
                           className={cn(
-                            "cursor-pointer group w-64 max-w-xs",
+                            "group w-64 max-w-xs",
                             draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                           )}
-                          draggable
-                          onDragStart={() => handleDragStart(candidate)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => handleCardClick(candidate)}
                         >
-                          <Card className="p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative">
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10 flex-shrink-0">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
-                                <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                                  <Target className="w-3 h-3 inline mr-1" />
-                                  {candidate.position?.title || 'N/A'}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                                <div className="space-y-1">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">Fit Score</span>
-                                    <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                                  </div>
-                                  <div className="w-full bg-muted rounded-full h-2">
-                                    <div 
-                                      className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                      style={{ width: `${candidate.fitScore}%` }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              {candidate.email && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Mail className="w-3 h-3 mr-1" />
-                                  {candidate.email}
-                                </div>
-                              )}
-                              
-                              {candidate.phone && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Phone className="w-3 h-3 mr-1" />
-                                  {candidate.phone}
-                                </div>
-                              )}
-                              
-                              {candidate.applicationDate && (
-                                <div className="flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Hover Actions */}
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Handle edit
-                                  }}
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </Card>
+                          <EnhancedCandidateCard
+                            candidate={candidate}
+                            isDragged={draggedCandidate?.id === candidate.id}
+                            onClick={() => handleCardClick(candidate)}
+                            onDragStart={() => handleDragStart(candidate)}
+                            onDragEnd={handleDragEnd}
+                          />
                         </div>
                       ))}
                     </div>

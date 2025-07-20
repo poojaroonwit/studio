@@ -152,6 +152,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
+      fitScore: candidate.fitScore ? candidate.fitScore / 100 : null, // Convert integer back to decimal for consistency
       assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
       position: candidate.positionId ? {

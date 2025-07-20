@@ -496,6 +496,12 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   const handleSave = async () => {
     console.log('CustomizeBoardModal: Starting save process...');
+    console.log('CustomizeBoardModal: Current state:', {
+      rowField,
+      columnField,
+      visibleRowValues,
+      visibleColumnValues
+    });
     setLoading(true);
     try {
       const prefs = [

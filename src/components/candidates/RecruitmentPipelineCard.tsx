@@ -30,7 +30,8 @@ export function RecruitmentPipelineCard({
 }: RecruitmentPipelineCardProps) {
   // Map stage name to all transition records for that stage
   const stageToRecords: Record<string, TransitionRecord[]> = {};
-  transitionHistory.forEach(record => {
+  const safeTransitionHistory = Array.isArray(transitionHistory) ? transitionHistory : [];
+  safeTransitionHistory.forEach(record => {
     if (!stageToRecords[record.stage]) stageToRecords[record.stage] = [];
     stageToRecords[record.stage].push(record);
   });
@@ -97,7 +98,8 @@ export function RecruitmentPipelineCard({
 
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
-  localTransitionHistory.forEach(record => {
+  const safeLocalTransitionHistory = Array.isArray(localTransitionHistory) ? localTransitionHistory : [];
+  safeLocalTransitionHistory.forEach(record => {
     if (!currentStageToRecords[record.stage]) currentStageToRecords[record.stage] = [];
     currentStageToRecords[record.stage].push(record);
   });

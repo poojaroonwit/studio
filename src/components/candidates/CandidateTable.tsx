@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format } from 'date-fns';
@@ -258,20 +258,33 @@ export function CandidateTable({
                   {/* Removed Pipeline cell */}
                   <TableCell key={`${candidate.id}-candidate-info`}>
                     <div className="flex items-center gap-3">
-                      <Avatar size="lg" className="border-2 border-border">
-                        <AvatarImage
-                          src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`}
-                          alt={formatCandidateName(candidate)}
-                          data-ai-hint="person avatar"
-                          onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`; }}
-                        />
-                        <AvatarFallback className="text-sm font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Link href={`/candidates/${candidate.id}`} passHref>
-                          <span className="font-medium text-foreground hover:underline cursor-pointer">{formatCandidateName(candidate)}</span>
-                        </Link>
-                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                      {(() => {
+                        const nameInfo = formatCandidateNameWithLang(candidate);
+                        return (
+                          <>
+                            <Avatar size="lg" className="border-2 border-border">
+                              <AvatarImage
+                                src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`}
+                                alt={nameInfo.name}
+                                data-ai-hint="person avatar"
+                                onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`; }}
+                              />
+                              <AvatarFallback className="text-sm font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <Link href={`/candidates/${candidate.id}`} passHref>
+                                <span 
+                                  className={`font-medium text-foreground hover:underline cursor-pointer ${nameInfo.fontClass}`}
+                                  lang={nameInfo.lang}
+                                >
+                                  {nameInfo.name}
+                                </span>
+                              </Link>
+                              <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                            </div>
+                          </>
+                        );
+                      })()}
                       </div>
                     </div>
                   </TableCell>

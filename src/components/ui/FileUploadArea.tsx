@@ -1,5 +1,5 @@
 // Reusable drag-and-drop file upload area for selecting files
-import React, { FC } from "react";
+import React, { FC, useRef } from "react";
 import { UploadCloud } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -20,8 +20,11 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
   dragActive,
   setDragActive,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
     onFilesChange(e.dataTransfer.files);
   };
@@ -34,8 +37,18 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
     setDragActive(false);
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     onFilesChange(e.target.files);
+    // Reset the input value to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
+  
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div
       className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center relative ${
@@ -46,17 +59,19 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
-      onClick={() => document.getElementById('file-upload-area-input')?.click()}
+      onClick={handleClick}
       style={{ cursor: 'pointer' }}
     >
-      <Input
-        id="file-upload-area-input"
-        type="file"
-        accept={accept}
-        multiple={multiple}
-        className="hidden"
-        onChange={handleInputChange}
-      />
+      <form onSubmit={(e) => e.preventDefault()}>
+        <Input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          multiple={multiple}
+          className="hidden"
+          onChange={handleInputChange}
+        />
+      </form>
       <UploadCloud className={`mx-auto mb-4 h-12 w-12 transition-all duration-300 ${
         dragActive ? 'text-primary scale-110' : 'text-primary'
       }`} />

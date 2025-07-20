@@ -152,7 +152,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       ...candidate,
-              fitScore: candidate.fitScore, // Keep as integer (0-100) for consistency with scoreUtils
+              fitScore: candidate.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       assignmentJustification: candidate.assignmentJustification || null,
       customAttributes,
       position: candidate.positionId ? {

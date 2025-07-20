@@ -11,7 +11,7 @@ import { useState, useMemo, useEffect } from 'react';
 import CandidateDetailModal from './CandidateDetailModal';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -143,13 +143,26 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10 flex-shrink-0">
-          <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} data-ai-hint="person avatar"/>
-          <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
+      {(() => {
+        const nameInfo = formatCandidateNameWithLang(candidate);
+        return (
+          <div className="flex items-start gap-3">
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} data-ai-hint="person avatar"/>
+              <AvatarFallback className="bg-primary/10 text-primary">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p 
+                className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
+                title={nameInfo.name}
+                lang={nameInfo.lang}
+              >
+                {nameInfo.name}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
           <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
             <Target className="w-3 h-3 inline mr-1" />
             {candidate.position?.title || 'N/A'}
@@ -162,7 +175,9 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Fit Score</span>
-              <span className="font-medium text-foreground">{candidate.fitScore}%</span>
+              <span className="font-medium text-foreground">
+                {candidate.fitScore === 0 ? 'Not scored' : `${candidate.fitScore}%`}
+              </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
@@ -882,6 +897,13 @@ export function FlexibleKanbanView({
 
   // Fallback: if no effective row values, use statuses
   const finalRowValues = effectiveRowValues.length > 0 ? effectiveRowValues : statuses;
+  
+  // Additional fallback: if we have candidates but no row values, create a default row
+  const finalRowValuesWithFallback = finalRowValues.length > 0 ? finalRowValues : 
+    candidates.length > 0 ? ['All Candidates'] : finalRowValues;
+    
+  // Special case: if row field is 'none', show all candidates in a single row
+  const shouldShowAllCandidates = effectiveRowField === 'none' || finalRowValuesWithFallback.length === 0;
 
   console.log('FlexibleKanbanView: Layout detection:', {
     rowField,
@@ -896,7 +918,16 @@ export function FlexibleKanbanView({
     effectiveRowValues,
     effectiveColumnValues,
     finalRowValues,
-    candidatesCount: candidates.length
+    finalRowValuesWithFallback,
+    shouldShowAllCandidates,
+    candidatesCount: candidates.length,
+    candidates: candidates.map(c => ({
+      id: c.id,
+      name: c.name,
+      status: c.status,
+      [effectiveRowField]: c[effectiveRowField as keyof Candidate],
+      [effectiveColumnField || 'none']: effectiveColumnField ? c[effectiveColumnField as keyof Candidate] : 'N/A'
+    }))
   });
 
 
@@ -915,16 +946,20 @@ export function FlexibleKanbanView({
     });
     
     // Initialize all positions with empty arrays
-    finalRowValues.forEach(rowValue => {
-      grouped[rowValue] = {};
-      if (isColumnBased) {
-        effectiveColumnValues.forEach(colValue => {
-          grouped[rowValue][colValue] = [];
-        });
-      } else {
-        grouped[rowValue]['default'] = [];
-      }
-    });
+    if (shouldShowAllCandidates) {
+      grouped['All Candidates'] = { 'default': [] };
+    } else {
+      finalRowValuesWithFallback.forEach(rowValue => {
+        grouped[rowValue] = {};
+        if (isColumnBased) {
+          effectiveColumnValues.forEach(colValue => {
+            grouped[rowValue][colValue] = [];
+          });
+        } else {
+          grouped[rowValue]['default'] = [];
+        }
+      });
+    }
     
     // Group candidates by their position
     candidates.forEach(candidate => {
@@ -949,11 +984,11 @@ export function FlexibleKanbanView({
       // If rowValue is not in finalRowValues, try to find a fallback
       let finalRowValue = rowValue;
       if (typeof rowValue === 'string' && rowValue) {
-        if (finalRowValues.includes(rowValue)) {
+        if (finalRowValuesWithFallback.includes(rowValue)) {
           finalRowValue = rowValue;
         } else {
           // Fallback: use the first available row value or candidate's status
-          finalRowValue = finalRowValues[0] || candidate.status || 'Applied';
+          finalRowValue = finalRowValuesWithFallback[0] || candidate.status || 'Applied';
           console.log('FlexibleKanbanView: Using fallback row value:', {
             original: rowValue,
             fallback: finalRowValue
@@ -961,11 +996,20 @@ export function FlexibleKanbanView({
         }
       } else {
         // If no rowValue, use candidate's status or first available
-        finalRowValue = candidate.status || finalRowValues[0] || 'Applied';
+        finalRowValue = candidate.status || finalRowValuesWithFallback[0] || 'Applied';
         console.log('FlexibleKanbanView: No rowValue, using status as fallback:', finalRowValue);
       }
       
-      if (typeof finalRowValue === 'string' && finalRowValue) {
+      if (shouldShowAllCandidates) {
+        // When row field is 'none', put all candidates in 'All Candidates' row
+        if (!grouped['All Candidates']) {
+          grouped['All Candidates'] = {};
+        }
+        if (!grouped['All Candidates']['default']) {
+          grouped['All Candidates']['default'] = [];
+        }
+        grouped['All Candidates']['default'].push(candidate);
+      } else if (typeof finalRowValue === 'string' && finalRowValue) {
         if (!grouped[finalRowValue]) {
           grouped[finalRowValue] = {};
         }
@@ -975,6 +1019,15 @@ export function FlexibleKanbanView({
               grouped[finalRowValue][colValue] = [];
             }
             grouped[finalRowValue][colValue].push(candidate);
+          } else if (typeof colValue === 'string' && colValue) {
+            // If column value exists but not in visible values, add to first available column
+            const firstColValue = effectiveColumnValues[0];
+            if (firstColValue && !grouped[finalRowValue][firstColValue]) {
+              grouped[finalRowValue][firstColValue] = [];
+            }
+            if (firstColValue) {
+              grouped[finalRowValue][firstColValue].push(candidate);
+            }
           }
         } else {
           if (!grouped[finalRowValue]['default']) {
@@ -987,7 +1040,16 @@ export function FlexibleKanbanView({
     
     console.log('FlexibleKanbanView: Final grouped candidates:', grouped);
     return grouped;
-  }, [candidates, effectiveRowField, effectiveColumnField, finalRowValues, effectiveColumnValues, isColumnBased]);
+  }, [candidates, effectiveRowField, effectiveColumnField, finalRowValuesWithFallback, effectiveColumnValues, isColumnBased, shouldShowAllCandidates]);
+
+  // Check if any candidates are actually shown
+  const totalShownCandidates = useMemo(() => {
+    return Object.values(candidatesByPosition).reduce((total, colGroup) => {
+      return total + Object.values(colGroup).reduce((colTotal, candidates) => colTotal + candidates.length, 0);
+    }, 0);
+  }, [candidatesByPosition]);
+
+  console.log('FlexibleKanbanView: Total shown candidates:', totalShownCandidates, 'out of', candidates.length);
 
   // Drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
@@ -1161,7 +1223,7 @@ export function FlexibleKanbanView({
       <>
         <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
-          {finalRowValues.map(rowValue => {
+          {(shouldShowAllCandidates ? ['All Candidates'] : finalRowValuesWithFallback).map(rowValue => {
             const rowCandidates = candidatesByPosition[rowValue]?.['default'] || [];
             console.log('FlexibleKanbanView: Rendering row:', {
               rowValue,
@@ -1262,27 +1324,23 @@ export function FlexibleKanbanView({
       </div>
       
       {/* Fallback: If no candidates are shown due to customization issues, show all candidates */}
-      {(() => {
-        const totalShownCandidates = Object.values(candidatesByPosition).reduce((total, colGroup) => {
-          return total + Object.values(colGroup).reduce((colTotal, candidates) => colTotal + candidates.length, 0);
-        }, 0);
-        
-        if (totalShownCandidates === 0 && candidates.length > 0) {
-          console.warn('FlexibleKanbanView: No candidates shown due to customization, showing fallback view');
-          return (
-            <div className="mt-4 p-4 border border-orange-200 bg-orange-50 rounded-lg">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-medium text-orange-800">Customization Issue Detected</h3>
-                <p className="text-sm text-orange-600">
-                  No candidates are visible with current board settings. Showing all {candidates.length} candidates below.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {candidates.map(candidate => (
-                  <div key={candidate.id} className="w-full">
-                    <EnhancedCandidateCard
-                      candidate={candidate}
-                      onClick={() => handleCardClick(candidate)}
+      {totalShownCandidates === 0 && candidates.length > 0 && (
+        <div className="mt-4 p-4 border border-orange-200 bg-orange-50 rounded-lg">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-medium text-orange-800">Customization Issue Detected</h3>
+            <p className="text-sm text-orange-600">
+              No candidates are visible with current board settings. Showing all {candidates.length} candidates below.
+            </p>
+            <p className="text-xs text-orange-500 mt-1">
+              Row Field: {effectiveRowField}, Column Field: {effectiveColumnField || 'none'}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {candidates.map(candidate => (
+              <div key={candidate.id} className="w-full">
+                <EnhancedCandidateCard
+                  candidate={candidate}
+                  onClick={() => handleCardClick(candidate)}
                       onDragStart={() => handleDragStart(candidate)}
                       onDragEnd={handleDragEnd}
                     />

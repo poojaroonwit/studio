@@ -100,7 +100,7 @@ export function getScoreColor(score: number | null | undefined): string {
  */
 export function getScoreBgColor(score: number | null | undefined): string {
   const gradeInfo = getScoreGradeInfo(score);
-  return gradeInfo ? gradeInfo.bgColor : '';
+  return gradeInfo ? gradeInfo.bgColor : 'bg-gray-200'; // Default gray for invalid/null scores
 }
 
 /**

@@ -109,7 +109,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
         "Software Engineer",
         "Engineering",
         "Develops software applications. Responsible for backend and frontend development.",
-        "TRUE",
+        "true",
         "Mid-Level",
         ""
       ],
@@ -117,7 +117,7 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
         "Product Manager",
         "Product",
         "Manages product lifecycle and leads product strategy.",
-        "TRUE",
+        "true",
         "Senior",
         ""
       ],
@@ -125,8 +125,16 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
         "Data Analyst",
         "Analytics",
         "Analyzes data and creates reports for business insights.",
-        "TRUE",
+        "true",
         "Junior",
+        ""
+      ],
+      [
+        "วิศวกรซอฟต์แวร์",
+        "วิศวกรรม",
+        "พัฒนาแอปพลิเคชันซอฟต์แวร์ รับผิดชอบการพัฒนาด้านหลังและด้านหน้า",
+        "true",
+        "ระดับกลาง",
         ""
       ]
     ];
@@ -134,8 +142,10 @@ export function ImportPositionsModal({ isOpen, onOpenChange, onImportSuccess }: 
     exampleRows.forEach(row => {
       csvContent += row.map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
     });
-    csvContent += '\nNOTE: Save as UTF-8 encoding. isOpen should be TRUE or FALSE. positionLevel, description, and custom_attributes are optional. Avoid complex JSON in custom_attributes to prevent parsing issues.';
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    csvContent += '\nNOTE: Save as UTF-8 encoding. isOpen should be true or false. positionLevel, description, and custom_attributes are optional. Avoid complex JSON in custom_attributes to prevent parsing issues.';
+    // Ensure UTF-8 encoding with BOM for better compatibility with Thai language
+    const utf8BOM = '\uFEFF';
+    const blob = new Blob([utf8BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);

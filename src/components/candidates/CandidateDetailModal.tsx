@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -315,7 +315,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     }
     
     // Sort education by start date (most recent first)
-    return educationArray.sort((a, b) => {
+    const safeEducationArray = Array.isArray(educationArray) ? educationArray : [];
+    return safeEducationArray.sort((a, b) => {
       const getStartYear = (edu: any) => {
         if (!edu.period) return 0;
         const match = edu.period.match(/([A-Za-z]+) (\d{4})/);
@@ -367,7 +368,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
     }
     
     // Sort experience by start date (most recent first)
-    return experienceArray.sort((a, b) => {
+    const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
+    return safeExperienceArray.sort((a, b) => {
       const getStartYear = (exp: any) => {
         if (!exp.period) return 0;
         const match = exp.period.match(/([A-Za-z]+) (\d{4})/);
@@ -488,9 +490,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // Extract data for display
   const personalInfo = getParsedDataProperty('personal_info');
   const contactInfo = getParsedDataProperty('contact_info');
-  const skills = getParsedDataProperty('skills') || [];
-  const jobSuitable = getParsedDataProperty('job_suitable') || [];
-  const candidateJobMatches = getParsedDataProperty('job_matches') || [];
+  const skills = Array.isArray(getParsedDataProperty('skills')) ? getParsedDataProperty('skills') : [];
+  const jobSuitable = Array.isArray(getParsedDataProperty('job_suitable')) ? getParsedDataProperty('job_suitable') : [];
+  const candidateJobMatches = Array.isArray(getParsedDataProperty('job_matches')) ? getParsedDataProperty('job_matches') : [];
 
   // Job applied data
   const appliedJobId = candidate?.positionId;
@@ -568,18 +570,35 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <Avatar className="w-20 h-20 text-3xl relative group">
-                        {candidate.avatarUrl ? (
-                          <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
-                        ) : (
-                          <AvatarFallback>{formatCandidateName(candidate)?.[0] || '?'}</AvatarFallback>
-                        )}
-                      </Avatar>
+                      {(() => {
+                        const nameInfo = formatCandidateNameWithLang(candidate);
+                        return (
+                          <>
+                            <Avatar className="w-20 h-20 text-3xl relative group">
+                              {candidate.avatarUrl ? (
+                                <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                              ) : (
+                                <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                              )}
+                            </Avatar>
+                          </>
+                        );
+                      })()}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{formatCandidateName(candidate)}</span>
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <span 
+                              className={`text-2xl font-bold tracking-tight text-foreground line-clamp-1 ${nameInfo.fontClass}`}
+                              lang={nameInfo.lang}
+                            >
+                              {nameInfo.name}
+                            </span>
+                          );
+                        })()}
                         {candidate.status && (
                           <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                         )}
@@ -679,7 +698,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                   jobId: appliedJobId,
                                   jobTitle: position.title,
                                   fitScore: appliedFitScore || 0,
-                                  matchReasons: appliedJustification 
+                                  matchReasons: appliedJustification && typeof appliedJustification === 'string'
                                     ? appliedJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
                                     : [],
                                   position: {
@@ -718,7 +737,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                     Justification:
                                   </h5>
                                   <div className="space-y-2">
-                                    {appliedJustification.split('\n').map((sentence: string, index: number) => {
+                                    {appliedJustification && typeof appliedJustification === 'string' ? appliedJustification.split('\n').map((sentence: string, index: number) => {
                                       const trimmedSentence = sentence.trim();
                                       if (!trimmedSentence) return null;
                                       
@@ -734,7 +753,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                           {trimmedSentence}
                                         </div>
                                       );
-                                    })}
+                                    }) : null}
                                   </div>
                                 </div>
                               )}
@@ -810,12 +829,12 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                         Reasons ({match.matchReasons.length}):
                                       </h5>
                                       <div className="space-y-1 max-h-20 overflow-y-auto">
-                                        {match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
+                                        {Array.isArray(match.matchReasons) ? match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
                                           <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
                                             <span className="text-primary text-xs mt-0.5">•</span>
                                             <span className="flex-1 line-clamp-1">{reason}</span>
                                           </div>
-                                        ))}
+                                        )) : null}
                                         {match.matchReasons.length > 2 && (
                                           <div className="text-xs text-muted-foreground italic">
                                             +{match.matchReasons.length - 2} more reasons
@@ -1079,7 +1098,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                   <div>
                                     <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
                                     <div className="flex flex-wrap gap-1.5 mt-1">
-                                      {skillEntry.skill.map((s: string, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
+                                      {Array.isArray(skillEntry.skill) ? skillEntry.skill.map((s: string, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>) : null}
                                     </div>
                                   </div>
                                 )}
@@ -1140,11 +1159,11 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassign">Unassign</SelectItem>
-                          {recruiters.map((recruiter) => (
-                            <SelectItem key={recruiter.id} value={recruiter.id}>
-                              {recruiter.name}
-                            </SelectItem>
-                          ))}
+                          {Array.isArray(recruiters) ? recruiters.map((recruiter) => (
+                                                          <SelectItem key={recruiter.id} value={recruiter.id}>
+                                {recruiter.name}
+                              </SelectItem>
+                            )) : null}
                         </SelectContent>
                       </Select>
                     </div>

@@ -7,7 +7,7 @@ import type { Candidate, Position, CandidateStatus, UserProfile } from "@/lib/ty
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Briefcase, CheckCircle2, UserPlus, FileWarning, UserRoundSearch, ServerCrash, Loader2, ListChecks, CalendarClock, Users2, BarChart3, AlertTriangle, Clock, Star, Target, Code, CalendarIcon, X, Timer, XCircle, ArrowRight } from "lucide-react";
 import { getScoreRangesForChart, formatScoreWithGrade, getScoreColor } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { isToday } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import Link from "next/link";
@@ -1118,13 +1118,23 @@ export default function DashboardPageClient({
                   {unassignedCandidatesList.slice(0, 5).map(candidate => (
                     <TableRow key={candidate.id} className="hover:bg-muted/50">
                       <TableCell>
-                        <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                          <Avatar size="sm" className="border border-border">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                            <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{formatCandidateName(candidate)}</span>
-                        </Link>
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                              <Avatar size="sm" className="border border-border">
+                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
+                                <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                              </Avatar>
+                              <span 
+                                className={`font-medium ${nameInfo.fontClass}`}
+                                lang={nameInfo.lang}
+                              >
+                                {nameInfo.name}
+                              </span>
+                            </Link>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                       <TableCell>
@@ -1234,13 +1244,23 @@ export default function DashboardPageClient({
                       {myActionItemsList.slice(0, 5).map(candidate => (
                         <TableRow key={candidate.id} className="hover:bg-muted/50">
                           <TableCell>
-                            <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <Avatar size="sm" className="border border-border">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium">{formatCandidateName(candidate)}</span>
-                            </Link>
+                            {(() => {
+                              const nameInfo = formatCandidateNameWithLang(candidate);
+                              return (
+                                <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                                  <Avatar size="sm" className="border border-border">
+                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
+                                    <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                  </Avatar>
+                                  <span 
+                                    className={`font-medium ${nameInfo.fontClass}`}
+                                    lang={nameInfo.lang}
+                                  >
+                                    {nameInfo.name}
+                                  </span>
+                                </Link>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>
@@ -1284,13 +1304,23 @@ export default function DashboardPageClient({
                       {newCandidatesAssignedToMeTodayList.slice(0, 5).map(candidate => (
                         <TableRow key={candidate.id} className="hover:bg-muted/50">
                           <TableCell>
-                            <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
-                              <Avatar size="sm" className="border border-border">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                                <AvatarFallback className="text-xs font-medium">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium">{formatCandidateName(candidate)}</span>
-                            </Link>
+                            {(() => {
+                              const nameInfo = formatCandidateNameWithLang(candidate);
+                              return (
+                                <Link href={`/candidates/${candidate.id}`} className="flex items-center space-x-3 hover:underline">
+                                  <Avatar size="sm" className="border border-border">
+                                    <AvatarImage src={candidate.avatarUrl || `https://placehold.co/32x32.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
+                                    <AvatarFallback className="text-xs font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                  </Avatar>
+                                  <span 
+                                    className={`font-medium ${nameInfo.fontClass}`}
+                                    lang={nameInfo.lang}
+                                  >
+                                    {nameInfo.name}
+                                  </span>
+                                </Link>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>{candidate.position?.title || 'N/A'}</TableCell>
                           <TableCell>

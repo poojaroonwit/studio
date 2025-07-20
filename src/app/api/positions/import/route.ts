@@ -90,25 +90,38 @@ const importPositionsArraySchema = z.array(importPositionSchema);
 
 // Helper function to detect and convert encoding
 function detectAndConvertEncoding(buffer: Buffer): string {
-  // Try UTF-8 first (most common)
+  // For Thai language support, prioritize UTF-8
+  // Check for UTF-8 BOM first
+  if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+    console.log('Detected UTF-8 BOM, using UTF-8 encoding');
+    return buffer.toString('utf-8');
+  }
+  
+  // Try UTF-8 first (most common and required for Thai)
   try {
     const utf8String = buffer.toString('utf-8');
     // Check if it looks like valid UTF-8 by trying to parse as CSV
     try {
       parseCsv(utf8String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
+      console.log('UTF-8 encoding detected and validated');
       return utf8String;
-    } catch {
-      // UTF-8 parsing failed, try other encodings
+    } catch (parseError) {
+      console.log('UTF-8 parsing failed, but continuing with UTF-8 for Thai support:', parseError);
+      // For Thai language support, we'll still use UTF-8 even if CSV parsing fails
+      // The actual parsing will be done later with better error handling
+      return utf8String;
     }
-  } catch {
-    // UTF-8 conversion failed
+  } catch (error) {
+    console.log('UTF-8 conversion failed:', error);
   }
 
+  // Only try other encodings if UTF-8 completely fails
   // Try Windows-1252 (common for files saved from Excel)
   try {
     const win1252String = buffer.toString('latin1');
     try {
       parseCsv(win1252String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
+      console.log('Windows-1252 encoding detected');
       return win1252String;
     } catch {
       // Windows-1252 parsing failed
@@ -120,9 +133,11 @@ function detectAndConvertEncoding(buffer: Buffer): string {
   // Try ISO-8859-1 as fallback
   try {
     const isoString = buffer.toString('latin1');
+    console.log('ISO-8859-1 encoding used as fallback');
     return isoString;
   } catch {
     // If all else fails, return as UTF-8 and let it fail with a clear error
+    console.log('All encoding attempts failed, using UTF-8 as final fallback');
     return buffer.toString('utf-8');
   }
 }
@@ -161,14 +176,29 @@ export async function POST(request: NextRequest) {
         csvString = csvString.slice(1);
       }
       
+      // Debug: Log the first few lines of the CSV to see what we're working with
+      console.log('CSV string (first 500 chars):', csvString.substring(0, 500));
+      console.log('CSV string length:', csvString.length);
+      
       let records;
       try {
-        records = parseCsv(csvString, { columns: true, skip_empty_lines: true });
+        records = parseCsv(csvString, { 
+          columns: true, 
+          skip_empty_lines: true,
+          trim: true // Trim whitespace from headers and values
+        });
+        console.log('CSV parsed successfully. Number of records:', records.length);
+        if (records.length > 0) {
+          console.log('CSV headers detected:', Object.keys(records[0]));
+        }
       } catch (parseError) {
         const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
+        console.error('CSV parsing error:', parseError);
+        console.error('CSV content that failed to parse:', csvString.substring(0, 1000));
         return NextResponse.json({ 
-          message: 'CSV parsing failed. Please ensure the file is a valid CSV with correct headers. Supported encodings: UTF-8, Windows-1252, ISO-8859-1.', 
-          error: errorMessage 
+          message: 'CSV parsing failed. Please ensure the file is a valid CSV with correct headers and UTF-8 encoding (required for Thai language support).', 
+          error: errorMessage,
+          encoding: 'UTF-8 required for Thai language support'
         }, { status: 400 });
       }
       
@@ -180,6 +210,11 @@ export async function POST(request: NextRequest) {
       }
       
       const firstRecord = records[0];
+      
+      // Debug: Log the first record to see what headers are actually detected
+      console.log('First record headers:', Object.keys(firstRecord));
+      console.log('First record values:', firstRecord);
+      
       if (!firstRecord.title) {
         // Provide more detailed error information
         const availableHeaders = Object.keys(firstRecord);
@@ -188,7 +223,8 @@ export async function POST(request: NextRequest) {
           details: {
             availableHeaders,
             expectedHeaders: ['title', 'department', 'description', 'isOpen', 'positionLevel', 'custom_attributes'],
-            missingHeaders: ['title'].filter(h => !availableHeaders.includes(h))
+            missingHeaders: ['title'].filter(h => !availableHeaders.includes(h)),
+            firstRecord: firstRecord // Include the first record for debugging
           }
         }, { status: 400 });
       }

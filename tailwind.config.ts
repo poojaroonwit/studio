@@ -167,9 +167,9 @@ export default {
   		},
   				fontFamily: {
 			'sidebar': 'var(--sidebar-font-family)',
-			'inter': ['var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
-			'anuphan': ['var(--font-anuphan)', 'var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
-			'sans': ['var(--font-inter)', 'Arial', 'Helvetica', 'sans-serif'],
+			'inter': ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
+			'ibm-plex-sans-thai': ['IBM Plex Sans Thai', 'Inter', 'Arial', 'Helvetica', 'sans-serif'],
+			'sans': ['Inter', 'Arial', 'Helvetica', 'sans-serif'],
 		},
   		padding: {
   			'sidebar-x': 'var(--sidebar-padding-x)',

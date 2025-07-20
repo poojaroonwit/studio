@@ -185,6 +185,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName, email: null } : null,
         transitionHistory: (row.transitionHistory || []) as TransitionRecord[],
         customAttributes: row.customAttributes || {},
+        fitScore: row.fitScore || 0, // Convert null to 0 for consistency
     })) as Candidate[];
 
     if (allCandidates.length === 0) {

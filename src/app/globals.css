@@ -1,16 +1,20 @@
+/* Font Imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Language-specific font rules */
 [lang="th"], 
 [lang="th-TH"],
 .thai-text {
-  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Default font for English and other languages */
@@ -18,26 +22,26 @@ body {
 [lang="en-US"],
 [lang="en-GB"],
 .english-text {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Auto-font utility classes */
 .font-auto {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Apply Thai font to elements containing Thai text */
 .font-auto:lang(th),
 .font-auto[lang="th"],
 .font-auto[lang="th-TH"] {
-  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
 }
 
 /* Ensure proper font rendering for Thai text */
 .thai-text,
 [lang="th"],
 [lang="th-TH"] {
-  font-family: var(--font-anuphan), var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
   font-feature-settings: "liga" 1, "kern" 1;
 }
 
@@ -46,8 +50,37 @@ body {
 [lang="en"],
 [lang="en-US"],
 [lang="en-GB"] {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   font-feature-settings: "liga" 1, "kern" 1;
+}
+
+/* Additional utility classes for font switching */
+.font-thai {
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.font-english {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+/* Auto-detect Thai text and apply appropriate font */
+.font-auto {
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+/* Force Thai font for specific elements */
+.force-thai-font {
+  font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif !important;
+}
+
+/* Responsive font sizes for Thai text */
+@media (max-width: 768px) {
+  [lang="th"], 
+  [lang="th-TH"],
+  .thai-text,
+  .font-thai {
+    font-size: 0.95em; /* Slightly smaller on mobile for better readability */
+  }
 }
 
 @layer base {

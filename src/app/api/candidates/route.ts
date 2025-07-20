@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
           department: row.positionDepartment,
           positionLevel: row.positionLevel
         } : null,
-        fitScore: row.fitScore, // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: row.fitScore || 0, // Convert null to 0 for consistency with scoreUtils
         status: row.status,
         applicationDate: row.applicationDate,
         recruiter: row.recruiterId ? {

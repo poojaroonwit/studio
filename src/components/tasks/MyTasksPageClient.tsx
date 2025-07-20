@@ -145,6 +145,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
         const newRowField = rowPref ? rowPref.customNote || 'status' : 'status';
         const newColumnField = colPref ? colPref.customNote || 'none' : 'none';
+        
+        console.log('MyTasksPageClient: Loading preferences:', {
+          rowPref,
+          colPref,
+          visibleRowPref,
+          visibleColPref,
+          newRowField,
+          newColumnField,
+          stages
+        });
+        
         setRowField(newRowField);
         setColumnField(newColumnField);
         setBoardPrefs(prev => ({
@@ -152,27 +163,39 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           rowField: newRowField,
           columnField: newColumnField,
         }));
+        
+        // Handle visible row values
         if (visibleRowPref) {
           try {
             const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
+            console.log('MyTasksPageClient: Parsed visible row values:', parsedValues);
             setVisibleRowValues(parsedValues);
-          } catch {
+          } catch (error) {
+            console.error('MyTasksPageClient: Error parsing visible row values:', error);
             setVisibleRowValues([]);
           }
         } else {
           // Default to showing all stages when row field is status
-          setVisibleRowValues(stages.length > 0 ? stages : []);
+          const defaultValues = stages.length > 0 ? stages : [];
+          console.log('MyTasksPageClient: Using default visible row values:', defaultValues);
+          setVisibleRowValues(defaultValues);
         }
+        
+        // Handle visible column values
         if (visibleColPref) {
           try {
             const parsedValues = JSON.parse(visibleColPref.customNote) || [];
+            console.log('MyTasksPageClient: Parsed visible column values:', parsedValues);
             setVisibleColumnValues(parsedValues);
-          } catch {
+          } catch (error) {
+            console.error('MyTasksPageClient: Error parsing visible column values:', error);
             setVisibleColumnValues([]);
           }
         } else {
           setVisibleColumnValues([]);
         }
+        
+        // Ensure we have visible values if none are set
         if (uniqueRowValues.length === 0 && stages.length > 0) {
           setVisibleRowValues(stages);
         }
@@ -211,9 +234,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // When modal closes after save, reload preferences
   const handleCustomizeModalChange = (open: boolean) => {
+    console.log('MyTasksPageClient: Customize modal state changing to:', open);
     setIsCustomizeModalOpen(open);
     if (!open) {
-      loadBoardPrefs();
+      console.log('MyTasksPageClient: Modal closed, reloading preferences...');
+      // Add a small delay to ensure the save operation completes
+      setTimeout(() => {
+        loadBoardPrefs();
+      }, 500);
     }
   };
 

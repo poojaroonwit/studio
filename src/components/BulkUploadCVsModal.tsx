@@ -91,27 +91,33 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
+    
+    // Prevent default form submission behavior
     const newFiles: File[] = [];
     const invalidFiles: { name: string; reason: string }[] = [];
     const newBatchMap: { [fileName: string]: string } = {};
+    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (file.type !== "application/pdf") {
         invalidFiles.push({ name: file.name, reason: "Invalid file type" });
-        errorWithDescription(`${file.name}: Invalid file type`, "Only PDF files are supported for resume uploads.");
       } else if (file.size > MAX_FILE_SIZE) {
         invalidFiles.push({ name: file.name, reason: `File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)` });
-        errorWithDescription(`${file.name}: File too large (max ${MAX_FILE_SIZE / (1024*1024)}MB)`, "Please compress the file or split it into smaller parts.");
       } else {
         newFiles.push(file);
         newBatchMap[file.name] = uuidv4();
       }
     }
+    
+    // Update state with new files
     setSelectedFiles((prev: File[]) => [...prev, ...newFiles]);
     setFileBatchMap((prev: { [fileName: string]: string }) => ({ ...prev, ...newBatchMap }));
-          if (invalidFiles.length > 0) {
-        errorWithDescription(`${invalidFiles.length} file(s) were invalid and not added.`, "Please check the file format and size requirements.");
-      }
+    
+    // Show consolidated error message for invalid files
+    if (invalidFiles.length > 0) {
+      const errorMessages = invalidFiles.map(f => `${f.name}: ${f.reason}`).join(', ');
+      errorWithDescription(`Invalid files: ${errorMessages}`, "Only PDF files under 500MB are supported.");
+    }
   };
 
   const removeFile = (file: File) => {
@@ -326,7 +332,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
           <DialogClose asChild>
             <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
           </DialogClose>
-          <Button onClick={handleConfirmUpload} disabled={selectedFiles.length === 0 || uploading}>
+          <Button type="button" onClick={handleConfirmUpload} disabled={selectedFiles.length === 0 || uploading}>
             {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {uploading ? 'Uploading...' : 'Upload'}
           </Button>

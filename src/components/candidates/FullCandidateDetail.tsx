@@ -308,14 +308,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     name: 'parsedData.job_matches',
   });
 
-  const {
-    fields: justificationFields,
-    append: appendJustification,
-    remove: removeJustification,
-  } = useFieldArray({
-    control,
-    name: 'assignmentJustification',
-  });
+
 
   // Remove duplicate form setup - using the one above with full configuration
 
@@ -756,71 +749,72 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         {(() => {
                           const nameInfo = formatCandidateNameWithLang(candidate);
                           return (
-                            <Avatar className="w-20 h-20 text-3xl relative group">
-                              {candidate.avatarUrl ? (
-                                <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
-                              ) : (
-                                <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                            <div className="relative group">
+                              <Avatar className="w-20 h-20 text-3xl">
+                                {candidate.avatarUrl ? (
+                                  <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                                ) : (
+                                  <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                                )}
+                              </Avatar>
+                              {/* Pencil icon button for avatar upload */}
+                              <button
+                                type="button"
+                                className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                                title="Change profile picture"
+                                onClick={() => {
+                                  // Open hidden file input for image upload
+                                  if (avatarInputRef?.current) avatarInputRef.current.click();
+                                }}
+                                disabled={avatarUploading}
+                                style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
+                              >
+                                <Edit className="w-5 h-5 text-primary" />
+                              </button>
+                              {/* Hidden file input for avatar upload */}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                ref={avatarInputRef}
+                                style={{ display: 'none' }}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) await handleAvatarUpload(file);
+                                  e.target.value = '';
+                                }}
+                                tabIndex={-1}
+                                aria-hidden="true"
+                              />
+                              {/* Existing overlay for edit mode remains unchanged */}
+                              {isEditing && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ImageUpload
+                                    value={candidate.avatarUrl || ''}
+                                    onChange={async (urlOrFile) => {
+                                      if (typeof urlOrFile === 'string') {
+                                        await handleAvatarUpload(urlOrFile);
+                                      } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
+                                        await handleAvatarUpload(urlOrFile);
+                                      }
+                                    }}
+                                    label="Upload Profile Image"
+                                    accept="image/*"
+                                    maxSize={2 * 1024 * 1024}
+                                    showPreview={false}
+                                    allowUrl={false}
+                                    allowFile={true}
+                                    disabled={avatarUploading}
+                                    className="w-full h-full"
+                                  />
+                                  {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
+                                </div>
                               )}
-                            </Avatar>
+                              {avatarUploading && !isEditing && (
+                                <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
+                              )}
+                            </div>
                           );
                         })()}
-                    {/* Pencil icon button for avatar upload */}
-                    <button
-                      type="button"
-                      className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
-                      title="Change profile picture"
-                      onClick={() => {
-                        // Open hidden file input for image upload
-                        if (avatarInputRef?.current) avatarInputRef.current.click();
-                      }}
-                      disabled={avatarUploading}
-                      style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
-                    >
-                      <Edit className="w-5 h-5 text-primary" />
-                    </button>
-                    {/* Hidden file input for avatar upload */}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={avatarInputRef}
-                      style={{ display: 'none' }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) await handleAvatarUpload(file);
-                        e.target.value = '';
-                      }}
-                      tabIndex={-1}
-                      aria-hidden="true"
-                    />
-                    {/* Existing overlay for edit mode remains unchanged */}
-                    {isEditing && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ImageUpload
-                          value={candidate.avatarUrl || ''}
-                          onChange={async (urlOrFile) => {
-                            if (typeof urlOrFile === 'string') {
-                              await handleAvatarUpload(urlOrFile);
-                            } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
-                              await handleAvatarUpload(urlOrFile);
-                            }
-                          }}
-                          label="Upload Profile Image"
-                          accept="image/*"
-                          maxSize={2 * 1024 * 1024}
-                          showPreview={false}
-                          allowUrl={false}
-                          allowFile={true}
-                          disabled={avatarUploading}
-                          className="w-full h-full"
-                        />
-                        {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
-                      </div>
-                    )}
-                    {avatarUploading && !isEditing && (
-                      <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
-                    )}
-                  </Avatar>
                   {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
                 </div>
                 {/* Info */}
@@ -875,7 +869,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               phone: candidate.phone || '',
                               positionId: candidate.positionId || null,
                               fitScore: candidate.fitScore || null,
-                              assignmentJustification: candidate.assignmentJustification || '',
+                              assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
                               status: candidate.status || '',
                               recruiterId: candidate.recruiterId || null,
                               parsedData: (candidate.parsedData as any) || {}
@@ -2180,7 +2174,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   phone: candidate.phone || '',
                   positionId: candidate.positionId || null,
                   fitScore: candidate.fitScore || null,
-                  assignmentJustification: candidate.assignmentJustification || '',
+                  assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
                   status: candidate.status || '',
                   recruiterId: candidate.recruiterId || null,
                   parsedData: (candidate.parsedData as any) || {}

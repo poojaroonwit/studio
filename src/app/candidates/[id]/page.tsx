@@ -1,7 +1,6 @@
 "use client";
-export const dynamic = "force-dynamic";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import type { Candidate, CandidateDetails, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
@@ -313,7 +312,6 @@ export default function CandidateDetailPage() {
   const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
   const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
-  const { fields: justificationFields, append: appendJustification, remove: removeJustification } = useFieldArray({ control, name: "assignmentJustification" });
 
   // Update form when candidate data changes
   useEffect(() => {
@@ -1240,7 +1238,7 @@ export default function CandidateDetailPage() {
                 <div className="lg:col-span-7">
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 relative">
                       {(() => {
                         const nameInfo = formatCandidateNameWithLang(candidate);
                         return (
@@ -1250,65 +1248,64 @@ export default function CandidateDetailPage() {
                             ) : (
                               <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
                             )}
+                            {/* Pencil icon button for avatar upload */}
+                            <button
+                              type="button"
+                              className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                              title="Change profile picture"
+                              onClick={() => {
+                                // Open hidden file input for image upload
+                                if (avatarInputRef?.current) avatarInputRef.current.click();
+                              }}
+                              disabled={avatarUploading}
+                              style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
+                            >
+                              <Edit className="w-5 h-5 text-primary" />
+                            </button>
+                            {/* Hidden file input for avatar upload */}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              ref={avatarInputRef}
+                              style={{ display: 'none' }}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleAvatarUpload(file);
+                                e.target.value = '';
+                              }}
+                              tabIndex={-1}
+                              aria-hidden="true"
+                            />
+                            {/* Existing overlay for edit mode remains unchanged */}
+                            {isEditing && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <ImageUpload
+                                  value={candidate.avatarUrl || ''}
+                                  onChange={async (urlOrFile) => {
+                                    if (typeof urlOrFile === 'string') {
+                                      await handleAvatarUpload(urlOrFile);
+                                    } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
+                                      await handleAvatarUpload(urlOrFile);
+                                    }
+                                  }}
+                                  label="Upload Profile Image"
+                                  accept="image/*"
+                                  maxSize={2 * 1024 * 1024}
+                                  showPreview={false}
+                                  allowUrl={false}
+                                  allowFile={true}
+                                  disabled={avatarUploading}
+                                  className="w-full h-full"
+                                />
+                                {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
+                              </div>
+                            )}
+                            {avatarUploading && !isEditing && (
+                              <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
+                            )}
                           </Avatar>
                         );
                       })()}
-                        {/* Pencil icon button for avatar upload */}
-                        <button
-                          type="button"
-                          className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
-                          title="Change profile picture"
-                          onClick={() => {
-                            // Open hidden file input for image upload
-                            if (avatarInputRef?.current) avatarInputRef.current.click();
-                          }}
-                          disabled={avatarUploading}
-                          style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
-                        >
-                          <Edit className="w-5 h-5 text-primary" />
-                        </button>
-                        {/* Hidden file input for avatar upload */}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          ref={avatarInputRef}
-                          style={{ display: 'none' }}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) await handleAvatarUpload(file);
-                            e.target.value = '';
-                          }}
-                          tabIndex={-1}
-                          aria-hidden="true"
-                        />
-                        {/* Existing overlay for edit mode remains unchanged */}
-                        {isEditing && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ImageUpload
-                              value={candidate.avatarUrl || ''}
-                              onChange={async (urlOrFile) => {
-                                if (typeof urlOrFile === 'string') {
-                                  await handleAvatarUpload(urlOrFile);
-                                } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
-                                  await handleAvatarUpload(urlOrFile);
-                                }
-                              }}
-                              label="Upload Profile Image"
-                              accept="image/*"
-                              maxSize={2 * 1024 * 1024}
-                              showPreview={false}
-                              allowUrl={false}
-                              allowFile={true}
-                              disabled={avatarUploading}
-                              className="w-full h-full"
-                            />
-                            {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
-                          </div>
-                        )}
-                        {avatarUploading && !isEditing && (
-                          <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
-                        )}
-                      </Avatar>
                       {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
                     </div>
                     {/* Info */}
@@ -1368,7 +1365,7 @@ export default function CandidateDetailPage() {
                                 assignmentJustification: appliedJustification || '',
                                 status: candidate.status || '',
                                 recruiterId: candidate.recruiterId || null,
-                                parsedData: (candidate.parsedData as any) || {}
+                                parsedData: (candidate?.parsedData as any) || {}
                               });
                             }
                           }}
@@ -1484,15 +1481,15 @@ export default function CandidateDetailPage() {
                               <div>
                                 <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
                                 <div className="space-y-3">
-                                  {justificationFields.length === 0 && (
+                                  {(!form.watch('assignmentJustification') || form.watch('assignmentJustification')?.length === 0) && (
                                     <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
                                       <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
                                       <p className="text-sm">No justification items added yet.</p>
                                       <p className="text-xs">Click "Add Justification" to get started.</p>
                                     </div>
                                   )}
-                                  {justificationFields.map((field, index) => (
-                                    <div key={field.id} className="flex items-start gap-2 group">
+                                  {form.watch('assignmentJustification')?.map((item: string, index: number) => (
+                                    <div key={index} className="flex items-start gap-2 group">
                                       <div className="flex-1">
                                         <Input
                                           placeholder={`Justification reason ${index + 1}...`}
@@ -1505,7 +1502,11 @@ export default function CandidateDetailPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => removeJustification(index)}
+                                        onClick={() => {
+                                          const current = form.watch('assignmentJustification') || [];
+                                          const updated = current.filter((_: string, i: number) => i !== index);
+                                          form.setValue('assignmentJustification', updated);
+                                        }}
                                         title="Remove justification"
                                       >
                                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -1516,7 +1517,10 @@ export default function CandidateDetailPage() {
                                     type="button"
                                     variant="outline"
                                     className="w-full"
-                                    onClick={() => appendJustification('')}
+                                    onClick={() => {
+                                      const current = form.watch('assignmentJustification') || [];
+                                      form.setValue('assignmentJustification', [...current, '']);
+                                    }}
                                   >
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Justification
                                   </Button>

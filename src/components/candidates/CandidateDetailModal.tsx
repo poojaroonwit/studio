@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useEffect, useState } from "react";
 import type { Candidate, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
 import { useSession } from 'next-auth/react';
@@ -574,15 +575,13 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                       {(() => {
                         const nameInfo = formatCandidateNameWithLang(candidate);
                         return (
-                          <>
-                            <Avatar className="w-20 h-20 text-3xl relative group">
-                              {candidate.avatarUrl ? (
-                                <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
-                              ) : (
-                                <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
-                              )}
-                            </Avatar>
-                          </>
+                          <Avatar className="w-20 h-20 text-3xl relative group">
+                            {candidate.avatarUrl ? (
+                              <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                            ) : (
+                              <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                            )}
+                          </Avatar>
                         );
                       })()}
                     </div>
@@ -718,9 +717,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                               }
                             }}
                           >
-                            <div 
-                              className="rounded-lg p-4 h-full border shadow-lg"
-                            >
+                            <div className="rounded-lg p-4 h-full border shadow-lg">
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-foreground text-lg">
                                   {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
@@ -731,10 +728,10 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                     <span className="text-lg font-bold text-primary">({getGradeFromScore(appliedFitScore)})</span>
                                   </div>
                                 )}
-                               </div>
-                               
+                              </div>
+                              
                               {appliedJustification && (
-                                 <div className="mt-3">
+                                <div className="mt-3">
                                   <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                     <Info className="h-3 w-3" />
                                     Justification:
@@ -758,9 +755,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                       );
                                     })}
                                   </div>
-                                 </div>
-                               )}
-                             </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
@@ -769,504 +766,10 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                             <p className="text-sm">Click "Edit" to select the position this candidate applied for.</p>
                           </div>
                         )}
-                                 </div>
-                               )}
-                       </div>
-                    )}
-                  </section>
-
-                {/* Job Matches Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
-                    <ListChecks className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
-                      Job Matches
-                      {candidateJobMatches && candidateJobMatches.length > 0 && (
-                        <span className="ml-2 text-sm font-normal text-muted-foreground">
-                          ({candidateJobMatches.length})
-                        </span>
-                      )}
-                      {candidateJobMatches && candidateJobMatches.length > 1 && (
-                        <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                          ← Scroll →
-                        </span>
-                      )}
-                    </h2>
-                    {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {jobMatchesOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-
-                        {/* View Section - Job Matches Cards */}
-                        {candidateJobMatches && candidateJobMatches.length > 0 && (
-                            <div className="relative">
-                              {/* Left Navigation Button - Section Level */}
-                              {candidateJobMatches.length > 1 && (
-                                    <Button 
-                                        type="button"
-                                        variant="outline" 
-                                  size="icon"
-                                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
-                                        onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const container = document.querySelector('.job-matches-container');
-                                    if (container) {
-                                      container.scrollBy({ left: -280, behavior: 'smooth' });
-                                    }
-                                  }}
-                                >
-                                  <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                              )}
-                              
-                              {/* Right Navigation Button - Section Level */}
-                              {candidateJobMatches.length > 1 && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                  size="icon"
-                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const container = document.querySelector('.job-matches-container');
-                                    if (container) {
-                                      container.scrollBy({ left: 280, behavior: 'smooth' });
-                                    }
-                                  }}
-                                >
-                                  <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                              )}
-                                
-                                    <div 
-                                className="flex overflow-x-auto gap-3 pb-2 job-matches-container scrollbar-hide" 
-                                        style={{ 
-                                            scrollbarWidth: 'none', 
-                                            msOverflowStyle: 'none'
-                                        }}
-                                        onScroll={(e) => {
-                                          const target = e.target as HTMLElement;
-                                          setJobMatchesScrollPosition(target.scrollLeft);
-                                        }}
-                                    >
-                                {candidateJobMatches.map((match: any, index: number) => {
-                                  // Try to find position by jobId first, then by jobTitle
-                                  const position = Array.isArray(allDbPositions) ? 
-                                                 (allDbPositions.find(p => p.id === match.jobId) || 
-                                                  allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                                  
-                                  return (
-                                    <div 
-                                      key={`jobmatch-${index}-${match.jobTitle || index}`} 
-                                      className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
-                                      onClick={() => handleJobMatchClick(match)}
-                                    >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                    {(match as any).is_applied_job && (
-                                                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
-                                                    )}
-                                          <h4 className="font-semibold text-foreground text-sm truncate">
-                                            {position?.title || match.jobTitle || 'Unknown Position'}
-                                          </h4>
-                                        </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                                <div className="text-xs text-muted-foreground">
-                                                    #{index + 1}
-                                                </div>
-                                            </div>
-                                            </div>
-                                            {match.fitScore && match.fitScore > 0 && (
-                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
-                                                    {formatScoreWithGrade(match.fitScore)}
-                                                </div>
-                                            )}
-                                            {match.matchReasons && match.matchReasons.length > 0 && (
-                                                <div>
-                                                    <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
-                                                        <Lightbulb className="h-3 w-3" />
-                                                        Reasons ({match.matchReasons.length}):
-                                                    </h5>
-                                                    <div className="space-y-1 max-h-20 overflow-y-auto">
-                                                        {match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
-                                                            <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
-                                                                <span className="text-primary text-xs mt-0.5">•</span>
-                                                                <span className="flex-1 line-clamp-1">{reason}</span>
-                                                            </div>
-                                                        ))}
-                                                        {match.matchReasons.length > 2 && (
-                                                            <div className="text-xs text-muted-foreground italic">
-                                                                +{match.matchReasons.length - 2} more reasons
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {(!match.matchReasons || match.matchReasons.length === 0) && (
-                                                <div className="text-xs text-muted-foreground italic">
-                                                    No match reasons provided
-                                                </div>
-                                            )}
-                                        </div>
-                                  );
-                                })}
-                                    </div>
-                                        </div>
-                           
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                            <p>No job matches found.</p>
-                        </div>
-                    )}
-                              </div>
-                            )}
-                  </section>
-
-                {/* Personal Information Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setInfoOpen(o => !o)}>
-                    <UserCircle className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
-                    {infoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {infoOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      <div className="space-y-4">
-                        {renderField("Title", personalInfo?.title_honorific)}
-                        {renderField("First Name", personalInfo?.firstname)}
-                        {renderField("Last Name", personalInfo?.lastname)}
-                        {renderField("Nickname", personalInfo?.nickname)}
-                        {renderField("Location", personalInfo?.location, MapPin)}
-                        {personalInfo?.introduction_aboutme && (
-                          <div>
-                            <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
-                            <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
                 </section>
-
-                {/* Contact Information Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
-                    <Mail className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
-                    {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {contactOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      <div className="space-y-4">
-                        {renderField("Email", candidate?.email, Mail)}
-                        {renderField("Phone", candidate?.phone, Phone)}
-                      </div>
-                    </div>
-                  )}
-                </section>
-
-                {/* Education Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
-                    <GraduationCap className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
-                    {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {educationOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      <div className="relative">
-                        {getEducation(candidate).length > 0 && (
-                          <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
-                        )}
-                        {getEducation(candidate).length === 0 && (
-                          <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
-                        )}
-                        {getEducation(candidate).map((edu: any, index: number) => {
-                          if (typeof edu === 'string') {
-                            return (
-                              <div key={`edu-${index}-${edu}`} className="relative mb-8">
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-shrink-0 w-28 text-right">
-                                    <div className="text-xs text-muted-foreground font-medium">
-                                      <div className="text-muted-foreground">Education</div>
-                                    </div>
-                                  </div>
-                                  <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                    <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                      <GraduationCap className="w-3 h-3 text-foreground" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                    <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                      {renderField("Education", edu)}
-                                    </div>
-                                    {hasFitScore(edu) && (
-                                      <div className="flex flex-col items-center justify-center ml-6">
-                                        <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                                        <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          
-                          return (
-                            <div key={`edu-${index}-${edu.university || edu.major || index}`} className="relative mb-8">
-                              <div className="flex items-start space-x-4">
-                                <div className="flex-shrink-0 w-28 text-right">
-                                  <div className="text-xs text-muted-foreground font-medium">
-                                    <div className="text-muted-foreground">Education</div>
-                                  </div>
-                                </div>
-                                <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                  <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                    <GraduationCap className="w-3 h-3 text-foreground" />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0 pb-0">
-                                  <div className="bg-muted/50 rounded-lg p-4">
-                                    {renderField("University", edu.university)}
-                                    {renderField("Major", edu.major)}
-                                    {renderField("Field", edu.field)}
-                                    {renderField("Campus", edu.campus)}
-                                    {renderField("Period", edu.period)}
-                                    {renderField("Duration", edu.duration)}
-                                    {renderField("GPA", edu.GPA)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </section>
-
-                {/* Experience Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
-                    <Briefcase className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Experience</h2>
-                    {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {experienceOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      <div className="relative">
-                        {getExperience(candidate).length > 0 && (
-                          <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getExperience(candidate).length - 1) * 80}px` }} />
-                        )}
-                        {getExperience(candidate).length === 0 && (
-                          <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
-                        )}
-                        {getExperience(candidate).map((exp: any, index: number) => {
-                          if (typeof exp === 'string') {
-                            return (
-                              <div key={`exp-${index}-${exp}`} className="relative mb-8">
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-shrink-0 w-28 text-right">
-                                    <div className="text-xs text-muted-foreground font-medium">
-                                      <div className="text-muted-foreground">Experience</div>
-                                    </div>
-                                  </div>
-                                  <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                    <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                      <Briefcase className="w-3 h-3 text-foreground" />
-                                    </div>
-                                  </div>
-                                  <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                    <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                      {renderField("Experience", exp)}
-                                    </div>
-                                    {hasFitScore(exp) && (
-                                      <div className="flex flex-col items-center justify-center ml-6">
-                                        <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                                        <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          
-                          return (
-                            <div key={`exp-${index}-${exp.company || exp.position || index}`} className="relative mb-8">
-                              <div className="flex items-start space-x-4">
-                                <div className="flex-shrink-0 w-28 text-right">
-                                  <div className="text-xs text-muted-foreground font-medium">
-                                    <div className="text-muted-foreground">Experience</div>
-                                  </div>
-                                </div>
-                                <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                  <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                    <Briefcase className="w-3 h-3 text-foreground" />
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0 pb-0">
-                                  <div className="bg-muted/50 rounded-lg p-4">
-                                    {renderField("Company", exp.company)}
-                                    {renderField("Position", exp.position)}
-                                    {renderField("Description", exp.description)}
-                                    {renderField("Period", exp.period)}
-                                    {renderField("Duration", exp.duration)}
-                                    {renderField("Level", exp.positionLevel)}
-                                    {exp.is_current_position && (
-                                      <div className="flex items-center text-sm py-1">
-                                        <span className="font-medium text-muted-foreground min-w-[120px] shrink-0">Current:</span>
-                                        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">Current Position</Badge>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </section>
-
-                {/* Skills Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
-                    <HardDrive className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
-                    {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {skillsOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      {skills && skills.length > 0 ? (
-                        <ul className="space-y-4">
-                          {skills.map((skillEntry: any, index: number) => {
-                            if (typeof skillEntry === 'string') {
-                              return (
-                                <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
-                                  {renderField("Skill", skillEntry)}
-                                </li>
-                              );
-                            }
-                            
-                            return (
-                              <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted">
-                                {renderField("Segment", skillEntry.segment_skill)}
-                                {skillEntry.skill && skillEntry.skill.length > 0 && (
-                                  <div>
-                                    <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
-                                    <div className="flex flex-wrap gap-1.5 mt-1">
-                                      {Array.isArray(skillEntry.skill) ? skillEntry.skill.map((s: string, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>) : null}
-                                    </div>
-                                  </div>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : <div className="text-sm text-muted-foreground text-center py-4">No skill details provided.</div>}
-                    </div>
-                  )}
-                </section>
-
-                {/* Job Suitability Section */}
-                <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                  <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
-                    <UserCog className="mr-2 h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
-                    {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                  </button>
-                  {jobSuitableOpen && (
-                    <div className="space-y-4 transition-all duration-200">
-                      {(jobSuitable && jobSuitable.length > 0) ? (
-                        <ul className="space-y-4">
-                          {jobSuitable.map((job: any, index: number) => (
-                            <li key={`jobsuit-${index}-${job.suitable_career || index}`} className="p-3 border rounded-md bg-muted">
-                              {renderField("Career Path", job.suitable_career)}
-                              {renderField("Job Position", job.suitable_job_position)}
-                              {renderField("Job Level", job.suitable_job_level)}
-                              {renderField("Desired Salary (THB/Month)", job.suitable_salary_bath_month, DollarSign)}
-                              {index < jobSuitable!.length - 1 && <Separator className="my-3" />}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : <div className="text-sm text-muted-foreground text-center py-4">No job suitability details provided.</div>}
-                    </div>
-                  )}
-                </section>
-              </div>
-
-              {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-              <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
-                {/* Recruiter Assignment Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <Users className="mr-2 h-5 w-5 text-primary" />
-                    Recruiter Assignment
-                  </h3>
-                  <div className="bg-muted rounded-lg p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
-                      <Select
-                        value={candidate.recruiterId || 'unassign'}
-                        onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
-                        disabled={isAssigningRecruiterLoading}
-                      >
-                        <SelectTrigger className="min-w-[120px] border-none bg-transparent shadow-none">
-                          <SelectValue placeholder="Assign..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassign">Unassign</SelectItem>
-                          {Array.isArray(recruiters) ? recruiters.map((recruiter) => (
-                                                          <SelectItem key={recruiter.id} value={recruiter.id}>
-                                {recruiter.name}
-                              </SelectItem>
-                            )) : null}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Comments & Activity Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                    Comments & Activity
-                  </h3>
-                  <div className="bg-muted rounded-lg p-4">
-                    {candidateId && (
-                      <CandidateCommentsSection 
-                        candidateId={candidateId} 
-                        comments={comments} 
-                        isEditing={false} 
-                        onCommentsChange={handleCommentsChange} 
-                      />
-                    )}
-                  </div>
-                </div>
-                
-                {/* Attachments Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center">
-                    <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-                    Attachments
-                  </h3>
-                  <div className="bg-muted rounded-lg p-4">
-                    {candidateId && (
-                      <CandidateResumesSection 
-                        candidateId={candidateId} 
-                        resumes={Array.isArray(attachments) ? attachments : []} 
-                        isEditing={false} 
-                        onResumesChange={handleResumesChange} 
-                      />
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>

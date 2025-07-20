@@ -226,6 +226,7 @@ export function CandidateTable({
             {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate) => {
               // Debug logging for fit score and application date
               console.log(`Candidate ${candidate.name}: fitScore=${candidate.fitScore}, applicationDate=${candidate.applicationDate}`);
+              console.log(`Candidate ${candidate.name}: fitScore type=${typeof candidate.fitScore}, value=${candidate.fitScore}`);
               
               const dateValue = candidate.updatedAt || candidate.createdAt;
               let displayDate = 'N/A';

@@ -478,13 +478,42 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                         "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
                         draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                       )}> 
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} data-ai-hint="person avatar"/>
-                            <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-10 w-10 flex-shrink-0">
+                                {(() => {
+                                  const nameInfo = formatCandidateNameWithLang(candidate);
+                                  return (
+                                    <>
+                                      <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
+                                      <AvatarFallback className="bg-primary/10 text-primary">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                    </>
+                                  );
+                                })()}
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                {(() => {
+                                  const nameInfo = formatCandidateNameWithLang(candidate);
+                                  return (
+                                    <p 
+                                      className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
+                                      title={nameInfo.name}
+                                      lang={nameInfo.lang}
+                                    >
+                                      {nameInfo.name}
+                                    </p>
+                                  );
+                                })()}
+                                <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
+                                  <Target className="w-3 h-3 inline mr-1" />
+                                  {candidate.position?.title || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })()}
                             <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
                               <Target className="w-3 h-3 inline mr-1" />
                               {candidate.position?.title || 'N/A'}
@@ -762,11 +791,29 @@ export function CandidateRowKanbanView({
                       <Card className="p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
-                            <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} alt={formatCandidateName(candidate)} />
-                            <AvatarFallback className="bg-primary/10 text-primary">{formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                            {(() => {
+                              const nameInfo = formatCandidateNameWithLang(candidate);
+                              return (
+                                <>
+                                  <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
+                                  <AvatarFallback className="bg-primary/10 text-primary">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                </>
+                              );
+                            })()}
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>{formatCandidateName(candidate)}</p>
+                            {(() => {
+                              const nameInfo = formatCandidateNameWithLang(candidate);
+                              return (
+                                <p 
+                                  className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
+                                  title={nameInfo.name}
+                                  lang={nameInfo.lang}
+                                >
+                                  {nameInfo.name}
+                                </p>
+                              );
+                            })()}
                             <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
                               <Target className="w-3 h-3 inline mr-1" />
                               {candidate.position?.title || 'N/A'}

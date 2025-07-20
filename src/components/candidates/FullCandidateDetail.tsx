@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -138,7 +138,7 @@ const editCandidateDetailSchema = z.object({
   recruiterId: z.string().uuid().nullable().optional(),
   fitScore: z.number().min(0).max(100).nullable().optional(),
   status: z.string().min(1, "Status is required").optional(),
-  assignmentJustification: z.string().optional(),
+  assignmentJustification: z.array(z.string()).optional(),
   parsedData: candidateDetailsEditSchema.optional(),
 });
 
@@ -258,7 +258,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       recruiterId: null,
       fitScore: null,
       status: '',
-      assignmentJustification: '',
+      assignmentJustification: [],
       parsedData: {},
     },
   });
@@ -306,6 +306,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   } = useFieldArray({
     control,
     name: 'parsedData.job_matches',
+  });
+
+  const {
+    fields: justificationFields,
+    append: appendJustification,
+    remove: removeJustification,
+  } = useFieldArray({
+    control,
+    name: 'assignmentJustification',
   });
 
   // Remove duplicate form setup - using the one above with full configuration
@@ -741,15 +750,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
             {/* Column 1: Candidate Header (7 cols) */}
             <div className={isModal ? "lg:col-span-10" : "lg:col-span-7"}>
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  <Avatar className="w-20 h-20 text-3xl relative group">
-                    {candidate.avatarUrl ? (
-                      <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
-                    ) : (
-                    <AvatarFallback>{formatCandidateName(candidate)?.[0] || '?'}</AvatarFallback>
-                    )}
+                                  <div className="flex flex-col md:flex-row items-center gap-6">
+                      {/* Avatar */}
+                      <div className="flex-shrink-0">
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <Avatar className="w-20 h-20 text-3xl relative group">
+                              {candidate.avatarUrl ? (
+                                <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                              ) : (
+                                <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                              )}
+                            </Avatar>
+                          );
+                        })()}
                     {/* Pencil icon button for avatar upload */}
                     <button
                       type="button"
@@ -811,7 +826,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{formatCandidateName(candidate)}</span>
+                    {(() => {
+                      const nameInfo = formatCandidateNameWithLang(candidate);
+                      return (
+                        <span 
+                          className={`text-2xl font-bold tracking-tight text-foreground line-clamp-1 ${nameInfo.fontClass}`}
+                          lang={nameInfo.lang}
+                        >
+                          {nameInfo.name}
+                        </span>
+                      );
+                    })()}
                     {candidate.status && (
                       <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                     )}

@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
-import { formatCandidateName } from "@/lib/candidateUtils";
+import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -141,7 +141,7 @@ const editCandidateDetailSchema = z.object({
   recruiterId: z.string().uuid().nullable().optional(),
   fitScore: z.number().min(0).max(100).nullable().optional(),
   status: z.string().min(1, "Status is required").optional(),
-  assignmentJustification: z.string().optional(),
+  assignmentJustification: z.array(z.string()).optional(),
   parsedData: candidateDetailsEditSchema.optional(),
 });
 
@@ -282,8 +282,12 @@ export default function CandidateDetailPage() {
   const appliedJobId = jobApplied?.jobId || candidate?.positionId;
   const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
   const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification.join('\n')
-    : (candidate?.assignmentJustification || '');
+    ? jobApplied.justification
+    : (candidate?.assignmentJustification 
+        ? (Array.isArray(candidate.assignmentJustification) 
+            ? candidate.assignmentJustification 
+            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+        : []);
 
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({
@@ -294,7 +298,7 @@ export default function CandidateDetailPage() {
       phone: candidate?.phone || '',
       positionId: appliedJobId || null,
       fitScore: appliedFitScore || null,
-      assignmentJustification: appliedJustification || '',
+      assignmentJustification: appliedJustification || [],
       status: candidate?.status || '',
       recruiterId: candidate?.recruiterId || null,
       parsedData: (candidate?.parsedData as any) || {}
@@ -309,6 +313,7 @@ export default function CandidateDetailPage() {
   const { fields: skillsFields, append: appendSkill, remove: removeSkill } = useFieldArray({ control, name: "parsedData.skills" });
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
   const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
+  const { fields: justificationFields, append: appendJustification, remove: removeJustification } = useFieldArray({ control, name: "assignmentJustification" });
 
   // Update form when candidate data changes
   useEffect(() => {
@@ -319,7 +324,7 @@ export default function CandidateDetailPage() {
         phone: candidate.phone || '',
         positionId: appliedJobId || null,
         fitScore: appliedFitScore || null,
-        assignmentJustification: appliedJustification || '',
+        assignmentJustification: appliedJustification || [],
         status: candidate.status || '',
         recruiterId: candidate.recruiterId || null,
         parsedData: {
@@ -752,9 +757,7 @@ export default function CandidateDetailPage() {
     const newJobApplied = {
       jobId: data.positionId,
       fitScore: data.fitScore,
-      justification: data.assignmentJustification
-        ? data.assignmentJustification.split('\n').map((j) => j.trim()).filter(Boolean)
-        : [],
+      justification: data.assignmentJustification || [],
     };
     const processedData = {
       ...data,
@@ -790,7 +793,7 @@ export default function CandidateDetailPage() {
             phone: candidate.phone,
             positionId: appliedJobId || null,
             fitScore: appliedFitScore || null,
-            assignmentJustification: appliedJustification || '',
+            assignmentJustification: appliedJustification || [],
             status: candidate.status,
             recruiterId: candidate.recruiterId || null,
             parsedData: {
@@ -1238,12 +1241,18 @@ export default function CandidateDetailPage() {
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <Avatar className="w-20 h-20 text-3xl relative group">
-                        {candidate.avatarUrl ? (
-                          <AvatarImage src={candidate.avatarUrl} alt={formatCandidateName(candidate)} />
-                        ) : (
-                          <AvatarFallback>{formatCandidateName(candidate)?.[0] || '?'}</AvatarFallback>
-                        )}
+                      {(() => {
+                        const nameInfo = formatCandidateNameWithLang(candidate);
+                        return (
+                          <Avatar className="w-20 h-20 text-3xl relative group">
+                            {candidate.avatarUrl ? (
+                              <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                            ) : (
+                              <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                            )}
+                          </Avatar>
+                        );
+                      })()}
                         {/* Pencil icon button for avatar upload */}
                         <button
                           type="button"
@@ -1305,7 +1314,17 @@ export default function CandidateDetailPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <span className="text-2xl font-bold tracking-tight text-foreground line-clamp-1">{formatCandidateName(candidate)}</span>
+                        {(() => {
+                          const nameInfo = formatCandidateNameWithLang(candidate);
+                          return (
+                            <span 
+                              className={`text-2xl font-bold tracking-tight text-foreground line-clamp-1 ${nameInfo.fontClass}`}
+                              lang={nameInfo.lang}
+                            >
+                              {nameInfo.name}
+                            </span>
+                          );
+                        })()}
                         {candidate.status && (
                           <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                         )}
@@ -1464,14 +1483,46 @@ export default function CandidateDetailPage() {
                               
                               <div>
                                 <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
-                                <Textarea 
-                                  placeholder="Explain why this candidate was assigned to this position...&#10;e.g.,&#10;• Strong technical background&#10;• Relevant experience in similar role&#10;• Good cultural fit with team&#10;• Meets all required qualifications"
-                                  {...register('assignmentJustification')}
-                                  rows={4}
-                                  className="resize-none"
-                                />
+                                <div className="space-y-3">
+                                  {justificationFields.length === 0 && (
+                                    <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
+                                      <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                      <p className="text-sm">No justification items added yet.</p>
+                                      <p className="text-xs">Click "Add Justification" to get started.</p>
+                                    </div>
+                                  )}
+                                  {justificationFields.map((field, index) => (
+                                    <div key={field.id} className="flex items-start gap-2 group">
+                                      <div className="flex-1">
+                                        <Input
+                                          placeholder={`Justification reason ${index + 1}...`}
+                                          {...register(`assignmentJustification.${index}`)}
+                                          className="resize-none"
+                                        />
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => removeJustification(index)}
+                                        title="Remove justification"
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => appendJustification('')}
+                                  >
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Justification
+                                  </Button>
+                                </div>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  Provide detailed reasons for assigning this candidate to the applied position.
+                                  Add detailed reasons for assigning this candidate to the applied position.
                                 </p>
                               </div>
                             </div>
@@ -1500,9 +1551,7 @@ export default function CandidateDetailPage() {
                                       jobId: appliedJobId,
                                       jobTitle: position.title,
                                       fitScore: appliedFitScore || 0,
-                                      matchReasons: appliedJustification 
-                                        ? appliedJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
-                                        : [],
+                                      matchReasons: appliedJustification || [],
                                       position: {
                                         id: position.id,
                                         title: position.title,
@@ -1534,25 +1583,21 @@ export default function CandidateDetailPage() {
                                     )}
                                    </div>
                                    
-                                  {appliedJustification && (
+                                  {appliedJustification && appliedJustification.length > 0 && (
                                      <div className="mt-3">
                                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
                                       <div className="space-y-2">
-                                        {appliedJustification.split('\n').map((sentence: string, index: number) => {
+                                        {appliedJustification.map((sentence: string, index: number) => {
                                           const trimmedSentence = sentence.trim();
                                           if (!trimmedSentence) return null;
                                           
                                           return (
                                             <div 
                                               key={index}
-                                              className={`text-sm text-foreground px-3 py-2 rounded shadow-sm ${
-                                                trimmedSentence.endsWith('.') 
-                                                  ? 'bg-primary/10 border border-primary/30' 
-                                                  : 'bg-muted/50'
-                                              }`}
+                                              className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted/50"
                                             >
                                               {trimmedSentence}
                                             </div>

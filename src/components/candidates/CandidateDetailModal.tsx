@@ -125,6 +125,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // Collapsible section states
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
+  const [jobMatchesScrollPosition, setJobMatchesScrollPosition] = useState(0);
   const [infoOpen, setInfoOpen] = useState(true);
   const [contactOpen, setContactOpen] = useState(true);
   const [educationOpen, setEducationOpen] = useState(true);
@@ -502,8 +503,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // Loading state
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-background rounded-lg shadow-2xl border border-border p-8 flex flex-col items-center space-y-4">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
         </div>
@@ -514,8 +515,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // Error state
   if (fetchError) {
     return (
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4 text-center p-6">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-background rounded-lg shadow-2xl border border-border p-8 flex flex-col items-center space-y-4 text-center">
           <ServerCrash className="w-16 h-16 text-destructive mb-4" />
           <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Candidate</h2>
           <p className="text-muted-foreground mb-6">{fetchError}</p>
@@ -528,8 +529,8 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   // No candidate state
   if (!candidate) {
     return (
-      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4 text-center p-6">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-background rounded-lg shadow-2xl border border-border p-8 flex flex-col items-center space-y-4 text-center">
           <UserCircle className="w-16 h-16 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold text-foreground">Candidate Not Found</h2>
           <p className="text-muted-foreground">The requested candidate could not be found.</p>
@@ -542,9 +543,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   }
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 overflow-hidden">
+    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       {/* Modal Container */}
-      <div className="h-full w-full flex flex-col">
+      <div className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden">
         {/* Header with close button */}
         <div className="flex items-center justify-between p-4 border-b border-border bg-card">
           <div className="flex items-center gap-3">
@@ -698,7 +699,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                   jobId: appliedJobId,
                                   jobTitle: position.title,
                                   fitScore: appliedFitScore || 0,
-                                  matchReasons: appliedJustification && typeof appliedJustification === 'string'
+                                  matchReasons: appliedJustification 
                                     ? appliedJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
                                     : [],
                                   position: {
@@ -717,7 +718,9 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                               }
                             }}
                           >
-                            <div className="rounded-lg p-4 h-full border shadow-lg">
+                            <div 
+                              className="rounded-lg p-4 h-full border shadow-lg"
+                            >
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-foreground text-lg">
                                   {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
@@ -728,16 +731,16 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                     <span className="text-lg font-bold text-primary">({getGradeFromScore(appliedFitScore)})</span>
                                   </div>
                                 )}
-                              </div>
-                              
+                               </div>
+                               
                               {appliedJustification && (
-                                <div className="mt-3">
+                                 <div className="mt-3">
                                   <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                     <Info className="h-3 w-3" />
                                     Justification:
                                   </h5>
                                   <div className="space-y-2">
-                                    {appliedJustification && typeof appliedJustification === 'string' ? appliedJustification.split('\n').map((sentence: string, index: number) => {
+                                    {appliedJustification.split('\n').map((sentence: string, index: number) => {
                                       const trimmedSentence = sentence.trim();
                                       if (!trimmedSentence) return null;
                                       
@@ -753,22 +756,24 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                                           {trimmedSentence}
                                         </div>
                                       );
-                                    }) : null}
+                                    })}
                                   </div>
-                                </div>
-                              )}
-                            </div>
+                                 </div>
+                               )}
+                             </div>
                           </div>
                         ) : (
                           <div className="text-center py-8 text-muted-foreground">
                             <Briefcase className="mx-auto h-12 w-12 mb-4 opacity-50" />
                             <p>No position applied for.</p>
+                            <p className="text-sm">Click "Edit" to select the position this candidate applied for.</p>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  )}
-                </section>
+                                 </div>
+                               )}
+                       </div>
+                    )}
+                  </section>
 
                 {/* Job Matches Section */}
                 <section className="mb-4 border border-border rounded-lg p-4 bg-card">
@@ -791,77 +796,134 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
                   </button>
                   {jobMatchesOpen && (
                     <div className="space-y-4 transition-all duration-200">
-                      {candidateJobMatches && candidateJobMatches.length > 0 ? (
-                        <div className="space-y-4">
-                          <div className="flex gap-4 overflow-x-auto pb-4">
-                            {candidateJobMatches.map((match: any, index: number) => {
-                              const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === match.jobId) : null;
-                              return (
-                                <div
-                                  key={`match-${index}-${match.jobId || match.jobTitle || index}`}
-                                  className="min-w-[280px] max-w-[320px] p-4 border rounded-lg bg-card hover:shadow-md transition-all duration-200 cursor-pointer relative"
-                                  onClick={() => handleJobMatchClick(match)}
+
+                        {/* View Section - Job Matches Cards */}
+                        {candidateJobMatches && candidateJobMatches.length > 0 && (
+                            <div className="relative">
+                              {/* Left Navigation Button - Section Level */}
+                              {candidateJobMatches.length > 1 && (
+                                    <Button 
+                                        type="button"
+                                        variant="outline" 
+                                  size="icon"
+                                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+                                        onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const container = document.querySelector('.job-matches-container');
+                                    if (container) {
+                                      container.scrollBy({ left: -280, behavior: 'smooth' });
+                                    }
+                                  }}
                                 >
-                                  <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      {(match as any).is_applied_job && (
-                                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
-                                      )}
-                                      <h4 className="font-semibold text-foreground text-sm truncate">
-                                        {position?.title || match.jobTitle || 'Unknown Position'}
-                                      </h4>
+                                  <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                              )}
+                              
+                              {/* Right Navigation Button - Section Level */}
+                              {candidateJobMatches.length > 1 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                  size="icon"
+                                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const container = document.querySelector('.job-matches-container');
+                                    if (container) {
+                                      container.scrollBy({ left: 280, behavior: 'smooth' });
+                                    }
+                                  }}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                              )}
+                                
+                                    <div 
+                                className="flex overflow-x-auto gap-3 pb-2 job-matches-container scrollbar-hide" 
+                                        style={{ 
+                                            scrollbarWidth: 'none', 
+                                            msOverflowStyle: 'none'
+                                        }}
+                                        onScroll={(e) => {
+                                          const target = e.target as HTMLElement;
+                                          setJobMatchesScrollPosition(target.scrollLeft);
+                                        }}
+                                    >
+                                {candidateJobMatches.map((match: any, index: number) => {
+                                  // Try to find position by jobId first, then by jobTitle
+                                  const position = Array.isArray(allDbPositions) ? 
+                                                 (allDbPositions.find(p => p.id === match.jobId) || 
+                                                  allDbPositions.find(p => p.title === match.jobTitle)) : null;
+                                  
+                                  return (
+                                    <div 
+                                      key={`jobmatch-${index}-${match.jobTitle || index}`} 
+                                      className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
+                                      onClick={() => handleJobMatchClick(match)}
+                                    >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    {(match as any).is_applied_job && (
+                                                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
+                                                    )}
+                                          <h4 className="font-semibold text-foreground text-sm truncate">
+                                            {position?.title || match.jobTitle || 'Unknown Position'}
+                                          </h4>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                                <div className="text-xs text-muted-foreground">
+                                                    #{index + 1}
+                                                </div>
+                                            </div>
+                                            </div>
+                                            {match.fitScore && match.fitScore > 0 && (
+                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
+                                                    {formatScoreWithGrade(match.fitScore)}
+                                                </div>
+                                            )}
+                                            {match.matchReasons && match.matchReasons.length > 0 && (
+                                                <div>
+                                                    <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                                                        <Lightbulb className="h-3 w-3" />
+                                                        Reasons ({match.matchReasons.length}):
+                                                    </h5>
+                                                    <div className="space-y-1 max-h-20 overflow-y-auto">
+                                                        {match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
+                                                            <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
+                                                                <span className="text-primary text-xs mt-0.5">•</span>
+                                                                <span className="flex-1 line-clamp-1">{reason}</span>
+                                                            </div>
+                                                        ))}
+                                                        {match.matchReasons.length > 2 && (
+                                                            <div className="text-xs text-muted-foreground italic">
+                                                                +{match.matchReasons.length - 2} more reasons
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {(!match.matchReasons || match.matchReasons.length === 0) && (
+                                                <div className="text-xs text-muted-foreground italic">
+                                                    No match reasons provided
+                                                </div>
+                                            )}
+                                        </div>
+                                  );
+                                })}
                                     </div>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <div className="text-xs text-muted-foreground">
-                                        #{index + 1}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {match.fitScore && match.fitScore > 0 && (
-                                    <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
-                                      {formatScoreWithGrade(match.fitScore)}
-                                    </div>
-                                  )}
-                                  {match.matchReasons && match.matchReasons.length > 0 && (
-                                    <div>
-                                      <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
-                                        <Lightbulb className="h-3 w-3" />
-                                        Reasons ({match.matchReasons.length}):
-                                      </h5>
-                                      <div className="space-y-1 max-h-20 overflow-y-auto">
-                                        {Array.isArray(match.matchReasons) ? match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
-                                          <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
-                                            <span className="text-primary text-xs mt-0.5">•</span>
-                                            <span className="flex-1 line-clamp-1">{reason}</span>
-                                          </div>
-                                        )) : null}
-                                        {match.matchReasons.length > 2 && (
-                                          <div className="text-xs text-muted-foreground italic">
-                                            +{match.matchReasons.length - 2} more reasons
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {(!match.matchReasons || match.matchReasons.length === 0) && (
-                                    <div className="text-xs text-muted-foreground italic">
-                                      No match reasons provided
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
+                                        </div>
+                           
+                    ) : (
                         <div className="text-center py-8 text-muted-foreground">
-                          <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                          <p>No job matches found.</p>
+                            <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                            <p>No job matches found.</p>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </section>
+                    )}
+                              </div>
+                            )}
+                  </section>
 
                 {/* Personal Information Section */}
                 <section className="mb-4 border border-border rounded-lg p-4 bg-card">

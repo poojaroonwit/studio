@@ -165,6 +165,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         fitScore: match.fitScore || 0, // Keep as integer (0-100) for consistency with scoreUtils
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
   } catch (error: any) {
     console.error('Error fetching candidate', id, error); // Add server-side log with ID

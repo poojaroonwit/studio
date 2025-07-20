@@ -1,14 +1,15 @@
 import React from 'react';
 import type { Candidate } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-// Add other imports as needed (e.g., Avatar, Input, etc.)
+import { formatCandidateNameWithLang } from '@/lib/candidateUtils';
 
 interface CandidatePersonalInfoProps {
   candidate: Candidate;
-  // Add any handlers or state needed for editing, saving, etc.
 }
 
 const CandidatePersonalInfo: React.FC<CandidatePersonalInfoProps> = ({ candidate }) => {
+  const nameInfo = formatCandidateNameWithLang(candidate);
+  
   // Render personal info fields, edit form, etc.
   return (
     <Card>
@@ -17,7 +18,15 @@ const CandidatePersonalInfo: React.FC<CandidatePersonalInfoProps> = ({ candidate
       </CardHeader>
       <CardContent>
         {/* Display candidate personal info here */}
-        <div>Name: {candidate.name}</div>
+        <div>
+          <span className="font-medium">Name: </span>
+          <span 
+            className={nameInfo.fontClass}
+            lang={nameInfo.lang}
+          >
+            {nameInfo.name}
+          </span>
+        </div>
         {/* Add more fields as needed */}
       </CardContent>
     </Card>

@@ -124,8 +124,116 @@ export async function GET(request: NextRequest) {
   try {
     const client = await getPool().connect();
     
+    // Parse query parameters for filtering
+    const url = new URL(request.url);
+    const name = url.searchParams.get('name');
+    const email = url.searchParams.get('email');
+    const phone = url.searchParams.get('phone');
+    const positionId = url.searchParams.get('positionId');
+    const status = url.searchParams.get('status');
+    const education = url.searchParams.get('education');
+    const minFitScore = url.searchParams.get('minFitScore');
+    const maxFitScore = url.searchParams.get('maxFitScore');
+    const applicationDateStart = url.searchParams.get('applicationDateStart');
+    const applicationDateEnd = url.searchParams.get('applicationDateEnd');
+    const recruiterId = url.searchParams.get('recruiterId');
+    
+    // Build WHERE clause based on filters
+    let whereConditions = [];
+    let queryParams = [];
+    let paramIndex = 1;
+    
+    if (name) {
+      whereConditions.push(`c.name ILIKE $${paramIndex}`);
+      queryParams.push(`%${name}%`);
+      paramIndex++;
+    }
+    
+    if (email) {
+      whereConditions.push(`c.email ILIKE $${paramIndex}`);
+      queryParams.push(`%${email}%`);
+      paramIndex++;
+    }
+    
+    if (phone) {
+      whereConditions.push(`c.phone ILIKE $${paramIndex}`);
+      queryParams.push(`%${phone}%`);
+      paramIndex++;
+    }
+    
+    if (positionId) {
+      const positionIds = positionId.split(',');
+      if (positionIds.length === 1) {
+        whereConditions.push(`c."positionId" = $${paramIndex}`);
+        queryParams.push(positionIds[0]);
+        paramIndex++;
+      } else {
+        whereConditions.push(`c."positionId" = ANY($${paramIndex})`);
+        queryParams.push(positionIds);
+        paramIndex++;
+      }
+    }
+    
+    if (status) {
+      const statuses = status.split(',');
+      if (statuses.length === 1) {
+        whereConditions.push(`c.status = $${paramIndex}`);
+        queryParams.push(statuses[0]);
+        paramIndex++;
+      } else {
+        whereConditions.push(`c.status = ANY($${paramIndex})`);
+        queryParams.push(statuses);
+        paramIndex++;
+      }
+    }
+    
+    if (education) {
+      whereConditions.push(`c."parsedData"->>'education' ILIKE $${paramIndex}`);
+      queryParams.push(`%${education}%`);
+      paramIndex++;
+    }
+    
+    if (minFitScore !== null && minFitScore !== undefined) {
+      whereConditions.push(`c."fitScore" >= $${paramIndex}`);
+      queryParams.push(parseInt(minFitScore));
+      paramIndex++;
+    }
+    
+    if (maxFitScore !== null && maxFitScore !== undefined) {
+      whereConditions.push(`c."fitScore" <= $${paramIndex}`);
+      queryParams.push(parseInt(maxFitScore));
+      paramIndex++;
+    }
+    
+    if (applicationDateStart) {
+      whereConditions.push(`c."applicationDate" >= $${paramIndex}`);
+      queryParams.push(new Date(applicationDateStart));
+      paramIndex++;
+    }
+    
+    if (applicationDateEnd) {
+      whereConditions.push(`c."applicationDate" <= $${paramIndex}`);
+      queryParams.push(new Date(applicationDateEnd));
+      paramIndex++;
+    }
+    
+    if (recruiterId) {
+      const recruiterIds = recruiterId.split(',');
+      if (recruiterIds.length === 1) {
+        whereConditions.push(`c."recruiterId" = $${paramIndex}`);
+        queryParams.push(recruiterIds[0]);
+        paramIndex++;
+      } else {
+        whereConditions.push(`c."recruiterId" = ANY($${paramIndex})`);
+        queryParams.push(recruiterIds);
+        paramIndex++;
+      }
+    }
+    
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    
     // Get candidates with position and recruiter information
-    const result = await client.query(`
+    const query = `
       SELECT 
         c.*,
         p.title as position_title,
@@ -133,15 +241,17 @@ export async function GET(request: NextRequest) {
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
+      ${whereClause}
       ORDER BY c."applicationDate" DESC
-    `);
+    `;
+    
+    const result = await client.query(query, queryParams);
     client.release();
 
     // Transform data for export
     const exportData = result.rows.map(transformCandidateForExport);
     
     // Check if user wants Excel format (default) or CSV
-    const url = new URL(request.url);
     const format = url.searchParams.get('format') || 'excel';
     
     if (format === 'excel') {

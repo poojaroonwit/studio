@@ -42,8 +42,8 @@ interface CandidatesPageClientProps {
   initialFilters?: CandidateFilterValues;
 }
 
-function downloadFile(content: string, filename: string, contentType: string) {
-  const blob = new Blob([content], { type: contentType });
+function downloadFile(content: string | Blob, filename: string, contentType?: string) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: contentType });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
@@ -1038,7 +1038,7 @@ export function CandidatesPageClient({
       }
       const blob = await response.blob();
       const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'candidates_export.xlsx';
-      downloadFile(await blob.text(), filename, blob.type);
+      downloadFile(blob, filename);
 
       toast.success('Candidates exported as Excel.');
     } catch (error) {
@@ -1070,7 +1070,7 @@ export function CandidatesPageClient({
       }
       const blob = await response.blob();
       const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'candidates_export.csv';
-      downloadFile(await blob.text(), filename, blob.type);
+      downloadFile(blob, filename);
 
       toast.success('Candidates exported as CSV.');
     } catch (error) {

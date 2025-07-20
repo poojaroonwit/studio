@@ -108,6 +108,24 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   onDragStart: () => void;
   onDragEnd: () => void;
 }) => {
+  console.log('EnhancedCandidateCard: Rendering card for:', {
+    candidateId: candidate.id,
+    candidateName: candidate.name,
+    isDragged
+  });
+  
+  // Validate candidate data
+  if (!candidate || !candidate.id) {
+    console.error('EnhancedCandidateCard: Invalid candidate data:', candidate);
+    return (
+      <Card className="p-4 border border-destructive/20 bg-destructive/5">
+        <div className="text-center text-destructive text-sm">
+          Invalid candidate data
+        </div>
+      </Card>
+    );
+  }
+  
   const education = getEducation(candidate);
   const experience = getExperience(candidate);
   const skills = getSkills(candidate);
@@ -862,6 +880,9 @@ export function FlexibleKanbanView({
   const effectiveRowValues = (effectiveRowField === 'status') ? statuses : (isRowBased ? visibleRowValues : statuses);
   const effectiveColumnValues = isColumnBased ? visibleColumnValues : [];
 
+  // Fallback: if no effective row values, use statuses
+  const finalRowValues = effectiveRowValues.length > 0 ? effectiveRowValues : statuses;
+
   console.log('FlexibleKanbanView: Layout detection:', {
     rowField,
     columnField,
@@ -873,7 +894,9 @@ export function FlexibleKanbanView({
     effectiveRowField,
     effectiveColumnField,
     effectiveRowValues,
-    effectiveColumnValues
+    effectiveColumnValues,
+    finalRowValues,
+    candidatesCount: candidates.length
   });
 
 
@@ -882,8 +905,17 @@ export function FlexibleKanbanView({
   const candidatesByPosition = useMemo(() => {
     const grouped: Record<string, Record<string, Candidate[]>> = {};
     
+    console.log('FlexibleKanbanView: Grouping candidates:', {
+      candidates: candidates.length,
+      effectiveRowField,
+      effectiveColumnField,
+      finalRowValues,
+      effectiveColumnValues,
+      isColumnBased
+    });
+    
     // Initialize all positions with empty arrays
-    effectiveRowValues.forEach(rowValue => {
+    finalRowValues.forEach(rowValue => {
       grouped[rowValue] = {};
       if (isColumnBased) {
         effectiveColumnValues.forEach(colValue => {
@@ -903,28 +935,59 @@ export function FlexibleKanbanView({
         colValue = typeof rawCol === 'string' ? rawCol : null;
       }
       
-      if (typeof rowValue === 'string' && rowValue && effectiveRowValues.includes(rowValue)) {
-        if (!grouped[rowValue]) {
-          grouped[rowValue] = {};
+      console.log('FlexibleKanbanView: Processing candidate:', {
+        candidateId: candidate.id,
+        candidateName: candidate.name,
+        rowValue,
+        colValue,
+        effectiveRowField,
+        effectiveColumnField,
+        rowValueIncluded: finalRowValues.includes(rowValue),
+        colValueIncluded: effectiveColumnValues.includes(colValue)
+      });
+      
+      // If rowValue is not in finalRowValues, try to find a fallback
+      let finalRowValue = rowValue;
+      if (typeof rowValue === 'string' && rowValue) {
+        if (finalRowValues.includes(rowValue)) {
+          finalRowValue = rowValue;
+        } else {
+          // Fallback: use the first available row value or candidate's status
+          finalRowValue = finalRowValues[0] || candidate.status || 'Applied';
+          console.log('FlexibleKanbanView: Using fallback row value:', {
+            original: rowValue,
+            fallback: finalRowValue
+          });
+        }
+      } else {
+        // If no rowValue, use candidate's status or first available
+        finalRowValue = candidate.status || finalRowValues[0] || 'Applied';
+        console.log('FlexibleKanbanView: No rowValue, using status as fallback:', finalRowValue);
+      }
+      
+      if (typeof finalRowValue === 'string' && finalRowValue) {
+        if (!grouped[finalRowValue]) {
+          grouped[finalRowValue] = {};
         }
         if (isColumnBased) {
           if (typeof colValue === 'string' && colValue && effectiveColumnValues.includes(colValue)) {
-            if (!grouped[rowValue][colValue]) {
-              grouped[rowValue][colValue] = [];
+            if (!grouped[finalRowValue][colValue]) {
+              grouped[finalRowValue][colValue] = [];
             }
-            grouped[rowValue][colValue].push(candidate);
+            grouped[finalRowValue][colValue].push(candidate);
           }
         } else {
-          if (!grouped[rowValue]['default']) {
-            grouped[rowValue]['default'] = [];
+          if (!grouped[finalRowValue]['default']) {
+            grouped[finalRowValue]['default'] = [];
           }
-          grouped[rowValue]['default'].push(candidate);
+          grouped[finalRowValue]['default'].push(candidate);
         }
       }
     });
     
+    console.log('FlexibleKanbanView: Final grouped candidates:', grouped);
     return grouped;
-  }, [candidates, effectiveRowField, effectiveColumnField, effectiveRowValues, effectiveColumnValues, isColumnBased]);
+  }, [candidates, effectiveRowField, effectiveColumnField, finalRowValues, effectiveColumnValues, isColumnBased]);
 
   // Drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
@@ -1098,7 +1161,15 @@ export function FlexibleKanbanView({
       <>
         <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
         <div className="grid grid-cols-1 gap-4">
-          {effectiveRowValues.map(rowValue => (
+          {finalRowValues.map(rowValue => {
+            const rowCandidates = candidatesByPosition[rowValue]?.['default'] || [];
+            console.log('FlexibleKanbanView: Rendering row:', {
+              rowValue,
+              rowCandidates: rowCandidates.length,
+              candidates: rowCandidates.map(c => ({ id: c.id, name: c.name }))
+            });
+            
+            return (
             <div
               key={rowValue}
               className={cn(
@@ -1114,14 +1185,19 @@ export function FlexibleKanbanView({
                   <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
                 </div>
                 <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {candidatesByPosition[rowValue]?.['default']?.length || 0} candidates
+                  {rowCandidates.length} candidates
                 </Badge>
               </div>
               <div className="flex-1 min-h-[80px]">
-                {candidatesByPosition[rowValue]?.['default']?.length > 0 ? (
+                {rowCandidates.length > 0 ? (
                   shouldUseSingleRow ? (
                     <div className="flex flex-row gap-4 overflow-x-auto py-4">
-                      {candidatesByPosition[rowValue]['default'].map(candidate => (
+                      {rowCandidates.map(candidate => {
+                        console.log('FlexibleKanbanView: Rendering candidate card:', {
+                          candidateId: candidate.id,
+                          candidateName: candidate.name
+                        });
+                        return (
                         <div
                           key={candidate.id}
                           className={cn(
@@ -1137,11 +1213,17 @@ export function FlexibleKanbanView({
                             onDragEnd={handleDragEnd}
                           />
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="flex flex-row flex-wrap gap-3">
-                      {candidatesByPosition[rowValue]['default'].map(candidate => (
+                      {rowCandidates.map(candidate => {
+                        console.log('FlexibleKanbanView: Rendering candidate card (wrap):', {
+                          candidateId: candidate.id,
+                          candidateName: candidate.name
+                        });
+                        return (
                         <div
                           key={candidate.id}
                           className={cn(
@@ -1157,7 +1239,8 @@ export function FlexibleKanbanView({
                             onDragEnd={handleDragEnd}
                           />
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )
                 ) : (
@@ -1173,9 +1256,44 @@ export function FlexibleKanbanView({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+      
+      {/* Fallback: If no candidates are shown due to customization issues, show all candidates */}
+      {(() => {
+        const totalShownCandidates = Object.values(candidatesByPosition).reduce((total, colGroup) => {
+          return total + Object.values(colGroup).reduce((colTotal, candidates) => colTotal + candidates.length, 0);
+        }, 0);
+        
+        if (totalShownCandidates === 0 && candidates.length > 0) {
+          console.warn('FlexibleKanbanView: No candidates shown due to customization, showing fallback view');
+          return (
+            <div className="mt-4 p-4 border border-orange-200 bg-orange-50 rounded-lg">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-medium text-orange-800">Customization Issue Detected</h3>
+                <p className="text-sm text-orange-600">
+                  No candidates are visible with current board settings. Showing all {candidates.length} candidates below.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {candidates.map(candidate => (
+                  <div key={candidate.id} className="w-full">
+                    <EnhancedCandidateCard
+                      candidate={candidate}
+                      onClick={() => handleCardClick(candidate)}
+                      onDragStart={() => handleDragStart(candidate)}
+                      onDragEnd={handleDragEnd}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
     </>
   );
 }

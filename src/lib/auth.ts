@@ -184,7 +184,7 @@ export const authOptions: NextAuthOptions = {
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
-        if (typeof token.id === "string" && isUuid(token.id)) {
+        if (typeof token.id === "string" && !isUuid(token.id)) {
           const client = await getPool().connect();
           try {
             const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;

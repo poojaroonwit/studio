@@ -184,11 +184,11 @@ export const authOptions: NextAuthOptions = {
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
-        if (!isUuid(token.id) && account?.provider === 'azure-ad' && profile?.email) {
+        if (typeof token.id === "string" && isUuid(token.id)) {
           const client = await getPool().connect();
           try {
-            const oid = (profile as any).oid ?? (profile as any).sub ?? profile.email;
-            const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
+            const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
+            const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
             const dbUser = res.rows[0];
             if (dbUser) {
               token.id = dbUser.id;
@@ -200,7 +200,7 @@ export const authOptions: NextAuthOptions = {
           }
         }
         // Always fetch fresh merged permissions if token.id is a UUID
-        if (isUuid(token.id)) {
+        if (typeof token.id === 'string' && isUuid(token.id)) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
           } catch (e) {
@@ -230,7 +230,7 @@ export const authOptions: NextAuthOptions = {
               const client = await getPool().connect();
               try {
                   // Use profile.sub as the unique user ID (OID) if oid is not present
-                  const oid = (profile as any).oid ?? (profile as any).sub ?? profile.email;
+                  const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
                   const picture = (profile as any).picture ?? null;
                   
                   console.log('[AZURE AD SIGNIN] User OID:', oid);

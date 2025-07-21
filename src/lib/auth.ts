@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import { logAudit } from '@/lib/auditLog';
 import type { UserProfile, PlatformModuleId } from '@/lib/types';
 import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 
 // Cache for user validation to reduce database calls
 const userValidationCache = new Map<string, { exists: boolean; timestamp: number }>();
@@ -171,15 +171,36 @@ export const authOptions: NextAuthOptions = {
       updateAge: 24 * 60 * 60, // 24 hours
     },
     callbacks: {
-      async jwt({ token, user, account }) {
+      async jwt({ token, user, account, profile }) {
+        // Helper to check if a string is a valid UUID
+        function isUuid(str: string) {
+          return typeof str === 'string' && validateUuid(str);
+        }
+        // If account and user are present (on sign-in), set token fields
         if (account && user) {
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
         }
-        // If token.id exists, always fetch fresh merged permissions (for session refreshes and permission updates)
-        if (token.id) {
+        // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
+        if (!isUuid(token.id) && account?.provider === 'azure-ad' && profile?.email) {
+          const client = await getPool().connect();
+          try {
+            const oid = (profile as any).oid ?? (profile as any).sub ?? profile.email;
+            const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
+            const dbUser = res.rows[0];
+            if (dbUser) {
+              token.id = dbUser.id;
+            }
+          } catch (e) {
+            console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);
+          } finally {
+            client.release();
+          }
+        }
+        // Always fetch fresh merged permissions if token.id is a UUID
+        if (isUuid(token.id)) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
           } catch (e) {

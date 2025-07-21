@@ -23,6 +23,7 @@ model User {
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
   apiKey               String?                   @unique
+  azure_oid            String?                   @unique // Azure AD Object ID (optional, unique)
   accounts             Account[]
   attachments          Attachment[]              @relation("UserAttachments")
   candidates           Candidate[]               @relation("RecruiterCandidates")

@@ -340,16 +340,6 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
             {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {uploading ? 'Uploading...' : 'Upload'}
           </Button>
-          {onUploadSuccess && (
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={handleRefreshClick}
-              disabled={uploading}
-            >
-              Refresh List
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

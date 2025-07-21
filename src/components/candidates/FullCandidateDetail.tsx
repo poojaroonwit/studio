@@ -335,7 +335,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           email: data.email,
           phone: data.phone,
           positionId: data.positionId,
-          recruiterId: data.recruiterId,
+          recruiterId: data.recruiterId || null,
           fitScore: data.fitScore || null,
           status: data.status || '',
           parsedData: data.parsedData,
@@ -418,6 +418,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
     fetchTransitionHistory();
   }, [candidateId]);
+
+  // Ensure candidateJobMatches is always in sync with candidate data
+  useEffect(() => {
+    const parsedData = candidate?.parsedData;
+    if (
+      parsedData &&
+      typeof parsedData === 'object' &&
+      'job_matches' in parsedData &&
+      Array.isArray((parsedData as any).job_matches)
+    ) {
+      setCandidateJobMatches((parsedData as { job_matches: any[] }).job_matches);
+    } else {
+      setCandidateJobMatches([]);
+    }
+  }, [candidate]);
 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;

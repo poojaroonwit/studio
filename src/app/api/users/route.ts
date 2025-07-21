@@ -51,7 +51,8 @@ const userRoleEnum = z.enum(['Admin', 'Recruiter', 'Hiring Manager']);
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  // Password is only required for 'basic' users; for 'azure', it is optional
+  password: z.string().min(6, "Password must be at least 6 characters long").optional(),
   role: userRoleEnum,
   modulePermissions: z.array(z.enum(platformModuleIds)).optional().default([]),
   groupIds: z.array(z.string().uuid()).optional().default([]),
@@ -169,7 +170,15 @@ export async function POST(request: NextRequest) {
   const saltRounds = 10;
   let hashedPassword;
   try {
-    hashedPassword = await bcrypt.hash(password, saltRounds);
+    if (authenticationMethod === 'azure') {
+      // For Azure users, generate a placeholder password
+      hashedPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), saltRounds);
+    } else {
+      if (!password) {
+        return NextResponse.json({ message: "Password is required for basic authentication." }, { status: 400 });
+      }
+      hashedPassword = await bcrypt.hash(password, saltRounds);
+    }
   } catch (hashError) {
     console.error("Error hashing password:", hashError);
     await logAudit('ERROR', `Error hashing password for new user ${email} by ${session.user.name}. Error: ${(hashError as Error).message}`, 'API:Users:Create', session.user.id);

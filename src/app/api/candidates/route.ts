@@ -518,7 +518,7 @@ export async function GET(request: NextRequest) {
           department: row.positionDepartment,
           positionLevel: row.positionLevel
         } : null,
-        fitScore: fitScore, // Use the extracted fit score
+        fitScore: normalizeFitScore(fitScore), // Use the normalized fit score
         status: row.status,
         applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
         recruiter: row.recruiterId ? {

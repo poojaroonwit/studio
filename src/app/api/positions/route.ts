@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       };
     }
     
-    const response = { data: positions, total };
+    const response: { data: any[]; total: number; statistics?: any } = { data: positions, total };
     if (statistics) {
       response.statistics = statistics;
     }

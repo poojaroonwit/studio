@@ -538,14 +538,8 @@ export default function DashboardPageClient({
               color: "text-teal-500 dark:text-teal-400", 
               bgColor: "bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/50 dark:to-teal-900/50",
               borderColor: "border-teal-200 dark:border-teal-800",
-              description: "Days to hire",
-              button: {
-                label: "View All",
-                onClick: () => {
-                  const query = `status:Hired`;
-                  router.push('/candidates?query=' + encodeURIComponent(query));
-                }
-              }
+              description: "Days to hire"
+              // No button property for this card
             }
           ].map((stat, index) => (
             <Card 
@@ -634,7 +628,7 @@ export default function DashboardPageClient({
               description: "Available roles",
               button: {
                 label: "View All",
-                onClick: () => router.push('/positions?query=' + encodeURIComponent('status:Open'))
+                onClick: () => router.push('/positions?status=Open')
               }
             },
             { // High Priority

@@ -31,13 +31,14 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function PositionsPageClient() {
+  // All useState hooks first
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -51,11 +52,50 @@ export default function PositionsPageClient() {
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const { data: session } = useSession();
-  
-  // Add debouncing for search
+  // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchStuckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // statusFilter: initialize from URL only on first render
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const statusParam = searchParams.get('status');
+      const queryParam = searchParams.get('query');
+      if (statusParam && statusParam.toLowerCase() === 'open') return 'open';
+      if (statusParam && statusParam.toLowerCase() === 'closed') return 'closed';
+      if (queryParam) {
+        // Try to extract status:Open or status:Closed from the query string
+        const match = queryParam.match(/status:(open|closed)/i);
+        if (match) {
+          if (match[1].toLowerCase() === 'open') return 'open';
+          if (match[1].toLowerCase() === 'closed') return 'closed';
+        }
+      }
+    }
+    return 'all';
+  });
+
+  // Sync statusFilter with URL changes (for navigation from dashboard)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const statusParam = searchParams.get('status');
+      const queryParam = searchParams.get('query');
+      let newStatus: 'all' | 'open' | 'closed' = 'all';
+      if (statusParam && statusParam.toLowerCase() === 'open') newStatus = 'open';
+      if (statusParam && statusParam.toLowerCase() === 'closed') newStatus = 'closed';
+      if (queryParam) {
+        const match = queryParam.match(/status:(open|closed)/i);
+        if (match) {
+          if (match[1].toLowerCase() === 'open') newStatus = 'open';
+          if (match[1].toLowerCase() === 'closed') newStatus = 'closed';
+        }
+      }
+      setStatusFilter(newStatus);
+    }
+  }, [typeof window !== 'undefined' ? window.location.search : '']);
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
 

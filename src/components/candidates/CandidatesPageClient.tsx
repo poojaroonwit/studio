@@ -1038,6 +1038,7 @@ export function CandidatesPageClient({
         // Add job_matches and job_applied if available in formData
         ...(formData.job_matches ? { job_matches: formData.job_matches } : {}),
         ...(formData.job_applied ? { job_applied: formData.job_applied } : {}),
+        applicationDate: formData.applicationDate,
       };
       const response = await fetch('/api/candidates', {
         method: 'POST',
@@ -1683,52 +1684,23 @@ export function CandidatesPageClient({
           </Alert>
         )}
 
-        {(isLoading || isAiSearching) && !fetchError ? ( 
-          <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-card shadow"> 
-            <Users className="w-16 h-16 text-muted-foreground animate-pulse mb-4" /> 
-            <h3 className="text-xl font-semibold text-foreground"> 
-              {isAiSearching ? "AI Searching Candidates..." : "Loading Candidates..."}
-            </h3> 
-            <p className="text-muted-foreground">Please wait while we fetch the data.</p> 
-            {isLoading && (
-              <div className="flex flex-col items-center mt-4 w-full max-w-md">
-                <p className="text-sm text-muted-foreground mb-3">
-                  If this takes too long, the server may be starting up.
-                </p>
-                <div className="w-full mb-3">
-                  <HealthCheck />
-                </div>
-                <Button 
-                  onClick={() => fetchPaginatedCandidates(filters, page, pageSize)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Loader2 className="h-4 w-4" />
-                  Retry
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <CandidateTable
-            candidates={displayedCandidates}
-            availablePositions={availablePositions}
-            availableStages={availableStages}
-            availableRecruiters={availableRecruiters}
-            onAssignRecruiter={handleAssignRecruiter}
-            onUpdateCandidate={handleUpdateCandidateAPI}
-            onDeleteCandidate={handleDeleteCandidate}
-            onOpenUploadModal={handleOpenUploadModal}
-            onEditPosition={handleOpenEditPositionModal}
-            isLoading={(isLoading || isAiSearching) && displayedCandidates.length > 0 && !fetchError}
-            onRefreshCandidateData={refreshCandidateInList}
-            selectedCandidateIds={selectedCandidateIds}
-            onToggleSelectCandidate={handleToggleSelectCandidate}
-            onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
-            isAllCandidatesSelected={isAllCandidatesSelected}
-          />
-        )}
+        <CandidateTable
+          candidates={displayedCandidates}
+          availablePositions={availablePositions}
+          availableStages={availableStages}
+          availableRecruiters={availableRecruiters}
+          onAssignRecruiter={handleAssignRecruiter}
+          onUpdateCandidate={handleUpdateCandidateAPI}
+          onDeleteCandidate={handleDeleteCandidate}
+          onOpenUploadModal={handleOpenUploadModal}
+          onEditPosition={handleOpenEditPositionModal}
+          isLoading={isLoading || isAiSearching}
+          onRefreshCandidateData={refreshCandidateInList}
+          selectedCandidateIds={selectedCandidateIds}
+          onToggleSelectCandidate={handleToggleSelectCandidate}
+          onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
+          isAllCandidatesSelected={isAllCandidatesSelected}
+        />
 
         {/* Pagination Controls */}
         <div className="flex items-center justify-between mt-4">

@@ -70,6 +70,7 @@ const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema,
   job_matches: z.array(z.any()).optional(),
   job_applied: z.any().optional(),
+  applicationDate: z.string().optional(), // Add applicationDate to the schema
   // You can add more fields if needed
 });
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { candidate_info, job_matches, job_applied } = validationResult.data;
+  const { candidate_info, job_matches, job_applied, applicationDate } = validationResult.data;
   const name = candidate_info.personal_info && candidate_info.personal_info.firstname && candidate_info.personal_info.lastname
     ? `${candidate_info.personal_info.firstname} ${candidate_info.personal_info.lastname}`
     : undefined;
@@ -138,11 +139,11 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
     const insertCandidateQuery = `
       INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", status, "parsedData", "applicationDate", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
       RETURNING *;
     `;
     const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData
+      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : new Date()
     ]);
     const newCandidate = candidateResult.rows[0];
     // Create initial transition record

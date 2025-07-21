@@ -101,6 +101,7 @@ const addCandidateFormSchema = z.object({
   fitScore: z.number().min(0).max(100).optional().default(0),
   job_matches: z.any().optional(),
   job_applied: z.any().optional(),
+  applicationDate: z.string().min(1, "Application date is required"),
 });
 
 export type AddCandidateFormValues = z.infer<typeof addCandidateFormSchema>;
@@ -128,6 +129,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
       positionId: null,
       status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.name || availableStages[0]?.name || 'Applied',
       fitScore: 0,
+      applicationDate: new Date().toISOString().slice(0, 10),
     },
   });
 
@@ -175,6 +177,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
         positionId: null,
         status: availableStages.find(s => s.name.toLowerCase() === 'applied')?.name || availableStages[0]?.name || 'Applied',
         fitScore: 0,
+        applicationDate: new Date().toISOString().slice(0, 10),
       });
     }
   }, [isOpen, form, availableStages]);
@@ -298,6 +301,18 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                             )}
                         />
                          {form.formState.errors.status && <p className="text-sm text-destructive mt-1">{form.formState.errors.status.message}</p>}
+                    </div>
+                    <div>
+                        <Label htmlFor="applicationDate">Application Date *</Label>
+                        <Input
+                          id="applicationDate"
+                          type="date"
+                          {...form.register('applicationDate', { required: true })}
+                          className="mt-1"
+                        />
+                        {form.formState.errors.applicationDate && (
+                          <p className="text-sm text-destructive mt-1">{form.formState.errors.applicationDate.message}</p>
+                        )}
                     </div>
                 </div>
                 <div>

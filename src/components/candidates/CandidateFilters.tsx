@@ -353,16 +353,20 @@ export function CandidateFilters({
           }
           break;
         case 'applicationdatestart':
-          const startDate = new Date(value);
-          if (!isNaN(startDate.getTime())) {
-            filters.applicationDateStart = startDate;
-          }
+          try {
+            const startDate = parseISO(value);
+            if (!isNaN(startDate.getTime())) {
+              filters.applicationDateStart = startDate;
+            }
+          } catch {}
           break;
         case 'applicationdateend':
-          const endDate = new Date(value);
-          if (!isNaN(endDate.getTime())) {
-            filters.applicationDateEnd = endDate;
-          }
+          try {
+            const endDate = parseISO(value);
+            if (!isNaN(endDate.getTime())) {
+              filters.applicationDateEnd = endDate;
+            }
+          } catch {}
           break;
       }
     });

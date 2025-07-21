@@ -488,8 +488,8 @@ export default function DashboardPageClient({
                 onClick: () => {
                   const today = new Date();
                   const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                  const query = `applicationDateStart:${weekAgo.toISOString().slice(0, 10)} applicationDateEnd:${today.toISOString().slice(0, 10)}`;
-                  router.push('/candidates?query=' + encodeURIComponent(query));
+                  const weekQuery = `applicationDateStart:${weekAgo.toISOString()} applicationDateEnd:${today.toISOString()}`;
+                  router.push('/candidates?query=' + encodeURIComponent(weekQuery));
                 }
               }
             },
@@ -507,8 +507,8 @@ export default function DashboardPageClient({
                   const now = new Date();
                   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                  const query = `status:Hired applicationDateStart:${monthStart.toISOString().slice(0, 10)} applicationDateEnd:${monthEnd.toISOString().slice(0, 10)}`;
-                  router.push('/candidates?query=' + encodeURIComponent(query));
+                  const hiredQuery = `status:Hired applicationDateStart:${monthStart.toISOString()} applicationDateEnd:${monthEnd.toISOString()}`;
+                  router.push('/candidates?query=' + encodeURIComponent(hiredQuery));
                 }
               }
             },
@@ -526,8 +526,8 @@ export default function DashboardPageClient({
                   const now = new Date();
                   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                  const query = `status:Rejected applicationDateStart:${monthStart.toISOString().slice(0, 10)} applicationDateEnd:${monthEnd.toISOString().slice(0, 10)}`;
-                  router.push('/candidates?query=' + encodeURIComponent(query));
+                  const rejectedQuery = `status:Rejected applicationDateStart:${monthStart.toISOString()} applicationDateEnd:${monthEnd.toISOString()}`;
+                  router.push('/candidates?query=' + encodeURIComponent(rejectedQuery));
                 }
               }
             },

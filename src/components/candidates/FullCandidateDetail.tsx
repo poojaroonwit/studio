@@ -1282,8 +1282,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                          ) : (
                            <div className="text-center py-8 text-muted-foreground">
                              <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                             <p>No job matches available.</p>
-                             <p className="text-sm">Click "Edit" to add job matches for this candidate.</p>
+                             <p>No another job matched with the candidate</p>
                            </div>
                          )}
                        </div>
@@ -1999,9 +1998,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                    <p>No job matches available.</p>
-                    <p className="text-sm">Click "Add Job Match" to get started.</p>
-              </div>
+                    <p>No another job matched with the candidate</p>
+                  </div>
           )}
               </div>
             )}

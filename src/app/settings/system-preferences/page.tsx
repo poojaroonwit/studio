@@ -487,7 +487,21 @@ export default function SystemPreferencesPage() {
     setSuccessMsg(false);
     try {
       // Convert to the format expected by the backend
-      const settingsToSave = [
+      const allowedKeys = [
+        'appThemePreference',
+        'appName',
+        'appLogoDataUrl',
+        'appFaviconDataUrl',
+        'loginBackgroundType',
+        'loginBackgroundGradientStart',
+        'loginBackgroundGradientEnd',
+        'loginBackgroundColor',
+        'loginPageBackgroundImageUrl',
+        'sidebarActiveStylePreference',
+        // Add all sidebar color keys
+        ...Object.keys(sidebarColors)
+      ];
+      let settingsToSave = [
         { key: 'appThemePreference', value: themePreference },
         { key: 'appName', value: appName },
         { key: 'appLogoDataUrl', value: logoPreviewUrl || savedLogoUrl },
@@ -499,13 +513,19 @@ export default function SystemPreferencesPage() {
         { key: 'loginPageBackgroundImageUrl', value: selectedLoginImageFile ? loginImagePreviewUrl : savedLoginImageDataUrl },
         { key: 'sidebarActiveStylePreference', value: sidebarActiveStyle },
       ];
-      
       // Add sidebar colors
       Object.entries(sidebarColors).forEach(([key, value]) => {
         if (value) {
           settingsToSave.push({ key, value });
         }
       });
+      // Sanitize: only allowed keys, and all values are string or null
+      settingsToSave = settingsToSave
+        .filter(({ key }) => allowedKeys.includes(key))
+        .map(({ key, value }) => ({
+          key,
+          value: value === undefined ? null : value === null ? null : String(value)
+        }));
       
       const res = await fetch('/api/settings/system-settings', {
         method: 'POST',

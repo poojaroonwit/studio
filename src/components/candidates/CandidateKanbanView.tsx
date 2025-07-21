@@ -543,10 +543,23 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
                 </div>
                     ) : (
                       candidatesByStatus[status].map(candidate => (
-                        <div key={candidate?.id || Math.random()} style={{ border: '1px solid red', margin: 8, padding: 8 }}>
-                          <pre>{JSON.stringify(candidate, null, 2)}</pre>
-                    </div>
-                  ))
+                        <div
+                          key={candidate?.id || Math.random()}
+                          onClick={() => handleCardClick(candidate)}
+                          className="cursor-pointer group"
+                          draggable
+                          onDragStart={() => handleDragStart(candidate)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <EnhancedCandidateCard
+                            candidate={candidate}
+                            isDragged={draggedCandidate?.id === candidate.id}
+                            onClick={() => handleCardClick(candidate)}
+                            onDragStart={() => handleDragStart(candidate)}
+                            onDragEnd={handleDragEnd}
+                          />
+                        </div>
+                      ))
                     )
                 ) : (
                   <div className="flex items-center justify-center w-full py-8">

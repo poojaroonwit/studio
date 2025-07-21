@@ -1831,7 +1831,7 @@ export default function CandidateDetailPage() {
                                           setJobMatchesScrollPosition(target.scrollLeft);
                                         }}
                                     >
-                                {candidateJobMatches.filter((match: any) => match.fitScore >= 70).map((match: any, index: number) => {
+                                {candidateJobMatches.map((match: any, index: number) => {
                                   // Try to find position by jobId first, then by jobTitle
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 

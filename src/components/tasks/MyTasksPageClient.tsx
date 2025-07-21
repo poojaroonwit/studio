@@ -15,6 +15,7 @@ import { Search, Filter, Settings, RefreshCw, Kanban, List, Users, MoreHorizonta
 import { CustomizeBoardModal } from './CustomizeBoardModal';
 import { MyTasksFilterModal } from './MyTasksFilterModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import { CandidateKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
@@ -547,9 +548,18 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Kanban view is being updated...</p>
-              </div>
+              <CandidateKanbanView
+                candidates={displayedCandidates}
+                statuses={stages}
+                onMoveCandidate={handleMoveCandidate}
+                onCardClick={(candidate) => setSelectedCandidate(candidate)}
+                showAddButton={false}
+                rowField={rowField}
+                columnField={columnField}
+                visibleFields={boardPrefs.visibleFields}
+                visibleRowValues={visibleRowValues}
+                visibleColumnValues={visibleColumnValues}
+              />
             ) : (
               // Table View (styled like candidate list)
               <div className="border rounded-lg shadow overflow-hidden">

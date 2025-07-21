@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { normalizeFitScore } from '@/lib/scoreUtils';
 
 /**
  * @openapi

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   try {
     // Fetch all candidates with non-null educationData
     const candidates = await prisma.candidate.findMany({
       select: { educationData: true },
-      where: { educationData: { not: null } },
+      where: { educationData: { not: Prisma.JsonNull } },
     });
 
     // Extract all university names from all educationData arrays

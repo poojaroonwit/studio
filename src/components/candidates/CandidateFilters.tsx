@@ -98,8 +98,11 @@ import { DialogTrigger } from '@/components/ui/dialog';
 
 export interface CandidateFilterValues {
   name?: string;
+  nameOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   email?: string;
+  emailOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   phone?: string;
+  phoneOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   selectedPositionIds?: string[];
   selectedStatuses?: string[];
   education?: string; // Education Keywords
@@ -679,7 +682,7 @@ export function CandidateFilters({
         phoneOperator,
         selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
         selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-        skills: skills.size > 0 ? Array.from(skills) : undefined,
+        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
         location: location || undefined,
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
@@ -1006,7 +1009,7 @@ export function CandidateFilters({
                           <div>
                             <Label htmlFor="name-search" className="text-xs">Name</Label>
                             <div className="flex gap-2 items-center mt-1">
-                              <Select value={nameOperator} onValueChange={setNameOperator} disabled={isLoading || isAiSearching}>
+                              <Select value={nameOperator} onValueChange={v => setNameOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1023,7 +1026,7 @@ export function CandidateFilters({
                           <div>
                             <Label htmlFor="email-search" className="text-xs">Email</Label>
                             <div className="flex gap-2 items-center mt-1">
-                              <Select value={emailOperator} onValueChange={setEmailOperator} disabled={isLoading || isAiSearching}>
+                              <Select value={emailOperator} onValueChange={v => setEmailOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1040,7 +1043,7 @@ export function CandidateFilters({
                           <div>
                             <Label htmlFor="phone-search" className="text-xs">Phone</Label>
                             <div className="flex gap-2 items-center mt-1">
-                              <Select value={phoneOperator} onValueChange={setPhoneOperator} disabled={isLoading || isAiSearching}>
+                              <Select value={phoneOperator} onValueChange={v => setPhoneOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith')} disabled={isLoading || isAiSearching}>
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1131,7 +1134,7 @@ export function CandidateFilters({
                           <div>
                             <Label htmlFor="location-search" className="text-xs">Location</Label>
                             <div className="flex gap-2 items-center mt-1">
-                              <Select value={locationOperator} onValueChange={setLocationOperator} disabled={isLoading || isAiSearching}>
+                              <Select value={locationOperator} onValueChange={v => setLocationOperator(v as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other')} disabled={isLoading || isAiSearching}>
                                 <SelectTrigger className="w-24 h-8 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>

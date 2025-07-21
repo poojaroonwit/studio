@@ -19,7 +19,7 @@ interface SignInClientProps {
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
-const DEFAULT_APP_NAME = "CandiTrack";
+const DEFAULT_APP_NAME = "CV-Screening";
 const DEFAULT_LOGIN_BG_GRADIENT = "linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(245, 245, 255, 1) 100%, rgba(252, 252, 255, 1) 55%)";
 const DEFAULT_LOGIN_BG_GRADIENT_DARK = "linear-gradient(90deg, hsl(220, 15%, 9%) 0%, hsl(220, 15%, 11%) 100%, hsl(220, 15%, 10%) 55%)";
 const DEFAULT_PRIMARY_GRADIENT_START_SIGNIN = "179 67% 66%";

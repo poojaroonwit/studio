@@ -240,7 +240,7 @@ export default function RolesPermissionsPage() {
           <h1 className="text-2xl font-bold text-foreground">Roles & Permissions</h1>
           <p className="text-muted-foreground">Manage user roles and their associated permissions</p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="btn-primary-gradient">
+        <Button onClick={() => handleOpenModal()} variant="default">
           <PlusCircle className="mr-2 h-4 w-4" /> Create Role
         </Button>
       </div>
@@ -271,7 +271,7 @@ export default function RolesPermissionsPage() {
                 <TableCell colSpan={6} className="text-center py-8">
                   <ShieldCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No roles defined.</p>
-                  <Button onClick={() => handleOpenModal()} className="btn-primary-gradient">
+                  <Button onClick={() => handleOpenModal()} variant="default">
                     <PlusCircle className="mr-2 h-4 w-4" /> Create First Role
                   </Button>
                 </TableCell>
@@ -433,7 +433,8 @@ export default function RolesPermissionsPage() {
             <Button 
               type="submit" 
               disabled={form.formState.isSubmitting || (editingRole?.is_system_role && form.getValues("name") === editingRole.name && !form.getFieldState("description").isDirty && !form.getFieldState("is_default").isDirty )} 
-              className="btn-primary-gradient flex items-center gap-2"
+              variant="default"
+              className="flex items-center gap-2"
               onClick={form.handleSubmit(handleRoleFormSubmit)}
             >
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

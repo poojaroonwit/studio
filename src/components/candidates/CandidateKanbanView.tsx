@@ -10,6 +10,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
+import FullCandidateDetail from './FullCandidateDetail';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
@@ -288,92 +289,18 @@ interface CandidateKanbanViewProps {
   visibleColumnValues?: string[];
 }
 
-export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onCardClick, showAddButton = true, visibleRowValues }: CandidateKanbanViewProps) {
-  // Debug logs
-  console.log('CandidateKanbanView candidates:', candidates);
-  console.log('CandidateKanbanView statuses:', statuses);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
-  const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
-  const [dragOverStatus, setDragOverStatus] = useState<CandidateStatus | null>(null);
-  const [loading, setLoading] = useState(false); // For skeleton loader
-  const [addingStatus, setAddingStatus] = useState<CandidateStatus | null>(null);
-
-  // Drag and drop handlers
-  const handleDragStart = (candidate: Candidate) => {
-    setDraggedCandidate(candidate);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedCandidate(null);
-    setDragOverStatus(null);
-  };
-
-  const handleDragOver = (status: CandidateStatus, e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverStatus(status);
-  };
-
-  const handleDrop = (status: CandidateStatus) => {
-    if (draggedCandidate && draggedCandidate.status !== status) {
-      onMoveCandidate?.(draggedCandidate, status);
-    }
-    setDraggedCandidate(null);
-    setDragOverStatus(null);
-  };
-
-  const handleCardClick = (candidate: Candidate) => {
-    if (onCardClick) {
-      onCardClick(candidate);
-    } else {
-      // Validate parsedData to ensure it has the expected structure
-      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
-        ...candidate.parsedData,
-        // Ensure array fields are actually arrays
-        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
-        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
-        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
-        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
-        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
-      } : {};
-      
-      setSelectedCandidateSummary({
-        id: candidate.id,
-        name: formatCandidateName(candidate),
-        email: candidate.email,
-        phone: candidate.phone,
-        status: candidate.status,
-        position: candidate.position,
-        fitScore: candidate.fitScore,
-        parsedData: validatedParsedData
-      });
-      setIsModalOpen(true);
-    }
-  };
-
-  // Lowercase/trimmed statuses for robust matching
-  const normalizedStatuses = statuses.map(s => s.toLowerCase().trim());
-
-  // Split candidates into known and unknown status
-  const candidatesByStatus = statuses.reduce((acc, status) => {
-    acc[status] = candidates.filter(c => {
-      const cStatus = (c.status || '').toLowerCase().trim();
-      return cStatus === status.toLowerCase().trim();
-    });
-    return acc;
-  }, {} as Record<CandidateStatus, Candidate[]>);
-
-  // Candidates whose status doesn't match any known status
-  const uncategorizedCandidates = candidates.filter(c => {
-    const cStatus = (c.status || '').toLowerCase().trim();
-    return !normalizedStatuses.includes(cStatus);
-  });
-
-  // Single row mode logic
-  const rowValues = visibleRowValues && visibleRowValues.length > 0 ? visibleRowValues : statuses;
-  const shouldUseSingleRow = rowValues.length === 1;
-
+export function CandidateKanbanView({
+  candidates,
+  statuses,
+  onMoveCandidate,
+  onCardClick,
+  showAddButton = true,
+  rowField = 'status',
+  columnField = 'none',
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  visibleRowValues = [],
+  visibleColumnValues = [],
+}: CandidateKanbanViewProps) {
   // If there are no candidates at all
   if (candidates.length === 0) {
     return (
@@ -388,249 +315,20 @@ export function CandidateKanbanView({ candidates, statuses, onMoveCandidate, onC
     );
   }
 
-  // Single row view
-  if (shouldUseSingleRow) {
-    // Use the only row value
-    const rowValue = rowValues[0];
-    const candidatesInRow = candidatesByStatus[rowValue] || [];
-    return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
-        <div className="flex flex-row gap-4 overflow-x-auto py-4">
-          {candidatesInRow.length > 0 ? (
-            candidatesInRow.map(candidate => (
-                                  <div
-                            key={candidate?.id || Math.random()}
-                      className="group"
-                    >
-                      <EnhancedCandidateCard
-                        candidate={candidate}
-                        isDragged={draggedCandidate?.id === candidate.id}
-                        onClick={() => handleCardClick(candidate)}
-                        onDragStart={() => handleDragStart(candidate)}
-                        onDragEnd={handleDragEnd}
-                      />
-                </div>
-            ))
-          ) : (
-            <div className="flex items-center justify-center w-full py-8">
-              <div className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
-                  <Plus className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">No candidates in this row</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
+  // Delegate to FlexibleKanbanView with all customization props
   return (
-    <>
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
-        {statuses.map(status => (
-        <div
-          key={status}
-          className={cn(
-            "flex-shrink-0 min-w-[250px] flex flex-col h-full transition-all duration-200",
-            dragOverStatus === status && "ring-2 ring-primary/60 bg-primary/5"
-          )}
-          onDragOver={e => handleDragOver(status, e)}
-          onDrop={() => handleDrop(status)}
-        >
-          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex flex-row items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-primary"></div>
-                <CardTitle className="text-base font-semibold text-foreground capitalize">{status}</CardTitle>
-                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {candidatesByStatus[status]?.length || 0}
-                </Badge>
-              </div>
-              {showAddButton && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  onClick={() => setAddingStatus(status)}
-                  title={`Add card to ${status}`}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              )}
-            </CardHeader>
-            <ScrollArea className="flex-1 min-h-0">
-              <CardContent className="p-4 space-y-3 min-h-[150px]">
-                {candidatesByStatus[status]?.length > 0 ? (
-                  shouldUseSingleRow ? (
-                    <div className="flex flex-row gap-4 overflow-x-auto py-4">
-                        {candidatesByStatus[status].map(candidate => (
-                    <div
-                            key={candidate?.id || Math.random()}
-                      onClick={() => handleCardClick(candidate)}
-                      className="cursor-pointer group"
-                      draggable
-                      onDragStart={() => handleDragStart(candidate)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <Card className={cn(
-                        "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
-                        draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                      )}> 
-                        {(() => {
-                          const nameInfo = formatCandidateNameWithLang(candidate);
-                          return (
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10 flex-shrink-0">
-                                <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} />
-                                <AvatarFallback className="bg-primary/10 text-primary">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p 
-                                  className={`text-sm font-semibold text-foreground truncate ${nameInfo.fontClass}`} 
-                                  title={nameInfo.name}
-                                  lang={nameInfo.lang}
-                                >
-                                  {nameInfo.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                                  <Target className="w-3 h-3 inline mr-1" />
-                                  {candidate.position?.title || 'N/A'}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <div className="space-y-2">
-                          {candidate.fitScore !== undefined && candidate.fitScore !== null && (
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">Fit Score</span>
-                                <span className="font-medium text-foreground">{candidate.fitScore}%</span>
-                              </div>
-                              <div className="w-full bg-muted rounded-full h-2">
-                                <div 
-                                  className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                  style={{ width: `${candidate.fitScore}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          )}
-                          {candidate.email && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Mail className="w-3 h-3 mr-1" />
-                              {candidate.email}
-                            </div>
-                          )}
-                          {candidate.phone && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Phone className="w-3 h-3 mr-1" />
-                              {candidate.phone}
-                            </div>
-                          )}
-                          {candidate.applicationDate && (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Calendar className="w-3 h-3 mr-1" />
-                              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    </div>
-                  ))}
-                </div>
-                    ) : (
-                      candidatesByStatus[status].map(candidate => (
-                        <div
-                          key={candidate?.id || Math.random()}
-                          onClick={() => handleCardClick(candidate)}
-                          className="cursor-pointer group"
-                          draggable
-                          onDragStart={() => handleDragStart(candidate)}
-                          onDragEnd={handleDragEnd}
-                        >
-                          <EnhancedCandidateCard
-                            candidate={candidate}
-                            isDragged={draggedCandidate?.id === candidate.id}
-                            onClick={() => handleCardClick(candidate)}
-                            onDragStart={() => handleDragStart(candidate)}
-                            onDragEnd={handleDragEnd}
-                          />
-                        </div>
-                      ))
-                    )
-                ) : (
-                  <div className="flex items-center justify-center w-full py-8">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
-                        <Plus className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">No candidates in this status</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </ScrollArea>
-          </Card>
-        </div>
-      ))}
-      {/* Uncategorized column if needed */}
-      {uncategorizedCandidates.length > 0 && (
-        <div
-          key="uncategorized"
-          className="flex-shrink-0 min-w-[250px] flex flex-col h-full transition-all duration-200 border-2 border-dashed border-warning/50 bg-warning/10"
-        >
-          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
-            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex flex-row items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-warning"></div>
-                <CardTitle className="text-base font-semibold text-warning capitalize">Uncategorized</CardTitle>
-                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {uncategorizedCandidates.length}
-                </Badge>
-              </div>
-            </CardHeader>
-            <ScrollArea className="flex-1 min-h-0">
-              <CardContent className="p-4 space-y-3 min-h-[150px]">
-                {uncategorizedCandidates.map(candidate => {
-                  if (!candidate || !candidate.id || !candidate.name) return null;
-                  return (
-                    <div
-                      key={candidate.id}
-                      className="group"
-                    >
-                      <EnhancedCandidateCard
-                        candidate={candidate}
-                        isDragged={draggedCandidate?.id === candidate.id}
-                        onClick={() => handleCardClick(candidate)}
-                        onDragStart={() => handleDragStart(candidate)}
-                        onDragEnd={handleDragEnd}
-                      />
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </ScrollArea>
-          </Card>
-        </div>
-      )}
-    </div>
-    
-    {/* Candidate Detail Modal */}
-    {selectedCandidateSummary && (
-      <CandidateDetailModal
-        candidateId={selectedCandidateSummary.id}
-        open={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedCandidateSummary(null);
-        }}
-      />
-    )}
-  </>
+    <FlexibleKanbanView
+      candidates={candidates}
+      statuses={statuses}
+      onMoveCandidate={onMoveCandidate}
+      onCardClick={onCardClick}
+      showAddButton={showAddButton}
+      rowField={rowField}
+      columnField={columnField}
+      visibleFields={visibleFields}
+      visibleRowValues={visibleRowValues}
+      visibleColumnValues={visibleColumnValues}
+    />
   );
 }
 
@@ -1555,20 +1253,21 @@ export function SingleRowKanbanView({
 
   if (filteredCandidates.length === 0) {
     return (
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-            <Users className="w-8 h-8 text-muted-foreground" />
+      <>
+        <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <Users className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
+            <p className="text-muted-foreground text-sm">
+              No candidates match the current board configuration.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
-          <p className="text-muted-foreground text-sm">
-            No candidates match the current board configuration.
-          </p>
         </div>
-      </div>
+      </>
     );
   }
-
   return (
     <>
       <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex items-center justify-center">
@@ -1738,11 +1437,7 @@ export function SingleRowKanbanView({
 
       {/* Candidate Detail Modal - only show if onCardClick is not provided */}
       {!onCardClick && selectedCandidateSummary && (
-        <CandidateDetailModal
-          candidateId={selectedCandidateSummary.id}
-          open={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
+        <FullCandidateDetail candidateId={selectedCandidateSummary.id} isModal={true} onClose={() => setIsModalOpen(false)} />
       )}
     </>
   );

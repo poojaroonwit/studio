@@ -197,7 +197,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={form.formState.isSubmitting} className="btn-primary-gradient">
+            <Button type="submit" disabled={form.formState.isSubmitting} variant="default">
               {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>

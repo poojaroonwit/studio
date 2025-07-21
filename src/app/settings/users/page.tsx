@@ -241,7 +241,7 @@ export default function ManageUsersPage() {
               <p className="text-muted-foreground">Create, edit, and manage user accounts and permissions</p>
             </div>
             {session?.user?.role === 'Admin' && (
-              <Button className="btn-primary-gradient" onClick={() => setIsAddUserModalOpen(true)}> 
+              <Button variant="default" onClick={() => setIsAddUserModalOpen(true)}> 
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New User
               </Button>
             )}
@@ -284,7 +284,7 @@ export default function ManageUsersPage() {
               <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
               <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
                 {session?.user?.role === 'Admin' && (
-                  <Button className="mt-4 btn-primary-gradient" onClick={() => setIsAddUserModalOpen(true)}> 
+                  <Button variant="default" className="mt-4" onClick={() => setIsAddUserModalOpen(true)}> 
                     <PlusCircle className="mr-2 h-4 w-4" /> Add First User
                 </Button>
                 )}

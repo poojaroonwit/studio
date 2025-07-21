@@ -124,10 +124,10 @@ export async function GET(request: NextRequest) {
                                process.env.AZURE_AD_CLIENT_SECRET !== 'your_azure_ad_client_secret_value' &&
                                process.env.AZURE_AD_TENANT_ID !== 'your_azure_ad_directory_tenant_id';
 
-    return NextResponse.json({
-      settings,
-      isAzureAdConfigured
-    });
+    // Return as flat object for frontend compatibility
+    const settingsObj = Object.fromEntries(settings.map((setting: any) => [setting.key, setting.value]));
+    settingsObj.isAzureAdConfigured = isAzureAdConfigured;
+    return NextResponse.json(settingsObj);
   } catch (error) {
     console.error('[SYSTEM SETTINGS] Error fetching system settings:', error);
     return NextResponse.json(

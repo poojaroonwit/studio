@@ -344,7 +344,7 @@ export default function RecruitmentStagesPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => handleOpenModal()} className="btn-primary-gradient mt-2 sm:mt-0">
+            <Button onClick={() => handleOpenModal()} variant="default" className="mt-2 sm:mt-0">
               <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
             </Button>
           </div>

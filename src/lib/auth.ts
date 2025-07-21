@@ -215,8 +215,8 @@ export const authOptions: NextAuthOptions = {
                   console.log('[AZURE AD SIGNIN] User OID:', oid);
                   console.log('[AZURE AD SIGNIN] User name:', profile.name);
 
-                  // Check if user exists by email
-                  let res = await client.query('SELECT * FROM "User" WHERE email = $1', [profile.email]);
+                  // Check if user exists by email or Azure OID
+                  let res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                   let dbUser = res.rows[0];
                   
                   console.log('[AZURE AD SIGNIN] Existing user found:', !!dbUser);
@@ -230,19 +230,20 @@ export const authOptions: NextAuthOptions = {
                       // For Azure AD users, we need to provide a placeholder password since the field is required
                       // This password will never be used for authentication since Azure AD handles that
                       const placeholderPassword = await bcrypt.hash('azure-ad-placeholder-' + Date.now(), 10);
+                      const uuid = uuidv4(); // always generate a new UUID for the user id
                       await client.query(
-                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authenticationMethod") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                          [oid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure'] // Set authenticationMethod to 'azure' and use placeholder password
+                          'INSERT INTO "User" (id, name, email, "emailVerified", image, role, password, "authenticationMethod", "azure_oid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+                          [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid]
                       );
-                      await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', oid);
+                      await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
                       console.log('[AZURE AD SIGNIN] New user created successfully');
                       // After creating user, fetch it to get the ID
-                      res = await client.query('SELECT * FROM "User" WHERE email = $1', [profile.email]);
+                      res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                       dbUser = res.rows[0];
                   }
                   
                   // Use the user's actual ID (either existing or newly created)
-                  const userId = dbUser.id;
+                  const userId = dbUser.id; // This is always a UUID
                   console.log('[AZURE AD SIGNIN] Using user ID for account creation:', userId);
                   
                   // Also create an account entry for the provider

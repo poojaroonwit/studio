@@ -218,7 +218,6 @@ export function CandidateTable({
               <TableHead key="fit-score" className="w-[100px] hidden sm:table-cell">Fit Score</TableHead>
               <TableHead key="status">Status</TableHead>
               <TableHead key="last-update" className="hidden md:table-cell">Last Update</TableHead>
-              <TableHead key="resume" className="w-[120px] hidden sm:table-cell">Resume</TableHead>
               <TableHead key="actions" className="text-right w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -361,13 +360,6 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell key={`${candidate.id}-last-update`} className="text-sm text-muted-foreground hidden md:table-cell">
                     {displayDate}
-                  </TableCell>
-                  <TableCell key={`${candidate.id}-resume`} className="text-xs hidden sm:table-cell">
-                    {candidate.resumePath ?
-                      <span className="text-green-600 truncate block max-w-[100px] hover:underline cursor-pointer" title={candidate.resumePath}>
-                        {candidate.resumePath.split('-').pop()?.split('.').slice(0,-1).join('.') || candidate.resumePath.split('-').pop()}
-                      </span>
-                      : <span className="text-muted-foreground">No resume</span>}
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
                     <DropdownMenu>

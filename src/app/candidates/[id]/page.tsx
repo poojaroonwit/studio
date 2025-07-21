@@ -1399,7 +1399,7 @@ export default function CandidateDetailPage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6 p-6 space-y-6">
+            <div className="lg:col-span-2 bg-card sticky top-6 p-6 space-y-6 z-10">
               {/* Recruitment Pipeline */}
               {availableStages.length > 0 && candidate && (
                 <div className="w-full">
@@ -1600,7 +1600,7 @@ export default function CandidateDetailPage() {
                                           return (
                                             <div 
                                               key={index}
-                                              className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted/50"
+                                              className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
                                             >
                                               {trimmedSentence}
                                             </div>
@@ -2573,7 +2573,7 @@ export default function CandidateDetailPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> {/* <-- Add this closing div for the grid-cols-10 main grid */}
         </form>
 
         {candidate && (

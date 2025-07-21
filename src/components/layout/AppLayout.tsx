@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
-const DEFAULT_APP_NAME = "CandiTrack";
+const DEFAULT_APP_NAME = "CV-Screening";
 const DEFAULT_LOGO_ICON = <Package2 className="h-6 w-6" />;
 
 function getPageTitle(pathname: string): string {
@@ -145,8 +145,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         setThemeAndColors({
           themePreference: prefs.appThemePreference || 'system',
-          primaryGradientStart: prefs.primaryGradientStart,
-          primaryGradientEnd: prefs.primaryGradientEnd,
+          primaryGradientStart: prefs.primaryGradientStart || prefs.sidebarActiveBgStartL,
+          primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
           sidebarColors,
         });
         

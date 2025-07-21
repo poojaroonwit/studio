@@ -157,7 +157,7 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" className="btn-primary-gradient">{isEdit ? 'Update' : 'Create'} Field</Button>
+            <Button type="submit" variant="default">{isEdit ? 'Update' : 'Create'} Field</Button>
             <DialogClose asChild>
               <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             </DialogClose>

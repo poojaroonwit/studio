@@ -206,7 +206,8 @@ export default function SystemSettingsPage() {
           <Button 
             onClick={handleSave} 
             disabled={isSaving}
-            className="btn-primary-gradient flex items-center gap-2"
+            variant="default"
+            className="flex items-center gap-2"
           >
             {isSaving ? (
               <>

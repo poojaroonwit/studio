@@ -159,7 +159,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={form.formState.isSubmitting} className="btn-primary-gradient">
+            <Button type="submit" disabled={form.formState.isSubmitting} variant="default">
               {form.formState.isSubmitting ? 'Adding Position...' : 'Add Position'}
             </Button>
           </DialogFooter>

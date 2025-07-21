@@ -375,8 +375,8 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                 <div className="flex items-center gap-3">
                   <Button 
                     type="submit" 
+                    variant="default" 
                     disabled={form.formState.isSubmitting} 
-                    className="btn-primary-gradient"
                     size="lg"
                   >
                     {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2"/> : <UserPlus className="mr-2 h-4 w-4"/>}

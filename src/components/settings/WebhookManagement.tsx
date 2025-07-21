@@ -987,7 +987,7 @@ export default function WebhookManagement() {
                       <Button type="button" variant="outline" onClick={() => handleDialogOpen(false)}>
                         Cancel
                       </Button>
-                      <Button type="submit" className="btn-primary-gradient">
+                      <Button type="submit" variant="default">
                         {editingWebhook ? 'Update Webhook' : 'Create Webhook'}
                       </Button>
                     </div>

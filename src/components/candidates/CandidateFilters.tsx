@@ -82,7 +82,8 @@ import {
   Loader2,
   ListFilter,
   Play,
-  Briefcase
+  Briefcase,
+  MultiSelect // Assume you have or will create a MultiSelect component
 } from 'lucide-react';
 import { getScoreRangesForChart } from "@/lib/scoreUtils";
 import { cn } from '@/lib/utils';
@@ -129,6 +130,9 @@ export interface CandidateFilterValues {
       end: string;
     };
   };
+  university?: string;
+  major?: string;
+  locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
 }
 
 interface CandidateFiltersProps {
@@ -163,13 +167,9 @@ export function CandidateFilters({
   const [phone, setPhone] = useState(initialFilters.phone || '');
   const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set(initialFilters.selectedPositionIds || []));
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set(initialFilters.selectedStatuses || []));
-  const [education, setEducation] = useState(initialFilters.education || '');
-  const [skills, setSkills] = useState(initialFilters.skills || '');
+  // Replace skills state with a Set for multi-select
+  const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills || []));
   const [location, setLocation] = useState(initialFilters.location || '');
-  const [cvLanguage, setCvLanguage] = useState(initialFilters.cvLanguage || '');
-  const [jobSuitableCareer, setJobSuitableCareer] = useState(initialFilters.jobSuitableCareer || '');
-  const [jobSuitableLevel, setJobSuitableLevel] = useState(initialFilters.jobSuitableLevel || '');
-  const [jobSuitablePosition, setJobSuitablePosition] = useState(initialFilters.jobSuitablePosition || '');
   const [experienceYearsRange, setExperienceYearsRange] = useState<[number, number]>([
     initialFilters.minExperienceYears || 0,
     initialFilters.maxExperienceYears || 50,
@@ -226,11 +226,6 @@ export function CandidateFilters({
       description: "Candidates from specific positions"
     },
     {
-      name: "Education Filter",
-      query: "education:MBA,Computer Science",
-      description: "Candidates with specific education keywords"
-    },
-    {
       name: "Complex Query",
       query: "minFitScore:70 maxFitScore:90 status:Applied,Screening education:Engineering",
       description: "High-scoring engineering candidates in early stages"
@@ -259,6 +254,43 @@ export function CandidateFilters({
   const fromYear = currentYear - 10;
   const toYear = currentYear + 1;
 
+  // Add operator state for name, email, phone
+  const [nameOperator, setNameOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith'>('contains');
+  const [emailOperator, setEmailOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith'>('contains');
+  const [phoneOperator, setPhoneOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith'>('contains');
+
+  // Add locationOperator state
+  const [locationOperator, setLocationOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'>(initialFilters.locationOperator || 'contains');
+
+  // Add state for university and major
+  const [university, setUniversity] = useState(initialFilters.university || '');
+  const [major, setMajor] = useState(initialFilters.major || '');
+
+  // Add state for dynamic options
+  const [universityOptions, setUniversityOptions] = useState<string[]>([]);
+  const [majorOptions, setMajorOptions] = useState<string[]>([]);
+
+  // Fetch university options on mount
+  useEffect(() => {
+    fetch('/api/candidates/universities')
+      .then(res => res.json())
+      .then(data => setUniversityOptions(Array.isArray(data.data) ? data.data : []))
+      .catch(() => setUniversityOptions([]));
+  }, []);
+
+  // Fetch major options on mount
+  useEffect(() => {
+    fetch('/api/candidates/majors')
+      .then(res => res.json())
+      .then(data => setMajorOptions(Array.isArray(data.data) ? data.data : []))
+      .catch(() => setMajorOptions([]));
+  }, []);
+
+  // Define a list of common skills
+  const skillOptions = [
+    'React', 'Python', 'AWS', 'Java', 'SQL', 'JavaScript', 'TypeScript', 'Node.js', 'Docker', 'Kubernetes', 'C#', 'C++', 'Go', 'Ruby', 'PHP', 'HTML', 'CSS', 'Angular', 'Vue', 'Swift', 'Objective-C', 'Scala', 'Perl', 'R', 'MATLAB', 'Azure', 'GCP', 'Linux', 'Windows', 'iOS', 'Android', 'Flutter', 'Spring', 'Django', 'Flask', 'Express', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'GraphQL', 'REST', 'SOAP', 'Jenkins', 'CI/CD', 'Terraform', 'Ansible', 'Puppet', 'Figma', 'Sketch', 'Zeplin', 'Jira', 'Confluence', 'Salesforce', 'SAP', 'PowerBI', 'Tableau', 'Excel', 'Other'
+  ];
+
   // Parse advanced query string into filter values
   const parseAdvancedQuery = (query: string): Partial<CandidateFilterValues> => {
     const filters: Partial<CandidateFilterValues> = {};
@@ -278,26 +310,11 @@ export function CandidateFilters({
         case 'phone':
           filters.phone = value;
           break;
-        case 'education':
-          filters.education = value;
-          break;
         case 'skills':
           filters.skills = value;
           break;
         case 'location':
           filters.location = value;
-          break;
-        case 'cvlanguage':
-          filters.cvLanguage = value;
-          break;
-        case 'jobsuitablecareer':
-          filters.jobSuitableCareer = value;
-          break;
-        case 'jobsuitablelevel':
-          filters.jobSuitableLevel = value;
-          break;
-        case 'jobsuitableposition':
-          filters.jobSuitablePosition = value;
           break;
         case 'minexperienceyears':
           const minExpYears = parseInt(value, 10);
@@ -368,6 +385,18 @@ export function CandidateFilters({
             }
           } catch {}
           break;
+        case 'university':
+          filters.university = value;
+          break;
+        case 'major':
+          filters.major = value;
+          break;
+        case 'location':
+          filters.location = value;
+          break;
+        case 'locationoperator':
+          filters.locationOperator = value as 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
+          break;
       }
     });
     
@@ -384,7 +413,6 @@ export function CandidateFilters({
     if (parsedFilters.name) setName(parsedFilters.name);
     if (parsedFilters.email) setEmail(parsedFilters.email);
     if (parsedFilters.phone) setPhone(parsedFilters.phone);
-    if (parsedFilters.education) setEducation(parsedFilters.education);
     if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
     if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
     if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
@@ -406,6 +434,10 @@ export function CandidateFilters({
         to: parsedFilters.applicationDateEnd
       });
     }
+    if (parsedFilters.university) setUniversity(parsedFilters.university);
+    if (parsedFilters.major) setMajor(parsedFilters.major);
+    if (parsedFilters.location) setLocation(parsedFilters.location);
+    if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
     
     // Apply the filters
     onFilterChange({
@@ -416,6 +448,10 @@ export function CandidateFilters({
       matchingMaxFitScore: parsedFilters.matchingMaxFitScore ?? matchingFitScoreRange[1],
       applicationDateStart: parsedFilters.applicationDateStart,
       applicationDateEnd: parsedFilters.applicationDateEnd,
+      university: parsedFilters.university,
+      major: parsedFilters.major,
+      location: parsedFilters.location,
+      locationOperator: parsedFilters.locationOperator,
       aiSearchQuery: undefined,
     });
   };
@@ -432,13 +468,11 @@ export function CandidateFilters({
     if (name) parts.push(`name:${name}`);
     if (email) parts.push(`email:${email}`);
     if (phone) parts.push(`phone:${phone}`);
-    if (education) parts.push(`education:${education}`);
-    if (skills) parts.push(`skills:${skills}`);
+    if (skills.size > 0) parts.push(`skills:${Array.from(skills).join(',')}`);
     if (location) parts.push(`location:${location}`);
-    if (cvLanguage) parts.push(`cvLanguage:${cvLanguage}`);
-    if (jobSuitableCareer) parts.push(`jobSuitableCareer:${jobSuitableCareer}`);
-    if (jobSuitableLevel) parts.push(`jobSuitableLevel:${jobSuitableLevel}`);
-    if (jobSuitablePosition) parts.push(`jobSuitablePosition:${jobSuitablePosition}`);
+    if (locationOperator !== 'other') {
+      parts.push(`locationOperator:${locationOperator}`);
+    }
     if (experienceYearsRange[0] > 0) parts.push(`minExperienceYears:${experienceYearsRange[0]}`);
     if (experienceYearsRange[1] < 50) parts.push(`maxExperienceYears:${experienceYearsRange[1]}`);
     if (selectedPositionIds.size > 0) parts.push(`positionId:${Array.from(selectedPositionIds).join(',')}`);
@@ -452,6 +486,8 @@ export function CandidateFilters({
     }
     if (applicationDateRange?.from) parts.push(`applicationDateStart:${applicationDateRange.from.toISOString().slice(0, 10)}`);
     if (applicationDateRange?.to) parts.push(`applicationDateEnd:${applicationDateRange.to.toISOString().slice(0, 10)}`);
+    if (university) parts.push(`university:${university}`);
+    if (major) parts.push(`major:${major}`);
     
     setAdvancedQueryInput(parts.join(' '));
   };
@@ -469,7 +505,6 @@ export function CandidateFilters({
         if (parsedFilters.name) setName(parsedFilters.name);
         if (parsedFilters.email) setEmail(parsedFilters.email);
         if (parsedFilters.phone) setPhone(parsedFilters.phone);
-        if (parsedFilters.education) setEducation(parsedFilters.education);
         if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
         if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
         if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
@@ -491,6 +526,10 @@ export function CandidateFilters({
             to: parsedFilters.applicationDateEnd
           });
         }
+        if (parsedFilters.university) setUniversity(parsedFilters.university);
+        if (parsedFilters.major) setMajor(parsedFilters.major);
+        if (parsedFilters.location) setLocation(parsedFilters.location);
+        if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
         
         // Apply the filters
         onFilterChange({
@@ -499,6 +538,10 @@ export function CandidateFilters({
           maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
           applicationDateStart: parsedFilters.applicationDateStart,
           applicationDateEnd: parsedFilters.applicationDateEnd,
+          university: parsedFilters.university,
+          major: parsedFilters.major,
+          location: parsedFilters.location,
+          locationOperator: parsedFilters.locationOperator,
           aiSearchQuery: undefined,
         });
       }
@@ -511,13 +554,16 @@ export function CandidateFilters({
     setName('');
     setEmail('');
     setPhone('');
-    setEducation('');
     setSelectedPositionIds(new Set());
     setSelectedStatuses(new Set());
     setSelectedRecruiterIds(new Set());
     setFitScoreRange([0, 100]);
     setMatchingFitScoreRange([70, 100]);
     setApplicationDateRange(undefined);
+    setUniversity('');
+    setMajor('');
+    setLocation('');
+    setLocationOperator('contains');
     setAiSearchQueryInput('');
     setAdvancedQueryInput('');
     
@@ -537,7 +583,6 @@ export function CandidateFilters({
       name: undefined,
       email: undefined,
       phone: undefined,
-      education: undefined,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
@@ -547,6 +592,10 @@ export function CandidateFilters({
       matchingMaxFitScore: 100,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
+      university: undefined,
+      major: undefined,
+      location: undefined,
+      locationOperator: 'contains',
       aiSearchQuery: undefined,
     });
   };
@@ -557,7 +606,10 @@ export function CandidateFilters({
     setPhone(initialFilters.phone || '');
     setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
     setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
-    setEducation(initialFilters.education || '');
+    setSkills(new Set(initialFilters.skills || []));
+    setLocation(initialFilters.location || '');
+    setLocationOperator(initialFilters.locationOperator || 'contains');
+    setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
     setFitScoreRange([initialFilters.minFitScore || 0, initialFilters.maxFitScore || 100]);
     setApplicationDateRange(
       initialFilters.applicationDateStart && initialFilters.applicationDateEnd
@@ -570,6 +622,8 @@ export function CandidateFilters({
     setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
     setAiSearchType(initialFilters.aiSearchType || 'hybrid');
     setAiSearchFilters(initialFilters.aiSearchFilters || {});
+    setUniversity(initialFilters.university || '');
+    setMajor(initialFilters.major || '');
   }, [initialFilters]);
 
   // Auto-apply filters when they are set from URL parameters
@@ -581,8 +635,12 @@ export function CandidateFilters({
                          initialFilters.name ||
                          initialFilters.email ||
                          initialFilters.phone ||
-                         initialFilters.education ||
-                         initialFilters.aiSearchQuery;
+                         initialFilters.skills ||
+                         initialFilters.location ||
+                         initialFilters.aiSearchQuery ||
+                         initialFilters.university ||
+                         initialFilters.major ||
+                         initialFilters.locationOperator;
     
         if (hasUrlFilters) {
       // Use a small delay to prevent multiple rapid calls
@@ -604,23 +662,26 @@ export function CandidateFilters({
         maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
         applicationDateStart: parsedFilters.applicationDateStart,
         applicationDateEnd: parsedFilters.applicationDateEnd,
+        university: parsedFilters.university,
+        major: parsedFilters.major,
+        location: parsedFilters.location,
+        locationOperator: parsedFilters.locationOperator,
         aiSearchQuery: undefined,
       });
     } else {
       // Apply standard filters
       onFilterChange({
         name: name || undefined,
+        nameOperator,
         email: email || undefined,
+        emailOperator,
         phone: phone || undefined,
+        phoneOperator,
         selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
         selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-        education: education || undefined,
-        skills: skills || undefined,
+        skills: skills.size > 0 ? Array.from(skills) : undefined,
         location: location || undefined,
-        cvLanguage: cvLanguage || undefined,
-        jobSuitableCareer: jobSuitableCareer || undefined,
-        jobSuitableLevel: jobSuitableLevel || undefined,
-        jobSuitablePosition: jobSuitablePosition || undefined,
+        locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
         minFitScore: fitScoreRange[0],
@@ -628,6 +689,8 @@ export function CandidateFilters({
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+        university: university || undefined,
+        major: major || undefined,
         aiSearchQuery: undefined,
       });
     }
@@ -663,18 +726,16 @@ export function CandidateFilters({
     setPhone('');
     setSelectedPositionIds(new Set());
     setSelectedStatuses(new Set());
-    setEducation('');
-    setSkills('');
+    setSkills(new Set());
     setLocation('');
-    setCvLanguage('');
-    setJobSuitableCareer('');
-    setJobSuitableLevel('');
-    setJobSuitablePosition('');
+    setLocationOperator('contains');
     setExperienceYearsRange([0, 50]);
     setFitScoreRange([0, 100]);
     setMatchingFitScoreRange([70, 100]);
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
+    setUniversity('');
+    setMajor('');
     setAiSearchQueryInput('');
     setAiSearchType('hybrid');
     setAiSearchFilters({});
@@ -688,6 +749,10 @@ export function CandidateFilters({
       selectedRecruiterIds: undefined,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
+      university: undefined,
+      major: undefined,
+      location: undefined,
+      locationOperator: 'contains',
       aiSearchQuery: undefined,
     });
   };
@@ -927,351 +992,447 @@ export function CandidateFilters({
                 
                 {/* Filters Tab */}
                 <TabsContent value="filters" className="space-y-4 mt-3">
-                  
-                  {/* Basic Information Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Basic Information</h4>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <Label htmlFor="name-search" className="text-xs">Name</Label>
-                        <Input id="name-search" placeholder="Filter by name..." value={name} onChange={(e) => setName(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="email-search" className="text-xs">Email</Label>
-                        <Input id="email-search" placeholder="Filter by email..." value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="phone-search" className="text-xs">Phone</Label>
-                        <Input id="phone-search" placeholder="Filter by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="education-search" className="text-xs">Education Keywords</Label>
-                        <Input id="education-search" placeholder="e.g., MBA, Computer Science..." value={education} onChange={(e) => setEducation(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Professional Information Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <Briefcase className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Professional Information</h4>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <Label htmlFor="skills-search" className="text-xs">Skills Keywords</Label>
-                        <Input id="skills-search" placeholder="e.g., React, Python, AWS..." value={skills} onChange={(e) => setSkills(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="location-search" className="text-xs">Location</Label>
-                        <Input id="location-search" placeholder="e.g., Bangkok, Thailand..." value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="cv-language" className="text-xs">CV Language</Label>
-                        <Input id="cv-language" placeholder="e.g., English, Thai..." value={cvLanguage} onChange={(e) => setCvLanguage(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="job-suitable-career" className="text-xs">Job Suitable Career</Label>
-                        <Input id="job-suitable-career" placeholder="e.g., Software Development..." value={jobSuitableCareer} onChange={(e) => setJobSuitableCareer(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="job-suitable-level" className="text-xs">Job Suitable Level</Label>
-                        <Input id="job-suitable-level" placeholder="e.g., Senior, Manager..." value={jobSuitableLevel} onChange={(e) => setJobSuitableLevel(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                      <div>
-                        <Label htmlFor="job-suitable-position" className="text-xs">Job Suitable Position</Label>
-                        <Input id="job-suitable-position" placeholder="e.g., Software Engineer..." value={jobSuitablePosition} onChange={(e) => setJobSuitablePosition(e.target.value)} className="mt-1" disabled={isLoading || isAiSearching}/>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Experience Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Experience</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-xs font-medium">Experience Years</Label>
+                  <Accordion type="multiple" className="w-full" defaultValue={[]}>
+                    {/* Candidate Information Section */}
+                    <AccordionItem value="candidate-info">
+                      <AccordionTrigger>
                         <div className="flex items-center gap-2">
-                          <Slider
-                            value={experienceYearsRange}
-                            onValueChange={val => setExperienceYearsRange([val[0], val[1]])}
-                            max={50}
-                            step={1}
-                            className="flex-1"
-                            disabled={isLoading || isAiSearching}
-                          />
-                          <span className="text-xs w-16">
-                            {experienceYearsRange[0]}-{experienceYearsRange[1]} years
-                          </span>
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Candidate Information</h4>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Application Status Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Application Status</h4>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                      <div>
-                        <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
-                        <PositionMultiSelectDropdown
-                          selectedIds={selectedPositionIds}
-                          onSelectionChange={setSelectedPositionIds}
-                          placeholder="Select positions..."
-                          disabled={isLoading || isAiSearching}
-                          showOpenStatus={true}
-                          filterOpenOnly={false}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="w-full justify-between mt-1"
-                              disabled={isLoading || isAiSearching}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <Label htmlFor="name-search" className="text-xs">Name</Label>
+                            <div className="flex gap-2 items-center mt-1">
+                              <Select value={nameOperator} onValueChange={setNameOperator} disabled={isLoading || isAiSearching}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="contains">contains</SelectItem>
+                                  <SelectItem value="is">is</SelectItem>
+                                  <SelectItem value="startsWith">starts with</SelectItem>
+                                  <SelectItem value="endsWith">ends with</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input id="name-search" placeholder="Filter by name..." value={name} onChange={(e) => setName(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="email-search" className="text-xs">Email</Label>
+                            <div className="flex gap-2 items-center mt-1">
+                              <Select value={emailOperator} onValueChange={setEmailOperator} disabled={isLoading || isAiSearching}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="contains">contains</SelectItem>
+                                  <SelectItem value="is">is</SelectItem>
+                                  <SelectItem value="startsWith">starts with</SelectItem>
+                                  <SelectItem value="endsWith">ends with</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input id="email-search" placeholder="Filter by email..." value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="phone-search" className="text-xs">Phone</Label>
+                            <div className="flex gap-2 items-center mt-1">
+                              <Select value={phoneOperator} onValueChange={setPhoneOperator} disabled={isLoading || isAiSearching}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="contains">contains</SelectItem>
+                                  <SelectItem value="is">is</SelectItem>
+                                  <SelectItem value="startsWith">starts with</SelectItem>
+                                  <SelectItem value="endsWith">ends with</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input id="phone-search" placeholder="Filter by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="skills-search" className="text-xs">Skills Keywords</Label>
+                            <div
+                              className="flex flex-wrap items-center gap-1 mt-1 min-h-[40px] border rounded-md px-2 py-1 bg-background focus-within:ring-2 focus-within:ring-ring"
+                              style={{ cursor: isLoading || isAiSearching ? 'not-allowed' : 'text' }}
+                              onClick={e => {
+                                if (!isLoading && !isAiSearching) {
+                                  (document.getElementById('skills-tag-input') as HTMLInputElement)?.focus();
+                                }
+                              }}
                             >
-                              {renderMultiSelectTrigger("Select pipeline stages...", selectedStatuses, [...safeAvailableStages, offStage], 'status')}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <Input placeholder="Search pipeline stages..." value={statusSearch} onChange={e => setStatusSearch(e.target.value)} className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
-                              <CommandList>
-                                {filteredStages.length === 0 ? (
-                                  <div className="py-6 text-center text-sm text-muted-foreground">
-                                    No pipeline stages found.
-                                  </div>
-                                ) : (
-                                  filteredStages.map((stage) => (
-                                  <div
-                                    key={stage.name}
-                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
-                                    onClick={() => {
-                                      setSelectedStatuses(prev => {
-                                        const newSet = new Set(prev);
-                                        if (newSet.has(stage.name)) {
-                                          newSet.delete(stage.name);
-                                        } else {
-                                          newSet.add(stage.name);
-                                        }
-                                        return newSet;
-                                      });
+                              {Array.from(skills).map((skill) => (
+                                <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
+                                  {skill}
+                                  <button
+                                    type="button"
+                                    className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      if (isLoading || isAiSearching) return;
+                                      const newSkills = new Set(skills);
+                                      newSkills.delete(skill);
+                                      setSkills(newSkills);
                                     }}
+                                    aria-label={`Remove ${skill}`}
+                                    tabIndex={-1}
                                   >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedStatuses.has(stage.name) ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {stage.name}
-                                  </div>
-                                ))
-                                )}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Application Date Range</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal mt-1",
-                                !applicationDateRange && "text-muted-foreground"
-                              )}
-                              disabled={isLoading || isAiSearching}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {applicationDateRange?.from ? (
-                                applicationDateRange.to ? (
-                                  <>
-                                    {format(applicationDateRange.from, "LLL dd, y")} -{" "}
-                                    {format(applicationDateRange.to, "LLL dd, y")}
-                                  </>
-                                ) : (
-                                  format(applicationDateRange.from, "LLL dd, y")
-                                )
-                              ) : (
-                                <span>Pick a date range</span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              initialFocus
-                              mode="range"
-                              defaultMonth={applicationDateRange?.from}
-                              selected={applicationDateRange}
-                              onSelect={setApplicationDateRange}
-                              numberOfMonths={2}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fit Score Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Fit Score Ranges</h4>
-                    </div>
-                    <div className="space-y-4">
-                      {/* Applied Candidates Fit Score */}
-                      <div>
-                        <Label className="text-xs font-medium">Applied Candidates</Label>
-                        <div className="flex items-center gap-2">
-                          <Slider
-                            value={fitScoreRange}
-                            onValueChange={val => setFitScoreRange([val[0], val[1]])}
-                            max={100}
-                            step={1}
-                            className="flex-1"
-                            disabled={isLoading || isAiSearching}
-                          />
-                          <span className="text-xs w-16">
-                            {fitScoreRange[0]}-{fitScoreRange[1]}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {(() => {
-                            const scoreRanges = getScoreRangesForChart();
-                            const selectedRanges = scoreRanges.filter(range => 
-                              (range.min >= fitScoreRange[0] && range.min <= fitScoreRange[1]) ||
-                              (range.max >= fitScoreRange[0] && range.max <= fitScoreRange[1]) ||
-                              (range.min <= fitScoreRange[0] && range.max >= fitScoreRange[1])
-                            );
-                            return selectedRanges.length > 0 ? 
-                              `Grades: ${selectedRanges.map(r => r.letter).join(', ')}` : 
-                              'No grades in range';
-                          })()}
-                        </div>
-                      </div>
-
-                      {/* Matching Candidates Fit Score */}
-                      <div>
-                        <Label className="text-xs font-medium">Matching Candidates</Label>
-                        <div className="flex items-center gap-2">
-                          <Slider
-                            value={matchingFitScoreRange}
-                            onValueChange={val => setMatchingFitScoreRange([val[0], val[1]])}
-                            max={100}
-                            step={1}
-                            className="flex-1"
-                            disabled={isLoading || isAiSearching}
-                          />
-                          <span className="text-xs w-16">
-                            {matchingFitScoreRange[0]}-{matchingFitScoreRange[1]}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          High potential candidates for this position
-                        </div>
-                      </div>
-
-
-                    </div>
-                  </div>
-
-                  {/* Assignment Section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <h4 className="text-sm font-medium">Assignment</h4>
-                    </div>
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
-                        <Popover open={recruiterPopoverOpen} onOpenChange={setRecruiterPopoverOpen}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={recruiterPopoverOpen}
-                              className="w-full justify-between mt-1"
-                              disabled={isLoading || isAiSearching}
-                            >
-                              {renderMultiSelectTrigger("Select recruiters...", selectedRecruiterIds, safeAvailableRecruiters, 'recruiter')}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <Input placeholder="Search recruiters..." value={recruiterSearch} onChange={e => setRecruiterSearch(e.target.value)} className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
-                              <CommandList>
-                                <CommandEmpty>No recruiter found.</CommandEmpty>
-                                {/* Unassigned option */}
-                                <CommandItem
-                                  key="unassigned"
-                                  onSelect={() => {
-                                    const newSelected = new Set(selectedRecruiterIds);
-                                    if (newSelected.has('unassigned')) {
-                                      newSelected.delete('unassigned');
-                                    } else {
-                                      newSelected.add('unassigned');
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                              <input
+                                id="skills-tag-input"
+                                type="text"
+                                className="flex-1 min-w-[120px] border-0 outline-none bg-transparent text-sm py-1 px-2 placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="e.g., React, Python, AWS..."
+                                disabled={isLoading || isAiSearching}
+                                onKeyDown={e => {
+                                  if (isLoading || isAiSearching) return;
+                                  const value = (e.target as HTMLInputElement).value.trim();
+                                  if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
+                                    e.preventDefault();
+                                    if (!skills.has(value)) {
+                                      const newSkills = new Set(skills);
+                                      newSkills.add(value);
+                                      setSkills(newSkills);
                                     }
-                                    setSelectedRecruiterIds(newSelected);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedRecruiterIds.has('unassigned') ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  Unassigned
-                                </CommandItem>
-                                {/* Regular recruiters */}
-                                {filteredRecruiters.map((recruiter) => (
-                                  <CommandItem
-                                    key={recruiter.id}
-                                    onSelect={() => {
-                                      const newSelected = new Set(selectedRecruiterIds);
-                                      if (newSelected.has(recruiter.id)) {
-                                        newSelected.delete(recruiter.id);
-                                      } else {
-                                        newSelected.add(recruiter.id);
+                                    (e.target as HTMLInputElement).value = '';
+                                  } else if (e.key === 'Backspace' && !value && skills.size > 0) {
+                                    // Remove last skill if input is empty and backspace is pressed
+                                    const arr = Array.from(skills);
+                                    const last = arr[arr.length - 1];
+                                    const newSkills = new Set(skills);
+                                    newSkills.delete(last);
+                                    setSkills(newSkills);
+                                  }
+                                }}
+                                onPaste={e => {
+                                  if (isLoading || isAiSearching) return;
+                                  const paste = e.clipboardData.getData('text');
+                                  if (paste) {
+                                    e.preventDefault();
+                                    paste.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+                                      if (!skills.has(skill)) {
+                                        const newSkills = new Set(skills);
+                                        newSkills.add(skill);
+                                        setSkills(newSkills);
                                       }
-                                      setSelectedRecruiterIds(newSelected);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedRecruiterIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {recruiter.name}
-                                  </CommandItem>
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="location-search" className="text-xs">Location</Label>
+                            <div className="flex gap-2 items-center mt-1">
+                              <Select value={locationOperator} onValueChange={setLocationOperator} disabled={isLoading || isAiSearching}>
+                                <SelectTrigger className="w-24 h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="contains">contains</SelectItem>
+                                  <SelectItem value="is">is</SelectItem>
+                                  <SelectItem value="startsWith">starts with</SelectItem>
+                                  <SelectItem value="endsWith">ends with</SelectItem>
+                                  <SelectItem value="other">other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Input id="location-search" placeholder="e.g., Bangkok, Thailand..." value={location} onChange={(e) => setLocation(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                            </div>
+                          </div>
+                          <div>
+                            <Label htmlFor="university-search" className="text-xs">University</Label>
+                            <Select value={university || undefined} onValueChange={setUniversity} disabled={isLoading || isAiSearching}>
+                              <SelectTrigger className="w-full h-8 text-sm mt-1">
+                                <SelectValue placeholder="Select university..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {universityOptions.map(u => (
+                                  <SelectItem key={u} value={u}>{u}</SelectItem>
                                 ))}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                  </div>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="major-search" className="text-xs">Major</Label>
+                            <Select value={major || undefined} onValueChange={setMajor} disabled={isLoading || isAiSearching}>
+                              <SelectTrigger className="w-full h-8 text-sm mt-1">
+                                <SelectValue placeholder="Select major..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {majorOptions.map(m => (
+                                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Experience Section */}
+                    <AccordionItem value="experience">
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Experience</h4>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-xs font-medium">Experience Years</Label>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={experienceYearsRange}
+                                onValueChange={val => setExperienceYearsRange([val[0], val[1]])}
+                                max={50}
+                                step={1}
+                                className="flex-1"
+                                disabled={isLoading || isAiSearching}
+                              />
+                              <span className="text-xs w-16">
+                                {experienceYearsRange[0]}-{experienceYearsRange[1]} years
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Application Status Section */}
+                    <AccordionItem value="application-status">
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Application Status</h4>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
+                            <PositionMultiSelectDropdown
+                              selectedIds={selectedPositionIds}
+                              onSelectionChange={setSelectedPositionIds}
+                              placeholder="Select positions..."
+                              disabled={isLoading || isAiSearching}
+                              showOpenStatus={true}
+                              filterOpenOnly={false}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className="w-full justify-between mt-1"
+                                  disabled={isLoading || isAiSearching}
+                                >
+                                  {renderMultiSelectTrigger("Select pipeline stages...", selectedStatuses, [...safeAvailableStages, offStage], 'status')}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                  <Input placeholder="Search pipeline stages..." value={statusSearch} onChange={e => setStatusSearch(e.target.value)} className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
+                                  <CommandList>
+                                    {filteredStages.length === 0 ? (
+                                      <div className="py-6 text-center text-sm text-muted-foreground">
+                                        No pipeline stages found.
+                                      </div>
+                                    ) : (
+                                      filteredStages.map((stage) => (
+                                      <div
+                                        key={stage.name}
+                                        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                        onClick={() => {
+                                          setSelectedStatuses(prev => {
+                                            const newSet = new Set(prev);
+                                            if (newSet.has(stage.name)) {
+                                              newSet.delete(stage.name);
+                                            } else {
+                                              newSet.add(stage.name);
+                                            }
+                                            return newSet;
+                                          });
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedStatuses.has(stage.name) ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {stage.name}
+                                      </div>
+                                    ))
+                                    )}
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Fit Score Section */}
+                    <AccordionItem value="fit-score">
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Fit Score Ranges</h4>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4">
+                          {/* Applied Candidates Fit Score */}
+                          <div>
+                            <Label className="text-xs font-medium">Applied Candidates</Label>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={fitScoreRange}
+                                onValueChange={val => setFitScoreRange([val[0], val[1]])}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                                disabled={isLoading || isAiSearching}
+                              />
+                              <span className="text-xs w-16">
+                                {fitScoreRange[0]}-{fitScoreRange[1]}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {(() => {
+                                const scoreRanges = getScoreRangesForChart();
+                                const selectedRanges = scoreRanges.filter(range => 
+                                  (range.min >= fitScoreRange[0] && range.min <= fitScoreRange[1]) ||
+                                  (range.max >= fitScoreRange[0] && range.max <= fitScoreRange[1]) ||
+                                  (range.min <= fitScoreRange[0] && range.max >= fitScoreRange[1])
+                                );
+                                return selectedRanges.length > 0 ? 
+                                  `Grades: ${selectedRanges.map(r => r.letter).join(', ')}` : 
+                                  'No grades in range';
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Matching Candidates Fit Score */}
+                          <div>
+                            <Label className="text-xs font-medium">Matching Candidates</Label>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={matchingFitScoreRange}
+                                onValueChange={val => setMatchingFitScoreRange([val[0], val[1]])}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                                disabled={isLoading || isAiSearching}
+                              />
+                              <span className="text-xs w-16">
+                                {matchingFitScoreRange[0]}-{matchingFitScoreRange[1]}
+                              </span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              High potential candidates for this position
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Assignment Section */}
+                    <AccordionItem value="assignment">
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Assignment</h4>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
+                            <Popover open={recruiterPopoverOpen} onOpenChange={setRecruiterPopoverOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={recruiterPopoverOpen}
+                                  className="w-full justify-between mt-1"
+                                  disabled={isLoading || isAiSearching}
+                                >
+                                  {renderMultiSelectTrigger("Select recruiters...", selectedRecruiterIds, safeAvailableRecruiters, 'recruiter')}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-full p-0">
+                                <Command>
+                                  <Input placeholder="Search recruiters..." value={recruiterSearch} onChange={e => setRecruiterSearch(e.target.value)} className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
+                                  <CommandList>
+                                    <CommandEmpty>No recruiter found.</CommandEmpty>
+                                    {/* Unassigned option */}
+                                    <CommandItem
+                                      key="unassigned"
+                                      onSelect={() => {
+                                        const newSelected = new Set(selectedRecruiterIds);
+                                        if (newSelected.has('unassigned')) {
+                                          newSelected.delete('unassigned');
+                                        } else {
+                                          newSelected.add('unassigned');
+                                        }
+                                        setSelectedRecruiterIds(newSelected);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedRecruiterIds.has('unassigned') ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      Unassigned
+                                    </CommandItem>
+                                    {/* Regular recruiters */}
+                                    {filteredRecruiters.map((recruiter) => (
+                                      <CommandItem
+                                        key={recruiter.id}
+                                        onSelect={() => {
+                                          const newSelected = new Set(selectedRecruiterIds);
+                                          if (newSelected.has(recruiter.id)) {
+                                            newSelected.delete(recruiter.id);
+                                          } else {
+                                            newSelected.add(recruiter.id);
+                                          }
+                                          setSelectedRecruiterIds(newSelected);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            selectedRecruiterIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {recruiter.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 mt-4">
@@ -1320,14 +1481,21 @@ export function CandidateFilters({
                               <li><b>name</b>: Filter by candidate name. <code>name:John</code></li>
                               <li><b>email</b>: Filter by email. <code>email:gmail.com</code></li>
                               <li><b>phone</b>: Filter by phone. <code>phone:555</code></li>
-                              <li><b>education</b>: Education keywords. <code>education:MBA,Computer Science</code></li>
-                              <li><b>positionId</b>: Position IDs (comma separated). <code>positionId:pos1,pos2</code></li>
+                              <li><b>skills</b>: Skills keywords. <code>skills:React,Python</code></li>
+                              <li><b>location</b>: Location. <code>location:Bangkok,Thailand</code></li>
+                              <li><b>locationOperator</b>: Location operator (contains, is, startsWith, endsWith, other). <code>locationOperator:contains</code></li>
+                              <li><b>minexperienceyears</b>: Minimum experience years. <code>minExperienceYears:5</code></li>
+                              <li><b>maxexperienceyears</b>: Maximum experience years. <code>maxExperienceYears:10</code></li>
+                              <li><b>positionid</b>: Position IDs (comma separated). <code>positionId:pos1,pos2</code></li>
                               <li><b>status</b>: Statuses (comma separated). <code>status:Applied,Screening</code></li>
-                              <li><b>recruiterId</b>: Recruiter IDs or <code>unassigned</code>. <code>recruiterId:unassigned</code></li>
-                              <li><b>minFitScore</b>: Minimum fit score. <code>minFitScore:80</code></li>
-                              <li><b>maxFitScore</b>: Maximum fit score. <code>maxFitScore:95</code></li>
-                              <li><b>applicationDateStart</b>: Start date (YYYY-MM-DD). <code>applicationDateStart:2024-01-01</code></li>
-                              <li><b>applicationDateEnd</b>: End date (YYYY-MM-DD). <code>applicationDateEnd:2024-01-31</code></li>
+                              <li><b>recruiterid</b>: Recruiter IDs or <code>unassigned</code>. <code>recruiterId:unassigned</code></li>
+                              <li><b>minfitscore</b>: Minimum fit score. <code>minFitScore:80</code></li>
+                              <li><b>maxfitscore</b>: Maximum fit score. <code>maxFitScore:95</code></li>
+                              <li><b>matchingfitscore</b>: Matching fit score range. <code>matchingFitScoreMin:70 matchingFitScoreMax:100</code></li>
+                              <li><b>applicationdatestart</b>: Start date (YYYY-MM-DD). <code>applicationDateStart:2024-01-01</code></li>
+                              <li><b>applicationdateend</b>: End date (YYYY-MM-DD). <code>applicationDateEnd:2024-01-31</code></li>
+                              <li><b>university</b>: University. <code>university:Chulalongkorn</code></li>
+                              <li><b>major</b>: Major. <code>major:Computer Science</code></li>
                             </ul>
                             <div className="mt-4">
                               <b>Examples:</b>
@@ -1337,7 +1505,7 @@ export function CandidateFilters({
                                 <li><code>recruiterId:unassigned</code> <span className="text-muted-foreground">// Not assigned to any recruiter</span></li>
                                 <li><code>status:Off</code> <span className="text-muted-foreground">// Candidates with no status assigned</span></li>
                                 <li><code>positionId:pos1,pos2 status:Screening</code> <span className="text-muted-foreground">// Candidates in specific positions and status</span></li>
-                                <li><code>education:MBA,Computer Science</code> <span className="text-muted-foreground">// Education keywords</span></li>
+                                <li><code>university:Chulalongkorn major:Computer Science</code> <span className="text-muted-foreground">// Candidates with specific education</span></li>
                               </ul>
                             </div>
                           </div>

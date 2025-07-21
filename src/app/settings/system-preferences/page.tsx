@@ -21,7 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 
-const DEFAULT_APP_NAME = "CandiTrack";
+const DEFAULT_APP_NAME = "CV-Screening";
 const DEFAULT_THEME: ThemePreference = "system";
 
 // Backend keys
@@ -304,6 +304,10 @@ export default function SystemPreferencesPage() {
   const [appMenuIcon, setAppMenuIcon] = useState<string>("");
   const [appMenuIconType, setAppMenuIconType] = useState<"lucide"|"image">("lucide");
 
+  // Add state for primary button color
+  const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
+  const [primaryGradientEnd, setPrimaryGradientEnd] = useState<string>(DEFAULT_PRIMARY_GRADIENT_END);
+
   const canEdit =
     session?.user?.role === "Admin" ||
     session?.user?.modulePermissions?.includes("SYSTEM_SETTINGS_MANAGE");
@@ -353,6 +357,10 @@ export default function SystemPreferencesPage() {
           } else {
             setSidebarActiveStyle(getSidebarActiveStyle());
           }
+
+          // Load primary button colors
+          if (data.primaryGradientStart) setPrimaryGradientStart(data.primaryGradientStart);
+          if (data.primaryGradientEnd) setPrimaryGradientEnd(data.primaryGradientEnd);
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -488,7 +496,7 @@ export default function SystemPreferencesPage() {
     try {
       // Convert to the format expected by the backend
       const allowedKeys = [
-        'appThemePreference',
+        'themePreference',
         'appName',
         'appLogoDataUrl',
         'appFaviconDataUrl',
@@ -497,12 +505,11 @@ export default function SystemPreferencesPage() {
         'loginBackgroundGradientEnd',
         'loginBackgroundColor',
         'loginPageBackgroundImageUrl',
-        'sidebarActiveStylePreference',
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];
       let settingsToSave = [
-        { key: 'appThemePreference', value: themePreference },
+        { key: 'themePreference', value: themePreference },
         { key: 'appName', value: appName },
         { key: 'appLogoDataUrl', value: logoPreviewUrl || savedLogoUrl },
         { key: 'appFaviconDataUrl', value: faviconPreviewUrl || savedFaviconUrl },
@@ -511,7 +518,9 @@ export default function SystemPreferencesPage() {
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
         { key: 'loginPageBackgroundImageUrl', value: selectedLoginImageFile ? loginImagePreviewUrl : savedLoginImageDataUrl },
-        { key: 'sidebarActiveStylePreference', value: sidebarActiveStyle },
+        // Always sync primaryGradientStart/End to sidebar active color
+        { key: 'primaryGradientStart', value: primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START },
+        { key: 'primaryGradientEnd', value: primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END },
       ];
       // Add sidebar colors
       Object.entries(sidebarColors).forEach(([key, value]) => {
@@ -567,8 +576,8 @@ export default function SystemPreferencesPage() {
       // Immediately update theme/colors in DOM
       setThemeAndColors({
         themePreference,
-        primaryGradientStart: sidebarColors.sidebarActiveBgStartL,
-        primaryGradientEnd: sidebarColors.sidebarActiveBgEndL,
+        primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
+        primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
         sidebarColors,
       });
       
@@ -578,8 +587,8 @@ export default function SystemPreferencesPage() {
           appName,
           logoUrl: logoPreviewUrl || savedLogoUrl,
           themePreference,
-          primaryGradientStart: sidebarColors.sidebarActiveBgStartL,
-          primaryGradientEnd: sidebarColors.sidebarActiveBgEndL,
+          primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
+          primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
           sidebarColors,
           sidebarActiveStyle,
         }
@@ -679,7 +688,7 @@ export default function SystemPreferencesPage() {
         <Button 
           onClick={handleSavePreferences} 
           disabled={saving || !canEdit}
-          className="btn-primary-gradient"
+          variant="default"
         >
           {saving ? (
             <>
@@ -1480,6 +1489,66 @@ export default function SystemPreferencesPage() {
                           </div>
                         </TabsContent>
                       </Tabs>
+                    </CardContent>
+                  </Card>
+
+                  {/* Primary Button Color */}
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Primary Button Color</CardTitle>
+                      <CardDescription>Set the gradient color for all primary buttons independently from the sidebar active color.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <Label htmlFor="primaryGradientStart">Gradient Start</Label>
+                          <Input
+                            id="primaryGradientStart"
+                            type="text"
+                            value={primaryGradientStart}
+                            onChange={e => setPrimaryGradientStart(e.target.value)}
+                            placeholder="179 67% 66%"
+                            className="text-sm"
+                          />
+                          <Input
+                            type="color"
+                            value={convertHslStringToHex(primaryGradientStart)}
+                            onChange={e => setPrimaryGradientStart(hexToHslString(e.target.value))}
+                            className="w-10 h-9 p-1 rounded-md border mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="primaryGradientEnd">Gradient End</Label>
+                          <Input
+                            id="primaryGradientEnd"
+                            type="text"
+                            value={primaryGradientEnd}
+                            onChange={e => setPrimaryGradientEnd(e.target.value)}
+                            placeholder="238 74% 61%"
+                            className="text-sm"
+                          />
+                          <Input
+                            type="color"
+                            value={convertHslStringToHex(primaryGradientEnd)}
+                            onChange={e => setPrimaryGradientEnd(hexToHslString(e.target.value))}
+                            className="w-10 h-9 p-1 rounded-md border mt-1"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center justify-end h-full">
+                          <Label className="mb-1">Preview</Label>
+                          <button
+                            type="button"
+                            className="btn-primary-gradient px-6 py-2 rounded-md border-none text-white font-semibold shadow"
+                            style={{
+                              backgroundImage: `linear-gradient(to right, hsl(${primaryGradientStart}), hsl(${primaryGradientEnd}))`,
+                              color: '#fff',
+                            }}
+                            disabled
+                          >
+                            Primary Button
+                          </button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>

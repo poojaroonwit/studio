@@ -24,7 +24,7 @@ import { AutoFont } from "@/components/ui/auto-font";
 
 
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
-const DEFAULT_APP_NAME = "CandiTrack";
+const DEFAULT_APP_NAME = "CV-Screening";
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string) {

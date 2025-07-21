@@ -72,20 +72,32 @@ const createCandidateSchema = z.object({
   // You can add more fields if needed
 });
 
-export async function POST(request: NextRequest) {
+// Helper for session and permission checks
+async function requireSessionAndPermission(requiredPermission: string, request: NextRequest) {
   const session = await getServerSession(authOptions);
-  const actingUserId = session?.user?.id;
-  const actingUserName = session?.user?.name || session?.user?.email || 'System';
-
-  if (!actingUserId) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) {
+    return { error: NextResponse.json({ message: 'Unauthorized' }, { status: 401 }) };
   }
-
-  // Check if user has permission to create candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
-    await logAudit('WARN', `Forbidden attempt to create candidate by ${actingUserName}.`, 'API:Candidates:Create', actingUserId);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to create candidates' }, { status: 403 });
+  if (
+    session.user.role !== 'Admin' &&
+    !session.user.modulePermissions?.includes(requiredPermission)
+  ) {
+    await logAudit(
+      'WARN',
+      `Forbidden attempt to access candidates by ${session.user.name || session.user.email}.`,
+      `API:Candidates:${requiredPermission}`,
+      session.user.id
+    );
+    return { error: NextResponse.json({ message: `Forbidden: Insufficient permissions to ${requiredPermission.toLowerCase().replace('_', ' ')}` }, { status: 403 }) };
   }
+  return { session };
+}
+
+export async function POST(request: NextRequest) {
+  const { session, error } = await requireSessionAndPermission('CANDIDATES_MANAGE', request);
+  if (error) return error;
+  const actingUserId = session.user.id;
+  const actingUserName = session.user.name || session.user.email || 'System';
 
   let body;
   try {
@@ -166,16 +178,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user has permission to view candidates
-  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_VIEW')) {
-    await logAudit('WARN', `Forbidden attempt to view candidates by ${session.user.name || session.user.email}.`, 'API:Candidates:Get', session.user.id);
-    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to view candidates' }, { status: 403 });
-  }
+  const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
+  if (error) return error;
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -278,6 +282,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Recruiter auto-filter: If user is a Recruiter, only show their assigned candidates unless recruiterId is explicitly set
+  const isRecruiter = session.user.role === 'Recruiter';
+  const recruiterIdFromFilter = filters.recruiterId;
+  if (isRecruiter && !recruiterIdFromFilter) {
+    whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
+    queryParams.push(session.user.id);
+  }
+
   // Handle text search (name)
   if (filters.searchTerm) {
     whereClauses.push(`(c.name ILIKE $${paramIndex} OR c.email ILIKE $${paramIndex})`);
@@ -285,16 +297,84 @@ export async function GET(request: NextRequest) {
     paramIndex++;
   }
 
-  // Handle email filter
-  if (filters.email) {
-    whereClauses.push(`c.email ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.email}%`);
+  // Handle name filter with operator
+  const name = searchParams.get('name');
+  const nameOperator = searchParams.get('nameOperator') || 'contains';
+  if (name) {
+    if (nameOperator === 'is') {
+      whereClauses.push(`c.name = $${paramIndex++}`);
+      queryParams.push(name);
+    } else if (nameOperator === 'startsWith') {
+      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
+      queryParams.push(`${name}%`);
+    } else if (nameOperator === 'endsWith') {
+      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
+      queryParams.push(`%${name}`);
+    } else if (nameOperator === 'contains' || !nameOperator) {
+      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
+      queryParams.push(`%${name}%`);
+    }
+    // If 'other', skip filtering by name
   }
 
-  // Handle phone filter
-  if (filters.phone) {
-    whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.phone}%`);
+  // Handle email filter with operator
+  const email = searchParams.get('email');
+  const emailOperator = searchParams.get('emailOperator') || 'contains';
+  if (email) {
+    if (emailOperator === 'is') {
+      whereClauses.push(`c.email = $${paramIndex++}`);
+      queryParams.push(email);
+    } else if (emailOperator === 'startsWith') {
+      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
+      queryParams.push(`${email}%`);
+    } else if (emailOperator === 'endsWith') {
+      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
+      queryParams.push(`%${email}`);
+    } else if (emailOperator === 'contains' || !emailOperator) {
+      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
+      queryParams.push(`%${email}%`);
+    }
+    // If 'other', skip filtering by email
+  }
+
+  // Handle phone filter with operator
+  const phone = searchParams.get('phone');
+  const phoneOperator = searchParams.get('phoneOperator') || 'contains';
+  if (phone) {
+    if (phoneOperator === 'is') {
+      whereClauses.push(`c.phone = $${paramIndex++}`);
+      queryParams.push(phone);
+    } else if (phoneOperator === 'startsWith') {
+      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
+      queryParams.push(`${phone}%`);
+    } else if (phoneOperator === 'endsWith') {
+      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
+      queryParams.push(`%${phone}`);
+    } else if (phoneOperator === 'contains' || !phoneOperator) {
+      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
+      queryParams.push(`%${phone}%`);
+    }
+    // If 'other', skip filtering by phone
+  }
+
+  // Handle location filter with operator
+  const location = searchParams.get('location');
+  const locationOperator = searchParams.get('locationOperator') || 'contains';
+  if (location) {
+    if (locationOperator === 'is') {
+      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
+      queryParams.push(`%\"location\":\"${location}\"%`);
+    } else if (locationOperator === 'startsWith') {
+      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
+      queryParams.push(`%\"location\":\"${location}%`);
+    } else if (locationOperator === 'endsWith') {
+      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
+      queryParams.push(`${location}\"%`);
+    } else if (locationOperator === 'contains' || !locationOperator) {
+      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
+      queryParams.push(`%${location}%`);
+    }
+    // If 'other', skip filtering by location
   }
 
   // Handle education filter (search in parsed data)
@@ -307,12 +387,6 @@ export async function GET(request: NextRequest) {
   if (filters.skills) {
     whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
     queryParams.push(`%${filters.skills}%`);
-  }
-
-  // Handle location filter (search in parsed data)
-  if (filters.location) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.location}%`);
   }
 
   // Handle CV language filter (search in parsed data)
@@ -379,12 +453,6 @@ export async function GET(request: NextRequest) {
       whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
       queryParams.push(parseInt(filters.maxFitScore));
     }
-  }
-
-  // If user is a Recruiter, only show their assigned candidates
-  if (session.user.role === 'Recruiter') {
-    whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-    queryParams.push(session.user.id);
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

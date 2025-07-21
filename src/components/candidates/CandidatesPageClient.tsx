@@ -151,9 +151,12 @@ export function CandidatesPageClient({
   // Collapsible sidebar state
   const [showFilters, setShowFilters] = useState(true);
 
+  // Add at the top of the component
+  const hasInitializedFilters = useRef(false);
+
   // Handle initial URL parameters (only if not clearing filters)
   useEffect(() => {
-    if (isClearingFilters) {
+    if (isClearingFilters || hasInitializedFilters.current) {
       return;
     }
     
@@ -180,7 +183,8 @@ export function CandidatesPageClient({
     if (hasChanges) {
       setFilters(newFilters);
     }
-  }, [urlPositionId, urlRecruiterId, urlStatus, isClearingFilters, filters]);
+    hasInitializedFilters.current = true;
+  }, [urlPositionId, urlRecruiterId, urlStatus, isClearingFilters]);
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
     if (sessionStatus !== 'authenticated') return;
@@ -248,10 +252,12 @@ export function CandidatesPageClient({
   // Use ref to track current request to prevent infinite loops
   const currentRequestRef = useRef<string | null>(null);
   
-
+  const latestRequestIdRef = useRef<string | null>(null);
 
   const fetchPaginatedCandidates = useCallback(async (currentFilters: CandidateFilterValues, page: number, pageSize: number) => {
-    console.log('fetchPaginatedCandidates called with:', { currentFilters, page, pageSize });
+    const requestId = `${Date.now()}-${Math.random()}`;
+    latestRequestIdRef.current = requestId;
+    console.log('[fetchPaginatedCandidates] requestId:', requestId, 'filters:', currentFilters, 'page:', page, 'pageSize:', pageSize);
     if (sessionStatusRef.current !== 'authenticated') {
       setIsLoading(false);
       return;
@@ -288,9 +294,18 @@ export function CandidatesPageClient({
     }, 30000); // 30 second timeout
     try {
       const query = new URLSearchParams();
-      if (currentFilters.name) query.append('name', currentFilters.name);
-      if (currentFilters.email) query.append('email', currentFilters.email);
-      if (currentFilters.phone) query.append('phone', currentFilters.phone);
+      if (currentFilters.name) {
+        query.append('name', currentFilters.name);
+        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
+      }
+      if (currentFilters.email) {
+        query.append('email', currentFilters.email);
+        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
+      }
+      if (currentFilters.phone) {
+        query.append('phone', currentFilters.phone);
+        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
+      }
       if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
       if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
       if (currentFilters.education) query.append('education', currentFilters.education);
@@ -301,6 +316,18 @@ export function CandidatesPageClient({
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       query.append('page', String(page));
       query.append('limit', String(pageSize));
+      
+      if (currentFilters.location) {
+        query.append('location', currentFilters.location);
+        if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
+      }
+      if (currentFilters.university) query.append('university', currentFilters.university);
+      if (currentFilters.major) query.append('major', currentFilters.major);
+      if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
+        if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
+      } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {
+        query.append('skills', currentFilters.skills);
+      }
       
             const apiUrl = `/api/candidates?${query.toString()}`;
 
@@ -334,11 +361,11 @@ export function CandidatesPageClient({
         if (response.status === 403) {
             setPermissionError(true);
             setFetchError(errorMessage);
-            setAllCandidates([]);
+            if (latestRequestIdRef.current === requestId) setAllCandidates([]); // Only clear on permission error
             return;
         }
         setFetchError(errorMessage);
-        setAllCandidates([]);
+        // Do NOT clear candidates here
         return;
       }
       const data = await response.json();
@@ -346,8 +373,14 @@ export function CandidatesPageClient({
       const candidatesArray = Array.isArray(data.data) ? data.data : [];
       const totalCount = data.pagination?.total || 0;
       
-      setAllCandidates(candidatesArray);
-      setTotal(totalCount);
+      // Only update if this is the latest request
+      if (latestRequestIdRef.current === requestId) {
+        setAllCandidates(candidatesArray); // Only update on success
+        setTotal(totalCount);
+        console.log('[fetchPaginatedCandidates] setAllCandidates (length):', candidatesArray.length, 'requestId:', requestId);
+      } else {
+        console.log('[fetchPaginatedCandidates] Stale response ignored. requestId:', requestId);
+      }
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.error('Request timeout - server may be overloaded');
@@ -358,7 +391,7 @@ export function CandidatesPageClient({
         setFetchError(errorMessage);
         }
       }
-      setAllCandidates([]);
+      // Do NOT clear candidates here
     } finally {
       clearTimeout(loadingTimeout); // Clear the loading timeout
       setIsLoading(false);
@@ -693,55 +726,6 @@ export function CandidatesPageClient({
       toast.error(initialFetchError);
     }
   }, [initialFetchError]);
-
-  useEffect(() => {
-    const eventSource = new EventSource('/api/candidates/sse');
-    
-    eventSource.onerror = (error) => {
-      console.error('[SSE] SSE connection error for candidates page:', error);
-    };
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const updatedCandidate = JSON.parse(event.data);
-        if (updatedCandidate.deleted && updatedCandidate.id) {
-          // Remove candidate from list
-          setAllCandidates(prev => prev.filter(c => c.id !== updatedCandidate.id));
-        } else {
-          setAllCandidates(prev => {
-            const idx = prev.findIndex(c => c.id === updatedCandidate.id);
-            if (idx !== -1) {
-              // Update existing candidate
-              const updated = [...prev];
-              updated[idx] = { ...updated[idx], ...updatedCandidate };
-              return updated;
-            } else {
-              // Insert new candidate at the top
-              return [updatedCandidate, ...prev];
-            }
-          });
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    };
-    
-    // Listen for recruitment stage updates
-    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
-      try {
-        const updatedStages = JSON.parse(event.data);
-        setAvailableStages(updatedStages);
-      } catch (e) {
-        console.error('Error parsing recruitment stages update:', e);
-      }
-    });
-    
-    // Cleanup function
-    return () => {
-      eventSource.close();
-    };
-  }, []);
-
 
   // Add a ref to track the debounce timeout
   const filterChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1360,34 +1344,41 @@ export function CandidatesPageClient({
     };
   }, [sessionStatus, isLoading, isAiSearchActive, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
 
-  if (sessionStatus === 'loading') {
-    // Show a loading spinner while session is being established
+  // Ensure recruiter filter is set on client if user is a Recruiter
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && session?.user?.role === 'Recruiter') {
+      if (!filters.selectedRecruiterIds || filters.selectedRecruiterIds.length === 0) {
+        setFilters(prev => ({
+          ...prev,
+          selectedRecruiterIds: [session.user.id],
+        }));
+      }
+    }
+  }, [sessionStatus, session?.user?.role, session?.user?.id, filters.selectedRecruiterIds]);
+
+  // Centralized error UI for auth/permission
+  if (authError || sessionStatus === 'unauthenticated') {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view candidates.</p>
+        <Button onClick={() => signIn(undefined, { callbackUrl: window.location.href })}>Sign In</Button>
       </div>
     );
-  }
-
-  // Show loading while session is being determined
-  if (sessionStatus === 'unauthenticated') {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (authError) {
-    return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Access Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view this page.</p> <Button onClick={() => signIn(undefined, { callbackUrl: pathname })} className="btn-primary-gradient">Sign In</Button> </div> );
   }
   if (permissionError) {
-     return ( <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4"> <ShieldAlert className="w-16 h-16 text-destructive mb-4" /> <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2> <p className="text-muted-foreground mb-4 max-w-md">{fetchError || "You do not have sufficient permissions to view this page."}</p> <Button onClick={() => router.push('/')} className="btn-primary-gradient">Go to Dashboard</Button> </div> );
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
+        <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Permission Denied</h2>
+        <p className="text-muted-foreground mb-4 max-w-md">You do not have permission to view candidates. Please contact your administrator if you believe this is an error.</p>
+      </div>
+    );
   }
   if (isLoading && allCandidates.length === 0 && !fetchError) {
     return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
-
   if (fetchError && !isLoading) {
     const isMissingTableError = fetchError.toLowerCase().includes("relation") && fetchError.toLowerCase().includes("does not exist");
     return (
@@ -1653,7 +1644,7 @@ export function CandidatesPageClient({
             <div className="flex gap-2 items-center ml-auto">
               {/* Removed Clear All Filters button as per request */}
               {canManageCandidates && (
-                <Button onClick={() => setIsBulkUploadModalOpen(true)} className="w-full sm:w-auto btn-primary-gradient"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
+                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>

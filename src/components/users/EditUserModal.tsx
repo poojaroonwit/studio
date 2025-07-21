@@ -420,6 +420,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                 <div className="flex items-center gap-3">
                   <Button 
                     type="submit" 
+                    variant="default"
                     disabled={form.formState.isSubmitting} 
                     className="btn-primary-gradient"
                     size="lg"

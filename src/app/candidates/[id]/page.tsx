@@ -755,10 +755,14 @@ export default function CandidateDetailPage() {
       justification: data.assignmentJustification || [],
     };
     // Fix: Ensure positionId and recruiterId are null if empty string
+    // Fix: assignmentJustification should be a string for backend
     const processedData = {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
+      assignmentJustification: Array.isArray(data.assignmentJustification)
+        ? data.assignmentJustification.join('\n')
+        : data.assignmentJustification,
       parsedData: {
         ...data.parsedData,
         job_applied: newJobApplied,

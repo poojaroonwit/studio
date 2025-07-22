@@ -474,6 +474,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -511,6 +512,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avatarUrl: fileUrl }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -975,9 +977,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ notes: newNote }),
+                    credentials: 'include',
                   });
                   // Refresh transition history
-                  const res = await fetch(`/api/transitions?candidateId=${candidateId}`);
+                  const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
                   if (res.ok) {
                     const data = await res.json();
                     setTransitionHistory(Array.isArray(data) ? data : (data.data || []));
@@ -1852,7 +1855,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                isEditing={false}
                onCommentsChange={() => {
                  // Refresh comments
-                 fetch(`/api/candidates/${candidateId}/comments`)
+                 fetch(`/api/candidates/${candidateId}/comments`, { credentials: 'include' })
                    .then(res => res.json())
                    .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
                    .catch(console.error);
@@ -1873,7 +1876,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                isEditing={false}
                onResumesChange={() => {
                  // Refresh resumes
-                 fetch(`/api/candidates/${candidateId}/resumes`)
+                 fetch(`/api/candidates/${candidateId}/resumes`, { credentials: 'include' })
                    .then(res => res.json())
                    .then(data => setResumes(Array.isArray(data) ? data : (data.data || [])))
                    .catch(console.error);
@@ -1904,7 +1907,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
          setCandidate(prev => prev ? { ...prev, status } : null);
        }}
        onRefreshCandidateData={async (candidateId: string) => {
-         const response = await fetch(`/api/candidates/${candidateId}`);
+         const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
          const updatedCandidate = await response.json();
          setCandidate(updatedCandidate);
        }}
@@ -1912,7 +1915,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
        comments={comments}
        onCommentsChange={() => {
          // Refresh comments
-         fetch(`/api/candidates/${candidateId}/comments`)
+         fetch(`/api/candidates/${candidateId}/comments`, { credentials: 'include' })
            .then(res => res.json())
            .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
            .catch(console.error);
@@ -1932,7 +1935,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
        onEditPosition={async () => {
          setIsEditPositionModalOpen(false);
          // Refresh candidate data
-         const response = await fetch(`/api/candidates/${candidateId}`);
+         const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
          const updatedCandidate = await response.json();
          setCandidate(updatedCandidate);
        }}

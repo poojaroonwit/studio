@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Lightbulb } from 'lucide-react';
 import type { Candidate, AutomationJobMatch, Position, CandidateDetails } from '@/lib/types';
+import { formatScoreWithGrade } from '@/lib/utils';
 
 interface RoleSuggestionSummaryProps {
   candidate: Candidate | null;

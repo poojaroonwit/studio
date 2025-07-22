@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { formatScoreWithGrade } from '@/lib/utils';
 
 interface JobMatchModalProps {
   isOpen: boolean;

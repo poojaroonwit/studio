@@ -94,3 +94,5 @@ export function safeFilter<T>(
   const array = ensureArray(value);
   return array.filter(callback);
 }
+
+export { formatScoreWithGrade } from './scoreUtils';

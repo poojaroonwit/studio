@@ -441,14 +441,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     }
     // Fix: Ensure positionId and recruiterId are null if empty string
     // Fix: assignmentJustification should be a string for backend
+    // Fix: Convert fitScore and job_matches fitScore to 0-100 if user entered a decimal
+    const normalizeScore = (score: any) => {
+      if (typeof score === 'number' && score > 0 && score < 1) return Math.round(score * 100);
+      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 0 && Number(score) < 1) return Math.round(Number(score) * 100);
+      return score;
+    };
     const payload = {
       ...data,
       status: statusToSend,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
+      fitScore: normalizeScore(data.fitScore),
       assignmentJustification: Array.isArray(data.assignmentJustification)
         ? data.assignmentJustification.join('\n')
         : data.assignmentJustification,
+      parsedData: {
+        ...data.parsedData,
+        job_matches: Array.isArray(data.parsedData?.job_matches)
+          ? data.parsedData.job_matches.map(jm => ({
+              ...jm,
+              fitScore: normalizeScore(jm.fitScore),
+            }))
+          : data.parsedData?.job_matches,
+      },
     };
     try {
       const res = await fetch(`/api/candidates/${candidate.id}`, {

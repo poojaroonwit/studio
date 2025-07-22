@@ -23,7 +23,7 @@ const jobMatchSchema = z.object({
 });
 
 const jobMatchesUpdateSchema = z.object({
-  job_matches: z.array(jobMatchSchema),
+  job_matches: z.array(jobMatchSchema).optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const insertedMatches = [];
     
-    for (const match of job_matches) {
+    for (const match of job_matches || []) { // Use || [] to handle empty array
       console.log('[JOB-MATCHES] Processing match:', {
         candidateId: id,
         jobId: match.jobId || null,
@@ -343,7 +343,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const updatedMatches = [];
     
-    for (const match of job_matches) {
+    for (const match of job_matches || []) { // Use || [] to handle empty array
       console.log('[JOB-MATCHES] PATCH Processing match:', {
         candidateId: id,
         jobId: match.jobId || null,
@@ -465,7 +465,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const insertedMatches = [];
     
-    for (const match of job_matches) {
+    for (const match of job_matches || []) { // Use || [] to handle empty array
       const matchId = uuidv4();
       const result = await client.query(insertJobMatchQuery, [
         matchId,

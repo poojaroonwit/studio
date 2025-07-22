@@ -39,15 +39,14 @@ export function RecruitmentPipelineCard({
   // Track which popover is open by index
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
-  const [isConnected, setIsConnected] = useState(false);
+  // Removed: const [isConnected, setIsConnected] = useState(false);
   
   // Real-time state management
   const [localStages, setLocalStages] = useState<RecruitmentStage[]>(stages);
   const [localTransitionHistory, setLocalTransitionHistory] = useState<TransitionRecord[]>(transitionHistory);
   const [localCurrentStatus, setLocalCurrentStatus] = useState<string>(currentStatus);
   
-  // SSE connection ref
-  const eventSourceRef = useRef<EventSource | null>(null);
+  // Removed: const eventSourceRef = useRef<EventSource | null>(null);
 
   // Update local state when props change
   useEffect(() => {

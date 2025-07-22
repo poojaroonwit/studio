@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { processSingleUploadQueueJob } from '../process/route';
 
 /**
  * @openapi
@@ -110,6 +111,39 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
     }
     return NextResponse.json({ success: true });
+  } finally {
+    client.release();
+  }
+}
+
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  // Only allow Admin or users with UPLOAD_QUEUE_MANAGE
+  const canProcess = session.user.role === 'Admin' || session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+  if (!canProcess) {
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions' }, { status: 403 });
+  }
+  const id = params.id;
+  const client = await getPool().connect();
+  try {
+    // Fetch the job by ID
+    const res = await client.query('SELECT * FROM upload_queue WHERE id = $1', [id]);
+    if (res.rows.length === 0) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+    const job = res.rows[0];
+    // Only allow processing if job is queued or failed
+    if (!['queued', 'error', 'fail'].includes(job.status)) {
+      return NextResponse.json({ error: 'Job is not in a processable state' }, { status: 400 });
+    }
+    // Process the job (send to webhook)
+    const result = await processSingleUploadQueueJob(job, client);
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   } finally {
     client.release();
   }

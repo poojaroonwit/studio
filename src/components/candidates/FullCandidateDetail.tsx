@@ -748,14 +748,20 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     );
   };
 
-  // --- Job Applied logic: use only top-level fields, do not use job_applied ---
-  const appliedJobId = candidate?.positionId;
-  const appliedFitScore = candidate?.fitScore;
-  const appliedJustification = candidate?.assignmentJustification
-    ? (Array.isArray(candidate.assignmentJustification)
-        ? candidate.assignmentJustification
-        : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
-    : [];
+  // --- Job Applied logic: match candidate detail page 100% ---
+  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
+    ? (candidate.parsedData as any).job_applied
+    : undefined;
+
+  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
+  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
+  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+    ? jobApplied.justification
+    : (candidate?.assignmentJustification 
+        ? (Array.isArray(candidate.assignmentJustification) 
+            ? candidate.assignmentJustification 
+            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+        : []);
   // --- End Job Applied logic ---
 
   // Before the return statement in the component, add:
@@ -1064,14 +1070,53 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       
                       <div>
                         <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
-                        <Textarea 
-                          placeholder="Explain why this candidate was assigned to this position...&#10;e.g.,&#10;• Strong technical background&#10;• Relevant experience in similar role&#10;• Good cultural fit with team&#10;• Meets all required qualifications"
-                          {...register('assignmentJustification')}
-                          rows={4}
-                          className="resize-none"
-                        />
+                        <div className="space-y-3">
+                          {(!watch('assignmentJustification') || watch('assignmentJustification')?.length === 0) && (
+                            <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
+                              <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                              <p className="text-sm">No justification items added yet.</p>
+                              <p className="text-xs">Click \"Add Justification\" to get started.</p>
+                            </div>
+                          )}
+                          {watch('assignmentJustification')?.map((item: string, index: number) => (
+                            <div key={index} className="flex items-start gap-2 group">
+                              <div className="flex-1">
+                                <Input
+                                  placeholder={`Justification reason ${index + 1}...`}
+                                  {...register(`assignmentJustification.${index}`)}
+                                  className="resize-none"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  const current = watch('assignmentJustification') || [];
+                                  const updated = current.filter((_: string, i: number) => i !== index);
+                                  setValue('assignmentJustification', updated);
+                                }}
+                                title="Remove justification"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              const current = watch('assignmentJustification') || [];
+                              setValue('assignmentJustification', [...current, '']);
+                            }}
+                          >
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Justification
+                          </Button>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Provide detailed reasons for assigning this candidate to the applied position.
+                          Add detailed reasons for assigning this candidate to the applied position.
                         </p>
                       </div>
                     </div>

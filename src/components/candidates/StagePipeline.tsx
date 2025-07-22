@@ -44,10 +44,8 @@ export function StagePipeline({
   const [localTransitionHistory, setLocalTransitionHistory] = useState<TransitionRecord[]>(transitionHistory);
   const [localCurrentStatus, setLocalCurrentStatus] = useState<string>(currentStatus);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
-  const [isConnected, setIsConnected] = useState(false);
-  
-  // SSE connection ref
-  const eventSourceRef = useRef<EventSource | null>(null);
+  // Removed: const [isConnected, setIsConnected] = useState(false);
+  // Removed: const eventSourceRef = useRef<EventSource | null>(null);
 
   // Update local state when props change
   useEffect(() => {
@@ -62,72 +60,7 @@ export function StagePipeline({
     setLocalCurrentStatus(currentStatus);
   }, [currentStatus]);
 
-  // Set up SSE for real-time updates
-  useEffect(() => {
-    const eventSource = new EventSource('/api/candidates/sse');
-    eventSourceRef.current = eventSource;
-    
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-    
-    eventSource.onerror = (error) => {
-      console.error('[StagePipeline] SSE connection error:', error);
-      setIsConnected(false);
-    };
-
-    // Listen for candidate updates
-    eventSource.addEventListener('candidate', (event: MessageEvent) => {
-      try {
-        const updatedCandidate = JSON.parse(event.data);
-        if (updatedCandidate.id === candidateId) {
-          setLocalCurrentStatus(updatedCandidate.status || localCurrentStatus);
-        }
-      } catch (e) {
-        console.error('[StagePipeline] Error parsing candidate update:', e);
-      }
-    });
-
-    // Listen for transition updates
-    eventSource.addEventListener('transition', (event: MessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.candidateId === candidateId) {
-          // Update transition history based on action
-          if (payload.action === 'add') {
-            setLocalTransitionHistory(prev => [...prev, payload.transition]);
-          } else if (payload.action === 'update') {
-            setLocalTransitionHistory(prev => 
-              prev.map(t => t.id === payload.transition.id ? payload.transition : t)
-            );
-          } else if (payload.action === 'delete') {
-            setLocalTransitionHistory(prev => 
-              prev.filter(t => t.id !== payload.transition.id)
-            );
-          }
-        }
-      } catch (e) {
-        console.error('[StagePipeline] Error parsing transition update:', e);
-      }
-    });
-
-    // Listen for recruitment stage updates
-    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
-      try {
-        const updatedStages = JSON.parse(event.data);
-        setLocalStages(updatedStages);
-      } catch (e) {
-        console.error('[StagePipeline] Error parsing recruitment stages update:', e);
-      }
-    });
-
-    // Cleanup function
-    return () => {
-      setIsConnected(false);
-      eventSource.close();
-      eventSourceRef.current = null;
-    };
-  }, [candidateId, localCurrentStatus]);
+  // Removed: useEffect for SSE setup and cleanup
 
   // Enhanced note edit handler with real-time feedback
   const handleNoteEdit = useCallback(async (transitionId: string, newNote: string) => {

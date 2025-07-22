@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -899,6 +899,29 @@ export const CandidateImportUploadQueue: React.FC<{
                           }}
                         >
                           <RotateCcw className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
+                      {(item.status === "queued") && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Process Now (Send to Webhook)"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/upload-queue/${item.id}`, { method: 'POST' });
+                              if (res.ok) {
+                                success('Job sent to webhook!');
+                              } else {
+                                const data = await res.json();
+                                error(data.error || 'Failed to process job');
+                              }
+                            } catch (err) {
+                              error('Failed to process job');
+                            }
+                            fetchJobs();
+                          }}
+                        >
+                          <Play className="h-4 w-4 text-green-600" />
                         </Button>
                       )}
                       {(item.status === "queued" || item.status === "uploading") && (

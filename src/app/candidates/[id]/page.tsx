@@ -756,6 +756,18 @@ export default function CandidateDetailPage() {
     };
     // Fix: Ensure positionId and recruiterId are null if empty string
     // Fix: assignmentJustification should be a string for backend
+    // Extract job matches from form (from parsedData.job_matches)
+    const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
+      ? data.parsedData.job_matches.map(jm => ({
+          jobId: jm.jobId,
+          fitScore: jm.fitScore,
+          matchReasons: Array.isArray(jm.matchReasons)
+            ? jm.matchReasons
+            : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
+                ? jm.matchReasons_string.split('\n').map((s: string) => s.trim()).filter(Boolean)
+                : []),
+        }))
+      : [];
     const processedData = {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
@@ -766,24 +778,44 @@ export default function CandidateDetailPage() {
       parsedData: {
         ...data.parsedData,
         job_applied: newJobApplied,
+        // Do NOT save job_matches in parsedData
       },
     };
     try {
-        const response = await fetch(`/api/candidates/${candidate.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(processedData),
+      // Save main candidate data
+      const response = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(processedData),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update candidate: ${response.statusText}`);
+      }
+      // Save job matches to JobMatch table via v1 API
+      if (jobMatchesToSave.length > 0) {
+        const jobMatchRes = await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_matches: jobMatchesToSave }),
         });
-        if (!response.ok) {
-            throw new Error(`Failed to update candidate: ${response.statusText}`);
+        if (!jobMatchRes.ok) {
+          throw new Error('Failed to update job matches');
         }
-        await fetchCandidateDetails();
-        setIsEditing(false);
-        if (data && Object.keys(data).length > 0) {
-          toast.success("Candidate details updated successfully.");
-        }
+      } else {
+        // If no job matches, clear them in the backend
+        await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_matches: [] }),
+        });
+      }
+      await fetchCandidateDetails();
+      setIsEditing(false);
+      if (data && Object.keys(data).length > 0) {
+        toast.success('Candidate details updated successfully.');
+      }
     } catch (error) {
-        toast.error((error as Error).message);
+      toast.error((error as Error).message);
     }
   };
 

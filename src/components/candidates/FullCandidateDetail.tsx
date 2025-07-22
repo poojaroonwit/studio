@@ -417,14 +417,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
   // Ensure candidateJobMatches is always in sync with candidate data
   useEffect(() => {
-    const parsedData = candidate?.parsedData;
-    if (
-      parsedData &&
-      typeof parsedData === 'object' &&
-      'job_matches' in parsedData &&
-      Array.isArray((parsedData as any).job_matches)
-    ) {
-      setCandidateJobMatches((parsedData as { job_matches: any[] }).job_matches);
+    if (candidate && Array.isArray(candidate.jobMatches)) {
+      setCandidateJobMatches(candidate.jobMatches);
     } else {
       setCandidateJobMatches([]);
     }
@@ -447,6 +441,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 0 && Number(score) < 1) return Math.round(Number(score) * 100);
       return score;
     };
+    // Extract job matches from form (from parsedData.job_matches)
+    const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
+      ? data.parsedData.job_matches.map(jm => ({
+          jobId: jm.jobId,
+          fitScore: normalizeScore(jm.fitScore),
+          matchReasons: Array.isArray(jm.matchReasons)
+            ? jm.matchReasons
+            : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
+                ? jm.matchReasons_string.split('\n').map((s: string) => s.trim()).filter(Boolean)
+                : []),
+        }))
+      : [];
     const payload = {
       ...data,
       status: statusToSend,
@@ -458,15 +464,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         : data.assignmentJustification,
       parsedData: {
         ...data.parsedData,
-        job_matches: Array.isArray(data.parsedData?.job_matches)
-          ? data.parsedData.job_matches.map(jm => ({
-              ...jm,
-              fitScore: normalizeScore(jm.fitScore),
-            }))
-          : data.parsedData?.job_matches,
+        // Do NOT save job_matches in parsedData
       },
     };
     try {
+      // Save main candidate data
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -477,6 +479,26 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         throw new Error('Failed to update candidate');
       }
 
+      // Save job matches to JobMatch table via v1 API
+      if (jobMatchesToSave.length > 0) {
+        const jobMatchRes = await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_matches: jobMatchesToSave }),
+        });
+        if (!jobMatchRes.ok) {
+          throw new Error('Failed to update job matches');
+        }
+      } else {
+        // If no job matches, clear them in the backend
+        await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_matches: [] }),
+        });
+      }
+
+      // Refresh candidate after both requests succeed
       const updatedCandidate = await res.json();
       setCandidate(updatedCandidate);
       setIsEditing(false);
@@ -720,18 +742,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     return undefined;
   };
 
-  const getJobMatches = () => {
-    const parsedData = candidate?.parsedData;
-    if (!parsedData || typeof parsedData !== 'object') return null;
-    
-    // Check if parsedData has job_matches property (CandidateDetails)
-    if ('job_matches' in parsedData) {
-      return (parsedData as any).job_matches;
-    }
-    
-    return null;
-  };
-
   const personalInfo = getParsedDataProperty('personal_info');
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
@@ -778,12 +788,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       </div>
     );
   }
-
-  // Define filteredJobMatches after candidate is loaded
-  const appliedJobId = candidate?.positionId;
-  const filteredJobMatches = Array.isArray(getJobMatches())
-    ? getJobMatches().filter((match: any) => match.jobId !== appliedJobId)
-    : [];
 
   return (
     <div className={isModal ? "h-full overflow-y-auto" : "h-screen overflow-y-auto"}>

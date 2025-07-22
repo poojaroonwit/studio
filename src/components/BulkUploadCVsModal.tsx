@@ -14,6 +14,7 @@ import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import { FileUploadArea } from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
+import { CandidateImportUploadQueue } from "@/components/candidates/CandidateImportUploadQueue";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -287,7 +288,7 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
               setDragActive={handleDragActiveChange}
             />
           </div>
-          {/* Right Column - Uploaded Files List and Preview */}
+          {/* Right Column - Uploaded Files List, Preview, and Static Upload Queue Card */}
           <div className="space-y-4">
             {/* Uploaded Files List - Show selected files in right column */}
             {totalFiles > 0 && (
@@ -329,6 +330,10 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
               ) : (
                 <div className="text-muted-foreground italic">No file selected for preview.</div>
               )}
+            </div>
+            {/* Static Card: Candidate Import Upload Queue (Realtime) */}
+            <div className="mt-4">
+              <CandidateImportUploadQueue initialPage={1} initialPageSize={5} />
             </div>
           </div>
         </div>

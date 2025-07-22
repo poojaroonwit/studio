@@ -56,6 +56,9 @@ interface CandidateTableProps {
   onToggleSelectCandidate: (candidateId: string) => void;
   onToggleSelectAllCandidates: () => void;
   isAllCandidatesSelected: boolean;
+  page?: number;
+  pageSize?: number;
+  baseIndex?: number;
 }
 
 const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -95,6 +98,9 @@ export function CandidateTable({
   onToggleSelectCandidate,
   onToggleSelectAllCandidates,
   isAllCandidatesSelected,
+  page = 1,
+  pageSize = 20,
+  baseIndex = 0,
 }: CandidateTableProps) {
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
@@ -206,6 +212,7 @@ export function CandidateTable({
         <Table>
           <TableHeader>
             <TableRow key="header-row">
+              <TableHead key="row-number" className="w-8 text-center">#</TableHead>
               <TableHead key="select-all" className="w-12"><Checkbox
                 checked={isAllCandidatesSelected}
                 onCheckedChange={onToggleSelectAllCandidates}
@@ -222,7 +229,7 @@ export function CandidateTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate) => {
+            {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate, idx) => {
               const dateValue = candidate.updatedAt || candidate.createdAt;
               let displayDate = 'N/A';
               if (dateValue && typeof dateValue === 'string') {
@@ -246,6 +253,7 @@ export function CandidateTable({
 
               return (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                  <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{baseIndex + idx + 1}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={selectedCandidateIds.has(candidate.id)}
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
@@ -324,11 +332,9 @@ export function CandidateTable({
                     <div className="flex items-center gap-2">
                       {/* Fit Score as Badge */}
                       {(() => {
-                        // Extract fit score from job_applied if available, otherwise use candidate.fitScore
-                        const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
-                          ? (candidate.parsedData as any).job_applied
-                          : undefined;
-                        const displayFitScore = jobApplied?.fitScore ?? candidate.fitScore;
+                        // Remove all usage of parsedData.job_applied
+                        // Use only top-level fields
+                        const displayFitScore = candidate.fitScore;
                         
                         return (
                           <Badge

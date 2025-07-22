@@ -78,12 +78,6 @@ function logHealthCheck() {
 }
 
 async function getMaxConcurrentProcessors(): Promise<number> {
-  // Allow override by environment variable
-  if (process.env.MAX_CONCURRENT_PROCESSORS) {
-    const envValue = parseInt(process.env.MAX_CONCURRENT_PROCESSORS, 10);
-    if (!isNaN(envValue) && envValue > 0) return envValue;
-    else console.warn('Invalid MAX_CONCURRENT_PROCESSORS, using default 5');
-  }
   try {
     const res = await fetch('http://app:8021/api/settings/system-settings');
     if (!res.ok) throw new Error('Failed to fetch system settings');
@@ -92,10 +86,15 @@ async function getMaxConcurrentProcessors(): Promise<number> {
       ? settings.find((s: any) => s.key === 'maxConcurrentProcessors')
       : null;
     const value = found ? parseInt(found.value, 10) : 5;
-    return isNaN(value) || value <= 0 ? 5 : value;
-  } catch {
-    return 5;
+    if (!isNaN(value) && value > 0) return value;
+  } catch {}
+  // Fallback to env var if API fails
+  if (process.env.MAX_CONCURRENT_PROCESSORS) {
+    const envValue = parseInt(process.env.MAX_CONCURRENT_PROCESSORS, 10);
+    if (!isNaN(envValue) && envValue > 0) return envValue;
+    else console.warn('Invalid MAX_CONCURRENT_PROCESSORS, using default 5');
   }
+  return 5;
 }
 
 async function processJob(apiKey: string) {

@@ -144,7 +144,12 @@ export function CandidatesPageClient({
   const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE');
 
   // Calculate total pages for pagination
-  const totalPages = Math.ceil(total / pageSize);
+  const totalPages = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      return Math.max(1, Math.ceil(aiMatchedCandidateIds.length / pageSize));
+    }
+    return Math.max(1, Math.ceil(total / pageSize));
+  }, [isAiSearchActive, aiMatchedCandidateIds, pageSize, total]);
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
@@ -1369,6 +1374,25 @@ export function CandidatesPageClient({
     );
   }
 
+  // Paginate candidates for display
+  const paginatedCandidates = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      const filtered = mappedCandidates;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return filtered.slice(start, end);
+    }
+    return mappedCandidates;
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
+
+  // For row numbering in table
+  const baseIndex = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      return (page - 1) * pageSize;
+    }
+    return (page - 1) * pageSize;
+  }, [isAiSearchActive, aiMatchedCandidateIds, page, pageSize]);
+
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
@@ -1596,7 +1620,7 @@ export function CandidatesPageClient({
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground ">
-              {total} Candidate{total !== 1 ? 's' : ''}
+              {isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total) !== 1 ? 's' : ''}
             </span>
             {selectedCandidateIds.size > 0 && canManageCandidates && (
               <DropdownMenu>
@@ -1661,7 +1685,7 @@ export function CandidatesPageClient({
         )}
 
         <CandidateTable
-          candidates={mappedCandidates}
+          candidates={paginatedCandidates}
           availablePositions={availablePositions}
           availableStages={availableStages}
           availableRecruiters={availableRecruiters}
@@ -1676,6 +1700,9 @@ export function CandidatesPageClient({
           onToggleSelectCandidate={handleToggleSelectCandidate}
           onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
           isAllCandidatesSelected={isAllCandidatesSelected}
+          page={page}
+          pageSize={pageSize}
+          baseIndex={baseIndex}
         />
 
         {/* Pagination Controls */}

@@ -749,19 +749,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   };
 
   // --- Job Applied logic: match candidate detail page 100% ---
-  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_applied
-    : undefined;
-
-  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
-  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
-  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification
-    : (candidate?.assignmentJustification 
-        ? (Array.isArray(candidate.assignmentJustification) 
-            ? candidate.assignmentJustification 
-            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
-        : []);
+  // Remove all usage of parsedData.job_applied
+  // Use only top-level fields
+  const appliedJobId = candidate?.positionId;
+  const appliedFitScore = candidate?.fitScore;
+  const appliedJustification = candidate?.assignmentJustification
+    ? (Array.isArray(candidate.assignmentJustification)
+        ? candidate.assignmentJustification
+        : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+    : [];
   // --- End Job Applied logic ---
 
   // Before the return statement in the component, add:

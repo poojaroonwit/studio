@@ -273,21 +273,6 @@ export default function CandidateDetailPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Calculate applied job data early to avoid temporal dead zone
-  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_applied
-    : undefined;
-
-  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
-  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
-  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification
-    : (candidate?.assignmentJustification 
-        ? (Array.isArray(candidate.assignmentJustification) 
-            ? candidate.assignmentJustification 
-            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
-        : []);
-
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({
     resolver: zodResolver(editCandidateDetailSchema),
@@ -295,11 +280,11 @@ export default function CandidateDetailPage() {
       name: candidate?.name || '',
       email: candidate?.email || '',
       phone: candidate?.phone || '',
-      positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
-      fitScore: appliedFitScore || null,
-      assignmentJustification: appliedJustification || [],
+      positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+      fitScore: candidate?.fitScore || null,
+      assignmentJustification: candidate?.assignmentJustification || [],
       status: candidate?.status || '',
-      recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
+      recruiterId: !candidate?.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
       parsedData: (candidate?.parsedData as any) || {}
     }
   });
@@ -320,9 +305,9 @@ export default function CandidateDetailPage() {
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
-        positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
-        fitScore: appliedFitScore || null,
-        assignmentJustification: appliedJustification || [],
+        positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+        fitScore: candidate?.fitScore || null,
+        assignmentJustification: candidate?.assignmentJustification || [],
         status: candidate.status || '',
         recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
         parsedData: {
@@ -339,7 +324,7 @@ export default function CandidateDetailPage() {
         }
       });
     }
-  }, [candidate, reset, appliedJobId, appliedFitScore, appliedJustification]);
+  }, [candidate, reset]);
 
   // Update filtered recruiters when search term or recruiters list changes
   useEffect(() => {
@@ -808,9 +793,9 @@ export default function CandidateDetailPage() {
             name: candidate.name,
             email: candidate.email,
             phone: candidate.phone,
-            positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
-            fitScore: appliedFitScore || null,
-            assignmentJustification: appliedJustification || [],
+            positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+            fitScore: candidate?.fitScore || null,
+            assignmentJustification: candidate?.assignmentJustification || [],
             status: candidate.status,
             recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
             parsedData: {
@@ -861,7 +846,6 @@ export default function CandidateDetailPage() {
   const [experienceOpen, setExperienceOpen] = useState(true);
   const [skillsOpen, setSkillsOpen] = useState(true);
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
-  const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
   const [jobMatchesScrollPosition, setJobMatchesScrollPosition] = useState(0);
 
@@ -1379,9 +1363,9 @@ export default function CandidateDetailPage() {
                                 name: candidate.name || '',
                                 email: candidate.email || '',
                                 phone: candidate.phone || '',
-                                positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
-                                fitScore: appliedFitScore || null,
-                                assignmentJustification: appliedJustification || '',
+                                positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+                                fitScore: candidate?.fitScore || null,
+                                assignmentJustification: candidate?.assignmentJustification || [],
                                 status: candidate.status || '',
                                 recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                                 parsedData: (candidate?.parsedData as any) || {}
@@ -1552,7 +1536,7 @@ export default function CandidateDetailPage() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {appliedJobId ? (
+                            {candidate.positionId ? (
                               <div 
                                 className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
                                 style={{
@@ -1567,14 +1551,14 @@ export default function CandidateDetailPage() {
                                   e.currentTarget.style.filter = 'brightness(1)';
                                 }}
                                 onClick={() => {
-                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
+                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
                                   
                                   if (position) {
                                     const appliedJobData = {
-                                      jobId: appliedJobId,
+                                      jobId: candidate.positionId,
                                       jobTitle: position.title,
-                                      fitScore: appliedFitScore || 0,
-                                      matchReasons: appliedJustification || [],
+                                      fitScore: candidate?.fitScore || 0,
+                                      matchReasons: candidate?.assignmentJustification || [],
                                       position: {
                                         id: position.id,
                                         title: position.title,
@@ -1596,24 +1580,24 @@ export default function CandidateDetailPage() {
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
-                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
+                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
                                     </h4>
-                                    {appliedFitScore !== null && appliedFitScore !== undefined && (
+                                    {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
                                       <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                        <span>{appliedFitScore}%</span>
-                                        <span className="text-lg font-bold text-primary">({getGradeFromScore(appliedFitScore)})</span>
+                                        <span>{candidate?.fitScore}%</span>
+                                        <span className="text-lg font-bold text-primary">({getGradeFromScore(candidate?.fitScore || 0)})</span>
                                       </div>
                                     )}
                                    </div>
                                    
-                                  {appliedJustification && appliedJustification.length > 0 && (
+                                  {candidate?.assignmentJustification && candidate?.assignmentJustification.length > 0 && (
                                      <div className="mt-3">
                                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
                                       <div className="space-y-2">
-                                        {appliedJustification.map((sentence: string, index: number) => {
+                                        {candidate?.assignmentJustification.map((sentence: string, index: number) => {
                                           const trimmedSentence = sentence.trim();
                                           if (!trimmedSentence) return null;
                                           

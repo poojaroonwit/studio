@@ -104,15 +104,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       justification: justification || [],
     };
 
-    // Update candidate with new parsedData and top-level fitScore
+    // Update candidate with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1, "fitScore" = $2
-      WHERE id = $3
+      SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
+      WHERE id = $5
       RETURNING *;
     `;
-    
-    const updateResult = await client.query(updateQuery, [parsedData, fitScore, id]);
+    const assignmentJustificationStr = Array.isArray(justification) ? justification.join('\n') : justification;
+    const updateResult = await client.query(updateQuery, [parsedData, fitScore, jobId, assignmentJustificationStr, id]);
 
     await client.query('COMMIT');
     
@@ -193,15 +193,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       justification: justification || [],
     };
 
-    // Update candidate with new parsedData and top-level fitScore
+    // Update candidate with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1, "fitScore" = $2
-      WHERE id = $3
+      SET "parsedData" = $1, "fitScore" = $2, "positionId" = $3, "assignmentJustification" = $4
+      WHERE id = $5
       RETURNING *;
     `;
-    
-    const updateResult = await client.query(updateQuery, [parsedData, fitScore, id]);
+    const assignmentJustificationStr = Array.isArray(justification) ? justification.join('\n') : justification;
+    const updateResult = await client.query(updateQuery, [parsedData, fitScore, jobId, assignmentJustificationStr, id]);
 
     await client.query('COMMIT');
     

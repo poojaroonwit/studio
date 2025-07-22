@@ -50,8 +50,14 @@ export async function GET(request: NextRequest) {
           `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
           values
         );
+        // Fetch total count for pagination
+        const countRes = await client.query(
+          `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+          values.slice(0, values.length - 2)
+        );
+        const total = parseInt(countRes.rows[0].count, 10);
         client.release();
-        const data = JSON.stringify({ type: 'queue', data: res.rows });
+        const data = JSON.stringify({ type: 'queue', data: res.rows, total });
         controller.enqueue(encoder.encode(`data: ${data}\n\n`));
       } catch (error) {
         console.error('[SSE] Failed to send initial data:', error);
@@ -82,8 +88,14 @@ export async function GET(request: NextRequest) {
                   `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
                   values
                 );
+                // Fetch total count for pagination
+                const countRes = await client.query(
+                  `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+                  values.slice(0, values.length - 2)
+                );
+                const total = parseInt(countRes.rows[0].count, 10);
                 client.release();
-                const data = JSON.stringify({ type: 'queue', data: res.rows });
+                const data = JSON.stringify({ type: 'queue', data: res.rows, total });
                 controller.enqueue(encoder.encode(`data: ${data}\n\n`));
               }
             } catch (error) {

@@ -61,7 +61,6 @@ echo "🔧 Initializing application..."
 node -e "
 const { initializeApplication } = require('./src/lib/startup');
 initializeApplication().then(result => {
-    console.log('Initialization result:', JSON.stringify(result, null, 2));
     if (result.overall === 'failed') {
         console.error('❌ Application initialization failed');
         process.exit(1);

@@ -9,7 +9,6 @@ async function seedSampleLogs() {
   const client = await pool.connect();
   
   try {
-    console.log('🌱 Seeding sample log entries...');
     
     // First, let's get a user ID to use for actingUserId
     const userResult = await client.query('SELECT id FROM "User" LIMIT 1');

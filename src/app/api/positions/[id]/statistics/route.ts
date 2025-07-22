@@ -45,48 +45,38 @@ export async function GET(
       totalApplied = 0;
     }
 
-    // Get total candidates who have job matches for this position
-    // Using a simpler approach since array_contains might not work with complex objects
-    console.log('Fetching candidates with matches...');
-    let candidatesWithMatches: any[] = [];
+    // Get candidates who have job matches for this position
+    console.log('Fetching candidates with job matches...');
+    let totalMatching = 0;
+    let matchingNotApplied = 0;
+    
     try {
-      candidatesWithMatches = await prisma.candidate.findMany({
-        where: {
-          parsedData: {
-            not: undefined
-          }
-        },
+      // Fetch all candidates to check their job_matches
+      const allCandidates = await prisma.candidate.findMany({
         select: {
           id: true,
           positionId: true,
           parsedData: true
         }
       });
-      console.log('Candidates with matches found:', candidatesWithMatches.length);
-    } catch (error) {
-      console.error('Error fetching candidates with matches:', error);
-      candidatesWithMatches = [];
-    }
-
-    // Calculate job matching statistics
-    console.log('Calculating job matching statistics...');
-    
-    let totalMatching = 0;
-    let matchingNotApplied = 0;
-    
-    try {
+      
+      console.log('Total candidates found:', allCandidates.length);
+      
       // Filter candidates who have job matches for this position
-      const candidatesWithJobMatches = candidatesWithMatches.filter(candidate => {
+      const candidatesWithJobMatches = allCandidates.filter(candidate => {
         try {
           const parsedData = candidate.parsedData as any;
-          if (!parsedData) return false;
+          if (!parsedData || typeof parsedData !== 'object') return false;
           
           const jobMatches = parsedData.job_matches;
           if (!Array.isArray(jobMatches)) return false;
           
-          return jobMatches.some((match: any) => match?.jobId === positionId);
+          // Check if any job match has the target positionId
+          return jobMatches.some((match: any) => 
+            match && typeof match === 'object' && match.jobId === positionId
+          );
         } catch (error) {
-          console.log('Error parsing candidate data:', error);
+          console.log('Error parsing candidate data for candidate', candidate.id, ':', error);
           return false;
         }
       });
@@ -102,6 +92,8 @@ export async function GET(
       
     } catch (error) {
       console.error('Error calculating job matching statistics:', error);
+      totalMatching = 0;
+      matchingNotApplied = 0;
     }
 
     const result = {

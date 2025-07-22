@@ -57,13 +57,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    console.log('🚀 Starting application initialization via API...');
     
     await logAudit('INFO', 'Application initialization started via API', 'API:Setup:Initialize:Post', null);
     
     const result = await initializeApplication();
     
-    console.log('✅ Application initialization completed via API');
     
     await logAudit('AUDIT', `Application initialization completed via API. Status: ${result.overall}`, 'API:Setup:Initialize:Post', null, { 
       status: result.overall,

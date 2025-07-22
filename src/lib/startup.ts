@@ -86,8 +86,6 @@ export async function initializeServices() {
 }
 
 export async function initializeApplication(): Promise<StartupResult> {
-  console.log('🚀 Starting application initialization...');
-  
   const result: StartupResult = {
     minio: { status: 'error', message: 'Not initialized' },
     database: { status: 'error', message: 'Not initialized' },
@@ -98,7 +96,6 @@ export async function initializeApplication(): Promise<StartupResult> {
   
   // Initialize MinIO
   try {
-    console.log('📦 Initializing MinIO...');
     const minioResult = await startupMinIOInitialization();
     result.minio = {
       status: minioResult.status as 'success' | 'warning' | 'error',
@@ -106,7 +103,6 @@ export async function initializeApplication(): Promise<StartupResult> {
       bucket: minioResult.bucket,
       error: 'error' in minioResult ? minioResult.error : undefined
     };
-    console.log(`✅ MinIO initialization: ${minioResult.status}`);
   } catch (error) {
     console.error('❌ MinIO initialization failed:', error);
     result.minio = {
@@ -118,7 +114,6 @@ export async function initializeApplication(): Promise<StartupResult> {
   
   // Test database connection
   try {
-    console.log('🗄️ Testing database connection...');
     const pool = getPool();
     const client = await pool.connect();
     await client.query('SELECT 1');
@@ -127,7 +122,6 @@ export async function initializeApplication(): Promise<StartupResult> {
       status: 'success',
       message: 'Database connection successful'
     };
-    console.log('✅ Database connection successful');
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     result.database = {
@@ -139,7 +133,6 @@ export async function initializeApplication(): Promise<StartupResult> {
 
   // Test Redis connection
   try {
-    console.log('🔴 Testing Redis connection...');
     const redisClient = await getRedisClient();
     if (redisClient) {
       await redisClient.ping();
@@ -147,13 +140,11 @@ export async function initializeApplication(): Promise<StartupResult> {
         status: 'success',
         message: 'Redis connection successful'
       };
-      console.log('✅ Redis connection successful');
     } else {
       result.redis = {
         status: 'error',
         message: 'Redis client not available'
       };
-      console.log('⚠️ Redis client not available');
     }
   } catch (error) {
     console.error('❌ Redis connection failed:', error);
@@ -167,14 +158,12 @@ export async function initializeApplication(): Promise<StartupResult> {
   // Run database seeding if database is available
   if (result.database.status === 'success') {
     try {
-      console.log('🌱 Running database seeding...');
       // Run the seed script
       execSync('npm run seed', { stdio: 'pipe' });
       result.seeding = {
         status: 'success',
         message: 'Database seeded successfully'
       };
-      console.log('✅ Database seeding completed');
     } catch (error) {
       console.error('❌ Database seeding failed:', error);
       result.seeding = {
@@ -206,13 +195,6 @@ export async function initializeApplication(): Promise<StartupResult> {
   } else {
     result.overall = 'failed';
   }
-  
-  console.log(`🎯 Application initialization completed. Overall status: ${result.overall}`);
-  console.log('📊 Summary:');
-  console.log(`  Database: ${result.database.status}`);
-  console.log(`  Redis: ${result.redis.status}`);
-  console.log(`  MinIO: ${result.minio.status}`);
-  console.log(`  Seeding: ${result.seeding.status}`);
   
   return result;
 }

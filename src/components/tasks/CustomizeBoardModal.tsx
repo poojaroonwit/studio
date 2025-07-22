@@ -32,13 +32,13 @@ interface CustomizeBoardModalProps {
 
 // Enhanced MultiSelect with better UX
 function MultiSelect({ 
-  options, 
+  options, // now: { key, label, icon }[]
   selected, 
   onChange, 
   placeholder,
   maxHeight = "200px"
 }: { 
-  options: string[]; 
+  options: { key: string, label: string, icon?: any }[]; 
   selected: string[]; 
   onChange: (vals: string[]) => void; 
   placeholder?: string;
@@ -47,13 +47,13 @@ function MultiSelect({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Ensure options are valid strings
+  // Ensure options are valid objects with key
   const validOptions = options.filter(option => 
-    typeof option === 'string' && option.trim() !== ''
+    option && typeof option.key === 'string' && option.key.trim() !== ''
   );
 
   const filteredOptions = validOptions.filter(option => 
-    option.toLowerCase().includes(searchTerm.toLowerCase())
+    option.label.toLowerCase().includes(searchTerm.toLowerCase()) || option.key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelect = (value: string) => {
@@ -68,7 +68,7 @@ function MultiSelect({
     if (selected.length === filteredOptions.length) {
       onChange([]);
     } else {
-      onChange(filteredOptions);
+      onChange(filteredOptions.map(opt => opt.key));
     }
   };
 
@@ -100,26 +100,29 @@ function MultiSelect({
             {placeholder || 'Select values to show...'}
           </span>
         )}
-        {selected.map(val => (
-          <Badge 
-            key={val} 
-            variant="secondary" 
-            className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors"
-          >
-            {val}
-            <button 
-              type="button" 
-              className="ml-1 text-primary/60 hover:text-primary transition-colors" 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleRemove(val); 
-              }}
-              aria-label={`Remove ${val}`}
+        {selected.map(val => {
+          const opt = validOptions.find(o => o.key === val);
+          return (
+            <Badge 
+              key={val} 
+              variant="secondary" 
+              className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors"
             >
-              <X className="w-3 h-3" />
-            </button>
-          </Badge>
-        ))}
+              {opt ? opt.label : val}
+              <button 
+                type="button" 
+                className="ml-1 text-primary/60 hover:text-primary transition-colors" 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleRemove(val); 
+                }}
+                aria-label={`Remove ${val}`}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          );
+        })}
         <ChevronDown className={cn("w-4 h-4 text-muted-foreground ml-auto transition-transform", open && "rotate-180")} />
       </div>
 
@@ -158,35 +161,35 @@ function MultiSelect({
           )}
 
           {/* Options */}
-          <ScrollArea className="max-h-[300px] min-h-[100px]">
-            {filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                {validOptions.length === 0 ? 'No values available' : 'No values found'}
-              </div>
-            ) : (
+          {filteredOptions.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              {validOptions.length === 0 ? 'No values available' : 'No values found'}
+            </div>
+          ) : (
+            <div style={{ maxHeight: 400, minHeight: 100, overflowY: 'auto' }}>
               <div className="p-1">
-                {filteredOptions.map(val => (
+                {filteredOptions.map(opt => (
                   <button
-                    key={val}
+                    key={opt.key}
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); handleSelect(val); }}
+                    onClick={(e) => { e.stopPropagation(); handleSelect(opt.key); }}
                     className={cn(
                       "w-full text-left px-3 py-2 text-sm rounded-md transition-colors flex items-center gap-2",
-                      selected.includes(val) 
+                      selected.includes(opt.key) 
                         ? "bg-primary/10 text-primary" 
                         : "hover:bg-accent"
                     )}
                   >
                     <Checkbox 
-                      checked={selected.includes(val)}
+                      checked={selected.includes(opt.key)}
                       className="w-4 h-4"
                     />
-                    <span className="truncate">{val}</span>
+                    <span className="truncate">{opt.label}</span>
                   </button>
                 ))}
               </div>
-            )}
-          </ScrollArea>
+            </div>
+          )}
         </div>
       )}
 
@@ -213,12 +216,29 @@ function getCustomFieldKeys(candidates: any[]): string[] {
   return Array.from(keys);
 }
 
-export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], columnFieldValues = [] }: CustomizeBoardModalProps) {
-  console.log('CustomizeBoardModal: Component rendered with props:', {
-    open,
-    rowFieldValues,
-    columnFieldValues
+// Helper to extract all unique keys (including nested) from parsedData using dot notation
+function getParsedDataKeys(candidates: any[]): string[] {
+  const keys = new Set<string>();
+  const safeCandidates = Array.isArray(candidates) ? candidates : [];
+  function extractKeys(obj: any, prefix = '') {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      Object.keys(obj).forEach(k => {
+        const fullKey = prefix ? `${prefix}.${k}` : k;
+        keys.add(fullKey);
+        extractKeys(obj[k], fullKey);
+      });
+    }
+  }
+  safeCandidates.forEach(c => {
+    if (c.parsedData && typeof c.parsedData === 'object') {
+      extractKeys(c.parsedData);
+    }
   });
+  return Array.from(keys);
+}
+
+export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], columnFieldValues = [] }: CustomizeBoardModalProps) {
+
   
   // Filter out empty values from props
   const cleanRowFieldValues = (rowFieldValues || []).filter(val => 
@@ -227,13 +247,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const cleanColumnFieldValues = (columnFieldValues || []).filter(val => 
     typeof val === 'string' && val.trim() !== ''
   );
-  
-  console.log('CustomizeBoardModal - Received values:', {
-    rowFieldValues,
-    columnFieldValues,
-    cleanRowFieldValues,
-    cleanColumnFieldValues
-  });
+
   
   // State for actual data
   const [recruiters, setRecruiters] = useState<any[]>([]);
@@ -241,13 +255,65 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const [stages, setStages] = useState<string[]>([]);
   const [candidates, setCandidates] = useState<any[]>([]);
 
-  // Dynamically build candidateFields including custom fields
+  // Fetch actual data when modal opens
+  useEffect(() => {
+    if (!open) return;
+    
+   
+    const fetchActualData = async () => {
+      try {
+        // Fetch recruiters
+
+        const recruitersRes = await fetch('/api/users?role=Recruiter');
+        const recruitersData = await recruitersRes.json();
+       
+        setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
+        
+        // Fetch positions
+       
+        const positionsRes = await fetch('/api/positions/all');
+        const positionsData = await positionsRes.json();
+        
+        setPositions(positionsData.data || []);
+        
+        // Fetch stages
+      
+        const stagesRes = await fetch('/api/settings/recruitment-stages');
+        const stagesData = await stagesRes.json();
+       
+        setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
+        
+        // Fetch candidates to get unique values
+        const candidatesRes = await fetch('/api/candidates');
+        const candidatesData = await candidatesRes.json();
+        setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));
+     
+      
+      } catch (error) {
+        console.error('CustomizeBoardModal: Error fetching actual data:', error);
+      }
+    };
+    
+    fetchActualData();
+  }, [open]);
+
+  // Always recalculate field options on every render so new candidates/fields are included
   const customFieldKeys = getCustomFieldKeys(candidates);
+  const parsedDataKeys = getParsedDataKeys(candidates);
+  const allFieldKeys = new Set([
+    ...candidateFields.map(f => f.key),
+    ...customFieldKeys
+  ]);
+  const parsedDataFieldObjs = parsedDataKeys
+    .filter(key => !allFieldKeys.has(key))
+    .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }));
   const dynamicCandidateFields = [
     ...candidateFields,
-    ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }))
+    ...customFieldKeys.map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
+    ...parsedDataFieldObjs
   ];
   const validCandidateFields = dynamicCandidateFields.filter(f => f.key && f.key.trim() !== '');
+
   
   // Get all possible values for each field type using actual data
   const getAllPossibleValues = (fieldKey: string) => {
@@ -266,6 +332,15 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           if (scores.length > 0) {
             const min = Math.min(...scores);
             const max = Math.max(...scores);
+            if (min === max) {
+              // All scores are the same, show standard buckets
+              return ['0-20', '21-40', '41-60', '61-80', '81-100'];
+            }
+            if (max - min <= 1) {
+              // Only 0 and 1 or very small range, just show unique values
+              return Array.from(new Set(scores)).map(v => v.toString());
+            }
+            // Normal bucket logic
             return [
               `${min}-${Math.round((min + max) / 4)}`,
               `${Math.round((min + max) / 4) + 1}-${Math.round((min + max) / 2)}`,
@@ -352,32 +427,29 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const [initializing, setInitializing] = useState(false);
   const { show: toast } = useToast();
 
+  // Add state for visibleFields
+  const [visibleFields, setVisibleFields] = useState<string[]>(['name', 'email', 'status', 'fitScore']);
+
   // Load preferences on open
   useEffect(() => {
     if (!open) return;
     
-    console.log('CustomizeBoardModal: Modal opened, loading preferences...');
+  
     setInitializing(true);
     fetch('/api/settings/user-preferences')
       .then(res => {
-        console.log('CustomizeBoardModal: User preferences response status:', res.status);
+     
         return res.json();
       })
       .then(prefs => {
-        console.log('CustomizeBoardModal: Loaded preferences:', prefs);
+        
         const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
+        const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
         
-        console.log('CustomizeBoardModal: Found preferences:', {
-          rowPref,
-          colPref,
-          visibleRowPref,
-          visibleColPref,
-          cleanRowFieldValues,
-          cleanColumnFieldValues
-        });
+      
         
         if (rowPref) setRowField(rowPref.customNote || 'status');
         if (colPref) setColumnField(colPref.customNote || 'recruiterId');
@@ -404,13 +476,23 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         } else {
           setVisibleColumnValues([]);
         }
+
+        if (visibleFieldsPref) {
+          try {
+            const savedFields = JSON.parse(visibleFieldsPref.customNote) || [];
+            setVisibleFields(savedFields);
+          } catch {
+            setVisibleFields(['name', 'email', 'status', 'fitScore']);
+          }
+        } else {
+          setVisibleFields(['name', 'email', 'status', 'fitScore']);
+        }
       })
       .catch((error) => {
-        console.error('CustomizeBoardModal: Error loading preferences:', error);
-        // Fallback to defaults
-        console.log('CustomizeBoardModal: Error loading preferences, using defaults');
+       
         setVisibleRowValues([]);
         setVisibleColumnValues([]);
+        setVisibleFields(['name', 'email', 'status', 'fitScore']);
       })
       .finally(() => setInitializing(false));
   }, [open]);
@@ -432,55 +514,6 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     }
   }, [rowField, columnField, open, recruiters, positions, stages, candidates, initializing]);
 
-  // Fetch actual data when modal opens
-  useEffect(() => {
-    if (!open) return;
-    
-    console.log('CustomizeBoardModal: Fetching actual data...');
-    const fetchActualData = async () => {
-      try {
-        // Fetch recruiters
-        console.log('CustomizeBoardModal: Fetching recruiters...');
-        const recruitersRes = await fetch('/api/users?role=Recruiter');
-        const recruitersData = await recruitersRes.json();
-        console.log('CustomizeBoardModal: Recruiters response:', recruitersData);
-        setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
-        
-        // Fetch positions
-        console.log('CustomizeBoardModal: Fetching positions...');
-        const positionsRes = await fetch('/api/positions/all');
-        const positionsData = await positionsRes.json();
-        console.log('CustomizeBoardModal: Positions response:', positionsData);
-        setPositions(positionsData.data || []);
-        
-        // Fetch stages
-        console.log('CustomizeBoardModal: Fetching stages...');
-        const stagesRes = await fetch('/api/settings/recruitment-stages');
-        const stagesData = await stagesRes.json();
-        console.log('CustomizeBoardModal: Stages response:', stagesData);
-        setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
-        
-        // Fetch candidates to get unique values
-        console.log('CustomizeBoardModal: Fetching candidates...');
-        const candidatesRes = await fetch('/api/candidates');
-        const candidatesData = await candidatesRes.json();
-        console.log('CustomizeBoardModal: Candidates response:', candidatesData);
-        setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));
-        
-        console.log('CustomizeBoardModal: Fetched actual data:', {
-          recruiters: recruitersData,
-          positions: positionsData,
-          stages: stagesData,
-          candidates: candidatesData
-        });
-      } catch (error) {
-        console.error('CustomizeBoardModal: Error fetching actual data:', error);
-      }
-    };
-    
-    fetchActualData();
-  }, [open]);
-
   // Reset states when modal closes
   useEffect(() => {
     if (!open) {
@@ -495,23 +528,20 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   }, [open]);
 
   const handleSave = async () => {
-    console.log('CustomizeBoardModal: Starting save process...');
-    console.log('CustomizeBoardModal: Current state:', {
-      rowField,
-      columnField,
-      visibleRowValues,
-      visibleColumnValues
-    });
+
+  
     setLoading(true);
     try {
+      const rowValuesToSave = rowField === 'none' ? [] : visibleRowValues;
       const prefs = [
         { modelType: 'Candidate', attributeKey: 'mytasks_rowField', uiPreference: 'Standard', customNote: rowField },
         { modelType: 'Candidate', attributeKey: 'mytasks_columnField', uiPreference: 'Standard', customNote: columnField },
-        { modelType: 'Candidate', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(visibleRowValues) },
+        { modelType: 'Candidate', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(rowValuesToSave) },
         { modelType: 'Candidate', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify(visibleColumnValues) },
+        { modelType: 'Candidate', attributeKey: 'mytasks_visibleFields', uiPreference: 'Standard', customNote: JSON.stringify(visibleFields) },
       ];
       
-      console.log('CustomizeBoardModal: Saving preferences:', prefs);
+      
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -526,16 +556,16 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       
       clearTimeout(timeoutId);
       
-      console.log('CustomizeBoardModal: Save response status:', res.status);
+    
       
       if (!res.ok) {
         const errorText = await res.text();
-        console.error('CustomizeBoardModal: Save failed:', res.status, errorText);
+       
         throw new Error(`Failed to save preferences: ${res.status} ${errorText}`);
       }
       
       const result = await res.json();
-      console.log('CustomizeBoardModal: Save successful:', result);
+      
       
       toast("Preferences saved! Your board customization has been applied.", {
         duration: 4000,
@@ -549,7 +579,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
       // Close modal
       onOpenChange(false);
     } catch (err: any) {
-      console.error('CustomizeBoardModal: Error saving preferences:', err);
+      
       
       let errorMessage = "Failed to save preferences";
       if (err.name === 'AbortError') {
@@ -582,127 +612,130 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   // Validate candidateFields before rendering
   // validCandidateFields is now dynamic, so we can use it directly
   
+  // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
+  const rowAndColumnFields = [
+    ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
+    ...customFieldKeys
+      .filter(key => !['name', 'email', 'phone'].includes(key))
+      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }))
+  ];
+  // For card fields: candidateFields + customFieldKeys + parsedDataFields
+  const cardFields = [
+    ...rowAndColumnFields,
+    ...parsedDataFieldObjs
+  ];
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] flex flex-col">
-        <DialogHeader className="pb-4 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Settings className="w-5 h-5" />
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0">
+        <DialogHeader className="p-6 pb-0 border-b flex-shrink-0 bg-card rounded-t-xl">
+          <DialogTitle className="flex items-center gap-2 text-2xl">
+            <Settings className="w-6 h-6" />
             Customize Board Layout
-            {initializing && <span className="text-sm text-muted-foreground">(Loading...)</span>}
           </DialogTitle>
-          <DialogDescription className="text-base">
-            Configure how your task board is organized. Choose which attributes to use for rows and columns, 
-            and select which specific values to display. Select "None" to hide a dimension.
+          <DialogDescription className="text-base mt-2">
+            Configure how your task board is organized and which fields are visible on each card.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'row' | 'column')} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 mb-6 flex-shrink-0">
-              <TabsTrigger value="row" className="flex items-center gap-2">
-                <List className="w-4 h-4" />
-                Row Configuration
-              </TabsTrigger>
-              <TabsTrigger value="column" className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4" />
-                Column Configuration
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <TabsContent value="row" className="space-y-6 pb-8">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                      <span className="text-lg">{getFieldIcon(rowField)}</span>
-                      Row Attribute
-                    </Label>
-                    <Select value={rowField || 'status'} onValueChange={setRowField}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select row attribute" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {validCandidateFields.map(f => (
-                          <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
-                            <span>{f.icon}</span>
-                            <span>{f.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-8">
+          {/* Board Grouping Section */}
+          <div className="bg-muted/40 rounded-xl p-6 shadow-sm border flex flex-col gap-6">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
+              <LayoutGrid className="w-5 h-5" /> Board Grouping
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Row Grouping */}
+              <div>
+                <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                  <List className="w-4 h-4" /> Row Attribute
+                </Label>
+                <Select value={rowField || 'status'} onValueChange={setRowField}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select row attribute" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rowAndColumnFields.map(f => (
+                      <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
+                        <span>{f.icon}</span>
+                        <span>{f.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Choose which attribute to group your board rows by. Select "None" to show all candidates without row grouping.
+                </p>
+                {rowField !== 'none' && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium mb-2">Row Values</Label>
+                    <MultiSelect
+                      options={getAllPossibleValues(rowField).map(val => ({ key: val, label: val, icon: '📋' }))}
+                      selected={visibleRowValues}
+                      onChange={setVisibleRowValues}
+                      placeholder={`Select ${getFieldLabel(rowField).toLowerCase()} values to show...`}
+                    />
                     <p className="text-xs text-muted-foreground mt-2">
-                      Choose which attribute to group your board rows by. Select "None" to show all candidates without row grouping.
+                      Select which specific values to display as rows. Only selected values will appear on your board.
                     </p>
                   </div>
-
-                  {rowField !== 'none' && (
-                    <div>
-                      <Label className="text-sm font-medium mb-2">
-                        Values to Display
-                      </Label>
-                      <MultiSelect
-                        options={getAllPossibleValues(rowField)}
-                        selected={visibleRowValues}
-                        onChange={setVisibleRowValues}
-                        placeholder={`Select ${getFieldLabel(rowField).toLowerCase()} values to show...`}
-                      />
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Select which specific values to display as rows. Only selected values will appear on your board.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="column" className="space-y-6 pb-8">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium flex items-center gap-2 mb-2">
-                      <span className="text-lg">{getFieldIcon(columnField)}</span>
-                      Column Attribute
-                    </Label>
-                    <Select value={columnField || 'recruiterId'} onValueChange={setColumnField}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue placeholder="Select column attribute" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {validCandidateFields.map(f => (
-                          <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
-                            <span>{f.icon}</span>
-                            <span>{f.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                )}
+              </div>
+              {/* Column Grouping */}
+              <div>
+                <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+                  <LayoutGrid className="w-4 h-4" /> Column Attribute
+                </Label>
+                <Select value={columnField || 'recruiterId'} onValueChange={setColumnField}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select column attribute" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rowAndColumnFields.map(f => (
+                      <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
+                        <span>{f.icon}</span>
+                        <span>{f.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Choose which attribute to group your board columns by. Select "None" to show all candidates without column grouping.
+                </p>
+                {columnField !== 'none' && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium mb-2">Column Values</Label>
+                    <MultiSelect
+                      options={getAllPossibleValues(columnField).map(val => ({ key: val, label: val, icon: '📋' }))}
+                      selected={visibleColumnValues}
+                      onChange={setVisibleColumnValues}
+                      placeholder={`Select ${getFieldLabel(columnField).toLowerCase()} values to show...`}
+                    />
                     <p className="text-xs text-muted-foreground mt-2">
-                      Choose which attribute to group your board columns by. Select "None" to show all candidates without column grouping.
+                      Select which specific values to display as columns. Only selected values will appear on your board.
                     </p>
                   </div>
-
-                  {columnField !== 'none' && (
-                    <div>
-                      <Label className="text-sm font-medium mb-2">
-                        Values to Display
-                      </Label>
-                      <MultiSelect
-                        options={getAllPossibleValues(columnField)}
-                        selected={visibleColumnValues}
-                        onChange={setVisibleColumnValues}
-                        placeholder={`Select ${getFieldLabel(columnField).toLowerCase()} values to show...`}
-                      />
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Select which specific values to display as columns. Only selected values will appear on your board.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+                )}
+              </div>
             </div>
-          </Tabs>
+          </div>
+          {/* Card Fields Section */}
+          <div className="bg-muted/40 rounded-xl p-6 shadow-sm border flex flex-col gap-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
+              <Eye className="w-5 h-5" /> Card Fields to Show
+            </h2>
+            <MultiSelect
+              options={cardFields.map(f => ({ key: f.key, label: f.label, icon: f.icon }))}
+              selected={visibleFields}
+              onChange={setVisibleFields}
+              placeholder="Select fields to show on each card..."
+              maxHeight="400px"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Choose which fields are visible on each candidate card in the board view. Drag to reorder in the future.
+            </p>
+          </div>
         </div>
-
-        <DialogFooter className="pt-4 border-t flex-shrink-0">
+        <DialogFooter className="mt-auto  bottom-0 left-0 right-0 bg-card border-t p-4 flex-shrink-0 rounded-b-xl z-10">
           <div className="flex items-center justify-between w-full">
             <div className="text-xs text-muted-foreground">
               Changes will be applied immediately to your board

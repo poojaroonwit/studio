@@ -133,11 +133,9 @@ async function processJob(apiKey: string) {
     try {
       const data = JSON.parse(text);
       if (typeof data === 'object' && data !== null && 'message' in data && (data as any).message === 'No queued jobs') {
-        console.log(`⏳ No jobs available (${processingTime}ms)`);
         stats.consecutiveErrors = 0; // Reset on successful check
         return false;
       } else {
-        console.log(`✅ Processed job: ${JSON.stringify(data).substring(0, 200)}... (${processingTime}ms)`);
         stats.successfulJobs++;
         stats.consecutiveErrors = 0;
         return true;
@@ -267,12 +265,8 @@ async function runProcessorLoop(): Promise<never> {
   while (true) {
     const loopStartTime = Date.now();
     let hadError = false;
-    // Log memory usage at the start of each loop
-    const mem = process.memoryUsage();
-    console.log('[Memory Usage]', `rss: ${(mem.rss/1024/1024).toFixed(2)} MB, heapUsed: ${(mem.heapUsed/1024/1024).toFixed(2)} MB, heapTotal: ${(mem.heapTotal/1024/1024).toFixed(2)} MB, external: ${(mem.external/1024/1024).toFixed(2)} MB`);
     try {
       const maxConcurrent = await getMaxConcurrentProcessors();
-      console.log('Max concurrent processors:', maxConcurrent);
       const jobs = Array.from({ length: maxConcurrent });
       await Promise.all(jobs.map(() => processJob(apiKey)));
       backoff = BASE_INTERVAL_MS; // Reset backoff on success

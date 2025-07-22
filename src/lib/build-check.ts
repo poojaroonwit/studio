@@ -52,7 +52,5 @@ export const getBuildSafeConfig = () => {
 export const logBuildSafe = (message: string, data?: any) => {
   if (isBuildTime()) {
     console.log(`[BUILD] ${message}`, data || '');
-  } else {
-    console.log(message, data || '');
   }
 }; 

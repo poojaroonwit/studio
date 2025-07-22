@@ -127,11 +127,27 @@ export async function POST(request: NextRequest) {
   // Extract fit score from job_applied if available, otherwise default to 0
   const fitScore = job_applied?.fitScore || 0;
   
-  // Extract position ID from job_applied if available
-  const positionId = job_applied?.jobId || null;
+  // Robustly determine positionId
+  let positionId = job_applied?.jobId || null;
+  if (!positionId && Array.isArray(job_matches) && job_matches.length > 0) {
+    const matchWithJobId = job_matches.find((m: any) => m && m.jobId);
+    if (matchWithJobId) {
+      positionId = matchWithJobId.jobId;
+    }
+  }
+
+  // Always filter job_matches to valid objects with jobId
+  let safeJobMatches = Array.isArray(job_matches)
+    ? job_matches.filter((m: any) => m && typeof m === 'object' && m.jobId)
+    : [];
+
+  // Build parsedData robustly
+  const parsedData: any = {};
+  if (candidate_info) parsedData.candidate_info = candidate_info;
+  if (safeJobMatches.length > 0) parsedData.job_matches = safeJobMatches;
+  if (job_applied) parsedData.job_applied = job_applied;
   
   const status = candidate_info.status || 'new';
-  const parsedData = { candidate_info, job_matches, job_applied };
   const newCandidateId = uuidv4();
 
   const client = await getPool().connect();

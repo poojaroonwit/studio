@@ -34,6 +34,7 @@ const candidateDataSchema = z.object({
   parsedData: z.record(z.any()).optional(),
   fitScore: z.number().optional().default(0),
   dataAiHint: z.string().optional().nullable(),
+  applicationDate: z.string().optional(), // <-- Add this line
 });
 
 const requestSchema = z.object({
@@ -66,17 +67,27 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
 
-    // Add job matches to parsedData if they exist
-    if (job_matches && job_matches.length > 0) {
+    // Always filter job_matches to valid objects with jobId
+    let safeJobMatches = Array.isArray(job_matches)
+      ? job_matches.filter((m: any) => m && typeof m === 'object' && m.jobId)
+      : [];
+    if (safeJobMatches.length > 0) {
       candidate.parsedData = {
         ...candidate.parsedData,
-        job_matches: job_matches,
+        job_matches: safeJobMatches,
       };
+      // Set positionId if not already set
+      if (!candidate.positionId) {
+        candidate.positionId = safeJobMatches[0].jobId;
+      }
+    } else if (candidate.parsedData && candidate.parsedData.job_matches) {
+      // Remove job_matches if empty
+      delete candidate.parsedData.job_matches;
     }
 
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, status, "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, status, "avatarUrl", "positionId", "recruiterId", "parsedData", "fitScore", "dataAiHint", "applicationDate", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       RETURNING *;
     `;
     const candidateParams = [
@@ -91,6 +102,7 @@ export async function POST(request: NextRequest) {
       candidate.parsedData ? JSON.stringify(candidate.parsedData) : null,
       candidate.fitScore,
       candidate.dataAiHint,
+      candidate.applicationDate ? new Date(candidate.applicationDate) : new Date(),
     ];
 
     const newCandidateResult = await client.query(insertCandidateQuery, candidateParams);

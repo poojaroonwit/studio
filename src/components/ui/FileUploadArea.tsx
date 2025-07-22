@@ -23,19 +23,10 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
 
   // Debug component mounting
   useEffect(() => {
-    console.log('FileUploadArea: Component mounted, fileInputRef:', fileInputRef.current);
-    console.log('FileUploadArea: Props - accept:', accept, 'multiple:', multiple, 'maxFileSize:', maxFileSize);
     
     // Test if the file input is accessible
     if (fileInputRef.current) {
-      console.log('FileUploadArea: File input is accessible');
-      console.log('FileUploadArea: File input properties:', {
-        type: fileInputRef.current.type,
-        accept: fileInputRef.current.accept,
-        multiple: fileInputRef.current.multiple,
-        disabled: fileInputRef.current.disabled,
-        style: fileInputRef.current.style
-      });
+      
     } else {
       console.error('FileUploadArea: File input is not accessible');
     }
@@ -64,12 +55,8 @@ export const FileUploadArea: FC<FileUploadAreaProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('FileUploadArea: Click event triggered');
-    console.log('FileUploadArea: fileInputRef.current:', fileInputRef.current);
-    
     // Simple approach: just trigger the file input click
     if (fileInputRef.current) {
-      console.log('FileUploadArea: Triggering file input click');
       fileInputRef.current.click();
     } else {
       console.error('FileUploadArea: fileInputRef.current is null');

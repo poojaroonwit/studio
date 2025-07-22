@@ -357,7 +357,8 @@ export default function DashboardPageClient({
       }
     }, 0);
 
-    return Math.round(totalDays / hiredCandidates.length);
+    // Return float with two decimals
+    return parseFloat((totalDays / hiredCandidates.length).toFixed(2));
   }, [allCandidates]);
 
   const highPriorityCandidates = useMemo(() => {
@@ -687,7 +688,7 @@ export default function DashboardPageClient({
                           <span className="text-lg">...</span>
                         </div>
                       ) : (
-                        stat.value.toLocaleString()
+                        stat.value.toLocaleString(undefined, { minimumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0, maximumFractionDigits: stat.title === "Avg Time to Hire" ? 2 : 0 })
                       )}
                     </div>
                     {!isLoading && (

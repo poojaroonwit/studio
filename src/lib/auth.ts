@@ -35,14 +35,14 @@ const isAzureADConfigured = () => {
  */
 export async function validateUserExists(userId: string): Promise<boolean> {
   if (!userId) {
-    console.log('[USER VALIDATION] No userId provided');
+
     return false;
   }
   
   // Check cache first
   const cached = userValidationCache.get(userId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log(`[USER VALIDATION] User ${userId} exists (cached): ${cached.exists}`);
+    
     return cached.exists;
   }
   
@@ -54,10 +54,10 @@ export async function validateUserExists(userId: string): Promise<boolean> {
     // Update cache
     userValidationCache.set(userId, { exists, timestamp: Date.now() });
     
-    console.log(`[USER VALIDATION] User ${userId} exists: ${exists}`);
+   
     return exists;
   } catch (error) {
-    console.error('[USER VALIDATION] Error validating user existence:', error);
+   
     return false;
   } finally {
     client.release();
@@ -71,10 +71,10 @@ export async function validateUserExists(userId: string): Promise<boolean> {
 export function clearUserValidationCache(userId?: string) {
   if (userId) {
     userValidationCache.delete(userId);
-    console.log(`[USER VALIDATION] Cleared cache for user ${userId}`);
+   
   } else {
     userValidationCache.clear();
-    console.log('[USER VALIDATION] Cleared all user validation cache');
+  
   }
 }
 

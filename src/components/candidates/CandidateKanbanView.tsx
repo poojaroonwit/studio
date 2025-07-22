@@ -102,23 +102,35 @@ const getSkills = (candidate: Candidate) => {
   return getParsedDataProperty(candidate, 'skills') || [];
 };
 
+// Field label mapping (should match CustomizeBoardModal)
+const fieldLabelMap: Record<string, string> = {
+  status: 'Status',
+  recruiterId: 'Recruiter',
+  positionId: 'Position',
+  fitScore: 'Fit Score',
+  applicationDate: 'Application Date',
+  name: 'Name',
+  email: 'Email',
+  phone: 'Phone',
+};
+function getFieldLabel(key: string) {
+  return fieldLabelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
 // Enhanced candidate card component
-const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd }: {
+const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'] }: {
   candidate: Candidate;
   isDragged?: boolean;
   onClick: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  visibleFields?: string[];
 }) => {
-  console.log('EnhancedCandidateCard: Rendering card for:', {
-    candidateId: candidate.id,
-    candidateName: candidate.name,
-    isDragged
-  });
+
   
   // Validate candidate data
   if (!candidate || !candidate.id) {
-    console.error('EnhancedCandidateCard: Invalid candidate data:', candidate);
+
     return (
       <Card className="p-4 border border-destructive/20 bg-destructive/5">
         <div className="text-center text-destructive text-sm">
@@ -137,7 +149,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   return (
     <Card 
       className={cn(
-        "p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-pointer",
+        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-pointer",
         isDragged && "opacity-60 scale-95"
       )}
       onClick={onClick}
@@ -145,7 +157,8 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {(() => {
+      {/* Name and position always shown */}
+      {visibleFields.includes('name') && (() => {
         const nameInfo = formatCandidateNameWithLang(candidate);
         return (
           <div className="flex items-start gap-3">
@@ -161,20 +174,21 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
               >
                 {nameInfo.name}
               </p>
-              <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
-                <Target className="w-3 h-3 inline mr-1" />
-                {candidate.position?.title || 'N/A'}
-              </p>
+              {visibleFields.includes('positionId') && (
+                <p className="text-xs text-muted-foreground truncate mt-1" title={candidate.position?.title || 'N/A'}>
+                  <Target className="w-3 h-3 inline mr-1" />
+                  {candidate.position?.title || 'N/A'}
+                </p>
+              )}
             </div>
           </div>
         );
       })()}
-      
       <div className="space-y-2">
-        {candidate.fitScore !== undefined && candidate.fitScore !== null && (
+        {visibleFields.includes('fitScore') && candidate.fitScore !== undefined && candidate.fitScore !== null && (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Fit Score</span>
+              <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
               <span className="font-medium text-foreground">
                 {candidate.fitScore === 0 ? 'Not scored' : `${candidate.fitScore}%`}
               </span>
@@ -187,35 +201,41 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             </div>
           </div>
         )}
-        
         {/* Contact Information */}
-        <div className="space-y-1">
-          {candidate.email && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Mail className="w-3 h-3 mr-1" />
-              <span className="truncate">{candidate.email}</span>
-            </div>
-          )}
-          {candidate.phone && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Phone className="w-3 h-3 mr-1" />
-              <span className="truncate">{candidate.phone}</span>
-            </div>
-          )}
-          {candidate.applicationDate && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Calendar className="w-3 h-3 mr-1" />
-              Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-            </div>
-          )}
-        </div>
-
+        {(visibleFields.includes('email') || visibleFields.includes('phone') || visibleFields.includes('applicationDate')) && (
+          <div className="space-y-1">
+            {visibleFields.includes('email') && candidate.email && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Mail className="w-3 h-3 mr-1" />
+                <span className="truncate">{candidate.email}</span>
+              </div>
+            )}
+            {visibleFields.includes('phone') && candidate.phone && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Phone className="w-3 h-3 mr-1" />
+                <span className="truncate">{candidate.phone}</span>
+              </div>
+            )}
+            {visibleFields.includes('applicationDate') && candidate.applicationDate && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Calendar className="w-3 h-3 mr-1" />
+                Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
+              </div>
+            )}
+            {visibleFields.includes('recruiterId') && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <User className="w-3 h-3 mr-1" />
+                <span>{candidate.recruiter?.name || candidate.recruiterId || 'Unassigned'}</span>
+              </div>
+            )}
+          </div>
+        )}
         {/* Education Summary */}
-        {education && education.length > 0 && (
+        {visibleFields.includes('education') && education && education.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center text-xs text-muted-foreground">
               <GraduationCap className="w-3 h-3 mr-1" />
-              <span className="font-medium">Education:</span>
+              <span className="font-medium">{getFieldLabel('education')}:</span>
             </div>
             <div className="text-xs text-muted-foreground pl-4">
               {education.slice(0, 2).map((edu: any, idx: number) => (
@@ -229,13 +249,12 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             </div>
           </div>
         )}
-
         {/* Experience Summary */}
-        {experience && experience.length > 0 && (
+        {visibleFields.includes('experience') && experience && experience.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center text-xs text-muted-foreground">
               <Briefcase className="w-3 h-3 mr-1" />
-              <span className="font-medium">Experience:</span>
+              <span className="font-medium">{getFieldLabel('experience')}:</span>
             </div>
             <div className="text-xs text-muted-foreground pl-4">
               {experience.slice(0, 2).map((exp: any, idx: number) => (
@@ -249,13 +268,12 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             </div>
           </div>
         )}
-
         {/* Skills Summary */}
-        {skills && skills.length > 0 && (
+        {visibleFields.includes('skills') && skills && skills.length > 0 && (
           <div className="space-y-1">
             <div className="flex items-center text-xs text-muted-foreground">
               <HardDrive className="w-3 h-3 mr-1" />
-              <span className="font-medium">Skills:</span>
+              <span className="font-medium">{getFieldLabel('skills')}:</span>
             </div>
             <div className="flex flex-wrap gap-1 pl-4">
               {skills.slice(0, 3).map((skill: any, idx: number) => (
@@ -465,263 +483,71 @@ export function FlexibleKanbanView({
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
-
-  // Determine layout type based on field configuration
-  const isColumnBased = columnField && columnField !== 'none' && visibleColumnValues.length > 0;
-  const isRowBased = rowField && rowField !== 'none' && visibleRowValues.length > 0;
-
-  // Check if we should use single row view (when there's only 1 column or no columns)
-  const shouldUseSingleRow = !isColumnBased || visibleColumnValues.length <= 1;
-
-  // If no specific layout is configured, default to row-based with status
-  const effectiveRowField = isRowBased ? rowField : 'status';
+  let rowValuesToShow = visibleRowValues.length > 0
+    ? visibleRowValues
+    : Array.from(new Set(candidates.map(c => (c[rowField as keyof typeof c] ?? c.customAttributes?.[rowField])))).filter(Boolean);
+  if (rowValuesToShow.length === 0) {
+    rowValuesToShow = ['All Candidates'];
+  }
+  const isColumnBased = columnField && columnField !== 'none';
+  const isRowBased = rowField && rowField !== 'none';
+  const showSingleRow = !isRowBased || rowField === 'none';
+  const effectiveColumnValues = isColumnBased && visibleColumnValues.length > 0
+    ? visibleColumnValues
+    : Array.from(new Set(candidates.map(c => (c[columnField as keyof typeof c] ?? c.customAttributes?.[columnField])))).filter(Boolean);
   const effectiveColumnField = isColumnBased ? columnField : null;
-  
-  // For status field, always show all available stages, regardless of visibleRowValues
-  const effectiveRowValues = (effectiveRowField === 'status') ? statuses : (isRowBased ? visibleRowValues : statuses);
-  const effectiveColumnValues = isColumnBased ? visibleColumnValues : [];
 
-  // Fallback: if no effective row values, use statuses
-  const finalRowValues = effectiveRowValues.length > 0 ? effectiveRowValues : statuses;
-  
-  // Additional fallback: if we have candidates but no row values, create a default row
-  const finalRowValuesWithFallback = finalRowValues.length > 0 ? finalRowValues : 
-    candidates.length > 0 ? ['All Candidates'] : finalRowValues;
-    
-  // Special case: if row field is 'none', show all candidates in a single row
-  const shouldShowAllCandidates = effectiveRowField === 'none' || finalRowValuesWithFallback.length === 0;
-
-  console.log('FlexibleKanbanView: Layout detection:', {
-    rowField,
-    columnField,
-    visibleRowValues,
-    visibleColumnValues,
-    isColumnBased,
-    isRowBased,
-    shouldUseSingleRow,
-    effectiveRowField,
-    effectiveColumnField,
-    effectiveRowValues,
-    effectiveColumnValues,
-    finalRowValues,
-    finalRowValuesWithFallback,
-    shouldShowAllCandidates,
-    candidatesCount: candidates.length,
-    candidates: candidates.map(c => ({
-      id: c.id,
-      name: c.name,
-      status: c.status,
-      [effectiveRowField]: c[effectiveRowField as keyof Candidate],
-      [effectiveColumnField || 'none']: effectiveColumnField ? c[effectiveColumnField as keyof Candidate] : 'N/A'
-    }))
-  });
-
-
-
-  // Group candidates by row and column values
-  const candidatesByPosition = useMemo(() => {
-    const grouped: Record<string, Record<string, Candidate[]>> = {};
-    
-    console.log('FlexibleKanbanView: Grouping candidates:', {
-      candidates: candidates.length,
-      effectiveRowField,
-      effectiveColumnField,
-      finalRowValues,
-      effectiveColumnValues,
-      isColumnBased
-    });
-    
-    // Initialize all positions with empty arrays
-    if (shouldShowAllCandidates) {
-      grouped['All Candidates'] = { 'default': [] };
-    } else {
-      finalRowValuesWithFallback.forEach(rowValue => {
-        grouped[rowValue] = {};
-        if (isColumnBased) {
-          effectiveColumnValues.forEach(colValue => {
-            grouped[rowValue][colValue] = [];
-          });
-        } else {
-          grouped[rowValue]['default'] = [];
-        }
-      });
-    }
-    
-    // Group candidates by their position
-    candidates.forEach(candidate => {
-      const rowValue = (candidate[effectiveRowField as keyof Candidate] ?? candidate.customAttributes?.[effectiveRowField]);
-      let colValue: string | null = 'default';
-      if (isColumnBased && typeof effectiveColumnField === 'string') {
-        const rawCol = candidate[effectiveColumnField as keyof Candidate] ?? candidate.customAttributes?.[effectiveColumnField];
-        colValue = typeof rawCol === 'string' ? rawCol : null;
-      }
-      
-      console.log('FlexibleKanbanView: Processing candidate:', {
-        candidateId: candidate.id,
-        candidateName: candidate.name,
-        rowValue,
-        colValue,
-        effectiveRowField,
-        effectiveColumnField,
-        rowValueIncluded: finalRowValues.includes(rowValue),
-        colValueIncluded: colValue ? effectiveColumnValues.includes(colValue) : false
-      });
-      
-      // If rowValue is not in finalRowValues, try to find a fallback
-      let finalRowValue = rowValue;
-      if (typeof rowValue === 'string' && rowValue) {
-        if (finalRowValuesWithFallback.includes(rowValue)) {
-          finalRowValue = rowValue;
-        } else {
-          // Fallback: use the first available row value or candidate's status
-          finalRowValue = finalRowValuesWithFallback[0] || candidate.status || 'Applied';
-          console.log('FlexibleKanbanView: Using fallback row value:', {
-            original: rowValue,
-            fallback: finalRowValue
-          });
-        }
-      } else {
-        // If no rowValue, use candidate's status or first available
-        finalRowValue = candidate.status || finalRowValuesWithFallback[0] || 'Applied';
-        console.log('FlexibleKanbanView: No rowValue, using status as fallback:', finalRowValue);
-      }
-      
-      if (shouldShowAllCandidates) {
-        // When row field is 'none', put all candidates in 'All Candidates' row
-        if (!grouped['All Candidates']) {
-          grouped['All Candidates'] = {};
-        }
-        if (!grouped['All Candidates']['default']) {
-          grouped['All Candidates']['default'] = [];
-        }
-        grouped['All Candidates']['default'].push(candidate);
-      } else if (typeof finalRowValue === 'string' && finalRowValue) {
-        if (!grouped[finalRowValue]) {
-          grouped[finalRowValue] = {};
-        }
-        if (isColumnBased) {
-          if (typeof colValue === 'string' && colValue && effectiveColumnValues.includes(colValue)) {
-            if (!grouped[finalRowValue][colValue]) {
-              grouped[finalRowValue][colValue] = [];
-            }
-            grouped[finalRowValue][colValue].push(candidate);
-          } else if (typeof colValue === 'string' && colValue) {
-            // If column value exists but not in visible values, add to first available column
-            const firstColValue = effectiveColumnValues[0];
-            if (firstColValue && !grouped[finalRowValue][firstColValue]) {
-              grouped[finalRowValue][firstColValue] = [];
-            }
-            if (firstColValue) {
-              grouped[finalRowValue][firstColValue].push(candidate);
-            }
-          }
-        } else {
-          if (!grouped[finalRowValue]['default']) {
-            grouped[finalRowValue]['default'] = [];
-          }
-          grouped[finalRowValue]['default'].push(candidate);
-        }
-      }
-    });
-    
-    console.log('FlexibleKanbanView: Final grouped candidates:', grouped);
-    return grouped;
-  }, [candidates, effectiveRowField, effectiveColumnField, finalRowValuesWithFallback, effectiveColumnValues, isColumnBased, shouldShowAllCandidates]);
-
-  // Check if any candidates are actually shown
-  const totalShownCandidates = useMemo(() => {
-    return Object.values(candidatesByPosition).reduce((total, colGroup) => {
-      return total + Object.values(colGroup).reduce((colTotal, candidates) => colTotal + candidates.length, 0);
-    }, 0);
-  }, [candidatesByPosition]);
-
-  console.log('FlexibleKanbanView: Total shown candidates:', totalShownCandidates, 'out of', candidates.length);
-
-  // Drag and drop handlers
-  const handleDragStart = (candidate: Candidate) => {
-    setDraggedCandidate(candidate);
+  const handleCardClick = (candidate: Candidate) => {
+    if (onCardClick) onCardClick(candidate);
   };
-  
-  const handleDragEnd = () => {
-    setDraggedCandidate(null);
-    setDragOverRow(null);
-    setDragOverColumn(null);
-  };
-  
+  const handleDragStart = (candidate: Candidate) => setDraggedCandidate(candidate);
+  const handleDragEnd = () => setDraggedCandidate(null);
   const handleDragOver = (rowValue: string, colValue: string, e: React.DragEvent) => {
     e.preventDefault();
     setDragOverRow(rowValue);
     setDragOverColumn(colValue);
   };
-  
   const handleDrop = (rowValue: string, colValue: string) => {
-    if (draggedCandidate) {
-      const updateData: any = {};
-      updateData[effectiveRowField] = rowValue;
-      if (isColumnBased) {
-        updateData[effectiveColumnField!] = colValue;
-      }
-      onMoveCandidate?.(draggedCandidate, rowValue);
-    }
     setDraggedCandidate(null);
     setDragOverRow(null);
     setDragOverColumn(null);
   };
 
-  const handleCardClick = (candidate: Candidate) => {
-    if (onCardClick) {
-      onCardClick(candidate);
-    } else {
-      // Validate parsedData to ensure it has the expected structure
-      const validatedParsedData = candidate.parsedData && typeof candidate.parsedData === 'object' ? {
-        ...candidate.parsedData,
-        // Ensure array fields are actually arrays
-        job_matches: 'job_matches' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_matches) ? (candidate.parsedData as any).job_matches : [],
-        education: 'education' in candidate.parsedData && Array.isArray((candidate.parsedData as any).education) ? (candidate.parsedData as any).education : [],
-        experience: 'experience' in candidate.parsedData && Array.isArray((candidate.parsedData as any).experience) ? (candidate.parsedData as any).experience : [],
-        skills: 'skills' in candidate.parsedData && Array.isArray((candidate.parsedData as any).skills) ? (candidate.parsedData as any).skills : [],
-        job_suitable: 'job_suitable' in candidate.parsedData && Array.isArray((candidate.parsedData as any).job_suitable) ? (candidate.parsedData as any).job_suitable : [],
-      } : {};
-      
-      setSelectedCandidateSummary({
-        id: candidate.id,
-        name: formatCandidateName(candidate),
-        email: candidate.email,
-        phone: candidate.phone,
-        status: candidate.status,
-        position: candidate.position,
-        fitScore: candidate.fitScore,
-        parsedData: validatedParsedData
-      });
-      setIsModalOpen(true);
-    }
-  };
-
-  // Get status color for YouTrack-style badges
-  const getStatusColor = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
-      'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
-      'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
-      'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
-      'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
-      'Offer Accepted': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Hired': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800',
-      'Rejected': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800',
-      'Withdrawn': 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800',
-    };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
-  };
-
-  // Render column-based layout (columns = columnField values, rows = rowField values)
-  if (isColumnBased) {
+  // If no candidates, show fallback
+  if (!candidates || candidates.length === 0) {
     return (
-      <>
-        <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
-          {effectiveColumnValues.map((colValue) => (
-            <div key={colValue} className="flex-shrink-0 w-80 flex flex-col h-full">
+      <div className="w-full min-h-[300px] bg-muted/30 rounded-lg p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
+            <Plus className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-lg text-muted-foreground">No candidates found</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- NEW LOGIC: Classic Kanban if rowField is 'none' and columnField is set ---
+  if ((rowField === 'none' || !rowField) && columnField && columnField !== 'none') {
+    // Use visibleColumnValues if provided, else fallback to all unique column values
+    const columnsToShow = (visibleColumnValues && visibleColumnValues.length > 0)
+      ? visibleColumnValues
+      : effectiveColumnValues.length > 0
+        ? effectiveColumnValues
+        : ['All'];
+    // Find candidates that do not match any column value
+    const uncategorizedCandidates = candidates.filter(candidate => {
+      const colValue = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+      return !columnsToShow.includes(colValue);
+    });
+    return (
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
+        {columnsToShow.map((colValue) => {
+          const colCandidates = candidates.filter(candidate =>
+            (candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField]) === colValue
+          );
+          return (
+            <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
               <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
                 <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
                   <div className="flex items-center gap-3">
@@ -736,218 +562,373 @@ export function FlexibleKanbanView({
                     </div>
                   </div>
                 </CardHeader>
-                <ScrollArea className="flex-1 min-h-0">
-                  <CardContent className="p-4 space-y-4">
-                    {effectiveRowValues.map((rowValue) => {
-                      const cellCandidates = candidatesByPosition[rowValue]?.[colValue] || [];
-                      return (
-                        <div key={rowValue} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-foreground">{rowValue}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {cellCandidates.length}
-                            </Badge>
-                          </div>
-                          <div
-                            className={cn(
-                              "min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200",
-                              dragOverRow === rowValue && dragOverColumn === colValue && "border-primary bg-primary/5"
-                            )}
-                            onDragOver={(e) => handleDragOver(rowValue, colValue, e)}
-                            onDrop={() => handleDrop(rowValue, colValue)}
-                          >
-                            {cellCandidates.length > 0 ? (
-                              <div className="space-y-2">
-                                {cellCandidates.map((candidate) => (
-                                  <div
-                                    key={candidate.id}
-                                    className={cn(
-                                      "group",
-                                      draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                                    )}
-                                  >
-                                    <EnhancedCandidateCard
-                                      candidate={candidate}
-                                      isDragged={draggedCandidate?.id === candidate.id}
-                                      onClick={() => handleCardClick(candidate)}
-                                      onDragStart={() => handleDragStart(candidate)}
-                                      onDragEnd={handleDragEnd}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center h-16">
-                                <div className="text-center">
-                                  <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                                  <p className="text-xs text-muted-foreground">Drop here</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                <div className="flex-1 min-h-0 p-4 space-y-4">
+                  {colCandidates.length > 0 ? (
+                    <div className="space-y-2">
+                      {colCandidates.map(candidate => (
+                        <div
+                          key={candidate.id}
+                          className={cn(
+                            "group w-full",
+                            draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                          )}
+                        >
+                          <EnhancedCandidateCard
+                            candidate={candidate}
+                            isDragged={draggedCandidate?.id === candidate.id}
+                            onClick={() => handleCardClick(candidate)}
+                            onDragStart={() => handleDragStart(candidate)}
+                            onDragEnd={handleDragEnd}
+                            visibleFields={visibleFields}
+                          />
                         </div>
-                      );
-                    })}
-                  </CardContent>
-                </ScrollArea>
-              </Card>
-            </div>
-          ))}
-        </div>
-        
-        {/* Candidate Detail Modal - only show if onCardClick is not provided */}
-        {!onCardClick && selectedCandidateSummary && (
-          <CandidateDetailModal
-            candidateId={selectedCandidateSummary.id}
-            open={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-          />
-        )}
-      </>
-    );
-  }
-
-  // Render row-based layout (rows = rowField values)
-  return (
-    <>
-      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
-        <div className="grid grid-cols-1 gap-4">
-          {(shouldShowAllCandidates ? ['All Candidates'] : finalRowValuesWithFallback).map(rowValue => {
-            const rowCandidates = candidatesByPosition[rowValue]?.['default'] || [];
-            console.log('FlexibleKanbanView: Rendering row:', {
-              rowValue,
-              rowCandidates: rowCandidates.length,
-              candidates: rowCandidates.map(c => ({ id: c.id, name: c.name }))
-            });
-            
-            return (
-              <div
-                key={rowValue}
-                className={cn(
-                  "flex flex-row items-center gap-4 transition-all duration-200 border border-border rounded-lg p-4 bg-card shadow-sm",
-                  dragOverRow === rowValue && "ring-2 ring-primary/60 bg-primary/5"
-                )}
-                onDragOver={(e) => handleDragOver(rowValue, 'default', e)}
-                onDrop={() => handleDrop(rowValue, 'default')}
-              >
-                <div className="w-40 flex-shrink-0 flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                    <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
-                  </div>
-                  <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {rowCandidates.length} candidates
-                  </Badge>
-                </div>
-                <div className="flex-1 min-h-[80px]">
-                  {rowCandidates.length > 0 ? (
-                    shouldUseSingleRow ? (
-                      <div className="flex flex-row gap-4 overflow-x-auto py-4">
-                        {rowCandidates.map(candidate => {
-                          console.log('FlexibleKanbanView: Rendering candidate card:', {
-                            candidateId: candidate.id,
-                            candidateName: candidate.name
-                          });
-                          return (
-                            <div
-                              key={candidate.id}
-                              className={cn(
-                                "group w-64 max-w-xs",
-                                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                              )}
-                            >
-                              <EnhancedCandidateCard
-                                candidate={candidate}
-                                isDragged={draggedCandidate?.id === candidate.id}
-                                onClick={() => handleCardClick(candidate)}
-                                onDragStart={() => handleDragStart(candidate)}
-                                onDragEnd={handleDragEnd}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="flex flex-row flex-wrap gap-3">
-                        {rowCandidates.map(candidate => {
-                          console.log('FlexibleKanbanView: Rendering candidate card (wrap):', {
-                            candidateId: candidate.id,
-                            candidateName: candidate.name
-                          });
-                          return (
-                            <div
-                              key={candidate.id}
-                              className={cn(
-                                "group w-64 max-w-xs",
-                                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
-                              )}
-                            >
-                              <EnhancedCandidateCard
-                                candidate={candidate}
-                                isDragged={draggedCandidate?.id === candidate.id}
-                                onClick={() => handleCardClick(candidate)}
-                                onDragStart={() => handleDragStart(candidate)}
-                                onDragEnd={handleDragEnd}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )
+                      ))}
+                    </div>
                   ) : (
-                    <div className="flex items-center justify-center w-full py-8">
+                    <div className="flex items-center justify-center h-16">
                       <div className="text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-full flex items-center justify-center">
-                          <Plus className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">No candidates in this {effectiveRowField}</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">Drag candidates here</p>
+                        <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drop here</p>
                       </div>
                     </div>
                   )}
                 </div>
+              </Card>
+            </div>
+          );
+        })}
+        {/* Always show Uncategorized column */}
+        <div key="uncategorized" className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
+          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-muted text-muted-foreground text-sm">?</AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Uncategorized</CardTitle>
+                  <p className="text-xs text-muted-foreground">{effectiveColumnField}</p>
+                </div>
               </div>
-            );
-          })}
+            </CardHeader>
+            <div className="flex-1 min-h-0 p-4 space-y-4">
+              <div className="space-y-2">
+                {uncategorizedCandidates.length > 0 ? uncategorizedCandidates.map(candidate => (
+                  <div
+                    key={candidate.id}
+                    className={cn(
+                      "group w-full",
+                      draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                    )}
+                  >
+                    <EnhancedCandidateCard
+                      candidate={candidate}
+                      isDragged={draggedCandidate?.id === candidate.id}
+                      onClick={() => handleCardClick(candidate)}
+                      onDragStart={() => handleDragStart(candidate)}
+                      onDragEnd={handleDragEnd}
+                      visibleFields={visibleFields}
+                    />
+                  </div>
+                )) : (
+                  <div className="flex items-center justify-center h-16">
+                    <div className="text-center">
+                      <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Drop here</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
-      
-      {/* Fallback: If no candidates are shown due to customization issues, show all candidates */}
-      {totalShownCandidates === 0 && candidates.length > 0 && (
-        <div className="mt-4 p-4 border border-orange-200 bg-orange-50 rounded-lg">
-          <div className="text-center mb-4">
-            <h3 className="text-lg font-medium text-orange-800">Customization Issue Detected</h3>
-            <p className="text-sm text-orange-600">
-              No candidates are visible with current board settings. Showing all {candidates.length} candidates below.
-            </p>
-            <p className="text-xs text-orange-500 mt-1">
-              Row Field: {effectiveRowField}, Column Field: {effectiveColumnField || 'none'}
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {candidates.map(candidate => (
-              <div key={candidate.id} className="w-full">
-                <EnhancedCandidateCard
-                  candidate={candidate}
-                  onClick={() => handleCardClick(candidate)}
-                  onDragStart={() => handleDragStart(candidate)}
-                  onDragEnd={handleDragEnd}
-                />
-              </div>
-            ))}
-          </div>
+    );
+  }
+  // --- END NEW LOGIC ---
+
+  if (showSingleRow) {
+    return (
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-row flex-wrap gap-3">
+          {candidates.map(candidate => (
+            <div
+              key={candidate.id}
+              className={cn(
+                "group w-full",
+                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+              )}
+            >
+              <EnhancedCandidateCard
+                candidate={candidate}
+                isDragged={draggedCandidate?.id === candidate.id}
+                onClick={() => handleCardClick(candidate)}
+                onDragStart={() => handleDragStart(candidate)}
+                onDragEnd={handleDragEnd}
+                visibleFields={visibleFields}
+              />
+            </div>
+          ))}
         </div>
-      )}
-      
-      {/* Candidate Detail Modal - only show if onCardClick is not provided */}
-      {!onCardClick && selectedCandidateSummary && (
-        <CandidateDetailModal
-          candidateId={selectedCandidateSummary.id}
-          open={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )}
-    </>
+      </div>
+    );
+  }
+
+  if (isColumnBased) {
+    // For row+column layout, add uncategorized row for each column if needed
+    const uncategorizedByCol: Record<string, any[]> = {};
+    effectiveColumnValues.forEach(colValue => {
+      uncategorizedByCol[colValue] = candidates.filter(candidate => {
+        const rowValue = candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField];
+        const colVal = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+        return colVal === colValue && !rowValuesToShow.includes(rowValue);
+      });
+    });
+    // Find candidates that do not match any column value
+    const uncategorizedColCandidates = candidates.filter(candidate => {
+      const colVal = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+      return !effectiveColumnValues.includes(colVal);
+    });
+    return (
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
+        {effectiveColumnValues.map((colValue) => (
+          <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
+            <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+              <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {colValue?.charAt(0)?.toUpperCase() || 'C'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-foreground">{colValue}</CardTitle>
+                    <p className="text-xs text-muted-foreground">{effectiveColumnField}</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <div className="flex-1 min-h-0 p-4 space-y-4">
+                {rowValuesToShow.map(rowValue => {
+                  const cellCandidates = candidates.filter(candidate =>
+                    (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue &&
+                    (candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField]) === colValue
+                  );
+                  return (
+                    <div key={rowValue} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">{rowValue}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {cellCandidates.length}
+                        </Badge>
+                      </div>
+                      <div
+                        className={cn(
+                          "min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200",
+                          dragOverRow === rowValue && dragOverColumn === colValue && "border-primary bg-primary/5"
+                        )}
+                        onDragOver={(e) => handleDragOver(rowValue, colValue, e)}
+                        onDrop={() => handleDrop(rowValue, colValue)}
+                      >
+                        {cellCandidates.length > 0 ? (
+                          <div className="space-y-2">
+                            {cellCandidates.map(candidate => (
+                              <div
+                                key={candidate.id}
+                                className={cn(
+                                  "group w-full",
+                                  draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                                )}
+                              >
+                                <EnhancedCandidateCard
+                                  candidate={candidate}
+                                  isDragged={draggedCandidate?.id === candidate.id}
+                                  onClick={() => handleCardClick(candidate)}
+                                  onDragStart={() => handleDragStart(candidate)}
+                                  onDragEnd={handleDragEnd}
+                                  visibleFields={visibleFields}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-16">
+                            <div className="text-center">
+                              <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground">Drop here</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Always show Uncategorized row for this column */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Uncategorized</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {uncategorizedByCol[colValue].length}
+                    </Badge>
+                  </div>
+                  <div className="min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200">
+                    <div className="space-y-2">
+                      {uncategorizedByCol[colValue].length > 0 ? uncategorizedByCol[colValue].map(candidate => (
+                        <div
+                          key={candidate.id}
+                          className={cn(
+                            "group w-full",
+                            draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                          )}
+                        >
+                          <EnhancedCandidateCard
+                            candidate={candidate}
+                            isDragged={draggedCandidate?.id === candidate.id}
+                            onClick={() => handleCardClick(candidate)}
+                            onDragStart={() => handleDragStart(candidate)}
+                            onDragEnd={handleDragEnd}
+                            visibleFields={visibleFields}
+                          />
+                        </div>
+                      )) : (
+                        <div className="flex items-center justify-center h-16">
+                          <div className="text-center">
+                            <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">Drop here</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ))}
+        {/* Always show Uncategorized column for unmatched columns */}
+        <div key="uncategorized-col" className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
+          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+            <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-muted text-muted-foreground text-sm">?</AvatarFallback>
+                </Avatar>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Uncategorized</CardTitle>
+                  <p className="text-xs text-muted-foreground">{effectiveColumnField}</p>
+                </div>
+              </div>
+            </CardHeader>
+            <div className="flex-1 min-h-0 p-4 space-y-4">
+              {rowValuesToShow.map(rowValue => {
+                const cellCandidates = uncategorizedColCandidates.filter(candidate =>
+                  (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue
+                );
+                return (
+                  <div key={rowValue} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground">{rowValue}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {cellCandidates.length}
+                      </Badge>
+                    </div>
+                    <div className="min-h-[80px] p-2 rounded-lg border-2 border-dashed border-muted transition-all duration-200">
+                      {cellCandidates.length > 0 ? (
+                        <div className="space-y-2">
+                          {cellCandidates.map(candidate => (
+                            <div
+                              key={candidate.id}
+                              className={cn(
+                                "group w-full",
+                                draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                              )}
+                            >
+                              <EnhancedCandidateCard
+                                candidate={candidate}
+                                isDragged={draggedCandidate?.id === candidate.id}
+                                onClick={() => handleCardClick(candidate)}
+                                onDragStart={() => handleDragStart(candidate)}
+                                onDragEnd={handleDragEnd}
+                                visibleFields={visibleFields}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-16">
+                          <div className="text-center">
+                            <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+                            <p className="text-xs text-muted-foreground">Drop here</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Grouped row layout (no columns)
+  return (
+    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="grid grid-cols-1 gap-4">
+        {rowValuesToShow.map(rowValue => {
+          // If fallback, show all candidates
+          const rowCandidates = rowValue === 'All Candidates'
+            ? candidates
+            : candidates.filter(candidate =>
+                (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue
+              );
+          return (
+            <div
+              key={rowValue}
+              className={cn(
+                "flex flex-row items-center gap-4 transition-all duration-200 border border-border rounded-lg p-4 bg-card shadow-sm",
+                dragOverRow === rowValue && "ring-2 ring-primary/60 bg-primary/5"
+              )}
+              onDragOver={(e) => handleDragOver(rowValue, 'default', e)}
+              onDrop={() => handleDrop(rowValue, 'default')}
+            >
+              <div className="w-40 flex-shrink-0 flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                  <span className="font-semibold text-base capitalize text-foreground">{rowValue}</span>
+                </div>
+                <Badge variant="secondary" className="bg-muted text-muted-foreground text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {rowCandidates.length} candidates
+                </Badge>
+              </div>
+              <div className="flex-1 min-h-[80px]">
+                <div className="flex flex-row flex-wrap gap-3">
+                  {rowCandidates.map(candidate => (
+                    <div
+                      key={candidate.id}
+                      className={cn(
+                        "group w-full",
+                        draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                      )}
+                    >
+                      <EnhancedCandidateCard
+                        candidate={candidate}
+                        isDragged={draggedCandidate?.id === candidate.id}
+                        onClick={() => handleCardClick(candidate)}
+                        onDragStart={() => handleDragStart(candidate)}
+                        onDragEnd={handleDragEnd}
+                        visibleFields={visibleFields}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -956,11 +937,13 @@ export function FlexibleKanbanView({
 export function SingleRowCandidateView({ 
   candidates, 
   onCardClick, 
-  onMoveCandidate 
+  onMoveCandidate, 
+  visibleFields = ['name', 'email', 'status', 'fitScore']
 }: { 
   candidates: Candidate[];
   onCardClick?: (candidate: Candidate) => void;
   onMoveCandidate?: (candidate: Candidate, newValue: string) => void;
+  visibleFields?: string[];
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -1056,10 +1039,12 @@ export function SingleRowCandidateView({
                   <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(currentCandidate)}>
                     {formatCandidateName(currentCandidate)}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate" title={currentCandidate.position?.title || 'N/A'}>
-                    <Target className="w-3 h-3 inline mr-1" />
-                    {currentCandidate.position?.title || 'N/A'}
-                  </p>
+                  {visibleFields.includes('positionId') && (
+                    <p className="text-xs text-muted-foreground truncate" title={currentCandidate.position?.title || 'N/A'}>
+                      <Target className="w-3 h-3 inline mr-1" />
+                      {currentCandidate.position?.title || 'N/A'}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Status Badge */}
@@ -1073,31 +1058,37 @@ export function SingleRowCandidateView({
 
               {/* Contact Information */}
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {currentCandidate.email && (
+                {visibleFields.includes('email') && currentCandidate.email && (
                   <div className="flex items-center">
                     <Mail className="w-3 h-3 mr-1" />
                     <span className="truncate">{currentCandidate.email}</span>
                   </div>
                 )}
-                {currentCandidate.phone && (
+                {visibleFields.includes('phone') && currentCandidate.phone && (
                   <div className="flex items-center">
                     <Phone className="w-3 h-3 mr-1" />
                     <span>{currentCandidate.phone}</span>
                   </div>
                 )}
-                {currentCandidate.applicationDate && (
+                {visibleFields.includes('applicationDate') && currentCandidate.applicationDate && (
                   <div className="flex items-center">
                     <Calendar className="w-3 h-3 mr-1" />
                     <span>Applied: {new Date(currentCandidate.applicationDate).toLocaleDateString()}</span>
                   </div>
                 )}
+                {visibleFields.includes('recruiterId') && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <User className="w-3 h-3 mr-1" />
+                    <span>{currentCandidate.recruiter?.name || currentCandidate.recruiterId || 'Unassigned'}</span>
+                  </div>
+                )}
               </div>
 
               {/* Fit Score */}
-              {currentCandidate.fitScore !== undefined && currentCandidate.fitScore !== null && (
+              {visibleFields.includes('fitScore') && currentCandidate.fitScore !== undefined && currentCandidate.fitScore !== null && (
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Fit Score</span>
+                    <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                     <span className="font-medium text-foreground">{currentCandidate.fitScore}%</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
@@ -1169,7 +1160,7 @@ export function SingleRowKanbanView({
   visibleFields = ['name', 'email', 'status', 'fitScore'], 
   visibleRowValues = [], 
   visibleColumnValues = [] 
-}: CandidateKanbanViewProps) {
+}: CandidateKanbanViewProps & { visibleFields?: string[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
@@ -1182,10 +1173,32 @@ export function SingleRowKanbanView({
         ? (candidate[columnField as keyof Candidate] ?? candidate.customAttributes?.[columnField])
         : null;
       
-      const rowMatch = typeof rowValue === 'string' && rowValue && 
-        (visibleRowValues.length === 0 || visibleRowValues.includes(rowValue));
-      const colMatch = !colValue || 
-        (visibleColumnValues.length === 0 || visibleColumnValues.includes(colValue));
+      // FIXED: More permissive filtering logic
+      let rowMatch = true;
+      if (rowField && rowField !== 'none') {
+        if (visibleRowValues.length > 0) {
+          // If visible row values are specified, candidate must match one of them
+          rowMatch = Boolean(typeof rowValue === 'string' && !!rowValue && visibleRowValues.includes(rowValue as string));
+        } else {
+          // If no visible row values specified, show all candidates (don't filter by row)
+          rowMatch = true;
+        }
+      }
+      
+      let colMatch = true;
+      if (columnField && columnField !== 'none') {
+        if (visibleColumnValues.length > 0) {
+          // If visible column values are specified, candidate must match one of them
+          if (!colValue) {
+            colMatch = true; // No column value means it matches
+          } else {
+            colMatch = Boolean(typeof colValue === 'string' && !!colValue && visibleColumnValues.includes(colValue as string));
+          }
+        } else {
+          // If no visible column values specified, show all candidates (don't filter by column)
+          colMatch = true;
+        }
+      }
       
       return rowMatch && colMatch;
     });
@@ -1260,9 +1273,20 @@ export function SingleRowKanbanView({
               <Users className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">No candidates found</h3>
-            <p className="text-muted-foreground text-sm">
-              No candidates match the current board configuration.
+            <p className="text-muted-foreground text-sm mb-4">
+              {candidates.length > 0 
+                ? "No candidates match the current board configuration. Try adjusting your board settings or resetting to default."
+                : "No candidates available. Please add some candidates first."
+              }
             </p>
+            {candidates.length > 0 && (
+              <div className="text-xs text-muted-foreground">
+                <p>Current configuration:</p>
+                <p>Row: {rowField} | Column: {columnField}</p>
+                <p>Visible rows: {visibleRowValues.length > 0 ? visibleRowValues.join(', ') : 'All'}</p>
+                <p>Visible columns: {visibleColumnValues.length > 0 ? visibleColumnValues.join(', ') : 'All'}</p>
+              </div>
+            )}
           </div>
         </div>
       </>
@@ -1347,19 +1371,19 @@ export function SingleRowKanbanView({
 
                   {/* Contact Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {currentCandidate.email && (
+                    {visibleFields.includes('email') && currentCandidate.email && (
                       <div className="flex items-center text-sm">
                         <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
                         <span className="text-foreground">{currentCandidate.email}</span>
                       </div>
                     )}
-                    {currentCandidate.phone && (
+                    {visibleFields.includes('phone') && currentCandidate.phone && (
                       <div className="flex items-center text-sm">
                         <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
                         <span className="text-foreground">{currentCandidate.phone}</span>
                       </div>
                     )}
-                    {currentCandidate.applicationDate && (
+                    {visibleFields.includes('applicationDate') && currentCandidate.applicationDate && (
                       <div className="flex items-center text-sm">
                         <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                         <span className="text-foreground">
@@ -1367,13 +1391,19 @@ export function SingleRowKanbanView({
                         </span>
                       </div>
                     )}
+                    {visibleFields.includes('recruiterId') && (
+                      <div className="flex items-center text-sm">
+                        <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span className="text-foreground">{currentCandidate.recruiter?.name || currentCandidate.recruiterId || 'Unassigned'}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Fit Score */}
-                  {currentCandidate.fitScore !== undefined && currentCandidate.fitScore !== null && (
+                  {visibleFields.includes('fitScore') && currentCandidate.fitScore !== undefined && currentCandidate.fitScore !== null && (
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-foreground">Fit Score</span>
+                        <span className="text-sm font-medium text-foreground">{getFieldLabel('fitScore')}</span>
                         <span className="text-sm font-semibold text-foreground">
                           {currentCandidate.fitScore}%
                         </span>
@@ -1491,7 +1521,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
   };
 
   return (
-    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4 overflow-x-auto">
+    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
       {recruiters.map((recruiter: any) => (
         <div key={recruiter.id} className="flex-shrink-0 w-80 flex flex-col h-full">
           <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
@@ -1562,7 +1592,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                 {candidate.fitScore !== undefined && candidate.fitScore !== null && (
                                   <div className="mt-2 space-y-1">
                                     <div className="flex items-center justify-between text-xs">
-                                      <span className="text-muted-foreground">Fit</span>
+                                      <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
                                       <span className="font-medium text-foreground">{candidate.fitScore}%</span>
                                     </div>
                                     <div className="w-full bg-muted rounded-full h-1">

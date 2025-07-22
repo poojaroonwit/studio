@@ -295,11 +295,11 @@ export default function CandidateDetailPage() {
       name: candidate?.name || '',
       email: candidate?.email || '',
       phone: candidate?.phone || '',
-      positionId: appliedJobId || null,
+      positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
       fitScore: appliedFitScore || null,
       assignmentJustification: appliedJustification || [],
       status: candidate?.status || '',
-      recruiterId: candidate?.recruiterId || null,
+      recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
       parsedData: (candidate?.parsedData as any) || {}
     }
   });
@@ -320,14 +320,13 @@ export default function CandidateDetailPage() {
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
-        positionId: appliedJobId || null,
+        positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
         fitScore: appliedFitScore || null,
         assignmentJustification: appliedJustification || [],
         status: candidate.status || '',
-        recruiterId: candidate.recruiterId || null,
+        recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          // Include job matches from the API response
           job_matches: (candidate.jobMatches || []).map((match: any) => ({
             jobId: match.jobId,
             jobTitle: match.positionTitle,
@@ -356,7 +355,7 @@ export default function CandidateDetailPage() {
 
   useEffect(() => {
     if (!candidateId) return;
-    const fetchComments = async () => {
+    const fetchCommentsEffect = async () => {
       try {
         const res = await fetch(`/api/candidates/${candidateId}/comments`);
         if (!res.ok) {
@@ -381,12 +380,12 @@ export default function CandidateDetailPage() {
         setComments([]);
       }
     };
-    fetchComments();
+    fetchCommentsEffect();
   }, [candidateId]);
 
   useEffect(() => {
     if (!candidateId) return;
-    const fetchResumes = async () => {
+    const fetchResumesEffect = async () => {
       const res = await fetch(`/api/candidates/${candidateId}/resumes`);
       if (res.ok) {
         const data = await res.json();
@@ -396,7 +395,7 @@ export default function CandidateDetailPage() {
         setResumes([]);
       }
     };
-    fetchResumes();
+    fetchResumesEffect();
   }, [candidateId]);
 
   // Update fetchResumes to fetch attachments
@@ -573,9 +572,9 @@ export default function CandidateDetailPage() {
     }
   }, [fetchError]);
 
-  useEffect(() => {
-    console.log('Available stages:', availableStages);
-  }, [availableStages]);
+  // useEffect(() => {
+  //   console.log('Available stages:', availableStages);
+  // }, [availableStages]);
 
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
     console.log('handleUploadSuccess called', updatedCandidate);
@@ -749,15 +748,17 @@ export default function CandidateDetailPage() {
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
     console.log('handleSaveDetails called', data);
-    
     // Patch: update parsedData.job_applied as well as top-level fields
     const newJobApplied = {
       jobId: data.positionId,
       fitScore: data.fitScore,
       justification: data.assignmentJustification || [],
     };
+    // Fix: Ensure positionId and recruiterId are null if empty string
     const processedData = {
       ...data,
+      positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
+      recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
       parsedData: {
         ...data.parsedData,
         job_applied: newJobApplied,
@@ -788,11 +789,11 @@ export default function CandidateDetailPage() {
             name: candidate.name,
             email: candidate.email,
             phone: candidate.phone,
-            positionId: appliedJobId || null,
+            positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
             fitScore: appliedFitScore || null,
             assignmentJustification: appliedJustification || [],
             status: candidate.status,
-            recruiterId: candidate.recruiterId || null,
+            recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
             parsedData: {
                 ...(candidate.parsedData as CandidateDetails),
                 skills: (candidate.parsedData as CandidateDetails)?.skills?.map(s => ({
@@ -1359,11 +1360,11 @@ export default function CandidateDetailPage() {
                                 name: candidate.name || '',
                                 email: candidate.email || '',
                                 phone: candidate.phone || '',
-                                positionId: appliedJobId || null,
+                                positionId: !appliedJobId || appliedJobId === '' ? null : appliedJobId,
                                 fitScore: appliedFitScore || null,
                                 assignmentJustification: appliedJustification || '',
                                 status: candidate.status || '',
-                                recruiterId: candidate.recruiterId || null,
+                                recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                                 parsedData: (candidate?.parsedData as any) || {}
                               });
                             }
@@ -2266,21 +2267,7 @@ export default function CandidateDetailPage() {
                                                          exp.isCurrent === true || 
                                                          (exp.period && exp.period.includes('Present')) ||
                                                          (exp.period && exp.period.includes('present'));
-                                
-                                // Debug logging
-                                console.log('Experience entry:', {
-                                  company: exp.company,
-                                  position: exp.position,
-                                  startMonth: exp.startMonth,
-                                  startYear: exp.startYear,
-                                  endMonth: exp.endMonth,
-                                  endYear: exp.endYear,
-                                  is_current_position: exp.is_current_position,
-                                  isCurrent: exp.isCurrent,
-                                  period: exp.period,
-                                  isCurrentPosition: isCurrentPosition
-                                });
-                                
+
                                 if (exp.startMonth && exp.startYear) {
                                   const startDate = new Date(exp.startYear, exp.startMonth - 1);
                                   start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });

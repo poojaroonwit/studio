@@ -159,52 +159,56 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-        const newRowField = rowPref ? rowPref.customNote || 'status' : 'status';
-        const newColumnField = colPref ? colPref.customNote || 'none' : 'none';
-        
-        console.log('MyTasksPageClient: Loading preferences:', {
-          rowPref,
-          colPref,
-          visibleRowPref,
-          visibleColPref,
-          newRowField,
-          newColumnField,
-          stages
-        });
-        
+        const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
+        const newRowField = rowPref && rowPref.customNote !== undefined ? rowPref.customNote : 'status';
+        const newColumnField = colPref && colPref.customNote !== undefined ? colPref.customNote : 'none';
+        let newVisibleFields = ['name', 'email', 'status', 'fitScore'];
+        if (visibleFieldsPref) {
+          try {
+            newVisibleFields = JSON.parse(visibleFieldsPref.customNote) || newVisibleFields;
+          } catch (error) {
+            console.error('MyTasksPageClient: Error parsing visible fields:', error);
+          }
+        }
+       
         setRowField(newRowField);
         setColumnField(newColumnField);
         setBoardPrefs(prev => ({
           ...prev,
           rowField: newRowField,
           columnField: newColumnField,
+          visibleFields: newVisibleFields,
         }));
         
         // Handle visible row values
         if (visibleRowPref) {
           try {
             const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
-            console.log('MyTasksPageClient: Parsed visible row values:', parsedValues);
+            
             setVisibleRowValues(parsedValues);
           } catch (error) {
-            console.error('MyTasksPageClient: Error parsing visible row values:', error);
+           
             setVisibleRowValues([]);
           }
         } else {
-          // Default to showing all stages when row field is status
-          const defaultValues = stages.length > 0 ? stages : [];
-          console.log('MyTasksPageClient: Using default visible row values:', defaultValues);
-          setVisibleRowValues(defaultValues);
+          // Only set visibleRowValues to stages if rowField is 'status' (not 'none')
+          if (newRowField === 'status') {
+            const defaultValues = stages.length > 0 ? stages : [];
+        
+            setVisibleRowValues(defaultValues);
+          } else {
+            setVisibleRowValues([]);
+          }
         }
         
         // Handle visible column values
         if (visibleColPref) {
           try {
             const parsedValues = JSON.parse(visibleColPref.customNote) || [];
-            console.log('MyTasksPageClient: Parsed visible column values:', parsedValues);
+            
             setVisibleColumnValues(parsedValues);
           } catch (error) {
-            console.error('MyTasksPageClient: Error parsing visible column values:', error);
+           
             setVisibleColumnValues([]);
           }
         } else {
@@ -217,7 +221,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         }
       })
       .catch((error) => {
-        console.error('MyTasksPageClient: Error loading board preferences:', error);
+      
         setRowField('status');
         setColumnField('none');
         setBoardPrefs(prev => ({
@@ -239,21 +243,30 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Fallback: ensure visibleRowValues has a value when stages are loaded
   useEffect(() => {
-    if (stages.length > 0 && visibleRowValues.length === 0 && rowField === 'status') {
+    // Only set visibleRowValues to stages if rowField is 'status' (not 'none')
+    if (rowField === 'status' && stages.length > 0 && visibleRowValues.length === 0) {
       setVisibleRowValues(stages);
+    } else if (rowField === 'recruiterId' && recruiters.length > 0 && visibleRowValues.length === 0) {
+      setVisibleRowValues(recruiters.map(r => r.id));
+    } else if (rowField === 'positionId' && positions.length > 0 && visibleRowValues.length === 0) {
+      setVisibleRowValues(positions.map(p => p.id));
+    } else if (rowField && visibleRowValues.length === 0) {
+      // For other fields, get unique values from candidates
+      const candidateValues = Array.from(new Set(candidates.map(c => (c[rowField] ?? c.customAttributes?.[rowField] ?? '')))).filter(Boolean);
+      setVisibleRowValues(candidateValues);
     }
     // Also ensure that when row field is status, we always show all stages
     if (stages.length > 0 && rowField === 'status' && visibleRowValues.length > 0 && visibleRowValues.length < stages.length) {
       setVisibleRowValues(stages);
     }
-  }, [stages, visibleRowValues.length, rowField]);
+  }, [stages, recruiters, positions, candidates, visibleRowValues.length, rowField]);
 
   // When modal closes after save, reload preferences
   const handleCustomizeModalChange = (open: boolean) => {
-    console.log('MyTasksPageClient: Customize modal state changing to:', open);
+
     setIsCustomizeModalOpen(open);
     if (!open) {
-      console.log('MyTasksPageClient: Modal closed, reloading preferences...');
+   
       // Add a small delay to ensure the save operation completes
       setTimeout(() => {
         loadBoardPrefs();
@@ -456,28 +469,57 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </TabsList>
               </Tabs>
 
-              {/* Board Settings */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 text-xs"
-                onClick={() => {
-                  console.log('MyTasksPageClient: Customize button clicked');
-                  console.log('MyTasksPageClient: Current state:', {
-                    rowField,
-                    columnField,
-                    visibleRowValues,
-                    visibleColumnValues,
-                    uniqueRowValues,
-                    uniqueColumnValues,
-                    boardPrefs
-                  });
-                  setIsCustomizeModalOpen(true);
-                }}
-              >
-                <Settings className="w-4 h-4 mr-1" />
-                Customize
-              </Button>
+              {/* Board Settings and Reset - only show in Kanban view */}
+              {viewMode === 'kanban' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs"
+                    onClick={() => {
+                      setIsCustomizeModalOpen(true);
+                    }}
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    Customize
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs"
+                    onClick={async () => {
+                      try {
+                        // Reset to default preferences
+                        const defaultPrefs = [
+                          { modelType: 'Candidate', attributeKey: 'mytasks_rowField', uiPreference: 'Standard', customNote: 'status' },
+                          { modelType: 'Candidate', attributeKey: 'mytasks_columnField', uiPreference: 'Standard', customNote: 'none' },
+                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(stages) },
+                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify([]) },
+                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleFields', uiPreference: 'Standard', customNote: JSON.stringify(['name', 'email', 'status']) },
+                        ];
+                        const res = await fetch('/api/settings/user-preferences', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(defaultPrefs),
+                        });
+                        if (res.ok) {
+                          toast.success('Board reset to default configuration');
+                          // Reload preferences
+                          loadBoardPrefs();
+                        } else {
+                          toast.error('Failed to reset board configuration');
+                        }
+                      } catch (error) {
+                        console.error('Error resetting board:', error);
+                        toast.error('Failed to reset board configuration');
+                      }
+                    }}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Reset Board
+                  </Button>
+                </>
+              )}
 
               {/* Refresh */}
               <Button
@@ -487,7 +529,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 onClick={handleRefresh}
                 disabled={loading}
               >
-                <RefreshCw className={cn("w-4 h-4 mr-1", loading && "animate-spin")} />
+                <RefreshCw className={cn("w-4 h-4 mr-1", loading && "animate-spin")}/>
                 Refresh
               </Button>
             </div>
@@ -548,18 +590,31 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <CandidateKanbanView
-                candidates={displayedCandidates}
-                statuses={stages}
-                onMoveCandidate={handleMoveCandidate}
-                onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                showAddButton={false}
-                rowField={rowField}
-                columnField={columnField}
-                visibleFields={boardPrefs.visibleFields}
-                visibleRowValues={visibleRowValues}
-                visibleColumnValues={visibleColumnValues}
-              />
+              (() => {
+                // Fallback logic for columns
+                let effectiveColumnField = columnField;
+                let effectiveColumnValues = visibleColumnValues;
+                if (columnField !== 'none' && (Array.isArray(visibleColumnValues) && visibleColumnValues.length === 0)) {
+                  effectiveColumnField = 'recruiterId';
+                  effectiveColumnValues = recruiters.map(r => r.id);
+                  console.warn('No visibleColumnValues, defaulting to all recruiters for columns.');
+                }
+                // If columnField is 'none', respect the user's config and do not override.
+                return (
+                  <CandidateKanbanView
+                    candidates={displayedCandidates}
+                    statuses={stages}
+                    onMoveCandidate={handleMoveCandidate}
+                    onCardClick={(candidate) => setSelectedCandidate(candidate)}
+                    showAddButton={false}
+                    rowField={rowField}
+                    columnField={effectiveColumnField}
+                    visibleFields={boardPrefs.visibleFields}
+                    visibleRowValues={visibleRowValues}
+                    visibleColumnValues={effectiveColumnValues}
+                  />
+                );
+              })()
             ) : (
               // Table View (styled like candidate list)
               <div className="border rounded-lg shadow overflow-hidden">
@@ -577,7 +632,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   <TableBody>
                     {displayedCandidates.map(candidate => (
                       <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => {
-                        console.log('MyTasksPageClient: Table row clicked:', candidate);
+                      
                         setSelectedCandidate(candidate);
                       }}>
                         <TableCell>
@@ -607,7 +662,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
-                            console.log('MyTasksPageClient: View button clicked:', candidate);
+                          
                             setSelectedCandidate(candidate); 
                           }}>
                             View
@@ -633,12 +688,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
       {selectedCandidate && (
         <>
-          {console.log('MyTasksPageClient: Rendering modal with candidate:', selectedCandidate)}
+  
           <CandidateDetailModal
             candidateId={selectedCandidate.id}
             open={!!selectedCandidate}
             onClose={() => {
-              console.log('MyTasksPageClient: Closing modal');
+     
               setSelectedCandidate(null);
             }}
           />

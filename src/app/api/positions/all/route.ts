@@ -150,24 +150,22 @@ async function fetchPositionsFromDatabase(query: string, params: any[]): Promise
  *         description: Internal server error
  */
 export async function GET(request: NextRequest) {
-  console.log('[POSITIONS/ALL] Request started');
-
+ 
   try {
     // Validate session
     const { userId, userName } = await validateSession();
-    console.log(`[POSITIONS/ALL] Authenticated user: ${userName} (${userId})`);
-
+    
     // Parse and validate filters
     const filters = parseFilters(new URL(request.url).searchParams);
-    console.log('[POSITIONS/ALL] Filters:', filters);
+   
 
     // Build query
     const { query, params } = buildQuery(filters);
-    console.log('[POSITIONS/ALL] Params:', params);
+   
 
     // Execute query
     const positions = await fetchPositionsFromDatabase(query, params);
-    console.log(`[POSITIONS/ALL] Retrieved ${positions.length} positions`);
+ 
 
     // Return success response
     return NextResponse.json({ 
@@ -178,7 +176,7 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[POSITIONS/ALL] Error:', error);
+
     
     // Handle specific error types
     if (error instanceof Error) {

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session) {
-      console.log('[SESSION VALIDATION] No session found');
+      
       return NextResponse.json({ 
         valid: false, 
         error: 'No session found' 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!session.user?.id) {
-      console.log('[SESSION VALIDATION] Session exists but no user ID found');
+   
       return NextResponse.json({ 
         valid: false, 
         error: 'Invalid session - no user ID' 
@@ -69,14 +69,14 @@ export async function GET(request: NextRequest) {
     const validation = await validateUserSession(session);
     
     if (!validation.isValid) {
-      console.log(`[SESSION VALIDATION] Session validation failed for user ${validation.userId}: ${validation.error}`);
+     
       return NextResponse.json({ 
         valid: false, 
         error: validation.error 
       }, { status: 401 });
     }
 
-    console.log(`[SESSION VALIDATION] Session validated successfully for user ${session.user.id}`);
+    
     return NextResponse.json({
       valid: true,
       user: {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('[SESSION VALIDATION] Unexpected error during session validation:', error);
+    
     return NextResponse.json({ 
       valid: false, 
       error: 'Internal server error during session validation' 

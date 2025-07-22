@@ -65,6 +65,7 @@ export function CandidatesPageClient({
   initialFetchError,
   initialFilters,
 }: CandidatesPageClientProps) {
+  // All hooks must be called before any return
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -82,14 +83,14 @@ export function CandidatesPageClient({
       selectedStatuses: []
     };
     
-    console.log('Initial filters set:', baseFilters);
+    // console.log('Initial filters set:', baseFilters);
     return baseFilters;
   });
 
   // Debug: Log whenever filters change
-  useEffect(() => {
-    console.log('Filters state changed to:', filters);
-  }, [filters]);
+  // useEffect(() => {
+  //   console.log('Filters state changed to:', filters);
+  // }, [filters]);
 
 
 
@@ -100,7 +101,7 @@ export function CandidatesPageClient({
   const [allCandidates, setAllCandidates] = useState<Candidate[]>(safeInitialCandidates || []);
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
 
   const [isLoading, setIsLoading] = useState(false); // Changed to false initially
   const [isAiSearching, setIsAiSearching] = useState(false);
@@ -166,17 +167,17 @@ export function CandidatesPageClient({
     
     if (urlPositionId && (!filters.selectedPositionIds || filters.selectedPositionIds.length === 0)) {
       newFilters.selectedPositionIds = [urlPositionId];
-      console.log('Setting position filter from URL:', urlPositionId);
+      // console.log('Setting position filter from URL:', urlPositionId);
       hasChanges = true;
     }
     if (urlRecruiterId && (!filters.selectedRecruiterIds || filters.selectedRecruiterIds.length === 0)) {
       newFilters.selectedRecruiterIds = [urlRecruiterId];
-      console.log('Setting recruiter filter from URL:', urlRecruiterId);
+      // console.log('Setting recruiter filter from URL:', urlRecruiterId);
       hasChanges = true;
     }
     if (urlStatus && (!filters.selectedStatuses || filters.selectedStatuses.length === 0)) {
       newFilters.selectedStatuses = [urlStatus];
-      console.log('Setting status filter from URL:', urlStatus);
+      // console.log('Setting status filter from URL:', urlStatus);
       hasChanges = true;
     }
     
@@ -196,7 +197,7 @@ export function CandidatesPageClient({
       const response = await fetch('/api/users?role=Recruiter');
       if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
-          console.error("API error fetching recruiters:", errorData); // Log the object we got
+          // console.error("API error fetching recruiters:", errorData); // Log the object we got
           
           let detailedErrorMessage = (errorData as any)?.message || 'Failed to fetch recruiters';
           if (Object.keys(errorData).length === 0 && !(errorData as any)?.message) {
@@ -211,35 +212,35 @@ export function CandidatesPageClient({
           
           // Retry on server errors (5xx) but not on client errors (4xx)
           if (response.status >= 500 && retryCount < maxRetries) {
-            console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
+            // console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
             setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
             return;
           }
           
           // Don't throw error, just log it and continue with empty recruiters list
-          console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
+          // console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
           setAvailableRecruiters([]);
           return;
       }
       const recruitersData: UserProfile[] | undefined = await response.json(); 
       if (!recruitersData || !Array.isArray(recruitersData)) {
-        console.warn("Invalid data format received for recruiters, using empty list");
+        // console.warn("Invalid data format received for recruiters, using empty list");
         setAvailableRecruiters([]);
         return;
       }
-      setAvailableRecruiters(recruitersData.map(r => ({ id: r.id, name: r.name })));
+      setAvailableRecruiters(recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' })));
     } catch (error) {
-      console.error("Error fetching recruiters:", error);
+      // console.error("Error fetching recruiters:", error);
       
       // Retry on network errors
       if (retryCount < maxRetries) {
-        console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
+        // console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
         setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
         return;
       }
       
       // Don't show toast error, just log it and continue with empty recruiters list
-      console.warn("Recruiter fetch failed due to network error, continuing with empty list");
+      // console.warn("Recruiter fetch failed due to network error, continuing with empty list");
       setAvailableRecruiters([]);
     }
   }, [sessionStatus]);
@@ -257,7 +258,7 @@ export function CandidatesPageClient({
   const fetchPaginatedCandidates = useCallback(async (currentFilters: CandidateFilterValues, page: number, pageSize: number) => {
     const requestId = `${Date.now()}-${Math.random()}`;
     latestRequestIdRef.current = requestId;
-    console.log('[fetchPaginatedCandidates] requestId:', requestId, 'filters:', currentFilters, 'page:', page, 'pageSize:', pageSize);
+
     if (sessionStatusRef.current !== 'authenticated') {
       setIsLoading(false);
       return;
@@ -265,7 +266,7 @@ export function CandidatesPageClient({
     
     // Prevent multiple simultaneous requests
     if (isFetching) {
-      console.log('fetchPaginatedCandidates: Already fetching, skipping request');
+      // console.log('fetchPaginatedCandidates: Already fetching, skipping request');
       return;
     }
     
@@ -287,7 +288,7 @@ export function CandidatesPageClient({
     
     // Add a timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
-      console.error('Loading timeout: Candidates fetch took too long');
+      // console.error('Loading timeout: Candidates fetch took too long');
       setIsLoading(false);
       setIsFetching(false);
       setFetchError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
@@ -377,13 +378,11 @@ export function CandidatesPageClient({
       if (latestRequestIdRef.current === requestId) {
         setAllCandidates(candidatesArray); // Only update on success
         setTotal(totalCount);
-        console.log('[fetchPaginatedCandidates] setAllCandidates (length):', candidatesArray.length, 'requestId:', requestId);
-      } else {
-        console.log('[fetchPaginatedCandidates] Stale response ignored. requestId:', requestId);
-      }
+      } 
+      
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.error('Request timeout - server may be overloaded');
+        // console.error('Request timeout - server may be overloaded');
         setFetchError('Request timeout - please try again in a moment');
       } else {
       const errorMessage = (error as Error).message || "Could not load candidate data.";
@@ -468,7 +467,7 @@ export function CandidatesPageClient({
       }
     } catch (error) {
       clearTimeout(timeoutId); // Clear timeout on error
-      console.error("AI Search Error:", error);
+      // console.error("AI Search Error:", error);
       
       if (error instanceof Error && error.name === 'AbortError') {
         toast.error("AI search request was cancelled due to timeout. Please try again.");
@@ -646,7 +645,7 @@ export function CandidatesPageClient({
 
   // Separate useEffect to handle filter changes and fetch candidates
   useEffect(() => {
-    console.log('Filter change useEffect triggered with filters:', filters);
+    // console.log('Filter change useEffect triggered with filters:', filters);
     
     // Skip if not authenticated or has errors
     if (sessionStatus !== 'authenticated' || serverAuthError || serverPermissionError) {
@@ -655,19 +654,19 @@ export function CandidatesPageClient({
     
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      console.log('Skipping filter change useEffect - currently clearing filters');
+      // console.log('Skipping filter change useEffect - currently clearing filters');
       return;
     }
     
     // Create a unique request ID to prevent infinite loops
     const requestId = JSON.stringify({ filters, page, pageSize });
     if (currentRequestRef.current === requestId) {
-      console.log('Skipping fetch - same request already in progress');
+      // console.log('Skipping fetch - same request already in progress');
       return;
     }
     
     currentRequestRef.current = requestId;
-    console.log('Fetching candidates due to filter change');
+    // console.log('Fetching candidates due to filter change');
     fetchPaginatedCandidates(filters, page, pageSize);
   }, [filters, page, pageSize, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters]);
 
@@ -693,14 +692,14 @@ export function CandidatesPageClient({
 
           if (posResponse.ok) {
             const posData = await posResponse.json();
-            console.log('Positions fetched:', posData);
-            console.log('Positions data length:', posData.data?.length || 0);
-            console.log('First few positions:', posData.data?.slice(0, 3));
+            // console.log('Positions fetched:', posData);
+            // console.log('Positions data length:', posData.data?.length || 0);
+            // console.log('First few positions:', posData.data?.slice(0, 3));
             setAvailablePositions(posData.data || []);
           } else {
-            console.error("Failed to fetch positions");
-            console.error("Response status:", posResponse.status);
-            console.error("Response status text:", posResponse.statusText);
+            // console.error("Failed to fetch positions");
+            // console.error("Response status:", posResponse.status);
+            // console.error("Response status text:", posResponse.statusText);
             toast.error("Could not load the list of available positions.");
           }
 
@@ -708,11 +707,11 @@ export function CandidatesPageClient({
             const stagesData = await stagesResponse.json();
             setAvailableStages(Array.isArray(stagesData) ? stagesData : (stagesData.stages || []));
           } else {
-            console.error("Failed to fetch recruitment stages");
+            // console.error("Failed to fetch recruitment stages");
             toast.error("Could not load recruitment stages.");
           }
         } catch (error) {
-          console.error("Error fetching positions or stages:", error);
+          // console.error("Error fetching positions or stages:", error);
           toast.error("A network error occurred while fetching initial data.");
         }
       };
@@ -732,11 +731,11 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
-    console.log('handleFilterChange called with:', newFilters);
+    // console.log('handleFilterChange called with:', newFilters);
     
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      console.log('Skipping filter change - currently clearing filters');
+      // console.log('Skipping filter change - currently clearing filters');
       return;
     }
     
@@ -747,7 +746,7 @@ export function CandidatesPageClient({
 
     // Debounce the filter change to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
-      console.log('Applying debounced filter change');
+      // console.log('Applying debounced filter change');
     const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
       
       // Check if filters have actually changed to prevent unnecessary updates
@@ -755,7 +754,7 @@ export function CandidatesPageClient({
       const newFiltersString = JSON.stringify(combinedFilters);
       
       if (currentFiltersString === newFiltersString) {
-        console.log('Filters unchanged, skipping update');
+        // console.log('Filters unchanged, skipping update');
         return;
       }
       
@@ -876,7 +875,7 @@ export function CandidatesPageClient({
   };
 
   const handleClearAllFilters = () => {
-    console.log('handleClearAllFilters called');
+    // console.log('handleClearAllFilters called');
     
     // Clear any existing filter change timeout to prevent interference
     if (filterChangeTimeoutRef.current) {
@@ -944,12 +943,12 @@ export function CandidatesPageClient({
       const response = await fetch(`/api/candidates/${candidateId}`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(`Failed to fetch candidate ${candidateId}: ${errorData.message || response.statusText}`);
+        // console.error(`Failed to fetch candidate ${candidateId}: ${errorData.message || response.statusText}`);
         return null;
       }
       return await response.json();
     } catch (error) {
-      console.error(`Error fetching candidate ${candidateId}:`, error);
+      // console.error(`Error fetching candidate ${candidateId}:`, error);
       return null;
     }
   }, []);
@@ -991,7 +990,7 @@ export function CandidatesPageClient({
         toast.success(`${updatedCandidateFromServer.name}'s status set to ${updatedCandidateFromServer.status}.`);
       }
     } catch (error) {
-      console.error("Error updating candidate:", error);
+      // console.error("Error updating candidate:", error);
       toast.error((error as Error).message);
       throw error; // Re-throw for ManageTransitionsModal or other callers to handle
     }
@@ -1008,7 +1007,7 @@ export function CandidatesPageClient({
       setSelectedCandidateIds(prev => { const newSet = new Set(prev); newSet.delete(candidateId); return newSet; });
       toast.success(`Candidate successfully deleted.`);
     } catch (error) {
-      console.error("Error deleting candidate:", error);
+      // console.error("Error deleting candidate:", error);
       toast.error((error as Error).message);
       throw error; // Re-throw for table to handle
     }
@@ -1057,7 +1056,7 @@ export function CandidatesPageClient({
       // Optionally force a router refresh for full sync:
       // router.refresh();
     } catch (error) {
-        console.error("Error adding candidate:", error);
+        // console.error("Error adding candidate:", error);
         toast.error((error as Error).message);
     } finally {
       setIsLoading(false);
@@ -1263,6 +1262,27 @@ export function CandidatesPageClient({
 
   // Add handler for assigning recruiter inline
   const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
+    // Find previous recruiter for revert on error
+    const prevCandidate = allCandidates.find(c => c.id === candidateId);
+    const prevRecruiter = prevCandidate?.recruiter || null;
+    // Optimistically update recruiter in UI
+    setAllCandidates(prev =>
+      prev.map(c =>
+        c.id === candidateId
+          ? {
+              ...c,
+              recruiter: recruiterId
+                ? (() => {
+                    const found = availableRecruiters.find(r => r.id === recruiterId);
+                    return found
+                      ? { id: found.id, name: found.name, email: found.email || '' }
+                      : { id: recruiterId, name: 'Unknown', email: '' };
+                  })()
+                : null,
+            }
+          : c
+      )
+    );
     try {
       // Find the candidate's current status
       const candidate = allCandidates.find(c => c.id === candidateId);
@@ -1279,6 +1299,14 @@ export function CandidatesPageClient({
       await refreshCandidateInList(candidateId);
       toast.success('Recruiter updated.');
     } catch (error) {
+      // Revert recruiter in UI
+      setAllCandidates(prev =>
+        prev.map(c =>
+          c.id === candidateId
+            ? { ...c, recruiter: prevRecruiter }
+            : c
+        )
+      );
       toast.error((error as Error).message);
     }
   };
@@ -1310,7 +1338,7 @@ export function CandidatesPageClient({
         // Add a small delay to prevent rapid refreshes when modals open/close
         clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
-          console.log('Page became visible, refreshing candidate data...');
+          // console.log('Page became visible, refreshing candidate data...');
           lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
         }, 1000); // Increased delay to 1 second
@@ -1327,7 +1355,7 @@ export function CandidatesPageClient({
         // Add a small delay to prevent rapid refreshes when modals open/close
         clearTimeout(focusTimeout);
         focusTimeout = setTimeout(() => {
-          console.log('Window gained focus, refreshing candidate data...');
+          // console.log('Window gained focus, refreshing candidate data...');
           lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
         }, 1000); // Increased delay to 1 second
@@ -1356,6 +1384,19 @@ export function CandidatesPageClient({
       }
     }
   }, [sessionStatus, session?.user?.role, session?.user?.id, filters.selectedRecruiterIds]);
+
+  // Ensure mappedCandidates useMemo is called before any return
+  const mappedCandidates = useMemo(() => {
+    return allCandidates.map(candidate => {
+      if ((!candidate.position || !candidate.position.title) && candidate.positionId && availablePositions.length > 0) {
+        const foundPosition = availablePositions.find(pos => pos.id === candidate.positionId);
+        if (foundPosition) {
+          return { ...candidate, position: foundPosition };
+        }
+      }
+      return candidate;
+    });
+  }, [allCandidates, availablePositions]);
 
   // Centralized error UI for auth/permission
   if (authError || sessionStatus === 'unauthenticated') {
@@ -1685,7 +1726,7 @@ export function CandidatesPageClient({
         )}
 
         <CandidateTable
-          candidates={displayedCandidates}
+          candidates={mappedCandidates}
           availablePositions={availablePositions}
           availableStages={availableStages}
           availableRecruiters={availableRecruiters}

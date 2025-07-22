@@ -203,6 +203,7 @@ const TimelineItem = ({
 );
 
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal = false, onClose }) => {
+  // All hooks must be called before any return
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +237,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
   const [filteredRecruiters, setFilteredRecruiters] = useState<{ id: string; name: string }[]>([]);
   const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
-
   const { data: session } = useSession();
 
   // Form setup
@@ -308,10 +308,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     name: 'parsedData.job_matches',
   });
 
-
-
-  // Remove duplicate form setup - using the one above with full configuration
-
   // Fetch candidate data
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -334,8 +330,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           name: data.name,
           email: data.email,
           phone: data.phone,
-          positionId: data.positionId,
-          recruiterId: data.recruiterId || null,
+          positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
+          recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
           fitScore: data.fitScore || null,
           status: data.status || '',
           parsedData: data.parsedData,
@@ -437,11 +433,28 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
 
+    // Ensure status is present and valid
+    const statusToSend = data.status && data.status.trim() !== '' ? data.status : 'Applied';
+    if (!statusToSend) {
+      toast.error('Status is required. Please select a status before saving.');
+      return;
+    }
+    // Fix: Ensure positionId and recruiterId are null if empty string
+    // Fix: assignmentJustification should be a string for backend
+    const payload = {
+      ...data,
+      status: statusToSend,
+      positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
+      recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
+      assignmentJustification: Array.isArray(data.assignmentJustification)
+        ? data.assignmentJustification.join('\n')
+        : data.assignmentJustification,
+    };
     try {
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -725,6 +738,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     );
   };
 
+  // After all hooks are declared, place the early returns:
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -735,7 +749,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       </div>
     );
   }
-
   if (error || !candidate) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -787,11 +800,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           name: candidate.name || '',
                           email: candidate.email || '',
                           phone: candidate.phone || '',
-                          positionId: candidate.positionId || null,
+                          positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
                           fitScore: candidate.fitScore || null,
                           assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
                           status: candidate.status || '',
-                          recruiterId: candidate.recruiterId || null,
+                          recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                           parsedData: (candidate.parsedData as any) || {}
                         });
                       }
@@ -986,7 +999,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           render={({ field }) => (
                             <PositionSelectDropdown
                               value={field.value || ''}
-                              onValueChange={field.onChange}
+                              onValueChange={val => field.onChange(!val || val === '' ? null : val)}
                               placeholder="Select the position this candidate applied for..."
                               filterOpenOnly={false}
                             />
@@ -1941,11 +1954,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   name: candidate.name || '',
                   email: candidate.email || '',
                   phone: candidate.phone || '',
-                  positionId: candidate.positionId || null,
+                  positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
                   fitScore: candidate.fitScore || null,
                   assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
                   status: candidate.status || '',
-                  recruiterId: candidate.recruiterId || null,
+                  recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                   parsedData: (candidate.parsedData as any) || {}
                 });
               }

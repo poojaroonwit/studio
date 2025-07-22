@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     // Log the request to console for debugging purposes
     const body = await request.json().catch(() => ({}));
-    console.log('[NextAuth Log]:', body);
     
     // Return a simple success response
     return NextResponse.json({ success: true });

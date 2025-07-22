@@ -146,6 +146,14 @@ export async function POST(request: NextRequest) {
   };
   const newCandidateId = uuidv4();
 
+  // Extract fitScore from candidate_info or candidate_info.job_applied
+  let fitScore = undefined;
+  if (typeof candidateInfo.fitScore === 'number') {
+    fitScore = Math.round(candidateInfo.fitScore);
+  } else if (candidateInfo.job_applied && typeof candidateInfo.job_applied.fitScore === 'number') {
+    fitScore = Math.round(candidateInfo.job_applied.fitScore);
+  }
+
   try {
     const newCandidate = await prisma.candidate.create({
       data: {
@@ -154,6 +162,7 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         phone: contactInfo.phone || null,
         status: appliedStage,
+        fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
         createdAt: new Date(),
         updatedAt: new Date(),

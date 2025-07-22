@@ -513,6 +513,7 @@ export async function GET(request: NextRequest) {
       
       // Extract fit score from job_applied if available, otherwise use the database fitScore
       let fitScore = row.fitScore || 0;
+      // Always use the top-level fitScore column for filtering and returning
       if (row.parsedData && typeof row.parsedData === 'object' && 'job_applied' in row.parsedData) {
         const jobApplied = (row.parsedData as any).job_applied;
         if (jobApplied && typeof jobApplied === 'object' && 'fitScore' in jobApplied) {

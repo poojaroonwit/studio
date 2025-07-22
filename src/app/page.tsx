@@ -86,7 +86,9 @@ export default async function DashboardPageServer() {
             positionLevel: row.positionLevel,
             isOpen: row.positionIsOpen || false
           } : null,
-          fitScore: row.fitScore || null,
+          fitScore: (row.parsedData && typeof row.parsedData === 'object' && row.parsedData.job_applied && typeof row.parsedData.job_applied.fitScore === 'number')
+            ? row.parsedData.job_applied.fitScore
+            : row.fitScore ?? null,
           status: row.status,
           applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
           recruiterId: row.recruiterId || null,

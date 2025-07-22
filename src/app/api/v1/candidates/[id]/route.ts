@@ -219,7 +219,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     if (updateData.fitScore !== undefined) {
       updateFields.push(`"fitScore" = $${paramIndex++}`);
-      updateValues.push(updateData.fitScore);
+      updateValues.push(Math.round(updateData.fitScore));
+    }
+    // Extract fitScore from candidate_info or candidate_info.job_applied if present
+    if (updateData.candidate_info) {
+      if (typeof updateData.candidate_info.fitScore === 'number') {
+        updateFields.push(`"fitScore" = $${paramIndex++}`);
+        updateValues.push(Math.round(updateData.candidate_info.fitScore));
+      } else if (updateData.candidate_info.job_applied && typeof updateData.candidate_info.job_applied.fitScore === 'number') {
+        updateFields.push(`"fitScore" = $${paramIndex++}`);
+        updateValues.push(Math.round(updateData.candidate_info.job_applied.fitScore));
+      }
     }
     
     if (updateData.status !== undefined) {

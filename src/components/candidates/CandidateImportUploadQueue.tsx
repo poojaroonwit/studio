@@ -447,6 +447,9 @@ export const CandidateImportUploadQueue: React.FC<{
   const numSuccess = filteredJobs.filter(j => j.status === 'success').length;
   const numError = filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
 
+  // Total filtered jobs (across all pages)
+  const totalFilteredJobs = filteredJobs.length;
+
   // Collect all unique statuses from jobs for the filter dropdown
   const allStatuses = Array.from(new Set(jobs.map(j => j.status))).sort();
 
@@ -684,7 +687,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Queue</p>
-                  <p className="text-2xl font-bold text-foreground">{numQueued}</p>
+                  <p className="text-2xl font-bold text-foreground">{numQueued} / {totalFilteredJobs}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">Q</span>
@@ -701,7 +704,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">In Process</p>
-                  <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
+                  <p className="text-2xl font-bold text-foreground">{numInProgress} / {totalFilteredJobs}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">P</span>
@@ -718,7 +721,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Success</p>
-                  <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
+                  <p className="text-2xl font-bold text-foreground">{numSuccess} / {totalFilteredJobs}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <CheckCircle className="h-4 w-4 text-white" />
@@ -735,7 +738,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Error</p>
-                  <p className="text-2xl font-bold text-foreground">{numError}</p>
+                  <p className="text-2xl font-bold text-foreground">{numError} / {totalFilteredJobs}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <XCircle className="h-4 w-4 text-white" />

@@ -111,15 +111,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       justification: justification || [],
     };
 
-    // Update candidate with new parsedData
+    // Update candidate with new parsedData and top-level fitScore
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1
-      WHERE id = $2
+      SET "parsedData" = $1, "fitScore" = $2
+      WHERE id = $3
       RETURNING *;
     `;
     
-    const updateResult = await client.query(updateQuery, [parsedData, id]);
+    const updateResult = await client.query(updateQuery, [parsedData, fitScore, id]);
 
     await client.query('COMMIT');
     
@@ -200,15 +200,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       justification: justification || [],
     };
 
-    // Update candidate with new parsedData
+    // Update candidate with new parsedData and top-level fitScore
     const updateQuery = `
       UPDATE "Candidate" 
-      SET "parsedData" = $1
-      WHERE id = $2
+      SET "parsedData" = $1, "fitScore" = $2
+      WHERE id = $3
       RETURNING *;
     `;
     
-    const updateResult = await client.query(updateQuery, [parsedData, id]);
+    const updateResult = await client.query(updateQuery, [parsedData, fitScore, id]);
 
     await client.query('COMMIT');
     

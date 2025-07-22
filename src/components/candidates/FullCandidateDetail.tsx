@@ -941,6 +941,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     {candidate.positionId && candidate.position && (
                       <span>Applied Job: <span className="font-medium text-foreground">{candidate.position.title}</span></span>
                     )}
+                    {candidate.updatedAt && (
+                      <span className="ml-auto">Last update: {format(parseISO(candidate.updatedAt), 'yyyy-MM-dd HH:mm')}</span>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
                     {candidate.email && (
@@ -1276,31 +1279,44 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   <div className="space-y-4">
                     {candidateJobMatches && candidateJobMatches.length > 0 ? (
                       <div className="grid gap-4">
-                        {candidateJobMatches.map((match: any, index: number) => (
-                          <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
-                                {match.fitScore && (
-                                  <Badge variant="outline">{match.fitScore}% Match</Badge>
+                        {candidateJobMatches.map((match: any, index: number) => {
+                          // Determine badge color by grade
+                          const grade = getScoreGrade(match.fitScore);
+                          let badgeColor = '';
+                          switch (grade) {
+                            case 'A': badgeColor = 'bg-gray-400 text-white'; break; // gray
+                            case 'B': badgeColor = 'bg-yellow-400 text-black'; break; // yellow
+                            case 'C': badgeColor = 'bg-lime-400 text-black'; break; // yellow-green
+                            case 'D': badgeColor = 'bg-green-200 text-black'; break; // light green
+                            case 'E': badgeColor = 'bg-green-500 text-white'; break; // green
+                            default: badgeColor = 'bg-gray-200 text-gray-700'; break;
+                          }
+                          return (
+                            <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                                  {match.fitScore !== undefined && match.fitScore !== null && (
+                                    <Badge className={badgeColor}>{`${match.fitScore}% (${grade})`}</Badge>
+                                  )}
+                                </div>
+                                {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                    <ul className="text-sm space-y-1">
+                                      {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                        <li key={reasonIndex} className="flex items-start gap-2">
+                                          <span className="text-primary text-xs mt-1">•</span>
+                                          <span>{reason}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
                                 )}
                               </div>
-                              {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">Match reasons:</p>
-                                  <ul className="text-sm space-y-1">
-                                    {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
-                                      <li key={reasonIndex} className="flex items-start gap-2">
-                                        <span className="text-primary text-xs mt-1">•</span>
-                                        <span>{reason}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          </Card>
-                        ))}
+                            </Card>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">

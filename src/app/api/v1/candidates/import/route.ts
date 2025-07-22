@@ -145,6 +145,16 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        // Extract fitScore from candidate, candidate_info, or candidate_info.job_applied
+        let fitScore = null;
+        if (typeof candidate.fitScore === 'number') {
+          fitScore = Math.round(candidate.fitScore);
+        } else if (candidate.candidate_info && typeof candidate.candidate_info.fitScore === 'number') {
+          fitScore = Math.round(candidate.candidate_info.fitScore);
+        } else if (candidate.candidate_info && candidate.candidate_info.job_applied && typeof candidate.candidate_info.job_applied.fitScore === 'number') {
+          fitScore = Math.round(candidate.candidate_info.job_applied.fitScore);
+        }
+
         // Insert new candidate
         const insertQuery = `
           INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate")
@@ -159,7 +169,7 @@ export async function POST(req: NextRequest) {
           candidate.status,
           candidate.positionId || null,
           candidate.recruiterId || null,
-          candidate.fitScore || null,
+          fitScore,
           candidate.custom_attributes || {},
           candidate.parsedData || null,
           candidate.resumePath || null

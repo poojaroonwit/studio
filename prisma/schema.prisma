@@ -247,11 +247,13 @@ model UploadQueue {
   filePath       String    @map("file_path")
   webhookPayload Json?     @map("webhook_payload")
   positionId     String?   @map("position_id") @db.Uuid
+  processDate    DateTime? @map("process_date")
   createdByUser  User?     @relation("UserUploadQueue", fields: [createdBy], references: [id])
 
   @@index([status])
   @@index([uploadDate])
   @@index([completedDate])
+  @@index([processDate])
   @@index([createdBy])
   @@index([source])
   @@map("upload_queue")

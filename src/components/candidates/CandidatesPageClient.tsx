@@ -280,11 +280,11 @@ export function CandidatesPageClient({
     setFetchError(null);
     setAuthError(false);
     setPermissionError(false);
-    // Only clear AI results if AI search is not active
-    if (!isAiSearchActive) {
-      setAiMatchedCandidateIds(null);
-      setAiSearchReasoning(null);
-    }
+    // Do NOT clear AI results here; only clear on explicit user action
+    // if (!isAiSearchActive) {
+    //   setAiMatchedCandidateIds(null);
+    //   setAiSearchReasoning(null);
+    // }
     
     // Add a timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
@@ -292,7 +292,7 @@ export function CandidatesPageClient({
       setIsLoading(false);
       setIsFetching(false);
       setFetchError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
-    }, 30000); // 30 second timeout
+    }, 30000);
     try {
       const query = new URLSearchParams();
       if (currentFilters.name) {
@@ -373,11 +373,13 @@ export function CandidatesPageClient({
       
       const candidatesArray = Array.isArray(data.data) ? data.data : [];
       const totalCount = data.pagination?.total || 0;
+      const actualPage = data.pagination?.page || 1;
       
       // Only update if this is the latest request
       if (latestRequestIdRef.current === requestId) {
         setAllCandidates(candidatesArray); // Only update on success
         setTotal(totalCount);
+        setPage(actualPage); // <-- Update page state from API response
       } 
       
     } catch (error: any) {
@@ -760,117 +762,16 @@ export function CandidatesPageClient({
       
       // Check if this is an AI search query being applied
       const isAiSearchQuery = newFilters.aiSearchQuery !== undefined;
-      
-      // Update URL parameters to reflect the new filters
-      const params = new URLSearchParams();
-      
-      // Check if all filters are cleared (reset to defaults)
-      const isAllFiltersCleared = !combinedFilters.name && !combinedFilters.email && !combinedFilters.phone && 
-          !combinedFilters.education && !combinedFilters.skills && !combinedFilters.location && 
-          !combinedFilters.cvLanguage && !combinedFilters.jobSuitableCareer && 
-          !combinedFilters.jobSuitableLevel && !combinedFilters.jobSuitablePosition &&
-          (combinedFilters.minExperienceYears === undefined || combinedFilters.minExperienceYears === 0) &&
-          (combinedFilters.maxExperienceYears === undefined || combinedFilters.maxExperienceYears === 50) &&
-          !combinedFilters.selectedPositionIds?.length && 
-          !combinedFilters.selectedStatuses?.length && !combinedFilters.selectedRecruiterIds?.length &&
-          combinedFilters.minFitScore === 0 && combinedFilters.maxFitScore === 100 &&
-          combinedFilters.matchingMinFitScore === 70 && combinedFilters.matchingMaxFitScore === 100 &&
-          !combinedFilters.applicationDateStart && !combinedFilters.applicationDateEnd;
-
-      // If all filters are cleared, don't add any parameters to URL (this will clear the URL parameters)
-      // This ensures that when "Clear Filter" is clicked, the URL is cleaned up
-      if (!isAllFiltersCleared) {
-        // Check if this is an advanced query (from URL or advanced query input)
-        const currentQuery = searchParams.get('query');
-        if (currentQuery && !isAllFiltersCleared) {
-          // If we have an advanced query and filters are not being cleared, keep the query parameter
-          params.set('query', currentQuery);
-        } else {
-          // Add individual non-empty filters to URL parameters
-          if (combinedFilters.name) params.set('name', combinedFilters.name);
-          if (combinedFilters.email) params.set('email', combinedFilters.email);
-          if (combinedFilters.phone) params.set('phone', combinedFilters.phone);
-          if (combinedFilters.education) params.set('education', combinedFilters.education);
-          if (combinedFilters.skills) params.set('skills', combinedFilters.skills);
-          if (combinedFilters.location) params.set('location', combinedFilters.location);
-          if (combinedFilters.cvLanguage) params.set('cvLanguage', combinedFilters.cvLanguage);
-          if (combinedFilters.jobSuitableCareer) params.set('jobSuitableCareer', combinedFilters.jobSuitableCareer);
-          if (combinedFilters.jobSuitableLevel) params.set('jobSuitableLevel', combinedFilters.jobSuitableLevel);
-          if (combinedFilters.jobSuitablePosition) params.set('jobSuitablePosition', combinedFilters.jobSuitablePosition);
-          if (combinedFilters.minExperienceYears !== undefined && combinedFilters.minExperienceYears > 0) {
-            params.set('minExperienceYears', String(combinedFilters.minExperienceYears));
-          }
-          if (combinedFilters.maxExperienceYears !== undefined && combinedFilters.maxExperienceYears < 50) {
-            params.set('maxExperienceYears', String(combinedFilters.maxExperienceYears));
-          }
-          if (combinedFilters.selectedPositionIds && combinedFilters.selectedPositionIds.length > 0) {
-            params.set('positionId', combinedFilters.selectedPositionIds.join(','));
-          }
-          if (combinedFilters.selectedStatuses && combinedFilters.selectedStatuses.length > 0) {
-            params.set('status', combinedFilters.selectedStatuses.join(','));
-          }
-          if (combinedFilters.selectedRecruiterIds && combinedFilters.selectedRecruiterIds.length > 0) {
-            params.set('recruiterId', combinedFilters.selectedRecruiterIds.join(','));
-          }
-          if (combinedFilters.minFitScore !== undefined && combinedFilters.minFitScore > 0) {
-            params.set('minFitScore', String(combinedFilters.minFitScore));
-          }
-          if (combinedFilters.maxFitScore !== undefined && combinedFilters.maxFitScore < 100) {
-            params.set('maxFitScore', String(combinedFilters.maxFitScore));
-          }
-          if (combinedFilters.matchingMinFitScore !== undefined && combinedFilters.matchingMinFitScore > 70) {
-            params.set('matchingFitScoreMin', String(combinedFilters.matchingMinFitScore));
-          }
-          if (combinedFilters.matchingMaxFitScore !== undefined && combinedFilters.matchingMaxFitScore < 100) {
-            params.set('matchingFitScoreMax', String(combinedFilters.matchingMaxFitScore));
-          }
-          if (combinedFilters.applicationDateStart) {
-            params.set('applicationDateStart', combinedFilters.applicationDateStart.toISOString().slice(0, 10));
-          }
-          if (combinedFilters.applicationDateEnd) {
-            params.set('applicationDateEnd', combinedFilters.applicationDateEnd.toISOString().slice(0, 10));
-          }
-        }
-      }
-      
-      // Update the URL without triggering a page reload
-      const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-      router.replace(newUrl, { scroll: false });
-      
-      // Always apply the filters - the useEffect will handle deduplication
-      setFilters(combinedFilters);
-      
-      // Only clear AI search results if this is a significant filter change from the user
-      // AND AI search is not currently active
-      const isSignificantFilterChange = 
-        combinedFilters.name !== filters.name ||
-        combinedFilters.email !== filters.email ||
-        combinedFilters.phone !== filters.phone ||
-        combinedFilters.education !== filters.education ||
-        combinedFilters.skills !== filters.skills ||
-        combinedFilters.location !== filters.location ||
-        combinedFilters.cvLanguage !== filters.cvLanguage ||
-        combinedFilters.jobSuitableCareer !== filters.jobSuitableCareer ||
-        combinedFilters.jobSuitableLevel !== filters.jobSuitableLevel ||
-        combinedFilters.jobSuitablePosition !== filters.jobSuitablePosition ||
-        combinedFilters.minExperienceYears !== filters.minExperienceYears ||
-        combinedFilters.maxExperienceYears !== filters.maxExperienceYears ||
-        JSON.stringify(combinedFilters.selectedPositionIds) !== JSON.stringify(filters.selectedPositionIds) ||
-        JSON.stringify(combinedFilters.selectedStatuses) !== JSON.stringify(filters.selectedStatuses) ||
-        JSON.stringify(combinedFilters.selectedRecruiterIds) !== JSON.stringify(filters.selectedRecruiterIds) ||
-        combinedFilters.minFitScore !== filters.minFitScore ||
-        combinedFilters.maxFitScore !== filters.maxFitScore ||
-        combinedFilters.applicationDateStart !== filters.applicationDateStart ||
-        combinedFilters.applicationDateEnd !== filters.applicationDateEnd;
-      
-      if (isSignificantFilterChange && !isAiSearchActive) {
-        setAiMatchedCandidateIds(null);
-        setAiSearchReasoning(null);
-        setIsAiSearchActive(false);
-      }
-      
+      // Only clear AI search if user is clearing all filters (handled elsewhere)
+      // const isSignificantFilterChange = ...
+      // if (isSignificantFilterChange && !isAiSearchActive) {
+      //   setAiMatchedCandidateIds(null);
+      //   setAiSearchReasoning(null);
+      //   setIsAiSearchActive(false);
+      // }
       // Reset page to 1 when filters change
       setPage(1);
+      setFilters(combinedFilters);
     }, 300); // 300ms debounce
   };
 
@@ -914,7 +815,7 @@ export function CandidatesPageClient({
     
     // Update filters state immediately
     setFilters(clearedFilters);
-    setAiMatchedCandidateIds(null);
+    setAiMatchedCandidateIds(null); // Only clear AI search here
     setAiSearchReasoning(null);
     setIsAiSearchActive(false);
     setAdvancedQueryFromUrl(''); // Clear advanced query from URL
@@ -1661,7 +1562,7 @@ export function CandidatesPageClient({
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground ">
-              {displayedCandidates.length} Candidate{displayedCandidates.length !== 1 ? 's' : ''}
+              {total} Candidate{total !== 1 ? 's' : ''}
             </span>
             {selectedCandidateIds.size > 0 && canManageCandidates && (
               <DropdownMenu>

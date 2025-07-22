@@ -791,24 +791,7 @@ export default function CandidateDetailPage() {
       if (!response.ok) {
         throw new Error(`Failed to update candidate: ${response.statusText}`);
       }
-      // Save job matches to JobMatch table via v1 API
-      if (jobMatchesToSave.length > 0) {
-        const jobMatchRes = await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_matches: jobMatchesToSave }),
-        });
-        if (!jobMatchRes.ok) {
-          throw new Error('Failed to update job matches');
-        }
-      } else {
-        // If no job matches, clear them in the backend
-        await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_matches: [] }),
-        });
-      }
+      // No PATCH to v1 API for job matches
       await fetchCandidateDetails();
       setIsEditing(false);
       if (data && Object.keys(data).length > 0) {
@@ -2049,13 +2032,13 @@ export default function CandidateDetailPage() {
                         ) : (
                             <div className="relative">
                               {/* Continuous vertical line that connects all education nodes */}
-                              {getEducation(candidate).length > 0 && (
-                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
+                              {education.length > 0 && (
+                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education.length - 1) * 80}px` }} />
                               )}
-                              {getEducation(candidate).length === 0 && (
+                              {education.length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
-                              {getEducation(candidate).map((edu: any, index: number) => {
+                              {education.map((edu: any, index: number) => {
                                 if (typeof edu === 'string') {
                                   return (
                                     <div key={`edu-${index}-${edu}`} className="relative mb-8">
@@ -2068,11 +2051,15 @@ export default function CandidateDetailPage() {
                                           </div>
                                         </div>
                                         {/* Timeline line and node */}
-                                        <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
                                           {/* Node (icon) */}
                                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
                                             <GraduationCap className="w-3 h-3 text-foreground" />
                                           </div>
+                                          {/* Vertical line connecting nodes (except last node) */}
+                                          {index < education.length - 1 && (
+                                            <div className="flex-1 w-px bg-border"></div>
+                                          )}
                                         </div>
                                         {/* Content */}
                                         <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -2144,11 +2131,15 @@ export default function CandidateDetailPage() {
                                           </div>
                                         </div>
                                         {/* Timeline line and node */}
-                                        <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
                                           {/* Node (icon) */}
                                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
                                             <GraduationCap className="w-3 h-3 text-foreground" />
                                           </div>
+                                          {/* Vertical line connecting nodes (except last node) */}
+                                          {index < education.length - 1 && (
+                                            <div className="flex-1 w-px bg-border"></div>
+                                          )}
                                         </div>
                                         {/* Content */}
                                         <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -2294,7 +2285,7 @@ export default function CandidateDetailPage() {
                               {(getExperience(candidate).length === 0) && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
-                              {getExperience(candidate).map((exp: any, index: number) => {
+                              {experience.map((exp: any, index: number) => {
                                 // Only use structured fields for timeline
                                 let start = '', end = '', duration = '';
                                 
@@ -2368,15 +2359,15 @@ export default function CandidateDetailPage() {
                                         </div>
                                       </div>
                                       {/* Timeline line and node */}
-                                      <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                        {/* Vertical line within this node container */}
-                                        {getExperience(candidate).length > 1 && (
-                                          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-border transform -translate-x-1/2 z-0" />
-                                        )}
+                                      <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
                                         {/* Node (icon) */}
                                         <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
                                           <Briefcase className="w-3 h-3 text-foreground" />
                                         </div>
+                                        {/* Vertical line connecting nodes (except last node) */}
+                                        {index < experience.length - 1 && (
+                                          <div className="flex-1 w-px bg-border"></div>
+                                        )}
                                       </div>
                                       {/* Content */}
                                       <div className="flex-1 min-w-0 pb-0 flex items-center">

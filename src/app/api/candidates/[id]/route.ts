@@ -124,60 +124,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
 
-    // Get attachment history for this candidate (replaces ResumeHistory)
-    const attachmentsQuery = `
-      SELECT a.*, u.name as "uploadedByUserName"
-      FROM "Attachment" a
-      LEFT JOIN "User" u ON a."uploadedById" = u.id
-      WHERE a."candidateId" = $1::uuid
-      ORDER BY a."uploadedAt" DESC;
+    // Get resume history for this candidate (to match v1 API)
+    const resumeHistoryQuery = `
+      SELECT rh.*, u.name as "uploadedByUserName"
+      FROM "ResumeHistory" rh
+      LEFT JOIN "User" u ON rh."uploaded_by_user_id" = u.id
+      WHERE rh."candidateId" = $1::uuid
+      ORDER BY rh."uploadedAt" DESC;
     `;
-    const attachmentsResult = await client.query(attachmentsQuery, [id]);
-
-    // Defensive: always provide customAttributes as an object
-    let customAttributes = {};
-    try {
-      customAttributes = candidate.customAttributes || {};
-      if (typeof customAttributes === 'string') {
-        try {
-          customAttributes = JSON.parse(customAttributes);
-        } catch (parseErr) {
-          console.error('Failed to parse customAttributes for candidate', id, parseErr, customAttributes);
-          customAttributes = {};
-        }
-      }
-    } catch (e) {
-      console.error('Error handling customAttributes for candidate', id, e);
-      customAttributes = {};
-    }
-
-    // --- Add job_applied logic to match frontend ---
-    let jobApplied = undefined;
-    let parsedData = candidate.parsedData;
-    if (parsedData && typeof parsedData === 'object' && 'job_applied' in parsedData && parsedData.job_applied) {
-      jobApplied = parsedData.job_applied;
-    } else {
-      // Fallback to top-level fields
-      let justification = candidate.assignmentJustification;
-      if (typeof justification === 'string') {
-        justification = justification.split('\n').map((s) => s.trim()).filter(Boolean);
-      }
-      if (!Array.isArray(justification)) {
-        justification = [];
-      }
-      jobApplied = {
-        jobId: candidate.positionId || null,
-        fitScore: candidate.fitScore || null,
-        justification,
-      };
-    }
-    // --- End job_applied logic ---
+    const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
 
     return NextResponse.json({
       ...candidate,
-      fitScore: normalizeFitScore(candidate.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
-      assignmentJustification: candidate.assignmentJustification || null,
-      customAttributes,
       position: candidate.positionId ? {
         title: candidate.positionTitle || null,
         department: candidate.positionDepartment || null
@@ -185,10 +143,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: normalizeFitScore(match.fitScore), // Convert decimal to integer if needed (0.70 -> 70, 70 -> 70)
+        fitScore: normalizeFitScore(match.fitScore),
       })) || [],
-      attachmentHistory: attachmentsResult.rows || [],
-      job_applied: jobApplied, // <-- always present
+      resumeHistory: resumeHistoryResult.rows || [],
+      custom_attributes: candidate.customAttributes || {},
     }, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',

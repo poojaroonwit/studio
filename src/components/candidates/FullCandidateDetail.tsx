@@ -424,53 +424,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     }
   }, [candidate]);
 
-  // Helper: validate job matches before saving
-  function validateJobMatches(jobMatches: any[]): { valid: boolean, errors: string[] } {
-    const errors: string[] = [];
-    jobMatches.forEach((jm, idx) => {
-      // Validate jobId (UUID v4)
-      if (!jm.jobId || typeof jm.jobId !== 'string' || !/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(jm.jobId)) {
-        errors.push(`Job Match #${idx + 1}: Position is required and must be a valid job.`);
-      }
-      // Validate fitScore
-      if (typeof jm.fitScore !== 'number' || jm.fitScore < 0 || jm.fitScore > 100 || isNaN(jm.fitScore)) {
-        errors.push(`Job Match #${idx + 1}: Fit Score must be a number between 0 and 100.`);
-      }
-      // Validate matchReasons
-      if (!Array.isArray(jm.matchReasons)) {
-        errors.push(`Job Match #${idx + 1}: Match Reasons must be an array.`);
-      } else if (jm.matchReasons.some((r: any) => typeof r !== 'string')) {
-        errors.push(`Job Match #${idx + 1}: All match reasons must be text.`);
-      }
-    });
-    return { valid: errors.length === 0, errors };
-  }
-
-  const [jobMatchValidationErrors, setJobMatchValidationErrors] = useState<string[]>([]);
-
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
-
-    // Extract job matches from form (from parsedData.job_matches)
-    const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
-      ? data.parsedData.job_matches.map(jm => ({
-          jobId: jm.jobId,
-          fitScore: typeof jm.fitScore === 'string' ? Number(jm.fitScore) : jm.fitScore,
-          matchReasons: Array.isArray(jm.matchReasons)
-            ? jm.matchReasons
-            : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
-                ? jm.matchReasons_string.split('\n').map((s: string) => s.trim()).filter(Boolean)
-                : []),
-        }))
-      : [];
-
-    // Validate job matches before saving
-    const validation = validateJobMatches(jobMatchesToSave);
-    setJobMatchValidationErrors(validation.errors);
-    if (!validation.valid) {
-      toast.error('Please fix the errors in job matches before saving.');
-      return;
-    }
 
     // Ensure status is present and valid
     const statusToSend = data.status && data.status.trim() !== '' ? data.status : 'Applied';
@@ -486,6 +441,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 0 && Number(score) < 1) return Math.round(Number(score) * 100);
       return score;
     };
+    // Extract job matches from form (from parsedData.job_matches)
+    const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
+      ? data.parsedData.job_matches.map(jm => ({
+          jobId: jm.jobId,
+          fitScore: normalizeScore(jm.fitScore),
+          matchReasons: Array.isArray(jm.matchReasons)
+            ? jm.matchReasons
+            : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
+                ? jm.matchReasons_string.split('\n').map((s: string) => s.trim()).filter(Boolean)
+                : []),
+        }))
+      : [];
     const payload = {
       ...data,
       status: statusToSend,
@@ -497,11 +464,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         : data.assignmentJustification,
       parsedData: {
         ...data.parsedData,
-        // Do NOT save job_matches in parsedData
+        job_matches: jobMatchesToSave,
+        // Do NOT save job_matches in parsedData if you want to keep them only at the top level
       },
     };
     try {
-      // Save main candidate data
+      // Save main candidate data (including job_matches in parsedData)
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -512,26 +480,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         throw new Error('Failed to update candidate');
       }
 
-      // Save job matches to JobMatch table via v1 API
-      if (jobMatchesToSave.length > 0) {
-        const jobMatchRes = await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_matches: jobMatchesToSave }),
-        });
-        if (!jobMatchRes.ok) {
-          throw new Error('Failed to update job matches');
-        }
-      } else {
-        // If no job matches, clear them in the backend
-        await fetch(`/api/v1/candidates/${candidate.id}/job-matches`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_matches: [] }),
-        });
-      }
-
-      // Refresh candidate after both requests succeed
+      // Refresh candidate after request succeeds
       const updatedCandidate = await res.json();
       setCandidate(updatedCandidate);
       setIsEditing(false);
@@ -797,20 +746,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     );
   };
 
-  // --- Job Applied logic: match candidate detail page ---
-  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
-    ? (candidate.parsedData as any).job_applied
-    : undefined;
-
-  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
-  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
-  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-    ? jobApplied.justification
-    : (candidate?.assignmentJustification 
-        ? (Array.isArray(candidate.assignmentJustification) 
-            ? candidate.assignmentJustification 
-            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
-        : []);
+  // --- Job Applied logic: use only top-level fields, do not use job_applied ---
+  const appliedJobId = candidate?.positionId;
+  const appliedFitScore = candidate?.fitScore;
+  const appliedJustification = candidate?.assignmentJustification
+    ? (Array.isArray(candidate.assignmentJustification)
+        ? candidate.assignmentJustification
+        : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+    : [];
   // --- End Job Applied logic ---
 
   // After all hooks are declared, place the early returns:
@@ -1997,49 +1940,37 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
      {/* Floating Save/Cancel buttons when editing */}
      {isEditing && (
-       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
-         {jobMatchValidationErrors.length > 0 && (
-           <div className="mb-2 p-3 bg-destructive/10 border border-destructive rounded text-destructive text-sm">
-             <ul className="list-disc pl-5">
-               {jobMatchValidationErrors.map((err, idx) => (
-                 <li key={idx}>{err}</li>
-               ))}
-             </ul>
-           </div>
-         )}
-         <div className="flex gap-2">
-           <Button
-             onClick={handleSubmit(handleSaveDetails)}
-             className="shadow-lg"
-             disabled={jobMatchValidationErrors.length > 0}
-           >
-             <Save className="h-4 w-4 mr-2" />
-             Save Changes
-           </Button>
-           <Button
-             variant="outline"
-             onClick={() => {
-               setIsEditing(false);
-               if (candidate) {
-                 reset({
-                   name: candidate.name || '',
-                   email: candidate.email || '',
-                   phone: candidate.phone || '',
-                   positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
-                   fitScore: candidate.fitScore || null,
-                   assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
-                   status: candidate.status || '',
-                   recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                   parsedData: (candidate.parsedData as any) || {}
-                 });
-               }
-             }}
-             className="shadow-lg"
-           >
-             <X className="h-4 w-4 mr-2" />
-             Cancel
-           </Button>
-         </div>
+       <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+         <Button
+           onClick={handleSubmit(handleSaveDetails)}
+           className="shadow-lg"
+         >
+           <Save className="h-4 w-4 mr-2" />
+           Save Changes
+         </Button>
+         <Button
+           variant="outline"
+           onClick={() => {
+             setIsEditing(false);
+             if (candidate) {
+               reset({
+                 name: candidate.name || '',
+                 email: candidate.email || '',
+                 phone: candidate.phone || '',
+                 positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+                 fitScore: candidate.fitScore || null,
+                 assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                 status: candidate.status || '',
+                 recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                 parsedData: (candidate.parsedData as any) || {}
+               });
+             }
+           }}
+           className="shadow-lg"
+         >
+           <X className="h-4 w-4 mr-2" />
+           Cancel
+         </Button>
        </div>
      )}
    </div>

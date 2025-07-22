@@ -273,6 +273,8 @@ export default function CandidateDetailPage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  const [jobAppliedOpen, setJobAppliedOpen] = useState(false);
+
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({
     resolver: zodResolver(editCandidateDetailSchema),
@@ -282,9 +284,13 @@ export default function CandidateDetailPage() {
       phone: candidate?.phone || '',
       positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
       fitScore: candidate?.fitScore || null,
-      assignmentJustification: candidate?.assignmentJustification || [],
+      assignmentJustification: candidate?.assignmentJustification
+        ? Array.isArray(candidate.assignmentJustification)
+          ? candidate.assignmentJustification
+          : [candidate.assignmentJustification]
+        : [],
       status: candidate?.status || '',
-      recruiterId: !candidate?.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+      recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
       parsedData: (candidate?.parsedData as any) || {}
     }
   });
@@ -307,9 +313,13 @@ export default function CandidateDetailPage() {
         phone: candidate.phone || '',
         positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
         fitScore: candidate?.fitScore || null,
-        assignmentJustification: candidate?.assignmentJustification || [],
+        assignmentJustification: candidate?.assignmentJustification
+          ? Array.isArray(candidate.assignmentJustification)
+            ? candidate.assignmentJustification
+            : [candidate.assignmentJustification]
+          : [],
         status: candidate.status || '',
-        recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+        recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
           job_matches: (candidate.jobMatches || []).map((match: any) => ({
@@ -795,9 +805,13 @@ export default function CandidateDetailPage() {
             phone: candidate.phone,
             positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
             fitScore: candidate?.fitScore || null,
-            assignmentJustification: candidate?.assignmentJustification || [],
+            assignmentJustification: candidate?.assignmentJustification
+              ? Array.isArray(candidate.assignmentJustification)
+                ? candidate.assignmentJustification
+                : [candidate.assignmentJustification]
+              : [],
             status: candidate.status,
-            recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+            recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
             parsedData: {
                 ...(candidate.parsedData as CandidateDetails),
                 skills: (candidate.parsedData as CandidateDetails)?.skills?.map(s => ({
@@ -1365,9 +1379,13 @@ export default function CandidateDetailPage() {
                                 phone: candidate.phone || '',
                                 positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
                                 fitScore: candidate?.fitScore || null,
-                                assignmentJustification: candidate?.assignmentJustification || [],
+                                assignmentJustification: candidate?.assignmentJustification
+                                  ? Array.isArray(candidate.assignmentJustification)
+                                    ? candidate.assignmentJustification
+                                    : [candidate.assignmentJustification]
+                                  : [],
                                 status: candidate.status || '',
-                                recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                                recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
                                 parsedData: (candidate?.parsedData as any) || {}
                               });
                             }
@@ -1434,7 +1452,7 @@ export default function CandidateDetailPage() {
 
                   {/* Job Applied Section */}
                   <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
+                    <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen((o: boolean) => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
                       {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
@@ -1590,14 +1608,14 @@ export default function CandidateDetailPage() {
                                     )}
                                    </div>
                                    
-                                  {candidate?.assignmentJustification && candidate?.assignmentJustification.length > 0 && (
-                                     <div className="mt-3">
+                                  {Array.isArray(candidate?.assignmentJustification) && candidate.assignmentJustification.length > 0 && (
+                                    <div className="mt-3">
                                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
                                       <div className="space-y-2">
-                                        {candidate?.assignmentJustification.map((sentence: string, index: number) => {
+                                        {candidate.assignmentJustification.map((sentence: string, index: number) => {
                                           const trimmedSentence = sentence.trim();
                                           if (!trimmedSentence) return null;
                                           
@@ -1611,8 +1629,8 @@ export default function CandidateDetailPage() {
                                           );
                                         })}
                                       </div>
-                                     </div>
-                                   )}
+                                    </div>
+                                  )}
                                  </div>
                               </div>
                             ) : (

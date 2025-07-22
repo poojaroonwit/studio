@@ -9,12 +9,11 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const jobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).optional().transform(val => {
+    // Accept 0-100 from client, convert to 0-1 for storage
     if (val === undefined || val === null) return null;
-    if (val >= 0 && val <= 100) return Math.round(val);
-    if (val > 0 && val < 1) return Math.round(val * 100);
-    return Math.max(0, Math.min(100, Math.round(val)));
-  }), // Convert decimal to integer if needed (0.7 -> 70, 70 -> 70)
-  jobId: z.string().uuid().optional(), // Make optional to match database nullable field
+    return Math.max(0, Math.min(1, val / 100));
+  }),
+  jobId: z.string().uuid().optional(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
   // - positionTitle: Retrieved from Position table based on jobId
@@ -59,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     const jobMatches = jobMatchesResult.rows.map(match => ({
       id: match.id,
-      fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: match.fitScore != null ? Math.round(match.fitScore * 100) : null, // Convert 0-1 to 0-100
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -193,7 +192,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           // Update existing match
           console.log('[JOB-MATCHES] Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
-            match.fitScore || null,
+            match.fitScore || null, // Already 0-1
             match.matchReasons || [],
             id,
             match.jobId || null,
@@ -207,7 +206,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             matchId,
             id,
             match.jobId || null,
-            match.fitScore || null,
+            match.fitScore || null, // Already 0-1
             match.matchReasons || [],
           ]);
           console.log('[JOB-MATCHES] Insert result:', result.rows[0]);
@@ -216,7 +215,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const processedMatch = result.rows[0];
         insertedMatches.push({
           id: processedMatch.id,
-          fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+          fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -360,7 +359,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           // Update existing match
           console.log('[JOB-MATCHES] PATCH Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
-            match.fitScore || null,
+            match.fitScore || null, // Already 0-1
             match.matchReasons || [],
             id,
             match.jobId || null,
@@ -373,7 +372,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             matchId,
             id,
             match.jobId || null,
-            match.fitScore || null,
+            match.fitScore || null, // Already 0-1
             match.matchReasons || [],
           ]);
         }
@@ -381,7 +380,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const processedMatch = result.rows[0];
         updatedMatches.push({
           id: processedMatch.id,
-          fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+          fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -471,14 +470,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         matchId,
         id,
         match.jobId || null,
-        match.fitScore || null,
+        match.fitScore || null, // Already 0-1
         match.matchReasons || [],
       ]);
       
       const processedMatch = result.rows[0];
       insertedMatches.push({
         id: processedMatch.id,
-        fitScore: normalizeFitScore(processedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
         jobId: processedMatch.jobId || null,
         matchReasons: processedMatch.matchReasons || [],
       });

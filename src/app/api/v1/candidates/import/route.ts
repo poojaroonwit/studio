@@ -148,11 +148,11 @@ export async function POST(req: NextRequest) {
         // Extract fitScore from candidate, candidate_info, or candidate_info.job_applied
         let fitScore = null;
         if (typeof candidate.fitScore === 'number') {
-          fitScore = Math.round(candidate.fitScore);
+          fitScore = Math.max(0, Math.min(1, candidate.fitScore / 100));
         } else if (candidate.candidate_info && typeof candidate.candidate_info.fitScore === 'number') {
-          fitScore = Math.round(candidate.candidate_info.fitScore);
+          fitScore = Math.max(0, Math.min(1, candidate.candidate_info.fitScore / 100));
         } else if (candidate.candidate_info && candidate.candidate_info.job_applied && typeof candidate.candidate_info.job_applied.fitScore === 'number') {
-          fitScore = Math.round(candidate.candidate_info.job_applied.fitScore);
+          fitScore = Math.max(0, Math.min(1, candidate.candidate_info.job_applied.fitScore / 100));
         }
 
         // Insert new candidate

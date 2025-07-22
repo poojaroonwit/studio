@@ -63,12 +63,8 @@ const updateCandidateSchema = z.object({
   // Job matches and applied job updates
   job_matches: z.array(z.object({
     fitScore: z.number().min(0).max(100).transform((val) => {
-      // If the value is between 0 and 1, convert it to percentage (0-100)
-      if (val > 0 && val <= 1) {
-        return Math.round(val * 100);
-      }
-      // If the value is already in percentage format (0-100), use it as is
-      return Math.round(val);
+      // Accept 0-100 from client, convert to 0-1 for storage
+      return Math.max(0, Math.min(1, val / 100));
     }),
     jobId: z.string().uuid(),
     matchReasons: z.array(z.string()).optional().default([]),
@@ -140,7 +136,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+        fitScore: match.fitScore != null ? Math.round(match.fitScore * 100) : null,
       })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);
@@ -327,12 +323,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           matchId,
           id,
           match.jobId,
-          (() => {
-      const score = match.fitScore;
-      if (score >= 0 && score <= 100) return Math.round(score);
-      if (score > 0 && score < 1) return Math.round(score * 100);
-      return Math.max(0, Math.min(100, Math.round(score)));
-    })(), // Convert decimal to integer if needed
+          match.fitScore, // Already 0-1
           match.matchReasons || [],
         ]);
       }

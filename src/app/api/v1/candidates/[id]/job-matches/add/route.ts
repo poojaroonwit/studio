@@ -8,10 +8,9 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const addJobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).transform(val => {
-    if (val >= 0 && val <= 100) return Math.round(val);
-    if (val > 0 && val < 1) return Math.round(val * 100);
-    return Math.max(0, Math.min(100, Math.round(val)));
-  }), // Convert decimal to integer if needed (0.7 -> 70, 70 -> 70)
+    // Accept 0-100 from client, convert to 0-1 for storage
+    return Math.max(0, Math.min(1, val / 100));
+  }),
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -99,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newMatch = insertResult.rows[0];
     const jobMatch = {
       id: newMatch.id,
-      fitScore: normalizeFitScore(newMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: newMatch.fitScore != null ? Math.round(newMatch.fitScore * 100) : null, // 0-1 to 0-100
       jobId: newMatch.jobId,
       matchReasons: newMatch.matchReasons || [],
       createdAt: newMatch.createdAt,

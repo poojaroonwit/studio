@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     // 1. Atomically pick and mark the oldest queued job as 'inprogress'
     const res = await client.query(
       `UPDATE upload_queue
-       SET status = 'inprogress', updated_at = now()
+       SET status = 'inprogress', process_date = now(), updated_at = now()
        WHERE id = (
          SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED

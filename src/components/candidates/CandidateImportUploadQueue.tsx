@@ -37,6 +37,7 @@ export interface CandidateJob {
   file?: File;
   type: CandidateJobType;
   webhook_payload?: any;
+  process_date?: string;
 }
 
 interface QueueContextType {
@@ -1132,6 +1133,10 @@ export const CandidateImportUploadQueue: React.FC<{
                       <div className="flex justify-between">
                         <span className="font-medium text-muted-foreground">Duration:</span>
                         <span>{selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-muted-foreground">Process Date:</span>
+                        <span>{selectedCombinedJob.process_date ? format(new Date(selectedCombinedJob.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium text-muted-foreground">Job ID:</span>

@@ -8,10 +8,9 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const jobMatchSchema = z.object({
   fitScore: z.number().min(0).max(100).transform(val => {
-    if (val >= 0 && val <= 100) return Math.round(val);
-    if (val > 0 && val < 1) return Math.round(val * 100);
-    return Math.max(0, Math.min(100, Math.round(val)));
-  }), // Convert decimal to integer if needed (0.7 -> 70, 70 -> 70)
+    // Accept 0-100 from client, convert to 0-1 for storage
+    return Math.max(0, Math.min(1, val / 100));
+  }),
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -56,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string; 
     const match = jobMatchResult.rows[0];
     const jobMatch = {
       id: match.id,
-      fitScore: normalizeFitScore(match.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: match.fitScore != null ? Math.round(match.fitScore * 100) : null, // Convert 0-1 to 0-100
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -143,7 +142,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string; 
     const updatedMatch = updateResult.rows[0];
     const jobMatch = {
       id: updatedMatch.id,
-      fitScore: normalizeFitScore(updatedMatch.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
+      fitScore: updatedMatch.fitScore != null ? Math.round(updatedMatch.fitScore * 100) : null, // 0-1 to 0-100
       jobId: updatedMatch.jobId,
       matchReasons: updatedMatch.matchReasons || [],
       updatedAt: updatedMatch.updatedAt,

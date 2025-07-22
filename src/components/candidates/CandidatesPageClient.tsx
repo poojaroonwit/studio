@@ -155,6 +155,31 @@ export function CandidatesPageClient({
   // Add at the top of the component
   const hasInitializedFilters = useRef(false);
 
+  const [missingPositions, setMissingPositions] = useState<string[]>([]);
+
+  // Fetch missing positions if any candidate has a positionId not in availablePositions
+  useEffect(() => {
+    const missing = allCandidates
+      .filter(c => c.positionId && !availablePositions.some(p => p.id === c.positionId))
+      .map(c => c.positionId)
+      .filter((id, idx, arr): id is string => typeof id === 'string' && arr.indexOf(id) === idx);
+    setMissingPositions(missing);
+    if (missing.length > 0) {
+      // Fetch missing positions from API
+      fetch(`/api/positions/all`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data.data)) {
+            setAvailablePositions(prev => {
+              // Merge new positions with existing, avoiding duplicates
+              const newPositions = data.data.filter((p: any) => !prev.some((q: any) => q.id === p.id));
+              return [...prev, ...newPositions];
+            });
+          }
+        });
+    }
+  }, [allCandidates, availablePositions]);
+
   // Handle initial URL parameters (only if not clearing filters)
   useEffect(() => {
     if (isClearingFilters || hasInitializedFilters.current) {

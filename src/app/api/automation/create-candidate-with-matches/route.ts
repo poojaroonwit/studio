@@ -12,12 +12,8 @@ const jobMatchSchema = z.object({
   jobTitle: z.string().optional(),
   fitScore: z.number().optional().transform(val => {
     if (val === null || val === undefined) return null;
-    // If the value is already in the 0-100 range, use it as is
-    if (val >= 0 && val <= 100) return Math.round(val);
-    // If the value is a decimal (0-1), convert to percentage
-    if (val > 0 && val < 1) return Math.round(val * 100);
-    // For any other case, ensure it's within 0-100 range
-    return Math.max(0, Math.min(100, Math.round(val)));
+    // Accept 0-100 from client, convert to 0-1 for storage
+    return Math.max(0, Math.min(1, val / 100));
   }),
   matchReasons: z.array(z.string()).optional(),
   job_description_summary: z.string().optional(),
@@ -119,7 +115,7 @@ export async function POST(request: NextRequest) {
           newCandidateId,
           match.jobId,
           match.jobTitle,
-          match.fitScore,
+          match.fitScore, // Already 0-1
           match.matchReasons,
           match.job_description_summary
         ];

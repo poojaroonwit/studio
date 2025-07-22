@@ -758,6 +758,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     : [];
   // --- End Job Applied logic ---
 
+  // Before the return statement in the component, add:
+  let appliedJobBadge = null;
+  if (appliedFitScore !== null && appliedFitScore !== undefined) {
+    const grade = getScoreGrade(appliedFitScore);
+    let badgeColor = '';
+    switch (grade) {
+      case 'A': badgeColor = 'bg-gray-400 text-white'; break;
+      case 'B': badgeColor = 'bg-yellow-400 text-black'; break;
+      case 'C': badgeColor = 'bg-lime-400 text-black'; break;
+      case 'D': badgeColor = 'bg-green-200 text-black'; break;
+      case 'E': badgeColor = 'bg-green-500 text-white'; break;
+      default: badgeColor = 'bg-gray-200 text-gray-700'; break;
+    }
+    appliedJobBadge = <Badge className={badgeColor}>{`${appliedFitScore}% (${grade})`}</Badge>;
+  }
+
   // After all hooks are declared, place the early returns:
   if (loading) {
     return (
@@ -1107,12 +1123,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             <h4 className="font-semibold text-foreground text-lg">
                               {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                             </h4>
-                            {appliedFitScore !== null && appliedFitScore !== undefined && (
-                              <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                <span>{appliedFitScore}%</span>
-                                <span className="text-lg font-bold text-primary">({getScoreGrade(appliedFitScore)})</span>
-                              </div>
-                            )}
+                            {appliedJobBadge}
                            </div>
                           {appliedJustification && appliedJustification.length > 0 && (
                              <div className="mt-3">

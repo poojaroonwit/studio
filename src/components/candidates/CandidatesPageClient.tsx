@@ -1316,7 +1316,7 @@ export function CandidatesPageClient({
     }
   }, [sessionStatus, session?.user?.role, session?.user?.id, filters.selectedRecruiterIds]);
 
-  // Ensure mappedCandidates useMemo is called before any return
+  // Ensure ALL useMemo hooks are called before any return
   const mappedCandidates = useMemo(() => {
     let candidates = allCandidates.map(candidate => {
       if ((!candidate.position || !candidate.position.title) && candidate.positionId && availablePositions.length > 0) {
@@ -1338,6 +1338,69 @@ export function CandidatesPageClient({
     return candidates;
   }, [allCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
 
+  // Paginate candidates for display
+  const paginatedCandidates = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      const filtered = mappedCandidates;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return filtered.slice(start, end);
+    }
+    return mappedCandidates;
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
+
+  // For row numbering in table
+  const baseIndex = useMemo(() => {
+    if (isAiSearchActive && aiMatchedCandidateIds) {
+      return (page - 1) * pageSize;
+    }
+    return (page - 1) * pageSize;
+  }, [isAiSearchActive, aiMatchedCandidateIds, page, pageSize]);
+
+  // Add at the top, after useState imports
+  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortableValue = (candidate: Candidate, column: string) => {
+    switch (column) {
+      case 'candidate':
+        return candidate.name?.toLowerCase() || '';
+      case 'fitScore':
+        return candidate.fitScore ?? -1;
+      case 'appliedJob':
+        return candidate.position?.title?.toLowerCase() || '';
+      case 'recruiter':
+        return candidate.recruiter?.name?.toLowerCase() || '';
+      case 'status':
+        return candidate.status?.toLowerCase() || '';
+      case 'lastUpdate':
+        return candidate.updatedAt || candidate.createdAt || '';
+      default:
+        return '';
+    }
+  };
+
+  const sortedCandidates = useMemo(() => {
+    const sorted = [...allCandidates].sort((a, b) => {
+      const aValue = getSortableValue(a, sortColumn);
+      const bValue = getSortableValue(b, sortColumn);
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [allCandidates, sortColumn, sortDirection]);
+
+  // ALL EARLY RETURNS MOVED TO AFTER ALL HOOKS
   // Centralized error UI for auth/permission
   if (authError || sessionStatus === 'unauthenticated') {
     return (
@@ -1373,25 +1436,6 @@ export function CandidatesPageClient({
       </div>
     );
   }
-
-  // Paginate candidates for display
-  const paginatedCandidates = useMemo(() => {
-    if (isAiSearchActive && aiMatchedCandidateIds) {
-      const filtered = mappedCandidates;
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
-      return filtered.slice(start, end);
-    }
-    return mappedCandidates;
-  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
-
-  // For row numbering in table
-  const baseIndex = useMemo(() => {
-    if (isAiSearchActive && aiMatchedCandidateIds) {
-      return (page - 1) * pageSize;
-    }
-    return (page - 1) * pageSize;
-  }, [isAiSearchActive, aiMatchedCandidateIds, page, pageSize]);
 
   return (
     <div className="flex h-full relative">
@@ -1685,7 +1729,7 @@ export function CandidatesPageClient({
         )}
 
         <CandidateTable
-          candidates={paginatedCandidates}
+          candidates={sortedCandidates}
           availablePositions={availablePositions}
           availableStages={availableStages}
           availableRecruiters={availableRecruiters}
@@ -1694,7 +1738,7 @@ export function CandidatesPageClient({
           onDeleteCandidate={handleDeleteCandidate}
           onOpenUploadModal={handleOpenUploadModal}
           onEditPosition={handleOpenEditPositionModal}
-          isLoading={isLoading || isAiSearching}
+          isLoading={isLoading}
           onRefreshCandidateData={refreshCandidateInList}
           selectedCandidateIds={selectedCandidateIds}
           onToggleSelectCandidate={handleToggleSelectCandidate}
@@ -1703,6 +1747,9 @@ export function CandidatesPageClient({
           page={page}
           pageSize={pageSize}
           baseIndex={baseIndex}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          onSort={handleSort}
         />
 
         {/* Pagination Controls */}

@@ -203,6 +203,15 @@ function hasEducationArray(data: any): data is { education: any[] } {
   return data && Array.isArray(data.education);
 }
 
+// Helper to normalize fitScore for API (0-1 decimal)
+const normalizeScoreForApi = (score: any) => {
+  if (typeof score === 'number' && score > 1 && score <= 100) return score / 100;
+  if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 1 && Number(score) <= 100) return Number(score) / 100;
+  if (typeof score === 'number' && score >= 0 && score <= 1) return score;
+  if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) >= 0 && Number(score) <= 1) return Number(score);
+  return 0;
+};
+
 export default function CandidateDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -271,7 +280,8 @@ export default function CandidateDetailPage() {
   const [filteredRecruiters, setFilteredRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  // Note: Removed eventSourceRef - no real-time polling for candidate details
+  // Comments and resumes are fetched on initial load and updated optimistically on user actions
 
   const [jobAppliedOpen, setJobAppliedOpen] = useState(false);
 
@@ -281,7 +291,7 @@ export default function CandidateDetailPage() {
     defaultValues: {
       name: candidate?.name || '',
       email: candidate?.email || '',
-      phone: candidate?.phone || '',
+      phone: candidate && candidate.phone ? candidate.phone : '',
       positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
       fitScore: candidate?.fitScore || null,
       assignmentJustification: candidate?.assignmentJustification
@@ -348,19 +358,18 @@ export default function CandidateDetailPage() {
     }
   }, [recruiterSearchTerm, recruiters]);
 
+  // Initial fetch of comments on page load (no real-time polling)
   useEffect(() => {
     if (!candidateId) return;
     const fetchCommentsEffect = async () => {
       try {
         const res = await fetch(`/api/candidates/${candidateId}/comments`);
         if (!res.ok) {
-          // console.error('Failed to fetch comments:', res.status, res.statusText);
           setComments([]);
           return;
         }
         
         const data = await res.json();
-        // console.log('Initial comments fetch:', data);
         
         // Handle both array and object { data: [...] }
         if (Array.isArray(data)) {
@@ -371,13 +380,13 @@ export default function CandidateDetailPage() {
           setComments([]);
         }
       } catch (error) {
-        // console.error('Error fetching comments:', error);
         setComments([]);
       }
     };
     fetchCommentsEffect();
   }, [candidateId]);
 
+  // Initial fetch of resumes on page load (no real-time polling)
   useEffect(() => {
     if (!candidateId) return;
     const fetchResumesEffect = async () => {
@@ -455,18 +464,17 @@ export default function CandidateDetailPage() {
     loadAllAttachments();
   }, [candidateId, isEditing, loadAllAttachments]);
 
+  // Manual refresh after user actions (not automatic polling)
   const handleCommentsChange = async () => {
     await loadAllAttachments();
-    // re-fetch comments after add/edit/delete
+    // Re-fetch comments after user add/edit/delete actions
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments`);
       if (!response.ok) {
-        // console.error('Failed to fetch comments:', response.status, response.statusText);
         return;
       }
       
       const data = await response.json();
-      // console.log('Fetched comments:', data);
       
       // Handle both array and object { data: [...] }
       if (Array.isArray(data)) {
@@ -477,10 +485,11 @@ export default function CandidateDetailPage() {
         setComments([]);
       }
     } catch (error) {
-      // console.error('Error fetching comments:', error);
+      console.error('Error fetching comments:', error);
     }
   };
 
+  // Manual refresh after user actions (not automatic polling)
   const handleResumesChange = () => {
     fetch(`/api/candidates/${candidateId}/resumes`).then(res => res.ok ? res.json() : []).then(data => {
       setResumes(Array.isArray(data) ? data : (data.data || []));
@@ -746,7 +755,7 @@ export default function CandidateDetailPage() {
     // Patch: update parsedData.job_applied as well as top-level fields
     const newJobApplied = {
       jobId: data.positionId,
-      fitScore: data.fitScore,
+      fitScore: normalizeScoreForApi(data.fitScore),
       justification: data.assignmentJustification || [],
     };
     // Fix: Ensure positionId and recruiterId are null if empty string
@@ -755,7 +764,7 @@ export default function CandidateDetailPage() {
     const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
       ? data.parsedData.job_matches.map(jm => ({
           jobId: jm.jobId,
-          fitScore: jm.fitScore,
+          fitScore: normalizeScoreForApi(jm.fitScore),
           matchReasons: Array.isArray(jm.matchReasons)
             ? jm.matchReasons
             : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
@@ -802,7 +811,7 @@ export default function CandidateDetailPage() {
         reset({
             name: candidate.name,
             email: candidate.email,
-            phone: candidate.phone,
+            phone: candidate.phone || '',
             positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
             fitScore: candidate?.fitScore || null,
             assignmentJustification: candidate?.assignmentJustification
@@ -1266,19 +1275,24 @@ export default function CandidateDetailPage() {
                               <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
                             )}
                             {/* Pencil icon button for avatar upload */}
-                            <button
-                              type="button"
+                            <div
+                              role="button"
+                              tabIndex={0}
                               className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
                               title="Change profile picture"
                               onClick={() => {
-                                // Open hidden file input for image upload
                                 if (avatarInputRef?.current) avatarInputRef.current.click();
                               }}
-                              disabled={avatarUploading}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  if (avatarInputRef?.current) avatarInputRef.current.click();
+                                }
+                              }}
+                              aria-disabled={avatarUploading}
                               style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
                             >
                               <Edit className="w-5 h-5 text-primary" />
-                            </button>
+                            </div>
                             {/* Hidden file input for avatar upload */}
                             <input
                               type="file"

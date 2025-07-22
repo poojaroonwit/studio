@@ -317,24 +317,9 @@ export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: Bu
                 </div>
               </div>
             )}
-            {/* PDF Preview */}
-            <div className="mt-4">
-              <Label>Preview {totalFiles > 0 && `(${selectedFileIndex + 1} of ${totalFiles})`}</Label>
-              {previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  title="PDF Preview"
-                  className="w-full h-64 border rounded"
-                  style={{ minHeight: '16rem' }}
-                />
-              ) : (
-                <div className="text-muted-foreground italic">No file selected for preview.</div>
-              )}
-            </div>
-            {/* Static Card: Candidate Import Upload Queue (Realtime) */}
-            <div className="mt-4">
-              <CandidateImportUploadQueue initialPage={1} initialPageSize={5} />
-            </div>
+       
+         
+        
           </div>
         </div>
         <DialogFooter>

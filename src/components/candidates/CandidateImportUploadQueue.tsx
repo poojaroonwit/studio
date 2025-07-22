@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { useSession } from 'next-auth/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export type CandidateJobType = "upload" | "import";
 
@@ -109,6 +110,48 @@ export const CandidateImportUploadQueue: React.FC<{
   const { data: session } = useSession();
   const isFetchingRef = useRef(false);
   const [summary, setSummary] = useState<any>(null);
+
+  // Add sort state and handler at the top of the component
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) {
+      setSortColumn(null);
+      setSortDirection('asc');
+      return;
+    }
+    if (sortColumn === column && direction == null) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection(direction || 'asc');
+    }
+  };
+
+  const getSortableValue = (job: CandidateJob, column: string) => {
+    switch (column) {
+      case 'file_name': return job.file_name?.toLowerCase() || '';
+      case 'file_size': return job.file_size || 0;
+      case 'status': return job.status?.toLowerCase() || '';
+      case 'process_date': return job.process_date || '';
+      case 'completed_date': return job.completed_date || '';
+      case 'upload_date': return job.upload_date || '';
+      default: return '';
+    }
+  };
+
+  const sortedJobs = useMemo(() => {
+    if (!sortColumn) return filteredJobs;
+    return [...filteredJobs].sort((a, b) => {
+      const aValue = getSortableValue(a, sortColumn);
+      const bValue = getSortableValue(b, sortColumn);
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredJobs, sortColumn, sortDirection]);
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
@@ -774,12 +817,104 @@ export const CandidateImportUploadQueue: React.FC<{
           <TableHeader>
             <TableRow>
               <TableHead></TableHead>
-              <TableHead>File Name</TableHead>
+              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('file_name'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  File Name
+                  <DropdownMenu open={openMenu === 'file_name'} onOpenChange={open => setOpenMenu(open ? 'file_name' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'file_name' ? (
+                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('file_name'); }} aria-label="Sort options">
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('file_name'); }} aria-label="Sort options">
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { handleSort('file_name', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleSort('file_name', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Process Date</TableHead>
-              <TableHead>Completed Date</TableHead>
-              <TableHead>Upload Date</TableHead>
+              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('process_date'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  Process Date
+                  <DropdownMenu open={openMenu === 'process_date'} onOpenChange={open => setOpenMenu(open ? 'process_date' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'process_date' ? (
+                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('process_date'); }} aria-label="Sort options">
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('process_date'); }} aria-label="Sort options">
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { handleSort('process_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleSort('process_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
+              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('completed_date'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  Completed Date
+                  <DropdownMenu open={openMenu === 'completed_date'} onOpenChange={open => setOpenMenu(open ? 'completed_date' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'completed_date' ? (
+                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('completed_date'); }} aria-label="Sort options">
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('completed_date'); }} aria-label="Sort options">
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { handleSort('completed_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleSort('completed_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
+              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('upload_date'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  Upload Date
+                  <DropdownMenu open={openMenu === 'upload_date'} onOpenChange={open => setOpenMenu(open ? 'upload_date' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'upload_date' ? (
+                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('upload_date'); }} aria-label="Sort options">
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('upload_date'); }} aria-label="Sort options">
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { handleSort('upload_date', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleSort('upload_date', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -816,7 +951,7 @@ export const CandidateImportUploadQueue: React.FC<{
                 </TableCell>
               </TableRow>
             ) : (
-              filteredJobs.map((item) => (
+              sortedJobs.map((item) => (
                 <React.Fragment key={item.id}>
                   <TableRow>
                     <TableCell>

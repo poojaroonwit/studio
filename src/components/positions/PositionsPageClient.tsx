@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export default function PositionsPageClient() {
   // All useState hooks first
@@ -293,6 +294,48 @@ export default function PositionsPageClient() {
     selectedIds.length > 0 && selectedIds.length < filteredPositions.length, 
     [selectedIds.length, filteredPositions.length]
   );
+
+  // Add sort state and handler at the top of the component
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) {
+      setSortColumn(null);
+      setSortDirection('asc');
+      return;
+    }
+    if (sortColumn === column && direction == null) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection(direction || 'asc');
+    }
+  };
+
+  const getSortableValue = (position: Position, column: string) => {
+    switch (column) {
+      case 'title': return position.title?.toLowerCase() || '';
+      case 'department': return position.department?.toLowerCase() || '';
+      case 'status': return position.isOpen ? 'open' : 'closed';
+      case 'level': return position.positionLevel?.toLowerCase() || '';
+      case 'created': return position.createdAt || '';
+      case 'updated': return position.updatedAt || '';
+      default: return '';
+    }
+  };
+
+  const sortedPositions = useMemo(() => {
+    if (!sortColumn) return filteredPositions;
+    return [...filteredPositions].sort((a, b) => {
+      const aValue = getSortableValue(a, sortColumn);
+      const bValue = getSortableValue(b, sortColumn);
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredPositions, sortColumn, sortDirection]);
 
   // Handle add position
   const handleAddPosition = async (formData: AddPositionFormValues) => {
@@ -641,17 +684,155 @@ export default function PositionsPageClient() {
                     aria-label="Select all positions"
                   />
                 </TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Level</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('title'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Title
+                    <DropdownMenu open={openMenu === 'title'} onOpenChange={open => setOpenMenu(open ? 'title' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'title' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('title'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('title', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('title', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('department'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Department
+                    <DropdownMenu open={openMenu === 'department'} onOpenChange={open => setOpenMenu(open ? 'department' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'department' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('department'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('department'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('department', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('department', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('status'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Status
+                    <DropdownMenu open={openMenu === 'status'} onOpenChange={open => setOpenMenu(open ? 'status' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'status' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('status'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('level'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Level
+                    <DropdownMenu open={openMenu === 'level'} onOpenChange={open => setOpenMenu(open ? 'level' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'level' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('level', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('level', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('created'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Created
+                    <DropdownMenu open={openMenu === 'created'} onOpenChange={open => setOpenMenu(open ? 'created' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'created' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('created'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('created'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('created', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('created', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('updated'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Updated
+                    <DropdownMenu open={openMenu === 'updated'} onOpenChange={open => setOpenMenu(open ? 'updated' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'updated' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('updated'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('updated'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('updated', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('updated', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPositions.map((position, index) => (
+              {sortedPositions.map((position, index) => (
                 <TableRow 
                   key={position.id} 
                   className="hover:bg-muted/50 transition-all duration-200"

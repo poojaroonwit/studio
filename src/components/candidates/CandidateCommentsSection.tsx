@@ -56,10 +56,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Update local state when parent provides new comments (no automatic polling)
   useEffect(() => {
     setComments(Array.isArray(initialComments) ? initialComments : []);
   }, [initialComments]);
 
+  // Fetch activity logs once on candidateId change (no real-time polling)
   useEffect(() => {
     setLogsLoading(true);
     fetch(`/api/candidates/${candidateId}/logs`)
@@ -176,10 +178,10 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       }))
     };
     
-    // Add optimistic comment to the top
+    // Add optimistic comment to the top for immediate UI feedback
     setComments(prev => [optimisticComment, ...(Array.isArray(prev) ? prev : [])]);
     
-    // Clear form immediately
+    // Clear form immediately for better UX
     setNewComment('');
     setFiles([]);
     setLabels([]);
@@ -211,7 +213,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       
       const result = await res.json();
       
-      // Refresh comments to get the real data
+      // Trigger manual refresh to sync with server
       onCommentsChange();
       
     } catch (err: any) {

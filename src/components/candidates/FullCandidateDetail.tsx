@@ -435,17 +435,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     }
     // Fix: Ensure positionId and recruiterId are null if empty string
     // Fix: assignmentJustification should be a string for backend
-    // Fix: Convert fitScore and job_matches fitScore to 0-100 if user entered a decimal
-    const normalizeScore = (score: any) => {
-      if (typeof score === 'number' && score > 0 && score < 1) return Math.round(score * 100);
-      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 0 && Number(score) < 1) return Math.round(Number(score) * 100);
-      return score;
+    // Fix: Convert fitScore and job_matches fitScore to 0-1 decimal for backend
+    const normalizeScoreForApi = (score: any) => {
+      if (typeof score === 'number' && score > 1 && score <= 100) return score / 100;
+      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 1 && Number(score) <= 100) return Number(score) / 100;
+      if (typeof score === 'number' && score >= 0 && score <= 1) return score;
+      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) >= 0 && Number(score) <= 1) return Number(score);
+      return 0;
     };
-    // Extract job matches from form (from parsedData.job_matches)
+
     const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
       ? data.parsedData.job_matches.map(jm => ({
           jobId: jm.jobId,
-          fitScore: normalizeScore(jm.fitScore),
+          fitScore: normalizeScoreForApi(jm.fitScore),
           matchReasons: Array.isArray(jm.matchReasons)
             ? jm.matchReasons
             : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
@@ -458,7 +460,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       status: statusToSend,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      fitScore: normalizeScore(data.fitScore),
+      fitScore: normalizeScoreForApi(data.fitScore),
       assignmentJustification: Array.isArray(data.assignmentJustification)
         ? data.assignmentJustification.join('\n')
         : data.assignmentJustification,
@@ -878,19 +880,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                 )}
                               </Avatar>
                               {/* Pencil icon button for avatar upload */}
-                              <button
-                                type="button"
+                              <div
+                                role="button"
+                                tabIndex={0}
                                 className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
                                 title="Change profile picture"
                                 onClick={() => {
                                   // Open hidden file input for image upload
                                   if (avatarInputRef?.current) avatarInputRef.current.click();
                                 }}
-                                disabled={avatarUploading}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    if (avatarInputRef?.current) avatarInputRef.current.click();
+                                  }
+                                }}
+                                aria-disabled={avatarUploading}
                                 style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
                               >
                                 <Edit className="w-5 h-5 text-primary" />
-                              </button>
+                              </div>
                               {/* Hidden file input for avatar upload */}
                               <input
                                 type="file"

@@ -29,6 +29,9 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   const [sortDesc, setSortDesc] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  
+  // Note: This component relies on parent for data updates (no automatic polling)
+  // onResumesChange callback is used to trigger manual refresh after user actions
 
   const sortedAttachments = Array.isArray(resumes) ? [...resumes].sort((a, b) => {
     const dateA = new Date(a.updatedAt).getTime();
@@ -44,7 +47,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         body: JSON.stringify({ attachmentId }),
       });
       if (!res.ok) throw new Error('Failed to set primary');
-      onResumesChange();
+      onResumesChange(); // Trigger manual refresh after user action
       toast.success('Primary resume updated');
     } catch (err: any) {
       console.error('Error setting primary:', err);
@@ -60,7 +63,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         body: JSON.stringify({ attachmentId }),
       });
       if (!res.ok) throw new Error('Failed to delete');
-      onResumesChange();
+      onResumesChange(); // Trigger manual refresh after user action
       toast.success('Resume deleted');
     } catch (err: any) {
       console.error('Error deleting attachment:', err);
@@ -111,7 +114,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         await uploadPromise;
       }
 
-      // Refresh the resumes list
+      // Trigger manual refresh after upload
       onResumesChange();
       toast.success(`Successfully uploaded ${files.length} file(s)`);
       

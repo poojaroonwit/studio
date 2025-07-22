@@ -314,7 +314,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       const jsonPayload = {
         inputs,
         response_mode: responseMode, // Use configured response mode (blocking/streaming)
-        user: 'abc-123',
+        user: job.id, // Use queue job id instead of hardcoded value
       };
       let webhookResStatus = null;
       let webhookResJson = null;

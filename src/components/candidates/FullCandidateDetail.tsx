@@ -764,6 +764,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     );
   };
 
+  // --- Job Applied logic: match candidate detail page ---
+  const jobApplied = (candidate?.parsedData && 'job_applied' in candidate.parsedData)
+    ? (candidate.parsedData as any).job_applied
+    : undefined;
+
+  const appliedJobId = jobApplied?.jobId || candidate?.positionId;
+  const appliedFitScore = jobApplied?.fitScore ?? candidate?.fitScore;
+  const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
+    ? jobApplied.justification
+    : (candidate?.assignmentJustification 
+        ? (Array.isArray(candidate.assignmentJustification) 
+            ? candidate.assignmentJustification 
+            : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+        : []);
+  // --- End Job Applied logic ---
+
   // After all hooks are declared, place the early returns:
   if (loading) {
     return (
@@ -1064,7 +1080,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {candidate?.positionId ? (
+                    {appliedJobId ? (
                       <div 
                         className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
                         style={{
@@ -1079,16 +1095,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           e.currentTarget.style.filter = 'brightness(1)';
                         }}
                         onClick={() => {
-                          const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
-                          
+                          const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                           if (position) {
                             const appliedJobData = {
-                              jobId: candidate.positionId,
+                              jobId: appliedJobId,
                               jobTitle: position.title,
-                              fitScore: candidate.fitScore || 0,
-                              matchReasons: candidate.assignmentJustification 
-                                ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
-                                : [],
+                              fitScore: appliedFitScore || 0,
+                              matchReasons: appliedJustification || [],
                               position: {
                                 id: position.id,
                                 title: position.title,
@@ -1110,35 +1123,29 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         >
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-semibold text-foreground text-lg">
-                              {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
+                              {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                             </h4>
-                            {candidate.fitScore !== null && candidate.fitScore !== undefined && (
+                            {appliedFitScore !== null && appliedFitScore !== undefined && (
                               <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                <span>{candidate.fitScore}%</span>
-                                <span className="text-lg font-bold text-primary">({getScoreGrade(candidate.fitScore)})</span>
+                                <span>{appliedFitScore}%</span>
+                                <span className="text-lg font-bold text-primary">({getScoreGrade(appliedFitScore)})</span>
                               </div>
                             )}
                            </div>
-                           
-                          {candidate.assignmentJustification && (
+                          {appliedJustification && appliedJustification.length > 0 && (
                              <div className="mt-3">
                               <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                 <Info className="h-3 w-3" />
                                 Justification:
                               </h5>
                               <div className="space-y-2">
-                                {candidate.assignmentJustification.split('\n').map((sentence: string, index: number) => {
+                                {appliedJustification.map((sentence: string, index: number) => {
                                   const trimmedSentence = sentence.trim();
                                   if (!trimmedSentence) return null;
-                                  
                                   return (
                                     <div 
                                       key={index}
-                                      className={`text-sm text-foreground px-3 py-2 rounded shadow-sm ${
-                                        trimmedSentence.endsWith('.') 
-                                          ? 'bg-primary/10 border border-primary/30' 
-                                          : 'bg-muted/50'
-                                      }`}
+                                      className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
                                     >
                                       {trimmedSentence}
                                     </div>
@@ -1153,845 +1160,845 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       <div className="text-center py-8 text-muted-foreground">
                         <Briefcase className="mx-auto h-12 w-12 mb-4 opacity-50" />
                         <p>No position applied for.</p>
-                        <p className="text-sm">Click "Edit" to select the position this candidate applied for.</p>
+                        <p className="text-sm">Click \"Edit\" to select the position this candidate applied for.</p>
                       </div>
                     )}
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </section>
-
-               {/* Job Matches Section */}
-               <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                 <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
-                   <ListChecks className="mr-2 h-6 w-6 text-primary" />
-                   <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
-                     Job Matches
-                     {candidateJobMatches && candidateJobMatches.length > 0 && (
-                       <span className="ml-2 text-sm font-normal text-muted-foreground">
-                         ({candidateJobMatches.length})
-                       </span>
-                     )}
-                     {candidateJobMatches && candidateJobMatches.length > 1 && (
-                       <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                         ← Scroll →
-                       </span>
-                     )}
-                   </h2>
-                   {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                 </button>
-                 {jobMatchesOpen && (
-                   <div className="space-y-4 transition-all duration-200">
-                     {isEditing ? (
-                       <div className="border rounded-lg p-4 bg-card">
-                         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                           <Edit3 className="h-5 w-5 text-primary" />
-                           Edit Job Matches
-                         </h3>
-                         <div className="space-y-4">
-                           {jobMatchesFields.length === 0 && (
-                             <div className="text-center py-8 text-muted-foreground">
-                               <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                               <p>No job matches added yet.</p>
-                               <p className="text-sm">Click "Add Job Match" to get started.</p>
-                             </div>
-                           )}
-                           {jobMatchesFields.map((field, index) => (
-                             <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-card relative group hover:shadow-md transition-shadow">
-                               <div className="flex items-center justify-between">
-                                 <div className="flex items-center gap-2">
-                                   <div className="text-xs text-muted-foreground">
-                                     Job Match #{index + 1}
-                                   </div>
-                                 </div>
-                                 <Button 
-                                   type="button" 
-                                   variant="ghost" 
-                                   size="icon" 
-                                   className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" 
-                                   onClick={() => removeJobMatch(index)}
-                                   title="Remove job match"
-                                 >
-                                   <Trash2 className="h-4 w-4 text-destructive" />
-                                 </Button>
-                               </div>
-                               
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                 <div className="space-y-1">
-                                   <Label className="text-sm font-medium">Position *</Label>
-                                   <Controller
-                                     name={`parsedData.job_matches.${index}.jobId`}
-                                     control={control}
-                                     render={({ field }) => (
-                                       <PositionSelectDropdown
-                                         value={field.value || ''}
-                                         onValueChange={(value) => {
-                                           field.onChange(value);
-                                           // Update job title when position is selected
-                                           const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
-                                           if (selectedPosition) {
-                                             setValue(`parsedData.job_matches.${index}.jobTitle`, selectedPosition.title);
-                                           }
-                                         }}
-                                         placeholder="Select position..."
-                                         filterOpenOnly={false}
-                                       />
-                                     )}
-                                   />
-                                   {errors.parsedData?.job_matches?.[index]?.jobId && (
-                                     <p className="text-xs text-destructive">
-                                       {errors.parsedData.job_matches[index]?.jobId?.message}
-                                     </p>
-                                   )}
-                                 </div>
-                                 
-                                 <div className="space-y-1">
-                                   <Label className="text-sm font-medium">Fit Score</Label>
-                                   <Input 
-                                     type="number" 
-                                     min="0"
-                                     max="100"
-                                     placeholder="0-100" 
-                                     {...register(`parsedData.job_matches.${index}.fitScore`, { 
-                                       valueAsNumber: true,
-                                       min: { value: 0, message: "Score must be at least 0" },
-                                       max: { value: 100, message: "Score must be at most 100" }
-                                     })} 
-                                   />
-                                   {errors.parsedData?.job_matches?.[index]?.fitScore && (
-                                     <p className="text-xs text-destructive">
-                                       {errors.parsedData.job_matches[index]?.fitScore?.message}
-                                     </p>
-                                   )}
-                                 </div>
-                               </div>
-                               
-                               <div className="space-y-1">
-                                 <Label className="text-sm font-medium">Match Reasons</Label>
-                                 <Textarea 
-                                   placeholder="Explain why this candidate is a good match for this position...&#10;e.g.,&#10;• Relevant experience in similar role&#10;• Strong technical skills&#10;• Good cultural fit&#10;• Meets key requirements"
-                                   {...register(`parsedData.job_matches.${index}.matchReasons`)}
-                                   rows={3}
-                                   className="resize-none"
-                                 />
-                                 <p className="text-xs text-muted-foreground">
-                                   Provide detailed reasons for this job match.
-                                 </p>
-                               </div>
-                             </div>
-                           ))}
-                           <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobMatch({ jobId: '', jobTitle: '', fitScore: 0, matchReasons: [] })}>
-                             <PlusCircle className="mr-2 h-4 w-4" /> Add Job Match
-                           </Button>
-                         </div>
-                       </div>
-                     ) : (
-                       <div className="space-y-4">
-                         {candidateJobMatches && candidateJobMatches.length > 0 ? (
-                           <div className="grid gap-4">
-                             {candidateJobMatches.map((match: any, index: number) => (
-                               <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
-                                 <div className="space-y-2">
-                                   <div className="flex items-center justify-between">
-                                     <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
-                                     {match.fitScore && (
-                                       <Badge variant="outline">{match.fitScore}% Match</Badge>
-                                     )}
-                                   </div>
-                                   {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
-                                     <div className="space-y-1">
-                                       <p className="text-sm text-muted-foreground">Match reasons:</p>
-                                       <ul className="text-sm space-y-1">
-                                         {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
-                                           <li key={reasonIndex} className="flex items-start gap-2">
-                                             <span className="text-primary text-xs mt-1">•</span>
-                                             <span>{reason}</span>
-                                           </li>
-                                         ))}
-                                       </ul>
-                                     </div>
-                                   )}
-                                 </div>
-                               </Card>
-                             ))}
-                           </div>
-                         ) : (
-                           <div className="text-center py-8 text-muted-foreground">
-                             <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                             <p>No another job matched with the candidate</p>
-                           </div>
-                         )}
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </section>
-
-               {/* Personal Information Section */}
-               {candidate?.parsedData && (getParsedDataProperty('personal_info')) && (
-                 <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                   <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setPersonalInfoOpen(o => !o)}>
-                     <UserCircle className="mr-2 h-6 w-6 text-primary" />
-                     <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
-                     {personalInfoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                   </button>
-                   {personalInfoOpen && (
-                     <div className="space-y-4 transition-all duration-200">
-                       {isEditing ? (
-                         <>
-                           <Label htmlFor="parsedData.personal_info.title_honorific" className="mb-2">Title</Label>
-                           <Input id="parsedData.personal_info.title_honorific" {...register('parsedData.personal_info.title_honorific')} className="mb-4" />
-                           <Label htmlFor="parsedData.personal_info.firstname" className="mb-2">First Name</Label>
-                           <Input id="parsedData.personal_info.firstname" {...register('parsedData.personal_info.firstname')} className="mb-4" />
-                           <Label htmlFor="parsedData.personal_info.lastname" className="mb-2">Last Name</Label>
-                           <Input id="parsedData.personal_info.lastname" {...register('parsedData.personal_info.lastname')} className="mb-4" />
-                           <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
-                           <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
-                           <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
-                           <Textarea id="parsedData.personal_info.introduction_aboutme" {...register('parsedData.personal_info.introduction_aboutme')} className="mb-4" />
-                           <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
-                           <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
-                         </>
-                       ) : (
-                         <div className="space-y-4">
-                           {renderField("Title", personalInfo?.title_honorific)}
-                           {renderField("First Name", personalInfo?.firstname)}
-                           {renderField("Last Name", personalInfo?.lastname)}
-                           {renderField("Nickname", personalInfo?.nickname)}
-                           {renderField("Location", personalInfo?.location, MapPin)}
-                           {personalInfo?.introduction_aboutme && (
-                             <div>
-                               <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
-                               <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
-                             </div>
-                           )}
-                         </div>
-                       )}
-                     </div>
-                   )}
-                 </section>
-               )}
-
-               {/* Contact Information Section */}
-               <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-                 <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
-                   <Mail className="mr-2 h-6 w-6 text-primary" />
-                   <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
-                   {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-                 </button>
-                 {contactOpen && (
-                   <div className="space-y-4 transition-all duration-200">
-                     {isEditing ? (
-                       <>
-                         <Label htmlFor="email" className="mb-2">Email *</Label>
-                         <Input id="email" type="email" {...register('email')} className="mb-4" />
-                         {errors.email && <p className="text-sm text-destructive mb-4">{errors.email.message}</p>}
-                         <Label htmlFor="phone" className="mb-2">Phone</Label>
-                         <Input id="phone" type="tel" {...register('phone')} className="mb-4" />
-                         {errors.phone && <p className="text-sm text-destructive mb-4">{errors.phone.message}</p>}
-                       </>
-                     ) : (
-                       <div className="space-y-4">
-                         {renderField("Email", candidate?.email, Mail)}
-                         {renderField("Phone", candidate?.phone, Phone)}
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </section>
-
-               {/* Education Section */}
-            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
-              <GraduationCap className="mr-2 h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
-              {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-              </button>
-            {educationOpen && (
-              <div className="space-y-4 transition-all duration-200">
-                {isEditing ? (
-              <div className="space-y-4">
-                    {educationFields.map((field, index) => (
-                      <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                        <Input placeholder="University" {...register(`parsedData.education.${index}.university`)} />
-                        <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
-                        <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
-                        <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                        <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
-                        <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
-                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Education
-                    </Button>
-                        </div>
-                      ) : (
-                  <div className="relative">
-                    {/* Continuous vertical line that connects all education nodes */}
-                    {getEducation(candidate).length > 0 && (
-                      <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
-                    )}
-                    {getEducation(candidate).length === 0 && (
-                      <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
-                    )}
-                    {getEducation(candidate).map((edu: any, index: number) => {
-                      if (typeof edu === 'string') {
-                        return (
-                          <div key={`edu-${index}-${edu}`} className="relative mb-8">
-                            {/* Timeline item */}
-                            <div className="flex items-start space-x-4">
-                              {/* Date on the left */}
-                              <div className="flex-shrink-0 w-28 text-right">
-                                <div className="text-xs text-muted-foreground font-medium">
-                                  <div className="text-muted-foreground">Education</div>
-                                </div>
-                              </div>
-                              {/* Timeline line and node */}
-                              <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                {/* Node (icon) */}
-                                <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                  <GraduationCap className="w-3 h-3 text-foreground" />
-                                </div>
-                              </div>
-                              {/* Content */}
-                              <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                  {renderField("Education", edu)}
-                                </div>
-                                {hasFitScore(edu) && (
-                                  <div className="flex flex-col items-center justify-center ml-6">
-                                    <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                                    <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      } else {
-                        // Only use structured fields for timeline
-                        let start = '', end = '', duration = '';
-                        if (edu.startMonth && edu.startYear) {
-                          const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                          start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                          if (edu.endMonth && edu.endYear) {
-                            const endDate = new Date(edu.endYear, edu.endMonth - 1);
-                            end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                          } else if (edu.isCurrent) {
-                            end = 'Present';
-                          }
-                        }
-                        if (start) {
-                          const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                          let endDate: Date;
-                          
-                          if (edu.endMonth && edu.endYear) {
-                            // Past education with end date
-                            endDate = new Date(edu.endYear, edu.endMonth - 1);
-                          } else if (edu.isCurrent) {
-                            // Current education - use current date
-                            endDate = new Date();
-                          } else {
-                            // No end date specified
-                            endDate = startDate;
-                          }
-                          
-                          const months = differenceInMonths(endDate, startDate);
-                          const years = Math.floor(months / 12);
-                          const remMonths = months % 12;
-                          duration = [
-                            years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                            remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                          ].filter(Boolean).join(' ');
-                        }
-                        return (
-                          <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
-                            {/* Timeline item */}
-                            <div className="flex items-start space-x-4">
-                              {/* Date on the left */}
-                              <div className="flex-shrink-0 w-28 text-right">
-                                <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                                  {(start || end) && (
-                                    <div>
-                                      <span className="text-primary font-black text-sm">{start}</span>
-                                      {end && (
-                                        <span className="text-primary font-black text-sm"> - {end}</span>
-                                      )}
-                                    </div>
-                                  )}
-                                  {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                                </div>
-                              </div>
-                              {/* Timeline line and node */}
-                              <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                {/* Node (icon) */}
-                                <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                  <GraduationCap className="w-3 h-3 text-foreground" />
-                                </div>
-                              </div>
-                              {/* Content */}
-                              <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                  <h4 className="font-semibold text-foreground mb-1">
-                                    {edu.university || 'University not specified'}
-                                    {edu.campus && ` (${edu.campus})`}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
-                                     edu.major || edu.field || 'Field of study not specified'}
-                                  </p>
-                                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                    {edu.GPA && (
-                                      <span>GPA: {edu.GPA}</span>
-                                    )}
-                                  </div>
-                                </div>
-                                {hasFitScore(edu) && (
-                                  <div className="flex flex-col items-center justify-center ml-6">
-                                    <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                                    <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                    })}
                   </div>
                 )}
               </div>
             )}
           </section>
 
-          {/* Experience Section */}
+          {/* Job Matches Section */}
           <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
-              <Briefcase className="mr-2 h-6 w-6 text-primary" />
+            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
+              <ListChecks className="mr-2 h-6 w-6 text-primary" />
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
-              Experience
-              {(() => {
-                const totalDuration = calculateTotalExperienceDuration(getExperience(candidate));
-                return totalDuration ? ` (${totalDuration})` : '';
-              })()}
-            </h2>
-              {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+                Job Matches
+                {candidateJobMatches && candidateJobMatches.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({candidateJobMatches.length})
+                  </span>
+                )}
+                {candidateJobMatches && candidateJobMatches.length > 1 && (
+                  <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                    ← Scroll →
+                  </span>
+                )}
+              </h2>
+              {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
             </button>
-            {experienceOpen && (
+            {jobMatchesOpen && (
               <div className="space-y-4 transition-all duration-200">
                 {isEditing ? (
-                  <div className="space-y-4">
-                    {experienceFields.map((field, index) => (
-                      <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                        <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
-                        <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
-                        <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                        <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
-                        <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`experience.${index}.is_current_position`}
-                            {...register(`parsedData.experience.${index}.is_current_position`)}
-                          />
-                          <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
+                  <div className="border rounded-lg p-4 bg-card">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Edit3 className="h-5 w-5 text-primary" />
+                      Edit Job Matches
+                    </h3>
+                    <div className="space-y-4">
+                      {jobMatchesFields.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                          <p>No job matches added yet.</p>
+                          <p className="text-sm">Click "Add Job Match" to get started.</p>
                         </div>
-                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', description: '', period: '', duration: '', is_current_position: false, positionLevel: '' })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
-                    </Button>
-                        </div>
-                      ) : (
-                  <div className="relative">
-                    {/* Continuous vertical line that connects all experience nodes */}
-                    {getExperience(candidate).length > 0 && (
-                      <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getExperience(candidate).length - 1) * 80}px` }} />
-                    )}
-                    {getExperience(candidate).length === 0 && (
-                      <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
-                    )}
-                    {getExperience(candidate).map((exp: any, index: number) => {
-                      if (typeof exp === 'string') {
-                        return (
-                          <div key={`exp-${index}-${exp}`} className="relative mb-8">
-                            {/* Timeline item */}
-                            <div className="flex items-start space-x-4">
-                              {/* Date on the left */}
-                              <div className="flex-shrink-0 w-28 text-right">
-                                <div className="text-xs text-muted-foreground font-medium">
-                                  <div className="text-muted-foreground">Experience</div>
-                                </div>
-                              </div>
-                              {/* Timeline line and node */}
-                              <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                {/* Node (icon) */}
-                                <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                  <Briefcase className="w-3 h-3 text-foreground" />
-                                </div>
-                              </div>
-                              {/* Content */}
-                              <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                  {renderField("Experience", exp)}
-                                </div>
-                                {hasFitScore(exp) && (
-                                  <div className="flex flex-col items-center justify-center ml-6">
-                                    <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                                    <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
-                                  </div>
-                                )}
+                      )}
+                      {jobMatchesFields.map((field, index) => (
+                        <div key={field.id} className="p-4 border rounded-lg space-y-3 bg-card relative group hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs text-muted-foreground">
+                                Job Match #{index + 1}
                               </div>
                             </div>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" 
+                              onClick={() => removeJobMatch(index)}
+                              title="Remove job match"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
-                        );
-                      } else {
-                        // Only use structured fields for timeline
-                        let start = '', end = '', duration = '';
-                        if (exp.startMonth && exp.startYear) {
-                          const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                          start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                          if (exp.endMonth && exp.endYear) {
-                            const endDate = new Date(exp.endYear, exp.endMonth - 1);
-                            end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                          } else if (exp.isCurrent) {
-                            end = 'Present';
-                          }
-                        }
-                        if (start) {
-                          const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                          let endDate: Date;
                           
-                          if (exp.endMonth && exp.endYear) {
-                            // Past position with end date
-                            endDate = new Date(exp.endYear, exp.endMonth - 1);
-                          } else if (exp.isCurrent) {
-                            // Current position - use current date
-                            endDate = new Date();
-                          } else {
-                            // No end date specified
-                            endDate = startDate;
-                          }
-                          
-                          const months = differenceInMonths(endDate, startDate);
-                          const years = Math.floor(months / 12);
-                          const remMonths = months % 12;
-                          duration = [
-                            years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                            remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                          ].filter(Boolean).join(' ');
-                        }
-                        return (
-                          <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
-                            {/* Timeline item */}
-                            <div className="flex items-start space-x-4">
-                              {/* Date on the left */}
-                              <div className="flex-shrink-0 w-28 text-right">
-                                <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                                  {(start || end) && (
-                                    <div>
-                                      <span className="text-primary font-black text-sm">{start}</span>
-                                      {end && (
-                                        <span className="text-primary font-black text-sm"> - {end}</span>
-                                      )}
-                                    </div>
-                                  )}
-                                  {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                                </div>
-                              </div>
-                              {/* Timeline line and node */}
-                              <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
-                                {/* Node (icon) */}
-                                <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
-                                  <Briefcase className="w-3 h-3 text-foreground" />
-                                </div>
-                              </div>
-                              {/* Content */}
-                              <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                  {/* Position and Level */}
-                                  <div className="mb-2">
-                                    <span className="text-primary font-semibold">
-                                      {exp.position || 'Position not specified'}
-                                    </span>
-                                    {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
-                                      <span className="text-foreground font-semibold">
-                                        {' '}({exp.positionLevel})
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Company with Building Icon */}
-                                  {exp.company && (
-                                    <div className="mb-3 flex items-center gap-2">
-                                      <span className="text-foreground">at</span>
-                                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                                      <span className="font-semibold text-foreground">
-                                        {exp.company}
-                                      </span>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Description */}
-                                  {exp.description && (
-                                    <div className="mt-3">
-                                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
-                                      <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
-                                        {exp.description}
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                                {hasFitScore(exp) && (
-                                  <div className="flex flex-col items-center justify-center ml-6">
-                                    <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                                    <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
-                                  </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-sm font-medium">Position *</Label>
+                              <Controller
+                                name={`parsedData.job_matches.${index}.jobId`}
+                                control={control}
+                                render={({ field }) => (
+                                  <PositionSelectDropdown
+                                    value={field.value || ''}
+                                    onValueChange={(value) => {
+                                      field.onChange(value);
+                                      // Update job title when position is selected
+                                      const selectedPosition = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === value) : null;
+                                      if (selectedPosition) {
+                                        setValue(`parsedData.job_matches.${index}.jobTitle`, selectedPosition.title);
+                                      }
+                                    }}
+                                    placeholder="Select position..."
+                                    filterOpenOnly={false}
+                                  />
                                 )}
-                              </div>
+                              />
+                              {errors.parsedData?.job_matches?.[index]?.jobId && (
+                                <p className="text-xs text-destructive">
+                                  {errors.parsedData.job_matches[index]?.jobId?.message}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-sm font-medium">Fit Score</Label>
+                              <Input 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                placeholder="0-100" 
+                                {...register(`parsedData.job_matches.${index}.fitScore`, { 
+                                  valueAsNumber: true,
+                                  min: { value: 0, message: "Score must be at least 0" },
+                                  max: { value: 100, message: "Score must be at most 100" }
+                                })} 
+                              />
+                              {errors.parsedData?.job_matches?.[index]?.fitScore && (
+                                <p className="text-xs text-destructive">
+                                  {errors.parsedData.job_matches[index]?.fitScore?.message}
+                                </p>
+                              )}
                             </div>
                           </div>
-                        );
-                      }
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Skills Section */}
-          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
-              <HardDrive className="mr-2 h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
-              {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-            </button>
-            {skillsOpen && (
-              <div className="space-y-4 transition-all duration-200">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    {skillsFields.map((field, index) => (
-                      <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                        <Input placeholder="Skill Category" {...register(`parsedData.skills.${index}.segment_skill`)} />
-                        <Textarea placeholder="Skills" {...register(`parsedData.skills.${index}.skill_string`)} />
-                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button type="button" variant="outline" className="mt-2" onClick={() => appendSkill({ segment_skill: '', skill_string: '', skill: [] })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Category
-                    </Button>
+                          
+                          <div className="space-y-1">
+                            <Label className="text-sm font-medium">Match Reasons</Label>
+                            <Textarea 
+                              placeholder="Explain why this candidate is a good match for this position...&#10;e.g.,&#10;• Relevant experience in similar role&#10;• Strong technical skills&#10;• Good cultural fit&#10;• Meets key requirements"
+                              {...register(`parsedData.job_matches.${index}.matchReasons`)}
+                              rows={3}
+                              className="resize-none"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Provide detailed reasons for this job match.
+                            </p>
+                          </div>
                         </div>
-                      ) : (
-                  <div className="space-y-4">
-                    {getParsedDataProperty('skills')?.length === 0 && (
-                      <div className="text-sm text-muted-foreground text-center py-4">No skills provided.</div>
-                    )}
-                    {getParsedDataProperty('skills')?.map((skill: any, index: number) => (
-                      <div key={index} className="p-3 border rounded-md bg-muted/30">
-                        <h4 className="font-semibold text-foreground mb-2">{skill.segment_skill || 'Skills'}</h4>
-                        <p className="text-sm text-muted-foreground">{skill.skill_string || 'No skills listed'}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Job Suitable Section */}
-          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
-            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
-              <Target className="mr-2 h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitable</h2>
-              {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-            </button>
-            {jobSuitableOpen && (
-              <div className="space-y-4 transition-all duration-200">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    {jobSuitableFields.map((field, index) => (
-                      <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
-                        <Input placeholder="Suitable Career" {...register(`parsedData.job_suitable.${index}.suitable_career`)} />
-                        <Input placeholder="Suitable Job Position" {...register(`parsedData.job_suitable.${index}.suitable_job_position`)} />
-                        <Input placeholder="Suitable Job Level" {...register(`parsedData.job_suitable.${index}.suitable_job_level`)} />
-                        <Input placeholder="Suitable Salary" {...register(`parsedData.job_suitable.${index}.suitable_salary_bath_month`)} />
-                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeJobSuitable(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                                  </div>
-                    ))}
-                    <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobSuitable({ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: '' })}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Job Suitable
-                    </Button>
+                      ))}
+                      <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobMatch({ jobId: '', jobTitle: '', fitScore: 0, matchReasons: [] })}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Job Match
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {getParsedDataProperty('job_suitable')?.length === 0 && (
-                      <div className="text-sm text-muted-foreground text-center py-4">No job suitable information provided.</div>
-                    )}
-                    {getParsedDataProperty('job_suitable')?.map((job: any, index: number) => (
-                      <div key={index} className="p-3 border rounded-md bg-muted/30">
-                        <h4 className="font-semibold text-foreground mb-2">{job.suitable_career || 'Career Path'}</h4>
-                        <div className="space-y-1 text-sm text-muted-foreground">
-                          {job.suitable_job_position && <p><span className="font-medium">Position:</span> {job.suitable_job_position}</p>}
-                          {job.suitable_job_level && <p><span className="font-medium">Level:</span> {job.suitable_job_level}</p>}
-                          {job.suitable_salary_bath_month && <p><span className="font-medium">Salary:</span> {job.suitable_salary_bath_month}</p>}
-                        </div>
+                    {candidateJobMatches && candidateJobMatches.length > 0 ? (
+                      <div className="grid gap-4">
+                        {candidateJobMatches.map((match: any, index: number) => (
+                          <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                                {match.fitScore && (
+                                  <Badge variant="outline">{match.fitScore}% Match</Badge>
+                                )}
+                              </div>
+                              {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                  <ul className="text-sm space-y-1">
+                                    {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                      <li key={reasonIndex} className="flex items-start gap-2">
+                                        <span className="text-primary text-xs mt-1">•</span>
+                                        <span>{reason}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
                       </div>
-                    ))}
-                                  </div>
-                                )}
-                                  </div>
-                                )}
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                        <p>No another job matched with the candidate</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
-        </div>
-        {/* RIGHT SIDEBAR: Comments & Activity and Attachments */}
-        <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm`}>
-          {/* Comments & Activity Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-              Comments & Activity
-            </h3>
-            <div className="bg-muted rounded-lg p-4">
-              <CandidateCommentsSection
-                candidateId={candidateId}
-                comments={comments}
-                isEditing={false}
-                onCommentsChange={() => {
-                  // Refresh comments
-                  fetch(`/api/candidates/${candidateId}/comments`)
-                    .then(res => res.json())
-                    .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
-                    .catch(console.error);
-                }}
-              />
-            </div>
-          </div>
-          {/* Attachments Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-              Attachments
-            </h3>
-            <div className="bg-muted rounded-lg p-4">
-              <CandidateResumesSection
-                candidateId={candidateId}
-                resumes={resumes}
-                isEditing={false}
-                onResumesChange={() => {
-                  // Refresh resumes
-                  fetch(`/api/candidates/${candidateId}/resumes`)
-                    .then(res => res.json())
-                    .then(data => setResumes(Array.isArray(data) ? data : (data.data || [])))
-                    .catch(console.error);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Modals */}
-      <UploadResumeModal
-        isOpen={isUploadModalOpen}
-        onOpenChange={setIsUploadModalOpen}
-        candidate={candidate}
-        onUploadSuccess={(updatedCandidate) => {
-          setCandidate(updatedCandidate);
-          setIsUploadModalOpen(false);
-        }}
-      />
+          {/* Personal Information Section */}
+          {candidate?.parsedData && (getParsedDataProperty('personal_info')) && (
+            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+              <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setPersonalInfoOpen(o => !o)}>
+                <UserCircle className="mr-2 h-6 w-6 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
+                {personalInfoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+              </button>
+              {personalInfoOpen && (
+                <div className="space-y-4 transition-all duration-200">
+                  {isEditing ? (
+                    <>
+                      <Label htmlFor="parsedData.personal_info.title_honorific" className="mb-2">Title</Label>
+                      <Input id="parsedData.personal_info.title_honorific" {...register('parsedData.personal_info.title_honorific')} className="mb-4" />
+                      <Label htmlFor="parsedData.personal_info.firstname" className="mb-2">First Name</Label>
+                      <Input id="parsedData.personal_info.firstname" {...register('parsedData.personal_info.firstname')} className="mb-4" />
+                      <Label htmlFor="parsedData.personal_info.lastname" className="mb-2">Last Name</Label>
+                      <Input id="parsedData.personal_info.lastname" {...register('parsedData.personal_info.lastname')} className="mb-4" />
+                      <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
+                      <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
+                      <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
+                      <Textarea id="parsedData.personal_info.introduction_aboutme" {...register('parsedData.personal_info.introduction_aboutme')} className="mb-4" />
+                      <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
+                      <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      {renderField("Title", personalInfo?.title_honorific)}
+                      {renderField("First Name", personalInfo?.firstname)}
+                      {renderField("Last Name", personalInfo?.lastname)}
+                      {renderField("Nickname", personalInfo?.nickname)}
+                      {renderField("Location", personalInfo?.location, MapPin)}
+                      {personalInfo?.introduction_aboutme && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center"><Info className="h-4 w-4 mr-2"/>About Me:</h4>
+                          <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded-md">{personalInfo.introduction_aboutme}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
-      <ManageTransitionsModal
-        isOpen={isTransitionsModalOpen}
-        onOpenChange={setIsTransitionsModalOpen}
-        candidate={candidate}
-        availableStages={availableStages}
-        onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
-          setCandidate(prev => prev ? { ...prev, status } : null);
-        }}
-        onRefreshCandidateData={async (candidateId: string) => {
-          const response = await fetch(`/api/candidates/${candidateId}`);
-          const updatedCandidate = await response.json();
-          setCandidate(updatedCandidate);
-        }}
-        preselectedStage={null}
-        comments={comments}
-        onCommentsChange={() => {
-          // Refresh comments
-          fetch(`/api/candidates/${candidateId}/comments`)
-            .then(res => res.json())
-            .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
-            .catch(console.error);
-        }}
-      />
+          {/* Contact Information Section */}
+          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
+              <Mail className="mr-2 h-6 w-6 text-primary" />
+              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
+              {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+            </button>
+            {contactOpen && (
+              <div className="space-y-4 transition-all duration-200">
+                {isEditing ? (
+                  <>
+                    <Label htmlFor="email" className="mb-2">Email *</Label>
+                    <Input id="email" type="email" {...register('email')} className="mb-4" />
+                    {errors.email && <p className="text-sm text-destructive mb-4">{errors.email.message}</p>}
+                    <Label htmlFor="phone" className="mb-2">Phone</Label>
+                    <Input id="phone" type="tel" {...register('phone')} className="mb-4" />
+                    {errors.phone && <p className="text-sm text-destructive mb-4">{errors.phone.message}</p>}
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    {renderField("Email", candidate?.email, Mail)}
+                    {renderField("Phone", candidate?.phone, Phone)}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
 
-      <JobMatchModal
-        isOpen={isJobMatchModalOpen}
-        onClose={() => setIsJobMatchModalOpen(false)}
-        jobMatch={selectedJobMatch}
-      />
+          {/* Education Section */}
+       <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+       <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
+         <GraduationCap className="mr-2 h-6 w-6 text-primary" />
+         <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
+         {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+         </button>
+       {educationOpen && (
+         <div className="space-y-4 transition-all duration-200">
+           {isEditing ? (
+         <div className="space-y-4">
+               {educationFields.map((field, index) => (
+                 <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                   <Input placeholder="University" {...register(`parsedData.education.${index}.university`)} />
+                   <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
+                   <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
+                   <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
+                   <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
+                   <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
+                   <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
+                     <Trash2 className="h-4 w-4 text-destructive" />
+                   </Button>
+                 </div>
+               ))}
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+                 <PlusCircle className="mr-2 h-4 w-4" /> Add Education
+               </Button>
+                   </div>
+                 ) : (
+             <div className="relative">
+               {/* Continuous vertical line that connects all education nodes */}
+               {getEducation(candidate).length > 0 && (
+                 <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
+               )}
+               {getEducation(candidate).length === 0 && (
+                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
+               )}
+               {getEducation(candidate).map((edu: any, index: number) => {
+                 if (typeof edu === 'string') {
+                   return (
+                     <div key={`edu-${index}-${edu}`} className="relative mb-8">
+                       {/* Timeline item */}
+                       <div className="flex items-start space-x-4">
+                         {/* Date on the left */}
+                         <div className="flex-shrink-0 w-28 text-right">
+                           <div className="text-xs text-muted-foreground font-medium">
+                             <div className="text-muted-foreground">Education</div>
+                           </div>
+                         </div>
+                         {/* Timeline line and node */}
+                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                           {/* Node (icon) */}
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                             <GraduationCap className="w-3 h-3 text-foreground" />
+                           </div>
+                         </div>
+                         {/* Content */}
+                         <div className="flex-1 min-w-0 pb-0 flex items-center">
+                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                             {renderField("Education", edu)}
+                           </div>
+                           {hasFitScore(edu) && (
+                             <div className="flex flex-col items-center justify-center ml-6">
+                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 } else {
+                   // Only use structured fields for timeline
+                   let start = '', end = '', duration = '';
+                   if (edu.startMonth && edu.startYear) {
+                     const startDate = new Date(edu.startYear, edu.startMonth - 1);
+                     start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                     if (edu.endMonth && edu.endYear) {
+                       const endDate = new Date(edu.endYear, edu.endMonth - 1);
+                       end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                     } else if (edu.isCurrent) {
+                       end = 'Present';
+                     }
+                   }
+                   if (start) {
+                     const startDate = new Date(edu.startYear, edu.startMonth - 1);
+                     let endDate: Date;
+                     
+                     if (edu.endMonth && edu.endYear) {
+                       // Past education with end date
+                       endDate = new Date(edu.endYear, edu.endMonth - 1);
+                     } else if (edu.isCurrent) {
+                       // Current education - use current date
+                       endDate = new Date();
+                     } else {
+                       // No end date specified
+                       endDate = startDate;
+                     }
+                     
+                     const months = differenceInMonths(endDate, startDate);
+                     const years = Math.floor(months / 12);
+                     const remMonths = months % 12;
+                     duration = [
+                       years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                       remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                     ].filter(Boolean).join(' ');
+                   }
+                   return (
+                     <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
+                       {/* Timeline item */}
+                       <div className="flex items-start space-x-4">
+                         {/* Date on the left */}
+                         <div className="flex-shrink-0 w-28 text-right">
+                           <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
+                             {(start || end) && (
+                               <div>
+                                 <span className="text-primary font-black text-sm">{start}</span>
+                                 {end && (
+                                   <span className="text-primary font-black text-sm"> - {end}</span>
+                                 )}
+                               </div>
+                             )}
+                             {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
+                           </div>
+                         </div>
+                         {/* Timeline line and node */}
+                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                           {/* Node (icon) */}
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                             <GraduationCap className="w-3 h-3 text-foreground" />
+                           </div>
+                         </div>
+                         {/* Content */}
+                         <div className="flex-1 min-w-0 pb-0 flex items-center">
+                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                             <h4 className="font-semibold text-foreground mb-1">
+                               {edu.university || 'University not specified'}
+                               {edu.campus && ` (${edu.campus})`}
+                             </h4>
+                             <p className="text-sm text-muted-foreground mb-2">
+                               {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
+                                edu.major || edu.field || 'Field of study not specified'}
+                             </p>
+                             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                               {edu.GPA && (
+                                 <span>GPA: {edu.GPA}</span>
+                               )}
+                             </div>
+                           </div>
+                           {hasFitScore(edu) && (
+                             <div className="flex flex-col items-center justify-center ml-6">
+                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 }
+               })}
+             </div>
+           )}
+         </div>
+       )}
+     </section>
 
-      <EditPositionModal
-        isOpen={isEditPositionModalOpen}
-        onOpenChange={setIsEditPositionModalOpen}
-        position={selectedPositionForEdit}
-        onEditPosition={async () => {
-          setIsEditPositionModalOpen(false);
-          // Refresh candidate data
-          const response = await fetch(`/api/candidates/${candidateId}`);
-          const updatedCandidate = await response.json();
-          setCandidate(updatedCandidate);
-        }}
-      />
+     {/* Experience Section */}
+     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+       <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
+         <Briefcase className="mr-2 h-6 w-6 text-primary" />
+         <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
+         Experience
+         {(() => {
+           const totalDuration = calculateTotalExperienceDuration(getExperience(candidate));
+           return totalDuration ? ` (${totalDuration})` : '';
+         })()}
+       </h2>
+         {experienceOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+       </button>
+       {experienceOpen && (
+         <div className="space-y-4 transition-all duration-200">
+           {isEditing ? (
+             <div className="space-y-4">
+               {experienceFields.map((field, index) => (
+                 <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                   <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
+                   <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
+                   <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
+                   <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
+                   <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
+                   <div className="flex items-center space-x-2">
+                     <Checkbox
+                       id={`experience.${index}.is_current_position`}
+                       {...register(`parsedData.experience.${index}.is_current_position`)}
+                     />
+                     <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
+                   </div>
+                   <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
+                     <Trash2 className="h-4 w-4 text-destructive" />
+                   </Button>
+                 </div>
+               ))}
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', description: '', period: '', duration: '', is_current_position: false, positionLevel: '' })}>
+                 <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
+               </Button>
+                   </div>
+                 ) : (
+             <div className="relative">
+               {/* Continuous vertical line that connects all experience nodes */}
+               {getExperience(candidate).length > 0 && (
+                 <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getExperience(candidate).length - 1) * 80}px` }} />
+               )}
+               {getExperience(candidate).length === 0 && (
+                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
+               )}
+               {getExperience(candidate).map((exp: any, index: number) => {
+                 if (typeof exp === 'string') {
+                   return (
+                     <div key={`exp-${index}-${exp}`} className="relative mb-8">
+                       {/* Timeline item */}
+                       <div className="flex items-start space-x-4">
+                         {/* Date on the left */}
+                         <div className="flex-shrink-0 w-28 text-right">
+                           <div className="text-xs text-muted-foreground font-medium">
+                             <div className="text-muted-foreground">Experience</div>
+                           </div>
+                         </div>
+                         {/* Timeline line and node */}
+                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                           {/* Node (icon) */}
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                             <Briefcase className="w-3 h-3 text-foreground" />
+                           </div>
+                         </div>
+                         {/* Content */}
+                         <div className="flex-1 min-w-0 pb-0 flex items-center">
+                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                             {renderField("Experience", exp)}
+                           </div>
+                           {hasFitScore(exp) && (
+                             <div className="flex flex-col items-center justify-center ml-6">
+                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                               <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 } else {
+                   // Only use structured fields for timeline
+                   let start = '', end = '', duration = '';
+                   if (exp.startMonth && exp.startYear) {
+                     const startDate = new Date(exp.startYear, exp.startMonth - 1);
+                     start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                     if (exp.endMonth && exp.endYear) {
+                       const endDate = new Date(exp.endYear, exp.endMonth - 1);
+                       end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+                     } else if (exp.isCurrent) {
+                       end = 'Present';
+                     }
+                   }
+                   if (start) {
+                     const startDate = new Date(exp.startYear, exp.startMonth - 1);
+                     let endDate: Date;
+                     
+                     if (exp.endMonth && exp.endYear) {
+                       // Past position with end date
+                       endDate = new Date(exp.endYear, exp.endMonth - 1);
+                     } else if (exp.isCurrent) {
+                       // Current position - use current date
+                       endDate = new Date();
+                     } else {
+                       // No end date specified
+                       endDate = startDate;
+                     }
+                     
+                     const months = differenceInMonths(endDate, startDate);
+                     const years = Math.floor(months / 12);
+                     const remMonths = months % 12;
+                     duration = [
+                       years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
+                       remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
+                     ].filter(Boolean).join(' ');
+                   }
+                   return (
+                     <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
+                       {/* Timeline item */}
+                       <div className="flex items-start space-x-4">
+                         {/* Date on the left */}
+                         <div className="flex-shrink-0 w-28 text-right">
+                           <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
+                             {(start || end) && (
+                               <div>
+                                 <span className="text-primary font-black text-sm">{start}</span>
+                                 {end && (
+                                   <span className="text-primary font-black text-sm"> - {end}</span>
+                                 )}
+                               </div>
+                             )}
+                             {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
+                           </div>
+                         </div>
+                         {/* Timeline line and node */}
+                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                           {/* Node (icon) */}
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                             <Briefcase className="w-3 h-3 text-foreground" />
+                           </div>
+                         </div>
+                         {/* Content */}
+                         <div className="flex-1 min-w-0 pb-0 flex items-center">
+                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                             {/* Position and Level */}
+                             <div className="mb-2">
+                               <span className="text-primary font-semibold">
+                                 {exp.position || 'Position not specified'}
+                               </span>
+                               {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
+                                 <span className="text-foreground font-semibold">
+                                   {' '}({exp.positionLevel})
+                                 </span>
+                               )}
+                             </div>
+                             
+                             {/* Company with Building Icon */}
+                             {exp.company && (
+                               <div className="mb-3 flex items-center gap-2">
+                                 <span className="text-foreground">at</span>
+                                 <Building2 className="h-4 w-4 text-muted-foreground" />
+                                 <span className="font-semibold text-foreground">
+                                   {exp.company}
+                                 </span>
+                               </div>
+                             )}
+                             
+                             {/* Description */}
+                             {exp.description && (
+                               <div className="mt-3">
+                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                                 <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                                   {exp.description}
+                                 </p>
+                               </div>
+                             )}
+                           </div>
+                           {hasFitScore(exp) && (
+                             <div className="flex flex-col items-center justify-center ml-6">
+                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                               <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                             </div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 }
+               })}
+             </div>
+           )}
+         </div>
+       )}
+     </section>
 
-      {/* Floating Save/Cancel buttons when editing */}
-      {isEditing && (
-        <div className="fixed bottom-6 right-6 z-50 flex gap-2">
-          <Button
-            onClick={handleSubmit(handleSaveDetails)}
-            className="shadow-lg"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Changes
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setIsEditing(false);
-              if (candidate) {
-                reset({
-                  name: candidate.name || '',
-                  email: candidate.email || '',
-                  phone: candidate.phone || '',
-                  positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
-                  fitScore: candidate.fitScore || null,
-                  assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
-                  status: candidate.status || '',
-                  recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                  parsedData: (candidate.parsedData as any) || {}
-                });
-              }
-            }}
-            className="shadow-lg"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+     {/* Skills Section */}
+     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+       <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
+         <HardDrive className="mr-2 h-6 w-6 text-primary" />
+         <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
+         {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+       </button>
+       {skillsOpen && (
+         <div className="space-y-4 transition-all duration-200">
+           {isEditing ? (
+             <div className="space-y-4">
+               {skillsFields.map((field, index) => (
+                 <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                   <Input placeholder="Skill Category" {...register(`parsedData.skills.${index}.segment_skill`)} />
+                   <Textarea placeholder="Skills" {...register(`parsedData.skills.${index}.skill_string`)} />
+                   <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeSkill(index)}>
+                     <Trash2 className="h-4 w-4 text-destructive" />
+                   </Button>
+                 </div>
+               ))}
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendSkill({ segment_skill: '', skill_string: '', skill: [] })}>
+                 <PlusCircle className="mr-2 h-4 w-4" /> Add Skill Category
+               </Button>
+                   </div>
+                 ) : (
+             <div className="space-y-4">
+               {getParsedDataProperty('skills')?.length === 0 && (
+                 <div className="text-sm text-muted-foreground text-center py-4">No skills provided.</div>
+               )}
+               {getParsedDataProperty('skills')?.map((skill: any, index: number) => (
+                 <div key={index} className="p-3 border rounded-md bg-muted/30">
+                   <h4 className="font-semibold text-foreground mb-2">{skill.segment_skill || 'Skills'}</h4>
+                   <p className="text-sm text-muted-foreground">{skill.skill_string || 'No skills listed'}</p>
+                 </div>
+               ))}
+             </div>
+           )}
+         </div>
+       )}
+     </section>
+
+     {/* Job Suitable Section */}
+     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+       <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
+         <Target className="mr-2 h-6 w-6 text-primary" />
+         <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitable</h2>
+         {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+       </button>
+       {jobSuitableOpen && (
+         <div className="space-y-4 transition-all duration-200">
+           {isEditing ? (
+             <div className="space-y-4">
+               {jobSuitableFields.map((field, index) => (
+                 <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
+                   <Input placeholder="Suitable Career" {...register(`parsedData.job_suitable.${index}.suitable_career`)} />
+                   <Input placeholder="Suitable Job Position" {...register(`parsedData.job_suitable.${index}.suitable_job_position`)} />
+                   <Input placeholder="Suitable Job Level" {...register(`parsedData.job_suitable.${index}.suitable_job_level`)} />
+                   <Input placeholder="Suitable Salary" {...register(`parsedData.job_suitable.${index}.suitable_salary_bath_month`)} />
+                   <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeJobSuitable(index)}>
+                     <Trash2 className="h-4 w-4 text-destructive" />
+                   </Button>
+                             </div>
+               ))}
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobSuitable({ suitable_career: '', suitable_job_position: '', suitable_job_level: '', suitable_salary_bath_month: '' })}>
+                 <PlusCircle className="mr-2 h-4 w-4" /> Add Job Suitable
+               </Button>
+             </div>
+           ) : (
+             <div className="space-y-4">
+               {getParsedDataProperty('job_suitable')?.length === 0 && (
+                 <div className="text-sm text-muted-foreground text-center py-4">No job suitable information provided.</div>
+               )}
+               {getParsedDataProperty('job_suitable')?.map((job: any, index: number) => (
+                 <div key={index} className="p-3 border rounded-md bg-muted/30">
+                   <h4 className="font-semibold text-foreground mb-2">{job.suitable_career || 'Career Path'}</h4>
+                   <div className="space-y-1 text-sm text-muted-foreground">
+                     {job.suitable_job_position && <p><span className="font-medium">Position:</span> {job.suitable_job_position}</p>}
+                     {job.suitable_job_level && <p><span className="font-medium">Level:</span> {job.suitable_job_level}</p>}
+                     {job.suitable_salary_bath_month && <p><span className="font-medium">Salary:</span> {job.suitable_salary_bath_month}</p>}
+                   </div>
+                 </div>
+               ))}
+                             </div>
+                           )}
+                           </div>
+                         )}
+         </section>
+       </div>
+       {/* RIGHT SIDEBAR: Comments & Activity and Attachments */}
+       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm`}>
+         {/* Comments & Activity Section */}
+         <div className="space-y-4">
+           <h3 className="text-lg font-semibold flex items-center">
+             <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+             Comments & Activity
+           </h3>
+           <div className="bg-muted rounded-lg p-4">
+             <CandidateCommentsSection
+               candidateId={candidateId}
+               comments={comments}
+               isEditing={false}
+               onCommentsChange={() => {
+                 // Refresh comments
+                 fetch(`/api/candidates/${candidateId}/comments`)
+                   .then(res => res.json())
+                   .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
+                   .catch(console.error);
+               }}
+             />
+           </div>
+         </div>
+         {/* Attachments Section */}
+         <div className="space-y-4">
+           <h3 className="text-lg font-semibold flex items-center">
+             <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+             Attachments
+           </h3>
+           <div className="bg-muted rounded-lg p-4">
+             <CandidateResumesSection
+               candidateId={candidateId}
+               resumes={resumes}
+               isEditing={false}
+               onResumesChange={() => {
+                 // Refresh resumes
+                 fetch(`/api/candidates/${candidateId}/resumes`)
+                   .then(res => res.json())
+                   .then(data => setResumes(Array.isArray(data) ? data : (data.data || [])))
+                   .catch(console.error);
+               }}
+             />
+           </div>
+         </div>
+       </div>
+     </div>
+
+     {/* Modals */}
+     <UploadResumeModal
+       isOpen={isUploadModalOpen}
+       onOpenChange={setIsUploadModalOpen}
+       candidate={candidate}
+       onUploadSuccess={(updatedCandidate) => {
+         setCandidate(updatedCandidate);
+         setIsUploadModalOpen(false);
+       }}
+     />
+
+     <ManageTransitionsModal
+       isOpen={isTransitionsModalOpen}
+       onOpenChange={setIsTransitionsModalOpen}
+       candidate={candidate}
+       availableStages={availableStages}
+       onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+         setCandidate(prev => prev ? { ...prev, status } : null);
+       }}
+       onRefreshCandidateData={async (candidateId: string) => {
+         const response = await fetch(`/api/candidates/${candidateId}`);
+         const updatedCandidate = await response.json();
+         setCandidate(updatedCandidate);
+       }}
+       preselectedStage={null}
+       comments={comments}
+       onCommentsChange={() => {
+         // Refresh comments
+         fetch(`/api/candidates/${candidateId}/comments`)
+           .then(res => res.json())
+           .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
+           .catch(console.error);
+       }}
+     />
+
+     <JobMatchModal
+       isOpen={isJobMatchModalOpen}
+       onClose={() => setIsJobMatchModalOpen(false)}
+       jobMatch={selectedJobMatch}
+     />
+
+     <EditPositionModal
+       isOpen={isEditPositionModalOpen}
+       onOpenChange={setIsEditPositionModalOpen}
+       position={selectedPositionForEdit}
+       onEditPosition={async () => {
+         setIsEditPositionModalOpen(false);
+         // Refresh candidate data
+         const response = await fetch(`/api/candidates/${candidateId}`);
+         const updatedCandidate = await response.json();
+         setCandidate(updatedCandidate);
+       }}
+     />
+
+     {/* Floating Save/Cancel buttons when editing */}
+     {isEditing && (
+       <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+         <Button
+           onClick={handleSubmit(handleSaveDetails)}
+           className="shadow-lg"
+         >
+           <Save className="h-4 w-4 mr-2" />
+           Save Changes
+         </Button>
+         <Button
+           variant="outline"
+           onClick={() => {
+             setIsEditing(false);
+             if (candidate) {
+               reset({
+                 name: candidate.name || '',
+                 email: candidate.email || '',
+                 phone: candidate.phone || '',
+                 positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+                 fitScore: candidate.fitScore || null,
+                 assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                 status: candidate.status || '',
+                 recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                 parsedData: (candidate.parsedData as any) || {}
+               });
+             }
+           }}
+           className="shadow-lg"
+         >
+           <X className="h-4 w-4 mr-2" />
+           Cancel
+         </Button>
+       </div>
+     )}
+   </div>
+ );
 };
 
 export default FullCandidateDetail; 

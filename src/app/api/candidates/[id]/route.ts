@@ -151,6 +151,28 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       customAttributes = {};
     }
 
+    // --- Add job_applied logic to match frontend ---
+    let jobApplied = undefined;
+    let parsedData = candidate.parsedData;
+    if (parsedData && typeof parsedData === 'object' && 'job_applied' in parsedData && parsedData.job_applied) {
+      jobApplied = parsedData.job_applied;
+    } else {
+      // Fallback to top-level fields
+      let justification = candidate.assignmentJustification;
+      if (typeof justification === 'string') {
+        justification = justification.split('\n').map((s) => s.trim()).filter(Boolean);
+      }
+      if (!Array.isArray(justification)) {
+        justification = [];
+      }
+      jobApplied = {
+        jobId: candidate.positionId || null,
+        fitScore: candidate.fitScore || null,
+        justification,
+      };
+    }
+    // --- End job_applied logic ---
+
     return NextResponse.json({
       ...candidate,
       fitScore: normalizeFitScore(candidate.fitScore), // Keep as integer (0-100) for consistency with scoreUtils
@@ -166,6 +188,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         fitScore: normalizeFitScore(match.fitScore), // Convert decimal to integer if needed (0.70 -> 70, 70 -> 70)
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
+      job_applied: jobApplied, // <-- always present
     }, {
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',

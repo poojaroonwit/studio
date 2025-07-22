@@ -233,11 +233,11 @@ const FIELDS_TO_STRINGIFY = [
   'segment_skill'
 ];
 
-const FIELDS_TO_NUMBERIFY = [
+const FIELDS_TO_NUMBERIFY: string[] = [
   // Add fields that must be numbers here if needed in the future
 ];
 
-const FIELDS_TO_BOOLEANIFY = [
+const FIELDS_TO_BOOLEANIFY: string[] = [
   // Add fields that must be booleans here if needed in the future
 ];
 

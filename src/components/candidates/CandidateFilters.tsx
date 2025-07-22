@@ -655,7 +655,8 @@ export function CandidateFilters({
     }
   }, [initialFilters]); // Removed onFilterChange from dependencies to prevent infinite loop
 
-  const handleApplyStandardFilters = () => {
+  const handleApplyStandardFilters = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     // If there's an advanced query, parse and apply it
     if (advancedQueryInput.trim()) {
       const parsedFilters = parseAdvancedQuery(advancedQueryInput);
@@ -1438,26 +1439,33 @@ export function CandidateFilters({
                   </Accordion>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      onClick={handleApplyStandardFilters}
-                      disabled={isLoading || isAiSearching}
-                      className="flex-1"
-                      size="sm"
-                    >
-                      <Search className="mr-2 h-4 w-4" />
-                      Apply Filters
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleResetFilters}
-                      disabled={isLoading || isAiSearching}
-                      size="sm"
-                    >
-                      <FilterX className="mr-2 h-4 w-4" />
-                      Clear All
-                    </Button>
-                  </div>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      handleApplyStandardFilters();
+                    }}
+                  >
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        type="submit"
+                        disabled={isLoading || isAiSearching}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <Search className="mr-2 h-4 w-4" />
+                        Apply Filters
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleResetFilters}
+                        disabled={isLoading || isAiSearching}
+                        size="sm"
+                      >
+                        <FilterX className="mr-2 h-4 w-4" />
+                        Clear All
+                      </Button>
+                    </div>
+                  </form>
                 </TabsContent>
 
                 {/* Advanced Query Tab */}

@@ -216,3 +216,69 @@ export function normalizePayloadTypes<T>(input: T): T {
   }
   return input;
 }
+
+// Utility to convert specific fields to string, number, or boolean as required by API
+const FIELDS_TO_STRINGIFY = [
+  // educationData & experienceData
+  'GPA', 'startMonth', 'startYear', 'endMonth', 'endYear', 'isCurrent', 'major', 'university', 'company', 'position', 'description',
+  // candidate_info.personal_info
+  'firstname', 'lastname', 'nickname', 'title_honorific', 'introduction_aboutme', 'location',
+  // candidate_info.contact_info
+  'email', 'phone',
+  // candidate_info
+  'cv_language', 'status',
+  // candidate_info.job_suitable
+  'suitable_career', 'suitable_job_level', 'suitable_job_position', 'suitable_salary_bath_month',
+  // candidate_info.skills
+  'segment_skill'
+];
+
+const FIELDS_TO_NUMBERIFY = [
+  // Add fields that must be numbers here if needed in the future
+];
+
+const FIELDS_TO_BOOLEANIFY = [
+  // Add fields that must be booleans here if needed in the future
+];
+
+export function convertFieldsToTypes(obj: any): any {
+  if (Array.isArray(obj)) {
+    // If it's an array of primitives, handle conversion if needed
+    return obj.map(convertFieldsToTypes);
+  } else if (obj !== null && typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+      const value = obj[key];
+
+      if (FIELDS_TO_STRINGIFY.includes(key)) {
+        newObj[key] = value != null ? value.toString() : '';
+      } else if (FIELDS_TO_NUMBERIFY.includes(key)) {
+        if (typeof value === 'number') {
+          newObj[key] = value;
+        } else if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
+          newObj[key] = Number(value);
+        } else {
+          newObj[key] = value;
+        }
+      } else if (FIELDS_TO_BOOLEANIFY.includes(key)) {
+        if (typeof value === 'boolean') {
+          newObj[key] = value;
+        } else if (typeof value === 'string') {
+          newObj[key] = value.toLowerCase() === 'true';
+        } else if (typeof value === 'number') {
+          newObj[key] = value !== 0;
+        } else {
+          newObj[key] = Boolean(value);
+        }
+      } else if (key === 'skill' && Array.isArray(value)) {
+        // Special case: skills.skill is an array of strings
+        newObj[key] = value.map((item: any) => typeof item === 'string' ? item : item.toString());
+      } else {
+        newObj[key] = convertFieldsToTypes(value);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+}

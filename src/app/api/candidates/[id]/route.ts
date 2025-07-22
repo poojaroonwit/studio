@@ -124,15 +124,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     `;
     const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
 
-    // Get resume history for this candidate (to match v1 API)
-    const resumeHistoryQuery = `
-      SELECT rh.*, u.name as "uploadedByUserName"
-      FROM "ResumeHistory" rh
-      LEFT JOIN "User" u ON rh."uploaded_by_user_id" = u.id
-      WHERE rh."candidateId" = $1::uuid
-      ORDER BY rh."uploadedAt" DESC;
+    // Get attachment history for this candidate (revert to previous logic)
+    const attachmentsQuery = `
+      SELECT a.*, u.name as "uploadedByUserName"
+      FROM "Attachment" a
+      LEFT JOIN "User" u ON a."uploadedById" = u.id
+      WHERE a."candidateId" = $1::uuid
+      ORDER BY a."uploadedAt" DESC;
     `;
-    const resumeHistoryResult = await client.query(resumeHistoryQuery, [id]);
+    const attachmentsResult = await client.query(attachmentsQuery, [id]);
 
     return NextResponse.json({
       ...candidate,
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         ...match,
         fitScore: normalizeFitScore(match.fitScore),
       })) || [],
-      resumeHistory: resumeHistoryResult.rows || [],
+      attachmentHistory: attachmentsResult.rows || [],
       custom_attributes: candidate.customAttributes || {},
     }, {
       headers: {

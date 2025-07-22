@@ -71,14 +71,14 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
               Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.jobTitle}</strong> (Open Position).
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Automated Fit Score for this role: <span className="font-semibold text-foreground">{bestAlternativeMatch.fitScore}%</span>.
+              Automated Fit Score for this role: <span className="font-semibold text-foreground">{formatScoreWithGrade(bestAlternativeMatch.fitScore)}</span>.
             </p>
             {currentAppliedPosition ? (
               <p className="text-xs text-muted-foreground">
-                Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: {currentFitScore}%)
+                Currently applied for: &quot;{currentAppliedPosition.title}&quot; (Fit Score: {formatScoreWithGrade(currentFitScore)})
               </p>
             ) : (
-               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {currentFitScore}%).</p>
+               <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {formatScoreWithGrade(currentFitScore)}).</p>
             )}
             {bestAlternativeMatch.matchReasons && bestAlternativeMatch.matchReasons.length > 0 && (
               <div className="mt-1.5">

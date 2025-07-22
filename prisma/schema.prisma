@@ -65,7 +65,7 @@ model Candidate {
   phone                   String?
   positionId              String?            @db.Uuid
   recruiterId             String?            @db.Uuid
-  fitScore                Int?               @default(0)
+  fitScore                Float?              @default(0)
   status                  String             @default("Applied")
   applicationDate         DateTime           @default(now())
   parsedData              Json?

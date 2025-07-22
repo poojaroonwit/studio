@@ -33,23 +33,11 @@ export function getScoreGrade(score: number | null | undefined): string | null {
   if (score === null || score === undefined) {
     return null;
   }
-  
-  // Handle decimal values (0-1) by converting to percentage
-  let normalizedScore = score;
-  if (score > 0 && score < 1) {
-    normalizedScore = Math.round(score * 100);
-  } else if (score > 100) {
-    normalizedScore = 100;
-  } else if (score < 0) {
-    normalizedScore = 0;
-  } else {
-    normalizedScore = Math.round(score);
-  }
-  
+  // Always treat score as 0-1 decimal, multiply by 100 for display
+  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
-  
   const grade = SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max);
   return grade ? grade.letter : null;
 }
@@ -63,23 +51,11 @@ export function getScoreGradeInfo(score: number | null | undefined): ScoreGrade 
   if (score === null || score === undefined) {
     return null;
   }
-  
-  // Handle decimal values (0-1) by converting to percentage
-  let normalizedScore = score;
-  if (score > 0 && score < 1) {
-    normalizedScore = Math.round(score * 100);
-  } else if (score > 100) {
-    normalizedScore = 100;
-  } else if (score < 0) {
-    normalizedScore = 0;
-  } else {
-    normalizedScore = Math.round(score);
-  }
-  
+  // Always treat score as 0-1 decimal, multiply by 100 for display
+  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
-  
   return SCORE_GRADES.find(g => normalizedScore >= g.min && normalizedScore <= g.max) || null;
 }
 
@@ -100,7 +76,7 @@ export function getScoreColor(score: number | null | undefined): string {
  */
 export function getScoreBgColor(score: number | null | undefined): string {
   const gradeInfo = getScoreGradeInfo(score);
-  return gradeInfo ? gradeInfo.bgColor : 'bg-gray-200'; // Default gray for invalid/null scores
+  return gradeInfo ? gradeInfo.bgColor : 'bg-gray-200';
 }
 
 /**
@@ -110,24 +86,9 @@ export function getScoreBgColor(score: number | null | undefined): string {
  */
 export function formatScoreWithGrade(score: number | null | undefined): string {
   if (score === null || score === undefined) return 'N/A';
-  
-  // Handle edge cases where score might be stored as decimal
-  let normalizedScore = score;
-  if (score > 0 && score < 1) {
-    // If score is a decimal (0-1), convert to percentage
-    normalizedScore = Math.round(score * 100);
-  } else if (score > 100) {
-    // If score is over 100, cap it at 100
-    normalizedScore = 100;
-  } else if (score < 0) {
-    // If score is negative, set to 0
-    normalizedScore = 0;
-  } else {
-    // Ensure it's a whole number
-    normalizedScore = Math.round(score);
-  }
-  
-  const grade = getScoreGrade(normalizedScore);
+  // Always treat score as 0-1 decimal, multiply by 100 for display
+  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
+  const grade = getScoreGrade(normalizedScore / 100); // Pass as 0-1 decimal
   return grade ? `${normalizedScore}% (${grade})` : `${normalizedScore}%`;
 }
 

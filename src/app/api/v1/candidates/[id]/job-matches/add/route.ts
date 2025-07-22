@@ -7,10 +7,7 @@ import { handleCors } from '@/lib/cors';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const addJobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100).transform(val => {
-    // Accept 0-100 from client, convert to 0-1 for storage
-    return Math.max(0, Math.min(1, val / 100));
-  }),
+  fitScore: z.number().min(0).max(1),
   jobId: z.string().uuid(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -98,7 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const newMatch = insertResult.rows[0];
     const jobMatch = {
       id: newMatch.id,
-      fitScore: newMatch.fitScore != null ? Math.round(newMatch.fitScore * 100) : null, // 0-1 to 0-100
+      fitScore: newMatch.fitScore,
       jobId: newMatch.jobId,
       matchReasons: newMatch.matchReasons || [],
       createdAt: newMatch.createdAt,

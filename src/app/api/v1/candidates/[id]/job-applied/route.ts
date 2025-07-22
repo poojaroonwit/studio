@@ -6,14 +6,7 @@ import { handleCors } from '@/lib/cors';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 
 const jobAppliedSchema = z.object({
-  fitScore: z.number().min(0).max(100).transform((val) => {
-    // If the value is between 0 and 1, convert it to percentage (0-100)
-    if (val > 0 && val <= 1) {
-      return Math.round(val * 100);
-    }
-    // If the value is already in percentage format (0-100), use it as is
-    return Math.round(val);
-  }),
+  fitScore: z.number().min(0).max(1),
   jobId: z.string().uuid(),
   justification: z.array(z.string()).optional().default([]),
 });

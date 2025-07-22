@@ -1313,7 +1313,7 @@ export function CandidatesPageClient({
 
   // Ensure mappedCandidates useMemo is called before any return
   const mappedCandidates = useMemo(() => {
-    return allCandidates.map(candidate => {
+    let candidates = allCandidates.map(candidate => {
       if ((!candidate.position || !candidate.position.title) && candidate.positionId && availablePositions.length > 0) {
         const foundPosition = availablePositions.find(pos => pos.id === candidate.positionId);
         if (foundPosition) {
@@ -1322,7 +1322,16 @@ export function CandidatesPageClient({
       }
       return candidate;
     });
-  }, [allCandidates, availablePositions]);
+    // Filter by AI search if active
+    if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
+      candidates = candidates.filter(c => aiMatchedCandidateIds.includes(c.id));
+    }
+    // If AI search is active and there are no matches, show empty list
+    if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0) {
+      candidates = [];
+    }
+    return candidates;
+  }, [allCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
 
   // Centralized error UI for auth/permission
   if (authError || sessionStatus === 'unauthenticated') {

@@ -170,7 +170,18 @@ export async function GET(request: NextRequest) {
       `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
-    
+    // Add summary counts by status
+    const summaryRes = await client.query(
+      `SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE status = 'inprogress' OR status = 'inprocess') as inprogress,
+        COUNT(*) FILTER (WHERE status = 'success') as success,
+        COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
+      FROM upload_queue ${whereSQL}`,
+      values.slice(0, values.length - 2)
+    );
+    const summary = summaryRes.rows[0];
     await logAudit('AUDIT', `Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, 'API:UploadQueue:Get', actingUserId, { 
       limit, 
       offset, 
@@ -178,7 +189,7 @@ export async function GET(request: NextRequest) {
       returnedCount: dataRes.rows.length 
     });
     
-    return NextResponse.json({ data: dataRes.rows, total: parseInt(countRes.rows[0].count, 10) });
+    return NextResponse.json({ data: dataRes.rows, total: parseInt(countRes.rows[0].count, 10), summary });
   } catch (error) {
     await logAudit('ERROR', `Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:Get', actingUserId);
     throw error;

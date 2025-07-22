@@ -68,7 +68,7 @@ const updateCandidateSchema = z.object({
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(100).optional(),
+  fitScore: z.number().min(0).max(1).optional(),
   status: z.string().min(1).optional(),
   assignmentJustification: z.string().optional().nullable(),
   parsedData: z.record(z.any()).optional().nullable(),
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: normalizeFitScore(match.fitScore),
+        fitScore: match.fitScore,
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
       custom_attributes: candidate.customAttributes || {},

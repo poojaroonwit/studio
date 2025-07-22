@@ -1522,8 +1522,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(edu) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                               <Badge className={(() => {
+                                 const grade = getScoreGrade(edu.fitScore);
+                                 switch (grade) {
+                                   case 'A': return 'bg-gray-400 text-white';
+                                   case 'B': return 'bg-yellow-400 text-black';
+                                   case 'C': return 'bg-lime-400 text-black';
+                                   case 'D': return 'bg-green-200 text-black';
+                                   case 'E': return 'bg-green-500 text-white';
+                                   default: return 'bg-gray-200 text-gray-700';
+                                 }
+                               })()}>
+                                 {`${formatScoreWithGrade(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
+                               </Badge>
                              </div>
                            )}
                          </div>
@@ -1610,8 +1621,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(edu) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                               <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                               <Badge className={(() => {
+                                 const grade = getScoreGrade(edu.fitScore);
+                                 switch (grade) {
+                                   case 'A': return 'bg-gray-400 text-white';
+                                   case 'B': return 'bg-yellow-400 text-black';
+                                   case 'C': return 'bg-lime-400 text-black';
+                                   case 'D': return 'bg-green-200 text-black';
+                                   case 'E': return 'bg-green-500 text-white';
+                                   default: return 'bg-gray-200 text-gray-700';
+                                 }
+                               })()}>
+                                 {`${formatScoreWithGrade(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
+                               </Badge>
                              </div>
                            )}
                          </div>
@@ -1701,8 +1723,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(exp) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                               <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                               <Badge className={(() => {
+                                 const grade = getScoreGrade(exp.fitScore);
+                                 switch (grade) {
+                                   case 'A': return 'bg-gray-400 text-white';
+                                   case 'B': return 'bg-yellow-400 text-black';
+                                   case 'C': return 'bg-lime-400 text-black';
+                                   case 'D': return 'bg-green-200 text-black';
+                                   case 'E': return 'bg-green-500 text-white';
+                                   default: return 'bg-gray-200 text-gray-700';
+                                 }
+                               })()}>
+                                 {`${formatScoreWithGrade(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
+                               </Badge>
                              </div>
                            )}
                          </div>
@@ -1808,8 +1841,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(exp) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                               <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
+                               <Badge className={(() => {
+                                 const grade = getScoreGrade(exp.fitScore);
+                                 switch (grade) {
+                                   case 'A': return 'bg-gray-400 text-white';
+                                   case 'B': return 'bg-yellow-400 text-black';
+                                   case 'C': return 'bg-lime-400 text-black';
+                                   case 'D': return 'bg-green-200 text-black';
+                                   case 'E': return 'bg-green-500 text-white';
+                                   default: return 'bg-gray-200 text-gray-700';
+                                 }
+                               })()}>
+                                 {`${formatScoreWithGrade(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
+                               </Badge>
                              </div>
                            )}
                          </div>
@@ -1853,12 +1897,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                {getParsedDataProperty('skills')?.length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No skills provided.</div>
                )}
-               {getParsedDataProperty('skills')?.map((skill: any, index: number) => (
-                 <div key={index} className="p-3 border rounded-md bg-muted/30">
-                   <h4 className="font-semibold text-foreground mb-2">{skill.segment_skill || 'Skills'}</h4>
-                   <p className="text-sm text-muted-foreground">{skill.skill_string || 'No skills listed'}</p>
-                 </div>
-               ))}
+               {getParsedDataProperty('skills')?.map((skill: any, index: number) => {
+                 // DEBUG LOGGING
+                 console.log('Skill entry at index', index, skill, 'Type:', typeof skill);
+                 return (
+                   <div key={index} className="p-3 border rounded-md bg-muted/30">
+                     <h4 className="font-semibold text-foreground mb-2">{skill.segment_skill || 'Skills'}</h4>
+                     <p className="text-sm text-muted-foreground">{skill.skill_string || 'No skills listed'}</p>
+                   </div>
+                 );
+               })}
              </div>
            )}
          </div>

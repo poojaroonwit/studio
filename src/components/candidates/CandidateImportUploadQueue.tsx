@@ -108,6 +108,7 @@ export const CandidateImportUploadQueue: React.FC<{
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
   const { data: session } = useSession();
   const isFetchingRef = useRef(false);
+  const [summary, setSummary] = useState<any>(null);
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
@@ -145,10 +146,11 @@ export const CandidateImportUploadQueue: React.FC<{
         } catch {}
         throw new Error(errorMsg);
       }
-      const { data, total } = await res.json();
+      const { data, total, summary } = await res.json();
       if (isMounted) {
         setJobs(Array.isArray(data) ? data : []);
         setTotal(total);
+        setSummary(summary || null);
       }
     } catch (err) {
       if (isMounted) {
@@ -442,14 +444,12 @@ export const CandidateImportUploadQueue: React.FC<{
     return matchesName && matchesStatus && inDateRange;
   });
 
-  // Status counts - Updated to use filtered jobs
-  const numQueued = filteredJobs.filter(j => j.status === 'queued').length;
-  const numInProgress = filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess').length;
-  const numSuccess = filteredJobs.filter(j => j.status === 'success').length;
-  const numError = filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
-
-  // Total filtered jobs (across all pages)
-  const totalFilteredJobs = filteredJobs.length;
+  // Status counts - Use summary if available, else fallback to filteredJobs
+  const numQueued = summary ? Number(summary.queued) : filteredJobs.filter(j => j.status === 'queued').length;
+  const numInProgress = summary ? Number(summary.inprogress) : filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess').length;
+  const numSuccess = summary ? Number(summary.success) : filteredJobs.filter(j => j.status === 'success').length;
+  const numError = summary ? Number(summary.error) : filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
+  const totalFilteredJobs = summary ? Number(summary.total) : filteredJobs.length;
 
   // Collect all unique statuses from jobs for the filter dropdown
   const allStatuses = Array.from(new Set(jobs.map(j => j.status))).sort();
@@ -671,7 +671,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">All Jobs</p>
-                  <p className="text-2xl font-bold text-foreground">{jobs.length}</p>
+                  <p className="text-2xl font-bold text-foreground">{totalFilteredJobs}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">A</span>
@@ -688,7 +688,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Queue</p>
-                  <p className="text-2xl font-bold text-foreground">{numQueued} / {totalFilteredJobs}</p>
+                  <p className="text-2xl font-bold text-foreground">{numQueued}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">Q</span>
@@ -705,7 +705,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">In Process</p>
-                  <p className="text-2xl font-bold text-foreground">{numInProgress} / {totalFilteredJobs}</p>
+                  <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">P</span>
@@ -722,7 +722,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Success</p>
-                  <p className="text-2xl font-bold text-foreground">{numSuccess} / {totalFilteredJobs}</p>
+                  <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <CheckCircle className="h-4 w-4 text-white" />
@@ -739,7 +739,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Error</p>
-                  <p className="text-2xl font-bold text-foreground">{numError} / {totalFilteredJobs}</p>
+                  <p className="text-2xl font-bold text-foreground">{numError}</p>
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <XCircle className="h-4 w-4 text-white" />
@@ -775,6 +775,7 @@ export const CandidateImportUploadQueue: React.FC<{
               <TableHead>File Name</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Process Date</TableHead>
               <TableHead>Completed Date</TableHead>
               <TableHead>Upload Date</TableHead>
               <TableHead>Actions</TableHead>
@@ -851,6 +852,7 @@ export const CandidateImportUploadQueue: React.FC<{
                         );
                       })()}
                     </TableCell>
+                    <TableCell>{item.process_date ? format(new Date(item.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</TableCell>
                     <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
                     <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
                     <TableCell className="flex gap-1">

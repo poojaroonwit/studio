@@ -22,15 +22,7 @@ const updateCandidateSchema = z.object({
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(100).optional().transform((val) => {
-    if (val === undefined) return val;
-    // If the value is between 0 and 1, convert it to percentage (0-100)
-    if (val > 0 && val <= 1) {
-      return Math.round(val * 100);
-    }
-    // If the value is already in percentage format (0-100), use it as is
-    return Math.round(val);
-  }),
+  fitScore: z.number().min(0).max(1).optional(),
   status: z.string().min(1).optional(),
   parsedData: z.record(z.any()).optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
@@ -62,23 +54,13 @@ const updateCandidateSchema = z.object({
   
   // Job matches and applied job updates
   job_matches: z.array(z.object({
-    fitScore: z.number().min(0).max(100).transform((val) => {
-      // Accept 0-100 from client, convert to 0-1 for storage
-      return Math.max(0, Math.min(1, val / 100));
-    }),
+    fitScore: z.number().min(0).max(1),
     jobId: z.string().uuid(),
     matchReasons: z.array(z.string()).optional().default([]),
   })).optional(),
   
   job_applied: z.object({
-    fitScore: z.number().min(0).max(100).transform((val) => {
-      // If the value is between 0 and 1, convert it to percentage (0-100)
-      if (val > 0 && val <= 1) {
-        return Math.round(val * 100);
-      }
-      // If the value is already in percentage format (0-100), use it as is
-      return Math.round(val);
-    }),
+    fitScore: z.number().min(0).max(1),
     jobId: z.string().uuid(),
     justification: z.array(z.string()).optional().default([]),
   }).optional(),
@@ -136,7 +118,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
-        fitScore: match.fitScore != null ? Math.round(match.fitScore * 100) : null,
+        fitScore: match.fitScore,
       })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);
@@ -217,9 +199,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     // Extract fitScore from top-level fitScore, or fallback to job_applied.fitScore for backward compatibility
     let fitScoreToUpdate: number | undefined = undefined;
     if (typeof updateData.fitScore === 'number') {
-      fitScoreToUpdate = Math.round(updateData.fitScore);
+      fitScoreToUpdate = updateData.fitScore;
     } else if (updateData.job_applied && typeof updateData.job_applied.fitScore === 'number') {
-      fitScoreToUpdate = Math.round(updateData.job_applied.fitScore);
+      fitScoreToUpdate = updateData.job_applied.fitScore;
     }
     if (typeof fitScoreToUpdate === 'number') {
       updateFields.push(`"fitScore" = $${paramIndex++}`);

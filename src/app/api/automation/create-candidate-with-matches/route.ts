@@ -10,11 +10,7 @@ export const dynamic = "force-dynamic";
 const jobMatchSchema = z.object({
   jobId: z.string().optional(),
   jobTitle: z.string().optional(),
-  fitScore: z.number().optional().transform(val => {
-    if (val === null || val === undefined) return null;
-    // Accept 0-100 from client, convert to 0-1 for storage
-    return Math.max(0, Math.min(1, val / 100));
-  }),
+  fitScore: z.number().min(0).max(1).optional(),
   matchReasons: z.array(z.string()).optional(),
   job_description_summary: z.string().optional(),
 });

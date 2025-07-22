@@ -40,7 +40,7 @@ const importCandidateSchema = z.object({
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
-  fitScore: z.number().min(0).max(100).optional(),
+  fitScore: z.number().min(0).max(1).optional(),
   status: z.string().min(1).optional(),
   parsedData: z.any().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
@@ -77,7 +77,8 @@ function parseFitScoreSafely(scoreString: string | null | undefined): number | n
   if (isNaN(score) || score < 0 || score > 100) {
     throw new Error(`Invalid fit score: ${scoreString}. Must be a number between 0-100.`);
   }
-  return score;
+  // If score > 1, treat as percentage and divide by 100; else use as-is
+  return score > 1 ? score / 100 : score;
 }
 
 // Helper function to transform template data to internal format

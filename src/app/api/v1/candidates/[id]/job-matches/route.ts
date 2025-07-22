@@ -8,11 +8,7 @@ import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 
 const jobMatchSchema = z.object({
-  fitScore: z.number().min(0).max(100).optional().transform(val => {
-    // Accept 0-100 from client, convert to 0-1 for storage
-    if (val === undefined || val === null) return null;
-    return Math.max(0, Math.min(1, val / 100));
-  }),
+  fitScore: z.number().min(0).max(1).optional(),
   jobId: z.string().uuid().optional(),
   matchReasons: z.array(z.string()).optional().default([]),
   // Note: positionTitle, createdAt, and updatedAt are automatically handled
@@ -58,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     
     const jobMatches = jobMatchesResult.rows.map(match => ({
       id: match.id,
-      fitScore: match.fitScore != null ? Math.round(match.fitScore * 100) : null, // Convert 0-1 to 0-100
+      fitScore: match.fitScore,
       jobId: match.jobId,
       matchReasons: match.matchReasons || [],
       positionTitle: match.positionTitle,
@@ -215,7 +211,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const processedMatch = result.rows[0];
         insertedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
+          fitScore: processedMatch.fitScore,
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -380,7 +376,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         const processedMatch = result.rows[0];
         updatedMatches.push({
           id: processedMatch.id,
-          fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
+          fitScore: processedMatch.fitScore,
           jobId: processedMatch.jobId || null,
           matchReasons: processedMatch.matchReasons || [],
         });
@@ -477,7 +473,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       const processedMatch = result.rows[0];
       insertedMatches.push({
         id: processedMatch.id,
-        fitScore: processedMatch.fitScore != null ? Math.round(processedMatch.fitScore * 100) : null, // 0-1 to 0-100
+        fitScore: processedMatch.fitScore,
         jobId: processedMatch.jobId || null,
         matchReasons: processedMatch.matchReasons || [],
       });

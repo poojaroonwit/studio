@@ -167,7 +167,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">Match Score:</span>
                       <Badge variant="outline" className="text-primary border-primary">
-                        {jobMatch.fitScore}/100
+                        {formatScoreWithGrade(jobMatch.fitScore)}
                       </Badge>
                     </div>
                   </div>

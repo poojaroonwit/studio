@@ -190,13 +190,13 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
               <span className="font-medium text-foreground">
-                {candidate.fitScore === 0 ? 'Not scored' : `${candidate.fitScore}%`}
+                {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                style={{ width: `${candidate.fitScore}%` }}
+                style={{ width: `${Math.round(Math.max(0, Math.min(1, candidate.fitScore)) * 100)}%` }}
               ></div>
             </div>
           </div>
@@ -1094,7 +1094,7 @@ export function SingleRowCandidateView({
                   <div className="w-full bg-muted rounded-full h-2">
                     <div 
                       className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(currentCandidate.fitScore))}
-                      style={{ width: `${currentCandidate.fitScore}%` }}
+                      style={{ width: `${Math.round(Math.max(0, Math.min(1, currentCandidate.fitScore)) * 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -1411,7 +1411,7 @@ export function SingleRowKanbanView({
                       <div className="w-full bg-muted rounded-full h-3">
                         <div 
                           className={cn("h-3 rounded-full transition-all duration-300", getScoreBgColor(currentCandidate.fitScore))}
-                          style={{ width: `${currentCandidate.fitScore}%` }}
+                          style={{ width: `${Math.round(Math.max(0, Math.min(1, currentCandidate.fitScore)) * 100)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -1598,7 +1598,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                     <div className="w-full bg-muted rounded-full h-1">
                                       <div 
                                         className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                        style={{ width: `${candidate.fitScore}%` }}
+                                        style={{ width: `${Math.round(Math.max(0, Math.min(1, candidate.fitScore)) * 100)}%` }}
                                       ></div>
                                     </div>
                                   </div>

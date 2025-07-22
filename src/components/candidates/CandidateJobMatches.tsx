@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AutomationJobMatch } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { formatScoreWithGrade } from '@/lib/utils';
 
 interface CandidateJobMatchesProps {
   jobMatches: AutomationJobMatch[];
@@ -17,7 +18,7 @@ const CandidateJobMatches: React.FC<CandidateJobMatchesProps> = ({ jobMatches })
           <ul>
             {jobMatches.map((match, idx) => (
               <li key={idx}>
-                {match.jobTitle} (Fit Score: {match.fitScore}%)
+                {match.jobTitle} (Fit Score: {formatScoreWithGrade(match.fitScore)})
               </li>
             ))}
           </ul>

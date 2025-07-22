@@ -199,7 +199,46 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     // Handle unique constraint violation for email
     if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      return handleApiError(request, createConflictError('A candidate with this email already exists.'));
+      // Instead of returning 409, update the existing candidate
+      try {
+        const existingCandidate = await prisma.candidate.findUnique({
+          where: { email: email.toLowerCase() },
+        });
+        if (!existingCandidate) {
+          // Should not happen, but fallback to error
+          return handleApiError(request, createConflictError('A candidate with this email already exists, but could not be found for update.'));
+        }
+        const updatedCandidate = await prisma.candidate.update({
+          where: { id: existingCandidate.id },
+          data: {
+            name: name,
+            phone: contactInfo.phone || null,
+            status: appliedStage,
+            fitScore: fitScore,
+            parsedData: parsedData,
+            updatedAt: new Date(),
+          },
+        });
+        return createSuccessResponse(request, {
+          message: 'Candidate updated successfully',
+          candidate: {
+            id: updatedCandidate.id,
+            name: updatedCandidate.name,
+            email: updatedCandidate.email,
+            phone: updatedCandidate.phone,
+            status: updatedCandidate.status,
+            parsedData: updatedCandidate.parsedData,
+            applicationDate: updatedCandidate.applicationDate,
+            createdAt: updatedCandidate.createdAt,
+            updatedAt: updatedCandidate.updatedAt,
+          }
+        }, 200);
+      } catch (updateError: any) {
+        return handleApiError(request, createInternalServerError('Error updating existing candidate', {
+          originalError: (updateError as Error).message,
+          stack: (updateError as Error).stack,
+        }));
+      }
     }
     // Enhanced error logging for debugging
     return handleApiError(request, createInternalServerError('Error creating candidate', {

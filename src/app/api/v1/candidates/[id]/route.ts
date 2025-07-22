@@ -57,6 +57,7 @@ const updateCandidateSchema = z.object({
     job_suitable: z.array(z.any()).optional(),
     cv_language: z.string().optional().nullable(),
     status: z.string().optional(),
+    fitScore: z.number().optional(), // <-- Added this line
   }).optional(),
   
   // Job matches and applied job updates
@@ -217,19 +218,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateValues.push(updateData.recruiterId);
     }
     
-    if (updateData.fitScore !== undefined) {
-      updateFields.push(`"fitScore" = $${paramIndex++}`);
-      updateValues.push(Math.round(updateData.fitScore));
+    // Extract fitScore from top-level fitScore, or fallback to job_applied.fitScore for backward compatibility
+    let fitScoreToUpdate: number | undefined = undefined;
+    if (typeof updateData.fitScore === 'number') {
+      fitScoreToUpdate = Math.round(updateData.fitScore);
+    } else if (updateData.job_applied && typeof updateData.job_applied.fitScore === 'number') {
+      fitScoreToUpdate = Math.round(updateData.job_applied.fitScore);
     }
-    // Extract fitScore from candidate_info or candidate_info.job_applied if present
-    if (updateData.candidate_info) {
-      if (typeof updateData.candidate_info.fitScore === 'number') {
-        updateFields.push(`"fitScore" = $${paramIndex++}`);
-        updateValues.push(Math.round(updateData.candidate_info.fitScore));
-      } else if (updateData.candidate_info.job_applied && typeof updateData.candidate_info.job_applied.fitScore === 'number') {
-        updateFields.push(`"fitScore" = $${paramIndex++}`);
-        updateValues.push(Math.round(updateData.candidate_info.job_applied.fitScore));
-      }
+    if (typeof fitScoreToUpdate === 'number') {
+      updateFields.push(`"fitScore" = $${paramIndex++}`);
+      updateValues.push(fitScoreToUpdate);
     }
     
     if (updateData.status !== undefined) {

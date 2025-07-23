@@ -549,15 +549,22 @@ export function CandidatesPageClient({
     // 2. No server errors
     // 3. No initial data provided
     // 4. Haven't already fetched
-    if (sessionStatus === 'authenticated' && 
-        !serverAuthError && 
-        !serverPermissionError && 
-        safeInitialCandidates.length === 0 && 
-        !hasInitialDataFetch) {
+    if (
+      sessionStatus === 'authenticated' &&
+      !serverAuthError &&
+      !serverPermissionError &&
+      safeInitialCandidates.length === 0 &&
+      !hasInitialDataFetch
+    ) {
       setHasInitialDataFetch(true);
       fetchPaginatedCandidates(filters, page, pageSize);
     }
   }, [sessionStatus, serverAuthError, serverPermissionError, safeInitialCandidates.length, initialFetchError, hasInitialDataFetch, fetchPaginatedCandidates, filters, page, pageSize]);
+
+  // Reset hasInitialDataFetch on client-side navigation (pathname change)
+  useEffect(() => {
+    setHasInitialDataFetch(false);
+  }, [pathname]);
 
 
 
@@ -941,28 +948,36 @@ export function CandidatesPageClient({
   const handleAddCandidateSubmit = async (formData: AddCandidateFormValues) => {
     setIsLoading(true);
     try {
-      const apiPayload = {
-        candidate_info: {
-          personal_info: formData.personal_info,
-          contact_info: formData.contact_info,
-          education: formData.education,
-          experience: formData.experience?.map(exp => ({
-            ...exp,
-            positionLevel: exp.positionLevel === "___NOT_SPECIFIED___" || exp.positionLevel === null ? undefined : exp.positionLevel
-          })),
-          skills: formData.skills?.map(s => ({
-            segment_skill: s.segment_skill,
-            skill: s.skill_string?.split(',').map(sk => sk.trim()).filter(sk => sk) || []
-          })),
-          job_suitable: formData.job_suitable,
-          cv_language: formData.cv_language,
-          status: formData.status,
-          // Add any other fields needed
-        },
-        // Add job_matches and job_applied if available in formData
-        ...(formData.job_matches ? { job_matches: formData.job_matches } : {}),
-        ...(formData.job_applied ? { job_applied: formData.job_applied } : {}),
+      // v1 API expects this structure:
+      // {
+      //   candidate_info: { personal_info, contact_info, cv_language, skills, job_suitable, status, ... },
+      //   educationData: [...],
+      //   experienceData: [...],
+      //   ...
+      // }
+      const candidate_info = {
+        personal_info: formData.personal_info,
+        contact_info: formData.contact_info,
+        cv_language: formData.cv_language,
+        skills: formData.skills?.map(s => ({
+          segment_skill: s.segment_skill,
+          skill: s.skill_string?.split(',').map(sk => sk.trim()).filter(sk => sk) || []
+        })),
+        job_suitable: formData.job_suitable,
+        status: formData.status,
+        fitScore: formData.fitScore,
+        job_matches: formData.job_matches,
+        job_applied: formData.job_applied,
         applicationDate: formData.applicationDate,
+      };
+      const apiPayload = {
+        candidate_info,
+        educationData: formData.education || [],
+        experienceData: formData.experience?.map(exp => ({
+          ...exp,
+          positionLevel: exp.positionLevel === "___NOT_SPECIFIED___" || exp.positionLevel === null ? undefined : exp.positionLevel
+        })) || [],
+        // v1 API may expect job_matches/job_applied at top level as well, but they're included in candidate_info above
       };
       const response = await fetch('/api/candidates', {
         method: 'POST',
@@ -1448,6 +1463,15 @@ export function CandidatesPageClient({
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
         {isMissingTableError && ( <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> <p className="font-semibold">It looks like a required database table (e.g., &quot;Candidate&quot;, &quot;Position&quot;, &quot;User&quot;, &quot;RecruitmentStage&quot;) is missing or not accessible.</p> <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> </div> )}
         <Button onClick={() => fetchPaginatedCandidates(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
+      </div>
+    );
+  }
+
+  // Show loading spinner while session is loading
+  if (sessionStatus === 'loading') {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }

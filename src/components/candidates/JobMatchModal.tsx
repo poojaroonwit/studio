@@ -38,11 +38,6 @@ interface JobMatchModalProps {
       isOpen: boolean;
     };
   } | null;
-  statistics?: {
-    totalApplied: number;
-    totalMatching: number;
-    matchingNotApplied: number;
-  } | undefined;
 }
 
 // Utility for displaying fitScore as a percentage and grade
@@ -59,11 +54,11 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   return `${percent}% (${grade})`;
 }
 
-export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }: JobMatchModalProps) {
+export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchModalProps) {
   const router = useRouter();
   const [loadingStats, setLoadingStats] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [stats, setStats] = useState(statistics || {
+  const [stats, setStats] = useState({
     totalApplied: 0,
     totalMatching: 0,
     matchingNotApplied: 0
@@ -163,12 +158,6 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                       <span className="font-medium">Status:</span>
                       <Badge variant={jobMatch.position?.isOpen ? "default" : "secondary"}>
                         {jobMatch.position?.isOpen ? 'Open' : 'Closed'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">Match Score:</span>
-                      <Badge variant="outline" className="text-primary border-primary">
-                        {displayFitScoreWithGrade(jobMatch.fitScore)}
                       </Badge>
                     </div>
                   </div>

@@ -126,7 +126,7 @@ const MenuItemWithTooltip = ({ children, label }: { children: React.ReactNode; l
         <TooltipTrigger asChild>
           {children}
         </TooltipTrigger>
-        <TooltipContent side="right" className="z-[99999]">{label}</TooltipContent>
+        <TooltipContent side="right" className="z-[100]">{label}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

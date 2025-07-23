@@ -37,6 +37,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
+import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
+import CandidateDetailModal from './CandidateDetailModal';
 
 
 interface CandidateTableProps {
@@ -98,17 +100,6 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   else if (percent >= 40) grade = 'C';
   else if (percent >= 20) grade = 'D';
   return `${percent}% (${grade})`;
-}
-
-function getFitScoreBadgeColor(score: number | undefined | null) {
-  if (typeof score !== 'number' || isNaN(score)) return 'bg-gray-200 text-gray-700';
-  let percent = score;
-  if (score >= 0 && score <= 1) percent = score * 100;
-  if (percent >= 80) return 'bg-green-500 text-white'; // A
-  if (percent >= 60) return 'bg-yellow-400 text-black'; // B
-  if (percent >= 40) return 'bg-lime-400 text-black'; // C
-  if (percent >= 20) return 'bg-green-200 text-black'; // D
-  return 'bg-gray-200 text-gray-700'; // E
 }
 
 export function CandidateTable({
@@ -526,13 +517,14 @@ export function CandidateTable({
                   <TableCell key={`${candidate.id}-position`}>
                     {candidate.position?.title ? (
                       <div className="space-y-1">
-                        <span
-                          className="font-medium text-primary hover:underline cursor-pointer"
-                          onClick={() => handleEditPositionClick(candidate.positionId)}
-                          title={`Edit ${candidate.position.title}`}
-                        >
-                          {candidate.position.title}
-                        </span>
+                        <Link href={`/positions/${candidate.positionId || candidate.position?.id}`} passHref>
+                          <span
+                            className="font-medium text-primary hover:underline cursor-pointer"
+                            title={`Go to ${candidate.position.title}`}
+                          >
+                            {candidate.position.title}
+                          </span>
+                        </Link>
                       </div>
                     ) : candidate.positionId ? (
                       <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
@@ -542,13 +534,10 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
-                      {/* Always show fitScore if defined */}
                       {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                        <Badge
-                          className={`min-w-[48px] justify-center ${getFitScoreBadgeColor(candidate.fitScore)}`}
-                        >
+                        <ScoreBadge score={candidate.fitScore}>
                           {displayFitScoreWithGrade(candidate.fitScore)}
-                        </Badge>
+                        </ScoreBadge>
                       ) : (
                         <span className="text-xs text-muted-foreground">No job applied</span>
                       )}
@@ -593,10 +582,8 @@ export function CandidateTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem key="view-details" asChild>
-                          <Link href={`/candidates/${candidate.id}`}>
-                            <Eye className="mr-2 h-4 w-4" /> View Details
-                          </Link>
+                        <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
+                          <Eye className="mr-2 h-4 w-4" /> View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
                           <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
@@ -685,13 +672,14 @@ export function CandidateTable({
                             <TableCell key={`${candidate.id}-position`}>
                               {candidate.position?.title ? (
                                 <div className="space-y-1">
-                                  <span
-                                    className="font-medium text-primary hover:underline cursor-pointer"
-                                    onClick={() => handleEditPositionClick(candidate.positionId)}
-                                    title={`Edit ${candidate.position.title}`}
-                                  >
-                                    {candidate.position.title}
-                                  </span>
+                                  <Link href={`/positions/${candidate.positionId || candidate.position?.id}`} passHref>
+                                    <span
+                                      className="font-medium text-primary hover:underline cursor-pointer"
+                                      title={`Go to ${candidate.position.title}`}
+                                    >
+                                      {candidate.position.title}
+                                    </span>
+                                  </Link>
                                 </div>
                               ) : candidate.positionId ? (
                                 <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
@@ -701,13 +689,10 @@ export function CandidateTable({
                             </TableCell>
                             <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                               <div className="flex items-center gap-2">
-                                {/* Always show fitScore if defined */}
                                 {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                                  <Badge
-                                    className={`min-w-[48px] justify-center ${getFitScoreBadgeColor(candidate.fitScore)}`}
-                                  >
+                                  <ScoreBadge score={candidate.fitScore}>
                                     {displayFitScoreWithGrade(candidate.fitScore)}
-                                  </Badge>
+                                  </ScoreBadge>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">No job applied</span>
                                 )}
@@ -752,10 +737,8 @@ export function CandidateTable({
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem key="view-details" asChild>
-                                    <Link href={`/candidates/${candidate.id}`}>
-                                      <Eye className="mr-2 h-4 w-4" /> View Details
-                                    </Link>
+                                  <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
+                                    <Eye className="mr-2 h-4 w-4" /> View Details
                                   </DropdownMenuItem>
                                   <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
                                     <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
@@ -788,14 +771,13 @@ export function CandidateTable({
           </TableBody>
         </Table>
       </div>
-      {/* Remove CandidateDetailModal from the list page */}
-      {/*
-      <CandidateDetailModal
-        candidateId={selectedCandidateSummary.id}
-        open={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-      />
-      */}
+      {selectedCandidateSummary && (
+        <CandidateDetailModal
+          candidateId={selectedCandidateSummary.id}
+          open={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+        />
+      )}
       <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => { if(!open) setCandidateToDelete(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

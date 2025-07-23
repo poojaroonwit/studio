@@ -6,10 +6,21 @@ import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateResumeUpdate } from '@/lib/candidateSse';
+import { z } from 'zod';
 
 // GET: List resumes for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
+  // Validate candidate ID format
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
+  }
+  // Check if candidate exists
+  const candidate = await prisma.candidate.findUnique({ where: { id } });
+  if (!candidate) {
+    return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+  }
   try {
     const attachments = await prisma.attachment.findMany({
       where: { candidateId: id },
@@ -23,7 +34,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }));
     return NextResponse.json({ data: attachmentsWithUrl });
   } catch (err) {
-    return NextResponse.json({ message: 'Error fetching attachments', error: String(err) }, { status: 500 });
+    console.error(`[GET /api/candidates/${id}/resumes] Error:`, err);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
 

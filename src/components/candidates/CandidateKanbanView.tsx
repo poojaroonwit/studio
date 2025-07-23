@@ -1486,7 +1486,14 @@ export function SingleRowKanbanView({
 
       {/* Candidate Detail Modal - only show if onCardClick is not provided */}
       {!onCardClick && selectedCandidateSummary && (
-        <FullCandidateDetail candidateId={selectedCandidateSummary.id} isModal={true} onClose={() => setIsModalOpen(false)} />
+        <FullCandidateDetail 
+          candidateId={selectedCandidateSummary.id} 
+          isModal={true} 
+          onClose={() => setIsModalOpen(false)} 
+          comments={[]} 
+          resumes={[]} 
+          onRefresh={() => {}} 
+        />
       )}
     </>
   );

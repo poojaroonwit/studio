@@ -295,23 +295,21 @@ export function AppLayout({ children }: AppLayoutProps) {
   );
 }
 
-// Component for the expand/collapse button
+// Restore SidebarToggleButton, but only show when sidebar is collapsed
 function SidebarToggleButton() {
   const { open, toggleSidebar } = useSidebar();
   const [mounted, setMounted] = useState(false);
-  
-  // Ensure component is mounted before showing
+
   useEffect(() => {
     setMounted(true);
   }, []);
-  
-  // Don't render until mounted to prevent hydration issues
-  if (!mounted) {
+
+  if (!mounted || open) {
     return null;
   }
-  
+
   return (
-    <div className={`fixed top-2 transform -translate-x-1/2 z-[99999] transition-all duration-200 ${open ? 'left-[var(--sidebar-width,16rem)]' : 'left-[var(--sidebar-width-icon,4rem)]'}`}>
+    <div className={`fixed top-[12px] left-[var(--sidebar-width-icon,4rem)] z-[100] transition-all duration-200`}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -319,13 +317,13 @@ function SidebarToggleButton() {
               variant="ghost"
               size="icon"
               onClick={toggleSidebar}
-              aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-              className="rounded-full bg-red-500 hover:bg-red-600 text-white border-2 border-red-600 shadow-lg h-8 w-8"
+              aria-label="Expand sidebar"
+              className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8"
             >
-              {open ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="right">{open ? "Collapse sidebar" : "Expand sidebar"}</TooltipContent>
+          <TooltipContent side="right">Expand sidebar</TooltipContent>
         </Tooltip>
       </TooltipProvider>
     </div>

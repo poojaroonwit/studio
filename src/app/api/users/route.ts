@@ -103,24 +103,31 @@ export async function GET(request: NextRequest) {
       whereConditions.email = { contains: filterEmailInput, mode: 'insensitive' };
     }
 
-    const users = await prisma.user.findMany({
-      where: whereConditions,
-      include: {
-        userGroups: {
-          include: {
-            group: {
-              select: {
-                id: true,
-                name: true
+    let users = [];
+    try {
+      users = await prisma.user.findMany({
+        where: whereConditions,
+        include: {
+          userGroups: {
+            include: {
+              group: {
+                select: {
+                  id: true,
+                  name: true
+                }
               }
             }
           }
+        },
+        orderBy: {
+          name: 'asc'
         }
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
+      });
+    } catch (err) {
+      // If the table or fields are missing, return empty array
+      console.error('User table or fields missing:', err);
+      return NextResponse.json([], { status: 200 });
+    }
 
     const usersToReturn = users.map((user: any) => ({
       ...user,
@@ -131,10 +138,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Failed to fetch users (Prisma Error):", error);
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
-    await logAudit('ERROR', `Failed to fetch users by ${userNameForLog}. Prisma Error: ${(error as Error).message}`, 'API:Users:Get', session.user.id);
+    await logAudit('ERROR', `Failed to fetch users by ${userNameForLog}. Prisma Error: ${(error instanceof Error ? error.message : String(error))}`, 'API:Users:Get', session.user.id);
     return NextResponse.json({ 
         message: "Error fetching users due to a server-side database error.", 
-        error: (error as Error).message
+        error: (error instanceof Error ? error.message : String(error))
     }, { status: 500 });
   }
 }

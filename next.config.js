@@ -3,7 +3,7 @@ import process from 'process';
 
 function getMinioRemotePattern() {
   // Try to get MinIO public URL and bucket from env
-  const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:8721';
+  const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:8621';
   const minioBucket = process.env.NEXT_PUBLIC_MINIO_BUCKET || 'studio-production';
   try {
     const url = new URL(minioUrl);
@@ -18,7 +18,7 @@ function getMinioRemotePattern() {
     return {
       protocol: 'http',
       hostname: 'localhost',
-      port: '8721',
+      port: '8621',
       pathname: '/studio-production/settings/**',
     };
   }
@@ -58,7 +58,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8721',
+        port: '8621',
         pathname: '/studio-production/settings/**',
       },
       {

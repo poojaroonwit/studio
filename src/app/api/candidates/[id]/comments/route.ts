@@ -7,6 +7,7 @@ import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateCommentUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { z } from 'zod';
 
 // Helper to get attachment info by IDs
 async function getAttachmentsByIds(ids: string[]) {
@@ -24,6 +25,16 @@ async function getAttachmentsByIds(ids: string[]) {
 // GET: List comments for a candidate (with attachments)
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;
+  // Validate candidate ID format
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
+  }
+  // Check if candidate exists
+  const candidate = await prisma.candidate.findUnique({ where: { id } });
+  if (!candidate) {
+    return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
+  }
   try {
     const comments = await prisma.candidateComment.findMany({
       where: { candidateId: id },
@@ -37,7 +48,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     })));
     return NextResponse.json({ data: commentsWithAttachments });
   } catch (err) {
-    return NextResponse.json({ message: 'Error fetching comments', error: String(err) }, { status: 500 });
+    console.error(`[GET /api/candidates/${id}/comments] Error:`, err);
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
 

@@ -65,7 +65,7 @@ export function ManageTransitionsModal({
   onOpenChange,
   onUpdateCandidate,
   onRefreshCandidateData,
-  availableStages,
+  availableStages: initialAvailableStages,
   preselectedStage,
   comments,
   onCommentsChange,
@@ -76,11 +76,28 @@ export function ManageTransitionsModal({
   const [statusSearchOpen, setStatusSearchOpen] = useState(false);
   const [statusSearchQuery, setStatusSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [stages, setStages] = useState<RecruitmentStage[]>(initialAvailableStages || []);
+  const [loadingStages, setLoadingStages] = useState(false);
+
+  // Fetch latest stages every time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingStages(true);
+      fetch('/api/settings/recruitment-stages')
+        .then(res => res.json())
+        .then(data => {
+          setStages(Array.isArray(data) ? data : []);
+          console.log('Fetched stages:', data); // Debug log
+        })
+        .catch(() => setStages([]))
+        .finally(() => setLoadingStages(false));
+    }
+  }, [isOpen]);
 
   const form = useForm<TransitionFormValues>({
     resolver: zodResolver(transitionFormSchema),
     defaultValues: {
-      newStatus: candidate?.status || (availableStages[0]?.name || 'Applied'),
+      newStatus: candidate?.status || (stages[0]?.name || 'Applied'),
       notes: '',
     },
   });
@@ -94,7 +111,7 @@ export function ManageTransitionsModal({
       setEditingTransitionId(null);
       setStatusSearchQuery('');
     }
-  }, [candidate, isOpen, form, availableStages, preselectedStage]);
+  }, [candidate, isOpen, form, stages, preselectedStage]);
 
   if (!candidate) return null;
 
@@ -184,8 +201,8 @@ export function ManageTransitionsModal({
   };
 
   const filteredStages = statusSearchQuery
-    ? availableStages.filter(stage => stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase()))
-    : availableStages;
+    ? stages.filter(stage => stage.name.toLowerCase().includes(statusSearchQuery.toLowerCase()))
+    : stages;
 
   return (
     <>
@@ -205,7 +222,6 @@ export function ManageTransitionsModal({
           </DialogHeader>
 
           <div className="grid grid-cols-1  gap-x-6 gap-y-4 py-4">
-           
               <h3 className="text-lg font-semibold mb-1 text-foreground">Add New Transition</h3>
               <p className="text-xs text-muted-foreground mb-3">
                 Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
@@ -215,10 +231,11 @@ export function ManageTransitionsModal({
                   <StageSelect
                     value={form.watch('newStatus')}
                     onChange={val => form.setValue('newStatus', val)}
-                    availableStages={availableStages}
+                    availableStages={stages}
                     label="New Stage"
                     error={form.formState.errors.newStatus?.message}
                   />
+                  {loadingStages && <div className="text-xs text-muted-foreground mt-1">Loading stages...</div>}
                 </div>
                 <div>
                   <Label htmlFor="notes" className="text-sm font-medium text-muted-foreground">Notes (Optional)</Label>
@@ -230,8 +247,6 @@ export function ManageTransitionsModal({
                   />
                 </div>
               </form>
-        
-            {/* Transition Activity Log removed */}
           </div>
 
           <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">

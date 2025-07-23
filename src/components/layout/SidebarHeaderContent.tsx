@@ -51,7 +51,7 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
     return <Package2 className="h-6 w-6" />;
   };
 
-  // Collapsed (icon) mode: show logo and toggle button
+  // Collapsed (icon) mode: show logo only, no toggle button (handled by floating button outside)
   if (!sidebarContext.open) {
     return (
       <div className="h-[var(--sidebar-width-icon)] flex flex-col justify-center items-center gap-2">
@@ -77,6 +77,15 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
         {renderLogo(false)}
         <span className="font-semibold text-lg">{currentAppName}</span>
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleToggle}
+        aria-label="Collapse sidebar"
+        className="rounded-full bg-transparent hover:bg-transparent shadow-lg h-8 w-8"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
     </div>
   );
 } 

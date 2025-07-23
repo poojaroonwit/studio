@@ -3,10 +3,16 @@ import prisma from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    // Fetch all candidates with their educationData
-    const candidates = await prisma.candidate.findMany({
-      select: { educationData: true },
-    });
+    let candidates = [];
+    try {
+      candidates = await prisma.candidate.findMany({
+        select: { educationData: true },
+      });
+    } catch (err) {
+      // If the field is missing or not JSON, return empty array
+      console.error('educationData field missing or not JSON:', err);
+      return NextResponse.json({ data: [] });
+    }
     // Extract all majors from all educationData arrays
     const majors = candidates.flatMap((candidate: any) => {
       if (!candidate.educationData || !Array.isArray(candidate.educationData)) return [];
@@ -18,6 +24,7 @@ export async function GET(req: NextRequest) {
     const uniqueMajors = Array.from(new Set(majors));
     return NextResponse.json({ data: uniqueMajors });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch majors' }, { status: 500 });
+    console.error('Failed to fetch majors:', error);
+    return NextResponse.json({ error: 'Failed to fetch majors', details: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 } 

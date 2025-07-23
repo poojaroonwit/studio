@@ -44,8 +44,10 @@ import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
+import { ScoreBadge } from '@/components/ui/score-color';
 
-const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8721`;
+
+const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
@@ -148,6 +150,9 @@ interface FullCandidateDetailProps {
   candidateId: string;
   isModal?: boolean;
   onClose?: () => void;
+  comments: any[];
+  resumes: any[];
+  onRefresh: () => void;
 }
 
 // Utility for displaying fitScore as a percentage
@@ -157,7 +162,7 @@ function displayFitScore(score: number | undefined | null) {
   return `${Math.round(score)}%`;
 }
 
-const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal = false, onClose }) => {
+const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal = false, onClose, comments, resumes, onRefresh }) => {
   // All hooks must be called before any return
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -167,8 +172,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
   const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
-  const [resumes, setResumes] = useState<any[]>([]);
-  const [comments, setComments] = useState<any[]>([]);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
@@ -305,55 +308,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     fetchCandidate();
   }, [candidateId, reset]);
 
-  // Fetch additional data
-  useEffect(() => {
-    if (!candidateId) return;
-
-    const fetchAdditionalData = async () => {
-      try {
-        // Fetch resumes
-        const resumesRes = await fetch(`/api/candidates/${candidateId}/resumes`);
-        if (resumesRes.ok) {
-          const resumesData = await resumesRes.json();
-          setResumes(Array.isArray(resumesData) ? resumesData : (resumesData.data || []));
-        }
-
-        // Fetch comments
-        const commentsRes = await fetch(`/api/candidates/${candidateId}/comments`);
-        if (commentsRes.ok) {
-          const commentsData = await commentsRes.json();
-          setComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
-        }
-
-        // Fetch positions
-        const positionsRes = await fetch('/api/positions/all');
-        if (positionsRes.ok) {
-          const positionsData = await positionsRes.json();
-          setAllDbPositions(positionsData.data || []);
-        }
-
-        // Fetch stages
-        const stagesRes = await fetch('/api/settings/recruitment-stages');
-        if (stagesRes.ok) {
-          const stagesData = await stagesRes.json();
-          setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
-        }
-
-        // Fetch recruiters
-        const recruitersRes = await fetch('/api/users?role=Recruiter');
-        if (recruitersRes.ok) {
-          const recruitersData = await recruitersRes.json();
-          setRecruiters(recruitersData.map((r: any) => ({ id: r.id, name: r.name })));
-          setFilteredRecruiters(recruitersData.map((r: any) => ({ id: r.id, name: r.name })));
-        }
-      } catch (err) {
-        console.error('Error fetching additional data:', err);
-      }
-    };
-
-    fetchAdditionalData();
-  }, [candidateId]);
-
   // Fetch transition history
   useEffect(() => {
     const fetchTransitionHistory = async () => {
@@ -373,14 +327,84 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     fetchTransitionHistory();
   }, [candidateId]);
 
+  // Fetch all positions for enrichment
+  useEffect(() => {
+    const fetchPositions = async () => {
+      try {
+        const res = await fetch('/api/positions/all');
+        if (res.ok) {
+          const data = await res.json();
+          setAllDbPositions(data.data || []);
+          console.log('Fetched allDbPositions:', data.data);
+        } else {
+          console.error('Failed to fetch positions');
+        }
+      } catch (e) {
+        console.error('Error fetching positions:', e);
+      }
+    };
+    fetchPositions();
+  }, []);
+
   // Ensure candidateJobMatches is always in sync with candidate data
   useEffect(() => {
+    let jobMatches: any[] = [];
     if (candidate && Array.isArray(candidate.jobMatches)) {
-      setCandidateJobMatches(candidate.jobMatches);
+      jobMatches = candidate.jobMatches;
+    } else if (
+      candidate &&
+      candidate.parsedData &&
+      typeof candidate.parsedData === 'object' &&
+      Array.isArray((candidate.parsedData as any).job_matches)
+    ) {
+      jobMatches = (candidate.parsedData as any).job_matches;
+    }
+    if (jobMatches.length > 0) {
+      // Enrich each job match with jobTitle and position details
+      const enrichedJobMatches = jobMatches.map((jm: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === jm.jobId) || allDbPositions.find(p => p.title === jm.jobTitle))
+          : null;
+        if (!position) {
+          console.warn('No position found for jobMatch', jm);
+        }
+        return {
+          ...jm,
+          jobId: position ? position.id : jm.jobId,
+          jobTitle: position ? position.title : jm.jobTitle,
+          position: position
+            ? {
+                id: position.id,
+                title: position.title,
+                description: position.description,
+                department: position.department,
+                requirements: (position as any).requirements,
+                isOpen: position.isOpen,
+              }
+            : jm.position,
+        };
+      });
+      setCandidateJobMatches(enrichedJobMatches);
     } else {
       setCandidateJobMatches([]);
     }
-  }, [candidate]);
+  }, [candidate, allDbPositions]);
+
+  // Add this useEffect after the other useEffects in the component:
+  useEffect(() => {
+    const fetchStages = async () => {
+      try {
+        const res = await fetch('/api/settings/recruitment-stages');
+        if (res.ok) {
+          const stagesData = await res.json();
+          setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
+        }
+      } catch (e) {
+        setAvailableStages([]);
+      }
+    };
+    fetchStages();
+  }, []);
 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
@@ -391,49 +415,43 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       toast.error('Status is required. Please select a status before saving.');
       return;
     }
-    // Fix: Ensure positionId and recruiterId are null if empty string
-    // Fix: assignmentJustification should be a string for backend
-    // Fix: Convert fitScore and job_matches fitScore to 0-1 decimal for backend
-    const normalizeScoreForApi = (score: any) => {
-      if (typeof score === 'number' && score > 1 && score <= 100) return score / 100;
-      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) > 1 && Number(score) <= 100) return Number(score) / 100;
-      if (typeof score === 'number' && score >= 0 && score <= 1) return score;
-      if (typeof score === 'string' && !isNaN(Number(score)) && Number(score) >= 0 && Number(score) <= 1) return Number(score);
-      return 0;
-    };
 
-    const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
-      ? data.parsedData.job_matches.map(jm => ({
-          jobId: jm.jobId,
-          fitScore: normalizeScoreForApi(jm.fitScore),
-          matchReasons: Array.isArray(jm.matchReasons)
-            ? jm.matchReasons
-            : (typeof jm.matchReasons_string === 'string' && jm.matchReasons_string.length > 0
-                ? jm.matchReasons_string.split('\n').map((s: string) => s.trim()).filter(Boolean)
-                : []),
-        }))
-      : [];
-    const payload = {
-      ...data,
+    // v1 API expects this structure:
+    // {
+    //   candidate_info: { personal_info, contact_info, cv_language, skills, job_suitable, status, ... },
+    //   educationData: [...],
+    //   experienceData: [...],
+    //   ...
+    // }
+    const candidate_info = {
+      personal_info: data.parsedData?.personal_info,
+      contact_info: data.parsedData?.contact_info,
+      cv_language: data.parsedData?.cv_language,
+      skills: data.parsedData?.skills?.map(s => ({
+        segment_skill: s.segment_skill,
+        skill: s.skill_string
+          ? s.skill_string.split(',').map(sk => sk.trim()).filter(sk => sk)
+          : (s.skill || [])
+      })),
+      job_suitable: data.parsedData?.job_suitable,
       status: statusToSend,
-      positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
-      recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      fitScore: normalizeScoreForApi(data.fitScore),
-      assignmentJustification: Array.isArray(data.assignmentJustification)
-        ? data.assignmentJustification.join('\n')
-        : data.assignmentJustification,
-      parsedData: {
-        ...data.parsedData,
-        job_matches: jobMatchesToSave,
-        // Do NOT save job_matches in parsedData if you want to keep them only at the top level
-      },
+      fitScore: data.fitScore,
+      job_matches: data.parsedData?.job_matches,
+      job_applied: undefined, // Add if you support job_applied in edit
+      applicationDate: undefined, // Add if you support applicationDate in edit
+    };
+    const apiPayload = {
+      candidate_info,
+      educationData: data.parsedData?.education || [],
+      experienceData: data.parsedData?.experience || [],
+      // v1 API may expect job_matches/job_applied at top level as well, but they're included in candidate_info above
     };
     try {
-      // Save main candidate data (including job_matches in parsedData)
+      // Save main candidate data (including job_matches in candidate_info)
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(apiPayload),
         credentials: 'include',
       });
 
@@ -492,7 +510,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
-    setSelectedJobMatch(jobMatch);
+    // Always build jobMatch object from latest allDbPositions, like candidate id page
+    const position = Array.isArray(allDbPositions)
+      ? (allDbPositions.find(p => p.id === jobMatch.jobId) || allDbPositions.find(p => p.title === jobMatch.jobTitle))
+      : null;
+    if (!position) {
+      console.warn('No position found for jobMatch', jobMatch);
+    }
+    const jobMatchData = {
+      jobId: position ? position.id : jobMatch.jobId,
+      jobTitle: position ? position.title : jobMatch.jobTitle,
+      fitScore: jobMatch.fitScore,
+      matchReasons: jobMatch.matchReasons || [],
+      position: position
+        ? {
+            id: position.id,
+            title: position.title,
+            description: position.description,
+            department: position.department,
+            requirements: (position as any).requirements,
+            isOpen: position.isOpen,
+          }
+        : undefined,
+    };
+    setSelectedJobMatch(jobMatchData);
     setIsJobMatchModalOpen(true);
   };
 
@@ -725,17 +766,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   // Before the return statement in the component, add:
   let appliedJobBadge = null;
   if (appliedFitScore !== null && appliedFitScore !== undefined) {
-    const grade = getScoreGrade(appliedFitScore);
-    let badgeColor = '';
-    switch (grade) {
-      case 'A': badgeColor = 'bg-gray-400 text-white'; break;
-      case 'B': badgeColor = 'bg-yellow-400 text-black'; break;
-      case 'C': badgeColor = 'bg-lime-400 text-black'; break;
-      case 'D': badgeColor = 'bg-green-200 text-black'; break;
-      case 'E': badgeColor = 'bg-green-500 text-white'; break;
-      default: badgeColor = 'bg-gray-200 text-gray-700'; break;
-    }
-    appliedJobBadge = <Badge className={badgeColor}>{`${displayFitScore(appliedFitScore)} (${grade})`}</Badge>;
+    appliedJobBadge = (
+      <ScoreBadge score={appliedFitScore}>
+        {formatScoreWithGrade(appliedFitScore)}
+      </ScoreBadge>
+    );
   }
 
   // After all hooks are declared, place the early returns:
@@ -984,7 +1019,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         {/* MAIN CONTENT (50%) with Sections */}
         <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8`}>
           {/* Job Applied Section */}
-          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+          <section className="mb-4  bg-card">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
               <Briefcase className="mr-2 h-6 w-6 text-primary" />
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
@@ -1182,7 +1217,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           </section>
 
           {/* Job Matches Section */}
-          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+          <section className="mb-4  bg-card">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
               <ListChecks className="mr-2 h-6 w-6 text-primary" />
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
@@ -1950,10 +1985,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                isEditing={false}
                onCommentsChange={() => {
                  // Refresh comments
-                 fetch(`/api/candidates/${candidateId}/comments`, { credentials: 'include' })
-                   .then(res => res.json())
-                   .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
-                   .catch(console.error);
+                 onRefresh();
                }}
              />
            </div>
@@ -1971,10 +2003,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                isEditing={false}
                onResumesChange={() => {
                  // Refresh resumes
-                 fetch(`/api/candidates/${candidateId}/resumes`, { credentials: 'include' })
-                   .then(res => res.json())
-                   .then(data => setResumes(Array.isArray(data) ? data : (data.data || [])))
-                   .catch(console.error);
+                 onRefresh();
                }}
              />
            </div>
@@ -2010,10 +2039,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
        comments={comments}
        onCommentsChange={() => {
          // Refresh comments
-         fetch(`/api/candidates/${candidateId}/comments`, { credentials: 'include' })
-           .then(res => res.json())
-           .then(data => setComments(Array.isArray(data) ? data : (data.data || [])))
-           .catch(console.error);
+         onRefresh();
        }}
      />
 

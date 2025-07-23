@@ -17,11 +17,11 @@ export interface ScoreGrade {
 }
 
 export const SCORE_GRADES: ScoreGrade[] = [
-  { letter: 'A', range: '81-100', min: 81, max: 100, color: 'text-white', bgColor: 'bg-gray-400' },
-  { letter: 'B', range: '61-80', min: 61, max: 80, color: 'text-black', bgColor: 'bg-yellow-400' },
+  { letter: 'A', range: '81-100', min: 81, max: 100, color: 'text-black', bgColor: 'bg-lime-200' },
+  { letter: 'B', range: '61-80', min: 61, max: 80, color: 'text-black', bgColor: 'bg-lime-300' },
   { letter: 'C', range: '41-60', min: 41, max: 60, color: 'text-black', bgColor: 'bg-lime-400' },
-  { letter: 'D', range: '21-40', min: 21, max: 40, color: 'text-black', bgColor: 'bg-green-200' },
-  { letter: 'E', range: '0-20', min: 0, max: 20, color: 'text-white', bgColor: 'bg-green-500' },
+  { letter: 'D', range: '21-40', min: 21, max: 40, color: 'text-black', bgColor: 'bg-yellow-200' },
+  { letter: 'E', range: '0-20', min: 0, max: 20, color: 'text-black', bgColor: 'bg-green-400' },
 ];
 
 /**
@@ -33,8 +33,14 @@ export function getScoreGrade(score: number | null | undefined): string | null {
   if (score === null || score === undefined) {
     return null;
   }
-  // Always treat score as 0-1 decimal, multiply by 100 for display
-  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
+  let normalizedScore = 0;
+  if (typeof score === 'number') {
+    if (score > 0 && score <= 1) {
+      normalizedScore = Math.round(score * 100);
+    } else {
+      normalizedScore = Math.round(score);
+    }
+  }
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
@@ -51,8 +57,14 @@ export function getScoreGradeInfo(score: number | null | undefined): ScoreGrade 
   if (score === null || score === undefined) {
     return null;
   }
-  // Always treat score as 0-1 decimal, multiply by 100 for display
-  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
+  let normalizedScore = 0;
+  if (typeof score === 'number') {
+    if (score > 0 && score <= 1) {
+      normalizedScore = Math.round(score * 100);
+    } else {
+      normalizedScore = Math.round(score);
+    }
+  }
   if (normalizedScore < 0 || normalizedScore > 100) {
     return null;
   }
@@ -86,9 +98,15 @@ export function getScoreBgColor(score: number | null | undefined): string {
  */
 export function formatScoreWithGrade(score: number | null | undefined): string {
   if (score === null || score === undefined) return 'N/A';
-  // Always treat score as 0-1 decimal, multiply by 100 for display
-  const normalizedScore = Math.round(Math.max(0, Math.min(1, score)) * 100);
-  const grade = getScoreGrade(normalizedScore / 100); // Pass as 0-1 decimal
+  let normalizedScore = 0;
+  if (typeof score === 'number') {
+    if (score > 0 && score <= 1) {
+      normalizedScore = Math.round(score * 100);
+    } else {
+      normalizedScore = Math.round(score);
+    }
+  }
+  const grade = getScoreGrade(normalizedScore);
   return grade ? `${normalizedScore}% (${grade})` : `${normalizedScore}%`;
 }
 

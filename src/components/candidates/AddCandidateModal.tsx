@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -154,8 +154,10 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
   });
 
 
+  // Only reset when modal transitions from closed to open
+  const prevIsOpen = useRef(isOpen);
   useEffect(() => {
-    if (isOpen) {
+    if (!prevIsOpen.current && isOpen) {
       form.reset({
         cv_language: '',
         personal_info: { firstname: '', lastname: '' },
@@ -180,6 +182,7 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
         applicationDate: new Date().toISOString().slice(0, 10),
       });
     }
+    prevIsOpen.current = isOpen;
   }, [isOpen, form, availableStages]);
 
   const onSubmit = async (data: AddCandidateFormValues) => {

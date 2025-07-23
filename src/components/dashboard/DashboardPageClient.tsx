@@ -33,6 +33,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
+import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend, ChartDataLabels);
 
@@ -940,7 +941,7 @@ export default function DashboardPageClient({
                         {
                           label: 'Candidates',
                           data: Object.values(onProcessByRecruiter),
-                          backgroundColor: 'rgba(147, 51, 234, 0.8)', // purple-600
+                          backgroundColor: SCORE_COLOR_STOPS.map(stop => stop.bg.replace('bg-', 'rgba(').replace('-400', ', 0.8)')),
                           borderRadius: 8,
                           borderSkipped: false,
                           barPercentage: 0.7,

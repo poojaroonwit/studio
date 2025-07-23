@@ -102,7 +102,7 @@ function getBreadcrumbItems(pathname: string) {
 }
 
 export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
-  const { isMobile } = useSidebar();
+  const { isMobile, open } = useSidebar();
   const { data: session, status, update: updateSession } = useSession();
   const [mounted, setMounted] = useState(false);
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
@@ -205,7 +205,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   return (
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${!open ? 'ml-5' : ''}`}>
           <Breadcrumb items={getBreadcrumbItems(pathname)} />
         </div>
         <div className="flex items-center gap-3">

@@ -39,7 +39,7 @@ interface CandidateDetailModalProps {
   onClose: () => void;
 }
 
-const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8721`;
+const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
@@ -109,9 +109,22 @@ function hasEducationArray(data: any): data is { education: any[] } {
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   if (!open || !candidateId) return null;
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden">
-        <FullCandidateDetail candidateId={candidateId} isModal={true} onClose={onClose} />
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <FullCandidateDetail 
+          candidateId={candidateId} 
+          isModal={true} 
+          onClose={onClose} 
+          comments={[]} 
+          resumes={[]} 
+          onRefresh={() => {}} 
+        />
       </div>
     </div>
   );

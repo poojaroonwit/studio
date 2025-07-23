@@ -159,12 +159,16 @@ export default function PositionsPageClient() {
         throw new Error('Failed to fetch departments');
       }
       const data = await response.json();
-      const departments = Array.from(new Set(data.data.map((p: any) => p.department).filter(Boolean))).sort();
+      const departments = Array.from(new Set(data.data.map((p: any) => p.department)))
+        .filter((d): d is string => typeof d === 'string' && !!d)
+        .sort();
       setAllDepartments(departments);
     } catch (error) {
       console.error('Error fetching departments:', error);
       // Fallback to current positions if API fails
-      setAllDepartments(Array.from(new Set(positions.map(p => p.department || ""))).sort());
+      setAllDepartments(Array.from(new Set(positions.map(p => p.department || "")))
+        .filter((d): d is string => typeof d === 'string' && !!d)
+        .sort());
     }
   }, [positions]);
 
@@ -541,7 +545,7 @@ export default function PositionsPageClient() {
                 <CommandInput
                   placeholder="Search departments..."
                   value={departmentSearch}
-                  onChange={e => setDepartmentSearch(e.target.value)}
+                  onValueChange={setDepartmentSearch}
                   className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
                 />
                 <CommandList>
@@ -961,7 +965,7 @@ export default function PositionsPageClient() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Link href={`/positions/${position.id}`} passHref legacyBehavior>
-                          <Button as="a" variant="outline" size="sm">
+                          <Button variant="outline" size="sm">
                             Details
                           </Button>
                         </Link>

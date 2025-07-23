@@ -18,6 +18,15 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { EditPositionModal, type EditPositionFormValues } from '@/components/positions/EditPositionModal';
 import FullCandidateDetail from '@/components/candidates/FullCandidateDetail';
+import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
+import { getScoreBgColor, getScoreColor, formatScoreWithGrade, getScoreGrade, normalizeFitScore } from '@/lib/scoreUtils';
+import { ScoreBadge } from '@/components/ui/score-color';
+
+function displayFitScore(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return '';
+  if (score >= 0 && score <= 1) return `${Math.round(score * 100)}%`;
+  return `${Math.round(score)}%`;
+}
 
 export default function PositionDetailPage() {
   const params = useParams();
@@ -277,6 +286,18 @@ export default function PositionDetailPage() {
     }
   }, [position, fetchCandidatesApplied, fetchCandidateMatches]);
 
+  // Helper function to merge and deduplicate candidates by ID
+  const mergedCandidates = useMemo(() => {
+    const all = [...candidatesApplied, ...candidateMatches];
+    const seen = new Set();
+    const deduped = all.filter((c) => {
+      if (seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+    return deduped;
+  }, [candidatesApplied, candidateMatches, positionId]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -330,7 +351,9 @@ export default function PositionDetailPage() {
     searchTerm: string,
     setSearchTerm: (term: string) => void,
     sortColumn: string,
-    sortDirection: 'asc' | 'desc'
+    sortDirection: 'asc' | 'desc',
+    showTypeBadge: boolean = false,
+    positionId?: string // <-- add positionId param
   ): JSX.Element => (
     <div className="space-y-4">
       {/* Search and filters */}
@@ -363,16 +386,8 @@ export default function PositionDetailPage() {
             <TableRow>
               <TableHead className="cursor-pointer" onClick={() => handleSort('name', type)}>
                 <div className="flex items-center gap-1">
-                  Name
+                  Name / Email
                   {sortColumn === 'name' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('email', type)}>
-                <div className="flex items-center gap-1">
-                  Email
-                  {sortColumn === 'email' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                   )}
                 </div>
@@ -402,6 +417,9 @@ export default function PositionDetailPage() {
                   )}
                 </div>
               </TableHead>
+              {type === 'applied' && showTypeBadge && (
+                <TableHead>Association</TableHead>
+              )}
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -412,25 +430,41 @@ export default function PositionDetailPage() {
                 className="hover:bg-muted/50 cursor-pointer"
                 onClick={() => handleCandidateClick(candidate.id)}
               >
-                <TableCell className="font-medium">{candidate.name}</TableCell>
-                <TableCell>{candidate.email}</TableCell>
+                <TableCell className="font-medium">
+                  <div>
+                    {candidate.name}
+                    <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                    {showTypeBadge && positionId && (
+                      <div className="mt-1">
+                        {candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ? (
+                          <Badge variant="secondary" className="mr-1">Job Match</Badge>
+                        ) : null}
+                        {candidate.positionId === positionId ? (
+                          <Badge variant="default">Job Applied</Badge>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
-                  {candidate.fitScore ? (
-                    <Badge variant="secondary">{candidate.fitScore}%</Badge>
+                  {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                    <ScoreBadge score={candidate.fitScore}>
+                      {formatScoreWithGrade(candidate.fitScore)}
+                    </ScoreBadge>
                   ) : (
                     '-'
                   )}
                 </TableCell>
                 <TableCell>
                   <Select
-                    value={candidate.recruiterId || ''}
-                    onValueChange={(value) => handleAssignRecruiter(candidate.id, value || null)}
+                    value={candidate.recruiterId ?? "unassigned"}
+                    onValueChange={(value) => handleAssignRecruiter(candidate.id, value === "unassigned" ? null : value)}
                   >
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Assign recruiter" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {availableRecruiters.map((recruiter) => (
                         <SelectItem key={recruiter.id} value={recruiter.id}>
                           {recruiter.name}
@@ -445,12 +479,38 @@ export default function PositionDetailPage() {
                 <TableCell>
                   {candidate.applicationDate ? (
                     <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
-                      {formatDistanceToNow(parseISO(candidate.applicationDate), { addSuffix: true })}
+                      {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
                     </span>
                   ) : (
                     '-'
                   )}
                 </TableCell>
+                {type === 'applied' && showTypeBadge && (
+                  <TableCell>
+                    {(() => {
+                      // Job Applied: candidate.positionId matches the current positionId
+                      const isApplied = !!candidate.positionId && String(candidate.positionId) === String(positionId);
+                      // Job Match: any jobMatch.jobId matches the current positionId
+                      const isMatched = Array.isArray(candidate.jobMatches) && candidate.jobMatches.some(
+                        jm => !!jm.jobId && String(jm.jobId) === String(positionId)
+                      );
+                      if (isApplied && isMatched) {
+                        return (
+                          <>
+                            <Badge variant="default" className="mr-1">Job Applied</Badge>
+                            <Badge variant="secondary">Job Match</Badge>
+                          </>
+                        );
+                      } else if (isApplied) {
+                        return <Badge variant="default">Job Applied</Badge>;
+                      } else if (isMatched) {
+                        return <Badge variant="secondary">Job Match</Badge>;
+                      } else {
+                        return null;
+                      }
+                    })()}
+                  </TableCell>
+                )}
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -504,17 +564,17 @@ export default function PositionDetailPage() {
       <div className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Left Column - 30% */}
-          <div className="lg:col-span-3 space-y-6 bg-white rounded-lg shadow-sm p-6 border border-border">
+          <Card className="lg:col-span-3 space-y-6 bg-card text-foreground rounded-lg shadow-sm p-6 border border-border">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <div className="text-2xl flex items-center gap-3 font-bold text-foreground">
+                <CardTitle className="text-2xl flex items-center gap-3 font-bold">
                   <Briefcase className="h-7 w-7 text-primary" />
                   {position.title}
-                </div>
-                <div className="mt-2 text-base text-muted-foreground">
+                </CardTitle>
+                <CardDescription className="mt-2 text-base">
                   {position.department}
                   {position.positionLevel && ` • ${position.positionLevel}`}
-                </div>
+                </CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={position.isOpen ? "default" : "destructive"}>
@@ -528,53 +588,53 @@ export default function PositionDetailPage() {
             </div>
             {/* Info Grid */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Department</label>
-                <p className="text-base">{position.department}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Level</label>
-                <p className="text-base">{position.positionLevel || 'Not specified'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                <p className="text-base">
+              <CardContent className="p-0">
+                <CardDescription className="text-sm font-medium">Department</CardDescription>
+                <div className="text-base">{position.department}</div>
+              </CardContent>
+              <CardContent className="p-0">
+                <CardDescription className="text-sm font-medium">Level</CardDescription>
+                <div className="text-base">{position.positionLevel || 'Not specified'}</div>
+              </CardContent>
+              <CardContent className="p-0">
+                <CardDescription className="text-sm font-medium">Status</CardDescription>
+                <div className="text-base">
                   <Badge variant={position.isOpen ? "default" : "destructive"}>
                     {position.isOpen ? "Open" : "Closed"}
                   </Badge>
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Created</label>
-                <p className="text-base">
+                </div>
+              </CardContent>
+              <CardContent className="p-0">
+                <CardDescription className="text-sm font-medium">Created</CardDescription>
+                <div className="text-base">
                   {position.createdAt ? format(parseISO(position.createdAt), 'PPP') : 'N/A'}
-                </p>
-              </div>
+                </div>
+              </CardContent>
             </div>
             {/* Job Description */}
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Job Description</label>
-              <div className="mt-2 p-4 bg-muted rounded-lg min-h-[200px]">
-                {position.description ? (
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: position.description }} 
-                    className="prose prose-sm max-w-none text-foreground"
-                  />
-                ) : (
-                  <p className="text-muted-foreground italic">No job description provided.</p>
-                )}
-              </div>
+            <div className="space-y-2 mt-4">
+              <h4 className="font-medium text-sm">Description:</h4>
+              {position.description ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {position.description}
+                </p>
+              ) : (
+                <div className="text-muted-foreground italic">No job description provided.</div>
+              )}
             </div>
-          </div>
+          </Card>
 
           {/* Right Column - 70% */}
-          <div className="lg:col-span-7 space-y-6 bg-white rounded-lg shadow-sm p-6 border border-border">
+          <Card className="lg:col-span-7 space-y-6 bg-card text-foreground rounded-lg shadow-sm p-6 border border-border">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5" />
               <span className="text-lg font-semibold">Candidates</span>
             </div>
             <Tabs defaultValue="applied" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="all">
+                  All ({mergedCandidates.length})
+                </TabsTrigger>
                 <TabsTrigger value="applied">
                   Candidates Applied ({appliedTotal})
                 </TabsTrigger>
@@ -582,6 +642,18 @@ export default function PositionDetailPage() {
                   Candidate Matches ({matchesTotal})
                 </TabsTrigger>
               </TabsList>
+              <TabsContent value="all" className="mt-4">
+                {renderCandidateTable(
+                  mergedCandidates,
+                  'applied',
+                  appliedSearchTerm,
+                  setAppliedSearchTerm,
+                  appliedSortColumn,
+                  appliedSortDirection,
+                  true, // showTypeBadge
+                  positionId // <-- pass positionId
+                )}
+              </TabsContent>
               <TabsContent value="applied" className="mt-4">
                 {renderCandidateTable(
                   candidatesApplied,
@@ -589,7 +661,9 @@ export default function PositionDetailPage() {
                   appliedSearchTerm,
                   setAppliedSearchTerm,
                   appliedSortColumn,
-                  appliedSortDirection
+                  appliedSortDirection,
+                  false, // showTypeBadge
+                  positionId // <-- pass positionId (optional, for consistency)
                 )}
               </TabsContent>
               <TabsContent value="matches" className="mt-4">
@@ -599,11 +673,13 @@ export default function PositionDetailPage() {
                   matchesSearchTerm,
                   setMatchesSearchTerm,
                   matchesSortColumn,
-                  matchesSortDirection
+                  matchesSortDirection,
+                  false, // showTypeBadge
+                  positionId // <-- pass positionId (optional, for consistency)
                 )}
               </TabsContent>
             </Tabs>
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -616,18 +692,14 @@ export default function PositionDetailPage() {
       />
 
       {selectedCandidateId && isCandidateModalOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden">
-            <FullCandidateDetail 
-              candidateId={selectedCandidateId} 
-              isModal={true} 
-              onClose={() => {
-                setIsCandidateModalOpen(false);
-                setSelectedCandidateId(null);
-              }} 
-            />
-          </div>
-        </div>
+        <CandidateDetailModal
+          candidateId={selectedCandidateId}
+          open={isCandidateModalOpen}
+          onClose={() => {
+            setIsCandidateModalOpen(false);
+            setSelectedCandidateId(null);
+          }}
+        />
       )}
     </div>
   );

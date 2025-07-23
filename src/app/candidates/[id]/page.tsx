@@ -14,7 +14,8 @@ import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
-import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+// import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
@@ -45,7 +46,7 @@ import JobMatchModal from '@/components/candidates/JobMatchModal';
 import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
 
 
-const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8721`;
+const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
 const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
@@ -440,7 +441,7 @@ export default function CandidateDetailPage() {
   }, [candidateId]);
 
   // Update fetchResumes to fetch attachments
-  const fetchResumes = async () => {
+  const fetchResumes = useCallback(async () => {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/resumes`);
       const data = await res.json();
@@ -451,10 +452,10 @@ export default function CandidateDetailPage() {
     } catch {
       return [];
     }
-  };
+  }, [candidateId]);
 
   // Update fetchComments to also extract attachments from comments
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments`);
       const data = await res.json();
@@ -465,7 +466,7 @@ export default function CandidateDetailPage() {
     } catch {
       return [];
     }
-  };
+  }, [candidateId]);
 
   // Reference to reload all attachments
   const loadAllAttachments = useCallback(async () => {
@@ -499,6 +500,7 @@ export default function CandidateDetailPage() {
   // Merge attachments from resumes and comments
   useEffect(() => {
     loadAllAttachments();
+    // Only run when candidateId changes or editing mode toggles
   }, [candidateId, isEditing, loadAllAttachments]);
 
   // Manual refresh after user actions (not automatic polling)
@@ -722,26 +724,37 @@ export default function CandidateDetailPage() {
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
+    console.log('Raw match object:', jobMatch);
     // Find the position details - try by jobId first, then by jobTitle
     const position = Array.isArray(allDbPositions) ? 
                     (allDbPositions.find(p => p.id === jobMatch.jobId) || 
                      allDbPositions.find(p => p.title === jobMatch.jobTitle)) : null;
     
+    // Normalize fitScore to 0-100 percentage
+    const normalizeFitScore = (score: number | undefined | null) => {
+      if (typeof score !== 'number' || isNaN(score)) return 0;
+      if (score >= 0 && score <= 1) return Math.round(score * 100);
+      return Math.round(score);
+    };
     // Prepare the job match data with position details
     const jobMatchData = {
-      ...jobMatch,
-      position: position ? {
-        id: position.id,
-        title: position.title,
-        description: position.description,
-        department: position.department,
-        location: (position as any).location,
-        salary: (position as any).salary,
-        requirements: (position as any).requirements,
-        isOpen: position.isOpen,
-      } : undefined
+      jobId: position ? position.id : jobMatch.jobId,
+      jobTitle: position ? position.title : jobMatch.jobTitle,
+      fitScore: normalizeFitScore(jobMatch.fitScore),
+      matchReasons: jobMatch.matchReasons || [],
+      position: position
+        ? {
+            id: position.id,
+            title: position.title,
+            description: position.description,
+            department: position.department,
+            requirements: (position as any).requirements,
+            isOpen: position.isOpen,
+          }
+        : undefined,
     };
     
+    console.log('Opening JobMatchModal with:', jobMatchData);
     setSelectedJobMatch(jobMatchData);
     setIsJobMatchModalOpen(true);
   };
@@ -1511,7 +1524,7 @@ export default function CandidateDetailPage() {
               {/* Tabs for main content */}
 
                   {/* Job Applied Section */}
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4  bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen((o: boolean) => !o)}>
                       <Briefcase className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
@@ -1719,7 +1732,7 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Job Matches Section */}
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4  bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
                       <ListChecks className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
@@ -1930,60 +1943,54 @@ export default function CandidateDetailPage() {
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 
                                                   allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                                  
+                                  // Use the same grade and badge color logic as FullCandidateDetail
+                                  const grade = getScoreGrade(match.fitScore);
+                                  let badgeColor = '';
+                                  switch (grade) {
+                                    case 'A': badgeColor = 'bg-gray-400 text-white'; break;
+                                    case 'B': badgeColor = 'bg-yellow-400 text-black'; break;
+                                    case 'C': badgeColor = 'bg-lime-400 text-black'; break;
+                                    case 'D': badgeColor = 'bg-green-200 text-black'; break;
+                                    case 'E': badgeColor = 'bg-green-500 text-white'; break;
+                                    default: badgeColor = 'bg-gray-200 text-gray-700'; break;
+                                  }
                                   return (
-                                    <div 
-                                      key={`jobmatch-${index}-${match.jobTitle || index}`} 
-                                      className={`flex-shrink-0 w-70 p-3 border rounded-lg ${(match as any).is_applied_job ? 'bg-primary/10 border-primary/30' : 'bg-card border-border'} hover:shadow-md transition-shadow cursor-pointer`}
-                                      onClick={() => handleJobMatchClick(match)}
-                                    >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                    {(match as any).is_applied_job && (
-                                                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">Applied</Badge>
-                                                    )}
+                                    <Card key={`jobmatch-${index}-${match.jobTitle || index}`} className="flex-shrink-0 w-70 p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleJobMatchClick(match)}>
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
                                           <h4 className="font-semibold text-foreground text-sm truncate">
                                             {position?.title || match.jobTitle || 'Unknown Position'}
                                           </h4>
+                                          {match.fitScore !== undefined && match.fitScore !== null && (
+                                            <Badge className={badgeColor}>{`${displayFitScore(match.fitScore)} (${grade})`}</Badge>
+                                          )}
+                                       
                                         </div>
-                                        <div className="flex items-center gap-2 shrink-0">
-                                                <div className="text-xs text-muted-foreground">
-                                                    #{index + 1}
-                                                </div>
-                                            </div>
-                                            </div>
-                                            {match.fitScore && match.fitScore > 0 && (
-                                                <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
-                                                    {displayFitScoreWithGrade(match.fitScore)}
-                                                </div>
+                                        {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
+                                          <div className="space-y-1">
+                                            <p className="text-sm text-muted-foreground">Match reasons:</p>
+                                            <ul className="text-sm space-y-1">
+                                              {match.matchReasons.slice(0, 3).map((reason: string, reasonIndex: number) => (
+                                                <li key={reasonIndex} className="flex items-start gap-2">
+                                                  <span className="text-primary text-xs mt-1">•</span>
+                                                  <span>{reason}</span>
+                                                </li>
+                                              ))}
+                                            </ul>
+                                            {match.matchReasons.length > 3 && (
+                                              <div className="text-xs text-muted-foreground italic">
+                                                +{match.matchReasons.length - 3} more reasons
+                                              </div>
                                             )}
-                                            {match.matchReasons && match.matchReasons.length > 0 && (
-                                                <div>
-                                                    <h5 className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
-                                                        <Lightbulb className="h-3 w-3" />
-                                                        Reasons ({match.matchReasons.length}):
-                                                    </h5>
-                                                    <div className="space-y-1 max-h-20 overflow-y-auto">
-                                                        {match.matchReasons.slice(0, 2).map((reason: any, reasonIndex: number) => (
-                                                            <div key={reasonIndex} className="text-xs text-foreground bg-muted/50 px-2 py-1 rounded flex items-start gap-1">
-                                                                <span className="text-primary text-xs mt-0.5">•</span>
-                                                                <span className="flex-1 line-clamp-1">{reason}</span>
-                                                            </div>
-                                                        ))}
-                                                        {match.matchReasons.length > 2 && (
-                                                            <div className="text-xs text-muted-foreground italic">
-                                                                +{match.matchReasons.length - 2} more reasons
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {(!match.matchReasons || match.matchReasons.length === 0) && (
-                                                <div className="text-xs text-muted-foreground italic">
-                                                    No match reasons provided
-                                                </div>
-                                            )}
-                                        </div>
+                                          </div>
+                                        )}
+                                        {(!match.matchReasons || match.matchReasons.length === 0) && (
+                                          <div className="text-xs text-muted-foreground italic">
+                                            No match reasons provided
+                                          </div>
+                                        )}
+                                      </div>
+                                    </Card>
                                   );
                                 })}
                                     </div>
@@ -1993,6 +2000,15 @@ export default function CandidateDetailPage() {
                               </div>
                             )}
                   </section>
+
+                  {/* Empty state for no job matches */}
+                  {!isEditing && (!candidateJobMatches || candidateJobMatches.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                      <p>No job matches found for this candidate.</p>
+                      <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
+                    </div>
+                  )}
 
                   {/* Collapsible Candidate Info Sections */}
                   <section className="mb-4 border border-border rounded-lg p-4 bg-card">

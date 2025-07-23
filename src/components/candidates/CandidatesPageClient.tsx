@@ -138,6 +138,10 @@ export function CandidatesPageClient({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
+  
+  // Add sorting state variables here to prevent temporal dead zone issues
+  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const canImportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_IMPORT');
   const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT');
@@ -1318,32 +1322,55 @@ export function CandidatesPageClient({
 
   // Ensure ALL useMemo hooks are called before any return
   const mappedCandidates = useMemo(() => {
+    // Defensive check to prevent temporal dead zone issues
+    if (!Array.isArray(allCandidates)) {
+      return [];
+    }
+    
     let candidates = allCandidates.map(candidate => {
-      if ((!candidate.position || !candidate.position.title) && candidate.positionId && availablePositions.length > 0) {
-        const foundPosition = availablePositions.find(pos => pos.id === candidate.positionId);
+      // Ensure candidate is valid object
+      if (!candidate || typeof candidate !== 'object') {
+        return candidate;
+      }
+      
+      if ((!candidate.position || !candidate.position.title) && 
+          candidate.positionId && 
+          Array.isArray(availablePositions) && 
+          availablePositions.length > 0) {
+        const foundPosition = availablePositions.find(pos => pos && pos.id === candidate.positionId);
         if (foundPosition) {
           return { ...candidate, position: foundPosition };
         }
       }
       return candidate;
     });
-    // Filter by AI search if active
-    if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
-      candidates = candidates.filter(c => aiMatchedCandidateIds.includes(c.id));
+    
+    // Filter by AI search if active - with safer checks
+    if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
+      if (aiMatchedCandidateIds.length > 0) {
+        candidates = candidates.filter(c => c && c.id && aiMatchedCandidateIds.includes(c.id));
+      } else {
+        // If AI search is active and there are no matches, show empty list
+        candidates = [];
+      }
     }
-    // If AI search is active and there are no matches, show empty list
-    if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0) {
-      candidates = [];
-    }
+    
     return candidates;
   }, [allCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
 
   // Paginate candidates for display
   const paginatedCandidates = useMemo(() => {
-    if (isAiSearchActive && aiMatchedCandidateIds) {
+    // Defensive check to prevent temporal dead zone issues
+    if (!Array.isArray(mappedCandidates)) {
+      return [];
+    }
+    
+    if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
       const filtered = mappedCandidates;
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
+      const safePageSize = pageSize > 0 ? pageSize : 20;
+      const safePage = page > 0 ? page : 1;
+      const start = (safePage - 1) * safePageSize;
+      const end = start + safePageSize;
       return filtered.slice(start, end);
     }
     return mappedCandidates;
@@ -1351,15 +1378,12 @@ export function CandidatesPageClient({
 
   // For row numbering in table
   const baseIndex = useMemo(() => {
-    if (isAiSearchActive && aiMatchedCandidateIds) {
-      return (page - 1) * pageSize;
-    }
-    return (page - 1) * pageSize;
-  }, [isAiSearchActive, aiMatchedCandidateIds, page, pageSize]);
+    const safePageSize = pageSize > 0 ? pageSize : 20;
+    const safePage = page > 0 ? page : 1;
+    return (safePage - 1) * safePageSize;
+  }, [page, pageSize]);
 
-  // Add at the top, after useState imports
-  const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  // Sort state variables have been moved to the top with other state declarations to prevent temporal dead zone issues
 
   const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) return;

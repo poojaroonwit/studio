@@ -40,6 +40,27 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      let isClosed = false;
+      
+      // Helper function to safely enqueue data
+      const safeEnqueue = (data: Uint8Array) => {
+        if (!isClosed) {
+          try {
+            controller.enqueue(data);
+          } catch (error) {
+            if (error instanceof Error && error.message.includes('ERR_INVALID_STATE')) {
+              // Controller is closed, mark as closed and stop trying
+              isClosed = true;
+              console.log('[SSE] Connection closed by client');
+            } else {
+              console.error('[SSE] Error enqueuing data:', error);
+            }
+            return false;
+          }
+        }
+        return !isClosed;
+      };
+
       // Send initial data
       try {
         const client = await getPool().connect();
@@ -58,11 +79,11 @@ export async function GET(request: NextRequest) {
         const total = parseInt(countRes.rows[0].count, 10);
         client.release();
         const data = JSON.stringify({ type: 'queue', data: res.rows, total });
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        safeEnqueue(encoder.encode(`data: ${data}\n\n`));
       } catch (error) {
         console.error('[SSE] Failed to send initial data:', error);
         const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
-        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+        safeEnqueue(encoder.encode(`data: ${errorData}\n\n`));
       }
       
       // Set up Redis subscription for real-time updates
@@ -76,6 +97,8 @@ export async function GET(request: NextRequest) {
           await redisSubscription.connect();
           
           await redisSubscription.subscribe('candidate_upload_queue', async (message) => {
+            if (isClosed) return; // Skip if connection is closed
+            
             try {
               const msg = JSON.parse(message);
               if (msg.type === 'queue_updated') {
@@ -96,7 +119,7 @@ export async function GET(request: NextRequest) {
                 const total = parseInt(countRes.rows[0].count, 10);
                 client.release();
                 const data = JSON.stringify({ type: 'queue', data: res.rows, total });
-                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                safeEnqueue(encoder.encode(`data: ${data}\n\n`));
               }
             } catch (error) {
               console.error('[SSE] Error processing Redis message:', error);
@@ -109,22 +132,29 @@ export async function GET(request: NextRequest) {
       
       // Send keepalive every 30 seconds
       const keepaliveInterval = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`: keepalive\n\n`));
-        } catch (error) {
-          console.error('[SSE] Keepalive failed:', error);
+        if (isClosed) {
+          clearInterval(keepaliveInterval);
+          return;
+        }
+        
+        if (!safeEnqueue(encoder.encode(`: keepalive\n\n`))) {
           clearInterval(keepaliveInterval);
         }
       }, 30000);
       
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
+        isClosed = true;
         clearInterval(keepaliveInterval);
         if (redisSubscription) {
           redisSubscription.unsubscribe();
           redisSubscription.disconnect();
         }
-        controller.close();
+        try {
+          controller.close();
+        } catch (error) {
+          // Controller might already be closed, ignore the error
+        }
       });
     }
   });

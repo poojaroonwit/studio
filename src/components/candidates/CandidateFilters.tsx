@@ -762,24 +762,29 @@ export function CandidateFilters({
   };
   
   const renderMultiSelectTrigger = (placeholder: string, selectedItems: Set<string>, allItems: {id: string; title?: string; name?: string}[], itemType: 'position' | 'status' | 'recruiter') => {
-    if (selectedItems.size === 0) return <span>{placeholder}</span>;
+    // Defensive checks to prevent temporal dead zone issues
+    if (!selectedItems || selectedItems.size === 0) return <span>{placeholder}</span>;
+    if (!Array.isArray(allItems)) return <span>{placeholder}</span>;
+    
     if (selectedItems.size === 1) {
       const firstId = Array.from(selectedItems)[0];
+      if (!firstId) return <span>{placeholder}</span>;
+      
       let itemName = '';
       if (itemType === 'position') {
-        itemName = (allItems as Position[]).find(p => p.id === firstId)?.title || placeholder;
+        itemName = (allItems as Position[]).find(p => p && p.id === firstId)?.title || placeholder;
       } else if (itemType === 'status') {
         // Handle "Off" status specially
         if (firstId === 'Off') {
           itemName = 'Off';
         } else {
-          itemName = (allItems as RecruitmentStage[]).find(s => s.name === firstId)?.name || placeholder;
+          itemName = (allItems as RecruitmentStage[]).find(s => s && s.name === firstId)?.name || placeholder;
         }
       } else if (itemType === 'recruiter') {
         if (firstId === 'unassigned') {
           itemName = 'Unassigned';
         } else {
-          itemName = (allItems as UserProfile[]).find(r => r.id === firstId)?.name || placeholder;
+          itemName = (allItems as UserProfile[]).find(r => r && r.id === firstId)?.name || placeholder;
         }
       }
       return <span>{itemName}</span>;

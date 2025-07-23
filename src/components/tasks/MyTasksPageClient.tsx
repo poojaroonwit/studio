@@ -313,12 +313,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Filter candidates based on user role and permissions
   const filteredCandidates = useMemo(() => {
+    // Defensive check to prevent temporal dead zone issues
+    if (!Array.isArray(candidates)) {
+      return [];
+    }
+    
     // If user can view all recruiters, show all candidates
     if (canViewAllRecruiters) {
       return candidates;
     }
     // Otherwise, show only candidates assigned to the current user
-    return candidates.filter(c => c.recruiterId === userSession?.id);
+    return candidates.filter(c => c && c.recruiterId === userSession?.id);
   }, [candidates, userSession?.id, canViewAllRecruiters]);
 
   // Filtering logic (for fitScore, if not supported by API)

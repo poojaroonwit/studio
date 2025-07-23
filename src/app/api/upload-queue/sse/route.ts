@@ -143,18 +143,31 @@ export async function GET(request: NextRequest) {
       }, 30000);
       
       // Cleanup on close
-      request.signal.addEventListener('abort', () => {
+      request.signal.addEventListener('abort', async () => {
         isClosed = true;
         clearInterval(keepaliveInterval);
+        
+        // Cleanup Redis subscription
         if (redisSubscription) {
           try {
-            redisSubscription.unsubscribe();
-            redisSubscription.disconnect();
+            // Check if client is still connected before attempting operations
+            if (redisSubscription.isOpen) {
+              await redisSubscription.unsubscribe();
+            }
           } catch (error) {
-            // Redis client might already be disconnected, ignore cleanup errors
-            console.log('[SSE] Redis cleanup completed (client may have already been disconnected)');
+            console.log('[SSE] Redis unsubscribe error (ignored):', error instanceof Error ? error.message : 'Unknown error');
+          }
+          
+          try {
+            // Only disconnect if client is still open
+            if (redisSubscription.isOpen) {
+              await redisSubscription.disconnect();
+            }
+          } catch (error) {
+            console.log('[SSE] Redis disconnect error (ignored):', error instanceof Error ? error.message : 'Unknown error');
           }
         }
+        
         try {
           controller.close();
         } catch (error) {

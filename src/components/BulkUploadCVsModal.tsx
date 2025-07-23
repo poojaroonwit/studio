@@ -13,7 +13,7 @@ import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
-import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
+import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -27,6 +27,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
+  const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const { data: session } = useSession();
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
@@ -128,8 +129,21 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     setSelectedFileIndex(index);
   }, []);
 
-  const handlePositionChange = useCallback((value: string) => {
-    setSelectedPositionId(value);
+  // For single-select, enforce only one selected position
+  const handlePositionChange = useCallback((ids: Set<string>) => {
+    if (ids.size > 1) {
+      // Only allow one selection
+      const first = Array.from(ids)[0];
+      setSelectedPositionIds(new Set([first]));
+      setSelectedPositionId(first);
+    } else if (ids.size === 1) {
+      const first = Array.from(ids)[0];
+      setSelectedPositionIds(new Set([first]));
+      setSelectedPositionId(first);
+    } else {
+      setSelectedPositionIds(new Set());
+      setSelectedPositionId("");
+    }
   }, []);
 
   // Helper to add a file to the upload queue and handle errors
@@ -170,6 +184,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     if (!open) {
       setSelectedFiles([]);
       setSelectedPositionId("");
+      setSelectedPositionIds(new Set());
       setSelectedFileIndex(0);
     }
   }, [onOpenChange]);
@@ -203,6 +218,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       // Close modal immediately after upload to MinIO
       setSelectedFiles([]);
       setSelectedPositionId("");
+      setSelectedPositionIds(new Set());
       setFileBatchMap({});
       setSelectedFileIndex(0);
       onOpenChange(false);
@@ -267,13 +283,14 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                           <div>
                 <Label htmlFor="position-select">Assign to Position (optional)</Label>
                 <div className="mt-2">
-                  <PositionSelectDropdown
-                    value={selectedPositionId}
-                    onValueChange={handlePositionChange}
+                  <PositionMultiSelectDropdown
+                    selectedIds={selectedPositionIds}
+                    onSelectionChange={handlePositionChange}
                     placeholder="Select a position..."
+                    disabled={uploading}
                     showOpenStatus={true}
                     filterOpenOnly={false}
-                    showNoneOption={true}
+                    singleSelect={true}
                   />
                 </div>
               </div>

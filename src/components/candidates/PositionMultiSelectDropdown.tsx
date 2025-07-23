@@ -26,6 +26,7 @@ interface PositionMultiSelectDropdownProps {
   className?: string;
   showOpenStatus?: boolean;
   filterOpenOnly?: boolean;
+  singleSelect?: boolean;
 }
 
 export function PositionMultiSelectDropdown({
@@ -35,7 +36,8 @@ export function PositionMultiSelectDropdown({
   disabled = false,
   className,
   showOpenStatus = true,
-  filterOpenOnly = false
+  filterOpenOnly = false,
+  singleSelect = false
 }: PositionMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -82,13 +84,23 @@ export function PositionMultiSelectDropdown({
   const selectedPositions = positions.filter(position => selectedIds.has(position.id));
 
   const handleTogglePosition = (positionId: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(positionId)) {
-      newSelected.delete(positionId);
+    if (singleSelect) {
+      if (selectedIds.has(positionId)) {
+        // Deselect if already selected
+        onSelectionChange(new Set());
+      } else {
+        // Select only this one
+        onSelectionChange(new Set([positionId]));
+      }
     } else {
-      newSelected.add(positionId);
+      const newSelected = new Set(selectedIds);
+      if (newSelected.has(positionId)) {
+        newSelected.delete(positionId);
+      } else {
+        newSelected.add(positionId);
+      }
+      onSelectionChange(newSelected);
     }
-    onSelectionChange(newSelected);
   };
 
   const handleRemovePosition = (positionId: string, e: React.MouseEvent) => {
@@ -168,7 +180,7 @@ export function PositionMultiSelectDropdown({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg" align="start">
+      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[500]" align="start">
         <div className="bg-popover text-popover-foreground">
           {/* Search Input */}
           <div className="flex items-center border-b border-border px-3 bg-popover">

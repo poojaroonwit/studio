@@ -14,7 +14,6 @@ import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import { FileUploadArea } from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
-import { CandidateImportUploadQueue } from "@/components/candidates/CandidateImportUploadQueue";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 

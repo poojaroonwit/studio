@@ -12,6 +12,7 @@ import {
   createValidationError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { logAudit } from '@/lib/auditLog';
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -135,8 +136,10 @@ export async function POST(req: NextRequest) {
       ...result.rows[0],
       custom_attributes: result.rows[0].customAttributes || {},
     };
+    await logAudit('AUDIT', `Position '${validatedData.title}' created by ${user.name}.`, 'API:V1:Positions:Create', user.id, { positionId: newPositionId, ...validatedData });
     return createSuccessResponse(req, newPosition, 201);
   } catch (error) {
+    await logAudit('ERROR', `Failed to create position by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Positions:Create', user?.id, { error: (error as Error).message, ...body });
     return handleApiError(req, createInternalServerError('Error creating position', { 
       originalError: (error as Error).message 
     }));

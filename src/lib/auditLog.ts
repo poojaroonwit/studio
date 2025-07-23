@@ -15,14 +15,14 @@ export async function logAudit(
   const client = await getPool().connect();
   try {
     const query = `
-      INSERT INTO "AuditLog" (id, level, message, source, "actingUserId", details, timestamp)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW());
+      INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
     `;
     await client.query(query, [uuidv4(), level, message, source, actingUserId, details]);
   } catch (error) {
-    // If the audit log itself fails, we log to the console as a fallback.
+    // If the log itself fails, we log to the console as a fallback.
     // This is critical to ensure logging failures don't crash the application.
-    console.error('CRITICAL: Failed to write to audit log table:', error);
+    console.error('CRITICAL: Failed to write to LogEntry table:', error);
     console.error('Fallback Log:', { level, message, source, actingUserId, details });
   } finally {
     client.release();
@@ -39,10 +39,13 @@ export async function logAuditEvent(
   const client = await getPool().connect();
   try {
     const query = `
-      INSERT INTO "AuditLog" (user_id, action, entity, entity_id, details)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
+      VALUES ($1, NOW(), $2, $3, $4, $5, $6, NOW());
     `;
-    await client.query(query, [userId, action, entity, entityId, details]);
+    // Map action/entity/entityId to message/source
+    const message = `${action} on ${entity} (${entityId})`;
+    const source = `logAuditEvent:${entity}`;
+    await client.query(query, [uuidv4(), 'AUDIT', message, source, userId, details]);
   } finally {
     client.release();
   }

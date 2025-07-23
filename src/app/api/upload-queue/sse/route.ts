@@ -1,16 +1,8 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
+import { broadcastUploadQueueUpdate, uploadQueueControllers } from './broadcastUploadQueueUpdate';
 
 export const dynamic = "force-dynamic";
-
-// --- SSE Controller Management ---
-const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
-
-export function broadcastUploadQueueUpdate() {
-  for (const controller of uploadQueueControllers) {
-    sendUploadQueueUpdate(controller);
-  }
-}
 
 async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
   const encoder = new TextEncoder();
@@ -68,10 +60,10 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
 export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   const url = new URL(request.url);
-  const fileName = url.searchParams.get('file_name');
-  const status = url.searchParams.get('status');
-  const dateStart = url.searchParams.get('date_start');
-  const dateEnd = url.searchParams.get('date_end');
+  const fileName = url.searchParams.get('file_name') || undefined;
+  const status = url.searchParams.get('status') || undefined;
+  const dateStart = url.searchParams.get('date_start') || undefined;
+  const dateEnd = url.searchParams.get('date_end') || undefined;
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 

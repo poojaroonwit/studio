@@ -17,6 +17,7 @@ import {
 } from '@/lib/apiErrorHandler';
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
+import { logAudit } from '@/lib/auditLog';
 
 const prisma = new PrismaClient();
 
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
         date: new Date(),
       },
     });
-
+    await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
     return createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {
@@ -197,6 +198,7 @@ export async function POST(request: NextRequest) {
     }, 201);
 
   } catch (error: any) {
+    await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (error as Error).message, ...body });
     // Handle unique constraint violation for email
     if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
       // Instead of returning 409, update the existing candidate
@@ -219,6 +221,7 @@ export async function POST(request: NextRequest) {
             updatedAt: new Date(),
           },
         });
+        await logAudit('AUDIT', `Candidate '${name}' updated (via duplicate email) by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: existingCandidate.id, name, email, status: appliedStage });
         return createSuccessResponse(request, {
           message: 'Candidate updated successfully',
           candidate: {
@@ -234,6 +237,7 @@ export async function POST(request: NextRequest) {
           }
         }, 200);
       } catch (updateError: any) {
+        await logAudit('ERROR', `Failed to update existing candidate by ${user?.name || 'Unknown'}. Error: ${(updateError as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (updateError as Error).message, ...body });
         return handleApiError(request, createInternalServerError('Error updating existing candidate', {
           originalError: (updateError as Error).message,
           stack: (updateError as Error).stack,

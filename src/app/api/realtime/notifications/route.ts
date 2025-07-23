@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     // In-memory logic for notifications
-    const notifications = []; // Placeholder for actual notification retrieval
+    const notifications: any[] = []; // Placeholder for actual notification retrieval
     
     await logAudit('AUDIT', `Notifications accessed by ${actingUserName}. Retrieved ${notifications.length} notifications.`, 'API:Realtime:Notifications:Get', actingUserId, { 
       limit,

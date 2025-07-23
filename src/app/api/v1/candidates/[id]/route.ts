@@ -14,6 +14,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { logAudit } from '@/lib/auditLog';
 
 const updateCandidateSchema = z.object({
   // Legacy fields for backward compatibility
@@ -324,7 +325,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     await client.query('COMMIT');
     const updatedCandidate = updateResult.rows[0];
-    
+    await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${user.name}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
     return createSuccessResponse(req, {
       message: 'Candidate updated successfully',
       candidate: {
@@ -336,6 +337,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to update candidate (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Update', user?.id, { candidateId: id, error: (error as Error).message, ...body });
     return handleApiError(req, createInternalServerError('Error updating candidate', { 
       originalError: (error as Error).message 
     }));
@@ -362,9 +364,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
     await client.query('DELETE FROM "Candidate" WHERE id = $1', [id]);
     await client.query('COMMIT');
+    await logAudit('AUDIT', `Candidate '${existingResult.rows[0].name}' deleted by ${user.name}.`, 'API:V1:Candidates:Delete', user.id, { candidateId: id });
     return createSuccessResponse(req, { message: 'Candidate deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to delete candidate (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Delete', user?.id, { candidateId: id, error: (error as Error).message });
     return handleApiError(req, createInternalServerError('Error deleting candidate', { 
       originalError: (error as Error).message 
     }));

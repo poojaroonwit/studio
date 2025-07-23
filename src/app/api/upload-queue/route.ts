@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
-import { broadcastUploadQueueUpdate } from './sse/route';
+import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 
 /**
  * @openapi

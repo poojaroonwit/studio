@@ -13,6 +13,7 @@ import {
   createNotFoundError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { logAudit } from '@/lib/auditLog';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -92,6 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     ]);
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
+    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${user.name}.`, 'API:V1:Positions:Update', user.id, { positionId: id, updatedFields: { title, department, description, isOpen, positionLevel, custom_attributes } });
     return createSuccessResponse(req, {
       message: 'Position updated successfully',
       position: {
@@ -101,6 +103,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to update position (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Positions:Update', user?.id, { positionId: id, error: (error as Error).message, ...body });
     return handleApiError(req, createInternalServerError('Error updating position', { 
       originalError: (error as Error).message 
     }));
@@ -127,9 +130,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
     await client.query('DELETE FROM "Position" WHERE id = $1', [id]);
     await client.query('COMMIT');
+    await logAudit('AUDIT', `Position '${currentPosition.rows[0].title}' deleted by ${user.name}.`, 'API:V1:Positions:Delete', user.id, { positionId: id });
     return createSuccessResponse(req, { message: 'Position deleted successfully' }, 200);
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to delete position (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Positions:Delete', user?.id, { positionId: id, error: (error as Error).message });
     return handleApiError(req, createInternalServerError('Error deleting position', { 
       originalError: (error as Error).message 
     }));

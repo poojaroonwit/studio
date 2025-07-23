@@ -3,6 +3,7 @@ import { getPool } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { logAudit } from '@/lib/auditLog';
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'update_status', 'update_department']),
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
         
         if (candidateCount > 0) {
           await client.query('ROLLBACK');
+          await logAudit('WARN', `Bulk delete attempt for positions with assigned candidates by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds, candidateCount });
           return new Response(JSON.stringify({ 
             error: `Cannot delete positions with assigned candidates. Found ${candidateCount} candidates assigned to these positions.` 
           }), { status: 400, headers: handleCors(req) });
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
       case 'update_status':
         if (data?.isOpen === undefined) {
           await client.query('ROLLBACK');
+          await logAudit('ERROR', `Bulk update_status failed (missing isOpen) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'isOpen status is required for update_status action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Position" SET "isOpen" = $1 WHERE id = ANY($2)';
@@ -74,6 +77,7 @@ export async function POST(req: NextRequest) {
       case 'update_department':
         if (!data?.department) {
           await client.query('ROLLBACK');
+          await logAudit('ERROR', `Bulk update_department failed (missing department) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { positionIds });
           return new Response(JSON.stringify({ error: 'Department is required for update_department action' }), { status: 400, headers: handleCors(req) });
         }
         updateQuery = 'UPDATE "Position" SET department = $1 WHERE id = ANY($2)';
@@ -82,12 +86,13 @@ export async function POST(req: NextRequest) {
 
       default:
         await client.query('ROLLBACK');
+        await logAudit('ERROR', `Bulk action failed (invalid action) by ${user.name}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds });
         return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: handleCors(req) });
     }
 
     const result = await client.query(updateQuery, queryParams);
     await client.query('COMMIT');
-
+    await logAudit('AUDIT', `Bulk action '${action}' performed by ${user.name}. Affected: ${result.rowCount}.`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, affectedCount: result.rowCount });
     return new Response(JSON.stringify({ 
       message: `Bulk action '${action}' completed successfully`,
       affectedCount: result.rowCount 
@@ -95,6 +100,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
     client.release();

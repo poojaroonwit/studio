@@ -12,6 +12,7 @@ import {
   createConflictError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { logAudit } from '@/lib/auditLog';
 
 const createUserSchema = z.object({
   name: z.string().min(1),
@@ -132,8 +133,9 @@ export async function POST(req: NextRequest) {
       RETURNING id, name, email, role, "modulePermissions", "createdAt", "updatedAt";
     `;
 
+    const newUserId = require('uuid').v4();
     const result = await client.query(insertQuery, [
-      require('uuid').v4(),
+      newUserId,
       name,
       email,
       role,
@@ -142,7 +144,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     const newUser = result.rows[0];
-
+    await logAudit('AUDIT', `User '${name}' created by ${user.name}.`, 'API:V1:Users:Create', user.id, { userId: newUserId, name, email, role });
     return createSuccessResponse(req, {
       message: 'User created successfully',
       user: {
@@ -152,6 +154,7 @@ export async function POST(req: NextRequest) {
     }, 201);
 
   } catch (error) {
+    await logAudit('ERROR', `Failed to create user by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Users:Create', user?.id, { error: (error as Error).message, ...body });
     return handleApiError(req, createInternalServerError('Error creating user', { 
       originalError: (error as Error).message 
     }));

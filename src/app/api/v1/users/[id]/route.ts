@@ -13,6 +13,7 @@ import {
   createConflictError, 
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
+import { logAudit } from '@/lib/auditLog';
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
@@ -152,6 +153,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('COMMIT');
 
     const updatedUser = updateResult.rows[0];
+    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${user.name}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role, modulePermissions } });
     return createSuccessResponse(req, {
       message: 'User updated successfully',
       user: {
@@ -162,6 +164,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to update user (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Users:Update', user?.id, { userId: id, error: (error as Error).message, ...body });
     return handleApiError(req, createInternalServerError('Error updating user', { 
       originalError: (error as Error).message 
     }));
@@ -207,11 +210,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     await client.query('DELETE FROM "User" WHERE id = $1', [id]);
     await client.query('COMMIT');
-
+    await logAudit('AUDIT', `User (ID: ${id}) deleted by ${user.name}.`, 'API:V1:Users:Delete', user.id, { userId: id });
     return createSuccessResponse(req, { message: 'User deleted successfully' }, 200);
 
   } catch (error) {
     await client.query('ROLLBACK');
+    await logAudit('ERROR', `Failed to delete user (ID: ${id}) by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Users:Delete', user?.id, { userId: id, error: (error as Error).message });
     return handleApiError(req, createInternalServerError('Error deleting user', { 
       originalError: (error as Error).message 
     }));

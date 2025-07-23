@@ -1,0 +1,62 @@
+import { getPool } from '@/lib/db';
+
+const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
+
+export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
+  const encoder = new TextEncoder();
+  try {
+    const client = await getPool().connect();
+    const fileName = queryParams?.fileName;
+    const status = queryParams?.status;
+    const dateStart = queryParams?.dateStart;
+    const dateEnd = queryParams?.dateEnd;
+    const limit = queryParams?.limit || 20;
+    const offset = queryParams?.offset || 0;
+    const whereClauses = [];
+    const values = [];
+    let paramIdx = 1;
+    if (fileName) {
+      whereClauses.push(`file_name ILIKE $${paramIdx++}`);
+      values.push(`%${fileName}%`);
+    }
+    if (status) {
+      whereClauses.push(`status = $${paramIdx++}`);
+      values.push(status);
+    }
+    if (dateStart) {
+      whereClauses.push(`upload_date >= $${paramIdx++}`);
+      values.push(dateStart);
+    }
+    if (dateEnd) {
+      whereClauses.push(`upload_date <= $${paramIdx++}`);
+      values.push(dateEnd);
+    }
+    const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    values.push(limit);
+    values.push(offset);
+    const res = await client.query(
+      `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      values
+    );
+    const countRes = await client.query(
+      `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+      values.slice(0, values.length - 2)
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
+    client.release();
+    const data = JSON.stringify({ type: 'queue', data: res.rows, total });
+    controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+  } catch {
+    const encoder = new TextEncoder();
+    const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
+    controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+  }
+}
+
+export function broadcastUploadQueueUpdate() {
+  for (const controller of uploadQueueControllers) {
+    sendUploadQueueUpdate(controller);
+  }
+}
+
+export { uploadQueueControllers }; 

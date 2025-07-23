@@ -104,13 +104,6 @@ curl -X POST /api/v1/candidates \
 }
 ```
 
-**409 Conflict** - Email already exists
-```json
-{
-  "error": "Candidate with this email already exists"
-}
-```
-
 **401 Unauthorized** - Invalid or missing authentication
 ```json
 {
@@ -180,7 +173,7 @@ curl -X GET "/api/v1/candidates?page=1&limit=10&search=john&status=active"
 - This API focuses only on candidate basic information
 - Job applications and job matches are handled by separate APIs
 - Email addresses are automatically converted to lowercase
-- Duplicate email addresses are not allowed
+- Duplicate email addresses are allowed for candidates
 - All string fields are trimmed of whitespace
 - The API uses Prisma for database operations
 - Authentication is handled via NextAuth sessions 

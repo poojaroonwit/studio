@@ -184,11 +184,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ message: 'Candidate created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
-    await client.query('ROLLBACK');
     await logAudit('ERROR', `Failed to create candidate. Error: ${error.message}`, 'API:Candidates:Create', actingUserId, { input: body });
-    if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
-      return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });
-    }
     return NextResponse.json({ message: 'Error creating candidate', error: error.message }, { status: 500 });
   } finally {
     client.release();

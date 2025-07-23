@@ -39,6 +39,7 @@ export interface CandidateJob {
   type: CandidateJobType;
   webhook_payload?: any;
   process_date?: string;
+  url?: string;
 }
 
 interface QueueContextType {
@@ -110,6 +111,7 @@ export const CandidateImportUploadQueue: React.FC<{
   const { data: session } = useSession();
   const isFetchingRef = useRef(false);
   const [summary, setSummary] = useState<any>(null);
+  const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState<number | null>(null);
 
   // Add sort state and handler at the top of the component
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -431,6 +433,26 @@ export const CandidateImportUploadQueue: React.FC<{
     };
   }, [filter, statusFilter, dateRange, page, pageSize]);
 
+  useEffect(() => {
+    async function fetchMaxConcurrent() {
+      try {
+        const response = await fetch('/api/settings/system-settings');
+        if (!response.ok) return;
+        const responseData = await response.json();
+        let settings: any = {};
+        if (responseData.settings && Array.isArray(responseData.settings)) {
+          settings = Object.fromEntries(responseData.settings.map((setting: any) => [setting.key, setting.value]));
+        } else {
+          settings = responseData;
+        }
+        if (settings.maxConcurrentProcessors) {
+          setMaxConcurrentProcessors(parseInt(settings.maxConcurrentProcessors, 10));
+        }
+      } catch {}
+    }
+    fetchMaxConcurrent();
+  }, []);
+
   function formatBytes(bytes: number) {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -498,7 +520,14 @@ export const CandidateImportUploadQueue: React.FC<{
   const totalFilteredJobs = summary ? Number(summary.total) : filteredJobs.length;
 
   // Collect all unique statuses from jobs for the filter dropdown
-  const allStatuses = Array.from(new Set(jobs.map(j => j.status))).sort();
+  const allPossibleStatuses = [
+    'queued',
+    'inprogress',
+    'success',
+    'error',
+    'cancelled',
+    'fail',
+  ];
 
   // Helper to get the selected job for the combined dialog:
   const selectedCombinedJob = jobs.find(j => j.id === showCombinedDialogId);
@@ -610,6 +639,52 @@ export const CandidateImportUploadQueue: React.FC<{
     setShowBulkDeleteConfirm(true);
   }, []);
 
+  const handleBulkRetryAll = useCallback(async () => {
+    setBulkRetryLoading(true);
+    try {
+      const errorJobIds = filteredJobs.filter(job => job.status === 'error' || job.status === 'fail').map(job => job.id);
+      await Promise.all(errorJobIds.map(async (id) => {
+        await fetch(`/api/upload-queue/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'queued', error: null, error_details: null, completed_date: null })
+        });
+      }));
+      fetchJobs();
+      setBulkDeleteIds([]);
+      success('All error jobs retried!');
+    } catch (err) {
+      error('Failed to retry all error jobs');
+    } finally {
+      setBulkRetryLoading(false);
+    }
+  }, [filteredJobs, fetchJobs, success, error]);
+
+  const handleDownloadCSV = useCallback(() => {
+    const csvRows = [
+      ['File Name', 'File Size', 'Status', 'Source', 'Upload Date', 'Completed Date', 'ID'],
+      ...filteredJobs.map(job => [
+        job.file_name,
+        job.file_size,
+        job.status,
+        job.source,
+        job.upload_date || '',
+        job.completed_date || '',
+        job.id
+      ])
+    ];
+    const csvContent = csvRows.map(row => row.map(String).map(cell => '"' + cell.replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'upload_queue.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [filteredJobs]);
+
   return (
     <div className="mb-6">
       {/* Filters and Bulk Actions in Card */}
@@ -628,8 +703,8 @@ export const CandidateImportUploadQueue: React.FC<{
             className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
           >
             <option value="">All Statuses</option>
-            {/* Dynamically render all statuses found in jobs */}
-            {allStatuses.map(status => (
+            {/* Show all possible statuses, not just those present in jobs */}
+            {allPossibleStatuses.map(status => (
               <option key={status} value={status}>{getStatusDisplayLabel(status)}</option>
             ))}
           </select>
@@ -671,7 +746,7 @@ export const CandidateImportUploadQueue: React.FC<{
             Clear Filters
           </Button>
           {/* Bulk Actions */}
-          <input
+          {/* <input
             type="checkbox"
             checked={allSelected}
             ref={el => {
@@ -681,8 +756,8 @@ export const CandidateImportUploadQueue: React.FC<{
             aria-label="Select all filtered jobs"
             className="scale-110"
           />
-          <span className="text-sm">Select All</span>
-          {bulkDeleteIds.length > 0 && filteredJobs.filter(job => bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")).length > 0 && (
+          <span className="text-sm">Select All</span> */}
+          {/* {bulkDeleteIds.length > 0 && filteredJobs.filter(job => bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")).length > 0 && (
             <Button
               variant="outline"
               size="sm"
@@ -693,8 +768,8 @@ export const CandidateImportUploadQueue: React.FC<{
               {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
               Retry Selected
             </Button>
-          )}
-          <Button
+          )} */}
+          {/* <Button
             variant="destructive"
             size="sm"
             disabled={bulkDeleteIds.length === 0 || bulkDeleteLoading}
@@ -703,7 +778,7 @@ export const CandidateImportUploadQueue: React.FC<{
           >
             {bulkDeleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
             Delete Selected
-          </Button>
+          </Button> */}
         </div>
       </Card>
       {/* Summary Status Cards */}
@@ -752,6 +827,9 @@ export const CandidateImportUploadQueue: React.FC<{
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">In Process</p>
                   <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
+                  {maxConcurrentProcessors !== null && (
+                    <span className="text-xs text-muted-foreground">Max concurrent: {maxConcurrentProcessors}</span>
+                  )}
                 </div>
                 <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                   <span className="text-white text-xs font-bold">P</span>
@@ -799,12 +877,36 @@ export const CandidateImportUploadQueue: React.FC<{
       {bulkDeleteIds.length > 0 && (
         <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-muted-foreground/10">
           <span className="text-sm">{bulkDeleteIds.length} selected</span>
-          <button
-            className="ml-2 px-3 py-1 rounded bg-destructive text-white hover:bg-destructive/90 text-sm font-medium shadow"
-            onClick={handleBulkDelete}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={bulkRetryLoading || !bulkDeleteIds.some(id => filteredJobs.find(job => job.id === id && (job.status === 'error' || job.status === 'fail')))}
+            onClick={() => setShowBulkRetryConfirm(true)}
+            aria-label="Retry selected jobs"
           >
+            {bulkRetryLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+            Retry Selected
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadCSV}
+            aria-label="Download CSV"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download CSV
+          </Button>
+          <Button
+            className="ml-auto"
+            variant="destructive"
+            size="sm"
+            disabled={bulkDeleteIds.length === 0 || bulkDeleteLoading}
+            onClick={handleBulkDelete}
+            aria-label="Delete selected jobs"
+          >
+            {bulkDeleteLoading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
             Delete Selected
-          </button>
+          </Button>
         </div>
       )}
       {isLoading && jobs.length > 0 && !isRealtimeActive && (
@@ -817,7 +919,16 @@ export const CandidateImportUploadQueue: React.FC<{
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead></TableHead>
+              <TableHead className="w-8 text-center">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  ref={el => { if (el) el.indeterminate = someSelected; }}
+                  onChange={e => handleSelectAll(e.target.checked)}
+                  aria-label="Select all jobs"
+                  className="scale-110"
+                />
+              </TableHead>
               <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('file_name'); setOpenMenu(null); }}>
                 <span className="inline-flex items-center gap-1">
                   File Name
@@ -966,7 +1077,7 @@ export const CandidateImportUploadQueue: React.FC<{
                     <TableCell className="font-medium flex items-center gap-2">
                       {item.file_path ? (
                         <a
-                          href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${item.file_path}`}
+                          href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary underline hover:text-primary/80 truncate max-w-xs"
@@ -1002,7 +1113,7 @@ export const CandidateImportUploadQueue: React.FC<{
                           title="Download CV"
                         >
                           <a
-                            href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${item.file_path}`}
+                            href={item.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             download={item.file_name}

@@ -256,14 +256,7 @@ export async function POST(request: NextRequest) {
 
     for (const candidate of candidates) {
       try {
-        // Check if candidate already exists
-        const existingResult = await client.query('SELECT id FROM "Candidate" WHERE email = $1', [candidate.email]);
-        if (existingResult.rows.length > 0) {
-          results.failed++;
-          results.errors.push(`Candidate with email ${candidate.email} already exists`);
-          continue;
-        }
-
+        // Remove duplicate email check
         // Insert candidate
         const insertQuery = `
           INSERT INTO "Candidate" (id, name, email, phone, "positionId", "recruiterId", "fitScore", status, "parsedData", "customAttributes", "resumePath", "applicationDate", "updatedAt")
@@ -276,7 +269,6 @@ export async function POST(request: NextRequest) {
           candidate.recruiterId, candidate.fitScore, candidate.status, candidate.parsedData, 
           candidate.custom_attributes, candidate.resumePath, candidate.applicationDate || new Date()
         ]);
-
         // Create initial transition record
         const insertTransitionQuery = `
           INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
@@ -285,7 +277,6 @@ export async function POST(request: NextRequest) {
         await client.query(insertTransitionQuery, [
           uuidv4(), candidateId, candidate.positionId, candidate.status, 'Imported via bulk import', actingUserId, new Date(), new Date()
         ]);
-
         results.success++;
       } catch (error: any) {
         results.failed++;

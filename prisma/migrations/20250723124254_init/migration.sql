@@ -43,7 +43,7 @@ CREATE TABLE "Candidate" (
     "phone" TEXT,
     "positionId" UUID,
     "recruiterId" UUID,
-    "fitScore" INTEGER DEFAULT 0,
+    "fitScore" DOUBLE PRECISION DEFAULT 0,
     "status" TEXT NOT NULL DEFAULT 'Applied',
     "applicationDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "parsedData" JSONB,
@@ -414,9 +414,6 @@ CREATE INDEX "Position_department_idx" ON "Position"("department");
 
 -- CreateIndex
 CREATE INDEX "Position_isOpen_idx" ON "Position"("isOpen");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Candidate_email_key" ON "Candidate"("email");
 
 -- CreateIndex
 CREATE INDEX "Candidate_email_idx" ON "Candidate"("email");

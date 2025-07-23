@@ -3,6 +3,7 @@ import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { processSingleUploadQueueJob } from '../process/route';
+import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 
 /**
  * @openapi
@@ -81,9 +82,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     // Publish queue update event
     try {
-      // Remove all dynamic imports and usages of redisClient/getRedisClient. Use SSE or direct DB queries instead.
-    } catch (redisError) {
-      console.error('Failed to publish queue_updated event to Redis:', redisError);
+      broadcastUploadQueueUpdate();
+    } catch (err) {
+      console.error('Failed to broadcast upload queue update via SSE:', err);
     }
     return NextResponse.json(res.rows[0]);
   } finally {
@@ -143,6 +144,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
     // Process the job (send to webhook)
     const result = await processSingleUploadQueueJob(job, client);
+    try {
+      broadcastUploadQueueUpdate();
+    } catch (err) {
+      console.error('Failed to broadcast upload queue update via SSE:', err);
+    }
     return NextResponse.json(result, { status: 200 });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

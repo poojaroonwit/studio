@@ -135,7 +135,7 @@ export async function GET() {
       ['  Example: {"source":"LinkedIn","notes":"Strong candidate"}'],
       [''],
       ['IMPORTANT NOTES:'],
-      ['• Email addresses must be unique - duplicates will be rejected'],
+      ['• Duplicate email addresses are allowed for candidates.'],
       ['• Status values should match your recruitment stages'],
       ['• Position ID and Recruiter ID should be valid UUIDs from your system'],
       ['• JSON fields should be properly formatted JSON strings'],

@@ -137,7 +137,7 @@ export function RecruitmentPipelineCard({
                 <div className="relative">
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold z-10 transition-all duration-300
-                    ${isCurrent ? 'bg-muted text-muted-foreground' : ''}
+                    ${isCurrent ? 'bg-yellow-400 text-yellow-900' : ''}
                     ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
                     ${isFuture ? 'bg-muted text-muted-foreground' : ''}
                   `}

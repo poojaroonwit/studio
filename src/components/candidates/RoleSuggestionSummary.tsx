@@ -81,7 +81,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
             ) : (
                <p className="text-xs text-muted-foreground">Currently not formally applied to a specific position in our system (General Fit Score: {formatScoreWithGrade(currentFitScore)}).</p>
             )}
-            {bestAlternativeMatch.matchReasons && bestAlternativeMatch.matchReasons.length > 0 && (
+            {Array.isArray(bestAlternativeMatch.matchReasons) && bestAlternativeMatch.matchReasons.length > 0 && (
               <div className="mt-1.5">
                 <span className="font-semibold">Match Reasons:</span>
                 <ul className="list-disc list-inside text-xs text-muted-foreground mt-0.5">

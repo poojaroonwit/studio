@@ -45,6 +45,20 @@ interface JobMatchModalProps {
   } | undefined;
 }
 
+// Utility for displaying fitScore as a percentage and grade
+function displayFitScoreWithGrade(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return '0% (E)';
+  let percent = score;
+  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
+  else percent = Math.round(score);
+  let grade = 'E';
+  if (percent >= 80) grade = 'A';
+  else if (percent >= 60) grade = 'B';
+  else if (percent >= 40) grade = 'C';
+  else if (percent >= 20) grade = 'D';
+  return `${percent}% (${grade})`;
+}
+
 export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }: JobMatchModalProps) {
   const router = useRouter();
   const [loadingStats, setLoadingStats] = useState(false);
@@ -142,20 +156,6 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                         {jobMatch.position?.department || 'Not specified'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Location:</span>
-                      <span className={jobMatch.position?.location ? 'text-foreground' : 'text-muted-foreground italic'}>
-                        {jobMatch.position?.location || 'Not specified'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Salary:</span>
-                      <span className={jobMatch.position?.salary ? 'text-foreground' : 'text-muted-foreground italic'}>
-                        {jobMatch.position?.salary || 'Not specified'}
-                      </span>
-                    </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
@@ -168,7 +168,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">Match Score:</span>
                       <Badge variant="outline" className="text-primary border-primary">
-                        {formatScoreWithGrade(jobMatch.fitScore)}
+                        {displayFitScoreWithGrade(jobMatch.fitScore)}
                       </Badge>
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch, statistics }:
             </Card>
 
             {/* Match Reasons */}
-            {jobMatch.matchReasons && jobMatch.matchReasons.length > 0 && (
+            {Array.isArray(jobMatch.matchReasons) && jobMatch.matchReasons.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Justification</CardTitle>

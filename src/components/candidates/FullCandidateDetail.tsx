@@ -150,57 +150,12 @@ interface FullCandidateDetailProps {
   onClose?: () => void;
 }
 
-// Timeline component for experience and education
-const TimelineItem = ({ 
-  icon: Icon, 
-  title, 
-  subtitle, 
-  period, 
-  description, 
-  isLast = false 
-}: {
-  icon: React.ElementType;
-  title: string;
-  subtitle?: string;
-  period?: string;
-  description?: string;
-  isLast?: boolean;
-}) => (
-  <div className="flex gap-4">
-    {/* Timeline line and icon */}
-    <div className="flex flex-col items-center">
-      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20">
-        <Icon className="w-5 h-5 text-primary" />
-      </div>
-      {!isLast && (
-        <div className="w-0.5 h-8 bg-border mt-2"></div>
-      )}
-    </div>
-    
-    {/* Content */}
-    <div className="flex-1 pb-6">
-      <div className="space-y-2">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h4 className="font-semibold text-foreground">{title}</h4>
-            {subtitle && (
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-          {period && (
-            <Badge variant="outline" className="text-xs whitespace-nowrap">
-              <Clock className="w-3 h-3 mr-1" />
-              {period}
-            </Badge>
-          )}
-        </div>
-        {description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        )}
-      </div>
-    </div>
-  </div>
-);
+// Utility for displaying fitScore as a percentage
+function displayFitScore(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return '';
+  if (score >= 0 && score <= 1) return `${Math.round(score * 100)}%`;
+  return `${Math.round(score)}%`;
+}
 
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal = false, onClose }) => {
   // All hooks must be called before any return
@@ -323,7 +278,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         }
         
         const data = await res.json();
-        setCandidate(data);
+        setCandidate({
+          ...data,
+          fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+        });
         
         // Set form default values
         reset({
@@ -758,7 +716,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
         ? candidate.assignmentJustification
-        : candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean))
+        : typeof candidate.assignmentJustification === 'string'
+          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+          : [])
     : [];
   // --- End Job Applied logic ---
 
@@ -775,7 +735,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       case 'E': badgeColor = 'bg-green-500 text-white'; break;
       default: badgeColor = 'bg-gray-200 text-gray-700'; break;
     }
-    appliedJobBadge = <Badge className={badgeColor}>{`${appliedFitScore}% (${grade})`}</Badge>;
+    appliedJobBadge = <Badge className={badgeColor}>{`${displayFitScore(appliedFitScore)} (${grade})`}</Badge>;
   }
 
   // After all hooks are declared, place the early returns:
@@ -1142,12 +1102,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           e.currentTarget.style.filter = 'brightness(1)';
                         }}
                         onClick={() => {
+                          console.log('Job Applied card clicked');
                           const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                           if (position) {
+                            console.log('appliedFitScore', appliedFitScore, typeof appliedFitScore); // Debug log
+                            let normalizedFitScore = 0;
+                            if (typeof appliedFitScore === 'number' && !isNaN(appliedFitScore)) {
+                              if (appliedFitScore > 1 && appliedFitScore <= 100) {
+                                normalizedFitScore = appliedFitScore / 100;
+                              } else if (appliedFitScore >= 0 && appliedFitScore <= 1) {
+                                normalizedFitScore = appliedFitScore;
+                              }
+                            }
                             const appliedJobData = {
                               jobId: appliedJobId,
                               jobTitle: position.title,
-                              fitScore: appliedFitScore || 0,
+                              fitScore: normalizedFitScore,
                               matchReasons: appliedJustification || [],
                               position: {
                                 id: position.id,
@@ -1174,7 +1144,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             </h4>
                             {appliedJobBadge}
                            </div>
-                          {appliedJustification && appliedJustification.length > 0 && (
+                          {appliedJustification.length > 0 && (
                              <div className="mt-3">
                               <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                 <Info className="h-3 w-3" />
@@ -1243,7 +1213,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         <div className="text-center py-8 text-muted-foreground">
                           <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
                           <p>No job matches added yet.</p>
-                          <p className="text-sm">Click "Add Job Match" to get started.</p>
+                          <p className="text-sm">Click \"Add Job Match\" to get started.</p>
                         </div>
                       )}
                       {jobMatchesFields.map((field, index) => (
@@ -1357,7 +1327,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                 <div className="flex items-center justify-between">
                                   <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
                                   {match.fitScore !== undefined && match.fitScore !== null && (
-                                    <Badge className={badgeColor}>{`${match.fitScore}% (${grade})`}</Badge>
+                                    <Badge className={badgeColor}>{`${displayFitScore(match.fitScore)} (${grade})`}</Badge>
                                   )}
                                 </div>
                                 {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
@@ -1381,7 +1351,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                        <p>No another job matched with the candidate</p>
+                        <p>No job matches found for this candidate.</p>
+                        <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
                       </div>
                     )}
                   </div>
@@ -1537,7 +1508,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                    default: return 'bg-gray-200 text-gray-700';
                                  }
                                })()}>
-                                 {`${formatScoreWithGrade(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
+                                 {`${displayFitScore(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
                                </Badge>
                              </div>
                            )}
@@ -1636,7 +1607,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                    default: return 'bg-gray-200 text-gray-700';
                                  }
                                })()}>
-                                 {`${formatScoreWithGrade(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
+                                 {`${displayFitScore(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
                                </Badge>
                              </div>
                            )}
@@ -1738,7 +1709,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                    default: return 'bg-gray-200 text-gray-700';
                                  }
                                })()}>
-                                 {`${formatScoreWithGrade(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
+                                 {`${displayFitScore(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
                                </Badge>
                              </div>
                            )}
@@ -1856,7 +1827,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                    default: return 'bg-gray-200 text-gray-700';
                                  }
                                })()}>
-                                 {`${formatScoreWithGrade(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
+                                 {`${displayFitScore(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
                                </Badge>
                              </div>
                            )}

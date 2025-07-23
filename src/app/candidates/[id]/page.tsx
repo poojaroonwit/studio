@@ -212,10 +212,46 @@ const normalizeScoreForApi = (score: any) => {
   return 0;
 };
 
+// Utility for displaying fitScore as a percentage
+function displayFitScore(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return '';
+  if (score >= 0 && score <= 1) return `${Math.round(score * 100)}%`;
+  return `${Math.round(score)}%`;
+}
+
+// Utility for displaying fitScore as a percentage and grade
+function displayFitScoreWithGrade(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return 'N/A';
+  let percent = score;
+  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
+  else percent = Math.round(score);
+  let grade = 'E';
+  if (percent >= 80) grade = 'A';
+  else if (percent >= 60) grade = 'B';
+  else if (percent >= 40) grade = 'C';
+  else if (percent >= 20) grade = 'D';
+  return `${percent}% (${grade})`;
+}
+
 export default function CandidateDetailPage() {
   const params = useParams();
   const router = useRouter();
   const candidateId = params.id as string;
+
+  // Defensive: validate candidateId is a UUID
+  const uuidSchema = z.string().uuid();
+  const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
+
+  if (!isValidCandidateId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center p-6">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Invalid Candidate ID</h2>
+        <p className="text-muted-foreground mb-6">The candidate ID in the URL is not valid.</p>
+        <Button onClick={() => router.push('/candidates')}>Back to Candidates</Button>
+      </div>
+    );
+  }
 
   // Define fetchTransitionHistory before any useEffect that uses it
   const fetchTransitionHistory = useCallback(async () => {
@@ -283,7 +319,8 @@ export default function CandidateDetailPage() {
   // Note: Removed eventSourceRef - no real-time polling for candidate details
   // Comments and resumes are fetched on initial load and updated optimistically on user actions
 
-  const [jobAppliedOpen, setJobAppliedOpen] = useState(false);
+  // Find the state for jobAppliedOpen and set its default to true
+  const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
 
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({
@@ -1091,9 +1128,15 @@ export default function CandidateDetailPage() {
 
   // const appliedJobId = jobApplied?.jobId || candidate.positionId;
   // const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
-  // const appliedJustification = (jobApplied?.justification && jobApplied.justification.length > 0)
-  //   ? jobApplied.justification.join('\n')
-  //   : (candidate.assignmentJustification || '');
+  // --- Job Applied logic: match FullCandidateDetail 100% ---
+  const appliedJustification = candidate?.assignmentJustification
+    ? (Array.isArray(candidate.assignmentJustification)
+        ? candidate.assignmentJustification
+        : typeof candidate.assignmentJustification === 'string'
+          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+          : [])
+    : [];
+  // --- End Job Applied logic ---
 
   const renderField = (label: string, value?: string | number | null, icon?: React.ElementType, isLink?: boolean, linkHref?: string, linkTarget?: string) => {
     if (value === undefined || value === null || String(value).trim() === '' || (typeof value === 'number' && isNaN(value))) return null;
@@ -1125,11 +1168,14 @@ export default function CandidateDetailPage() {
     return parts.pop() || "View Resume";
   };
 
+  // Update getGradeFromScore to handle both 0-1 and 0-100 input
   const getGradeFromScore = (score: number): string => {
-    if (score >= 80) return 'A';
-    if (score >= 60) return 'B';
-    if (score >= 40) return 'C';
-    if (score >= 20) return 'D';
+    let percent = score;
+    if (typeof percent === 'number' && percent >= 0 && percent <= 1) percent = percent * 100;
+    if (percent >= 80) return 'A';
+    if (percent >= 60) return 'B';
+    if (percent >= 40) return 'C';
+    if (percent >= 20) return 'D';
     return 'E';
   };
 
@@ -1496,20 +1542,33 @@ export default function CandidateDetailPage() {
                               </div>
                               
                               <div>
-                                <Label className="text-sm font-medium mb-2">Match Score</Label>
-                                <Input 
-                                  type="number" 
-                                  min="0"
-                                  max="100"
-                                  placeholder="0-100" 
-                                  {...register('fitScore', { 
-                                    valueAsNumber: true,
-                                    min: { value: 0, message: "Score must be at least 0" },
-                                    max: { value: 100, message: "Score must be at most 100" }
-                                  })} 
+                                <Label className="text-sm font-medium mb-2">Match Score (0-1)</Label>
+                                <Controller
+                                  name="fitScore"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <div className="space-y-2">
+                                      <input
+                                        type="range"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={field.value ?? 0}
+                                        onChange={e => field.onChange(Number(e.target.value))}
+                                        className="w-full"
+                                      />
+                                      <div className="flex justify-between text-xs">
+                                        <span>0</span>
+                                        <span>1</span>
+                                      </div>
+                                      <div className="mt-1 text-sm">
+                                        <span className="font-bold">{displayFitScoreWithGrade(field.value)}</span>
+                                      </div>
+                                    </div>
+                                  )}
                                 />
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  Rate how well this candidate fits the applied position (0-100).
+                                  Use the slider to set the fit score (0 = poor fit, 1 = perfect fit).
                                 </p>
                               </div>
                               
@@ -1589,7 +1648,7 @@ export default function CandidateDetailPage() {
                                     const appliedJobData = {
                                       jobId: candidate.positionId,
                                       jobTitle: position.title,
-                                      fitScore: candidate?.fitScore || 0,
+                                      fitScore: displayFitScore(candidate?.fitScore),
                                       matchReasons: candidate?.assignmentJustification || [],
                                       position: {
                                         id: position.id,
@@ -1616,25 +1675,24 @@ export default function CandidateDetailPage() {
                                     </h4>
                                     {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
                                       <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                        <span>{candidate?.fitScore}%</span>
+                                        <span>{displayFitScore(candidate?.fitScore)}</span>
                                         <span className="text-lg font-bold text-primary">({getGradeFromScore(candidate?.fitScore || 0)})</span>
                                       </div>
                                     )}
                                    </div>
                                    
-                                  {Array.isArray(candidate?.assignmentJustification) && candidate.assignmentJustification.length > 0 && (
+                                  {appliedJustification.length > 0 && (
                                     <div className="mt-3">
                                       <h5 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
                                         <Info className="h-3 w-3" />
                                         Justification:
                                       </h5>
                                       <div className="space-y-2">
-                                        {candidate.assignmentJustification.map((sentence: string, index: number) => {
+                                        {appliedJustification.map((sentence: string, index: number) => {
                                           const trimmedSentence = sentence.trim();
                                           if (!trimmedSentence) return null;
-                                          
                                           return (
-                                            <div 
+                                            <div
                                               key={index}
                                               className="text-sm text-foreground px-3 py-2 rounded shadow-sm bg-muted"
                                             >
@@ -1896,7 +1954,7 @@ export default function CandidateDetailPage() {
                                             </div>
                                             {match.fitScore && match.fitScore > 0 && (
                                                 <div className={`text-xl font-bold mb-2 ${getScoreColor(match.fitScore)}`}>
-                                                    {formatScoreWithGrade(match.fitScore)}
+                                                    {displayFitScoreWithGrade(match.fitScore)}
                                                 </div>
                                             )}
                                             {match.matchReasons && match.matchReasons.length > 0 && (

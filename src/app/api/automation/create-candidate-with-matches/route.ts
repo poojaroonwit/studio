@@ -134,20 +134,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Candidate and matches created successfully', candidate: newCandidate }, { status: 201 });
   } catch (error: any) {
     await client.query('ROLLBACK');
-    if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
-      await logAudit('WARN', `Automation candidate creation failed - duplicate email '${candidate.email}'`, 'API:Automation:CreateCandidate', null, { 
-        candidateEmail: candidate.email,
-        error: 'Duplicate email' 
-      });
-      return NextResponse.json({ message: `A candidate with email '${candidate.email}' already exists.` }, { status: 409 });
-    }
-    
     await logAudit('ERROR', `Automation candidate creation failed. Error: ${error.message}`, 'API:Automation:CreateCandidate', null, { 
       candidateName: candidate.name,
       candidateEmail: candidate.email,
       error: error.message 
     });
-    
     return NextResponse.json({ message: 'Error creating candidate', error: error.message }, { status: 500 });
   } finally {
     client.release();

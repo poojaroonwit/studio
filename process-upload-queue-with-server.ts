@@ -266,8 +266,14 @@ async function runProcessorLoop(): Promise<never> {
     let hadError = false;
     try {
       const maxConcurrent = await getMaxConcurrentProcessors();
-      const jobs = Array.from({ length: maxConcurrent });
-      await Promise.all(jobs.map(() => processJob(apiKey)));
+      if (maxConcurrent <= 1) {
+        // Strictly sequential: only process one job, wait for it to finish
+        await processJob(apiKey);
+      } else {
+        // Parallel: process up to maxConcurrent jobs in parallel, then wait for all to finish
+        const jobs = Array.from({ length: maxConcurrent });
+        await Promise.all(jobs.map(() => processJob(apiKey)));
+      }
       backoff = BASE_INTERVAL_MS; // Reset backoff on success
     } catch (err) {
       hadError = true;

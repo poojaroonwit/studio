@@ -219,34 +219,26 @@ export const authOptions: NextAuthOptions = {
         return session;
       },
       async signIn({ user, account, profile }) {
-          console.log('[AZURE AD SIGNIN] signIn callback triggered');
-          console.log('[AZUREAD SIGNIN] account provider:', account?.provider);
-          console.log('[AZUREAD SIGNIN] profile email:', profile?.email);
-          console.log('[AZURE AD SIGNIN] isAzureADConfigured():', isAzureADConfigured());
-          
+         
           // Only handle Azure AD sign-in if Azure AD is configured and this is an Azure AD sign-in
           if (isAzureADConfigured() && account?.provider === 'azure-ad' && profile?.email) {
-              console.log('[AZURE ADSIGNIN] Processing Azure AD sign-in for:', profile.email);
+             
               const client = await getPool().connect();
               try {
                   // Use profile.sub as the unique user ID (OID) if oid is not present
                   const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
                   const picture = (profile as any).picture ?? null;
                   
-                  console.log('[AZURE AD SIGNIN] User OID:', oid);
-                  console.log('[AZURE AD SIGNIN] User name:', profile.name);
-
+                  
                   // Check if user exists by email or Azure OID
                   let res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                   let dbUser = res.rows[0];
                   
-                  console.log('[AZURE AD SIGNIN] Existing user found:', !!dbUser);
-                  if (dbUser) {
-                      console.log('[AZURE AD SIGNIN] Existing user ID:', dbUser.id);
-                  }
+                 
+                 
 
                   if (!dbUser) {
-                      console.log('[AZURE AD SIGNIN] Creating new user in database');
+                    
                       // If not, create a new user
                       // For Azure AD users, we need to provide a placeholder password since the field is required
                       // This password will never be used for authentication since Azure AD handles that
@@ -257,7 +249,7 @@ export const authOptions: NextAuthOptions = {
                           [uuid, profile.name, profile.email, new Date(), picture, 'Recruiter', placeholderPassword, 'azure', oid]
                       );
                       await logAudit('AUDIT', `New user '${profile.name}' created via Azure AD SSO.`, 'Auth:SignIn', uuid);
-                      console.log('[AZURE AD SIGNIN] New user created successfully');
+                     
                       // After creating user, fetch it to get the ID
                       res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                       dbUser = res.rows[0];
@@ -265,10 +257,10 @@ export const authOptions: NextAuthOptions = {
                   
                   // Use the user's actual ID (either existing or newly created)
                   const userId = dbUser.id; // This is always a UUID
-                  console.log('[AZURE AD SIGNIN] Using user ID for account creation:', userId);
+                  
                   
                   // Also create an account entry for the provider
-                  console.log('[AZURE AD SIGNIN] Checking for existing account entry');
+                  
                   res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
                   if (res.rows.length === 0) {
                       console.log('[AZURE AD SIGNIN] Creating account entry');

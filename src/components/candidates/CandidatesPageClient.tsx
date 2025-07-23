@@ -768,42 +768,32 @@ export function CandidatesPageClient({
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
     // console.log('handleFilterChange called with:', newFilters);
-    
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
       // console.log('Skipping filter change - currently clearing filters');
       return;
     }
-    
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
     }
-
     // Debounce the filter change to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
       // console.log('Applying debounced filter change');
-    const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
-      
+      const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
       // Check if filters have actually changed to prevent unnecessary updates
       const currentFiltersString = JSON.stringify(filters);
       const newFiltersString = JSON.stringify(combinedFilters);
-      
       if (currentFiltersString === newFiltersString) {
         // console.log('Filters unchanged, skipping update');
         return;
       }
-      
-      // Check if this is an AI search query being applied
-      const isAiSearchQuery = newFilters.aiSearchQuery !== undefined;
-      // Only clear AI search if user is clearing all filters (handled elsewhere)
-      // const isSignificantFilterChange = ...
-      // if (isSignificantFilterChange && !isAiSearchActive) {
-      //   setAiMatchedCandidateIds(null);
-      //   setAiSearchReasoning(null);
-      //   setIsAiSearchActive(false);
-      // }
-      // Reset page to 1 when filters change
+      // Always clear AI search state if filters are changed
+      if (isAiSearchActive) {
+        setAiMatchedCandidateIds(null);
+        setAiSearchReasoning(null);
+        setIsAiSearchActive(false);
+      }
       setPage(1);
       setFilters(combinedFilters);
     }, 300); // 300ms debounce
@@ -1415,7 +1405,7 @@ export function CandidatesPageClient({
   };
 
   const sortedCandidates = useMemo(() => {
-    const sorted = [...allCandidates].sort((a, b) => {
+    const sorted = [...mappedCandidates].sort((a, b) => {
       const aValue = getSortableValue(a, sortColumn);
       const bValue = getSortableValue(b, sortColumn);
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
@@ -1423,7 +1413,7 @@ export function CandidatesPageClient({
       return 0;
     });
     return sorted;
-  }, [allCandidates, sortColumn, sortDirection]);
+  }, [mappedCandidates, sortColumn, sortDirection]);
 
   // ALL EARLY RETURNS MOVED TO AFTER ALL HOOKS
   // Centralized error UI for auth/permission
@@ -1751,6 +1741,13 @@ export function CandidatesPageClient({
               {aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0 && " No strong matches found."}
             </AlertDescription>
           </Alert>
+        )}
+
+        {isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0 && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
+            <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
+          </div>
         )}
 
         <CandidateTable

@@ -872,6 +872,25 @@ export function FlexibleKanbanView({
     );
   }
 
+  // --- NEW LOGIC: If only one column, show horizontal layout with navigation ---
+  if (isColumnBased && effectiveColumnValues.length === 1) {
+    const colValue = effectiveColumnValues[0];
+    const colCandidates = candidates.filter(c => {
+      const value = c[columnField as keyof typeof c] ?? c.customAttributes?.[columnField];
+      return value === colValue;
+    });
+    return (
+      <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col items-center justify-center overflow-y-auto">
+        <SingleRowCandidateView
+          candidates={colCandidates}
+          onCardClick={onCardClick}
+          onMoveCandidate={onMoveCandidate}
+          visibleFields={visibleFields}
+        />
+      </div>
+    );
+  }
+
   // Grouped row layout (no columns)
   return (
     <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex flex-col gap-4 overflow-y-auto">

@@ -232,6 +232,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.status;
+    const oldRecruiterId = existingCandidate.recruiterId;
 
     // Build dynamic update query based on provided fields
     const updateFields = [];
@@ -307,6 +308,24 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const updateResult = await client.query(updateQuery, updateValues);
 
+    // --- Recruiter change detection ---
+    let recruiterChanged = false;
+    let oldRecruiterName = null;
+    let newRecruiterName = null;
+    if (recruiterId !== undefined && recruiterId !== oldRecruiterId) {
+      recruiterChanged = true;
+      // Fetch old recruiter name (if any)
+      if (oldRecruiterId) {
+        const oldRecRes = await client.query('SELECT name FROM "User" WHERE id = $1', [oldRecruiterId]);
+        oldRecruiterName = oldRecRes.rows[0]?.name || null;
+      }
+      // Fetch new recruiter name (if any)
+      if (recruiterId) {
+        const newRecRes = await client.query('SELECT name FROM "User" WHERE id = $1', [recruiterId]);
+        newRecruiterName = newRecRes.rows[0]?.name || null;
+      }
+    }
+
     // Create transition record if status changed
     if (oldStatus !== status) {
       console.log('Creating transition record:', { oldStatus, newStatus: status, transitionNotes, actingUserId });
@@ -339,8 +358,45 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         console.error('Error creating transition record:', transitionError);
         throw transitionError;
       }
+    } else if (recruiterChanged) {
+      // Create transition record for recruiter change
+      const safePositionId = positionId ?? null;
+      let transitionMessage = '';
+      if (oldRecruiterId && recruiterId) {
+        transitionMessage = `Recruiter changed from ${oldRecruiterName || oldRecruiterId} to ${newRecruiterName || recruiterId}`;
+      } else if (!oldRecruiterId && recruiterId) {
+        transitionMessage = `Recruiter assigned: ${newRecruiterName || recruiterId}`;
+      } else if (oldRecruiterId && !recruiterId) {
+        transitionMessage = `Recruiter unassigned (was ${oldRecruiterName || oldRecruiterId})`;
+      } else {
+        transitionMessage = `Recruiter assignment changed.`;
+      }
+      const newTransitionId = uuidv4();
+      const insertTransitionQuery = `
+        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW());
+      `;
+      try {
+        await client.query(insertTransitionQuery, [
+          newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
+        ]);
+        // Broadcast the new transition
+        const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
+        const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
+        if (transitionResult.rows.length > 0) {
+          const newTransition = transitionResult.rows[0];
+          broadcastCandidateTransitionUpdate({
+            candidateId: id,
+            transition: newTransition,
+            action: 'add'
+          });
+        }
+      } catch (transitionError) {
+        console.error('Error creating recruiter change transition record:', transitionError);
+        throw transitionError;
+      }
     } else {
-      console.log('No status change detected, skipping transition record creation');
+      console.log('No status or recruiter change detected, skipping transition record creation');
     }
 
     await client.query('COMMIT');

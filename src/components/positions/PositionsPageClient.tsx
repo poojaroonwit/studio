@@ -33,6 +33,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ChevronsUpDown, Check } from 'lucide-react';
 
 export default function PositionsPageClient() {
   // All useState hooks first
@@ -52,6 +56,7 @@ export default function PositionsPageClient() {
   const [pageSize, setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
+  const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const { data: session } = useSession();
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,6 +103,17 @@ export default function PositionsPageClient() {
     }
   }, [typeof window !== 'undefined' ? window.location.search : '']);
 
+  // Department filter popover state
+  const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState('');
+
+  // Robust handler for department selection
+  const handleDepartmentSelect = (dept: string) => {
+    setDepartmentFilter(dept);
+    setDepartmentPopoverOpen(false);
+    setDepartmentSearch('');
+  };
+
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
 
   // Calculate total pages for pagination
@@ -127,8 +143,33 @@ export default function PositionsPageClient() {
     };
   }, [isSearching]);
 
+  // Use refs to store current values to avoid dependency issues
+  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, page, pageSize });
+  
+  // Update refs when values change
+  useEffect(() => {
+    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, page, pageSize };
+  }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
+
+  // Fetch all departments for the filter dropdown
+  const fetchAllDepartments = useCallback(async () => {
+    try {
+      const response = await fetch('/api/positions/all');
+      if (!response.ok) {
+        throw new Error('Failed to fetch departments');
+      }
+      const data = await response.json();
+      const departments = Array.from(new Set(data.data.map((p: any) => p.department).filter(Boolean))).sort();
+      setAllDepartments(departments);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      // Fallback to current positions if API fails
+      setAllDepartments(Array.from(new Set(positions.map(p => p.department || ""))).sort());
+    }
+  }, [positions]);
+
   // Fetch positions with pagination and statistics
-  const fetchPositions = useCallback(async (isSearch = false) => {
+  const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
     if (isSearch) {
       setIsSearching(true);
     } else {
@@ -136,12 +177,13 @@ export default function PositionsPageClient() {
     }
     
     try {
+      const filters = currentFiltersRef.current;
       const query = new URLSearchParams();
-      if (searchTerm) query.append('title', searchTerm);
-      if (statusFilter !== 'all') query.append('isOpen', statusFilter === 'open' ? 'true' : 'false');
-      if (departmentFilter !== 'all') query.append('department', departmentFilter);
-      query.append('limit', String(pageSize));
-      query.append('offset', String((page - 1) * pageSize));
+      if (filters.searchTerm) query.append('title', filters.searchTerm);
+      if (filters.statusFilter !== 'all') query.append('isOpen', filters.statusFilter === 'open' ? 'true' : 'false');
+      if (filters.departmentFilter !== 'all') query.append('department', filters.departmentFilter);
+      query.append('limit', String(filters.pageSize));
+      query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
       query.append('includeStats', 'true'); // Include statistics in the same call
       
       const response = await fetch(`/api/positions?${query.toString()}`);
@@ -152,7 +194,7 @@ export default function PositionsPageClient() {
       setPositions(data.data || []);
       setTotal(data.total || 0);
       
-      // Update statistics if included in response
+            // Update statistics if included in response
       if (data.statistics) {
         setStatistics(data.statistics);
       }
@@ -166,23 +208,26 @@ export default function PositionsPageClient() {
         setIsLoading(false);
       }
     }
-  }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
+  }, []); // Empty dependency array makes this function stable
 
   // Remove the separate fetchStatistics function since it's now combined
   // const fetchStatistics = useCallback(async () => { ... }, [searchTerm, statusFilter, departmentFilter]);
 
   // Initial load
   useEffect(() => {
-    const initialLoad = async () => {
-      setIsLoading(true);
-      try {
-        await fetchPositions(false); // This now includes statistics
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initialLoad();
+    fetchPositions(false);
+    fetchAllDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
+
+  // Effect for pagination changes only
+  useEffect(() => {
+    // Skip initial render and skip if search is in progress
+    if (searchTimeoutRef.current) {
+      return;
+    }
+    fetchPositions(false);
+  }, [page, pageSize]);
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
@@ -194,26 +239,26 @@ export default function PositionsPageClient() {
     // Set new timeout for search with longer delay for better performance
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        setPage(1); // Reset to first page when searching
-        await fetchPositions(true); // Pass true to indicate this is a search operation
+        // Reset to first page and fetch with page 1
+        setPage(1);
+        await fetchPositions(true, 1); // Pass custom page 1 to avoid race condition
       } catch (error) {
         console.error('Search error:', error);
-        setIsSearching(false); // Ensure search state is reset on error
+        setIsSearching(false);
+      } finally {
+        // Clear the timeout ref after execution
+        searchTimeoutRef.current = null;
       }
-    }, 500); // Increased to 500ms for better performance
+    }, 500);
 
     // Cleanup timeout on unmount
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
       }
     };
   }, [searchTerm, statusFilter, departmentFilter, fetchPositions]);
-
-  // Reset page to 1 when filters change (but not on every search term change)
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, departmentFilter]);
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -273,12 +318,6 @@ export default function PositionsPageClient() {
 
   // Use positions directly since filtering is now done server-side
   const filteredPositions = useMemo(() => positions, [positions]);
-
-  // Get unique departments for filter
-  const departments = useMemo(() => 
-    Array.from(new Set(positions.map(p => p.department || ""))).sort(), 
-    [positions]
-  );
 
   // Memoize computed values for better performance
   const totalPositions = useMemo(() => statistics.total, [statistics.total]);
@@ -354,6 +393,8 @@ export default function PositionsPageClient() {
       setPositions(prev => [...prev, newPosition]);
       setIsAddModalOpen(false);
       toast.success('Position added successfully');
+      // Refresh departments in case a new department was added
+      fetchAllDepartments();
     } catch (error) {
       toast.error('Failed to add position');
     }
@@ -377,6 +418,8 @@ export default function PositionsPageClient() {
       setIsEditModalOpen(false);
       setSelectedPosition(null);
       toast.success('Position updated successfully');
+      // Refresh departments in case the department was changed
+      fetchAllDepartments();
     } catch (error) {
       toast.error('Failed to update position');
     }
@@ -486,20 +529,51 @@ export default function PositionsPageClient() {
               <SelectItem value="closed">Closed Only</SelectItem>
             </SelectContent>
           </Select>
-          <Select 
-            value={departmentFilter || ''} 
-            onValueChange={setDepartmentFilter}
-          >
-            <SelectTrigger className={isSearching ? 'opacity-50' : ''}>
-              <SelectValue placeholder="Filter by department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Departments</SelectItem>
-              {departments.filter(Boolean).map(dept => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-0">
+              <Command>
+                <CommandInput
+                  placeholder="Search departments..."
+                  value={departmentSearch}
+                  onChange={e => setDepartmentSearch(e.target.value)}
+                  className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
+                />
+                <CommandList>
+                  <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
+                  <ScrollArea className="max-h-48">
+                    <CommandItem
+                      key="all"
+                      value="all"
+                      onSelect={() => handleDepartmentSelect('all')}
+                      onClick={() => handleDepartmentSelect('all')}
+                      className="text-xs"
+                    >
+                      <Check className={departmentFilter === 'all' ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
+                      All Departments
+                    </CommandItem>
+                    {allDepartments.filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase())).map(dept => (
+                      <CommandItem
+                        key={dept}
+                        value={dept}
+                        onSelect={() => handleDepartmentSelect(dept)}
+                        onClick={() => handleDepartmentSelect(dept)}
+                        className="text-xs"
+                      >
+                        <Check className={departmentFilter === dept ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
+                        {dept}
+                      </CommandItem>
+                    ))}
+                  </ScrollArea>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         {canManagePositions && (
           <div className="flex gap-2">
@@ -708,6 +782,30 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('level'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Level
+                    <DropdownMenu open={openMenu === 'level'} onOpenChange={open => setOpenMenu(open ? 'level' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'level' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('level', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('level', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('department'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Department
@@ -750,30 +848,6 @@ export default function PositionsPageClient() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => { handleSort('status', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { handleSort('status', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('level'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Level
-                    <DropdownMenu open={openMenu === 'level'} onOpenChange={open => setOpenMenu(open ? 'level' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'level' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('level', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('level', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -849,7 +923,12 @@ export default function PositionsPageClient() {
                       aria-label={`Select position ${position.title}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{position.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/positions/${position.id}`} className="text-primary hover:underline">
+                      {position.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{position.positionLevel || '-'}</TableCell>
                   <TableCell>{position.department}</TableCell>
                   <TableCell>
                     {position.isOpen ? (
@@ -858,7 +937,6 @@ export default function PositionsPageClient() {
                       <Badge variant="destructive">Closed</Badge>
                     )}
                   </TableCell>
-                  <TableCell>{position.positionLevel || '-'}</TableCell>
                   <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>
@@ -882,6 +960,11 @@ export default function PositionsPageClient() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        <Link href={`/positions/${position.id}`} passHref legacyBehavior>
+                          <Button as="a" variant="outline" size="sm">
+                            Details
+                          </Button>
+                        </Link>
                       </div>
                     )}
                   </TableCell>

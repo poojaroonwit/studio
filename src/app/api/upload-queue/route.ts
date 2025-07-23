@@ -6,6 +6,7 @@ import { authOptions, validateUserSession } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
+import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
 
 /**
  * @openapi
@@ -189,8 +190,12 @@ export async function GET(request: NextRequest) {
       totalCount: parseInt(countRes.rows[0].count, 10),
       returnedCount: dataRes.rows.length 
     });
-    
-    return NextResponse.json({ data: dataRes.rows, total: parseInt(countRes.rows[0].count, 10), summary });
+    // Add url field to each job
+    const jobsWithUrl = dataRes.rows.map(job => ({
+      ...job,
+      url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
+    }));
+    return NextResponse.json({ data: jobsWithUrl, total: parseInt(countRes.rows[0].count, 10), summary });
   } catch (error) {
     await logAudit('ERROR', `Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:Get', actingUserId);
     throw error;
@@ -228,10 +233,14 @@ export async function POST(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;
-  const finalPositionId = position_id || applied_position_id || null;
+  let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;
+  // If position_id and applied_position_id are not set, try to get from webhook_payload.targetPositionId
+  let finalPositionId = position_id || applied_position_id || null;
+  if (!finalPositionId && webhook_payload && typeof webhook_payload === 'object' && webhook_payload.targetPositionId) {
+    finalPositionId = webhook_payload.targetPositionId;
+  }
   console.log('Upload queue POST received:', data);
-  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload });
+  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload, finalPositionId });
   if (!file_path) {
     await logAudit('WARN', `Upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });

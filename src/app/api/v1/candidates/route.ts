@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import { 
   createSuccessResponse, 
   handleApiError, 
@@ -18,8 +18,6 @@ import {
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 import { logAudit } from '@/lib/auditLog';
-
-const prisma = new PrismaClient();
 
 // These schemas are now imported from ./schemas.ts
 
@@ -199,52 +197,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     await logAudit('ERROR', `Failed to create candidate by ${user?.name || 'Unknown'}. Error: ${(error as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (error as Error).message, ...body });
-    // Handle unique constraint violation for email
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      // Instead of returning 409, update the existing candidate
-      try {
-        const existingCandidate = await prisma.candidate.findUnique({
-          where: { email: email.toLowerCase() },
-        });
-        if (!existingCandidate) {
-          // Should not happen, but fallback to error
-          return handleApiError(request, createConflictError('A candidate with this email already exists, but could not be found for update.'));
-        }
-        const updatedCandidate = await prisma.candidate.update({
-          where: { id: existingCandidate.id },
-          data: {
-            name: name,
-            phone: contactInfo.phone || null,
-            status: appliedStage,
-            fitScore: fitScore,
-            parsedData: parsedData,
-            updatedAt: new Date(),
-          },
-        });
-        await logAudit('AUDIT', `Candidate '${name}' updated (via duplicate email) by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: existingCandidate.id, name, email, status: appliedStage });
-        return createSuccessResponse(request, {
-          message: 'Candidate updated successfully',
-          candidate: {
-            id: updatedCandidate.id,
-            name: updatedCandidate.name,
-            email: updatedCandidate.email,
-            phone: updatedCandidate.phone,
-            status: updatedCandidate.status,
-            parsedData: updatedCandidate.parsedData,
-            applicationDate: updatedCandidate.applicationDate,
-            createdAt: updatedCandidate.createdAt,
-            updatedAt: updatedCandidate.updatedAt,
-          }
-        }, 200);
-      } catch (updateError: any) {
-        await logAudit('ERROR', `Failed to update existing candidate by ${user?.name || 'Unknown'}. Error: ${(updateError as Error).message}`, 'API:V1:Candidates:Create', user?.id, { error: (updateError as Error).message, ...body });
-        return handleApiError(request, createInternalServerError('Error updating existing candidate', {
-          originalError: (updateError as Error).message,
-          stack: (updateError as Error).stack,
-        }));
-      }
-    }
-    // Enhanced error logging for debugging
     return handleApiError(request, createInternalServerError('Error creating candidate', {
       originalError: (error as Error).message,
       stack: (error as Error).stack,

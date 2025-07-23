@@ -136,15 +136,7 @@ export async function POST(req: NextRequest) {
 
     for (const candidate of candidates) {
       try {
-        // Check if candidate already exists
-        const existingResult = await client.query('SELECT id FROM "Candidate" WHERE email = $1', [candidate.email]);
-        
-        if (existingResult.rows.length > 0) {
-          results.skipped++;
-          results.errors.push(`Candidate with email ${candidate.email} already exists`);
-          continue;
-        }
-
+        // Remove duplicate email check
         // Extract fitScore from candidate, candidate_info, or candidate_info.job_applied
         let fitScore = null;
         if (typeof candidate.fitScore === 'number') {
@@ -154,13 +146,11 @@ export async function POST(req: NextRequest) {
         } else if (candidate.candidate_info && candidate.candidate_info.job_applied && typeof candidate.candidate_info.job_applied.fitScore === 'number') {
           fitScore = Math.max(0, Math.min(1, candidate.candidate_info.job_applied.fitScore / 100));
         }
-
         // Insert new candidate
         const insertQuery = `
           INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate")
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         `;
-        
         await client.query(insertQuery, [
           uuidv4(),
           candidate.name,
@@ -174,7 +164,6 @@ export async function POST(req: NextRequest) {
           candidate.parsedData || null,
           candidate.resumePath || null
         ]);
-
         results.imported++;
       } catch (error) {
         results.errors.push(`Failed to import ${candidate.email}: ${(error as Error).message}`);

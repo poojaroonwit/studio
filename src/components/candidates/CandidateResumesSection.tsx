@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import DragDropUpload, { UploadFile } from '../ui/drag-drop-upload';
 import { toast } from 'react-hot-toast';
+import { FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
 
 interface Attachment {
   id: string;
@@ -23,6 +24,14 @@ interface CandidateResumesSectionProps {
   resumes: Attachment[];
   isEditing: boolean;
   onResumesChange: () => void;
+}
+
+// Helper to render file icon based on extension
+function getFileIcon(fileOrUrl: { fileName: string }) {
+  const name = fileOrUrl.fileName;
+  if (name.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) return <ImageIcon className="w-5 h-5 text-blue-500" />;
+  if (name.match(/\.pdf$/i)) return <FileTextIcon className="w-5 h-5 text-red-500" />;
+  return <FileIcon className="w-5 h-5 text-gray-500" />;
 }
 
 const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candidateId, resumes, isEditing, onResumesChange }) => {
@@ -137,22 +146,20 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       </div>
 
       {/* Drag and Drop Upload Area */}
-      {isEditing && (
-        <div className="mb-6">
-          <DragDropUpload
-            onUpload={handleUpload}
-            accept="application/pdf,.doc,.docx,.rtf"
-            multiple={true}
-            maxFiles={10}
-            maxFileSize={10 * 1024 * 1024} // 10MB
-            disabled={uploading}
-            className="w-full"
-          />
-          {uploadError && (
-            <p className="text-sm text-red-500 mt-2">{uploadError}</p>
-          )}
-        </div>
-      )}
+      <div className="mb-6">
+        <DragDropUpload
+          onUpload={handleUpload}
+          accept="application/pdf,.doc,.docx,.rtf"
+          multiple={true}
+          maxFiles={10}
+          maxFileSize={10 * 1024 * 1024} // 10MB
+          disabled={uploading}
+          className="w-full"
+        />
+        {uploadError && (
+          <p className="text-sm text-red-500 mt-2">{uploadError}</p>
+        )}
+      </div>
 
       {/* Existing Attachments List */}
       <div className="space-y-3">
@@ -170,6 +177,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
+                  {getFileIcon(attachment)}
                   <a 
                     href={attachment.url} 
                     target="_blank" 

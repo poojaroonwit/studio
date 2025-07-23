@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
+import { z } from 'zod';
 
 
 interface CandidateTableProps {
@@ -85,6 +85,32 @@ const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary"
   }
 };
 
+// Utility for displaying fitScore as a percentage and grade
+function displayFitScoreWithGrade(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return '';
+  let percent = score;
+  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
+  else percent = Math.round(score);
+  // Grade logic (A: 80+, B: 60+, C: 40+, D: 20+, E: <20)
+  let grade = 'E';
+  if (percent >= 80) grade = 'A';
+  else if (percent >= 60) grade = 'B';
+  else if (percent >= 40) grade = 'C';
+  else if (percent >= 20) grade = 'D';
+  return `${percent}% (${grade})`;
+}
+
+function getFitScoreBadgeColor(score: number | undefined | null) {
+  if (typeof score !== 'number' || isNaN(score)) return 'bg-gray-200 text-gray-700';
+  let percent = score;
+  if (score >= 0 && score <= 1) percent = score * 100;
+  if (percent >= 80) return 'bg-green-500 text-white'; // A
+  if (percent >= 60) return 'bg-yellow-400 text-black'; // B
+  if (percent >= 40) return 'bg-lime-400 text-black'; // C
+  if (percent >= 20) return 'bg-green-200 text-black'; // D
+  return 'bg-gray-200 text-gray-700'; // E
+}
+
 export function CandidateTable({
   candidates,
   availablePositions,
@@ -118,6 +144,26 @@ export function CandidateTable({
   const [isManageTransitionsModalOpen, setIsManageTransitionsModalOpen] = useState(false);
   // Add state for each column's dropdown menu open state
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
+
+  // Group candidates by email
+  const candidatesByEmail = React.useMemo(() => {
+    const groups: Record<string, Candidate[]> = {};
+    candidates.forEach((c) => {
+      if (!c.email) return;
+      if (!groups[c.email]) groups[c.email] = [];
+      groups[c.email].push(c);
+    });
+    return groups;
+  }, [candidates]);
+
+  // Get sorted email groups (preserve order from candidates array)
+  const emailOrder = React.useMemo(() => {
+    const seen = new Set<string>();
+    return candidates
+      .map((c) => c.email)
+      .filter((email) => email && !seen.has(email) && seen.add(email));
+  }, [candidates]);
 
   // Helper to combine and sort activities
   const getCombinedActivities = () => {
@@ -405,45 +451,17 @@ export function CandidateTable({
                   </DropdownMenu>
                 </span>
               </TableHead>
-              <TableHead key="last-update" className="hidden md:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('lastUpdate'); setOpenMenu(null); }}>
-                <span className="inline-flex items-center gap-1">
-                  Last Update
-                  <DropdownMenu open={openMenu === 'lastUpdate'} onOpenChange={open => setOpenMenu(open ? 'lastUpdate' : null)}>
-                    <DropdownMenuTrigger asChild>
-                      {sortColumn === 'lastUpdate' ? (
-                        <button
-                          type="button"
-                          className="text-primary font-bold p-1 rounded hover:bg-muted"
-                          onClick={e => { e.stopPropagation(); setOpenMenu('lastUpdate'); }}
-                          aria-label="Sort options"
-                        >
-                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
-                          onClick={e => { e.stopPropagation(); setOpenMenu('lastUpdate'); }}
-                          aria-label="Sort options"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                      )}
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { onSort && onSort('lastUpdate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              </TableHead>
               <TableHead key="actions" className="text-right w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {candidates.filter(candidate => candidate && candidate.id && candidate.name).map((candidate, idx) => {
+            {(() => {
+              let rowNumber = baseIndex + 1;
+              return emailOrder.map((email, groupIdx) => {
+                const group = candidatesByEmail[email];
+                if (!group || group.length === 0) return null;
+                if (group.length === 1) {
+                  const candidate = group[0];
               const dateValue = candidate.updatedAt || candidate.createdAt;
               let displayDate = 'N/A';
               if (dateValue && typeof dateValue === 'string') {
@@ -465,9 +483,9 @@ export function CandidateTable({
               // Find the index of the candidate's current stage
               const currentStageIndex = availableStages.findIndex(s => s.name === candidate.status);
 
-              return (
+                  const row = (
                 <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
-                  <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{baseIndex + idx + 1}</TableCell>
+                      <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
                   <TableCell key={`${candidate.id}-select`}><Checkbox
                       checked={selectedCandidateIds.has(candidate.id)}
                       onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
@@ -515,11 +533,6 @@ export function CandidateTable({
                         >
                           {candidate.position.title}
                         </span>
-                        {candidate.applicationDate && (
-                          <div className="text-xs text-muted-foreground">
-                            Applied: {new Date(candidate.applicationDate).toLocaleDateString()}
-                          </div>
-                        )}
                       </div>
                     ) : candidate.positionId ? (
                       <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
@@ -529,15 +542,15 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
-                      {/* Fit Score as Badge or No Applied Job */}
-                      {(!candidate.positionId || !candidate.position) ? (
-                        <span className="text-xs text-muted-foreground">No applied job</span>
-                      ) : (
+                      {/* Always show fitScore if defined */}
+                      {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
                         <Badge
-                          className={`min-w-[48px] justify-center ${getScoreBgColor(candidate.fitScore)} ${getScoreColor(candidate.fitScore)}`}
+                          className={`min-w-[48px] justify-center ${getFitScoreBadgeColor(candidate.fitScore)}`}
                         >
-                          {formatScoreWithGrade(candidate.fitScore)}
+                          {displayFitScoreWithGrade(candidate.fitScore)}
                         </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No job applied</span>
                       )}
                     </div>
                   </TableCell>
@@ -570,9 +583,6 @@ export function CandidateTable({
                         </Badge>
                       );
                     })()}
-                  </TableCell>
-                  <TableCell key={`${candidate.id}-last-update`} className="text-sm text-muted-foreground hidden md:table-cell">
-                    {displayDate}
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
                     <DropdownMenu>
@@ -608,7 +618,173 @@ export function CandidateTable({
                   </TableCell>
                 </TableRow>
               );
-            })}
+                  rowNumber++;
+                  return row;
+                } else {
+                  const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
+                  return (
+                    <React.Fragment key={email}>
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={99} className="p-0">
+                          <div className="flex items-center gap-2 px-2 py-1">
+                            <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'}>
+                              {isExpanded ? <ChevronDown /> : <ChevronUp />}
+                            </Button>
+                            <span className="font-semibold">{email}</span>
+                            <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && group.map((candidate) => {
+                        const row = (
+                          <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
+                            <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
+                            <TableCell key={`${candidate.id}-select`}><Checkbox
+                                checked={selectedCandidateIds.has(candidate.id)}
+                                onCheckedChange={() => onToggleSelectCandidate(candidate.id)}
+                                aria-label={`Select candidate ${candidate.name}`}
+                              /></TableCell>
+                            {/* Removed Pipeline cell */}
+                            <TableCell key={`${candidate.id}-candidate-info`}>
+                              <div className="flex items-center gap-3">
+                                {(() => {
+                                  const nameInfo = formatCandidateNameWithLang(candidate);
+                                  const uuidSchema = z.string().uuid();
+                                  const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
+                                  return (
+                                    <>
+                                      <Avatar size="lg" className="border-2 border-border">
+                                        <AvatarImage
+                                          src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`}
+                                          alt={nameInfo.name}
+                                          data-ai-hint="person avatar"
+                                          onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`; }}
+                                        />
+                                        <AvatarFallback className="text-sm font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        {isValidId ? (
+                                          <Link href={`/candidates/${candidate.id}`} passHref>
+                                            <span 
+                                              className={`font-medium text-foreground hover:underline cursor-pointer ${nameInfo.fontClass}`}
+                                              lang={nameInfo.lang}
+                                            >
+                                              {nameInfo.name}
+                                            </span>
+                                          </Link>
+                                        ) : (
+                                          <span className={`font-medium text-foreground ${nameInfo.fontClass}`} lang={nameInfo.lang}>{nameInfo.name}</span>
+                                        )}
+                                        <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-position`}>
+                              {candidate.position?.title ? (
+                                <div className="space-y-1">
+                                  <span
+                                    className="font-medium text-primary hover:underline cursor-pointer"
+                                    onClick={() => handleEditPositionClick(candidate.positionId)}
+                                    title={`Edit ${candidate.position.title}`}
+                                  >
+                                    {candidate.position.title}
+                                  </span>
+                                </div>
+                              ) : candidate.positionId ? (
+                                <span className="text-warning-foreground bg-warning/20 px-2 py-1 rounded text-xs font-semibold">Missing Job Info</span>
+                              ) : (
+                                <span className="text-muted-foreground">N/A</span>
+                              )}
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
+                              <div className="flex items-center gap-2">
+                                {/* Always show fitScore if defined */}
+                                {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
+                                  <Badge
+                                    className={`min-w-[48px] justify-center ${getFitScoreBadgeColor(candidate.fitScore)}`}
+                                  >
+                                    {displayFitScoreWithGrade(candidate.fitScore)}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No job applied</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-recruiter`}>
+                              <Select value={candidate.recruiter?.id || ''} onValueChange={value => onAssignRecruiter(candidate.id, value === '___UNASSIGN___' ? null : value)}>
+                                <SelectTrigger className="w-36">
+                                  <SelectValue placeholder="Unassigned">
+                                    {candidate.recruiter?.name || 'Unassigned'}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
+                                  {availableRecruiters.map(r => (
+                                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-status`}>
+                              {(() => {
+                                const stage = availableStages.find(s => s.name === candidate.status);
+                                const badgeColor = stage?.color_badge;
+                                return (
+                                  <Badge
+                                    variant={getStatusBadgeVariant(candidate.status)}
+                                    className="capitalize"
+                                    style={badgeColor ? { backgroundColor: badgeColor, color: '#fff', borderColor: badgeColor } : undefined}
+                                  >
+                                    {candidate.status}
+                                  </Badge>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-actions`} className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Actions</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem key="view-details" asChild>
+                                    <Link href={`/candidates/${candidate.id}`}>
+                                      <Eye className="mr-2 h-4 w-4" /> View Details
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
+                                    <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
+                                  </DropdownMenuItem>
+                                   <DropdownMenuItem key="upload-resume" onSelect={() => onOpenUploadModal(candidate)}>
+                                    <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
+                                  </DropdownMenuItem>
+                                  {candidate.positionId && (
+                                    <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
+                                      <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator key="separator" />
+                                  <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                        rowNumber++;
+                        return row;
+                      })}
+                    </React.Fragment>
+                  );
+                }
+              });
+            })()}
           </TableBody>
         </Table>
       </div>

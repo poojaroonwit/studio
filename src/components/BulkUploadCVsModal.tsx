@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { UploadCloud, Loader2, Trash2 } from "lucide-react";
-import { FileUploadArea } from "@/components/ui/FileUploadArea";
+import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
 

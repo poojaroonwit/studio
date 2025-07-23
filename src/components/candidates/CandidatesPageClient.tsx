@@ -1361,12 +1361,13 @@ export function CandidatesPageClient({
   const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const handleSort = (column: string) => {
+  const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) return;
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
-      setSortDirection('asc');
+      setSortDirection(direction ?? 'asc');
     }
   };
 

@@ -142,6 +142,16 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   };
 
+  // Filtering logic (client-side for now)
+  const filteredJobs = jobs.filter(job => {
+    // Show all jobs, regardless of source
+    const matchesName = job.file_name?.toLowerCase().includes(filter.toLowerCase());
+    const matchesStatus = statusFilter ? getDisplayStatus(job.status) === statusFilter : true;
+    // Date range filter
+    const inDateRange = isInRange(job.upload_date);
+    return matchesName && matchesStatus && inDateRange;
+  });
+
   const sortedJobs = useMemo(() => {
     if (!sortColumn) return filteredJobs;
     return [...filteredJobs].sort((a, b) => {
@@ -478,16 +488,6 @@ export const CandidateImportUploadQueue: React.FC<{
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  // Filtering logic (client-side for now)
-  const filteredJobs = jobs.filter(job => {
-    // Show all jobs, regardless of source
-    const matchesName = job.file_name?.toLowerCase().includes(filter.toLowerCase());
-    const matchesStatus = statusFilter ? getDisplayStatus(job.status) === statusFilter : true;
-    // Date range filter
-    const inDateRange = isInRange(job.upload_date);
-    return matchesName && matchesStatus && inDateRange;
-  });
 
   // Status counts - Use summary if available, else fallback to filteredJobs
   const numQueued = summary ? Number(summary.queued) : filteredJobs.filter(j => j.status === 'queued').length;

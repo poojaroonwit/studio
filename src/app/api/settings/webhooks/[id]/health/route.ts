@@ -46,7 +46,7 @@ export async function POST(
       // Add custom headers
       if (webhook.headers) {
         Object.entries(webhook.headers).forEach(([key, value]) => {
-          headers[key] = value;
+          headers[key] = value as string;
         });
       }
 
@@ -114,10 +114,10 @@ export async function POST(
     });
 
     const totalAttempts = recentLogs.length;
-    const successfulAttempts = recentLogs.filter(log => log.success).length;
+    const successfulAttempts = recentLogs.filter((log: any) => log.success).length;
     const successRate = totalAttempts > 0 ? (successfulAttempts / totalAttempts) * 100 : 0;
-    const avgResponseTime = recentLogs.length > 0 
-      ? recentLogs.reduce((sum, log) => sum + log.duration_ms, 0) / recentLogs.length 
+    const avgResponseTime = recentLogs.length > 0
+      ? recentLogs.reduce((sum: number, log: any) => sum + log.duration_ms, 0) / recentLogs.length
       : 0;
 
     return NextResponse.json({

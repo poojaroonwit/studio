@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     const exportData = {
       export_date: new Date().toISOString(),
       version: '1.0',
-      webhooks: webhooks.map(webhook => ({
+      webhooks: webhooks.map((webhook: any) => ({
         ...webhook,
         // Remove sensitive data for export
         auth_password: undefined,

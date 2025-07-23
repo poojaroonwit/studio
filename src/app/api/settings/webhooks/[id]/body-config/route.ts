@@ -65,7 +65,7 @@ export async function GET(
         custom_payload: webhook.custom_payload,
         events: webhook.events
       },
-      body_configs: bodyConfigs.map(config => ({
+      body_configs: bodyConfigs.map((config: any) => ({
         id: config.id,
         event_type: config.event_type,
         body_template: config.body_template,

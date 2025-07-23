@@ -79,7 +79,7 @@ export async function GET(
       field_mappings: webhook.field_mappings,
       include_metadata: webhook.include_metadata,
       custom_payload: webhook.custom_payload,
-      body_configs: webhook.body_configs.map(config => ({
+      body_configs: webhook.body_configs.map((config: any) => ({
         id: config.id,
         event_type: config.event_type,
         body_template: config.body_template,

@@ -63,7 +63,7 @@ export async function GET(
       console.log('Total candidates found:', allCandidates.length);
       
       // Filter candidates who have job matches for this position
-      const candidatesWithJobMatches = allCandidates.filter(candidate => {
+      const candidatesWithJobMatches = allCandidates.filter((candidate: any) => {
         try {
           const parsedData = candidate.parsedData as any;
           if (!parsedData || typeof parsedData !== 'object') return false;
@@ -85,7 +85,7 @@ export async function GET(
       console.log('Total matching candidates:', totalMatching);
       
       // Get candidates who match but haven't applied (positionId doesn't match)
-      matchingNotApplied = candidatesWithJobMatches.filter(candidate => 
+      matchingNotApplied = candidatesWithJobMatches.filter((candidate: any) =>
         candidate.positionId !== positionId
       ).length;
       console.log('Matching but not applied candidates:', matchingNotApplied);

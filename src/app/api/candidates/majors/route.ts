@@ -8,11 +8,11 @@ export async function GET(req: NextRequest) {
       select: { educationData: true },
     });
     // Extract all majors from all educationData arrays
-    const majors = candidates.flatMap(candidate => {
+    const majors = candidates.flatMap((candidate: any) => {
       if (!candidate.educationData || !Array.isArray(candidate.educationData)) return [];
       return candidate.educationData
         .map((edu: any) => edu.major?.trim())
-        .filter((m: any) => m && m.length > 0);
+        .filter((major: string | undefined) => !!major);
     });
     // Deduplicate
     const uniqueMajors = Array.from(new Set(majors));

@@ -53,20 +53,20 @@ export async function GET(
       'Response Body'
     ];
 
-    const csvRows = logs.map(log => [
+    const csvRows = logs.map((log: any) => [
       log.createdAt.toISOString(),
       log.event_type,
       log.success ? 'Success' : 'Failed',
-      log.response_status || '',
       log.duration_ms,
+      log.status_code,
       log.error_message || '',
-      JSON.stringify(log.payload),
+      log.request_body || '',
       log.response_body || ''
     ]);
 
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ...csvRows.map((row: any[]) => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
     // Create response with CSV headers

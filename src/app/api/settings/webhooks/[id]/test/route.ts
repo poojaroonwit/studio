@@ -61,7 +61,7 @@ export async function POST(
     // Add custom headers
     if (webhook.headers) {
       Object.entries(webhook.headers).forEach(([key, value]) => {
-        headers[key] = value;
+        headers[key] = value as string;
       });
     }
 

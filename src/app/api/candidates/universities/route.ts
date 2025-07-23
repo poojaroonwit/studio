@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
     });
 
     // Extract all university names from all educationData arrays
-    const universities = candidates.flatMap(candidate => {
+    const universities = candidates.flatMap((candidate: any) => {
       if (!Array.isArray(candidate.educationData)) return [];
       return candidate.educationData
         .map((edu: any) => edu.university?.trim())
-        .filter((u: string | undefined) => u && u.length > 0);
+        .filter((university: string | undefined) => !!university);
     });
 
     // Deduplicate

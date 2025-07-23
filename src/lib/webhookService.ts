@@ -37,7 +37,7 @@ export class WebhookService {
       }
 
       // Send webhooks in parallel
-      const deliveryPromises = webhooks.map(webhook => 
+      const deliveryPromises = webhooks.map((webhook: any) =>
         this.sendWebhook(webhook, event, data)
       );
 

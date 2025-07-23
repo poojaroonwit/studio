@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
 
     // Get webhook names for top failing webhooks
     const failingWebhookDetails = await Promise.all(
-      topFailingWebhooks.map(async (item) => {
+      topFailingWebhooks.map(async (item: any) => {
         const webhook = await prisma.webhook.findUnique({
           where: { id: item.webhook_id },
           select: { name: true }

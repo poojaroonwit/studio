@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Sanitize webhooks to ensure no undefined values
-    const sanitizedWebhooks = webhooks.map(webhook => ({
+    const sanitizedWebhooks = webhooks.map((webhook: any) => ({
       id: webhook.id || '',
       name: webhook.name || '',
       url: webhook.url || '',
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
       field_mappings: webhook.field_mappings || null,
       include_metadata: Boolean(webhook.include_metadata),
       custom_payload: Boolean(webhook.custom_payload),
-      body_configs: webhook.body_configs.map(config => ({
+      body_configs: webhook.body_configs.map((config: any) => ({
         id: config.id,
         event_type: config.event_type,
         body_template: config.body_template,

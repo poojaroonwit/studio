@@ -88,7 +88,7 @@ export class WebhookDispatcher {
       console.log(`Dispatching ${event} to ${webhooks.length} webhooks`);
 
       // Send webhooks in parallel
-      const webhookPromises = webhooks.map(webhook => 
+      const webhookPromises = webhooks.map((webhook: any) =>
         this.sendWebhook(webhook, event, data)
       );
 

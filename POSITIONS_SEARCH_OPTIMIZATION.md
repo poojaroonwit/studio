@@ -205,12 +205,11 @@ node test-search-functionality.js
 
 ## Future Improvements
 
-1. **Caching**: Implement Redis caching for frequently searched terms
-2. **Pagination**: Add infinite scroll or virtual scrolling for large datasets
-3. **Search Suggestions**: Add autocomplete for position titles
-4. **Advanced Filters**: Add date range, salary range, and other filters
-5. **Export**: Add export functionality for filtered results
-6. **Search History**: Remember recent searches for quick access
+1. **Pagination**: Add infinite scroll or virtual scrolling for large datasets
+2. **Search Suggestions**: Add autocomplete for position titles
+3. **Advanced Filters**: Add date range, salary range, and other filters
+4. **Export**: Add export functionality for filtered results
+5. **Search History**: Remember recent searches for quick access
 
 ## Conclusion
 

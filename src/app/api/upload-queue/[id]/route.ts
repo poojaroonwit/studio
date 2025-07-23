@@ -81,10 +81,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
     // Publish queue update event
     try {
-      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-      if (redisClient) {
-        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
-      }
+      // Remove all dynamic imports and usages of redisClient/getRedisClient. Use SSE or direct DB queries instead.
     } catch (redisError) {
       console.error('Failed to publish queue_updated event to Redis:', redisError);
     }
@@ -111,10 +108,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
     // Publish queue update event
     try {
-      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-      if (redisClient) {
-        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
-      }
+      // Remove all dynamic imports and usages of redisClient/getRedisClient. Use SSE or direct DB queries instead.
     } catch (redisError) {
       console.error('Failed to publish queue_updated event to Redis:', redisError);
     }

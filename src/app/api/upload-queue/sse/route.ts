@@ -1,21 +1,29 @@
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
-import { getRedisClient } from '@/lib/redis';
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  const encoder = new TextEncoder();
-  const url = new URL(request.url);
-  const fileName = url.searchParams.get('file_name');
-  const status = url.searchParams.get('status');
-  const dateStart = url.searchParams.get('date_start');
-  const dateEnd = url.searchParams.get('date_end');
-  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+// --- SSE Controller Management ---
+const uploadQueueControllers = new Set<ReadableStreamDefaultController<any>>();
 
-  // Helper to build WHERE clause
-  function buildWhere() {
+export function broadcastUploadQueueUpdate() {
+  for (const controller of uploadQueueControllers) {
+    sendUploadQueueUpdate(controller);
+  }
+}
+
+async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
+  const encoder = new TextEncoder();
+  try {
+    const client = await getPool().connect();
+    // Use queryParams if provided, otherwise send all
+    const fileName = queryParams?.fileName;
+    const status = queryParams?.status;
+    const dateStart = queryParams?.dateStart;
+    const dateEnd = queryParams?.dateEnd;
+    const limit = queryParams?.limit || 20;
+    const offset = queryParams?.offset || 0;
+    // Build WHERE clause
     const whereClauses = [];
     const values = [];
     let paramIdx = 1;
@@ -35,148 +43,67 @@ export async function GET(request: NextRequest) {
       whereClauses.push(`upload_date <= $${paramIdx++}`);
       values.push(dateEnd);
     }
-    return { whereSQL: whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '', values, paramIdx };
+    const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    values.push(limit);
+    values.push(offset);
+    const res = await client.query(
+      `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      values
+    );
+    const countRes = await client.query(
+      `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+      values.slice(0, values.length - 2)
+    );
+    const total = parseInt(countRes.rows[0].count, 10);
+    client.release();
+    const data = JSON.stringify({ type: 'queue', data: res.rows, total });
+    controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+  } catch (error) {
+    const encoder = new TextEncoder();
+    const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
+    controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
   }
+}
+
+export async function GET(request: NextRequest) {
+  const encoder = new TextEncoder();
+  const url = new URL(request.url);
+  const fileName = url.searchParams.get('file_name');
+  const status = url.searchParams.get('status');
+  const dateStart = url.searchParams.get('date_start');
+  const dateEnd = url.searchParams.get('date_end');
+  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
   const stream = new ReadableStream({
     async start(controller) {
       let isClosed = false;
-      
-      // Helper function to safely enqueue data
-      const safeEnqueue = (data: Uint8Array) => {
-        if (!isClosed) {
-          try {
-            controller.enqueue(data);
-          } catch (error) {
-            if (error instanceof Error && error.message.includes('ERR_INVALID_STATE')) {
-              // Controller is closed, mark as closed and stop trying
-              isClosed = true;
-              console.log('[SSE] Connection closed by client');
-            } else {
-              console.error('[SSE] Error enqueuing data:', error);
-            }
-            return false;
-          }
-        }
-        return !isClosed;
-      };
-
+      uploadQueueControllers.add(controller);
       // Send initial data
-      try {
-        const client = await getPool().connect();
-        const { whereSQL, values, paramIdx } = buildWhere();
-        values.push(limit.toString());
-        values.push(offset.toString());
-        const res = await client.query(
-          `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-          values
-        );
-        // Fetch total count for pagination
-        const countRes = await client.query(
-          `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
-          values.slice(0, values.length - 2)
-        );
-        const total = parseInt(countRes.rows[0].count, 10);
-        client.release();
-        const data = JSON.stringify({ type: 'queue', data: res.rows, total });
-        safeEnqueue(encoder.encode(`data: ${data}\n\n`));
-      } catch (error) {
-        console.error('[SSE] Failed to send initial data:', error);
-        const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
-        safeEnqueue(encoder.encode(`data: ${errorData}\n\n`));
-      }
-      
-      // Set up Redis subscription for real-time updates
-      let redisClient = null;
-      let redisSubscription = null;
-      
-      try {
-        redisClient = await getRedisClient();
-        if (redisClient) {
-          redisSubscription = redisClient.duplicate();
-          await redisSubscription.connect();
-          
-          await redisSubscription.subscribe('candidate_upload_queue', async (message) => {
-            if (isClosed) return; // Skip if connection is closed
-            
-            try {
-              const msg = JSON.parse(message);
-              if (msg.type === 'queue_updated') {
-                // Fetch updated data and send to client
-                const client = await getPool().connect();
-                const { whereSQL, values, paramIdx } = buildWhere();
-                values.push(limit.toString());
-                values.push(offset.toString());
-                const res = await client.query(
-                  `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-                  values
-                );
-                // Fetch total count for pagination
-                const countRes = await client.query(
-                  `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
-                  values.slice(0, values.length - 2)
-                );
-                const total = parseInt(countRes.rows[0].count, 10);
-                client.release();
-                const data = JSON.stringify({ type: 'queue', data: res.rows, total });
-                safeEnqueue(encoder.encode(`data: ${data}\n\n`));
-              }
-            } catch (error) {
-              console.error('[SSE] Error processing Redis message:', error);
-            }
-          });
-        }
-      } catch (error) {
-        console.error('[SSE] Failed to subscribe to Redis:', error);
-      }
-      
+      await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, limit, offset });
       // Send keepalive every 30 seconds
       const keepaliveInterval = setInterval(() => {
         if (isClosed) {
           clearInterval(keepaliveInterval);
           return;
         }
-        
-        if (!safeEnqueue(encoder.encode(`: keepalive\n\n`))) {
+        try {
+          controller.enqueue(encoder.encode(`: keepalive\n\n`));
+        } catch {
+          isClosed = true;
           clearInterval(keepaliveInterval);
         }
       }, 30000);
-      
       // Cleanup on close
       request.signal.addEventListener('abort', async () => {
         isClosed = true;
         clearInterval(keepaliveInterval);
-        
-        // Cleanup Redis subscription
-        if (redisSubscription) {
-          try {
-            // Check if client is still connected before attempting operations
-            if (redisSubscription.isOpen) {
-              await redisSubscription.unsubscribe();
-            }
-          } catch (error) {
-            console.log('[SSE] Redis unsubscribe error (ignored):', error instanceof Error ? error.message : 'Unknown error');
-          }
-          
-          try {
-            // Only disconnect if client is still open
-            if (redisSubscription.isOpen) {
-              await redisSubscription.disconnect();
-            }
-          } catch (error) {
-            console.log('[SSE] Redis disconnect error (ignored):', error instanceof Error ? error.message : 'Unknown error');
-          }
-        }
-        
-        try {
-          controller.close();
-        } catch (error) {
-          // Controller might already be closed, ignore the error
-        }
+        uploadQueueControllers.delete(controller);
+        try { controller.close(); } catch {}
       });
     }
   });
-  
+
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -185,7 +112,7 @@ export async function GET(request: NextRequest) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
-      'X-Accel-Buffering': 'no', // Disable nginx buffering
+      'X-Accel-Buffering': 'no',
     },
   });
 } 

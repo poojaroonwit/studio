@@ -300,7 +300,6 @@ npm run processor    # Start background processor
 ### Built-in Monitoring
 - Database connection status
 - MinIO storage health
-- Redis cache connectivity
 - Background processor status
 
 ## 🔗 API Documentation
@@ -414,11 +413,6 @@ npx prisma db seed
    - Check MinIO service status
    - Verify `MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`
    - Check MinIO endpoint configuration
-
-4. **"Redis connection failed"**
-   - Check Redis service status
-   - Verify `REDIS_URL` environment variable
-   - Ensure Redis is accessible
 
 ### Log Analysis
 

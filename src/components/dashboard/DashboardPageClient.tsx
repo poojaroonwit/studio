@@ -215,6 +215,15 @@ export default function DashboardPageClient({
     }
   }, [status, session?.user?.id, initialCandidates, initialPositions, initialUsers, fetchDataClientSide]);
 
+  useEffect(() => {
+    const eventSource = new EventSource('/api/dashboard/stream');
+    eventSource.onmessage = (event) => {
+      // Optionally, parse event.data for more granular updates
+      fetchDataClientSide(); // Refresh dashboard data on any event
+    };
+    return () => eventSource.close();
+  }, [fetchDataClientSide]);
+
   const totalActiveCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
     return safeAllCandidates.filter((c: Candidate) => !BACKLOG_EXCLUSION_STATUSES.includes(c.status)).length;

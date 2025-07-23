@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { deleteCache, CACHE_KEY_RECRUITMENT_STAGES } from '@/lib/redis';
 import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
@@ -130,7 +129,6 @@ export async function POST(request: NextRequest) {
             [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null]
         );
         await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
-        await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();

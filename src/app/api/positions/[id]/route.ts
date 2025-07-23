@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { getRedisClient, CACHE_KEY_POSITIONS } from '@/lib/redis';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 

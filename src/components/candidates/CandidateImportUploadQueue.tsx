@@ -116,6 +116,30 @@ export const CandidateImportUploadQueue: React.FC<{
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
+  // Helper function to check if date is in range - moved before usage
+  const isInRange = (dateString?: string) => {
+    if (!dateString) return true;
+    if (!dateRange.start && !dateRange.end) return true;
+    const date = new Date(dateString);
+    if (dateRange.start && date < dateRange.start) return false;
+    if (dateRange.end && date > addDays(dateRange.end, 1)) return false;
+    return true;
+  };
+
+  // Helper function to get display status for filtering - moved before usage
+  const getDisplayStatus = (status: string) => {
+    switch (status) {
+      case 'inprogress':
+      case 'inprocess':
+        return 'inprogress';
+      case 'error':
+      case 'fail':
+        return 'error';
+      default:
+        return status;
+    }
+  };
+
   const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
       setSortColumn(null);
@@ -170,11 +194,11 @@ export const CandidateImportUploadQueue: React.FC<{
       return;
     }
     if (isFetchingRef.current) {
-      console.log('[fetchJobs] Skipped: already fetching');
+     
       return;
     }
     isFetchingRef.current = true;
-    console.log('[fetchJobs] Start');
+   
     let isMounted = true;
     setIsLoading(true);
     setFetchError(null);
@@ -215,7 +239,7 @@ export const CandidateImportUploadQueue: React.FC<{
         setIsLoading(false);
       }
       isFetchingRef.current = false;
-      console.log('[fetchJobs] End');
+
     }
   }, [page, pageSize, error, isRealtimeActive, filter, statusFilter, dateRange]);
 
@@ -279,19 +303,18 @@ export const CandidateImportUploadQueue: React.FC<{
   // Fallback polling (less frequent since we have SSE)
   useEffect(() => {
     if (isRealtimeActive) return;
-    console.log('[Polling] Polling enabled');
+
     const interval = setInterval(() => {
-      console.log('[Polling] Polling fetchJobs');
+
       fetchJobs();
     }, 30000); // Poll every 30 seconds as fallback
     return () => {
       clearInterval(interval);
-      console.log('[Polling] Polling cleaned up');
+   
     };
   }, [fetchJobs, isRealtimeActive]);
 
   useEffect(() => {
-    console.log('[useEffect] fetchJobs on mount or fetchJobs change');
     fetchJobs();
     return () => {
       // No cleanup needed here
@@ -300,13 +323,13 @@ export const CandidateImportUploadQueue: React.FC<{
 
   useEffect(() => {
     function handleRefreshEvent() {
-      console.log('[Event] refreshCandidateQueue');
+
       fetchJobs();
     }
     window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
-      console.log('[Event] refreshCandidateQueue cleaned up');
+
     };
   }, [fetchJobs]);
 
@@ -347,24 +370,24 @@ export const CandidateImportUploadQueue: React.FC<{
         params.set('offset', String((page - 1) * pageSize));
         const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
         eventSource = new EventSource(sseUrl);
-        console.log('[SSE] Connecting to', sseUrl);
+   
 
         eventSource.onopen = () => {
           setIsRealtimeActive(true);
           setIsLoading(false); // Ensure loading is off as soon as SSE connects
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-          console.log('[SSE] Connected');
+      
         };
 
         eventSource.onerror = (error) => {
-          console.warn('[SSE] Connection error:', error);
+
           setIsRealtimeActive(false);
 
           // Attempt to reconnect if under max attempts
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
-            console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+           
             setTimeout(() => {
               if (eventSource) {
                 eventSource.close();
@@ -384,7 +407,7 @@ export const CandidateImportUploadQueue: React.FC<{
               latestSSEData = msg;
               if (debounceTimeout) clearTimeout(debounceTimeout);
               debounceTimeout = setTimeout(applySSEUpdate, 500);
-              console.log('[SSE] Received queue update');
+              
             } else if (msg.type === 'error') {
               console.error('[SSE] Error:', msg.message);
             }
@@ -402,7 +425,7 @@ export const CandidateImportUploadQueue: React.FC<{
     return () => {
       if (eventSource) {
         eventSource.close();
-        console.log('[SSE] Connection closed');
+
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
@@ -437,29 +460,7 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   }
 
-  // Helper function to check if date is in range
-  const isInRange = (dateString?: string) => {
-    if (!dateString) return true;
-    if (!dateRange.start && !dateRange.end) return true;
-    const date = new Date(dateString);
-    if (dateRange.start && date < dateRange.start) return false;
-    if (dateRange.end && date > addDays(dateRange.end, 1)) return false;
-    return true;
-  };
 
-  // Helper function to get display status for filtering
-  const getDisplayStatus = (status: string) => {
-    switch (status) {
-      case 'inprogress':
-      case 'inprocess':
-        return 'inprogress';
-      case 'error':
-      case 'fail':
-        return 'error';
-      default:
-        return status;
-    }
-  };
 
   // Helper function to get display label and color for status
   const getStatusDisplayLabelAndColor = (status: string) => {

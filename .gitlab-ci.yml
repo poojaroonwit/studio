@@ -111,13 +111,11 @@ test:integration:
   stage: test
   services:
     - postgres:14-alpine
-    - redis:alpine
   variables:
     POSTGRES_DB: test_db
     POSTGRES_USER: test_user
     POSTGRES_PASSWORD: test_password
     DATABASE_URL: postgresql://test_user:test_password@postgres:5432/test_db
-    REDIS_URL: redis://redis:6379
   script:
     - echo "Running integration tests..."
     - npm run test:integration

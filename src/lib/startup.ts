@@ -1,6 +1,5 @@
 import { startupMinIOInitialization } from './minio';
 import { getPool } from './db';
-import { getRedisClient } from './redis';
 import { execSync } from 'child_process';
 
 export interface StartupResult {
@@ -61,19 +60,23 @@ export async function initializeServices() {
 
   // Initialize Redis
   try {
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-      await redisClient.ping();
-      results.redis = {
-        status: 'success',
-        message: 'Redis initialized successfully'
-      };
-    } else {
-      results.redis = {
-        status: 'warning',
-        message: 'Redis client not available'
-      };
-    }
+    // const redisClient = await getRedisClient(); // Removed
+    // if (redisClient) { // Removed
+    //   await redisClient.ping(); // Removed
+    //   results.redis = { // Removed
+    //     status: 'success', // Removed
+    //     message: 'Redis initialized successfully' // Removed
+    //   }; // Removed
+    // } else { // Removed
+    //   results.redis = { // Removed
+    //     status: 'warning', // Removed
+    //     message: 'Redis client not available' // Removed
+    //   }; // Removed
+    // } // Removed
+    results.redis = { // Added
+      status: 'skipped', // Added
+      message: 'Redis initialization skipped' // Added
+    }; // Added
   } catch (error) {
     results.redis = {
       status: 'error',
@@ -132,28 +135,32 @@ export async function initializeApplication(): Promise<StartupResult> {
   }
 
   // Test Redis connection
-  try {
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-      await redisClient.ping();
-      result.redis = {
-        status: 'success',
-        message: 'Redis connection successful'
-      };
-    } else {
-      result.redis = {
-        status: 'error',
-        message: 'Redis client not available'
-      };
-    }
-  } catch (error) {
-    console.error('❌ Redis connection failed:', error);
-    result.redis = {
-      status: 'error',
-      message: 'Failed to connect to Redis',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
+  // try { // Removed
+  //   const redisClient = await getRedisClient(); // Removed
+  //   if (redisClient) { // Removed
+  //     await redisClient.ping(); // Removed
+  //     result.redis = { // Removed
+  //       status: 'success', // Removed
+  //       message: 'Redis connection successful' // Removed
+  //     }; // Removed
+  //   } else { // Removed
+  //     result.redis = { // Removed
+  //       status: 'error', // Removed
+  //       message: 'Redis client not available' // Removed
+  //     }; // Removed
+  //   } // Removed
+  // } catch (error) { // Removed
+  //   console.error('❌ Redis connection failed:', error); // Removed
+  //   result.redis = { // Removed
+  //     status: 'error', // Removed
+  //     message: 'Failed to connect to Redis', // Removed
+  //     error: error instanceof Error ? error.message : 'Unknown error' // Removed
+  //   }; // Removed
+  // } // Removed
+  result.redis = { // Added
+    status: 'skipped', // Added
+    message: 'Redis connection skipped' // Added
+  }; // Added
   
   // Run database seeding if database is available
   if (result.database.status === 'success') {

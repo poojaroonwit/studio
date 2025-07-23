@@ -395,7 +395,7 @@ Key tables include:
 | Consideration                                            | Priority |
 | :------------------------------------------------------- | :------- |
 | 🔄 AI Integration (Genkit) for advanced matching and parsing. | High |
-| 🔄 Real-time Features (Redis) for notifications and collaboration. | Medium |
+| 🔄 Real-time Features (SSE) for notifications and collaboration. | Medium |
 | 🔄 **Implementation of actual notification sending logic.** | Medium |
 | 🔄 Advanced Reporting & Analytics.                          | Low |
 | 🔄 Third-Party Integrations (Job boards, HRIS).             | Low |

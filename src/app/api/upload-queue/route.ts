@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { broadcastUploadQueueUpdate } from './sse/route';
 
 /**
  * @openapi
@@ -263,15 +264,11 @@ export async function POST(request: NextRequest) {
       console.error('Failed to dispatch upload queue created webhook:', webhookError);
       // Don't fail the request if webhook fails
     }
-
-    // Publish queue update event for SSE/WS real-time updates
+    // Broadcast SSE update for real-time updates
     try {
-      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-      if (redisClient) {
-        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
-      }
-    } catch (redisError) {
-      console.error('Failed to publish queue_updated event to Redis:', redisError);
+      broadcastUploadQueueUpdate();
+    } catch (sseError) {
+      console.error('Failed to broadcast upload queue update via SSE:', sseError);
     }
     
     return NextResponse.json(res.rows[0], { status: 201 });

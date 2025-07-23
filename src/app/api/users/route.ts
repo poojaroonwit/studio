@@ -228,13 +228,6 @@ export async function POST(request: NextRequest) {
     // Clear user validation cache for the new user
     clearUserValidationCache(newUser.id);
 
-    const { getRedisClient, CACHE_KEY_USERS } = await import('@/lib/redis');
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-        await redisClient.del(CACHE_KEY_USERS);
-        console.log('Users cache invalidated due to new user creation.');
-    }
-    
     await logAudit('AUDIT', `User account '${userToReturn.name}' (ID: ${userToReturn.id}) created by ${session.user.name}.`, 'API:Users:Create', session.user.id, { targetUserId: userToReturn.id, role: userToReturn.role, permissions: userToReturn.modulePermissions, groups: groupIds });
     await dispatchWebhooks.userCreated(newUser);
     return NextResponse.json(userToReturn, { status: 201 });

@@ -66,14 +66,6 @@ export default function SystemStatusPage() {
       isLoading: false,
     },
     {
-      id: "redis_connection",
-      name: "Redis Cache Connection",
-      status: 'info',
-      message: "Expected: Available. App connects if Redis-dependent features are used (currently none active).",
-      details: "Redis is available for caching and session storage. Ensure REDIS_URL is set for optimal performance.",
-      icon: Zap,
-    },
-    {
       id: "azure_ad_env_vars",
       name: "Azure AD SSO Server Configuration (Environment Variables)",
       status: 'info',

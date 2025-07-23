@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,38 +21,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface UserPresence {
-  userId: string;
-  userName: string;
-  userRole: string;
-  currentPage: string;
-  lastActivity: number;
-  isOnline: boolean;
-}
-
-interface CollaborationEvent {
-  id: string;
-  type: 'candidate_update' | 'position_update' | 'status_change' | 'comment' | 'assignment';
-  userId: string;
-  userName: string;
-  timestamp: number;
-  data: any;
-  entityId: string;
-  entityType: string;
-}
-
-interface NotificationEvent {
-  id: string;
-  type: 'candidate_added' | 'status_changed' | 'assignment' | 'mention' | 'system';
-  userId: string;
-  targetUserId?: string;
-  title: string;
-  message: string;
-  timestamp: number;
-  read: boolean;
-  data?: any;
-}
-
 interface RealtimeCollaborationProps {
   className?: string;
   showOnlineUsers?: boolean;
@@ -69,110 +37,27 @@ export function RealtimeCollaboration({
   maxItems = 10,
 }: RealtimeCollaborationProps) {
   const { data: session } = useSession();
-  const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
-  const [collaborationEvents, setCollaborationEvents] = useState<CollaborationEvent[]>([]);
-  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [collaborationEvents, setCollaborationEvents] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isVisible, setIsVisible] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Update user presence
-  const updatePresence = useCallback(async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      const response = await fetch('/api/realtime/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: session.user.id,
-          userName: session.user.name,
-          userRole: session.user.role,
-          currentPage: window.location.pathname,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to update presence');
-      }
-    } catch (error) {
-      console.error('Error updating presence:', error);
-    }
-  }, [session?.user]);
-
-  // Fetch real-time data
-  const fetchRealtimeData = useCallback(async () => {
-    if (!session?.user?.id) return;
-
-    setIsLoading(true);
-    try {
-      const [usersResponse, eventsResponse, notificationsResponse] = await Promise.all([
-        fetch('/api/realtime/online-users'),
-        fetch('/api/realtime/collaboration-events'),
-        fetch('/api/realtime/notifications'),
-      ]);
-
-      if (usersResponse.ok) {
-        const users = await usersResponse.json();
-        setOnlineUsers(users.slice(0, maxItems));
-      }
-
-      if (eventsResponse.ok) {
-        const events = await eventsResponse.json();
-        setCollaborationEvents(events.slice(0, maxItems));
-      }
-
-      if (notificationsResponse.ok) {
-        const notifications = await notificationsResponse.json();
-        setNotifications(notifications.slice(0, maxItems));
-      }
-
-      setLastUpdate(new Date());
-    } catch (error) {
-      console.error('Error fetching real-time data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [session?.user?.id, maxItems]);
-
-  // Mark notification as read
-  const markNotificationAsRead = useCallback(async (notificationId: string) => {
-    if (!session?.user?.id) return;
-
-    try {
-      await fetch(`/api/realtime/notifications/${notificationId}/read`, {
-        method: 'POST',
-      });
-
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === notificationId 
-            ? { ...notification, read: true }
-            : notification
-        )
-      );
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  }, [session?.user?.id]);
-
-  // Initialize presence and fetch data
+  // Update user presence only on mount/unmount
   useEffect(() => {
-    updatePresence();
-    fetchRealtimeData();
-
-    // Update presence every 30 seconds
-    const presenceInterval = setInterval(updatePresence, 30000);
-    
-    // Fetch real-time data every 10 seconds
-    const dataInterval = setInterval(fetchRealtimeData, 10000);
-
-    // Cleanup on unmount
+    if (!session?.user?.id) return;
+    fetch('/api/realtime/presence', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: session.user.id,
+        userName: session.user.name,
+        userRole: session.user.role,
+        currentPage: window.location.pathname,
+      }),
+    }).catch(console.error);
     return () => {
-      clearInterval(presenceInterval);
-      clearInterval(dataInterval);
-      
-      // Remove presence on unmount
       if (session?.user?.id) {
         fetch('/api/realtime/presence', {
           method: 'DELETE',
@@ -181,7 +66,95 @@ export function RealtimeCollaboration({
         }).catch(console.error);
       }
     };
-  }, [updatePresence, fetchRealtimeData, session?.user?.id]);
+  }, [session?.user]);
+
+  // SSE logic for real-time updates
+  useEffect(() => {
+    // Connect to SSE endpoint
+    const es = new EventSource('/api/candidates/sse');
+    eventSourceRef.current = es;
+
+    es.onopen = () => {
+      setLastUpdate(new Date());
+    };
+
+    es.onmessage = (event) => {
+      // Default event (no event type) - treat as generic update
+      try {
+        const data = JSON.parse(event.data);
+        // You can customize this logic to update state as needed
+        // For demo, treat as a collaboration event
+        setCollaborationEvents((prev) => [data, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    };
+
+    es.addEventListener('comment', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    });
+    es.addEventListener('resume', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    });
+    es.addEventListener('transition', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    });
+    es.addEventListener('attachment', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    });
+    es.addEventListener('recruitment-stages', (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+        setCollaborationEvents((prev) => [payload, ...prev].slice(0, maxItems));
+        setLastUpdate(new Date());
+      } catch {}
+    });
+    // You can add more event listeners for notifications, online users, etc.
+
+    es.onerror = (err) => {
+      // Optionally handle errors
+      // console.error('SSE error:', err);
+    };
+
+    return () => {
+      es.close();
+      eventSourceRef.current = null;
+    };
+  }, [maxItems]);
+
+  // Mark notification as read (still uses API)
+  const markNotificationAsRead = useCallback(async (notificationId: string) => {
+    if (!session?.user?.id) return;
+    try {
+      await fetch(`/api/realtime/notifications/${notificationId}/read`, {
+        method: 'POST',
+      });
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.id === notificationId
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  }, [session?.user?.id]);
 
   // Format timestamp
   const formatTimestamp = (timestamp: number) => {
@@ -250,11 +223,17 @@ export function RealtimeCollaboration({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={fetchRealtimeData}
-                disabled={isLoading}
+                onClick={() => {
+                  if (eventSourceRef.current) {
+                    eventSourceRef.current.close();
+                    eventSourceRef.current = null;
+                  }
+                  // Reconnect or handle error
+                }}
+                disabled={!eventSourceRef.current}
                 className="h-6 w-6 p-0"
               >
-                <RefreshCw className={cn("w-3 h-3", isLoading && "animate-spin")} />
+                <RefreshCw className={cn("w-3 h-3", !eventSourceRef.current && "animate-spin")} />
               </Button>
               <Button
                 variant="ghost"

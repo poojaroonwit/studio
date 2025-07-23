@@ -196,12 +196,8 @@ export async function POST(request: NextRequest) {
     };
 
     // Invalidate cache
-    const { getRedisClient, CACHE_KEY_POSITIONS } = await import('@/lib/redis');
-    const redisClient = await getRedisClient();
-    if (redisClient) {
-        await redisClient.del(CACHE_KEY_POSITIONS);
-    }
-
+    // Remove all dynamic imports and usages of getRedisClient, CACHE_KEY_POSITIONS, and redisClient. Use SSE or direct DB queries only.
+    
     await logAudit('AUDIT', `Position '${newPosition.title}' (ID: ${newPosition.id}) created by ${actingUserName}.`, 'API:Positions:Create', actingUserId, { targetPositionId: newPosition.id, title: newPosition.title, department: newPosition.department, positionLevel: newPosition.positionLevel });
     
     // Dispatch webhook for position creation

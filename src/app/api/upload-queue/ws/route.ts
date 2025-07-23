@@ -135,37 +135,7 @@ async function sendQueue(socket: WebSocket, buildWhere: () => { whereSQL: string
 // Subscribe to Redis channel for queue updates and broadcast to this client
 async function setupRedisSubscription(socket: WebSocket, buildWhere: () => { whereSQL: string, values: any[], paramIdx: number }, limit: number, offset: number) {
   try {
-    const { getRedisClient } = await import('@/lib/redis');
-    const redisClient = await getRedisClient();
-    if (!redisClient) {
-      console.warn('[WEBSOCKET] Redis client not available, skipping subscription');
-      return null;
-    }
-
-    const redisSubscription = redisClient.duplicate();
-    await redisSubscription.connect();
-
-    await redisSubscription.subscribe('candidate_upload_queue', async (message) => {
-      try {
-        // Only broadcast if the socket is still open
-        if (socket.readyState !== WebSocket.OPEN) {
-          return;
-        }
-
-        // Only broadcast if the message is a queue_updated event
-        const msg = JSON.parse(message);
-        if (msg.type === 'queue_updated') {
-          await sendQueue(socket, buildWhere, limit, offset);
-        }
-      } catch (e) {
-        console.error('[WEBSOCKET] Error processing Redis message:', e);
-        // fallback: always broadcast if socket is still open
-        if (socket.readyState === WebSocket.OPEN) {
-          await sendQueue(socket, buildWhere, limit, offset);
-        }
-      }
-    });
-
+    const redisSubscription = null; // No longer needed
     return redisSubscription;
   } catch (error) {
     console.error('[WEBSOCKET] Failed to subscribe to Redis channel:', error);
@@ -178,18 +148,14 @@ async function cleanupRedisSubscription(redisSubscription: any) {
   if (redisSubscription) {
     try {
       // Check if client is still connected before attempting operations
-      if (redisSubscription.isOpen) {
-        await redisSubscription.unsubscribe();
-      }
+      // No longer needed
     } catch (error) {
       console.log('[WEBSOCKET] Redis unsubscribe error (ignored):', error instanceof Error ? error.message : 'Unknown error');
     }
     
     try {
       // Only disconnect if client is still open
-      if (redisSubscription.isOpen) {
-        await redisSubscription.disconnect();
-      }
+      // No longer needed
     } catch (error) {
       console.log('[WEBSOCKET] Redis disconnect error (ignored):', error instanceof Error ? error.message : 'Unknown error');
     }

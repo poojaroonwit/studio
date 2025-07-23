@@ -293,12 +293,12 @@ async function runProcessorLoop(): Promise<never> {
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('Received SIGTERM, shutting down gracefully...');
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('Received SIGINT, shutting down gracefully...');
   process.exit(0);
 });

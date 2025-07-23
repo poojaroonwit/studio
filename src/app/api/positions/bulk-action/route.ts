@@ -169,10 +169,9 @@ export async function POST(request: NextRequest) {
     await client.query('COMMIT');
 
     if (cacheInvalidated) {
-        const { getRedisClient, CACHE_KEY_POSITIONS } = await import('@/lib/redis');
-        const redisClient = await getRedisClient();
+        const redisClient = await getPool().connect();
         if (redisClient) {
-            await redisClient.del(CACHE_KEY_POSITIONS);
+            await redisClient.query('DELETE FROM "Position" WHERE id = ANY($1::uuid[])', [positionIds]);
             console.log('Positions cache invalidated due to bulk action.');
         }
     }

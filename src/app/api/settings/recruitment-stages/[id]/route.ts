@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { getServerSession } from 'next-auth/next';
 import type { RecruitmentStage } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
-import { getRedisClient, CACHE_KEY_RECRUITMENT_STAGES, deleteCache } from '@/lib/redis';
 import { authOptions } from '@/lib/auth';
 import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
@@ -151,7 +150,6 @@ export async function PUT(request: NextRequest) {
         }
 
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) updated.`, 'API:RecruitmentStages:Update', actingUserId, { stageId: id, changes: validation.data });
-        await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();
@@ -183,7 +181,6 @@ export async function DELETE(request: NextRequest) {
         }
         
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) deleted.`, 'API:RecruitmentStages:Delete', actingUserId, { stageId: id });
-        await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
         
         // Broadcast the updated stages list to all connected clients
         const updatedStages = await fetchAllRecruitmentStagesDb();

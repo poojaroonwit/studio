@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { z } from 'zod';
-import { deleteCache, CACHE_KEY_RECRUITMENT_STAGES } from '@/lib/redis';
 import { broadcastRecruitmentStagesUpdate } from '@/lib/candidateSse';
 import { fetchAllRecruitmentStagesDb } from '@/lib/apiUtils';
 
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
       { newOrder: stageIds }
     );
     // Invalidate recruitment stages cache so new order is reflected
-    await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
+    // Remove: await deleteCache(CACHE_KEY_RECRUITMENT_STAGES);
     
     // Broadcast the updated stages list to all connected clients
     const updatedStages = await fetchAllRecruitmentStagesDb();

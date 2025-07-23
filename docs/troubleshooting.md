@@ -59,20 +59,7 @@ docker-compose restart minio
 docker-compose logs minio
 ```
 
-#### 3. Redis Connection Issues
-
-**Symptoms:** Real-time updates don't work, SSE connections fail.
-
-**Solution:**
-```bash
-# Restart Redis service
-docker-compose restart redis
-
-# Check Redis logs
-docker-compose logs redis
-```
-
-#### 4. Environment Configuration Issues
+#### 3. Environment Configuration Issues
 
 **Symptoms:** Authentication fails, API calls return 500 errors.
 
@@ -84,7 +71,7 @@ docker-compose logs redis
    - `NEXTAUTH_URL`
    - `NEXTAUTH_SECRET`
 
-#### 5. Port Conflicts
+#### 4. Port Conflicts
 
 **Symptoms:** Services fail to start, "port already in use" errors.
 
@@ -145,7 +132,7 @@ If you're running in development mode:
 npm run dev
 
 # Make sure the database is running
-docker-compose up postgres minio redis -d
+docker-compose up postgres minio -d
 ```
 
 ### Getting Help

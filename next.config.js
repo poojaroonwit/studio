@@ -85,7 +85,6 @@ const nextConfig = {
       config.externals = config.externals || [];
       config.externals.push({
         'minio': 'commonjs minio',
-        'redis': 'commonjs redis',
       });
     }
     

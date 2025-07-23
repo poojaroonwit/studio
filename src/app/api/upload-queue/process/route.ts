@@ -70,10 +70,6 @@ export async function POST(request: NextRequest) {
     );
     if (res.rows.length === 0) {
       // Publish queue update event
-      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-      if (redisClient) {
-        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
-      }
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
@@ -124,16 +120,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Broadcast file download completion
-    const redisClientDownload = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClientDownload) {
-      await redisClientDownload.publish('candidate_upload_queue', JSON.stringify({ 
-        type: 'queue_updated',
-        jobId: job.id,
-        status: 'inprocess',
-        step: 'file_downloaded',
-        timestamp: new Date().toISOString()
-      }));
-    }
+    await logAudit('INFO', `Upload queue job '${job.file_name}' file downloaded (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+      jobId: job.id,
+      fileName: job.file_name,
+      fileSize: job.file_size,
+      source: job.source 
+    });
 
     // 3. Send to resume processing webhook (system setting)
     let status = 'success';
@@ -176,15 +168,13 @@ export async function POST(request: NextRequest) {
     }
     
     // Publish queue update event for real-time updates
-    const redisClientFinal = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClientFinal) {
-      await redisClientFinal.publish('candidate_upload_queue', JSON.stringify({ 
-        type: 'queue_updated',
-        jobId: job.id,
-        status: status,
-        timestamp: new Date().toISOString()
-      }));
-    }
+    await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+      jobId: job.id,
+      fileName: job.file_name,
+      status: status,
+      error: error,
+      errorDetails: error_details
+    });
 
     // Explicitly nullify large objects to help GC
     fileBuffer = null;
@@ -556,10 +546,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       [status, error, error_details, payload, job.id]
     );
     // Publish queue update event
-    const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClient) {
-      await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
-    }
+    await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+      jobId: job.id,
+      fileName: job.file_name,
+      status: status,
+      error: error,
+      errorDetails: error_details
+    });
     // Explicitly nullify large objects to help GC
     // fileBuffer = null; // Not needed, let GC handle
     if (typeof global !== 'undefined' && typeof global.gc === 'function') {

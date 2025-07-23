@@ -80,9 +80,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     // Publish queue update event
-    const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClient) {
-      await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+    try {
+      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
+      if (redisClient) {
+        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+      }
+    } catch (redisError) {
+      console.error('Failed to publish queue_updated event to Redis:', redisError);
     }
     return NextResponse.json(res.rows[0]);
   } finally {
@@ -106,9 +110,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     // Publish queue update event
-    const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
-    if (redisClient) {
-      await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+    try {
+      const redisClient = await import('@/lib/redis').then(m => m.getRedisClient());
+      if (redisClient) {
+        await redisClient.publish('candidate_upload_queue', JSON.stringify({ type: 'queue_updated' }));
+      }
+    } catch (redisError) {
+      console.error('Failed to publish queue_updated event to Redis:', redisError);
     }
     return NextResponse.json({ success: true });
   } finally {

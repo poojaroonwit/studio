@@ -147,8 +147,13 @@ export async function GET(request: NextRequest) {
         isClosed = true;
         clearInterval(keepaliveInterval);
         if (redisSubscription) {
-          redisSubscription.unsubscribe();
-          redisSubscription.disconnect();
+          try {
+            redisSubscription.unsubscribe();
+            redisSubscription.disconnect();
+          } catch (error) {
+            // Redis client might already be disconnected, ignore cleanup errors
+            console.log('[SSE] Redis cleanup completed (client may have already been disconnected)');
+          }
         }
         try {
           controller.close();

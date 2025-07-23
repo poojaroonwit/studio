@@ -20,7 +20,6 @@ export const dynamic = 'force-dynamic';
 import { NextRequest } from 'next/server';
 import { getPool } from '@/lib/db';
 import { clients } from './clients';
-import { subscribeToChannel } from '@/lib/redis';
 import { broadcastQueueUpdate } from './broadcastQueueUpdate';
 
 export async function GET(request: NextRequest) {
@@ -69,15 +68,25 @@ export async function GET(request: NextRequest) {
     // Add to clients set
     clients.add(webSocket);
 
+    // Set up Redis subscription for real-time updates
+    let redisSubscription = null;
+    try {
+      redisSubscription = await setupRedisSubscription(webSocket, buildWhere, limit, offset);
+    } catch (error) {
+      console.error('[WEBSOCKET] Failed to setup Redis subscription:', error);
+    }
+
     // Handle client disconnect
     webSocket.addEventListener('close', () => {
       clients.delete(webSocket);
+      cleanupRedisSubscription(redisSubscription);
     });
 
     // Handle client errors
     webSocket.addEventListener('error', (error: any) => {
       console.error('[WEBSOCKET] Client error:', error);
       clients.delete(webSocket);
+      cleanupRedisSubscription(redisSubscription);
     });
 
     // Send initial queue data
@@ -90,9 +99,6 @@ export async function GET(request: NextRequest) {
         message: 'Failed to load queue data' 
       }));
     }
-
-    // Set up Redis subscription for real-time updates
-    setupRedisSubscription(webSocket, buildWhere, limit, offset);
 
     return new Response(null, { status: 101 });
   } catch (error) {
@@ -127,20 +133,55 @@ async function sendQueue(socket: WebSocket, buildWhere: () => { whereSQL: string
 }
 
 // Subscribe to Redis channel for queue updates and broadcast to this client
-function setupRedisSubscription(socket: WebSocket, buildWhere: () => { whereSQL: string, values: any[], paramIdx: number }, limit: number, offset: number) {
-  subscribeToChannel('candidate_upload_queue', async (message) => {
-    try {
-      // Only broadcast if the message is a queue_updated event
-      const msg = JSON.parse(message);
-      if (msg.type === 'queue_updated') {
-        await sendQueue(socket, buildWhere, limit, offset);
-      }
-    } catch (e) {
-      console.error('[WEBSOCKET] Error processing Redis message:', e);
-      // fallback: always broadcast
-      await sendQueue(socket, buildWhere, limit, offset);
+async function setupRedisSubscription(socket: WebSocket, buildWhere: () => { whereSQL: string, values: any[], paramIdx: number }, limit: number, offset: number) {
+  try {
+    const { getRedisClient } = await import('@/lib/redis');
+    const redisClient = await getRedisClient();
+    if (!redisClient) {
+      console.warn('[WEBSOCKET] Redis client not available, skipping subscription');
+      return null;
     }
-  }).catch(error => {
+
+    const redisSubscription = redisClient.duplicate();
+    await redisSubscription.connect();
+
+    await redisSubscription.subscribe('candidate_upload_queue', async (message) => {
+      try {
+        // Only broadcast if the socket is still open
+        if (socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        // Only broadcast if the message is a queue_updated event
+        const msg = JSON.parse(message);
+        if (msg.type === 'queue_updated') {
+          await sendQueue(socket, buildWhere, limit, offset);
+        }
+      } catch (e) {
+        console.error('[WEBSOCKET] Error processing Redis message:', e);
+        // fallback: always broadcast if socket is still open
+        if (socket.readyState === WebSocket.OPEN) {
+          await sendQueue(socket, buildWhere, limit, offset);
+        }
+      }
+    });
+
+    return redisSubscription;
+  } catch (error) {
     console.error('[WEBSOCKET] Failed to subscribe to Redis channel:', error);
-  });
+    return null;
+  }
+}
+
+// Cleanup Redis subscription when WebSocket closes
+function cleanupRedisSubscription(redisSubscription: any) {
+  if (redisSubscription) {
+    try {
+      redisSubscription.unsubscribe();
+      redisSubscription.disconnect();
+    } catch (error) {
+      // Redis client might already be disconnected, ignore cleanup errors
+      console.log('[WEBSOCKET] Redis cleanup completed (client may have already been disconnected)');
+    }
+  }
 } 

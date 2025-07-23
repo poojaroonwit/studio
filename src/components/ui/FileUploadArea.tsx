@@ -11,7 +11,7 @@ interface FileUploadAreaProps {
   setDragActive: (active: boolean) => void;
 }
 
-export const FileUploadArea: FC<FileUploadAreaProps> = ({
+const FileUploadArea: FC<FileUploadAreaProps> = ({
   accept,
   multiple,
   maxFileSize,

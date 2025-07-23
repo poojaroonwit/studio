@@ -23,7 +23,7 @@ interface BulkUploadCVsModalProps {
   onUploadSuccess?: () => void;
 }
 
-export function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploadCVsModalProps) {
+function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploadCVsModalProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");

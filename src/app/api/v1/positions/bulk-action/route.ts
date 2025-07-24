@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
-    if (client && !client.isReleased?.()) {
+    if (client) {
       try {
         client.release();
       } catch (releaseError) {

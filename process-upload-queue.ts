@@ -176,7 +176,7 @@ async function processJob(apiKey: string) {
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const STUCK_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
 
-import { getPool } from './src/lib/db';
+import { getPool } from './src/lib/db.js';
 
 async function cleanupStuckJobs() {
   const client = await getPool().connect();
@@ -191,7 +191,7 @@ async function cleanupStuckJobs() {
     );
     if (res.rowCount && res.rowCount > 0) {
       console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);
-      res.rows.forEach(row => {
+      res.rows.forEach((row: { id: number; file_name: string; process_date: Date }) => {
         console.warn(`[CLEANUP] Job ID: ${row.id}, File: ${row.file_name}, Process Date: ${row.process_date}`);
       });
     }

@@ -935,12 +935,7 @@ export const CandidateImportUploadQueue: React.FC<{
           </Button>
         </div>
       )}
-      {isLoading && jobs.length > 0 && (
-        <div className="flex items-center gap-2 mb-2 text-muted-foreground text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Refreshing...</span>
-        </div>
-      )}
+  
       <div className="border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>

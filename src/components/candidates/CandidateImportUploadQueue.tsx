@@ -120,6 +120,10 @@ export const CandidateImportUploadQueue: React.FC<{
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
+  // Add after other useState hooks at the top of the component
+  const [positionIdFilter, setPositionIdFilter] = useState<string>("");
+  const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
+
   // Helper function to check if date is in range - moved before usage
   const isInRange = (dateString?: string) => {
     if (!dateString) return true;
@@ -709,6 +713,16 @@ export const CandidateImportUploadQueue: React.FC<{
             onChange={e => setFilter(e.target.value)}
             className="min-w-[180px] max-w-xs"
           />
+          <select
+            value={positionIdFilter}
+            onChange={e => setPositionIdFilter(e.target.value)}
+            className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
+          >
+            <option value="">All Positions</option>
+            {availablePositions.map(pos => (
+              <option key={pos.id} value={pos.id}>{pos.title}</option>
+            ))}
+          </select>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}

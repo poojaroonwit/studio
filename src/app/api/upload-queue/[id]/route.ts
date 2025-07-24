@@ -109,9 +109,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
     // Publish queue update event
     try {
-      // Remove all dynamic imports and usages of redisClient/getRedisClient. Use SSE or direct DB queries instead.
-    } catch (redisError) {
-      console.error('Failed to publish queue_updated event to Redis:', redisError);
+      broadcastUploadQueueUpdate();
+    } catch (err) {
+      console.error('Failed to broadcast upload queue update via SSE:', err);
     }
     return NextResponse.json({ success: true });
   } finally {

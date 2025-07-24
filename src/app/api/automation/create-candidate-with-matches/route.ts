@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (job_matches && job_matches.length > 0) {
       for (const match of job_matches) {
         const insertMatchQuery = `
-          INSERT INTO "JobMatch" (id, "candidateId", "jobId", "jobTitle", "fitScore", "matchReasons", "jobDescriptionSummary", "createdAt", "updatedAt")
+          INSERT INTO "JobMatch" (id, "candidateId", "jobId", "jobTitle", "fitScore", "matchReasons", "job_description_summary", "createdAt", "updatedAt")
           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW());
         `;
         const matchParams = [

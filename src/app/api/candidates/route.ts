@@ -494,7 +494,7 @@ export async function GET(request: NextRequest) {
         SELECT json_agg(
           json_build_object(
             'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
-            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."jobDescriptionSummary",
+            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
             'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
           ) ORDER BY jm."fitScore" DESC
         ) AS jobMatches

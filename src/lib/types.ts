@@ -529,6 +529,7 @@ export type SystemSettingKey =
 export interface SystemSetting {
     key: SystemSettingKey;
     value: string | null;
+    createdAt?: string;
     updatedAt?: string;
 }
 

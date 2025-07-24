@@ -541,43 +541,40 @@ export default function PositionsPageClient() {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-0">
+            <PopoverContent className="w-[280px] p-0" align="start">
               <Command>
-                <div className="flex items-center border-b border-border px-3 bg-popover">
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
-                  <Input
+                <div className="flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
                     placeholder="Search departments..."
                     value={departmentSearch}
                     onChange={(e) => setDepartmentSearch(e.target.value)}
-                    className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
+                    className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
                 <CommandList>
-                  <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
-                  <ScrollArea className="max-h-48">
-                    <CommandItem
-                      key="all"
-                      value="all"
-                      onSelect={() => handleDepartmentSelect('all')}
+                  <CommandEmpty>No departments found.</CommandEmpty>
+                  <div className="max-h-[200px] overflow-auto p-1">
+                    <div
+                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                       onClick={() => handleDepartmentSelect('all')}
-                      className="text-xs"
                     >
-                      <Check className={departmentFilter === 'all' ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
+                      <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
                       All Departments
-                    </CommandItem>
-                    {allDepartments.filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase())).map(dept => (
-                      <CommandItem
-                        key={dept}
-                        value={dept}
-                        onSelect={() => handleDepartmentSelect(dept)}
-                        onClick={() => handleDepartmentSelect(dept)}
-                        className="text-xs"
-                      >
-                        <Check className={departmentFilter === dept ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'} />
-                        {dept}
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
+                    </div>
+                    {allDepartments
+                      .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                      .map(dept => (
+                        <div
+                          key={dept}
+                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                          onClick={() => handleDepartmentSelect(dept)}
+                        >
+                          <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
+                          {dept}
+                        </div>
+                      ))}
+                  </div>
                 </CommandList>
               </Command>
             </PopoverContent>
@@ -864,7 +861,7 @@ export default function PositionsPageClient() {
                 </TableHead>
                 <TableHead>Candidates Applied</TableHead>
                 <TableHead>Candidates Matching</TableHead>
-                <TableHead>Applied Status</TableHead>
+                <TableHead>Pending Candidate</TableHead>
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('created'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Created

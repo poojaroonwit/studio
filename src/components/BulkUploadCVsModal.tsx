@@ -258,8 +258,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         console.table(queueResults);
       }
       if (onUploadSuccess) onUploadSuccess();
-      // Remove automatic refresh - let the user decide when to refresh
-      // window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
+      // Trigger a manual refresh so the upload queue updates immediately
+      window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
     } catch (error) {
       console.error('Bulk upload error:', error);
       errorWithDescription('Bulk upload failed (unexpected error)', "Please try again or contact support if the issue persists.");

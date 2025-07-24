@@ -135,6 +135,7 @@ export async function GET(request: NextRequest) {
   const status = url.searchParams.get('status');
   const dateStart = url.searchParams.get('date_start');
   const dateEnd = url.searchParams.get('date_end');
+  const positionId = url.searchParams.get('position_id'); // <-- Add this line
 
   // Build dynamic WHERE clause
   const whereClauses = [];
@@ -155,6 +156,10 @@ export async function GET(request: NextRequest) {
   if (dateEnd) {
     whereClauses.push(`upload_date <= $${paramIdx++}`);
     values.push(dateEnd);
+  }
+  if (positionId) { // <-- Add this block
+    whereClauses.push(`position_id = $${paramIdx++}`);
+    values.push(positionId);
   }
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 

@@ -614,7 +614,7 @@ export function CandidateTable({
                       <TableRow className="bg-muted/30">
                         <TableCell colSpan={99} className="p-0">
                           <div className="flex items-center gap-2 px-2 py-1">
-                            <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'}>
+                            <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'} className="border border-primary">
                               {isExpanded ? <ChevronDown /> : <ChevronUp />}
                             </Button>
                             <span className="font-semibold">{email}</span>

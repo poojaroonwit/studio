@@ -197,6 +197,9 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    // Add a 3-second delay before returning the response
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });
   } catch (err) {
     if (job) {

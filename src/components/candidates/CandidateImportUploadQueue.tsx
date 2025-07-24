@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import type { Position } from '@/lib/types';
 
 export type CandidateJobType = "upload" | "import";
 
@@ -103,7 +104,8 @@ export const CandidateImportUploadQueue: React.FC<{
   const [bulkRetryLoading, setBulkRetryLoading] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+  // Remove isRealtimeActive state and always use SSE
+  // const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [jumpToPage, setJumpToPage] = useState<string>("");
   const { success, error } = useToast();
   // Change: default dateRange is null (no filter)
@@ -191,10 +193,6 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
-    if (isRealtimeActive) {
-      // If SSE is active, do not set loading or fetch
-      return;
-    }
     if (isFetchingRef.current) {
      
       return;
@@ -214,6 +212,7 @@ export const CandidateImportUploadQueue: React.FC<{
       if (statusFilter) params.set('status', statusFilter);
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
+      if (positionIdFilter) params.set('position_id', positionIdFilter);
       const res = await fetch(`/api/upload-queue?${params.toString()}`);
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
@@ -243,7 +242,7 @@ export const CandidateImportUploadQueue: React.FC<{
       isFetchingRef.current = false;
 
     }
-  }, [page, pageSize, error, isRealtimeActive, filter, statusFilter, dateRange]);
+  }, [page, pageSize, error, filter, statusFilter, dateRange, positionIdFilter]);
 
   // Update browser title with current page
   useEffect(() => {
@@ -304,17 +303,16 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Fallback polling (less frequent since we have SSE)
   useEffect(() => {
-    if (isRealtimeActive) return;
+    // Always use SSE, so this effect is effectively removed
+    // const interval = setInterval(() => {
 
-    const interval = setInterval(() => {
-
-      fetchJobs();
-    }, 30000); // Poll every 30 seconds as fallback
-    return () => {
-      clearInterval(interval);
+    //   fetchJobs();
+    // }, 30000); // Poll every 30 seconds as fallback
+    // return () => {
+    //   clearInterval(interval);
    
-    };
-  }, [fetchJobs, isRealtimeActive]);
+    // };
+  }, []);
 
   useEffect(() => {
     fetchJobs();
@@ -368,6 +366,7 @@ export const CandidateImportUploadQueue: React.FC<{
         if (statusFilter) params.set('status', statusFilter);
         if (dateRange.start) params.set('date_start', formatDate(dateRange.start));
         if (dateRange.end) params.set('date_end', formatDate(dateRange.end));
+        if (positionIdFilter) params.set('position_id', positionIdFilter);
         params.set('limit', String(pageSize));
         params.set('offset', String((page - 1) * pageSize));
         const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
@@ -375,7 +374,7 @@ export const CandidateImportUploadQueue: React.FC<{
    
 
         eventSource.onopen = () => {
-          setIsRealtimeActive(true);
+          // setIsRealtimeActive(true); // Removed
           setIsLoading(false); // Ensure loading is off as soon as SSE connects
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
       
@@ -383,7 +382,7 @@ export const CandidateImportUploadQueue: React.FC<{
 
         eventSource.onerror = (error) => {
 
-          setIsRealtimeActive(false);
+          // setIsRealtimeActive(false); // Removed
 
           // Attempt to reconnect if under max attempts
           if (reconnectAttempts < maxReconnectAttempts) {
@@ -431,7 +430,7 @@ export const CandidateImportUploadQueue: React.FC<{
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, [filter, statusFilter, dateRange, page, pageSize]);
+  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter]);
 
   useEffect(() => {
     async function fetchMaxConcurrent() {
@@ -685,6 +684,19 @@ export const CandidateImportUploadQueue: React.FC<{
     URL.revokeObjectURL(url);
   }, [filteredJobs]);
 
+  // Fetch available positions for filter
+  useEffect(() => {
+    const fetchPositions = async () => {
+      try {
+        const response = await fetch('/api/positions/all');
+        if (!response.ok) return;
+        const result = await response.json();
+        setAvailablePositions(result.data || []);
+      } catch {}
+    };
+    fetchPositions();
+  }, []);
+
   return (
     <div className="mb-6">
       {/* Filters and Bulk Actions in Card */}
@@ -909,7 +921,7 @@ export const CandidateImportUploadQueue: React.FC<{
           </Button>
         </div>
       )}
-      {isLoading && jobs.length > 0 && !isRealtimeActive && (
+      {isLoading && jobs.length > 0 && (
         <div className="flex items-center gap-2 mb-2 text-muted-foreground text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Refreshing...</span>

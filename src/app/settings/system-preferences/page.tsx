@@ -1082,379 +1082,398 @@ export default function SystemPreferencesPage() {
             <TabsContent value="branding" className="h-full">
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* App Logo */}
+                  {/* Logo Management */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <ImageUp className="h-5 w-5 text-primary" />
-                        Application Logo
+                        Logo Management
                       </CardTitle>
                       <CardDescription>
-                        Upload your company logo to appear in the application header
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-4">
-                          {logoPreviewUrl && (
-                            <div className="relative">
-                              <img
-                                src={logoPreviewUrl}
-                                alt="Logo preview"
-                                className="w-32 h-16 object-contain rounded-md border bg-background"
-                              />
-                              <Button
-                                size="icon"
-                                variant="destructive"
-                                className="absolute -top-2 -right-2 h-6 w-6"
-                                onClick={() => removeSelectedLogo(true)}
-                                disabled={!canEdit}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLogoFileChange}
-                              disabled={!canEdit}
-                              className="hidden"
-                              id="app-logo-upload"
-                            />
-                            <Label
-                              htmlFor="app-logo-upload"
-                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                            >
-                              <ImageUp className="mr-2 h-4 w-4" />
-                              Upload Logo
-                            </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Recommended: 200x80px, max 5MB
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Contextual Logo Settings */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <ImageUp className="h-5 w-5 text-primary" />
-                        Contextual Logo Settings
-                      </CardTitle>
-                      <CardDescription>
-                        Configure different logos for various contexts and themes. Leave empty to use the default application logo.
+                        Configure your company logos for different contexts throughout the application
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-8">
-                        {/* Login Page Logos */}
+                        {/* Primary Logo */}
                         <div>
-                          <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                            <LogIn className="h-4 w-4" />
-                            Login Page Logos
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Login Light Mode */}
-                            <div className="space-y-3">
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                <Sun className="h-4 w-4" />
-                                Light Mode
-                              </Label>
-                              <div className="flex items-center gap-4">
-                                {loginPageLogoLightModePreviewUrl && (
-                                  <div className="relative">
-                                    <img
-                                      src={loginPageLogoLightModePreviewUrl}
-                                      alt="Login light mode logo"
-                                      className="w-24 h-12 object-contain rounded-md border bg-background"
-                                    />
-                                    <Button
-                                      size="icon"
-                                      variant="destructive"
-                                      className="absolute -top-2 -right-2 h-5 w-5"
-                                      onClick={() => {
-                                        setLoginPageLogoLightModePreviewUrl(null);
-                                        setSavedLoginPageLogoLightModeUrl(null);
-                                      }}
-                                      disabled={!canEdit}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                                <div className="flex-1">
-                                  <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleLoginPageLogoLightModeChange}
-                                    disabled={!canEdit}
-                                    className="hidden"
-                                    id="login-logo-light-upload"
-                                  />
-                                  <Label
-                                    htmlFor="login-logo-light-upload"
-                                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
-                                  >
-                                    <ImageUp className="mr-2 h-3 w-3" />
-                                    Upload
-                                  </Label>
-                                </div>
-                              </div>
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                              <span className="text-xs font-bold text-primary-foreground">1</span>
                             </div>
-
-                            {/* Login Dark Mode */}
-                            <div className="space-y-3">
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                <Moon className="h-4 w-4" />
-                                Dark Mode
-                              </Label>
-                              <div className="flex items-center gap-4">
-                                {loginPageLogoDarkModePreviewUrl && (
-                                  <div className="relative">
-                                    <img
-                                      src={loginPageLogoDarkModePreviewUrl}
-                                      alt="Login dark mode logo"
-                                      className="w-24 h-12 object-contain rounded-md border bg-background"
-                                    />
-                                    <Button
-                                      size="icon"
-                                      variant="destructive"
-                                      className="absolute -top-2 -right-2 h-5 w-5"
-                                      onClick={() => {
-                                        setLoginPageLogoDarkModePreviewUrl(null);
-                                        setSavedLoginPageLogoDarkModeUrl(null);
-                                      }}
-                                      disabled={!canEdit}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                                <div className="flex-1">
+                            <h4 className="text-sm font-medium">Primary Logo</h4>
+                            <Badge variant="secondary" className="text-xs">Required</Badge>
+                          </div>
+                          <div className="ml-7 space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              This is your main company logo used throughout the application and as fallback when contextual logos aren't set.
+                            </p>
+                            <div className="flex items-center gap-4">
+                              {logoPreviewUrl && (
+                                <div className="relative">
+                                  <img
+                                    src={logoPreviewUrl}
+                                    alt="Primary logo preview"
+                                    className="w-32 h-16 object-contain rounded-md border bg-background"
+                                  />
+                                  <Button
+                                    size="icon"
+                                    variant="destructive"
+                                    className="absolute -top-2 -right-2 h-6 w-6"
+                                    onClick={() => removeSelectedLogo(true)}
+                                    disabled={!canEdit}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                              <div className="flex-1 space-y-2">
+                                <div>
                                   <Input
                                     type="file"
                                     accept="image/*"
-                                    onChange={handleLoginPageLogoDarkModeChange}
+                                    onChange={handleLogoFileChange}
                                     disabled={!canEdit}
                                     className="hidden"
-                                    id="login-logo-dark-upload"
+                                    id="app-logo-upload"
                                   />
                                   <Label
-                                    htmlFor="login-logo-dark-upload"
-                                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
+                                    htmlFor="app-logo-upload"
+                                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
                                   >
-                                    <ImageUp className="mr-2 h-3 w-3" />
-                                    Upload
+                                    <ImageUp className="mr-2 h-4 w-4" />
+                                    Upload Primary Logo
                                   </Label>
                                 </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Recommended: 200x80px, max 5MB. Used in application header and as fallback.
+                                </p>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Sidebar Logos */}
+                        <Separator />
+
+                        {/* Contextual Variations */}
                         <div>
-                          <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                            <SidebarIcon className="h-4 w-4" />
-                            Sidebar Logos
-                          </h4>
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Light Mode Sidebar */}
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                              <span className="text-xs font-bold text-muted-foreground">2</span>
+                            </div>
+                            <h4 className="text-sm font-medium">Contextual Variations</h4>
+                            <Badge variant="outline" className="text-xs">Optional</Badge>
+                          </div>
+                          <div className="ml-7 space-y-6">
+                            <p className="text-sm text-muted-foreground">
+                              Upload specific logos for different contexts. If not set, the primary logo will be used automatically.
+                            </p>
+
+                            {/* Login Page Logos */}
                             <div className="space-y-4">
                               <h5 className="text-sm font-medium flex items-center gap-2">
-                                <Sun className="h-4 w-4" />
-                                Light Mode
+                                <LogIn className="h-4 w-4" />
+                                Login Page
                               </h5>
-                              
-                              {/* Collapsed Light Mode */}
-                              <div className="space-y-3">
-                                <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
-                                <div className="flex items-center gap-4">
-                                  {sidebarLogoCollapsedLightModePreviewUrl && (
-                                    <div className="relative">
-                                      <img
-                                        src={sidebarLogoCollapsedLightModePreviewUrl}
-                                        alt="Sidebar collapsed light logo"
-                                        className="w-16 h-8 object-contain rounded border bg-background"
-                                      />
-                                      <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        className="absolute -top-1 -right-1 h-4 w-4"
-                                        onClick={() => {
-                                          setSidebarLogoCollapsedLightModePreviewUrl(null);
-                                          setSavedSidebarLogoCollapsedLightModeUrl(null);
-                                        }}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ml-6">
+                                {/* Login Light Mode */}
+                                <div className="space-y-3">
+                                  <Label className="text-sm font-medium flex items-center gap-2">
+                                    <Sun className="h-4 w-4" />
+                                    Light Mode
+                                  </Label>
+                                  <div className="flex items-center gap-4">
+                                    {loginPageLogoLightModePreviewUrl && (
+                                      <div className="relative">
+                                        <img
+                                          src={loginPageLogoLightModePreviewUrl}
+                                          alt="Login light mode logo"
+                                          className="w-24 h-12 object-contain rounded-md border bg-background"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="destructive"
+                                          className="absolute -top-2 -right-2 h-5 w-5"
+                                          onClick={() => {
+                                            setLoginPageLogoLightModePreviewUrl(null);
+                                            setSavedLoginPageLogoLightModeUrl(null);
+                                          }}
+                                          disabled={!canEdit}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    <div className="flex-1">
+                                      <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleLoginPageLogoLightModeChange}
                                         disabled={!canEdit}
+                                        className="hidden"
+                                        id="login-logo-light-upload"
+                                      />
+                                      <Label
+                                        htmlFor="login-logo-light-upload"
+                                        className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
                                       >
-                                        <X className="h-2 w-2" />
-                                      </Button>
+                                        <ImageUp className="mr-2 h-3 w-3" />
+                                        Upload
+                                      </Label>
                                     </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={handleSidebarLogoCollapsedLightModeChange}
-                                      disabled={!canEdit}
-                                      className="hidden"
-                                      id="sidebar-collapsed-light-upload"
-                                    />
-                                    <Label
-                                      htmlFor="sidebar-collapsed-light-upload"
-                                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                    >
-                                      <ImageUp className="mr-1 h-3 w-3" />
-                                      Upload
-                                    </Label>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Expanded Light Mode */}
-                              <div className="space-y-3">
-                                <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
-                                <div className="flex items-center gap-4">
-                                  {sidebarLogoExpandedLightModePreviewUrl && (
-                                    <div className="relative">
-                                      <img
-                                        src={sidebarLogoExpandedLightModePreviewUrl}
-                                        alt="Sidebar expanded light logo"
-                                        className="w-20 h-10 object-contain rounded border bg-background"
-                                      />
-                                      <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        className="absolute -top-1 -right-1 h-4 w-4"
-                                        onClick={() => {
-                                          setSidebarLogoExpandedLightModePreviewUrl(null);
-                                          setSavedSidebarLogoExpandedLightModeUrl(null);
-                                        }}
+                                {/* Login Dark Mode */}
+                                <div className="space-y-3">
+                                  <Label className="text-sm font-medium flex items-center gap-2">
+                                    <Moon className="h-4 w-4" />
+                                    Dark Mode
+                                  </Label>
+                                  <div className="flex items-center gap-4">
+                                    {loginPageLogoDarkModePreviewUrl && (
+                                      <div className="relative">
+                                        <img
+                                          src={loginPageLogoDarkModePreviewUrl}
+                                          alt="Login dark mode logo"
+                                          className="w-24 h-12 object-contain rounded-md border bg-background"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="destructive"
+                                          className="absolute -top-2 -right-2 h-5 w-5"
+                                          onClick={() => {
+                                            setLoginPageLogoDarkModePreviewUrl(null);
+                                            setSavedLoginPageLogoDarkModeUrl(null);
+                                          }}
+                                          disabled={!canEdit}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    <div className="flex-1">
+                                      <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleLoginPageLogoDarkModeChange}
                                         disabled={!canEdit}
+                                        className="hidden"
+                                        id="login-logo-dark-upload"
+                                      />
+                                      <Label
+                                        htmlFor="login-logo-dark-upload"
+                                        className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
                                       >
-                                        <X className="h-2 w-2" />
-                                      </Button>
+                                        <ImageUp className="mr-2 h-3 w-3" />
+                                        Upload
+                                      </Label>
                                     </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={handleSidebarLogoExpandedLightModeChange}
-                                      disabled={!canEdit}
-                                      className="hidden"
-                                      id="sidebar-expanded-light-upload"
-                                    />
-                                    <Label
-                                      htmlFor="sidebar-expanded-light-upload"
-                                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                    >
-                                      <ImageUp className="mr-1 h-3 w-3" />
-                                      Upload
-                                    </Label>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Dark Mode Sidebar */}
+                            {/* Sidebar Logos */}
                             <div className="space-y-4">
                               <h5 className="text-sm font-medium flex items-center gap-2">
-                                <Moon className="h-4 w-4" />
-                                Dark Mode
+                                <SidebarIcon className="h-4 w-4" />
+                                Sidebar
                               </h5>
-                              
-                              {/* Collapsed Dark Mode */}
-                              <div className="space-y-3">
-                                <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
-                                <div className="flex items-center gap-4">
-                                  {sidebarLogoCollapsedDarkModePreviewUrl && (
-                                    <div className="relative">
-                                      <img
-                                        src={sidebarLogoCollapsedDarkModePreviewUrl}
-                                        alt="Sidebar collapsed dark logo"
-                                        className="w-16 h-8 object-contain rounded border bg-background"
-                                      />
-                                      <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        className="absolute -top-1 -right-1 h-4 w-4"
-                                        onClick={() => {
-                                          setSidebarLogoCollapsedDarkModePreviewUrl(null);
-                                          setSavedSidebarLogoCollapsedDarkModeUrl(null);
-                                        }}
-                                        disabled={!canEdit}
-                                      >
-                                        <X className="h-2 w-2" />
-                                      </Button>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ml-6">
+                                {/* Light Mode Sidebar */}
+                                <div className="space-y-4">
+                                  <h6 className="text-sm font-medium flex items-center gap-2">
+                                    <Sun className="h-4 w-4" />
+                                    Light Mode
+                                  </h6>
+                                  
+                                  {/* Collapsed Light Mode */}
+                                  <div className="space-y-3">
+                                    <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
+                                    <div className="flex items-center gap-4">
+                                      {sidebarLogoCollapsedLightModePreviewUrl && (
+                                        <div className="relative">
+                                          <img
+                                            src={sidebarLogoCollapsedLightModePreviewUrl}
+                                            alt="Sidebar collapsed light logo"
+                                            className="w-16 h-8 object-contain rounded border bg-background"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="absolute -top-1 -right-1 h-4 w-4"
+                                            onClick={() => {
+                                              setSidebarLogoCollapsedLightModePreviewUrl(null);
+                                              setSavedSidebarLogoCollapsedLightModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <div className="flex-1">
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleSidebarLogoCollapsedLightModeChange}
+                                          disabled={!canEdit}
+                                          className="hidden"
+                                          id="sidebar-collapsed-light-upload"
+                                        />
+                                        <Label
+                                          htmlFor="sidebar-collapsed-light-upload"
+                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
+                                        >
+                                          <ImageUp className="mr-1 h-3 w-3" />
+                                          Upload
+                                        </Label>
+                                      </div>
                                     </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={handleSidebarLogoCollapsedDarkModeChange}
-                                      disabled={!canEdit}
-                                      className="hidden"
-                                      id="sidebar-collapsed-dark-upload"
-                                    />
-                                    <Label
-                                      htmlFor="sidebar-collapsed-dark-upload"
-                                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                    >
-                                      <ImageUp className="mr-1 h-3 w-3" />
-                                      Upload
-                                    </Label>
+                                  </div>
+
+                                  {/* Expanded Light Mode */}
+                                  <div className="space-y-3">
+                                    <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
+                                    <div className="flex items-center gap-4">
+                                      {sidebarLogoExpandedLightModePreviewUrl && (
+                                        <div className="relative">
+                                          <img
+                                            src={sidebarLogoExpandedLightModePreviewUrl}
+                                            alt="Sidebar expanded light logo"
+                                            className="w-20 h-10 object-contain rounded border bg-background"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="absolute -top-1 -right-1 h-4 w-4"
+                                            onClick={() => {
+                                              setSidebarLogoExpandedLightModePreviewUrl(null);
+                                              setSavedSidebarLogoExpandedLightModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <div className="flex-1">
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleSidebarLogoExpandedLightModeChange}
+                                          disabled={!canEdit}
+                                          className="hidden"
+                                          id="sidebar-expanded-light-upload"
+                                        />
+                                        <Label
+                                          htmlFor="sidebar-expanded-light-upload"
+                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
+                                        >
+                                          <ImageUp className="mr-1 h-3 w-3" />
+                                          Upload
+                                        </Label>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Expanded Dark Mode */}
-                              <div className="space-y-3">
-                                <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
-                                <div className="flex items-center gap-4">
-                                  {sidebarLogoExpandedDarkModePreviewUrl && (
-                                    <div className="relative">
-                                      <img
-                                        src={sidebarLogoExpandedDarkModePreviewUrl}
-                                        alt="Sidebar expanded dark logo"
-                                        className="w-20 h-10 object-contain rounded border bg-background"
-                                      />
-                                      <Button
-                                        size="icon"
-                                        variant="destructive"
-                                        className="absolute -top-1 -right-1 h-4 w-4"
-                                        onClick={() => {
-                                          setSidebarLogoExpandedDarkModePreviewUrl(null);
-                                          setSavedSidebarLogoExpandedDarkModeUrl(null);
-                                        }}
-                                        disabled={!canEdit}
-                                      >
-                                        <X className="h-2 w-2" />
-                                      </Button>
+                                {/* Dark Mode Sidebar */}
+                                <div className="space-y-4">
+                                  <h6 className="text-sm font-medium flex items-center gap-2">
+                                    <Moon className="h-4 w-4" />
+                                    Dark Mode
+                                  </h6>
+                                  
+                                  {/* Collapsed Dark Mode */}
+                                  <div className="space-y-3">
+                                    <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
+                                    <div className="flex items-center gap-4">
+                                      {sidebarLogoCollapsedDarkModePreviewUrl && (
+                                        <div className="relative">
+                                          <img
+                                            src={sidebarLogoCollapsedDarkModePreviewUrl}
+                                            alt="Sidebar collapsed dark logo"
+                                            className="w-16 h-8 object-contain rounded border bg-background"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="absolute -top-1 -right-1 h-4 w-4"
+                                            onClick={() => {
+                                              setSidebarLogoCollapsedDarkModePreviewUrl(null);
+                                              setSavedSidebarLogoCollapsedDarkModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <div className="flex-1">
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleSidebarLogoCollapsedDarkModeChange}
+                                          disabled={!canEdit}
+                                          className="hidden"
+                                          id="sidebar-collapsed-dark-upload"
+                                        />
+                                        <Label
+                                          htmlFor="sidebar-collapsed-dark-upload"
+                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
+                                        >
+                                          <ImageUp className="mr-1 h-3 w-3" />
+                                          Upload
+                                        </Label>
+                                      </div>
                                     </div>
-                                  )}
-                                  <div className="flex-1">
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={handleSidebarLogoExpandedDarkModeChange}
-                                      disabled={!canEdit}
-                                      className="hidden"
-                                      id="sidebar-expanded-dark-upload"
-                                    />
-                                    <Label
-                                      htmlFor="sidebar-expanded-dark-upload"
-                                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                    >
-                                      <ImageUp className="mr-1 h-3 w-3" />
-                                      Upload
-                                    </Label>
+                                  </div>
+
+                                  {/* Expanded Dark Mode */}
+                                  <div className="space-y-3">
+                                    <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
+                                    <div className="flex items-center gap-4">
+                                      {sidebarLogoExpandedDarkModePreviewUrl && (
+                                        <div className="relative">
+                                          <img
+                                            src={sidebarLogoExpandedDarkModePreviewUrl}
+                                            alt="Sidebar expanded dark logo"
+                                            className="w-20 h-10 object-contain rounded border bg-background"
+                                          />
+                                          <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="absolute -top-1 -right-1 h-4 w-4"
+                                            onClick={() => {
+                                              setSidebarLogoExpandedDarkModePreviewUrl(null);
+                                              setSavedSidebarLogoExpandedDarkModeUrl(null);
+                                            }}
+                                            disabled={!canEdit}
+                                          >
+                                            <X className="h-2 w-2" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <div className="flex-1">
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleSidebarLogoExpandedDarkModeChange}
+                                          disabled={!canEdit}
+                                          className="hidden"
+                                          id="sidebar-expanded-dark-upload"
+                                        />
+                                        <Label
+                                          htmlFor="sidebar-expanded-dark-upload"
+                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
+                                        >
+                                          <ImageUp className="mr-1 h-3 w-3" />
+                                          Upload
+                                        </Label>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1464,10 +1483,20 @@ export default function SystemPreferencesPage() {
                       </div>
                       
                       <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">
-                          <strong>Tip:</strong> If a contextual logo is not set, the default application logo will be used. 
-                          For sidebar collapsed mode, square/icon-style logos work best, while expanded mode can accommodate wider logos.
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                            <div className="h-2 w-2 rounded-full bg-blue-600"></div>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Logo Usage Guide</p>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• <strong>Primary Logo:</strong> Used throughout the application and as fallback when contextual logos aren't set</li>
+                              <li>• <strong>Login Page:</strong> Specific logos for light/dark mode login screens</li>
+                              <li>• <strong>Sidebar Collapsed:</strong> Square/icon-style logos work best for narrow sidebar</li>
+                              <li>• <strong>Sidebar Expanded:</strong> Wider logos can be accommodated in expanded sidebar</li>
+                            </ul>
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

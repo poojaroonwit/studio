@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       uploadQueueControllers.add(controller);
       // Send initial data
       await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, limit, offset });
-      // Send keepalive every 30 seconds
+      // Send keepalive every 15 seconds for more responsive connection (reduced from 30 seconds)
       const keepaliveInterval = setInterval(() => {
         if (isClosed) {
           clearInterval(keepaliveInterval);
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
           isClosed = true;
           clearInterval(keepaliveInterval);
         }
-      }, 30000);
+      }, 15000); // Reduced from 30000ms to 15000ms for better responsiveness
       // Cleanup on close
       request.signal.addEventListener('abort', async () => {
         isClosed = true;

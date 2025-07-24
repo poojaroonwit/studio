@@ -451,10 +451,10 @@ export function CandidatesPageClient({
       clearTimeout(fetchTimeoutRef.current);
     }
     
-    // Set a new timeout
+    // Set a new timeout - reduced from 300ms to 150ms for smoother updates
     fetchTimeoutRef.current = setTimeout(() => {
       fetchPaginatedCandidates(currentFilters, page, pageSize);
-    }, 300); // 300ms debounce
+    }, 150); // Reduced debounce for faster response
   }, [fetchPaginatedCandidates]);
 
   const handleAiSearch = async (aiQuery: string) => {
@@ -900,33 +900,88 @@ export function CandidatesPageClient({
     }
   }, [fetchCandidateById, toast, fetchPaginatedCandidates, filters, page, pageSize, aiMatchedCandidateIds]);
 
-  const handleUpdateCandidateAPI = async (candidateId: string, status: CandidateStatus, transitionNotes?: string, suppressToast?: boolean) => {
+  // Optimistic update helper function
+  const applyOptimisticUpdate = useCallback((candidateId: string, updates: Partial<Candidate>) => {
+    setAllCandidates(prev => prev.map(candidate => 
+      candidate.id === candidateId 
+        ? { ...candidate, ...updates, updatedAt: new Date().toISOString() }
+        : candidate
+    ));
+  }, []);
+
+  // Revert optimistic update helper function
+  const revertOptimisticUpdate = useCallback((candidateId: string, originalCandidate: Candidate) => {
+    setAllCandidates(prev => prev.map(candidate => 
+      candidate.id === candidateId ? originalCandidate : candidate
+    ));
+  }, []);
+
+  const updateCandidateStatus = useCallback(async (candidateId: string, newStatus: CandidateStatus, notes?: string, suppressToast?: boolean) => {
+    if (aiMatchedCandidateIds !== null) {
+      toast('AI Search Active: Please clear AI search to perform updates.');
+      return;
+    }
+
+    // Find the original candidate for potential rollback
+    const originalCandidate = allCandidates.find(c => c.id === candidateId);
+    if (!originalCandidate) {
+      toast.error('Candidate not found');
+      return;
+    }
+
+    // Apply optimistic update immediately
+    applyOptimisticUpdate(candidateId, { status: newStatus });
+    
+    if (!suppressToast) {
+      toast.loading('Updating candidate status...', { id: candidateId });
+    }
+
     try {
-      const payload: { status: CandidateStatus, transitionNotes?: string } = { status };
-      if (transitionNotes) {
-        payload.transitionNotes = transitionNotes;
-      }
       const response = await fetch(`/api/candidates/${candidateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ 
+          status: newStatus, 
+          transitionNotes: notes 
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred" }));
-        throw new Error(errorData.message || `Failed to update candidate: ${response.statusText || `Status: ${response.status}`}`);
+        // Revert optimistic update on error
+        revertOptimisticUpdate(candidateId, originalCandidate);
+        
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `Failed to update status: ${response.statusText}`;
+        
+        if (!suppressToast) {
+          toast.error(errorMessage, { id: candidateId });
+        }
+        throw new Error(errorMessage);
       }
-      const updatedCandidateFromServer: Candidate = await response.json();
-      setAllCandidates(prev => prev.map(c => (c.id === updatedCandidateFromServer.id ? updatedCandidateFromServer : c)));
+
+      const updatedCandidate = await response.json();
+      
+      // Update with server response (this confirms the optimistic update)
+      setAllCandidates(prev => prev.map(c => 
+        c.id === candidateId ? {
+          ...c,
+          ...updatedCandidate,
+          position: updatedCandidate.position || c.position,
+          recruiter: updatedCandidate.recruiter || c.recruiter
+        } : c
+      ));
+
       if (!suppressToast) {
-        toast.success(`${updatedCandidateFromServer.name}'s status set to ${updatedCandidateFromServer.status}.`);
+        toast.success(`Status updated to ${newStatus}`, { id: candidateId });
       }
     } catch (error) {
-      // console.error("Error updating candidate:", error);
-      toast.error((error as Error).message);
-      throw error; // Re-throw for ManageTransitionsModal or other callers to handle
+      console.error('Error updating candidate status:', error);
+      // Optimistic update already reverted above
+      if (!suppressToast) {
+        toast.error((error as Error).message, { id: candidateId });
+      }
     }
-  };
+  }, [allCandidates, aiMatchedCandidateIds, toast, applyOptimisticUpdate, revertOptimisticUpdate]);
 
   const handleDeleteCandidate = async (candidateId: string) => {
      try {
@@ -1275,13 +1330,13 @@ export function CandidatesPageClient({
           return; // Skip refresh if too soon
         }
         
-        // Add a small delay to prevent rapid refreshes when modals open/close
+        // Add a small delay to prevent rapid refreshes when modals open/close - reduced for better responsiveness
         clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
           // console.log('Page became visible, refreshing candidate data...');
           lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
-        }, 1000); // Increased delay to 1 second
+        }, 300); // Reduced delay from 1000ms to 300ms
       }
     };
 
@@ -1292,13 +1347,13 @@ export function CandidatesPageClient({
           return; // Skip refresh if too soon
         }
         
-        // Add a small delay to prevent rapid refreshes when modals open/close
+        // Add a small delay to prevent rapid refreshes when modals open/close - reduced for better responsiveness
         clearTimeout(focusTimeout);
         focusTimeout = setTimeout(() => {
           // console.log('Window gained focus, refreshing candidate data...');
           lastRefreshTime = Date.now();
           debouncedFetchPaginatedCandidates(filters, page, pageSize);
-        }, 1000); // Increased delay to 1 second
+        }, 300); // Reduced delay from 1000ms to 300ms
       }
     };
 
@@ -1475,34 +1530,6 @@ export function CandidatesPageClient({
       </div>
     );
   }
-
-  // --- SSE for real-time candidate updates ---
-  useEffect(() => {
-    let eventSource: EventSource | null = null;
-    let debounceTimeout: NodeJS.Timeout | null = null;
-    
-    function handleCandidateUpdate(event: MessageEvent) {
-      // Debounce to avoid excessive refetches
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-      debounceTimeout = setTimeout(() => {
-        // Refetch candidates for current filters/page
-        fetchPaginatedCandidates(filters, page, pageSize);
-      }, 500);
-    }
-
-    eventSource = new EventSource('/api/candidates/sse');
-    eventSource.onmessage = handleCandidateUpdate;
-    // Optionally handle errors
-    eventSource.onerror = (err) => {
-      // Optionally: try to reconnect, or just log
-      // console.error('SSE error:', err);
-    };
-
-    return () => {
-      if (eventSource) eventSource.close();
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-    };
-  }, [filters, page, pageSize, fetchPaginatedCandidates]);
 
   return (
     <div className="flex h-full relative">
@@ -1808,7 +1835,7 @@ export function CandidatesPageClient({
           availableStages={availableStages}
           availableRecruiters={availableRecruiters}
           onAssignRecruiter={handleAssignRecruiter}
-          onUpdateCandidate={handleUpdateCandidateAPI}
+          onUpdateCandidate={updateCandidateStatus}
           onDeleteCandidate={handleDeleteCandidate}
           onOpenUploadModal={handleOpenUploadModal}
           onEditPosition={handleOpenEditPositionModal}

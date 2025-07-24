@@ -46,17 +46,32 @@ export async function sendUploadQueueUpdate(controller: ReadableStreamDefaultCon
     client.release();
     const data = JSON.stringify({ type: 'queue', data: res.rows, total });
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-  } catch {
+  } catch (error) {
     const encoder = new TextEncoder();
     const errorData = JSON.stringify({ type: 'error', message: 'Failed to load queue data' });
-    controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+    try {
+      controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+    } catch (controllerError) {
+      // Controller might be closed, remove it from the set
+      uploadQueueControllers.delete(controller);
+    }
   }
 }
 
 export function broadcastUploadQueueUpdate() {
-  for (const controller of uploadQueueControllers) {
-    sendUploadQueueUpdate(controller);
+  // Create a copy of controllers to safely iterate over
+  const controllersCopy = Array.from(uploadQueueControllers);
+  
+  for (const controller of controllersCopy) {
+    try {
+      sendUploadQueueUpdate(controller);
+    } catch (error) {
+      console.error('Failed to broadcast to controller:', error);
+      // Remove failed controllers from the set
+      uploadQueueControllers.delete(controller);
+    }
   }
 }
 
+// Export the controllers set for use in the route
 export { uploadQueueControllers }; 

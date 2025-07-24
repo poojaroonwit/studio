@@ -127,6 +127,14 @@ export async function POST(request: NextRequest) {
       source: job.source 
     });
 
+    // Broadcast progress update for real-time UI updates
+    try {
+      const { broadcastUploadQueueUpdate } = await import('../sse/broadcastUploadQueueUpdate');
+      broadcastUploadQueueUpdate();
+    } catch (broadcastError) {
+      console.error('Failed to broadcast upload queue progress update:', broadcastError);
+    }
+
     // 3. Send to resume processing webhook (system setting)
     let status = 'success';
     let error = null;
@@ -176,6 +184,14 @@ export async function POST(request: NextRequest) {
       errorDetails: error_details
     });
 
+    // Final broadcast for completion
+    try {
+      const { broadcastUploadQueueUpdate } = await import('../sse/broadcastUploadQueueUpdate');
+      broadcastUploadQueueUpdate();
+    } catch (broadcastError) {
+      console.error('Failed to broadcast final upload queue update:', broadcastError);
+    }
+
     // Explicitly nullify large objects to help GC
     fileBuffer = null;
     if (typeof global !== 'undefined' && typeof global.gc === 'function') {
@@ -197,8 +213,8 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Add a 3-second delay before returning the response
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Remove the unnecessary 3-second delay for better real-time performance
+    // await new Promise((resolve) => setTimeout(resolve, 3000));
     
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });
   } catch (err) {

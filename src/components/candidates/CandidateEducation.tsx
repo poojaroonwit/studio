@@ -48,7 +48,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                   {/* Content */}
                   <div className="flex-1 min-w-0 pb-12">
                     <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                         {entry.major && entry.field ? `${entry.major} - ${entry.field}` : 
                          entry.major || entry.field || 'Field of study not specified'}
                       </p>

@@ -408,10 +408,10 @@ export const CandidateImportUploadQueue: React.FC<{
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'queue') {
-              // Debounce UI update
+              // Debounce UI update - reduced from 500ms to 200ms for smoother updates
               latestSSEData = msg;
               if (debounceTimeout) clearTimeout(debounceTimeout);
-              debounceTimeout = setTimeout(applySSEUpdate, 500);
+              debounceTimeout = setTimeout(applySSEUpdate, 200);
               
             } else if (msg.type === 'error') {
               console.error('[SSE] Error:', msg.message);

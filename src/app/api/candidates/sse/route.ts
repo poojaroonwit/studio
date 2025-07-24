@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         console.error('[SSE] Failed to send initial confirmation:', error);
       }
 
-      // Send keepalive every 30 seconds
+      // Send keepalive every 15 seconds for more responsive connection (reduced from 30 seconds)
       const keepaliveInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(`: keepalive\n\n`));
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
           console.error('[SSE] Keepalive failed:', error);
           clearInterval(keepaliveInterval);
         }
-      }, 30000);
+      }, 15000); // Reduced from 30000ms to 15000ms for better responsiveness
 
       // Cleanup on close
       request.signal.addEventListener('abort', () => {

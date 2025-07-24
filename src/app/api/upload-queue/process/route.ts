@@ -58,8 +58,7 @@ export async function POST(request: NextRequest) {
   let job;
   let payload = null;
   try {
-    // --- ENFORCE MAX CONCURRENT ---
-    // Get maxConcurrentProcessors from system settings (default to 5 if not set)
+    // --- ENFORCE MAX CONCURRENT ATOMICALLY ---
     let maxConcurrent = 5;
     try {
       const setting = await getSystemSetting('maxConcurrentProcessors');
@@ -69,17 +68,19 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       // fallback to default
     }
-    // Count current inprogress/inprocess/processing jobs
+
+    await client.query('BEGIN');
+    // Lock all inprogress/inprocess/processing rows to prevent race conditions
     const countRes = await client.query(
-      `SELECT COUNT(*) AS count FROM upload_queue WHERE status IN ('inprogress', 'inprocess', 'processing')`
+      `SELECT COUNT(*) AS count FROM upload_queue WHERE status IN ('inprogress', 'inprocess', 'processing') FOR UPDATE`
     );
     const currentInProgress = Number(countRes.rows[0]?.count || 0);
     if (currentInProgress >= maxConcurrent) {
+      await client.query('ROLLBACK');
       await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
-    // --- END ENFORCE MAX CONCURRENT ---
-    // 1. Atomically pick and mark the oldest queued job as 'inprogress'
+    // Atomically pick and mark the oldest queued job as 'inprogress'
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprogress', process_date = now(), updated_at = now()
@@ -90,11 +91,12 @@ export async function POST(request: NextRequest) {
        RETURNING *`
     );
     if (res.rows.length === 0) {
-      // Publish queue update event
+      await client.query('COMMIT');
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
     job = res.rows[0];
+    await client.query('COMMIT');
     
     await logAudit('INFO', `Processing upload queue job '${job.file_name}' (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
       jobId: job.id,

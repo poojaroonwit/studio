@@ -219,37 +219,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });
   } catch (err) {
     if (job) {
+      // Ensure error variables are properly set for exception cases
+      const errorMessage = (err as Error).message;
+      const errorStack = (err as Error).stack || errorMessage;
+      
       await client.query(
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
-        [(err as Error).message, (err as Error).stack, payload, job.id]
+        [errorMessage, errorStack, payload, job.id]
       );
-
-      // Dispatch webhook for upload queue failure event
-      try {
-        const failedJob = { 
-          ...job, 
-          status: 'error', 
-          error: (err as Error).message, 
-          error_details: (err as Error).stack,
-          completed_date: new Date()
-        };
-        await dispatchWebhooks.uploadQueueFailed(failedJob, { 
-          error_details: (err as Error).stack,
-          exception: true
-        });
-      } catch (webhookError) {
-        console.error('Failed to dispatch upload queue failure webhook:', webhookError);
-        // Don't fail the request if webhook fails
-      }
-
-      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, { 
+      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, {
         jobId: job.id,
         fileName: job.file_name,
-        error: (err as Error).message,
-        stack: (err as Error).stack 
+        error: errorMessage,
+        stack: errorStack
       });
     }
-    return NextResponse.json({ error: (err as Error).message, stack: (err as Error).stack }, { status: 500 });
+    return { error: (err as Error).message, stack: (err as Error).stack };
   } finally {
     client.release();
   }
@@ -400,32 +385,45 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               webhookResJson = await webhookRes.json();
               candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
               
-              // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
-              if (
-                (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
-                (webhookResJson?.status === 'failed' && webhookResJson?.error)
-              ) {
-                status = 'fail';
-                webhookError = webhookResJson?.data?.error || webhookResJson?.error;
-                error = webhookError;
-                error_details = JSON.stringify(webhookResJson);
-              }
               // Check for success in webhookResJson (for common Genkit/LLM workflow payloads)
-              else if (
+              // Priority: Check for success first, with multiple patterns
+              if (
                 webhookResJson?.data?.status === 'succeeded' ||
-                webhookResJson?.status === 'succeeded'
+                webhookResJson?.status === 'succeeded' ||
+                // Additional success pattern: status succeeded with empty error
+                (webhookResJson?.data?.status === 'succeeded' && webhookResJson?.data?.error === '') ||
+                (webhookResJson?.status === 'succeeded' && webhookResJson?.error === '')
               ) {
                 status = 'success';
                 // Clear any previous error states
                 webhookError = null;
                 error = null;
                 error_details = null;
+                console.log('[Webhook] Success detected from webhook response:', webhookResJson?.data?.status || webhookResJson?.status);
+              }
+              // Check for error in webhookResJson (for common Genkit/LLM workflow payloads)
+              else if (
+                (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                (webhookResJson?.status === 'failed' && webhookResJson?.error) ||
+                // Additional error pattern: explicit error with non-empty error field
+                (webhookResJson?.data?.error && webhookResJson?.data?.error !== '') ||
+                (webhookResJson?.error && webhookResJson?.error !== '')
+              ) {
+                status = 'fail';
+                webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                error = webhookError;
+                error_details = JSON.stringify(webhookResJson);
+                console.log('[Webhook] Error detected from webhook response:', webhookError);
               }
             } catch (jsonErr) {
               candidateInfoPresent = false;
               console.warn('Failed to parse JSON response:', jsonErr);
+              // Treat JSON parsing failure as error but continue processing
+              status = 'fail';
+              error = 'Failed to parse webhook JSON response';
+              error_details = `JSON parse error: ${jsonErr instanceof Error ? jsonErr.message : String(jsonErr)}`;
             }
-          } else if (contentType.includes('text/plain') || contentType.includes('text/event-stream')) {
+          } else {
             // Text/streaming response
             try {
               webhookResponseText = webhookRes ? await webhookRes.text() : '';
@@ -436,26 +434,34 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
                   webhookResJson = JSON.parse(webhookResponseText);
                   candidateInfoPresent = webhookResJson && (webhookResJson.candidate || webhookResJson.candidateInfo);
                   
-                  // Check for error in streaming response
+                  // Check for success in streaming response (prioritize success detection)
                   if (
-                    (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
-                    (webhookResJson?.status === 'failed' && webhookResJson?.error)
-                  ) {
-                    status = 'fail';
-                    webhookError = webhookResJson?.data?.error || webhookResJson?.error;
-                    error = webhookError;
-                    error_details = webhookResponseText;
-                  }
-                  // Check for success in streaming response
-                  else if (
                     webhookResJson?.data?.status === 'succeeded' ||
-                    webhookResJson?.status === 'succeeded'
+                    webhookResJson?.status === 'succeeded' ||
+                    // Additional success pattern: status succeeded with empty error
+                    (webhookResJson?.data?.status === 'succeeded' && webhookResJson?.data?.error === '') ||
+                    (webhookResJson?.status === 'succeeded' && webhookResJson?.error === '')
                   ) {
                     status = 'success';
                     // Clear any previous error states
                     webhookError = null;
                     error = null;
                     error_details = null;
+                    console.log('[Webhook] Success detected from streaming response:', webhookResJson?.data?.status || webhookResJson?.status);
+                  }
+                  // Check for error in streaming response
+                  else if (
+                    (webhookResJson?.data?.status === 'failed' && webhookResJson?.data?.error) ||
+                    (webhookResJson?.status === 'failed' && webhookResJson?.error) ||
+                    // Additional error pattern: explicit error with non-empty error field
+                    (webhookResJson?.data?.error && webhookResJson?.data?.error !== '') ||
+                    (webhookResJson?.error && webhookResJson?.error !== '')
+                  ) {
+                    status = 'fail';
+                    webhookError = webhookResJson?.data?.error || webhookResJson?.error;
+                    error = webhookError;
+                    error_details = webhookResponseText;
+                    console.log('[Webhook] Error detected from streaming response:', webhookError);
                   }
                 } catch (parseErr) {
                   // Not JSON, treat as plain text
@@ -468,23 +474,22 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               }
             } catch (textErr) {
               console.warn('Failed to read text response:', textErr);
-            }
-          } else {
-            // Unknown content type, try to get text
-            try {
-              webhookResponseText = webhookRes ? await webhookRes.text() : '';
-              error_details = webhookResponseText;
-            } catch (textErr) {
-              console.warn('Failed to read response:', textErr);
+              error_details = `Failed to read response: ${textErr instanceof Error ? textErr.message : String(textErr)}`;
             }
           }
           
           // Determine final status based on webhook response
           if (webhookResStatus === 200 && status === 'success') {
             // Status already set to success from workflow response, keep it
+            console.log('[Webhook] Final status: success (from response analysis)');
           } else if (webhookResStatus === 200 && candidateInfoPresent && status !== 'fail') {
             status = 'success';
-          } else if (status !== 'fail') {
+            console.log('[Webhook] Final status: success (candidate info present)');
+          } else if (webhookResStatus === 200 && status !== 'fail' && status !== 'success') {
+            // If we got a 200 response but status wasn't explicitly set, default to success
+            status = 'success';
+            console.log('[Webhook] Final status: success (200 response, no explicit failure)');
+          } else if (status !== 'fail' && status !== 'success') {
             status = 'fail';
             webhookError = `Webhook responded with status ${webhookResStatus}`;
             if (!error_details) {
@@ -495,16 +500,59 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               }
             }
             error = webhookError;
+            console.log('[Webhook] Final status: fail (non-200 response or unhandled case)');
           }
-        } else {
-          // Webhook not set, set status to error
-          status = 'error';
-          webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
+        } else if (webhookRes && webhookResStatus !== 200) {
+          // Handle non-200 status codes properly
+          status = 'fail';
+          webhookError = `Webhook responded with status ${webhookResStatus}`;
           error = webhookError;
-          error_details = webhookError;
-          payload = { error: webhookError };
-          console.warn('[Webhook Skipped]', webhookError);
-        }
+          
+          try {
+            // Try to get response text for error details
+            const responseText = await webhookRes.text();
+            
+            // Try to parse as JSON first for structured error responses
+            try {
+              const errorJson = JSON.parse(responseText);
+              error_details = JSON.stringify(errorJson, null, 2);
+              // Extract more specific error message if available
+              if (errorJson.message) {
+                webhookError = errorJson.message;
+                error = webhookError;
+              } else if (errorJson.error) {
+                webhookError = errorJson.error;
+                error = webhookError;
+              }
+            } catch (jsonParseError) {
+              // Not JSON, use plain text
+              error_details = responseText || webhookError;
+              // If the response text contains a more specific error, use it
+              if (responseText && responseText.trim() && responseText !== webhookResStatus.toString()) {
+                webhookError = responseText.trim();
+                error = webhookError;
+              }
+            }
+          } catch (textReadError) {
+            // Failed to read response text
+            error_details = `Failed to read error response: ${textReadError instanceof Error ? textReadError.message : String(textReadError)}`;
+          }
+            } else {
+      // Webhook not set, set status to error
+      status = 'error';
+      webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
+      error = webhookError;
+      error_details = `Webhook URL validation failed. resumeProcessingWebhookUrl setting: '${resumeWebhookUrl || 'not set'}', Environment variable: '${process.env.RESUME_PROCESSING_WEBHOOK_URL || 'not set'}'`;
+      payload = { 
+        error: webhookError,
+        resumeWebhookUrl: resumeWebhookUrl || null,
+        envWebhookUrl: process.env.RESUME_PROCESSING_WEBHOOK_URL || null,
+        validationFailed: true
+      };
+      console.warn('[Webhook Skipped]', webhookError);
+      console.warn('[Webhook Config] Database setting:', resumeWebhookUrl || 'not set');
+      console.warn('[Webhook Config] Environment variable:', process.env.RESUME_PROCESSING_WEBHOOK_URL || 'not set');
+    }
       } catch (err) {
         status = 'fail';
         
@@ -596,17 +644,21 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     return { job: { ...job, status, error, error_details }, webhook_response: { status: webhookRes && 'status' in webhookRes ? webhookRes.status : null, response: webhookError || 'Success' } };
   } catch (err) {
     if (job) {
+      // Ensure error variables are properly set for exception cases
+      const errorMessage = (err as Error).message;
+      const errorStack = (err as Error).stack || errorMessage;
+      
       await client.query(
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
-        [error, error_details, payload, job.id]
+        [errorMessage, errorStack, payload, job.id]
       );
       await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, {
         jobId: job.id,
         fileName: job.file_name,
-        error: (err as Error).message,
-        stack: (err as Error).stack
+        error: errorMessage,
+        stack: errorStack
       });
     }
     return { error: (err as Error).message, stack: (err as Error).stack };
   }
-} 
+}

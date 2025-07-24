@@ -170,22 +170,30 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const dataRes = await client.query(
-      `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      `SELECT uq.*, p.title as position_title 
+       FROM upload_queue uq 
+       LEFT JOIN "Position" p ON uq.position_id = p.id 
+       ${whereSQL} ORDER BY uq.upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );
     const countRes = await client.query(
-      `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+      `SELECT COUNT(*) 
+       FROM upload_queue uq 
+       LEFT JOIN "Position" p ON uq.position_id = p.id 
+       ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
     // Add summary counts by status
     const summaryRes = await client.query(
       `SELECT 
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE status = 'inprogress' OR status = 'inprocess') as inprogress,
-        COUNT(*) FILTER (WHERE status = 'success') as success,
-        COUNT(*) FILTER (WHERE status = 'error' OR status = 'fail') as error
-      FROM upload_queue ${whereSQL}`,
+        COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE uq.status = 'inprogress' OR uq.status = 'inprocess' OR uq.status = 'processing') as inprogress,
+        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+        COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
+      FROM upload_queue uq 
+      LEFT JOIN "Position" p ON uq.position_id = p.id 
+      ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
     const summary = summaryRes.rows[0];

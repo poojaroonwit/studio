@@ -442,6 +442,40 @@ export function CandidateTable({
                   </DropdownMenu>
                 </span>
               </TableHead>
+              <TableHead key="applied-date" className="w-[120px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('applicationDate'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  Applied Date
+                  <DropdownMenu open={openMenu === 'applicationDate'} onOpenChange={open => setOpenMenu(open ? 'applicationDate' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'applicationDate' ? (
+                        <button
+                          type="button"
+                          className="text-primary font-bold p-1 rounded hover:bg-muted"
+                          onClick={e => { e.stopPropagation(); setOpenMenu('applicationDate'); }}
+                          aria-label="Sort options"
+                        >
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                          onClick={e => { e.stopPropagation(); setOpenMenu('applicationDate'); }}
+                          aria-label="Sort options"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { onSort && onSort('applicationDate', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
               <TableHead key="actions" className="text-right w-[80px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -571,6 +605,19 @@ export function CandidateTable({
                           {candidate.status}
                         </Badge>
                       );
+                    })()}
+                  </TableCell>
+                  <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
+                    {(() => {
+                      const dateValue = candidate.applicationDate;
+                      if (!dateValue) return <span className="text-muted-foreground">N/A</span>;
+                      try {
+                        const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue);
+                        return <span className="text-sm text-foreground">{format(date, "MMM d, yyyy")}</span>;
+                      } catch (e) {
+                        console.error("Failed to parse application date for candidate " + candidate.id + ": " + dateValue, e);
+                        return <span className="text-muted-foreground">Invalid Date</span>;
+                      }
                     })()}
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
@@ -726,6 +773,19 @@ export function CandidateTable({
                                     {candidate.status}
                                   </Badge>
                                 );
+                              })()}
+                            </TableCell>
+                            <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
+                              {(() => {
+                                const dateValue = candidate.applicationDate;
+                                if (!dateValue) return <span className="text-muted-foreground">N/A</span>;
+                                try {
+                                  const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue);
+                                  return <span className="text-sm text-foreground">{format(date, "MMM d, yyyy")}</span>;
+                                } catch (e) {
+                                  console.error("Failed to parse application date for candidate " + candidate.id + ": " + dateValue, e);
+                                  return <span className="text-muted-foreground">Invalid Date</span>;
+                                }
                               })()}
                             </TableCell>
                             <TableCell key={`${candidate.id}-actions`} className="text-right">

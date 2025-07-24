@@ -41,6 +41,8 @@ export interface CandidateJob {
   webhook_payload?: any;
   process_date?: string;
   url?: string;
+  position_id?: string;
+  position_title?: string;
 }
 
 interface QueueContextType {
@@ -87,6 +89,7 @@ export const CandidateImportUploadQueue: React.FC<{
 }> = ({ initialPage = 1, initialPageSize = 20, onPaginationChange }) => {
   const [jobs, setJobs] = useState<CandidateJob[]>([]);
   const [total, setTotal] = useState(0);
+  const [statusSummary, setStatusSummary] = useState<any>(null); // For static status cards
   const [page, setPage] = useState(initialPage);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [isLoading, setIsLoading] = useState(false);
@@ -248,6 +251,29 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   }, [page, pageSize, error, filter, statusFilter, dateRange, positionIdFilter]);
 
+  // Fetch status summary for static status cards (excludes status filter, includes date filter)
+  const fetchStatusSummary = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      // Include date filter but NOT status filter
+      if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
+      if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
+      if (positionIdFilter) params.set('position_id', positionIdFilter);
+      // Add a small limit since we only need the summary
+      params.set('limit', '1');
+      params.set('offset', '0');
+      
+      const res = await fetch(`/api/upload-queue?${params.toString()}`);
+      if (res.ok) {
+        const { summary } = await res.json();
+        setStatusSummary(summary || null);
+      }
+    } catch (err) {
+      // Silently fail for status summary - it's not critical
+      console.warn('Failed to fetch status summary:', err);
+    }
+  }, [dateRange, positionIdFilter]);
+
   // Update browser title with current page
   useEffect(() => {
     const totalPages = Math.ceil(total / pageSize);
@@ -324,6 +350,11 @@ export const CandidateImportUploadQueue: React.FC<{
       // No cleanup needed here
     };
   }, [fetchJobs]);
+
+  // Fetch status summary separately - only when date/position filters change, not status filter
+  useEffect(() => {
+    fetchStatusSummary();
+  }, [fetchStatusSummary]);
 
   useEffect(() => {
     function handleRefreshEvent() {
@@ -515,17 +546,19 @@ export const CandidateImportUploadQueue: React.FC<{
     return () => clearInterval(interval);
   }, []);
 
-  // Status counts - Use summary if available, else fallback to filteredJobs
-  const numQueued = summary ? Number(summary.queued) : filteredJobs.filter(j => j.status === 'queued').length;
-  const numInProgress = summary ? Number(summary.inprogress) : filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess').length;
-  const numSuccess = summary ? Number(summary.success) : filteredJobs.filter(j => j.status === 'success').length;
-  const numError = summary ? Number(summary.error) : filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
+  // Status counts - Use statusSummary (no status filter) for status cards, summary for table info
+  const numQueued = statusSummary ? Number(statusSummary.queued) : filteredJobs.filter(j => j.status === 'queued').length;
+  const numInProgress = statusSummary ? Number(statusSummary.inprogress) : filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess' || j.status === 'processing').length;
+  const numSuccess = statusSummary ? Number(statusSummary.success) : filteredJobs.filter(j => j.status === 'success').length;
+  const numError = statusSummary ? Number(statusSummary.error) : filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
   const totalFilteredJobs = summary ? Number(summary.total) : filteredJobs.length;
 
   // Collect all unique statuses from jobs for the filter dropdown
   const allPossibleStatuses = [
     'queued',
     'inprogress',
+    'inprocess',
+    'processing',
     'success',
     'error',
     'cancelled',
@@ -665,10 +698,11 @@ export const CandidateImportUploadQueue: React.FC<{
 
   const handleDownloadCSV = useCallback(() => {
     const csvRows = [
-      ['File Name', 'File Size', 'Status', 'Source', 'Upload Date', 'Completed Date', 'ID'],
+      ['File Name', 'File Size', 'Position', 'Status', 'Source', 'Upload Date', 'Completed Date', 'ID'],
       ...filteredJobs.map(job => [
         job.file_name,
         job.file_size,
+        job.position_title || '',
         job.status,
         job.source,
         job.upload_date || '',
@@ -766,6 +800,7 @@ export const CandidateImportUploadQueue: React.FC<{
               setFilter("");
               setStatusFilter("");
               setDateRange({ start: null, end: null });
+              setPositionIdFilter("");
             }}
             className=""
           >
@@ -975,6 +1010,7 @@ export const CandidateImportUploadQueue: React.FC<{
                 </span>
               </TableHead>
               <TableHead>Size</TableHead>
+              <TableHead>Position</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('process_date'); setOpenMenu(null); }}>
                 <span className="inline-flex items-center gap-1">
@@ -1054,7 +1090,7 @@ export const CandidateImportUploadQueue: React.FC<{
           <TableBody>
             {isLoading && jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={8} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <span>Loading upload queue...</span>
@@ -1063,7 +1099,7 @@ export const CandidateImportUploadQueue: React.FC<{
               </TableRow>
             ) : fetchError ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-destructive">
+                <TableCell colSpan={8} className="text-center text-destructive">
                   <div className="flex flex-col items-center gap-2">
                     <AlertCircle className="h-6 w-6 text-destructive" />
                     <span>{fetchError.includes('401') ? 'You are not authorized to view the upload queue. Please sign in again.' : fetchError}</span>
@@ -1072,7 +1108,7 @@ export const CandidateImportUploadQueue: React.FC<{
               </TableRow>
             ) : filteredJobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -1111,6 +1147,7 @@ export const CandidateImportUploadQueue: React.FC<{
                       )}
                     </TableCell>
                     <TableCell>{formatBytes(item.file_size)}</TableCell>
+                    <TableCell>{item.position_title || '-'}</TableCell>
                     <TableCell>
                       {(() => {
                         const status = item.status;

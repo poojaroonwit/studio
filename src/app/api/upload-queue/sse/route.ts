@@ -4,7 +4,7 @@ import { broadcastUploadQueueUpdate, uploadQueueControllers } from './broadcastU
 
 export const dynamic = "force-dynamic";
 
-async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, limit?: number, offset?: number }) {
+async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController<any>, queryParams?: { fileName?: string, status?: string, dateStart?: string, dateEnd?: string, positionId?: string, limit?: number, offset?: number }) {
   const encoder = new TextEncoder();
   try {
     const client = await getPool().connect();
@@ -13,6 +13,7 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
     const status = queryParams?.status;
     const dateStart = queryParams?.dateStart;
     const dateEnd = queryParams?.dateEnd;
+    const positionId = queryParams?.positionId;
     const limit = queryParams?.limit || 20;
     const offset = queryParams?.offset || 0;
     // Build WHERE clause
@@ -20,30 +21,40 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
     const values = [];
     let paramIdx = 1;
     if (fileName) {
-      whereClauses.push(`file_name ILIKE $${paramIdx++}`);
+      whereClauses.push(`uq.file_name ILIKE $${paramIdx++}`);
       values.push(`%${fileName}%`);
     }
     if (status) {
-      whereClauses.push(`status = $${paramIdx++}`);
+      whereClauses.push(`uq.status = $${paramIdx++}`);
       values.push(status);
     }
     if (dateStart) {
-      whereClauses.push(`upload_date >= $${paramIdx++}`);
+      whereClauses.push(`uq.upload_date >= $${paramIdx++}`);
       values.push(dateStart);
     }
     if (dateEnd) {
-      whereClauses.push(`upload_date <= $${paramIdx++}`);
+      whereClauses.push(`uq.upload_date <= $${paramIdx++}`);
       values.push(dateEnd);
+    }
+    if (positionId) {
+      whereClauses.push(`uq.position_id = $${paramIdx++}`);
+      values.push(positionId);
     }
     const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     values.push(limit);
     values.push(offset);
     const res = await client.query(
-      `SELECT * FROM upload_queue ${whereSQL} ORDER BY upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      `SELECT uq.*, p.title as position_title 
+       FROM upload_queue uq 
+       LEFT JOIN "Position" p ON uq.position_id = p.id 
+       ${whereSQL} ORDER BY uq.upload_date DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       values
     );
     const countRes = await client.query(
-      `SELECT COUNT(*) FROM upload_queue ${whereSQL}`,
+      `SELECT COUNT(*) 
+       FROM upload_queue uq 
+       LEFT JOIN "Position" p ON uq.position_id = p.id 
+       ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
     const total = parseInt(countRes.rows[0].count, 10);
@@ -64,6 +75,7 @@ export async function GET(request: NextRequest) {
   const status = url.searchParams.get('status') || undefined;
   const dateStart = url.searchParams.get('date_start') || undefined;
   const dateEnd = url.searchParams.get('date_end') || undefined;
+  const positionId = url.searchParams.get('position_id') || undefined;
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
@@ -72,7 +84,7 @@ export async function GET(request: NextRequest) {
       let isClosed = false;
       uploadQueueControllers.add(controller);
       // Send initial data
-      await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, limit, offset });
+      await sendUploadQueueUpdate(controller, { fileName, status, dateStart, dateEnd, positionId, limit, offset });
       // Send keepalive every 15 seconds for more responsive connection (reduced from 30 seconds)
       const keepaliveInterval = setInterval(() => {
         if (isClosed) {

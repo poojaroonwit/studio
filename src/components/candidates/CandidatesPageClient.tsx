@@ -1467,6 +1467,8 @@ export function CandidatesPageClient({
         return candidate.recruiter?.name?.toLowerCase() || '';
       case 'status':
         return candidate.status?.toLowerCase() || '';
+      case 'applicationDate':
+        return candidate.applicationDate || '';
       case 'lastUpdate':
         return candidate.updatedAt || candidate.createdAt || '';
       default:

@@ -31,80 +31,13 @@ import { differenceInMonths, parse, isValid } from 'date-fns';
 import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
 import CandidateCommentsSection from './CandidateCommentsSection';
 import CandidateResumesSection from './CandidateResumesSection';
-import FullCandidateDetail from './FullCandidateDetail';
+import CandidateDetailView from './CandidateDetailView';
 
 interface CandidateDetailModalProps {
   candidateId: string | null;
   open: boolean;
   onClose: () => void;
 }
-
-const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
-const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
-
-const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
-const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
-
-const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case 'Hired': case 'Offer Accepted': return 'default';
-    case 'Applied': case 'Screening': case 'Shortlisted': case 'On Hold': return 'secondary';
-    case 'Interview Scheduled': case 'Interviewing': case 'Offer Extended': return 'secondary';
-    case 'Rejected': return 'destructive';
-    default: return 'outline';
-  }
-};
-
-// Helper function to calculate duration from period string
-function calculateDuration(period?: string): string {
-  if (!period) return '';
-  const match = period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
-  if (!match) return '';
-  const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
-  const startMonth = months.indexOf(match[1]);
-  const startYear = parseInt(match[2], 10);
-  let endMonth, endYear;
-  if (match[3] === 'Present') {
-    const now = new Date();
-    endMonth = now.getMonth();
-    endYear = now.getFullYear();
-  } else {
-    endMonth = months.indexOf(match[4]);
-    endYear = parseInt(match[5], 10);
-  }
-  if (startMonth === -1 || isNaN(startYear) || endMonth === -1 || isNaN(endYear)) return '';
-  let years = endYear - startYear;
-  let monthsDiff = endMonth - startMonth;
-  if (monthsDiff < 0) {
-    years -= 1;
-    monthsDiff += 12;
-  }
-  let result = '';
-  if (years > 0) result += `${years} year${years > 1 ? 's' : ''}`;
-  if (monthsDiff > 0) {
-    if (result) result += ' ';
-    result += `${monthsDiff} month${monthsDiff > 1 ? 's' : ''}`;
-  }
-  return result || '0 months';
-}
-
-// Type guard for fit score
-function hasFitScore(obj: any): obj is { fitScore: number } {
-  return typeof obj === 'object' && obj !== null && 'fitScore' in obj && typeof obj.fitScore === 'number';
-}
-
-// Type guard for experience array
-function hasExperienceArray(data: any): data is { experience: any[] } {
-  return data && Array.isArray(data.experience);
-}
-
-// Type guard for education array
-function hasEducationArray(data: any): data is { education: any[] } {
-  return data && Array.isArray(data.education);
-} 
 
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
   if (!open || !candidateId) return null;
@@ -117,13 +50,10 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
         className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <FullCandidateDetail 
+        <CandidateDetailView 
           candidateId={candidateId} 
           isModal={true} 
-          onClose={onClose} 
-          comments={[]} 
-          resumes={[]} 
-          onRefresh={() => {}} 
+          onClose={onClose}
         />
       </div>
     </div>

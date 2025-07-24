@@ -189,6 +189,7 @@ export default function PositionsPageClient() {
       query.append('limit', String(filters.pageSize));
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
       query.append('includeStats', 'true'); // Include statistics in the same call
+      query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
       
       const response = await fetch(`/api/positions?${query.toString()}`);
       if (!response.ok) {
@@ -542,12 +543,15 @@ export default function PositionsPageClient() {
             </PopoverTrigger>
             <PopoverContent className="w-64 p-0">
               <Command>
-                <CommandInput
-                  placeholder="Search departments..."
-                  value={departmentSearch}
-                  onValueChange={setDepartmentSearch}
-                  className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-                />
+                <div className="flex items-center border-b border-border px-3 bg-popover">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
+                  <Input
+                    placeholder="Search departments..."
+                    value={departmentSearch}
+                    onChange={(e) => setDepartmentSearch(e.target.value)}
+                    className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
+                  />
+                </div>
                 <CommandList>
                   <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
                   <ScrollArea className="max-h-48">
@@ -858,6 +862,9 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
+                <TableHead>Candidates Applied</TableHead>
+                <TableHead>Candidates Matching</TableHead>
+                <TableHead>Applied Status</TableHead>
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('created'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Created
@@ -940,6 +947,21 @@ export default function PositionsPageClient() {
                     ) : (
                       <Badge variant="destructive">Closed</Badge>
                     )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-md">
+                      {position.candidateStats?.totalApplied || 0}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
+                      {position.candidateStats?.totalMatching || 0}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
+                      {position.candidateStats?.appliedStatusCount || 0}
+                    </span>
                   </TableCell>
                   <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>

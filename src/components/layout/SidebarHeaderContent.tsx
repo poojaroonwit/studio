@@ -17,10 +17,39 @@ interface SidebarHeaderContentProps {
   appLogoUrl: string | null; // MinIO URL, not data URL
   isClient: boolean;
   isLogoLoading?: boolean;
+  contextualLogos?: {
+    sidebarLogoCollapsedLightMode?: string | null;
+    sidebarLogoExpandedLightMode?: string | null;
+    sidebarLogoCollapsedDarkMode?: string | null;
+    sidebarLogoExpandedDarkMode?: string | null;
+  };
 }
 
-export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading }: SidebarHeaderContentProps) {
+export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading, contextualLogos }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
+
+  // Function to determine which logo to use
+  const getContextualLogo = (isCollapsed: boolean): string | null => {
+    if (!contextualLogos) return appLogoUrl;
+    
+    const isDark = document.documentElement.classList.contains('dark');
+    
+    if (isCollapsed) {
+      if (isDark && contextualLogos.sidebarLogoCollapsedDarkMode) {
+        return contextualLogos.sidebarLogoCollapsedDarkMode;
+      } else if (!isDark && contextualLogos.sidebarLogoCollapsedLightMode) {
+        return contextualLogos.sidebarLogoCollapsedLightMode;
+      }
+    } else {
+      if (isDark && contextualLogos.sidebarLogoExpandedDarkMode) {
+        return contextualLogos.sidebarLogoExpandedDarkMode;
+      } else if (!isDark && contextualLogos.sidebarLogoExpandedLightMode) {
+        return contextualLogos.sidebarLogoExpandedLightMode;
+      }
+    }
+    
+    return appLogoUrl; // Fallback to default logo
+  };
 
   const handleToggle = () => {
     if (sidebarContext?.toggleSidebar) {
@@ -32,11 +61,14 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
     if (isLogoLoading) {
       return <div className="h-8 w-8 bg-muted rounded-lg animate-pulse" />;
     }
-    if (isClient && appLogoUrl) {
+    
+    const logoToUse = getContextualLogo(isCollapsed);
+    
+    if (isClient && logoToUse) {
       return (
         <div className="relative">
           <img
-            src={appLogoUrl}
+            src={logoToUse}
             alt="App Logo"
             width={32}
             height={32}

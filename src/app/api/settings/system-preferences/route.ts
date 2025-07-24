@@ -10,6 +10,13 @@ const preferenceSchema = z.object({
   appName: z.string().optional(),
   appLogoDataUrl: z.string().nullable().optional(),
   appFaviconDataUrl: z.string().nullable().optional(),
+  // New contextual logo settings
+  loginPageLogoLightMode: z.string().nullable().optional(),
+  loginPageLogoDarkMode: z.string().nullable().optional(),
+  sidebarLogoCollapsedLightMode: z.string().nullable().optional(),
+  sidebarLogoExpandedLightMode: z.string().nullable().optional(),
+  sidebarLogoCollapsedDarkMode: z.string().nullable().optional(),
+  sidebarLogoExpandedDarkMode: z.string().nullable().optional(),
   loginBackgroundType: z.enum(["image", "gradient", "solid"]).optional(),
   loginBackgroundGradientStart: z.string().optional(),
   loginBackgroundGradientEnd: z.string().optional(),

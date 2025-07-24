@@ -883,6 +883,18 @@ export function CandidateFilters({
                   placeholder="e.g., 'React developers with 5+ years experience at tech companies'"
                   value={aiSearchQueryInput}
                   onChange={(e) => setAiSearchQueryInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      // Allow Ctrl+Enter or Cmd+Enter for new line
+                      return;
+                    }
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (aiSearchQueryInput.trim() && !isLoading && !isAiSearching) {
+                        handleAiSearchClick();
+                      }
+                    }
+                  }}
                   className={cn("min-h-[80px] text-base transition-all duration-300", isAiSearching && "border-blue-300 bg-blue-50/50 dark:bg-blue-950/20")}
                   disabled={isLoading || isAiSearching}
                 />
@@ -1001,8 +1013,14 @@ export function CandidateFilters({
                 
                 {/* Filters Tab */}
                 <TabsContent value="filters" className="space-y-4 mt-3">
-                  <Accordion type="multiple" className="w-full" defaultValue={[]}>
-                    {/* Candidate Information Section */}
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      handleApplyStandardFilters();
+                    }}
+                  >
+                    <Accordion type="multiple" className="w-full" defaultValue={[]}>
+                      {/* Candidate Information Section */}
                     <AccordionItem value="candidate-info">
                       <AccordionTrigger>
                         <div className="flex items-center gap-2">
@@ -1441,15 +1459,9 @@ export function CandidateFilters({
                         </div>
                       </AccordionContent>
                     </AccordionItem>
-                  </Accordion>
+                    </Accordion>
 
-                  {/* Action Buttons */}
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      handleApplyStandardFilters();
-                    }}
-                  >
+                    {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
                       <Button
                         type="submit"
@@ -1469,7 +1481,7 @@ export function CandidateFilters({
                         <FilterX className="mr-2 h-4 w-4" />
                         Clear All
                       </Button>
-                    </div>
+                                          </div>
                   </form>
                 </TabsContent>
 
@@ -1533,6 +1545,18 @@ export function CandidateFilters({
                         placeholder="e.g., minFitScore:80 status:Applied,Screening"
                         value={advancedQueryInput}
                         onChange={(e) => setAdvancedQueryInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                            // Allow Ctrl+Enter or Cmd+Enter for new line
+                            return;
+                          }
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (advancedQueryInput.trim() && !isLoading && !isAiSearching) {
+                              handleApplyAdvancedQuery();
+                            }
+                          }
+                        }}
                         className="flex-1 min-h-[80px]"
                         disabled={isLoading || isAiSearching}
                       />

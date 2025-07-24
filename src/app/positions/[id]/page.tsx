@@ -143,9 +143,20 @@ export default function PositionDetailPage() {
       
       // Filter candidates that have job matches for this position
       const matchedCandidates = candidates.filter((candidate: Candidate) => {
-        // Check if candidate has job matches for this position
-        // This is a simplified approach - you might need to adjust based on your job match data structure
-        return candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId);
+        // Check if candidate has job matches for this position from JobMatch table
+        if (candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId)) {
+          return true;
+        }
+        
+        // Fallback: Check job matches in parsedData for legacy data
+        if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+          const jobMatches = (candidate.parsedData as any).job_matches;
+          if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+            return true;
+          }
+        }
+        
+        return false;
       });
       
       // Sort candidates
@@ -218,7 +229,7 @@ export default function PositionDetailPage() {
       if (!response.ok) throw new Error('Failed to assign recruiter');
       
       // Re-fetch candidates to update the lists
-      await Promise.all([fetchCandidatesApplied(), fetchCandidateMatches()]);
+      await Promise.all([fetchCandidatesApplied(), fetchCandidateMatches(), fetchAllCandidates()]);
       toast.success('Recruiter updated successfully');
     } catch (error) {
       toast.error('Failed to assign recruiter');
@@ -283,20 +294,80 @@ export default function PositionDetailPage() {
     if (position) {
       fetchCandidatesApplied();
       fetchCandidateMatches();
+      fetchAllCandidates();
     }
-  }, [position, fetchCandidatesApplied, fetchCandidateMatches]);
+  }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
 
-  // Helper function to merge and deduplicate candidates by ID
+  // State for all candidates (merged view)
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
+  const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
+
+  // Fetch all candidates related to this position (both applied and matched)
+  const fetchAllCandidates = useCallback(async () => {
+    if (!positionId) return;
+    
+    try {
+      // Fetch candidates applied to this position (without pagination limit for "All" tab)
+      const appliedQuery = new URLSearchParams();
+      appliedQuery.append('positionId', positionId);
+      appliedQuery.append('limit', '1000'); // Large limit to get all applied candidates
+      appliedQuery.append('offset', '0');
+      
+      const appliedResponse = await fetch(`/api/candidates?${appliedQuery.toString()}`);
+      if (!appliedResponse.ok) throw new Error('Failed to fetch applied candidates');
+      const appliedData = await appliedResponse.json();
+      const appliedCandidates = Array.isArray(appliedData.data) ? appliedData.data : [];
+
+      // Fetch all candidates with job matches for this position (without pagination limit)
+      const matchesQuery = new URLSearchParams();
+      matchesQuery.append('limit', '1000'); // Large limit to get all candidates
+      matchesQuery.append('offset', '0');
+      
+      const matchesResponse = await fetch(`/api/candidates?${matchesQuery.toString()}`);
+      if (!matchesResponse.ok) throw new Error('Failed to fetch candidate matches');
+      const matchesData = await matchesResponse.json();
+      let allCandidatesData = Array.isArray(matchesData.data) ? matchesData.data : [];
+      
+      // Filter candidates that have job matches for this position
+      const matchedCandidates = allCandidatesData.filter((candidate: Candidate) => {
+        // Check if candidate has job matches for this position from JobMatch table
+        if (candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId)) {
+          return true;
+        }
+        
+        // Fallback: Check job matches in parsedData for legacy data
+        if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+          const jobMatches = (candidate.parsedData as any).job_matches;
+          if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      // Merge and deduplicate candidates by ID
+      const allRelatedCandidates = [...appliedCandidates, ...matchedCandidates];
+      const seen = new Set();
+      const deduped = allRelatedCandidates.filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
+      setAllCandidates(deduped);
+      setAllCandidatesTotal(deduped.length);
+    } catch (error) {
+      console.error('Error fetching all candidates:', error);
+      setAllCandidates([]);
+      setAllCandidatesTotal(0);
+    }
+  }, [positionId]);
+
+  // Helper function to merge and deduplicate candidates by ID (kept for backward compatibility)
   const mergedCandidates = useMemo(() => {
-    const all = [...candidatesApplied, ...candidateMatches];
-    const seen = new Set();
-    const deduped = all.filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return true;
-    });
-    return deduped;
-  }, [candidatesApplied, candidateMatches, positionId]);
+    return allCandidates;
+  }, [allCandidates]);
 
   // Loading state
   if (isLoading) {
@@ -436,12 +507,29 @@ export default function PositionDetailPage() {
                     <div className="text-xs text-muted-foreground">{candidate.email}</div>
                     {showTypeBadge && positionId && (
                       <div className="mt-1">
-                        {candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ? (
-                          <Badge variant="secondary" className="mr-1">Job Match</Badge>
-                        ) : null}
-                        {candidate.positionId === positionId ? (
-                          <Badge variant="default">Job Applied</Badge>
-                        ) : null}
+                        {(() => {
+                          // Check for job match in both JobMatch table and legacy parsedData
+                          let hasJobMatch = false;
+                          if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
+                            hasJobMatch = true;
+                          } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+                            const jobMatches = (candidate.parsedData as any).job_matches;
+                            if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+                              hasJobMatch = true;
+                            }
+                          }
+                          
+                          return (
+                            <>
+                              {hasJobMatch ? (
+                                <Badge variant="secondary" className="mr-1">Job Match</Badge>
+                              ) : null}
+                              {candidate.positionId === positionId ? (
+                                <Badge variant="default">Job Applied</Badge>
+                              ) : null}
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -487,28 +575,38 @@ export default function PositionDetailPage() {
                 </TableCell>
                 {type === 'applied' && showTypeBadge && (
                   <TableCell>
-                    {(() => {
-                      // Job Applied: candidate.positionId matches the current positionId
-                      const isApplied = !!candidate.positionId && String(candidate.positionId) === String(positionId);
-                      // Job Match: any jobMatch.jobId matches the current positionId
-                      const isMatched = Array.isArray(candidate.jobMatches) && candidate.jobMatches.some(
-                        jm => !!jm.jobId && String(jm.jobId) === String(positionId)
-                      );
-                      if (isApplied && isMatched) {
-                        return (
-                          <>
-                            <Badge variant="default" className="mr-1">Job Applied</Badge>
-                            <Badge variant="secondary">Job Match</Badge>
-                          </>
-                        );
-                      } else if (isApplied) {
-                        return <Badge variant="default">Job Applied</Badge>;
-                      } else if (isMatched) {
-                        return <Badge variant="secondary">Job Match</Badge>;
-                      } else {
-                        return null;
+                                      {(() => {
+                    // Job Applied: candidate.positionId matches the current positionId
+                    const isApplied = !!candidate.positionId && String(candidate.positionId) === String(positionId);
+                    
+                    // Job Match: check both JobMatch table and legacy parsedData
+                    let isMatched = false;
+                    if (Array.isArray(candidate.jobMatches) && candidate.jobMatches.some(
+                      jm => !!jm.jobId && String(jm.jobId) === String(positionId)
+                    )) {
+                      isMatched = true;
+                    } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+                      const jobMatches = (candidate.parsedData as any).job_matches;
+                      if (Array.isArray(jobMatches) && jobMatches.some((match: any) => !!match.jobId && String(match.jobId) === String(positionId))) {
+                        isMatched = true;
                       }
-                    })()}
+                    }
+                    
+                    if (isApplied && isMatched) {
+                      return (
+                        <>
+                          <Badge variant="default" className="mr-1">Job Applied</Badge>
+                          <Badge variant="secondary">Job Match</Badge>
+                        </>
+                      );
+                    } else if (isApplied) {
+                      return <Badge variant="default">Job Applied</Badge>;
+                    } else if (isMatched) {
+                      return <Badge variant="secondary">Job Match</Badge>;
+                    } else {
+                      return null;
+                    }
+                  })()}
                   </TableCell>
                 )}
                 <TableCell>
@@ -561,7 +659,7 @@ export default function PositionDetailPage() {
       </div>
 
       {/* Main Content - 2 Column Layout (30%/70%) */}
-      <div className="container mx-auto px-6 py-6">
+      <div className="mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* Left Column - 30% */}
           <Card className="lg:col-span-3 space-y-6 bg-card text-foreground rounded-lg shadow-sm p-6 border border-border">
@@ -633,7 +731,7 @@ export default function PositionDetailPage() {
             <Tabs defaultValue="applied" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">
-                  All ({mergedCandidates.length})
+                  All ({allCandidatesTotal})
                 </TabsTrigger>
                 <TabsTrigger value="applied">
                   Candidates Applied ({appliedTotal})

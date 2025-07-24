@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
 import FullCandidateDetail from './FullCandidateDetail';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
-import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -196,7 +196,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
             <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                style={{ width: `${Math.round(Math.max(0, Math.min(1, candidate.fitScore)) * 100)}%` }}
+                style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
               ></div>
             </div>
           </div>
@@ -953,6 +953,7 @@ export function FlexibleKanbanView({
 
 
 // Single Row Candidate View for use within each row when there's only 1 column or no columns
+// Shows multiple candidate cards horizontally with scroll navigation (like job matches)
 export function SingleRowCandidateView({ 
   candidates, 
   onCardClick, 
@@ -964,22 +965,7 @@ export function SingleRowCandidateView({
   onMoveCandidate?: (candidate: Candidate, newValue: string) => void;
   visibleFields?: string[];
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const handlePrevious = () => {
-    setCurrentIndex(prev => prev > 0 ? prev - 1 : candidates.length - 1);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex(prev => prev < candidates.length - 1 ? prev + 1 : 0);
-  };
-
-  const currentCandidate = candidates[currentIndex];
-
-  // Reset index when candidates change
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [candidates.length]);
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   // Get status color for YouTrack-style badges
   const getStatusColor = (status: string) => {
@@ -1012,156 +998,195 @@ export function SingleRowCandidateView({
   }
 
   return (
-    <div className="flex items-center gap-4 w-full">
-      {/* Navigation Controls */}
+    <div className="relative w-full">
+      {/* Left Navigation Button */}
       {candidates.length > 1 && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrevious}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Badge variant="secondary" className="text-xs">
-            {currentIndex + 1} of {candidates.length}
-          </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNext}
-            className="h-8 w-8 p-0"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const container = document.querySelector('.candidates-horizontal-container');
+            if (container) {
+              container.scrollBy({ left: -280, behavior: 'smooth' });
+              // Update scroll position after animation
+              setTimeout(() => {
+                setScrollPosition(container.scrollLeft);
+              }, 300);
+            }
+          }}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
       )}
 
-      {/* Candidate Card */}
-      {currentCandidate && (
-        <div className="flex-1">
-          <Card className="p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex items-center gap-4">
-            <Avatar className="h-12 w-12 flex-shrink-0">
-              <AvatarImage 
-                src={currentCandidate.avatarUrl || `https://placehold.co/48x48.png?text=${formatCandidateName(currentCandidate)?.charAt(0) || 'C'}`} 
-                alt={formatCandidateName(currentCandidate)} 
-              />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {formatCandidateName(currentCandidate)?.charAt(0)?.toUpperCase() || 'C'}
-              </AvatarFallback>
-            </Avatar>
+      {/* Right Navigation Button */}
+      {candidates.length > 1 && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const container = document.querySelector('.candidates-horizontal-container');
+            if (container) {
+              container.scrollBy({ left: 280, behavior: 'smooth' });
+              // Update scroll position after animation
+              setTimeout(() => {
+                setScrollPosition(container.scrollLeft);
+              }, 300);
+            }
+          }}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      )}
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(currentCandidate)}>
-                    {formatCandidateName(currentCandidate)}
-                  </p>
-                  {visibleFields.includes('positionId') && (
-                    <p className="text-xs text-muted-foreground truncate" title={currentCandidate.position?.title || 'N/A'}>
-                      <Target className="w-3 h-3 inline mr-1" />
-                      {currentCandidate.position?.title || 'N/A'}
+      {/* Horizontal Scrollable Container */}
+      <div
+        className="flex overflow-x-auto gap-3 pb-2 candidates-horizontal-container scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+        onScroll={(e) => {
+          const target = e.target as HTMLElement;
+          setScrollPosition(target.scrollLeft);
+        }}
+      >
+        {candidates.map((candidate, index) => (
+          <Card 
+            key={`candidate-${candidate.id}-${index}`} 
+            className="flex-shrink-0 w-80 p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer bg-card"
+            onClick={() => onCardClick?.(candidate)}
+          >
+            <div className="flex items-start gap-3">
+              <Avatar className="h-12 w-12 flex-shrink-0">
+                <AvatarImage 
+                  src={candidate.avatarUrl || `https://placehold.co/48x48.png?text=${formatCandidateName(candidate)?.charAt(0) || 'C'}`} 
+                  alt={formatCandidateName(candidate)} 
+                />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {formatCandidateName(candidate)?.charAt(0)?.toUpperCase() || 'C'}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="flex-1 min-w-0 space-y-2">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground truncate" title={formatCandidateName(candidate)}>
+                      {formatCandidateName(candidate)}
                     </p>
+                    {visibleFields.includes('positionId') && (
+                      <p className="text-xs text-muted-foreground truncate" title={candidate.position?.title || 'N/A'}>
+                        <Target className="w-3 h-3 inline mr-1" />
+                        {candidate.position?.title || 'N/A'}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Status Badge */}
+                  <Badge className={cn(
+                    "text-xs px-2 py-1 flex-shrink-0",
+                    getStatusColor(candidate.status)
+                  )}>
+                    {candidate.status || 'Unknown'}
+                  </Badge>
+                </div>
+
+                {/* Contact Information */}
+                <div className="space-y-1">
+                  {visibleFields.includes('email') && candidate.email && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Mail className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{candidate.email}</span>
+                    </div>
+                  )}
+                  {visibleFields.includes('phone') && candidate.phone && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Phone className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{candidate.phone}</span>
+                    </div>
+                  )}
+                  {visibleFields.includes('applicationDate') && candidate.applicationDate && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span>Applied: {new Date(candidate.applicationDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {visibleFields.includes('recruiterId') && (
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <User className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{candidate.recruiter?.name || candidate.recruiterId || 'Unassigned'}</span>
+                    </div>
                   )}
                 </div>
-                
-                {/* Status Badge */}
-                <Badge className={cn(
-                  "text-xs px-2 py-1",
-                  getStatusColor(currentCandidate.status)
-                )}>
-                  {currentCandidate.status || 'Unknown'}
-                </Badge>
-              </div>
 
-              {/* Contact Information */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {visibleFields.includes('email') && currentCandidate.email && (
-                  <div className="flex items-center">
-                    <Mail className="w-3 h-3 mr-1" />
-                    <span className="truncate">{currentCandidate.email}</span>
+                {/* Fit Score */}
+                {visibleFields.includes('fitScore') && candidate.fitScore !== undefined && candidate.fitScore !== null && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
+                      <span className="font-medium text-foreground">
+                        {candidate.fitScore === 0 ? 'Not scored' : formatScoreWithGrade(candidate.fitScore)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
+                        style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
+                      ></div>
+                    </div>
                   </div>
                 )}
-                {visibleFields.includes('phone') && currentCandidate.phone && (
-                  <div className="flex items-center">
-                    <Phone className="w-3 h-3 mr-1" />
-                    <span>{currentCandidate.phone}</span>
-                  </div>
-                )}
-                {visibleFields.includes('applicationDate') && currentCandidate.applicationDate && (
-                  <div className="flex items-center">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    <span>Applied: {new Date(currentCandidate.applicationDate).toLocaleDateString()}</span>
-                  </div>
-                )}
-                {visibleFields.includes('recruiterId') && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <User className="w-3 h-3 mr-1" />
-                    <span>{currentCandidate.recruiter?.name || currentCandidate.recruiterId || 'Unassigned'}</span>
-                  </div>
-                )}
-              </div>
 
-              {/* Fit Score */}
-              {visibleFields.includes('fitScore') && currentCandidate.fitScore !== undefined && currentCandidate.fitScore !== null && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{getFieldLabel('fitScore')}</span>
-                    <span className="font-medium text-foreground">{currentCandidate.fitScore}%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className={cn("h-2 rounded-full transition-all duration-300", getScoreBgColor(currentCandidate.fitScore))}
-                      style={{ width: `${Math.round(Math.max(0, Math.min(1, currentCandidate.fitScore)) * 100)}%` }}
-                    ></div>
-                  </div>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCardClick?.(candidate);
+                    }}
+                    className="flex items-center gap-1 h-7 px-2 text-xs"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Edit candidate:', candidate.id);
+                    }}
+                    className="flex items-center gap-1 h-7 px-2 text-xs"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </Button>
                 </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => onCardClick?.(currentCandidate)}
-                className="flex items-center gap-1"
-              >
-                <Eye className="w-3 h-3" />
-                View
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  // Handle edit action
-                  console.log('Edit candidate:', currentCandidate.id);
-                }}
-                className="flex items-center gap-1"
-              >
-                <Pencil className="w-3 h-3" />
-                Edit
-              </Button>
+              </div>
             </div>
           </Card>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* Progress Indicator */}
+      {/* Candidates count indicator */}
       {candidates.length > 1 && (
-        <div className="flex gap-1">
-          {candidates.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all duration-200",
-                index === currentIndex 
-                  ? "bg-primary" 
-                  : "bg-muted hover:bg-muted-foreground/50"
-              )}
-            />
-          ))}
+        <div className="flex justify-center mt-2">
+          <Badge variant="secondary" className="text-xs">
+            {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
+            {candidates.length > 3 && (
+              <span className="ml-1 text-blue-600">← Scroll →</span>
+            )}
+          </Badge>
         </div>
       )}
     </div>
@@ -1430,7 +1455,7 @@ export function SingleRowKanbanView({
                       <div className="w-full bg-muted rounded-full h-3">
                         <div 
                           className={cn("h-3 rounded-full transition-all duration-300", getScoreBgColor(currentCandidate.fitScore))}
-                          style={{ width: `${Math.round(Math.max(0, Math.min(1, currentCandidate.fitScore)) * 100)}%` }}
+                          style={{ width: `${normalizeFitScore(currentCandidate.fitScore)}%` }}
                         ></div>
                       </div>
                     </div>
@@ -1624,7 +1649,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
                                     <div className="w-full bg-muted rounded-full h-1">
                                       <div 
                                         className={cn("h-1 rounded-full transition-all duration-300", getScoreBgColor(candidate.fitScore))}
-                                        style={{ width: `${Math.round(Math.max(0, Math.min(1, candidate.fitScore)) * 100)}%` }}
+                                        style={{ width: `${normalizeFitScore(candidate.fitScore)}%` }}
                                       ></div>
                                     </div>
                                   </div>

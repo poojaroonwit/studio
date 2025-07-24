@@ -41,6 +41,10 @@ import { Buffer } from 'buffer';
 
 const systemSettingKeyEnum = z.enum([
     'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
+    // New contextual logo settings
+    'loginPageLogoLightMode', 'loginPageLogoDarkMode',
+    'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
+    'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
     'primaryGradientStart', 'primaryGradientEnd',
     'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'smtpSecure', 'smtpFromEmail',
     'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
@@ -113,8 +117,67 @@ const saveSystemSettingsSchema = z.array(systemSettingSchema);
 export async function GET(request: NextRequest) {
   try {
     const pool = getPool();
-    const result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
-    const settings = result.rows;
+    let result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
+    let settings = result.rows;
+    
+    // Define environment variable mappings
+    const envMappings = [
+      { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
+      { key: 'smtpHost', envVar: 'SMTP_HOST' },
+      { key: 'smtpPort', envVar: 'SMTP_PORT' },
+      { key: 'smtpUser', envVar: 'SMTP_USER' },
+      { key: 'smtpPassword', envVar: 'SMTP_PASSWORD' },
+      { key: 'smtpFromEmail', envVar: 'SMTP_FROM_EMAIL' },
+      { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
+      { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
+      { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },
+      { key: 'generalPdfWebhookToken', envVar: 'GENERAL_PDF_WEBHOOK_TOKEN' },
+      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
+    ];
+
+    // Get existing setting keys
+    const existingKeys = new Set(settings.map((setting: any) => setting.key));
+    
+    // Auto-sync environment variables to database if they don't exist
+    const settingsToInsert: Array<{key: string, value: string}> = [];
+    
+    for (const mapping of envMappings) {
+      if (!existingKeys.has(mapping.key)) {
+        const envValue = process.env[mapping.envVar];
+        if (envValue) {
+          settingsToInsert.push({ key: mapping.key, value: envValue });
+        } else if (mapping.defaultValue) {
+          settingsToInsert.push({ key: mapping.key, value: mapping.defaultValue });
+        }
+      }
+    }
+
+    // Insert new settings from environment variables
+    if (settingsToInsert.length > 0) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        for (const setting of settingsToInsert) {
+          await client.query(
+            'INSERT INTO "SystemSetting" (key, value, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())',
+            [setting.key, setting.value]
+          );
+        }
+        
+        await client.query('COMMIT');
+        console.log(`[SYSTEM SETTINGS] Auto-synced ${settingsToInsert.length} environment variables to database:`, settingsToInsert.map(s => s.key));
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('[SYSTEM SETTINGS] Failed to auto-sync environment variables:', error);
+      } finally {
+        client.release();
+      }
+      
+      // Refresh settings after insert
+      result = await pool.query('SELECT * FROM "SystemSetting" ORDER BY key');
+      settings = result.rows;
+    }
     
     // Check Azure AD configuration
     const isAzureAdConfigured = process.env.AZURE_AD_CLIENT_ID && 
@@ -126,7 +189,22 @@ export async function GET(request: NextRequest) {
 
     // Return as flat object for frontend compatibility
     const settingsObj = Object.fromEntries(settings.map((setting: any) => [setting.key, setting.value]));
+    
+    // Add runtime fallbacks for any remaining missing values (for edge cases)
+    for (const mapping of envMappings) {
+      if (!settingsObj[mapping.key]) {
+        const envValue = process.env[mapping.envVar];
+        if (envValue) {
+          settingsObj[mapping.key] = envValue;
+        } else if (mapping.defaultValue) {
+          settingsObj[mapping.key] = mapping.defaultValue;
+        }
+      }
+    }
+    
+    // Add Azure AD configuration status
     settingsObj.isAzureAdConfigured = isAzureAdConfigured;
+    
     return NextResponse.json(settingsObj);
   } catch (error) {
     console.error('[SYSTEM SETTINGS] Error fetching system settings:', error);
@@ -239,14 +317,34 @@ export async function POST(request: NextRequest) {
     // Return all current settings after update as an object (key-value pairs)
     const allSettingsResult = await client.query('SELECT key, value, "updatedAt" FROM "SystemSetting"');
     const settings = Object.fromEntries(allSettingsResult.rows.map((row: any) => [row.key, row.value]));
-    // Fallback for resumeProcessingWebhookUrl
-    if (!settings.resumeProcessingWebhookUrl || settings.resumeProcessingWebhookUrl === '') {
-      settings.resumeProcessingWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || 'http://localhost:5678/webhook';
+    
+    // Apply the same environment variable mappings as in GET handler for consistency
+    const envMappings = [
+      { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
+      { key: 'smtpHost', envVar: 'SMTP_HOST' },
+      { key: 'smtpPort', envVar: 'SMTP_PORT' },
+      { key: 'smtpUser', envVar: 'SMTP_USER' },
+      { key: 'smtpPassword', envVar: 'SMTP_PASSWORD' },
+      { key: 'smtpFromEmail', envVar: 'SMTP_FROM_EMAIL' },
+      { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
+      { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
+      { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },
+      { key: 'generalPdfWebhookToken', envVar: 'GENERAL_PDF_WEBHOOK_TOKEN' },
+      { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
+    ];
+
+    // Add runtime fallbacks for any missing values
+    for (const mapping of envMappings) {
+      if (!settings[mapping.key]) {
+        const envValue = process.env[mapping.envVar];
+        if (envValue) {
+          settings[mapping.key] = envValue;
+        } else if (mapping.defaultValue) {
+          settings[mapping.key] = mapping.defaultValue;
+        }
+      }
     }
-    // Fallback for generalPdfWebhookUrl
-    if (!settings.generalPdfWebhookUrl) {
-      settings.generalPdfWebhookUrl = process.env.GENERAL_PDF_WEBHOOK_URL || '';
-    }
+    
     return NextResponse.json(settings, { status: 200 });
 
   } catch (error: any) {

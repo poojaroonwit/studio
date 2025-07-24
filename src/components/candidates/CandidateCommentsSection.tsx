@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { X, ImageIcon, FileTextIcon, FileIcon, Send, Paperclip, Activity, MessageSquare } from 'lucide-react';
+import { FileViewerModal } from '../ui/file-viewer-modal';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
@@ -55,6 +56,16 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // File viewer modal state
+  const [selectedFile, setSelectedFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number;
+  } | null>(null);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
 
   // Update local state when parent provides new comments (no automatic polling)
   useEffect(() => {
@@ -78,6 +89,17 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
   }, [newComment]);
+
+  const handleFileClick = (attachment: any) => {
+    setSelectedFile({
+      fileName: attachment.fileName,
+      url: attachment.url,
+      label: attachment.label,
+      updatedAt: attachment.updatedAt,
+      fileSize: undefined // Could be added if available
+    });
+    setIsFileViewerOpen(true);
+  };
 
   // Combine and sort activities by date
   const combinedActivities: CombinedActivityItem[] = [
@@ -400,7 +422,12 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                           ) : (
                             getFileIcon(att)
                           )}
-                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="font-medium text-xs hover:underline">{att.fileName}</a>
+                          <button 
+                            onClick={() => handleFileClick(att)}
+                            className="font-medium text-xs hover:underline text-left"
+                          >
+                            {att.fileName}
+                          </button>
                           <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
                         </div>
                       ))}
@@ -523,6 +550,13 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           {error && <div className="text-destructive text-xs mt-2">{error}</div>}
         </div>
       </div>
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={isFileViewerOpen}
+        onOpenChange={setIsFileViewerOpen}
+        file={selectedFile}
+      />
     </div>
   );
 };

@@ -13,18 +13,18 @@ interface CandidateDetailViewProps {
 const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, onClose, isModal }) => {
   const [comments, setComments] = useState<any[]>([]);
   const [resumes, setResumes] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
 
   const fetchComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments`);
       if (res.ok) {
         const data = await res.json();
-        setComments(Array.isArray(data.data) ? data.data : []);
-      } else {
-        setComments([]);
+        return Array.isArray(data.data) ? data.data : [];
       }
+      return [];
     } catch {
-      setComments([]);
+      return [];
     }
   }, [candidateId]);
 
@@ -33,24 +33,56 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       const res = await fetch(`/api/candidates/${candidateId}/resumes`);
       if (res.ok) {
         const data = await res.json();
-        setResumes(Array.isArray(data.data) ? data.data : []);
-      } else {
-        setResumes([]);
+        return Array.isArray(data.data) ? data.data : [];
       }
+      return [];
     } catch {
-      setResumes([]);
+      return [];
     }
   }, [candidateId]);
 
+  // Merge attachments from resumes and comments (same logic as candidate ID page)
+  const loadAllAttachments = useCallback(async () => {
+    const [resumeAttachments, commentList] = await Promise.all([
+      fetchResumes(),
+      fetchComments(),
+    ]);
+    
+    // Set individual states for backward compatibility
+    setResumes(resumeAttachments);
+    setComments(commentList);
+    
+    // Extract attachments from comments
+    const commentAttachments = (commentList || []).flatMap((comment: any) =>
+      (comment.attachments || []).map((att: any) => ({
+        ...att,
+        label: att.label || 'comment',
+        updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
+      }))
+    );
+    
+    // Merge and remove duplicates by filePath, id, or url
+    const all = [...(resumeAttachments || []), ...commentAttachments];
+    const unique: any[] = [];
+    const seen = new Set();
+    for (const att of all) {
+      const key = att.filePath || att.id || att.url;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(att);
+      }
+    }
+    unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    setAttachments(unique);
+  }, [fetchResumes, fetchComments]);
+
   const handleRefresh = useCallback(() => {
-    fetchComments();
-    fetchResumes();
-  }, [fetchComments, fetchResumes]);
+    loadAllAttachments();
+  }, [loadAllAttachments]);
 
   useEffect(() => {
-    fetchComments();
-    fetchResumes();
-  }, [fetchComments, fetchResumes]);
+    loadAllAttachments();
+  }, [loadAllAttachments]);
 
   return (
     <FullCandidateDetail
@@ -58,7 +90,7 @@ const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId, 
       isModal={isModal}
       onClose={onClose}
       comments={comments}
-      resumes={resumes}
+      resumes={Array.isArray(attachments) ? attachments : []}
       onRefresh={handleRefresh}
     />
   );

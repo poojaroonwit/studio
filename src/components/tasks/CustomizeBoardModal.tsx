@@ -613,16 +613,32 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   // validCandidateFields is now dynamic, so we can use it directly
   
   // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
-  const rowAndColumnFields = [
+  const baseRowColumnFields = [
     ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
     ...customFieldKeys
       .filter(key => !['name', 'email', 'phone'].includes(key))
-      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' }))
+      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
+    ...parsedDataFieldObjs.filter(f => !['name', 'email', 'phone'].includes(f.key))
   ];
+  
+  // Remove duplicates by key to prevent selection issues
+  const seenKeys = new Set<string>();
+  const rowAndColumnFields = baseRowColumnFields.filter(field => {
+    if (seenKeys.has(field.key)) {
+      console.log(`CustomizeBoardModal: Duplicate field key filtered out: ${field.key}`);
+      return false;
+    }
+    seenKeys.add(field.key);
+    return true;
+  });
+  
+  // Debug logging
+  console.log('CustomizeBoardModal: Available row/column fields:', rowAndColumnFields.map(f => ({ key: f.key, label: f.label })));
+  
   // For card fields: candidateFields + customFieldKeys + parsedDataFields
   const cardFields = [
     ...rowAndColumnFields,
-    ...parsedDataFieldObjs
+    ...parsedDataFieldObjs.filter(f => ['name', 'email', 'phone'].includes(f.key))
   ];
   
   return (
@@ -649,7 +665,12 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                 <Label className="text-sm font-medium flex items-center gap-2 mb-2">
                   <List className="w-4 h-4" /> Row Attribute
                 </Label>
-                <Select value={rowField || 'status'} onValueChange={setRowField}>
+                <Select 
+                  value={rowField || 'status'} 
+                  onValueChange={setRowField}
+                  key={`row-select-${rowAndColumnFields.length}`}
+                  disabled={initializing || loading}
+                >
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select row attribute" />
                   </SelectTrigger>
@@ -685,7 +706,12 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                 <Label className="text-sm font-medium flex items-center gap-2 mb-2">
                   <LayoutGrid className="w-4 h-4" /> Column Attribute
                 </Label>
-                <Select value={columnField || 'recruiterId'} onValueChange={setColumnField}>
+                <Select 
+                  value={columnField || 'recruiterId'} 
+                  onValueChange={setColumnField}
+                  key={`column-select-${rowAndColumnFields.length}`}
+                  disabled={initializing || loading}
+                >
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select column attribute" />
                   </SelectTrigger>

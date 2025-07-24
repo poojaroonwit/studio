@@ -476,7 +476,8 @@ export async function GET(request: NextRequest) {
     const candidatesQuery = `
       SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
              r.id as "recruiterId", r.name as "recruiterName",
-             COALESCE(th_data.history, '[]'::json) as "transitionHistory"
+             COALESCE(th_data.history, '[]'::json) as "transitionHistory",
+             COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -489,6 +490,17 @@ export async function GET(request: NextRequest) {
         FROM "TransitionRecord" th
         WHERE th."candidateId" = c.id
       ) AS th_data ON true
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
+            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."jobDescriptionSummary",
+            'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
+          ) ORDER BY jm."fitScore" DESC
+        ) AS jobMatches
+        FROM "JobMatch" jm
+        WHERE jm."candidateId" = c.id
+      ) AS jm_data ON true
       ${whereString}
       ORDER BY c."applicationDate" DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
@@ -544,6 +556,7 @@ export async function GET(request: NextRequest) {
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
         transitionHistory: row.transitionHistory || [],
+        jobMatches: row.jobMatches || [],
       };
     });
     return NextResponse.json({

@@ -43,6 +43,10 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
     return null;
   });
+  const [contextualLogos, setContextualLogos] = useState<{
+    loginPageLogoLightMode?: string | null;
+    loginPageLogoDarkMode?: string | null;
+  }>({});
   const [currentAppName, setCurrentAppName] = useState<string>(() => {
     if (initialSettings) {
       return initialSettings.find(s => s.key === 'appName')?.value || DEFAULT_APP_NAME;
@@ -103,6 +107,14 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
             
             appName = settings.appName || DEFAULT_APP_NAME;
             logoUrl = settings.appLogoDataUrl || null;
+            
+            // Load contextual logos
+            const contextualLogoData = {
+              loginPageLogoLightMode: settings.loginPageLogoLightMode || null,
+              loginPageLogoDarkMode: settings.loginPageLogoDarkMode || null,
+            };
+            setContextualLogos(contextualLogoData);
+            
             loginBgType = settings[LOGIN_BACKGROUND_TYPE_KEY] as LoginPageBackgroundType || 'gradient';
             loginBgImageUrl = settings[LOGIN_BACKGROUND_IMAGE_KEY] || null;
             loginBgColor1 = settings[LOGIN_BACKGROUND_GRADIENT_START_KEY] || null;
@@ -333,15 +345,25 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
   const renderLoginForm = () => (
     <Card className="w-full max-w-md bg-card dark:bg-card">
       <CardHeader className="flex flex-col items-center justify-center text-center">
-        {isClient && appLogoUrl && (
-          <Image
-            src={appLogoUrl}
-            alt="Application Logo"
-            width={80}
-            height={80}
-            className="rounded-md mb-2"
-          />
-        )}
+        {isClient && (() => {
+          // Determine which logo to use based on theme
+          let logoToUse = appLogoUrl;
+          if (isThemeDark && contextualLogos.loginPageLogoDarkMode) {
+            logoToUse = contextualLogos.loginPageLogoDarkMode;
+          } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode) {
+            logoToUse = contextualLogos.loginPageLogoLightMode;
+          }
+          
+          return logoToUse ? (
+            <Image
+              src={logoToUse}
+              alt="Application Logo"
+              width={80}
+              height={80}
+              className="rounded-md mb-2"
+            />
+          ) : null;
+        })()}
         <CardTitle className="mt-0 text-2xl font-bold">{currentAppName}</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
@@ -460,19 +482,29 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
         
         {/* Logo and Brand */}
         <div className="text-center mb-8 login-transition">
-          {isClient && appLogoUrl ? (
-            <img
-              src={appLogoUrl}
-              alt="Application Logo"
-              width={100}
-              height={100}
-              className="rounded-2xl mx-auto mb-6 feature-icon"
-            />
-          ) : (
-            <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon">
-              <span className="text-3xl font-bold text-primary-foreground">CT</span>
-            </div>
-          )}
+          {isClient && (() => {
+            // Determine which logo to use based on theme
+            let logoToUse = appLogoUrl;
+            if (isThemeDark && contextualLogos.loginPageLogoDarkMode) {
+              logoToUse = contextualLogos.loginPageLogoDarkMode;
+            } else if (!isThemeDark && contextualLogos.loginPageLogoLightMode) {
+              logoToUse = contextualLogos.loginPageLogoLightMode;
+            }
+            
+            return logoToUse ? (
+              <img
+                src={logoToUse}
+                alt="Application Logo"
+                width={100}
+                height={100}
+                className="rounded-2xl mx-auto mb-6 feature-icon"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mx-auto mb-6 flex items-center justify-center feature-icon">
+                <span className="text-3xl font-bold text-primary-foreground">CT</span>
+              </div>
+            );
+          })()}
           <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent mb-2">
             {currentAppName}
           </h1>

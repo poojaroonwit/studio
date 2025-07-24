@@ -4,6 +4,7 @@ import { Badge } from '../ui/badge';
 import DragDropUpload, { UploadFile } from '../ui/drag-drop-upload';
 import { toast } from 'react-hot-toast';
 import { FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
+import { FileViewerModal } from '../ui/file-viewer-modal';
 
 interface Attachment {
   id: string;
@@ -38,6 +39,14 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
   const [sortDesc, setSortDesc] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number;
+  } | null>(null);
+  const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
   
   // Note: This component relies on parent for data updates (no automatic polling)
   // onResumesChange callback is used to trigger manual refresh after user actions
@@ -47,6 +56,17 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
     const dateB = new Date(b.updatedAt).getTime();
     return sortDesc ? dateB - dateA : dateA - dateB;
   }) : [];
+
+  const handleFileClick = (attachment: Attachment) => {
+    setSelectedFile({
+      fileName: attachment.fileName,
+      url: attachment.url,
+      label: attachment.label,
+      updatedAt: attachment.updatedAt,
+      fileSize: undefined // Could be added to attachment interface if available
+    });
+    setIsFileViewerOpen(true);
+  };
 
   const handleSetPrimary = async (attachmentId: string) => {
     try {
@@ -178,14 +198,12 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {getFileIcon(attachment)}
-                  <a 
-                    href={attachment.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="font-medium hover:underline text-primary truncate"
+                  <button
+                    onClick={() => handleFileClick(attachment)}
+                    className="font-medium hover:underline text-primary truncate text-left"
                   >
                     {attachment.fileName}
-                  </a>
+                  </button>
                   {attachment.label && (
                     <Badge variant="secondary" className="text-xs ml-2">{attachment.label}</Badge>
                   )}
@@ -222,6 +240,13 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
           </div>
         ))}
       </div>
+
+      {/* File Viewer Modal */}
+      <FileViewerModal
+        isOpen={isFileViewerOpen}
+        onOpenChange={setIsFileViewerOpen}
+        file={selectedFile}
+      />
     </div>
   );
 };

@@ -51,7 +51,27 @@ export async function GET(
     let matchingNotApplied = 0;
     
     try {
-      // Fetch all candidates to check their job_matches
+      // Method 1: Check JobMatch table directly (new system)
+      const jobMatchCandidates = await prisma.jobMatch.findMany({
+        where: {
+          jobId: positionId
+        },
+        select: {
+          candidateId: true,
+          candidate: {
+            select: {
+              positionId: true
+            }
+          }
+        }
+      });
+
+      console.log('Job matches found in JobMatch table:', jobMatchCandidates.length);
+
+      // Get unique candidate IDs from JobMatch table
+      const jobMatchCandidateIds = new Set(jobMatchCandidates.map(match => match.candidateId));
+
+      // Method 2: Check parsedData.job_matches (legacy system)
       const allCandidates = await prisma.candidate.findMany({
         select: {
           id: true,
@@ -62,32 +82,58 @@ export async function GET(
       
       console.log('Total candidates found:', allCandidates.length);
       
-      // Filter candidates who have job matches for this position
-      const candidatesWithJobMatches = allCandidates.filter((candidate: any) => {
+      // Filter candidates who have job matches for this position in parsedData
+      const parsedDataCandidateIds = new Set();
+      allCandidates.forEach((candidate: any) => {
         try {
           const parsedData = candidate.parsedData as any;
-          if (!parsedData || typeof parsedData !== 'object') return false;
+          if (!parsedData || typeof parsedData !== 'object') return;
           
           const jobMatches = parsedData.job_matches;
-          if (!Array.isArray(jobMatches)) return false;
+          if (!Array.isArray(jobMatches)) return;
           
           // Check if any job match has the target positionId
-          return jobMatches.some((match: any) => 
+          const hasMatch = jobMatches.some((match: any) => 
             match && typeof match === 'object' && match.jobId === positionId
           );
+          
+          if (hasMatch) {
+            parsedDataCandidateIds.add(candidate.id);
+          }
         } catch (error) {
           console.log('Error parsing candidate data for candidate', candidate.id, ':', error);
-          return false;
+        }
+      });
+
+      console.log('Candidates with job matches in parsedData:', parsedDataCandidateIds.size);
+
+      // Combine both sources - get unique candidate IDs
+      const allMatchingCandidateIds = new Set([...jobMatchCandidateIds, ...parsedDataCandidateIds]);
+      totalMatching = allMatchingCandidateIds.size;
+      console.log('Total unique matching candidates:', totalMatching);
+
+      // Calculate matching but not applied
+      // Get candidates who match but haven't applied to this position
+      matchingNotApplied = 0;
+      
+      // From JobMatch table
+      jobMatchCandidates.forEach(match => {
+        if (match.candidate.positionId !== positionId) {
+          matchingNotApplied++;
         }
       });
       
-      totalMatching = candidatesWithJobMatches.length;
-      console.log('Total matching candidates:', totalMatching);
-      
-      // Get candidates who match but haven't applied (positionId doesn't match)
-      matchingNotApplied = candidatesWithJobMatches.filter((candidate: any) =>
-        candidate.positionId !== positionId
-      ).length;
+      // From parsedData (only count if not already counted from JobMatch table)
+      allCandidates
+        .filter(candidate => 
+          parsedDataCandidateIds.has(candidate.id) && 
+          !jobMatchCandidateIds.has(candidate.id) &&
+          candidate.positionId !== positionId
+        )
+        .forEach(() => {
+          matchingNotApplied++;
+        });
+
       console.log('Matching but not applied candidates:', matchingNotApplied);
       
     } catch (error) {

@@ -467,6 +467,13 @@ export type SystemSettingKey =
   | 'appLogoDataUrl'
   | 'appFaviconDataUrl'
   | 'appThemePreference'
+  // New contextual logo settings
+  | 'loginPageLogoLightMode'
+  | 'loginPageLogoDarkMode'
+  | 'sidebarLogoCollapsedLightMode'
+  | 'sidebarLogoExpandedLightMode'
+  | 'sidebarLogoCollapsedDarkMode'
+  | 'sidebarLogoExpandedDarkMode'
   | 'primaryGradientStart'
   | 'primaryGradientEnd'
   | 'smtpHost'

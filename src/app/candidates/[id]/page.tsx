@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ScoreBadge } from '@/components/ui/score-color';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -1412,6 +1413,9 @@ export default function CandidateDetailPage() {
                             </span>
                           );
                         })()}
+                        {candidate.id && (
+                          <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">ID: {candidate.id}</Badge>
+                        )}
                         {candidate.status && (
                           <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                         )}
@@ -1520,7 +1524,7 @@ export default function CandidateDetailPage() {
               {/* Recruiter Assignment Section removed from left sidebar as per requirements */}
             </div>
             {/* MAIN CONTENT (50%) with Tabs */}
-            <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8">
+            <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto">
               {/* Tabs for main content */}
 
                   {/* Job Applied Section */}
@@ -1943,17 +1947,6 @@ export default function CandidateDetailPage() {
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 
                                                   allDbPositions.find(p => p.title === match.jobTitle)) : null;
-                                  // Use the same grade and badge color logic as FullCandidateDetail
-                                  const grade = getScoreGrade(match.fitScore);
-                                  let badgeColor = '';
-                                  switch (grade) {
-                                    case 'A': badgeColor = 'bg-gray-400 text-white'; break;
-                                    case 'B': badgeColor = 'bg-yellow-400 text-black'; break;
-                                    case 'C': badgeColor = 'bg-lime-400 text-black'; break;
-                                    case 'D': badgeColor = 'bg-green-200 text-black'; break;
-                                    case 'E': badgeColor = 'bg-green-500 text-white'; break;
-                                    default: badgeColor = 'bg-gray-200 text-gray-700'; break;
-                                  }
                                   return (
                                     <Card key={`jobmatch-${index}-${match.jobTitle || index}`} className="flex-shrink-0 w-70 p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleJobMatchClick(match)}>
                                       <div className="space-y-2">
@@ -1962,7 +1955,9 @@ export default function CandidateDetailPage() {
                                             {position?.title || match.jobTitle || 'Unknown Position'}
                                           </h4>
                                           {match.fitScore !== undefined && match.fitScore !== null && (
-                                            <Badge className={badgeColor}>{`${displayFitScore(match.fitScore)} (${grade})`}</Badge>
+                                            <ScoreBadge score={match.fitScore}>
+                                              {formatScoreWithGrade(match.fitScore)}
+                                            </ScoreBadge>
                                           )}
                                        
                                         </div>
@@ -2121,19 +2116,15 @@ export default function CandidateDetailPage() {
                             </div>
                         ) : (
                             <div className="relative">
-                              {/* Continuous vertical line that connects all education nodes */}
-                              {education.length > 0 && (
-                                <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(education.length - 1) * 80}px` }} />
-                              )}
                               {education.length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
                               {education.map((edu: any, index: number) => {
                                 if (typeof edu === 'string') {
                                   return (
-                                    <div key={`edu-${index}-${edu}`} className="relative mb-8">
+                                    <div key={`edu-${index}-${edu}`} className="relative">
                                       {/* Timeline item */}
-                                      <div className="flex items-start space-x-4">
+                                      <div className="flex items-start space-x-4 pb-8">
                                         {/* Date on the left */}
                                         <div className="flex-shrink-0 w-28 text-right">
                                           <div className="text-xs text-muted-foreground font-medium">
@@ -2141,14 +2132,14 @@ export default function CandidateDetailPage() {
                                           </div>
                                         </div>
                                         {/* Timeline line and node */}
-                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                                           {/* Node (icon) */}
-                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                                             <GraduationCap className="w-3 h-3 text-foreground" />
                                           </div>
                                           {/* Vertical line connecting nodes (except last node) */}
                                           {index < education.length - 1 && (
-                                            <div className="flex-1 w-px bg-border"></div>
+                                            <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
                                           )}
                                         </div>
                                         {/* Content */}
@@ -2203,9 +2194,9 @@ export default function CandidateDetailPage() {
                                     ].filter(Boolean).join(' ');
                                   }
                                   return (
-                                    <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
+                                    <div key={`edu-${index}-${edu.university || index}`} className="relative">
                                       {/* Timeline item */}
-                                      <div className="flex items-start space-x-4">
+                                      <div className="flex items-start space-x-4 pb-8">
                                         {/* Date on the left */}
                                         <div className="flex-shrink-0 w-28 text-right">
                                           <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
@@ -2221,14 +2212,14 @@ export default function CandidateDetailPage() {
                                           </div>
                                         </div>
                                         {/* Timeline line and node */}
-                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                                           {/* Node (icon) */}
-                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                          <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                                             <GraduationCap className="w-3 h-3 text-foreground" />
                                           </div>
                                           {/* Vertical line connecting nodes (except last node) */}
                                           {index < education.length - 1 && (
-                                            <div className="flex-1 w-px bg-border"></div>
+                                            <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
                                           )}
                                         </div>
                                         {/* Content */}
@@ -2431,9 +2422,9 @@ export default function CandidateDetailPage() {
                                   ].filter(Boolean).join(' ');
                                 }
                                 return (
-                                  <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
+                                  <div key={`exp-${index}-${exp.company || index}`} className="relative">
                                     {/* Timeline item */}
-                                    <div className="flex items-start space-x-4">
+                                    <div className="flex items-start space-x-4 pb-8">
                                       {/* Date on the left */}
                                       <div className="flex-shrink-0 w-28 text-right">
                                         <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
@@ -2449,14 +2440,14 @@ export default function CandidateDetailPage() {
                                         </div>
                                       </div>
                                       {/* Timeline line and node */}
-                                      <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                                      <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                                         {/* Node (icon) */}
-                                        <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                                        <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                                           <Briefcase className="w-3 h-3 text-foreground" />
                                         </div>
                                         {/* Vertical line connecting nodes (except last node) */}
                                         {index < experience.length - 1 && (
-                                          <div className="flex-1 w-px bg-border"></div>
+                                          <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
                                         )}
                                       </div>
                                       {/* Content */}
@@ -2539,24 +2530,43 @@ export default function CandidateDetailPage() {
                             <ul className="space-y-4">
                                 {skills.map((skillEntry: any, index: number) => {
                                     if (typeof skillEntry === 'string') {
-                                        // Render string-only skill entry
+                                        // Render string-only skill entry as badges
+                                        const skills = skillEntry.split(',');
                                         return (
                                             <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
-                                                {renderField("Skill", skillEntry)}
+                                                <h4 className="font-semibold text-foreground mb-2">Skills</h4>
+                                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                                    {skills.map((s: string, i: number) => {
+                                                        const trimmedSkill = s.trim();
+                                                        return trimmedSkill ? (
+                                                            <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
+                                                        ) : null;
+                                                    })}
+                                                </div>
                                             </li>
                                         );
                                     } else {
                                         // Render SkillEntry object
                                         return (
                                             <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted">
-                                                {renderField("Segment", skillEntry.segment_skill)}
-                                                {skillEntry.skill && skillEntry.skill.length > 0 && (
-                                                    <div>
-                                                        <h4 className="text-sm font-medium text-muted-foreground mt-1.5">Skills:</h4>
-                                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                                            {skillEntry.skill.map((s: string, i: number) => <Badge key={`${index}-${i}-${s}`} variant="secondary">{s}</Badge>)}
-                                                        </div>
+                                                <h4 className="font-semibold text-foreground mb-2">{skillEntry.segment_skill || 'Skills'}</h4>
+                                                {skillEntry.skill && skillEntry.skill.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                                        {skillEntry.skill.map((s: string, i: number) => (
+                                                            <Badge key={`${index}-${i}-${s}`} variant="secondary" className="text-xs px-2 py-1">{s}</Badge>
+                                                        ))}
                                                     </div>
+                                                ) : skillEntry.skill_string ? (
+                                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                                        {skillEntry.skill_string.split(',').map((s: string, i: number) => {
+                                                            const trimmedSkill = s.trim();
+                                                            return trimmedSkill ? (
+                                                                <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
+                                                            ) : null;
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-sm text-muted-foreground">No skills listed</div>
                                                 )}
                                             </li>
                                         );
@@ -2614,7 +2624,7 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm">
+            <div className="lg:col-span-3 space-y-6 bg-card p-6 rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto">
               {/* Recruiter Assignment Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">

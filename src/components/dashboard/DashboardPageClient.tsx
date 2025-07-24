@@ -652,7 +652,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('matchingFitScoreMin:80 matchingFitScoreMax:100'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:81'))
               }
             },
             { 
@@ -665,7 +665,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('assignedRecruiterId:null'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('recruiterId:unassigned'))
               }
             }
           ].map((stat, index) => (
@@ -785,7 +785,13 @@ export default function DashboardPageClient({
                 description: "Assigned today",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} applicationDate:${new Date().toISOString().slice(0, 10)}`)}`)
+                  onClick: () => {
+                    const today = new Date();
+                    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                    const query = `recruiterId:${session?.user?.id} applicationDateStart:${todayStart.toISOString()} applicationDateEnd:${todayEnd.toISOString()}`;
+                    router.push(`/candidates?query=${encodeURIComponent(query)}`);
+                  }
                 }
               }
             ].map((stat, index) => (
@@ -1062,7 +1068,7 @@ export default function DashboardPageClient({
                           const scoreRanges = getScoreRangesForChart();
                           const originalRange = scoreRanges.find(r => r.label === range.label);
                           if (originalRange) {
-                            const query = `matchingFitScoreMin:${originalRange.min} matchingFitScoreMax:${originalRange.max}`;
+                            const query = `minFitScore:${originalRange.min} maxFitScore:${originalRange.max}`;
                             router.push('/candidates?query=' + encodeURIComponent(query));
                           }
                         }

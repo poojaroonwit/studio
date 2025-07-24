@@ -86,9 +86,18 @@ export default async function DashboardPageServer() {
             positionLevel: row.positionLevel,
             isOpen: row.positionIsOpen || false
           } : null,
-          fitScore: (row.parsedData && typeof row.parsedData === 'object' && row.parsedData.job_applied && typeof row.parsedData.job_applied.fitScore === 'number')
-            ? row.parsedData.job_applied.fitScore
-            : row.fitScore ?? null,
+          fitScore: (() => {
+            let score = row.fitScore ?? 0;
+            // Check if there's a score in parsedData.job_applied and use it if it's different
+            if (row.parsedData && typeof row.parsedData === 'object' && row.parsedData.job_applied && typeof row.parsedData.job_applied.fitScore === 'number') {
+              score = row.parsedData.job_applied.fitScore;
+            }
+            // Normalize the score to handle decimal scores properly
+            if (score === null || score === undefined) return 0;
+            if (score > 0 && score < 1) return Math.round(score * 100);
+            if (score >= 0 && score <= 100) return Math.round(score);
+            return Math.max(0, Math.min(100, Math.round(score)));
+          })(),
           status: row.status,
           applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
           recruiterId: row.recruiterId || null,

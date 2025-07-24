@@ -147,14 +147,16 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   }, [initialPageTitle, currentAppName]);
 
   const toggleTheme = () => {
-    document.documentElement.classList.toggle('dark');
+    const root = document.documentElement;
+    const willBeDark = !root.classList.contains('dark');
+    root.classList.toggle('dark');
     
-    // Re-apply sidebar colors when theme changes
-    setTimeout(() => {
+    // Re-apply sidebar colors with explicit theme information
+    requestAnimationFrame(() => {
       import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
         reapplyCurrentSidebarColors();
       });
-    }, 50);
+    });
   };
 
   const handleEditProfile = async (userId: string, data: EditUserFormValues) => {

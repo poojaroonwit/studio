@@ -19,6 +19,10 @@ interface SystemSettingsFormProps {
 // Allowed system setting keys (must match backend systemSettingKeyEnum)
 const ALLOWED_SYSTEM_SETTING_KEYS = [
   'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
+  // New contextual logo settings
+  'loginPageLogoLightMode', 'loginPageLogoDarkMode',
+  'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
+  'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd',
   'smtpHost', 'smtpPort', 'smtpUser', 'smtpSecure', 'smtpFromEmail',
   'generalPdfWebhookUrl', 'geminiApiKey',

@@ -17,11 +17,11 @@ export interface ScoreGrade {
 }
 
 export const SCORE_GRADES: ScoreGrade[] = [
-  { letter: 'A', range: '81-100', min: 81, max: 100, color: 'text-black', bgColor: 'bg-lime-200' },
-  { letter: 'B', range: '61-80', min: 61, max: 80, color: 'text-black', bgColor: 'bg-lime-300' },
-  { letter: 'C', range: '41-60', min: 41, max: 60, color: 'text-black', bgColor: 'bg-lime-400' },
-  { letter: 'D', range: '21-40', min: 21, max: 40, color: 'text-black', bgColor: 'bg-yellow-200' },
-  { letter: 'E', range: '0-20', min: 0, max: 20, color: 'text-black', bgColor: 'bg-green-400' },
+  { letter: 'A', range: '81-100', min: 81, max: 100, color: 'text-black', bgColor: 'bg-green-200' },
+  { letter: 'B', range: '61-80', min: 61, max: 80, color: 'text-black', bgColor: 'bg-lime-200' },
+  { letter: 'C', range: '41-60', min: 41, max: 60, color: 'text-black', bgColor: 'bg-yellow-200' },
+  { letter: 'D', range: '21-40', min: 21, max: 40, color: 'text-black', bgColor: 'bg-orange-200' },
+  { letter: 'E', range: '0-20', min: 0, max: 20, color: 'text-black', bgColor: 'bg-red-200' },
 ];
 
 /**

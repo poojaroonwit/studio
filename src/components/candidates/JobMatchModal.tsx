@@ -99,13 +99,12 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
         advancedQuery = `positionId:${jobMatch.jobId}`;
         break;
       case 'matching':
-        // Show candidates with good fit score for this position using matching fit score
-        advancedQuery = `positionId:${jobMatch.jobId} matchingFitScoreMin:70 matchingFitScoreMax:100`;
+        // Show candidates with good fit score for this position
+        advancedQuery = `positionId:${jobMatch.jobId} minFitScore:70`;
         break;
       case 'matchingNotApplied':
         // Show candidates with high fit score who haven't applied yet
-        // Use matching fit score with higher threshold
-        advancedQuery = `positionId:${jobMatch.jobId} matchingFitScoreMin:80 matchingFitScoreMax:100`;
+        advancedQuery = `positionId:${jobMatch.jobId} minFitScore:80`;
         break;
     }
     

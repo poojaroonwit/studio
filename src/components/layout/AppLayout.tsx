@@ -75,6 +75,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [appLogoUrl, setAppLogoUrl] = useState<string | null>(null); // MinIO URL, not data URL
   const [isClient, setIsClient] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [contextualLogos, setContextualLogos] = useState<{
+    sidebarLogoCollapsedLightMode?: string | null;
+    sidebarLogoExpandedLightMode?: string | null;
+    sidebarLogoCollapsedDarkMode?: string | null;
+    sidebarLogoExpandedDarkMode?: string | null;
+  }>({});
   const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   const { data: session, status } = useSession();
@@ -113,6 +119,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         setAppLogoUrl(prefs.appLogoDataUrl || null); // MinIO URL
         setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
         
+        // Load contextual logos
+        setContextualLogos({
+          sidebarLogoCollapsedLightMode: prefs.sidebarLogoCollapsedLightMode || null,
+          sidebarLogoExpandedLightMode: prefs.sidebarLogoExpandedLightMode || null,
+          sidebarLogoCollapsedDarkMode: prefs.sidebarLogoCollapsedDarkMode || null,
+          sidebarLogoExpandedDarkMode: prefs.sidebarLogoExpandedDarkMode || null,
+        });
+        
         // Extract sidebar colors from individual settings
         const sidebarColors: Record<string, string> = {};
         const sidebarColorKeys = [
@@ -149,13 +163,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           primaryGradientEnd: prefs.primaryGradientEnd || prefs.sidebarActiveBgEndL,
           sidebarColors,
         });
-        
-        // Ensure sidebar styles are applied after a small delay
-        setTimeout(() => {
-          import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-            reapplyCurrentSidebarColors();
-          });
-        }, 200);
       } catch (e) {
         setAppLogoUrl(null);
         setCurrentAppName(DEFAULT_APP_NAME);
@@ -165,13 +172,29 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
     fetchGlobalSettings();
     const handleAppConfigChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ appName?: string; logoUrl?: string | null, themePreference?: string, primaryGradientStart?: string, primaryGradientEnd?: string, sidebarColors?: Record<string,string> }>;
+      const customEvent = event as CustomEvent<{ 
+        appName?: string; 
+        logoUrl?: string | null; 
+        themePreference?: string; 
+        primaryGradientStart?: string; 
+        primaryGradientEnd?: string; 
+        sidebarColors?: Record<string,string>;
+        contextualLogos?: {
+          sidebarLogoCollapsedLightMode?: string | null;
+          sidebarLogoExpandedLightMode?: string | null;
+          sidebarLogoCollapsedDarkMode?: string | null;
+          sidebarLogoExpandedDarkMode?: string | null;
+        };
+      }>;
       if (customEvent.detail) {
         if (customEvent.detail.appName) {
           setCurrentAppName(customEvent.detail.appName);
         }
         if (customEvent.detail.logoUrl !== undefined) {
           setAppLogoUrl(customEvent.detail.logoUrl);
+        }
+        if (customEvent.detail.contextualLogos) {
+          setContextualLogos(customEvent.detail.contextualLogos);
         }
         
         // If sidebarColors are provided in the event, use them; otherwise fetch fresh data
@@ -213,31 +236,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     };
   }, []);
 
-  // Re-apply sidebar styles when pathname changes (navigation)
-  useEffect(() => {
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      // Re-apply current sidebar colors after navigation
-      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-        reapplyCurrentSidebarColors();
-      });
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [pathname]);
-
-  // Ensure sidebar styles are applied on initial load
-  useEffect(() => {
-    // Apply sidebar styles after a short delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
-        reapplyCurrentSidebarColors();
-      });
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   // Handle page loading state
   useEffect(() => {
     setIsPageLoading(true);
@@ -275,6 +273,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               appLogoUrl={appLogoUrl}
               isClient={isClient}
               isLogoLoading={isLogoLoading}
+              contextualLogos={contextualLogos}
             />
           </SidebarHeader>
           {/* Add separator below app name/logo group */}

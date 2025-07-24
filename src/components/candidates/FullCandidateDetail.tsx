@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ScoreBadge } from '@/components/ui/score-color';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -954,6 +955,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         </span>
                       );
                     })()}
+                    {candidateId && (
+                      <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">ID: {candidateId}</Badge>
+                    )}
                     {candidate.status && (
                       <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
                     )}
@@ -1017,7 +1021,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           {/* Remove Basic Information section here */}
         </div>
         {/* MAIN CONTENT (50%) with Sections */}
-        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8`}>
+        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto`}>
           {/* Job Applied Section */}
           <section className="mb-4  bg-card">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
@@ -1345,24 +1349,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     {candidateJobMatches && candidateJobMatches.length > 0 ? (
                       <div className="grid gap-4">
                         {candidateJobMatches.map((match: any, index: number) => {
-                          // Determine badge color by grade
-                          const grade = getScoreGrade(match.fitScore);
-                          let badgeColor = '';
-                          switch (grade) {
-                            case 'A': badgeColor = 'bg-gray-400 text-white'; break; // gray
-                            case 'B': badgeColor = 'bg-yellow-400 text-black'; break; // yellow
-                            case 'C': badgeColor = 'bg-lime-400 text-black'; break; // yellow-green
-                            case 'D': badgeColor = 'bg-green-200 text-black'; break; // light green
-                            case 'E': badgeColor = 'bg-green-500 text-white'; break; // green
-                            default: badgeColor = 'bg-gray-200 text-gray-700'; break;
-                          }
                           return (
                             <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
                                   {match.fitScore !== undefined && match.fitScore !== null && (
-                                    <Badge className={badgeColor}>{`${displayFitScore(match.fitScore)} (${grade})`}</Badge>
+                                    <ScoreBadge score={match.fitScore}>
+                                      {formatScoreWithGrade(match.fitScore)}
+                                    </ScoreBadge>
                                   )}
                                 </div>
                                 {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
@@ -1499,19 +1494,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    </div>
                  ) : (
              <div className="relative">
-               {/* Continuous vertical line that connects all education nodes */}
-               {getEducation(candidate).length > 0 && (
-                 <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getEducation(candidate).length - 1) * 80}px` }} />
-               )}
                {getEducation(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                )}
                {getEducation(candidate).map((edu: any, index: number) => {
                  if (typeof edu === 'string') {
                    return (
-                     <div key={`edu-${index}-${edu}`} className="relative mb-8">
+                     <div key={`edu-${index}-${edu}`} className="relative">
                        {/* Timeline item */}
-                       <div className="flex items-start space-x-4">
+                       <div className="flex items-start space-x-4 pb-8">
                          {/* Date on the left */}
                          <div className="flex-shrink-0 w-28 text-right">
                            <div className="text-xs text-muted-foreground font-medium">
@@ -1519,11 +1510,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                          </div>
                          {/* Timeline line and node */}
-                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                            {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                              <GraduationCap className="w-3 h-3 text-foreground" />
                            </div>
+                           {/* Vertical line connecting nodes (except last node) */}
+                           {index < getEducation(candidate).length - 1 && (
+                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
+                           )}
                          </div>
                          {/* Content */}
                          <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -1532,19 +1527,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(edu) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <Badge className={(() => {
-                                 const grade = getScoreGrade(edu.fitScore);
-                                 switch (grade) {
-                                   case 'A': return 'bg-gray-400 text-white';
-                                   case 'B': return 'bg-yellow-400 text-black';
-                                   case 'C': return 'bg-lime-400 text-black';
-                                   case 'D': return 'bg-green-200 text-black';
-                                   case 'E': return 'bg-green-500 text-white';
-                                   default: return 'bg-gray-200 text-gray-700';
-                                 }
-                               })()}>
-                                 {`${displayFitScore(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
-                               </Badge>
+                               <ScoreBadge score={edu.fitScore}>
+                                 {formatScoreWithGrade(edu.fitScore)}
+                               </ScoreBadge>
                              </div>
                            )}
                          </div>
@@ -1588,9 +1573,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                      ].filter(Boolean).join(' ');
                    }
                    return (
-                     <div key={`edu-${index}-${edu.university || index}`} className="relative mb-8">
+                     <div key={`edu-${index}-${edu.university || index}`} className="relative">
                        {/* Timeline item */}
-                       <div className="flex items-start space-x-4">
+                       <div className="flex items-start space-x-4 pb-8">
                          {/* Date on the left */}
                          <div className="flex-shrink-0 w-28 text-right">
                            <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
@@ -1606,11 +1591,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                          </div>
                          {/* Timeline line and node */}
-                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                            {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                              <GraduationCap className="w-3 h-3 text-foreground" />
                            </div>
+                           {/* Vertical line connecting nodes (except last node) */}
+                           {index < getEducation(candidate).length - 1 && (
+                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
+                           )}
                          </div>
                          {/* Content */}
                          <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -1631,19 +1620,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(edu) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <Badge className={(() => {
-                                 const grade = getScoreGrade(edu.fitScore);
-                                 switch (grade) {
-                                   case 'A': return 'bg-gray-400 text-white';
-                                   case 'B': return 'bg-yellow-400 text-black';
-                                   case 'C': return 'bg-lime-400 text-black';
-                                   case 'D': return 'bg-green-200 text-black';
-                                   case 'E': return 'bg-green-500 text-white';
-                                   default: return 'bg-gray-200 text-gray-700';
-                                 }
-                               })()}>
-                                 {`${displayFitScore(edu.fitScore)} (${getScoreGrade(edu.fitScore)})`}
-                               </Badge>
+                               <ScoreBadge score={edu.fitScore}>
+                                 {formatScoreWithGrade(edu.fitScore)}
+                               </ScoreBadge>
                              </div>
                            )}
                          </div>
@@ -1700,19 +1679,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    </div>
                  ) : (
              <div className="relative">
-               {/* Continuous vertical line that connects all experience nodes */}
-               {getExperience(candidate).length > 0 && (
-                 <div className="absolute left-36 top-0 w-0.5 bg-border" style={{ height: `${(getExperience(candidate).length - 1) * 80}px` }} />
-               )}
                {getExperience(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                )}
                {getExperience(candidate).map((exp: any, index: number) => {
                  if (typeof exp === 'string') {
                    return (
-                     <div key={`exp-${index}-${exp}`} className="relative mb-8">
+                     <div key={`exp-${index}-${exp}`} className="relative">
                        {/* Timeline item */}
-                       <div className="flex items-start space-x-4">
+                       <div className="flex items-start space-x-4 pb-8">
                          {/* Date on the left */}
                          <div className="flex-shrink-0 w-28 text-right">
                            <div className="text-xs text-muted-foreground font-medium">
@@ -1720,11 +1695,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                          </div>
                          {/* Timeline line and node */}
-                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                            {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                              <Briefcase className="w-3 h-3 text-foreground" />
                            </div>
+                           {/* Vertical line connecting nodes (except last node) */}
+                           {index < getExperience(candidate).length - 1 && (
+                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
+                           )}
                          </div>
                          {/* Content */}
                          <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -1733,19 +1712,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(exp) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <Badge className={(() => {
-                                 const grade = getScoreGrade(exp.fitScore);
-                                 switch (grade) {
-                                   case 'A': return 'bg-gray-400 text-white';
-                                   case 'B': return 'bg-yellow-400 text-black';
-                                   case 'C': return 'bg-lime-400 text-black';
-                                   case 'D': return 'bg-green-200 text-black';
-                                   case 'E': return 'bg-green-500 text-white';
-                                   default: return 'bg-gray-200 text-gray-700';
-                                 }
-                               })()}>
-                                 {`${displayFitScore(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
-                               </Badge>
+                               <ScoreBadge score={exp.fitScore}>
+                                 {formatScoreWithGrade(exp.fitScore)}
+                               </ScoreBadge>
                              </div>
                            )}
                          </div>
@@ -1789,9 +1758,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                      ].filter(Boolean).join(' ');
                    }
                    return (
-                     <div key={`exp-${index}-${exp.company || index}`} className="relative mb-8">
+                     <div key={`exp-${index}-${exp.company || index}`} className="relative">
                        {/* Timeline item */}
-                       <div className="flex items-start space-x-4">
+                       <div className="flex items-start space-x-4 pb-8">
                          {/* Date on the left */}
                          <div className="flex-shrink-0 w-28 text-right">
                            <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
@@ -1807,11 +1776,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                          </div>
                          {/* Timeline line and node */}
-                         <div className="flex-shrink-0 relative flex flex-col items-center" style={{ width: '2rem', minHeight: '2.5rem' }}>
+                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
                            {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border">
+                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
                              <Briefcase className="w-3 h-3 text-foreground" />
                            </div>
+                           {/* Vertical line connecting nodes (except last node) */}
+                           {index < getExperience(candidate).length - 1 && (
+                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
+                           )}
                          </div>
                          {/* Content */}
                          <div className="flex-1 min-w-0 pb-0 flex items-center">
@@ -1851,19 +1824,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                            </div>
                            {hasFitScore(exp) && (
                              <div className="flex flex-col items-center justify-center ml-6">
-                               <Badge className={(() => {
-                                 const grade = getScoreGrade(exp.fitScore);
-                                 switch (grade) {
-                                   case 'A': return 'bg-gray-400 text-white';
-                                   case 'B': return 'bg-yellow-400 text-black';
-                                   case 'C': return 'bg-lime-400 text-black';
-                                   case 'D': return 'bg-green-200 text-black';
-                                   case 'E': return 'bg-green-500 text-white';
-                                   default: return 'bg-gray-200 text-gray-700';
-                                 }
-                               })()}>
-                                 {`${displayFitScore(exp.fitScore)} (${getScoreGrade(exp.fitScore)})`}
-                               </Badge>
+                               <ScoreBadge score={exp.fitScore}>
+                                 {formatScoreWithGrade(exp.fitScore)}
+                               </ScoreBadge>
                              </div>
                            )}
                          </div>
@@ -1913,7 +1876,24 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  return (
                    <div key={index} className="p-3 border rounded-md bg-muted/30">
                      <h4 className="font-semibold text-foreground mb-2">{skill.segment_skill || 'Skills'}</h4>
-                     <p className="text-sm text-muted-foreground">{skill.skill_string || 'No skills listed'}</p>
+                     {skill.skill && Array.isArray(skill.skill) && skill.skill.length > 0 ? (
+                       <div className="flex flex-wrap gap-1.5 mt-1">
+                         {skill.skill.map((s: string, i: number) => (
+                           <Badge key={`${index}-${i}-${s}`} variant="secondary" className="text-xs px-2 py-1">{s}</Badge>
+                         ))}
+                       </div>
+                     ) : skill.skill_string ? (
+                       <div className="flex flex-wrap gap-1.5 mt-1">
+                         {skill.skill_string.split(',').map((s: string, i: number) => {
+                           const trimmedSkill = s.trim();
+                           return trimmedSkill ? (
+                             <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
+                           ) : null;
+                         })}
+                       </div>
+                     ) : (
+                       <div className="text-sm text-muted-foreground">No skills listed</div>
+                     )}
                    </div>
                  );
                })}
@@ -1971,7 +1951,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
          </section>
        </div>
        {/* RIGHT SIDEBAR: Comments & Activity and Attachments */}
-       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm`}>
+       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto`}>
          {/* Comments & Activity Section */}
          <div className="space-y-4">
            <h3 className="text-lg font-semibold flex items-center">

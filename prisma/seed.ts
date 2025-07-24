@@ -174,6 +174,13 @@ async function main() {
       { key: 'loginPageLayoutType', value: '2column' },
       // Add a default logo (simple SVG data URL)
       { key: 'appLogoDataUrl', value: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0idXJsKCNncmFkaWVudCkiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IndoaXRlIi8+Cjx0ZXh0IHg9IjgwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPkNhbmRpVHJhY2s8L3RleHQ+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCIgeTE9IjAiIHgyPSIyMDAiIHkyPSI4MCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkZGO3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2RjA7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+' },
+      // Contextual logos - initially null, can be set through preferences
+      { key: 'loginPageLogoLightMode', value: null },
+      { key: 'loginPageLogoDarkMode', value: null },
+      { key: 'sidebarLogoCollapsedLightMode', value: null },
+      { key: 'sidebarLogoExpandedLightMode', value: null },
+      { key: 'sidebarLogoCollapsedDarkMode', value: null },
+      { key: 'sidebarLogoExpandedDarkMode', value: null },
       // Sidebar Light Theme
       { key: 'sidebarBgStartL', value: '220 25% 97%' },
       { key: 'sidebarTextL', value: '220 25% 30%' },

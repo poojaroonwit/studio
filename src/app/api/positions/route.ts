@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeStats = searchParams.get('includeStats') === 'true';
+    const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
 
     let query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
@@ -93,10 +94,72 @@ export async function GET(request: NextRequest) {
     const countResult = await getPool().query(countQuery, queryParams.slice(0, paramIndex - 1));
     const total = parseInt(countResult.rows[0].count, 10);
     
-    const positions = result.rows.map(row => ({
+    let positions = result.rows.map(row => ({
         ...row,
         custom_attributes: row.customAttributes || {},
     }));
+
+    // Include candidate statistics for each position if requested
+    if (includeCandidateStats && positions.length > 0) {
+      const positionIds = positions.map(p => p.id);
+      
+      // Get candidate statistics for all positions
+      const candidateStatsQuery = `
+        WITH position_applied AS (
+          SELECT 
+            p.id as position_id,
+            COUNT(c.id) as total_applied,
+            COUNT(CASE WHEN c.status = 'Applied' THEN 1 END) as applied_status_count
+          FROM "Position" p
+          LEFT JOIN "Candidate" c ON p.id = c."positionId"
+          WHERE p.id = ANY($1::uuid[])
+          GROUP BY p.id
+        ),
+        position_matching AS (
+          SELECT 
+            p.id as position_id,
+            COUNT(DISTINCT CASE 
+              WHEN jm."candidateId" IS NOT NULL THEN jm."candidateId"
+              WHEN c2."parsedData"::text LIKE '%"jobId":"' || p.id || '"%' THEN c2.id
+            END) as total_matching
+          FROM "Position" p
+          LEFT JOIN "JobMatch" jm ON p.id = jm."jobId"
+          LEFT JOIN "Candidate" c2 ON (
+            c2."parsedData"::text LIKE '%"job_matches"%' 
+            AND c2."parsedData"::text LIKE '%"jobId":"' || p.id || '"%'
+          )
+          WHERE p.id = ANY($1::uuid[])
+          GROUP BY p.id
+        )
+        SELECT 
+          pa.position_id,
+          COALESCE(pa.total_applied, 0) as total_applied,
+          COALESCE(pa.applied_status_count, 0) as applied_status_count,
+          COALESCE(pm.total_matching, 0) as total_matching
+        FROM position_applied pa
+        LEFT JOIN position_matching pm ON pa.position_id = pm.position_id
+      `;
+      
+      const statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
+      const statsMap = new Map();
+      statsResult.rows.forEach(row => {
+        statsMap.set(row.position_id, {
+          totalApplied: parseInt(row.total_applied, 10),
+          appliedStatusCount: parseInt(row.applied_status_count, 10),
+          totalMatching: parseInt(row.total_matching, 10)
+        });
+      });
+      
+      // Add candidate statistics to each position
+      positions = positions.map(position => ({
+        ...position,
+        candidateStats: statsMap.get(position.id) || {
+          totalApplied: 0,
+          appliedStatusCount: 0,
+          totalMatching: 0
+        }
+      }));
+    }
 
     // Include statistics if requested
     let statistics = null;

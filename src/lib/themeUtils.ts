@@ -12,16 +12,21 @@ export function setThemeAndColors({
   if (typeof window === 'undefined') return;
   const root = document.documentElement;
 
-  // Set theme class
+  // Determine if theme should be dark
+  let shouldBeDark = false;
   if (themePreference === 'dark') {
-    root.classList.add('dark');
+    shouldBeDark = true;
   } else if (themePreference === 'light') {
-    root.classList.remove('dark');
+    shouldBeDark = false;
   } else if (themePreference === 'system') {
-    // Follow OS
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isDark) root.classList.add('dark');
-    else root.classList.remove('dark');
+    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  // Set theme class
+  if (shouldBeDark) {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
   }
 
   // Set primary color CSS variables
@@ -35,15 +40,18 @@ export function setThemeAndColors({
     root.style.setProperty('--primary-gradient-end-d', primaryGradientEnd);
   }
 
-  // Apply all sidebar styles including group labels
-  applySidebarStyles(sidebarColors);
+  // Apply sidebar styles with explicit theme information
+  // Use requestAnimationFrame to ensure DOM has updated
+  requestAnimationFrame(() => {
+    applySidebarStylesWithTheme(sidebarColors, shouldBeDark);
+  });
 }
 
 // Store current sidebar colors for re-application
 let currentSidebarColors: Record<string, string> = {};
 
-// New function to apply all sidebar styles including group labels
-export function applySidebarStyles(sidebarColors: Record<string, string>) {
+// New function to apply all sidebar styles with explicit theme information
+export function applySidebarStylesWithTheme(sidebarColors: Record<string, string>, isDark: boolean) {
   if (typeof window === 'undefined') return;
   const root = document.documentElement;
   
@@ -199,8 +207,7 @@ export function applySidebarStyles(sidebarColors: Record<string, string>) {
     'sidebarGroupLabelMarginD': '--sidebar-group-label-margin-d',
   };
 
-  // Set CSS variables based on current theme
-  const isDark = root.classList.contains('dark');
+  // Set CSS variables based on provided theme
   const themeSuffix = isDark ? 'D' : 'L';
   
   let appliedCount = 0;
@@ -230,24 +237,25 @@ export function getCurrentSidebarColors(): Record<string, string> {
   return { ...currentSidebarColors };
 }
 
+// Wrapper function for backward compatibility
+export function applySidebarStyles(sidebarColors: Record<string, string>) {
+  if (typeof window === 'undefined') return;
+  const root = document.documentElement;
+  const isDark = root.classList.contains('dark');
+  applySidebarStylesWithTheme(sidebarColors, isDark);
+}
+
 // Function to re-apply current sidebar colors for the current theme
 export function reapplyCurrentSidebarColors() {
   if (typeof window === 'undefined') return;
   
   const root = document.documentElement;
   const isDark = root.classList.contains('dark');
-  const themeSuffix = isDark ? 'D' : 'L';
   
-  // Filter colors for current theme
-  const themeColors: Record<string, string> = {};
-  Object.entries(currentSidebarColors).forEach(([key, value]) => {
-    if (key.endsWith(themeSuffix) && value) {
-      themeColors[key] = value;
-    }
+  // Use requestAnimationFrame to ensure DOM is in sync
+  requestAnimationFrame(() => {
+    applySidebarStylesWithTheme(currentSidebarColors, isDark);
   });
-  
-  // Re-apply the colors
-  applySidebarStyles(themeColors);
 }
 
 // Theme utility functions for managing sidebar styling preferences

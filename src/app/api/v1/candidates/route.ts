@@ -62,6 +62,37 @@ function normalizeDataTypes(obj: any): any {
   return obj;
 }
 
+// Utility to clean payload: remove empty strings, normalize isCurrent, trim/lowercase emails
+function cleanPayload(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(cleanPayload);
+  }
+  if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === "") continue; // Remove empty strings
+      if (key === "isCurrent") {
+        // Normalize isCurrent to boolean
+        if (typeof value === "string") {
+          result[key] = value.toLowerCase() === "true";
+        } else if (typeof value === "number") {
+          result[key] = value === 1;
+        } else {
+          result[key] = !!value;
+        }
+      } else if (key === "email" && typeof value === "string") {
+        result[key] = value.trim().toLowerCase();
+      } else if (typeof value === "string") {
+        result[key] = value.trim();
+      } else {
+        result[key] = cleanPayload(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -78,8 +109,7 @@ export async function POST(request: NextRequest) {
   let body;
   try {
     body = await request.json();
-    // Forcefully normalize all boolean-like strings to booleans recursively
-    body = normalizeDataTypes(body);
+    body = cleanPayload(body); // Use the new cleaning utility
   } catch {
     return handleApiError(request, createValidationError('Invalid JSON body'));
   }

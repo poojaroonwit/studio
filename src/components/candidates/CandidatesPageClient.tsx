@@ -351,6 +351,9 @@ export function CandidatesPageClient({
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       query.append('page', String(page));
       query.append('limit', String(pageSize));
+      // Add sorting
+      if (sortColumn) query.append('sortColumn', sortColumn);
+      if (sortDirection) query.append('sortDirection', sortDirection);
       
       if (currentFilters.location) {
         query.append('location', currentFilters.location);

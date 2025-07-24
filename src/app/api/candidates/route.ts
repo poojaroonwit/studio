@@ -200,6 +200,19 @@ export async function GET(request: NextRequest) {
   const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
   const offset = (page - 1) * limit;
 
+  // Sorting
+  const allowedSortColumns = {
+    name: 'c.name',
+    email: 'c.email',
+    fitScore: 'c."fitScore"',
+    applicationDate: 'c."applicationDate"',
+    status: 'c.status',
+  };
+  const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
+  const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
+  const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."applicationDate"';
+  const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
+
   // Filters
   const filters: { [key: string]: string | undefined } = {
     status: searchParams.get('status') || undefined,
@@ -502,7 +515,7 @@ export async function GET(request: NextRequest) {
         WHERE jm."candidateId" = c.id
       ) AS jm_data ON true
       ${whereString}
-      ORDER BY c."applicationDate" DESC
+      ORDER BY ${sortColumn} ${sortDirection}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
     `;
     const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);

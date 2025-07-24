@@ -528,7 +528,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               // Not JSON, use plain text
               error_details = responseText || webhookError;
               // If the response text contains a more specific error, use it
-              if (responseText && responseText.trim() && responseText !== webhookResStatus.toString()) {
+              if (responseText && responseText.trim() && webhookResStatus !== null && responseText !== webhookResStatus.toString()) {
                 webhookError = responseText.trim();
                 error = webhookError;
               }

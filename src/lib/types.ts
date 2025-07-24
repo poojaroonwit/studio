@@ -300,6 +300,11 @@ export interface Position {
   candidates?: Candidate[];
   webhook_payload?: any;
   upload_id?: string;
+  candidateStats?: {
+    totalApplied: number;
+    appliedStatusCount: number;
+    totalMatching: number;
+  };
 }
 
 export interface UserGroup { // This is now "Role" in the UI

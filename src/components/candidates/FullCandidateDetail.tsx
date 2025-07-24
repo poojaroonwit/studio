@@ -45,7 +45,6 @@ import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
-import { ScoreBadge } from '@/components/ui/score-color';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;

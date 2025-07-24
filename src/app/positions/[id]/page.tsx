@@ -289,15 +289,6 @@ export default function PositionDetailPage() {
     loadInitialData();
   }, [positionId, sessionStatus, fetchPosition, fetchRecruiters]);
 
-  // Fetch candidates when position is loaded
-  useEffect(() => {
-    if (position) {
-      fetchCandidatesApplied();
-      fetchCandidateMatches();
-      fetchAllCandidates();
-    }
-  }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
-
   // State for all candidates (merged view)
   const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
   const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
@@ -363,6 +354,15 @@ export default function PositionDetailPage() {
       setAllCandidatesTotal(0);
     }
   }, [positionId]);
+
+  // Fetch candidates when position is loaded
+  useEffect(() => {
+    if (position) {
+      fetchCandidatesApplied();
+      fetchCandidateMatches();
+      fetchAllCandidates();
+    }
+  }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
 
   // Helper function to merge and deduplicate candidates by ID (kept for backward compatibility)
   const mergedCandidates = useMemo(() => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, getSafeDbClient, withDbClient, withDbTransaction } from '@/lib/db';
 import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getServerSession } from 'next-auth/next';
@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
     const currentInProgress = Number(countRes.rows[0]?.count || 0);
     if (currentInProgress >= maxConcurrent) {
       await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
-      client.release();
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
     // --- END ENFORCE MAX CONCURRENT ---
@@ -93,7 +92,6 @@ export async function POST(request: NextRequest) {
     if (res.rows.length === 0) {
       // Publish queue update event
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
-      client.release();
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
     job = res.rows[0];
@@ -259,7 +257,13 @@ export async function POST(request: NextRequest) {
     }
     return { error: (err as Error).message, stack: (err as Error).stack };
   } finally {
-    client.release();
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 

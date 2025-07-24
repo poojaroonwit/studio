@@ -27,6 +27,78 @@ export function getPool() {
   return pool;
 }
 
+// Wrapper for the database client to prevent double release
+class SafeClient {
+  private client: any;
+  private released = false;
+
+  constructor(client: any) {
+    this.client = client;
+  }
+
+  // Proxy all client methods to the underlying client
+  query(text: string, params?: any[]) {
+    if (this.released) {
+      throw new Error('Cannot use client after it has been released');
+    }
+    return this.client.query(text, params);
+  }
+
+  // Safe release that prevents double release
+  release() {
+    if (!this.released) {
+      this.released = true;
+      this.client.release();
+    }
+  }
+
+  // Check if the client has been released
+  isReleased() {
+    return this.released;
+  }
+}
+
+// Safe database connection function that returns a SafeClient
+export async function getSafeDbClient() {
+  const pool = getPool();
+  const client = await pool.connect();
+  return new SafeClient(client);
+}
+
+// Database operation wrapper that automatically handles connection management
+export async function withDbClient<T>(
+  operation: (client: any) => Promise<T>
+): Promise<T> {
+  const client = await getSafeDbClient();
+  try {
+    return await operation(client);
+  } finally {
+    client.release();
+  }
+}
+
+// Transaction wrapper that automatically handles rollback and release
+export async function withDbTransaction<T>(
+  operation: (client: any) => Promise<T>
+): Promise<T> {
+  const client = await getSafeDbClient();
+  try {
+    await client.query('BEGIN');
+    const result = await operation(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('Rollback error:', rollbackError);
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 // Returns a deduplicated array of all permissions for a user (direct + group)
 export async function getMergedUserPermissions(userId: string): Promise<string[]> {
   const client = await getPool().connect();

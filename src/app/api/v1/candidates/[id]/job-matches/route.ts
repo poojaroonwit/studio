@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, getSafeDbClient, withDbTransaction } from '@/lib/db';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
@@ -105,34 +105,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { job_matches } = validationResult.data;
   console.log('[JOB-MATCHES] Validated job_matches:', JSON.stringify(job_matches, null, 2));
   
-  let client;
   try {
-    console.log('[JOB-MATCHES] Getting database connection...');
-    client = await getPool().connect();
-    console.log('[JOB-MATCHES] Database connection established');
-  } catch (dbError) {
-    console.error('[JOB-MATCHES] Database connection error:', dbError);
-    return new Response(JSON.stringify({ 
-      error: 'Database connection failed', 
-      details: (dbError as Error).message 
-    }), { status: 500, headers: handleCors(req) });
-  }
-  
-  try {
-    console.log('[JOB-MATCHES] Starting transaction...');
-    await client.query('BEGIN');
-    console.log('[JOB-MATCHES] Transaction started');
+    console.log('[JOB-MATCHES] Starting database transaction...');
     
-    // Check if candidate exists
-    console.log('[JOB-MATCHES] Checking if candidate exists:', id);
-    const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
-    const candidateResult = await client.query(candidateQuery, [id]);
-    console.log('[JOB-MATCHES] Candidate query result:', candidateResult.rows.length, 'rows');
-    
-    if (candidateResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
-    }
+    const result = await withDbTransaction(async (client) => {
+      // Check if candidate exists
+      console.log('[JOB-MATCHES] Checking if candidate exists:', id);
+      const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
+      const candidateResult = await client.query(candidateQuery, [id]);
+      console.log('[JOB-MATCHES] Candidate query result:', candidateResult.rows.length, 'rows');
+      
+      if (candidateResult.rows.length === 0) {
+        throw new Error('Candidate not found');
+      }
 
     // Check if JobMatch table exists
     console.log('[JOB-MATCHES] Checking JobMatch table structure...');
@@ -226,13 +211,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    console.log('[JOB-MATCHES] Committing transaction...');
-    await client.query('COMMIT');
-    console.log('[JOB-MATCHES] Successfully processed', insertedMatches.length, 'job matches');
-    
+      console.log('[JOB-MATCHES] Successfully processed', insertedMatches.length, 'job matches');
+      return insertedMatches;
+    });
+
     return new Response(JSON.stringify({ 
       message: 'Job matches added/updated successfully', 
-      job_matches: insertedMatches 
+      job_matches: result 
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {
@@ -245,13 +230,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       hint: (error as any).hint
     });
     
-    if (client) {
-      try {
-        await client.query('ROLLBACK');
-        console.log('[JOB-MATCHES] Transaction rolled back');
-      } catch (rollbackError) {
-        console.error('[JOB-MATCHES] Rollback error:', rollbackError);
-      }
+    // Handle specific known errors
+    if ((error as Error).message === 'Candidate not found') {
+      return new Response(JSON.stringify({ error: 'Candidate not found' }), { status: 404, headers: handleCors(req) });
     }
     
     return new Response(JSON.stringify({ 
@@ -262,11 +243,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       detail: (error as any).detail,
       hint: (error as any).hint
     }), { status: 500, headers: handleCors(req) });
-  } finally {
-    if (client) {
-      client.release();
-      console.log('[JOB-MATCHES] Database connection released');
-    }
   }
 }
 

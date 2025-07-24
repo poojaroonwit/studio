@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, withDbTransaction } from '@/lib/db';
 import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
@@ -103,7 +103,13 @@ export async function POST(req: NextRequest) {
     await logAudit('ERROR', `Bulk action '${action}' failed by ${user.name}. Error: ${(error as Error).message}`, 'API:V1:Positions:BulkAction', user.id, { action, positionIds, data, error: (error as Error).message });
     return new Response(JSON.stringify({ error: 'Error performing bulk action', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
-    client.release();
+    if (client && !client.isReleased?.()) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('Error releasing database client:', releaseError);
+      }
+    }
   }
 }
 

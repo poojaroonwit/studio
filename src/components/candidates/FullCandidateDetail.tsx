@@ -1230,11 +1230,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     ({candidateJobMatches.length})
                   </span>
                 )}
-                {candidateJobMatches && candidateJobMatches.length > 1 && (
-                  <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                    ← Scroll →
-                  </span>
-                )}
+            
               </h2>
               {jobMatchesOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
             </button>

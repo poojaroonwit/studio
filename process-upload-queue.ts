@@ -189,7 +189,7 @@ async function cleanupStuckJobs() {
          AND process_date < NOW() - INTERVAL '1 hour'
        RETURNING id, file_name, process_date`
     );
-    if (res.rowCount > 0) {
+    if (res.rowCount && res.rowCount > 0) {
       console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);
       res.rows.forEach(row => {
         console.warn(`[CLEANUP] Job ID: ${row.id}, File: ${row.file_name}, Process Date: ${row.process_date}`);

@@ -36,7 +36,13 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const { successWithDescription, errorWithDescription, error } = useToast();
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileViewerFile, setFileViewerFile] = useState(null);
+  const [fileViewerFile, setFileViewerFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number;
+  } | null>(null);
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {

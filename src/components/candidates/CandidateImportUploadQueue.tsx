@@ -130,7 +130,13 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Add state for file viewer modal
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
-  const [fileViewerFile, setFileViewerFile] = useState(null);
+  const [fileViewerFile, setFileViewerFile] = useState<{
+    fileName: string;
+    url: string;
+    label?: string;
+    updatedAt?: string;
+    fileSize?: number;
+  } | null>(null);
 
   // Helper function to check if date is in range - moved before usage
   const isInRange = (dateString?: string) => {
@@ -1137,19 +1143,21 @@ export const CandidateImportUploadQueue: React.FC<{
                       />
                     </TableCell>
                     <TableCell className="font-medium flex items-center gap-2">
-                      {item.file_path ? (
+                      {item.file_path && item.url ? (
                         <span
                           className="text-primary underline hover:text-primary/80 truncate max-w-xs cursor-pointer"
                           title={item.file_name}
                           onClick={() => {
-                            setFileViewerFile({
-                              fileName: item.file_name,
-                              url: item.url,
-                              label: item.position_title,
-                              updatedAt: item.upload_date,
-                              fileSize: item.file_size
-                            });
-                            setFileViewerOpen(true);
+                            if (item.url) {
+                              setFileViewerFile({
+                                fileName: item.file_name,
+                                url: item.url,
+                                label: item.position_title,
+                                updatedAt: item.upload_date,
+                                fileSize: item.file_size
+                              });
+                              setFileViewerOpen(true);
+                            }
                           }}
                         >
                           {item.file_name}
@@ -1175,20 +1183,22 @@ export const CandidateImportUploadQueue: React.FC<{
                     <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
                     <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
                     <TableCell className="flex gap-1">
-                      {item.file_path && (
+                      {item.file_path && item.url && (
                         <Button
                           variant="ghost"
                           size="icon"
                           title="Preview / Download CV"
                           onClick={() => {
-                            setFileViewerFile({
-                              fileName: item.file_name,
-                              url: item.url,
-                              label: item.position_title,
-                              updatedAt: item.upload_date,
-                              fileSize: item.file_size
-                            });
-                            setFileViewerOpen(true);
+                            if (item.url) {
+                              setFileViewerFile({
+                                fileName: item.file_name,
+                                url: item.url,
+                                label: item.position_title,
+                                updatedAt: item.upload_date,
+                                fileSize: item.file_size
+                              });
+                              setFileViewerOpen(true);
+                            }
                           }}
                         >
                           <FileText className="h-4 w-4 text-primary" />

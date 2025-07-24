@@ -952,7 +952,7 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {position.candidateStats?.totalApplied > 0 ? (
+                    {(position.candidateStats?.totalApplied ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-md">
                         {position.candidateStats?.totalApplied}
                       </span>
@@ -963,7 +963,7 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {position.candidateStats?.totalMatching > 0 ? (
+                    {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
                         {position.candidateStats?.totalMatching}
                       </span>
@@ -974,7 +974,7 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {position.candidateStats?.appliedStatusCount > 0 ? (
+                    {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
                         {position.candidateStats?.appliedStatusCount}
                       </span>

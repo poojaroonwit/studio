@@ -1476,6 +1476,34 @@ export function CandidatesPageClient({
     );
   }
 
+  // --- SSE for real-time candidate updates ---
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    let debounceTimeout: NodeJS.Timeout | null = null;
+    
+    function handleCandidateUpdate(event: MessageEvent) {
+      // Debounce to avoid excessive refetches
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        // Refetch candidates for current filters/page
+        fetchPaginatedCandidates(filters, page, pageSize);
+      }, 500);
+    }
+
+    eventSource = new EventSource('/api/candidates/sse');
+    eventSource.onmessage = handleCandidateUpdate;
+    // Optionally handle errors
+    eventSource.onerror = (err) => {
+      // Optionally: try to reconnect, or just log
+      // console.error('SSE error:', err);
+    };
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (debounceTimeout) clearTimeout(debounceTimeout);
+    };
+  }, [filters, page, pageSize, fetchPaginatedCandidates]);
+
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}

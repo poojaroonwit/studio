@@ -622,7 +622,7 @@ export function CandidateTable({
                           </div>
                         </TableCell>
                       </TableRow>
-                      {isExpanded && group.map((candidate) => {
+                      {isExpanded && group.map((candidate, idx) => {
                         const row = (
                           <TableRow key={candidate.id} onClick={(e) => handleRowClick(candidate, e)} className="cursor-pointer hover:bg-muted/40 border-t" data-state={selectedCandidateIds.has(candidate.id) ? 'selected' : ''}>
                             <TableCell key={`${candidate.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">{rowNumber}</TableCell>
@@ -761,6 +761,17 @@ export function CandidateTable({
                           </TableRow>
                         );
                         rowNumber++;
+                        // If this is the last candidate in the group, add a group footer row after it
+                        if (idx === group.length - 1) {
+                          return [
+                            row,
+                            <TableRow key={`${email}-footer`} className="bg-muted/20">
+                              <TableCell colSpan={99} className="text-right text-xs italic px-4 py-2 border-t">
+                                Group total: {group.length} candidate{group.length !== 1 ? 's' : ''}
+                              </TableCell>
+                            </TableRow>
+                          ];
+                        }
                         return row;
                       })}
                     </React.Fragment>

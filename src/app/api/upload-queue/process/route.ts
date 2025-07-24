@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   await logAudit('INFO', 'Upload queue processing started', 'API:UploadQueue:Process', null);
   
-  const client = await getPool().connect();
+  const client = await getSafeDbClient();
   let job;
   let payload = null;
   try {

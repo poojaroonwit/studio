@@ -1,5 +1,5 @@
 // src/lib/auditLog.ts
-import { getPool } from './db';
+import { getSafeDbClient } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -12,7 +12,7 @@ export async function logAudit(
   actingUserId: string | null = null,
   details: Record<string, any> | null = null
 ) {
-  const client = await getPool().connect();
+  const client = await getSafeDbClient();
   try {
     const query = `
       INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")
@@ -36,7 +36,7 @@ export async function logAuditEvent(
   entityId: string,
   details: Record<string, any> | null = null
 ) {
-  const client = await getPool().connect();
+  const client = await getSafeDbClient();
   try {
     const query = `
       INSERT INTO "LogEntry" (id, timestamp, level, message, source, "actingUserId", details, "createdAt")

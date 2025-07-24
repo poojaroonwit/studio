@@ -1,17 +1,17 @@
 import { NextRequest } from 'next/server';
-import { getPool } from '@/lib/db';
+import { getPool, getSafeDbClient } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { createSuccessResponse, handleApiError, createInternalServerError } from '@/lib/apiErrorHandler';
 
 export async function GET(req: NextRequest) {
   try {
     // Test database connection
-    const client = await getPool().connect();
+    const client = await getSafeDbClient();
     const dbResult = await client.query('SELECT NOW() as current_time');
     client.release();
 
     // Get system statistics
-    const statsClient = await getPool().connect();
+    const statsClient = await getSafeDbClient();
     const [candidatesResult, positionsResult, usersResult] = await Promise.all([
       statsClient.query('SELECT COUNT(*) as count FROM "Candidate"'),
       statsClient.query('SELECT COUNT(*) as count FROM "Position"'),

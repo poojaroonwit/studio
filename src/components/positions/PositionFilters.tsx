@@ -90,42 +90,48 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
         </div>
         <div>
           <Label htmlFor="department-select">Department(s)</Label>
-          <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
-                {renderMultiSelectDepartmentTrigger()}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
-              <Command>
-                <Input placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
-                <CommandList>
-                  <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
-                  <ScrollArea className="max-h-48">
-                    {filteredDepartments.map((dept) => (
-                      <CommandItem
-                        key={dept}
-                        value={dept}
-                        onSelect={() => {
-                          setSelectedDepartments(prev => {
-                            const newSet = new Set(prev);
-                            if (newSet.has(dept)) newSet.delete(dept);
-                            else newSet.add(dept);
-                            return newSet;
-                          });
-                        }}
-                        className="text-xs"
-                      >
-                        <Check className={cn("mr-2 h-4 w-4", selectedDepartments.has(dept) ? "opacity-100" : "opacity-0")} />
-                        {dept}
-                      </CommandItem>
-                    ))}
-                  </ScrollArea>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          {availableDepartments.length > 0 ? (
+            <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                  {renderMultiSelectDepartmentTrigger()}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
+                <Command>
+                  <Input placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
+                  <CommandList>
+                    <CommandEmpty>{departmentSearch ? 'No departments found.' : 'Type to search departments.'}</CommandEmpty>
+                    <ScrollArea className="max-h-48">
+                      {filteredDepartments.map((dept) => (
+                        <CommandItem
+                          key={dept}
+                          value={dept}
+                          onSelect={() => {
+                            setSelectedDepartments(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(dept)) newSet.delete(dept);
+                              else newSet.add(dept);
+                              return newSet;
+                            });
+                          }}
+                          className="text-xs"
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", selectedDepartments.has(dept) ? "opacity-100" : "opacity-0")} />
+                          {dept}
+                        </CommandItem>
+                      ))}
+                    </ScrollArea>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+              No departments available
+            </div>
+          )}
         </div>
         <div>
           <Label htmlFor="status-select">Status</Label>

@@ -1,5 +1,7 @@
 // Comprehensive OpenAPI 3.0 specification for Studio API
 
+import { getApiServers } from './lib/apiServers';
+
 export function getSwaggerSpec() {
   // Use production server URL for Swagger API testing
   const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://localhost:8021';
@@ -18,16 +20,7 @@ export function getSwaggerSpec() {
         url: 'https://opensource.org/licenses/MIT'
       }
     },
-    servers: [
-      {
-        url: 'http://10.0.10.71:8021',
-        description: 'Production server'
-      },
-      {
-        url: 'http://localhost:8021',
-        description: 'Local development server'
-      }
-    ],
+    servers: getApiServers(),
     security: [
       {
         bearerAuth: []
@@ -540,7 +533,7 @@ export function getSwaggerSpec() {
         post: {
           summary: 'Import candidates from CSV/Excel file (v1 API)',
           description: 'Bulk import candidates from CSV or Excel files. Supports both file upload and JSON format. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
-          tags: ['V1 Candidates'],
+          tags: ['V1 Import/Export', 'V1 Candidates'],
           security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
@@ -634,7 +627,7 @@ export function getSwaggerSpec() {
         get: {
           summary: 'Get import template (v1 API)',
           description: 'Returns a template for candidate import. Requires Bearer token authentication.',
-          tags: ['V1 Candidates'],
+          tags: ['V1 Import/Export', 'V1 Candidates'],
           security: [{ bearerAuth: [] }],
           responses: {
             '200': {
@@ -1586,7 +1579,7 @@ export function getSwaggerSpec() {
         post: {
           summary: 'Bulk action on positions (v1 API)',
           description: 'Perform bulk operations on positions.',
-          tags: ['V1 Positions'],
+          tags: ['V1 Bulk Actions', 'V1 Positions'],
           requestBody: {
             required: true,
             content: {
@@ -1615,7 +1608,7 @@ export function getSwaggerSpec() {
         get: {
           summary: 'Get position import template (v1 API)',
           description: 'Returns a template for position import.',
-          tags: ['V1 Positions'],
+          tags: ['V1 Import/Export', 'V1 Positions'],
           responses: {
             '200': { description: 'Import template' },
             '401': { description: 'Unauthorized' }
@@ -1624,7 +1617,7 @@ export function getSwaggerSpec() {
         post: {
           summary: 'Import positions (v1 API)',
           description: 'Import positions from JSON.',
-          tags: ['V1 Positions'],
+          tags: ['V1 Import/Export', 'V1 Positions'],
           requestBody: {
             required: true,
             content: {
@@ -1650,7 +1643,7 @@ export function getSwaggerSpec() {
         get: {
           summary: 'Export positions (v1 API)',
           description: 'Export positions as CSV.',
-          tags: ['V1 Positions'],
+          tags: ['V1 Import/Export', 'V1 Positions'],
           responses: {
             '200': { description: 'CSV export' },
             '401': { description: 'Unauthorized' }
@@ -1661,7 +1654,7 @@ export function getSwaggerSpec() {
         post: {
           summary: 'Bulk action on candidates (v1 API)',
           description: 'Perform bulk operations on candidates.',
-          tags: ['V1 Candidates'],
+          tags: ['V1 Bulk Actions', 'V1 Candidates'],
           requestBody: {
             required: true,
             content: {

@@ -21,8 +21,7 @@ import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scor
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
-import { format } from 'date-fns';
-import parseISO from 'date-fns/parseISO';
+import { format, formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -100,6 +99,24 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   else if (percent >= 40) grade = 'C';
   else if (percent >= 20) grade = 'D';
   return `${percent}% (${grade})`;
+}
+
+// Helper to display applied date as 'xx ago' if within 7 days, else show date and time
+function displayAppliedDate(dateString: string | undefined | null, daysThreshold = 7): string {
+  if (!dateString) return 'N/A';
+  let date: Date;
+  try {
+    date = typeof dateString === 'string' ? parseISO(dateString) : new Date(dateString as any);
+    if (!isValid(date)) return 'Invalid Date';
+  } catch {
+    return 'Invalid Date';
+  }
+  const now = new Date();
+  const daysAgo = Math.abs(differenceInDays(now, date));
+  if (daysAgo < daysThreshold) {
+    return formatDistanceToNow(date, { addSuffix: true });
+  }
+  return format(date, 'MMM d, yyyy HH:mm');
 }
 
 export function CandidateTable({
@@ -340,6 +357,8 @@ export function CandidateTable({
                   </DropdownMenu>
                 </span>
               </TableHead>
+              {/* Job Matches Count Column */}
+              <TableHead key="job-matches-count" className="w-24 text-center">Job Matches</TableHead>
               <TableHead key="fit-score" className="w-[100px] hidden sm:table-cell cursor-pointer select-none group" onClick={() => { onSort && onSort('fitScore'); setOpenMenu(null); }}>
                 <span className="inline-flex items-center gap-1">
                   Fit Score
@@ -566,6 +585,10 @@ export function CandidateTable({
                       <span className="text-muted-foreground">N/A</span>
                     )}
                   </TableCell>
+                  {/* Job Matches Count Cell */}
+                  <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
+                    {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : ''}
+                  </TableCell>
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
@@ -608,17 +631,7 @@ export function CandidateTable({
                     })()}
                   </TableCell>
                   <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
-                    {(() => {
-                      const dateValue = candidate.applicationDate;
-                      if (!dateValue) return <span className="text-muted-foreground">N/A</span>;
-                      try {
-                        const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue);
-                        return <span className="text-sm text-foreground">{format(date, "MMM d, yyyy")}</span>;
-                      } catch (e) {
-                        console.error("Failed to parse application date for candidate " + candidate.id + ": " + dateValue, e);
-                        return <span className="text-muted-foreground">Invalid Date</span>;
-                      }
-                    })()}
+                    {displayAppliedDate(candidate.applicationDate)}
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
                     <DropdownMenu>
@@ -734,6 +747,10 @@ export function CandidateTable({
                                 <span className="text-muted-foreground">N/A</span>
                               )}
                             </TableCell>
+                            {/* Job Matches Count Cell */}
+                            <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
+                              {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : ''}
+                            </TableCell>
                             <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                               <div className="flex items-center gap-2">
                                 {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
@@ -776,17 +793,7 @@ export function CandidateTable({
                               })()}
                             </TableCell>
                             <TableCell key={`${candidate.id}-applied-date`} className="hidden sm:table-cell">
-                              {(() => {
-                                const dateValue = candidate.applicationDate;
-                                if (!dateValue) return <span className="text-muted-foreground">N/A</span>;
-                                try {
-                                  const date = typeof dateValue === 'string' ? parseISO(dateValue) : new Date(dateValue);
-                                  return <span className="text-sm text-foreground">{format(date, "MMM d, yyyy")}</span>;
-                                } catch (e) {
-                                  console.error("Failed to parse application date for candidate " + candidate.id + ": " + dateValue, e);
-                                  return <span className="text-muted-foreground">Invalid Date</span>;
-                                }
-                              })()}
+                              {displayAppliedDate(candidate.applicationDate)}
                             </TableCell>
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
                               <DropdownMenu>

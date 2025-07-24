@@ -58,6 +58,28 @@ export async function POST(request: NextRequest) {
   let job;
   let payload = null;
   try {
+    // --- ENFORCE MAX CONCURRENT ---
+    // Get maxConcurrentProcessors from system settings (default to 5 if not set)
+    let maxConcurrent = 5;
+    try {
+      const setting = await getSystemSetting('maxConcurrentProcessors');
+      if (setting && !isNaN(Number(setting))) {
+        maxConcurrent = Number(setting);
+      }
+    } catch (e) {
+      // fallback to default
+    }
+    // Count current inprogress/inprocess/processing jobs
+    const countRes = await client.query(
+      `SELECT COUNT(*) AS count FROM upload_queue WHERE status IN ('inprogress', 'inprocess', 'processing')`
+    );
+    const currentInProgress = Number(countRes.rows[0]?.count || 0);
+    if (currentInProgress >= maxConcurrent) {
+      await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
+      client.release();
+      return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
+    }
+    // --- END ENFORCE MAX CONCURRENT ---
     // 1. Atomically pick and mark the oldest queued job as 'inprogress'
     const res = await client.query(
       `UPDATE upload_queue
@@ -71,6 +93,7 @@ export async function POST(request: NextRequest) {
     if (res.rows.length === 0) {
       // Publish queue update event
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
+      client.release();
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
     job = res.rows[0];

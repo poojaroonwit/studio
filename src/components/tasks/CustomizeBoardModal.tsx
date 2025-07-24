@@ -258,42 +258,35 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   // Fetch actual data when modal opens
   useEffect(() => {
     if (!open) return;
-    
-   
+    setInitializing(true);
     const fetchActualData = async () => {
       try {
         // Fetch recruiters
-
         const recruitersRes = await fetch('/api/users?role=Recruiter');
+        if (!recruitersRes.ok) throw new Error('Failed to fetch recruiters');
         const recruitersData = await recruitersRes.json();
-       
         setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
-        
         // Fetch positions
-       
         const positionsRes = await fetch('/api/positions/all');
+        if (!positionsRes.ok) throw new Error('Failed to fetch positions');
         const positionsData = await positionsRes.json();
-        
         setPositions(positionsData.data || []);
-        
         // Fetch stages
-      
         const stagesRes = await fetch('/api/settings/recruitment-stages');
+        if (!stagesRes.ok) throw new Error('Failed to fetch stages');
         const stagesData = await stagesRes.json();
-       
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
-        
         // Fetch candidates to get unique values
         const candidatesRes = await fetch('/api/candidates');
+        if (!candidatesRes.ok) throw new Error('Failed to fetch candidates');
         const candidatesData = await candidatesRes.json();
         setCandidates(Array.isArray(candidatesData) ? candidatesData : (candidatesData.data || []));
-     
-      
       } catch (error) {
         console.error('CustomizeBoardModal: Error fetching actual data:', error);
+      } finally {
+        setInitializing(false);
       }
     };
-    
     fetchActualData();
   }, [open]);
 
@@ -514,6 +507,49 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
     }
   }, [rowField, columnField, open, recruiters, positions, stages, candidates, initializing]);
 
+  // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
+  const baseRowColumnFields = [
+    ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
+    ...customFieldKeys
+      .filter(key => !['name', 'email', 'phone'].includes(key))
+      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
+    ...parsedDataFieldObjs.filter(f => !['name', 'email', 'phone'].includes(f.key))
+  ];
+  
+  // Remove duplicates by key to prevent selection issues
+  const seenKeys = new Set<string>();
+  const rowAndColumnFields = baseRowColumnFields.filter(field => {
+    if (seenKeys.has(field.key)) {
+      console.log(`CustomizeBoardModal: Duplicate field key filtered out: ${field.key}`);
+      return false;
+    }
+    seenKeys.add(field.key);
+    return true;
+  });
+  
+  // Debug logging
+  console.log('CustomizeBoardModal: Available row/column fields:', rowAndColumnFields.map(f => ({ key: f.key, label: f.label })));
+  
+  // For card fields: candidateFields + customFieldKeys + parsedDataFields
+  const cardFields = [
+    ...rowAndColumnFields,
+    ...parsedDataFieldObjs.filter(f => ['name', 'email', 'phone'].includes(f.key))
+  ];
+
+  // Ensure rowField/columnField are always valid
+  useEffect(() => {
+    if (!open) return;
+    // If current rowField/columnField is not in options, fallback
+    if (rowAndColumnFields.length > 0) {
+      if (!rowAndColumnFields.some(f => f.key === rowField)) {
+        setRowField('status');
+      }
+      if (!rowAndColumnFields.some(f => f.key === columnField)) {
+        setColumnField('recruiterId');
+      }
+    }
+  }, [open, rowAndColumnFields.length]);
+
   // Reset states when modal closes
   useEffect(() => {
     if (!open) {
@@ -611,35 +647,6 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
 
   // Validate candidateFields before rendering
   // validCandidateFields is now dynamic, so we can use it directly
-  
-  // When building rowAndColumnFields, filter out 'name', 'email', and 'phone'
-  const baseRowColumnFields = [
-    ...candidateFields.filter(f => !['name', 'email', 'phone'].includes(f.key)),
-    ...customFieldKeys
-      .filter(key => !['name', 'email', 'phone'].includes(key))
-      .map(key => ({ key, label: key.charAt(0).toUpperCase() + key.slice(1), icon: '📝' })),
-    ...parsedDataFieldObjs.filter(f => !['name', 'email', 'phone'].includes(f.key))
-  ];
-  
-  // Remove duplicates by key to prevent selection issues
-  const seenKeys = new Set<string>();
-  const rowAndColumnFields = baseRowColumnFields.filter(field => {
-    if (seenKeys.has(field.key)) {
-      console.log(`CustomizeBoardModal: Duplicate field key filtered out: ${field.key}`);
-      return false;
-    }
-    seenKeys.add(field.key);
-    return true;
-  });
-  
-  // Debug logging
-  console.log('CustomizeBoardModal: Available row/column fields:', rowAndColumnFields.map(f => ({ key: f.key, label: f.label })));
-  
-  // For card fields: candidateFields + customFieldKeys + parsedDataFields
-  const cardFields = [
-    ...rowAndColumnFields,
-    ...parsedDataFieldObjs.filter(f => ['name', 'email', 'phone'].includes(f.key))
-  ];
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

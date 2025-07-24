@@ -47,17 +47,17 @@ function normalizeDataTypes(obj: any): any {
     return result;
   }
   if (typeof obj === 'string') {
-    const lower = obj.toLowerCase();
+    const trimmed = obj.trim();
+    if (trimmed === '') return null;
+    const lower = trimmed.toLowerCase();
     // Handle boolean strings
     if (lower === 'true') return true;
     if (lower === 'false') return false;
-    
-    // Handle numeric strings for common fields
-    const numericFields = ['startMonth', 'startYear', 'endMonth', 'endYear', 'gpa', 'fitScore'];
-    if (numericFields.some(field => obj.includes(field) || obj.match(/^\d+$/))) {
-      const num = parseInt(obj);
-      if (!isNaN(num)) return num;
+    // Handle numeric strings
+    if (!isNaN(Number(trimmed))) {
+      return Number(trimmed);
     }
+    return trimmed;
   }
   return obj;
 }
@@ -78,19 +78,8 @@ export async function POST(request: NextRequest) {
   let body;
   try {
     body = await request.json();
-    console.log('Original request body:', JSON.stringify(body, null, 2));
-    console.log('Original body type:', typeof body);
-    console.log('candidate_info type:', typeof body?.candidate_info);
-    console.log('candidate_info value:', body?.candidate_info);
-    
-    // Apply multiple normalization steps
-    body = normalizePayloadTypes(body);
+    // Forcefully normalize all boolean-like strings to booleans recursively
     body = normalizeDataTypes(body);
-    
-    console.log('Normalized request body:', JSON.stringify(body, null, 2));
-    console.log('Normalized body type:', typeof body);
-    console.log('Normalized candidate_info type:', typeof body?.candidate_info);
-    console.log('Normalized candidate_info value:', body?.candidate_info);
   } catch {
     return handleApiError(request, createValidationError('Invalid JSON body'));
   }

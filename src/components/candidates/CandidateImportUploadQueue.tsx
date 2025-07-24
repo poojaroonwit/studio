@@ -19,6 +19,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
+import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 
 export type CandidateJobType = "upload" | "import";
 
@@ -126,6 +127,10 @@ export const CandidateImportUploadQueue: React.FC<{
   // Add after other useState hooks at the top of the component
   const [positionIdFilter, setPositionIdFilter] = useState<string>("");
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
+
+  // Add state for file viewer modal
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fileViewerFile, setFileViewerFile] = useState(null);
 
   // Helper function to check if date is in range - moved before usage
   const isInRange = (dateString?: string) => {
@@ -1133,15 +1138,22 @@ export const CandidateImportUploadQueue: React.FC<{
                     </TableCell>
                     <TableCell className="font-medium flex items-center gap-2">
                       {item.file_path ? (
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline hover:text-primary/80 truncate max-w-xs"
+                        <span
+                          className="text-primary underline hover:text-primary/80 truncate max-w-xs cursor-pointer"
                           title={item.file_name}
+                          onClick={() => {
+                            setFileViewerFile({
+                              fileName: item.file_name,
+                              url: item.url,
+                              label: item.position_title,
+                              updatedAt: item.upload_date,
+                              fileSize: item.file_size
+                            });
+                            setFileViewerOpen(true);
+                          }}
                         >
                           {item.file_name}
-                        </a>
+                        </span>
                       ) : (
                         <span className="truncate max-w-xs" title={item.file_name}>{item.file_name}</span>
                       )}
@@ -1165,19 +1177,21 @@ export const CandidateImportUploadQueue: React.FC<{
                     <TableCell className="flex gap-1">
                       {item.file_path && (
                         <Button
-                          asChild
                           variant="ghost"
                           size="icon"
-                          title="Download CV"
+                          title="Preview / Download CV"
+                          onClick={() => {
+                            setFileViewerFile({
+                              fileName: item.file_name,
+                              url: item.url,
+                              label: item.position_title,
+                              updatedAt: item.upload_date,
+                              fileSize: item.file_size
+                            });
+                            setFileViewerOpen(true);
+                          }}
                         >
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={item.file_name}
-                          >
-                            <FileText className="h-4 w-4 text-primary" />
-                          </a>
+                          <FileText className="h-4 w-4 text-primary" />
                         </Button>
                       )}
                       <Button
@@ -1619,6 +1633,11 @@ export const CandidateImportUploadQueue: React.FC<{
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <FileViewerModal
+        isOpen={fileViewerOpen}
+        onOpenChange={setFileViewerOpen}
+        file={fileViewerFile}
+      />
     </div>
   );
 }; 

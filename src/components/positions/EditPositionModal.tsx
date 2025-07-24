@@ -52,6 +52,7 @@ interface EditPositionModalProps {
 export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, position }: EditPositionModalProps) {
   const [associatedCandidates, setAssociatedCandidates] = useState<Candidate[]>([]);
   const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const form = useForm<EditPositionFormValues>({
     resolver: zodResolver(editPositionFormSchema),
@@ -103,8 +104,15 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   }, [position?.id, isOpen, form]);
 
   const onSubmit = async (data: EditPositionFormValues) => {
+    setApiError(null);
     if (!position || form.formState.isSubmitting) return;
-    await onEditPosition(position.id, data);
+    // Always send custom_attributes for API compatibility
+    const payload = { ...data, custom_attributes: {} };
+    try {
+      await onEditPosition(position.id, payload);
+    } catch (err: any) {
+      setApiError(err?.message || 'Failed to update position.');
+    }
   };
   
   if (!position && isOpen) return null; 
@@ -128,6 +136,27 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         </DialogHeader>
         
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-grow">
+          {/* Show API error if present */}
+          {apiError && (
+            <div className="mb-2 p-2 bg-destructive/10 text-destructive text-sm rounded">
+              {apiError}
+            </div>
+          )}
+          {/* Show created/updated date/time if available */}
+          {position && (position.createdAt || position.updatedAt) && (
+            <div className="flex gap-6 px-6 pt-4 text-xs text-muted-foreground">
+              {position.createdAt && (
+                <div>
+                  <span className="font-semibold">Created:</span> {new Date(position.createdAt).toLocaleString()}
+                </div>
+              )}
+              {position.updatedAt && (
+                <div>
+                  <span className="font-semibold">Updated:</span> {new Date(position.updatedAt).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid md:grid-cols-2 gap-6 flex-grow overflow-hidden p-6"> {/* Main content area with padding */}
             {/* Left Column: Form */}
             <ScrollArea className="h-full"> {/* Ensure ScrollArea takes full height of its container */}

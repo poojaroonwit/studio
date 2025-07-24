@@ -534,51 +534,57 @@ export default function PositionsPageClient() {
               <SelectItem value="closed">Closed Only</SelectItem>
             </SelectContent>
           </Select>
-          <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
-                {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[280px] p-0" align="start">
-              <Command>
-                <div className="flex items-center border-b px-3">
-                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                  <input
-                    placeholder="Search departments..."
-                    value={departmentSearch}
-                    onChange={(e) => setDepartmentSearch(e.target.value)}
-                    className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                  />
-                </div>
-                <CommandList>
-                  <CommandEmpty>No departments found.</CommandEmpty>
-                  <div className="max-h-[200px] overflow-auto p-1">
-                    <div
-                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                      onClick={() => handleDepartmentSelect('all')}
-                    >
-                      <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
-                      All Departments
-                    </div>
-                    {allDepartments
-                      .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                      .map(dept => (
-                        <div
-                          key={dept}
-                          className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                          onClick={() => handleDepartmentSelect(dept)}
-                        >
-                          <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
-                          {dept}
-                        </div>
-                      ))}
+          {allDepartments.length > 0 ? (
+            <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                  {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0" align="start">
+                <Command>
+                  <div className="flex items-center border-b px-3">
+                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                    <input
+                      placeholder="Search departments..."
+                      value={departmentSearch}
+                      onChange={(e) => setDepartmentSearch(e.target.value)}
+                      className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    />
                   </div>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+                  <CommandList>
+                    <CommandEmpty>No departments found.</CommandEmpty>
+                    <div className="max-h-[200px] overflow-auto p-1">
+                      <div
+                        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        onClick={() => handleDepartmentSelect('all')}
+                      >
+                        <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
+                        All Departments
+                      </div>
+                      {allDepartments
+                        .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                        .map(dept => (
+                          <div
+                            key={dept}
+                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                            onClick={() => handleDepartmentSelect(dept)}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
+                            {dept}
+                          </div>
+                        ))}
+                    </div>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+              No departments available
+            </div>
+          )}
         </div>
         {canManagePositions && (
           <div className="flex gap-2">
@@ -946,19 +952,33 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-md">
-                      {position.candidateStats?.totalApplied || 0}
-                    </span>
+                    {position.candidateStats?.totalApplied > 0 ? (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-md">
+                        {position.candidateStats?.totalApplied}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
+                        0
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
-                      {position.candidateStats?.totalMatching || 0}
-                    </span>
+                    {position.candidateStats?.totalMatching > 0 ? (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
+                        {position.candidateStats?.totalMatching}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
+                        0
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
-                      {position.candidateStats?.appliedStatusCount || 0}
-                    </span>
+                    {position.candidateStats?.appliedStatusCount > 0 ? (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
+                        {position.candidateStats?.appliedStatusCount}
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>

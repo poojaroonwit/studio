@@ -1049,7 +1049,7 @@ export function SingleRowCandidateView({
 
       {/* Horizontal Scrollable Container */}
       <div
-        className="flex overflow-x-auto gap-3 pb-2 candidates-horizontal-container scrollbar-hide"
+        className="flex flex-row overflow-x-auto gap-3 pb-2 candidates-horizontal-container scrollbar-hide"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none'
@@ -1090,7 +1090,6 @@ export function SingleRowCandidateView({
                       </p>
                     )}
                   </div>
-                  
                   {/* Status Badge */}
                   <Badge className={cn(
                     "text-xs px-2 py-1 flex-shrink-0",

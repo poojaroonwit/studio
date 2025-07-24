@@ -173,11 +173,41 @@ async function processJob(apiKey: string) {
   }
 }
 
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const STUCK_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+
+import { getPool } from './src/lib/db';
+
+async function cleanupStuckJobs() {
+  const client = await getPool().connect();
+  try {
+    const res = await client.query(
+      `UPDATE upload_queue
+       SET status = 'error', error = 'Stuck in inprogress/inprocess/processing for over 1 hour', error_details = 'Automatically marked as error by processor cleanup', completed_date = now(), updated_at = now()
+       WHERE status IN ('inprogress', 'inprocess', 'processing')
+         AND process_date IS NOT NULL
+         AND process_date < NOW() - INTERVAL '1 hour'
+       RETURNING id, file_name, process_date`
+    );
+    if (res.rowCount > 0) {
+      console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);
+      res.rows.forEach(row => {
+        console.warn(`[CLEANUP] Job ID: ${row.id}, File: ${row.file_name}, Process Date: ${row.process_date}`);
+      });
+    }
+  } catch (err) {
+    console.error('[CLEANUP] Error cleaning up stuck jobs:', err);
+  } finally {
+    client.release();
+  }
+}
+
 async function runProcessorLoop(): Promise<never> {
   let backoff = BASE_INTERVAL_MS;
   const apiKey = process.env.PROCESSOR_API_KEY || '';
   let lastStatsLog = Date.now();
   let lastHealthCheck = Date.now();
+  let lastCleanup = Date.now();
   while (true) {
     const loopStartTime = Date.now();
     let hadError = false;
@@ -204,6 +234,11 @@ async function runProcessorLoop(): Promise<never> {
     if (Date.now() - lastStatsLog > 30000) {
       logStats();
       lastStatsLog = Date.now();
+    }
+    // Periodic stuck job cleanup
+    if (Date.now() - lastCleanup > CLEANUP_INTERVAL_MS) {
+      await cleanupStuckJobs();
+      lastCleanup = Date.now();
     }
     await new Promise(resolve => setTimeout(resolve, backoff));
     const loopTime = Date.now() - loopStartTime;

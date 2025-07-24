@@ -14,6 +14,7 @@ import { UploadCloud, Loader2, Trash2 } from "lucide-react";
 import FileUploadArea from "@/components/ui/FileUploadArea";
 import { toast } from "react-hot-toast";
 import { PositionMultiSelectDropdown } from "@/components/candidates/PositionMultiSelectDropdown";
+import { FileViewerModal } from "@/components/ui/file-viewer-modal";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -34,6 +35,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
   const { successWithDescription, errorWithDescription, error } = useToast();
+  const [fileViewerOpen, setFileViewerOpen] = useState(false);
+  const [fileViewerFile, setFileViewerFile] = useState(null);
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
@@ -312,14 +315,23 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                 <Label>Selected Files ({totalFiles})</Label>
                 <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
                   {selectedFiles.map((file, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className={`flex items-center justify-between bg-background rounded px-3 py-2 border cursor-pointer transition-colors ${
-                        idx === selectedFileIndex 
-                          ? 'border-primary bg-primary/5' 
+                        idx === selectedFileIndex
+                          ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => handleFileIndexChange(idx)}
+                      onClick={() => {
+                        setFileViewerFile({
+                          fileName: file.name,
+                          url: previewUrl || URL.createObjectURL(file),
+                          label: undefined,
+                          updatedAt: undefined,
+                          fileSize: file.size
+                        });
+                        setFileViewerOpen(true);
+                      }}
                     >
                       <div className="flex-1 min-w-0">
                         <span className="truncate block text-sm font-medium">{file.name}</span>
@@ -347,6 +359,11 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
             {uploading ? 'Uploading...' : 'Upload'}
           </Button>
         </DialogFooter>
+        <FileViewerModal
+          isOpen={fileViewerOpen}
+          onOpenChange={setFileViewerOpen}
+          file={fileViewerFile}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1022,7 +1022,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         {/* MAIN CONTENT (50%) with Sections */}
         <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto`}>
           {/* Job Applied Section */}
-          <section className="mb-4  bg-card">
+          <section className="mb-4">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
               <Briefcase className="mr-2 h-6 w-6 text-primary" />
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
@@ -1220,7 +1220,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           </section>
 
           {/* Job Matches Section */}
-          <section className="mb-4  bg-card">
+          <section className="mb-4">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
               <ListChecks className="mr-2 h-6 w-6 text-primary" />
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
@@ -1480,7 +1480,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
                    <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                    <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                   <Input placeholder="Period" {...register(`parsedData.education.${index}.period`)} />
+                   <Controller
+                     name={`parsedData.education.${index}.period`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Period"
+                       />
+                     )}
+                   />
                    <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                      <Trash2 className="h-4 w-4 text-destructive" />
@@ -1496,140 +1506,56 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                {getEducation(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                )}
-               {getEducation(candidate).map((edu: any, index: number) => {
-                 if (typeof edu === 'string') {
-                   return (
-                     <div key={`edu-${index}-${edu}`} className="relative">
-                       {/* Timeline item */}
-                       <div className="flex items-start space-x-4 pb-8">
-                         {/* Date on the left */}
-                         <div className="flex-shrink-0 w-28 text-right">
-                           <div className="text-xs text-muted-foreground font-medium">
-                             <div className="text-muted-foreground">Education</div>
-                           </div>
+               {getEducation(candidate).map((edu: any, index: number) => (
+                 <div key={`edu-${index}-${edu.university || index}`} className="relative">
+                   <div className="flex items-start space-x-4 pb-8">
+                     <div className="flex-shrink-0 w-28 text-right">
+                       {/* Date display here */}
+                       {edu.period && (
+                         <div className="text-xs text-muted-foreground whitespace-pre-line mb-1">
+                           {edu.period}
                          </div>
-                         {/* Timeline line and node */}
-                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
-                           {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                             <GraduationCap className="w-3 h-3 text-foreground" />
-                           </div>
-                           {/* Vertical line connecting nodes (except last node) */}
-                           {index < getEducation(candidate).length - 1 && (
-                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
-                           )}
-                         </div>
-                         {/* Content */}
-                         <div className="flex-1 min-w-0 pb-0 flex items-center">
-                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                             {renderField("Education", edu)}
-                           </div>
-                           {hasFitScore(edu) && (
-                             <div className="flex flex-col items-center justify-center ml-6">
-                               <ScoreBadge score={edu.fitScore}>
-                                 {formatScoreWithGrade(edu.fitScore)}
-                               </ScoreBadge>
-                             </div>
+                       )}
+                     </div>
+                     {/* Timeline line and node */}
+                     <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
+                       {/* Node (icon) */}
+                       <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
+                         <GraduationCap className="w-3 h-3 text-foreground" />
+                       </div>
+                       {/* Dynamic vertical line connecting nodes (except last node) */}
+                       {index < getEducation(candidate).length - 1 && (
+                         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
+                       )}
+                     </div>
+                     {/* Content */}
+                     <div className="flex-1 min-w-0 pb-0 flex items-center">
+                       <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                         <h4 className="font-semibold text-foreground mb-1">
+                           {edu.university || 'University not specified'}
+                           {edu.campus && ` (${edu.campus})`}
+                         </h4>
+                         <p className="text-sm text-muted-foreground mb-2">
+                           {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
+                            edu.major || edu.field || 'Field of study not specified'}
+                         </p>
+                         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                           {edu.GPA && (
+                             <span>GPA: {edu.GPA}</span>
                            )}
                          </div>
                        </div>
+                       {hasFitScore(edu) && (
+                         <div className="flex flex-col items-center justify-center ml-6">
+                           <ScoreBadge score={edu.fitScore}>
+                             {formatScoreWithGrade(edu.fitScore)}
+                           </ScoreBadge>
+                         </div>
+                       )}
                      </div>
-                   );
-                 } else {
-                   // Only use structured fields for timeline
-                   let start = '', end = '', duration = '';
-                   if (edu.startMonth && edu.startYear) {
-                     const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                     start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                     if (edu.endMonth && edu.endYear) {
-                       const endDate = new Date(edu.endYear, edu.endMonth - 1);
-                       end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                     } else if (edu.isCurrent) {
-                       end = 'Present';
-                     }
-                   }
-                   if (start) {
-                     const startDate = new Date(edu.startYear, edu.startMonth - 1);
-                     let endDate: Date;
-                     
-                     if (edu.endMonth && edu.endYear) {
-                       // Past education with end date
-                       endDate = new Date(edu.endYear, edu.endMonth - 1);
-                     } else if (edu.isCurrent) {
-                       // Current education - use current date
-                       endDate = new Date();
-                     } else {
-                       // No end date specified
-                       endDate = startDate;
-                     }
-                     
-                     const months = differenceInMonths(endDate, startDate);
-                     const years = Math.floor(months / 12);
-                     const remMonths = months % 12;
-                     duration = [
-                       years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                       remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                     ].filter(Boolean).join(' ');
-                   }
-                   return (
-                     <div key={`edu-${index}-${edu.university || index}`} className="relative">
-                       {/* Timeline item */}
-                       <div className="flex items-start space-x-4 pb-8">
-                         {/* Date on the left */}
-                         <div className="flex-shrink-0 w-28 text-right">
-                           <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                             {(start || end) && (
-                               <div>
-                                 <span className="text-primary font-black text-sm">{start}</span>
-                                 {end && (
-                                   <span className="text-primary font-black text-sm"> - {end}</span>
-                                 )}
-                               </div>
-                             )}
-                             {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                           </div>
-                         </div>
-                         {/* Timeline line and node */}
-                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
-                           {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                             <GraduationCap className="w-3 h-3 text-foreground" />
-                           </div>
-                           {/* Vertical line connecting nodes (except last node) */}
-                           {index < getEducation(candidate).length - 1 && (
-                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
-                           )}
-                         </div>
-                         {/* Content */}
-                         <div className="flex-1 min-w-0 pb-0 flex items-center">
-                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                             <h4 className="font-semibold text-foreground mb-1">
-                               {edu.university || 'University not specified'}
-                               {edu.campus && ` (${edu.campus})`}
-                             </h4>
-                             <p className="text-sm text-muted-foreground mb-2">
-                               {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
-                                edu.major || edu.field || 'Field of study not specified'}
-                             </p>
-                             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                               {edu.GPA && (
-                                 <span>GPA: {edu.GPA}</span>
-                               )}
-                             </div>
-                           </div>
-                           {hasFitScore(edu) && (
-                             <div className="flex flex-col items-center justify-center ml-6">
-                               <ScoreBadge score={edu.fitScore}>
-                                 {formatScoreWithGrade(edu.fitScore)}
-                               </ScoreBadge>
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                   );
-                 }
-               })}
+                   </div>
+                 </div>
+               ))}
              </div>
            )}
          </div>
@@ -1658,7 +1584,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                    <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                    <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                   <Input placeholder="Period" {...register(`parsedData.experience.${index}.period`)} />
+                   <Controller
+                     name={`parsedData.experience.${index}.period`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Period"
+                       />
+                     )}
+                   />
+
                    <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
                    <div className="flex items-center space-x-2">
                      <Checkbox
@@ -1681,159 +1618,75 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                {getExperience(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                )}
-               {getExperience(candidate).map((exp: any, index: number) => {
-                 if (typeof exp === 'string') {
-                   return (
-                     <div key={`exp-${index}-${exp}`} className="relative">
-                       {/* Timeline item */}
-                       <div className="flex items-start space-x-4 pb-8">
-                         {/* Date on the left */}
-                         <div className="flex-shrink-0 w-28 text-right">
-                           <div className="text-xs text-muted-foreground font-medium">
-                             <div className="text-muted-foreground">Experience</div>
-                           </div>
+               {getExperience(candidate).map((exp: any, index: number) => (
+                 <div key={`exp-${index}-${exp.company || index}`} className="relative">
+                   <div className="flex items-start space-x-4 pb-8">
+                     <div className="flex-shrink-0 w-28 text-right">
+                       {/* Date display here */}
+                       {exp.period && (
+                         <div className="text-xs text-muted-foreground whitespace-pre-line mb-1">
+                           {exp.period}
                          </div>
-                         {/* Timeline line and node */}
-                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
-                           {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                             <Briefcase className="w-3 h-3 text-foreground" />
-                           </div>
-                           {/* Vertical line connecting nodes (except last node) */}
-                           {index < getExperience(candidate).length - 1 && (
-                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
-                           )}
-                         </div>
-                         {/* Content */}
-                         <div className="flex-1 min-w-0 pb-0 flex items-center">
-                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                             {renderField("Experience", exp)}
-                           </div>
-                           {hasFitScore(exp) && (
-                             <div className="flex flex-col items-center justify-center ml-6">
-                               <ScoreBadge score={exp.fitScore}>
-                                 {formatScoreWithGrade(exp.fitScore)}
-                               </ScoreBadge>
-                             </div>
-                           )}
-                         </div>
-                       </div>
+                       )}
                      </div>
-                   );
-                 } else {
-                   // Only use structured fields for timeline
-                   let start = '', end = '', duration = '';
-                   if (exp.startMonth && exp.startYear) {
-                     const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                     start = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                     if (exp.endMonth && exp.endYear) {
-                       const endDate = new Date(exp.endYear, exp.endMonth - 1);
-                       end = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
-                     } else if (exp.isCurrent) {
-                       end = 'Present';
-                     }
-                   }
-                   if (start) {
-                     const startDate = new Date(exp.startYear, exp.startMonth - 1);
-                     let endDate: Date;
-                     
-                     if (exp.endMonth && exp.endYear) {
-                       // Past position with end date
-                       endDate = new Date(exp.endYear, exp.endMonth - 1);
-                     } else if (exp.isCurrent) {
-                       // Current position - use current date
-                       endDate = new Date();
-                     } else {
-                       // No end date specified
-                       endDate = startDate;
-                     }
-                     
-                     const months = differenceInMonths(endDate, startDate);
-                     const years = Math.floor(months / 12);
-                     const remMonths = months % 12;
-                     duration = [
-                       years > 0 ? `${years} year${years > 1 ? 's' : ''}` : '',
-                       remMonths > 0 ? `${remMonths} month${remMonths > 1 ? 's' : ''}` : ''
-                     ].filter(Boolean).join(' ');
-                   }
-                   return (
-                     <div key={`exp-${index}-${exp.company || index}`} className="relative">
-                       {/* Timeline item */}
-                       <div className="flex items-start space-x-4 pb-8">
-                         {/* Date on the left */}
-                         <div className="flex-shrink-0 w-28 text-right">
-                           <div className="text-xs text-muted-foreground font-medium space-y-1 mt-2">
-                             {(start || end) && (
-                               <div>
-                                 <span className="text-primary font-black text-sm">{start}</span>
-                                 {end && (
-                                   <span className="text-primary font-black text-sm"> - {end}</span>
-                                 )}
-                               </div>
-                             )}
-                             {duration && <div className="text-xs text-muted-foreground mt-1">{duration}</div>}
-                           </div>
-                         </div>
-                         {/* Timeline line and node */}
-                         <div className="flex-shrink-0 flex flex-col items-center" style={{ width: '2rem' }}>
-                           {/* Node (icon) */}
-                           <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                             <Briefcase className="w-3 h-3 text-foreground" />
-                           </div>
-                           {/* Vertical line connecting nodes (except last node) */}
-                           {index < getExperience(candidate).length - 1 && (
-                             <div className="w-px bg-border mt-2" style={{ height: 'calc(100% + 1rem)' }}></div>
-                           )}
-                         </div>
-                         {/* Content */}
-                         <div className="flex-1 min-w-0 pb-0 flex items-center">
-                           <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                             {/* Position and Level */}
-                             <div className="mb-2">
-                               <span className="text-primary font-semibold">
-                                 {exp.position || 'Position not specified'}
-                               </span>
-                               {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
-                                 <span className="text-foreground font-semibold">
-                                   {' '}({exp.positionLevel})
-                                 </span>
-                               )}
-                             </div>
-                             
-                             {/* Company with Building Icon */}
-                             {exp.company && (
-                               <div className="mb-3 flex items-center gap-2">
-                                 <span className="text-foreground">at</span>
-                                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                                 <span className="font-semibold text-foreground">
-                                   {exp.company}
-                                 </span>
-                               </div>
-                             )}
-                             
-                             {/* Description */}
-                             {exp.description && (
-                               <div className="mt-3">
-                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
-                                 <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
-                                   {exp.description}
-                                 </p>
-                               </div>
-                             )}
-                           </div>
-                           {hasFitScore(exp) && (
-                             <div className="flex flex-col items-center justify-center ml-6">
-                               <ScoreBadge score={exp.fitScore}>
-                                 {formatScoreWithGrade(exp.fitScore)}
-                               </ScoreBadge>
-                             </div>
-                           )}
-                         </div>
+                     {/* Timeline line and node */}
+                     <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
+                       {/* Node (icon) */}
+                       <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
+                         <Briefcase className="w-3 h-3 text-foreground" />
                        </div>
+                       {/* Dynamic vertical line connecting nodes (except last node) */}
+                       {index < getExperience(candidate).length - 1 && (
+                         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
+                       )}
                      </div>
-                   );
-                 }
-               })}
+                     {/* Content */}
+                     <div className="flex-1 min-w-0 pb-0 flex items-center">
+                       <div className="bg-muted/50 rounded-lg p-4 flex-1">
+                         {/* Position and Level */}
+                         <div className="mb-2">
+                           <span className="text-primary font-semibold">
+                             {exp.position || 'Position not specified'}
+                           </span>
+                           {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
+                             <span className="text-foreground font-semibold">
+                               {' '}({exp.positionLevel})
+                             </span>
+                           )}
+                         </div>
+                         
+                         {/* Company with Building Icon */}
+                         {exp.company && (
+                           <div className="mb-3 flex items-center gap-2">
+                             <span className="text-foreground">at</span>
+                             <Building2 className="h-4 w-4 text-muted-foreground" />
+                             <span className="font-semibold text-foreground">
+                               {exp.company}
+                             </span>
+                           </div>
+                         )}
+                         
+                         {/* Description */}
+                         {exp.description && (
+                           <div className="mt-3">
+                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                             <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                               {exp.description}
+                             </p>
+                           </div>
+                         )}
+                       </div>
+                       {hasFitScore(exp) && (
+                         <div className="flex flex-col items-center justify-center ml-6">
+                           <ScoreBadge score={exp.fitScore}>
+                             {formatScoreWithGrade(exp.fitScore)}
+                           </ScoreBadge>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 </div>
+               ))}
              </div>
            )}
          </div>
@@ -1951,133 +1804,133 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
        </div>
        {/* RIGHT SIDEBAR: Comments & Activity and Attachments */}
        <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto`}>
-         {/* Comments & Activity Section */}
-         <div className="space-y-4">
-           <h3 className="text-lg font-semibold flex items-center">
-             <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-             Comments & Activity
-           </h3>
-           <div className="bg-muted rounded-lg p-4">
-             <CandidateCommentsSection
-               candidateId={candidateId}
-               comments={comments}
-               isEditing={false}
-               onCommentsChange={() => {
-                 // Refresh comments
-                 onRefresh();
-               }}
-             />
-           </div>
-         </div>
-         {/* Attachments Section */}
-         <div className="space-y-4">
-           <h3 className="text-lg font-semibold flex items-center">
-             <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-             Attachments
-           </h3>
-           <div className="bg-muted rounded-lg p-4">
-             <CandidateResumesSection
-               candidateId={candidateId}
-               resumes={resumes}
-               isEditing={false}
-               onResumesChange={() => {
-                 // Refresh resumes
-                 onRefresh();
-               }}
-             />
-           </div>
-         </div>
-       </div>
-     </div>
-
-     {/* Modals */}
-     <UploadResumeModal
-       isOpen={isUploadModalOpen}
-       onOpenChange={setIsUploadModalOpen}
-       candidate={candidate}
-       onUploadSuccess={(updatedCandidate) => {
-         setCandidate(updatedCandidate);
-         setIsUploadModalOpen(false);
-       }}
-     />
-
-     <ManageTransitionsModal
-       isOpen={isTransitionsModalOpen}
-       onOpenChange={setIsTransitionsModalOpen}
-       candidate={candidate}
-       availableStages={availableStages}
-       onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
-         setCandidate(prev => prev ? { ...prev, status } : null);
-       }}
-       onRefreshCandidateData={async (candidateId: string) => {
-         const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
-         const updatedCandidate = await response.json();
-         setCandidate(updatedCandidate);
-       }}
-       preselectedStage={null}
-       comments={comments}
-       onCommentsChange={() => {
-         // Refresh comments
-         onRefresh();
-       }}
-     />
-
-     <JobMatchModal
-       isOpen={isJobMatchModalOpen}
-       onClose={() => setIsJobMatchModalOpen(false)}
-       jobMatch={selectedJobMatch}
-     />
-
-     <EditPositionModal
-       isOpen={isEditPositionModalOpen}
-       onOpenChange={setIsEditPositionModalOpen}
-       position={selectedPositionForEdit}
-       onEditPosition={async () => {
-         setIsEditPositionModalOpen(false);
-         // Refresh candidate data
-         const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
-         const updatedCandidate = await response.json();
-         setCandidate(updatedCandidate);
-       }}
-     />
-
-     {/* Floating Save/Cancel buttons when editing */}
-     {isEditing && (
-       <div className="fixed bottom-6 right-6 z-50 flex gap-2">
-         <Button
-           onClick={handleSubmit(handleSaveDetails)}
-           className="shadow-lg"
-         >
-           <Save className="h-4 w-4 mr-2" />
-           Save Changes
-         </Button>
-         <Button
-           variant="outline"
-           onClick={() => {
-             setIsEditing(false);
-             if (candidate) {
-               reset({
-                 name: candidate.name || '',
-                 email: candidate.email || '',
-                 phone: candidate.phone || '',
-                 positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
-                 fitScore: candidate.fitScore || null,
-                 assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
-                 status: candidate.status || '',
-                 recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                 parsedData: (candidate.parsedData as any) || {}
-               });
-             }
-           }}
-           className="shadow-lg"
-         >
-           <X className="h-4 w-4 mr-2" />
-           Cancel
-         </Button>
-       </div>
-     )}
-   </div>
- );
-};
-
-export default FullCandidateDetail; 
+          {/* Comments & Activity Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+              Comments & Activity
+            </h3>
+            <div className="bg-muted rounded-lg p-4">
+              <CandidateCommentsSection
+                candidateId={candidateId}
+                comments={comments}
+                isEditing={false}
+                onCommentsChange={() => {
+                  // Refresh comments
+                  onRefresh();
+                }}
+              />
+            </div>
+          </div>
+          {/* Attachments Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+              Attachments
+            </h3>
+            <div className="bg-muted rounded-lg p-4">
+              <CandidateResumesSection
+                candidateId={candidateId}
+                resumes={resumes}
+                isEditing={false}
+                onResumesChange={() => {
+                  // Refresh resumes
+                  onRefresh();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      {/* Modals */}
+      <UploadResumeModal
+        isOpen={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        candidate={candidate}
+        onUploadSuccess={(updatedCandidate) => {
+          setCandidate(updatedCandidate);
+          setIsUploadModalOpen(false);
+        }}
+      />
+ 
+      <ManageTransitionsModal
+        isOpen={isTransitionsModalOpen}
+        onOpenChange={setIsTransitionsModalOpen}
+        candidate={candidate}
+        availableStages={availableStages}
+        onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+          setCandidate(prev => prev ? { ...prev, status } : null);
+        }}
+        onRefreshCandidateData={async (candidateId: string) => {
+          const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
+          const updatedCandidate = await response.json();
+          setCandidate(updatedCandidate);
+        }}
+        preselectedStage={null}
+        comments={comments}
+        onCommentsChange={() => {
+          // Refresh comments
+          onRefresh();
+        }}
+      />
+ 
+      <JobMatchModal
+        isOpen={isJobMatchModalOpen}
+        onClose={() => setIsJobMatchModalOpen(false)}
+        jobMatch={selectedJobMatch}
+      />
+ 
+      <EditPositionModal
+        isOpen={isEditPositionModalOpen}
+        onOpenChange={setIsEditPositionModalOpen}
+        position={selectedPositionForEdit}
+        onEditPosition={async () => {
+          setIsEditPositionModalOpen(false);
+          // Refresh candidate data
+          const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
+          const updatedCandidate = await response.json();
+          setCandidate(updatedCandidate);
+        }}
+      />
+ 
+      {/* Floating Save/Cancel buttons when editing */}
+      {isEditing && (
+        <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+          <Button
+            onClick={handleSubmit(handleSaveDetails)}
+            className="shadow-lg"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsEditing(false);
+              if (candidate) {
+                reset({
+                  name: candidate.name || '',
+                  email: candidate.email || '',
+                  phone: candidate.phone || '',
+                  positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+                  fitScore: candidate.fitScore || null,
+                  assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                  status: candidate.status || '',
+                  recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                  parsedData: (candidate.parsedData as any) || {}
+                });
+              }
+            }}
+            className="shadow-lg"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+ };
+ 
+ export default FullCandidateDetail;

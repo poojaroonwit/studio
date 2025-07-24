@@ -369,6 +369,251 @@ export default function PositionDetailPage() {
     return allCandidates;
   }, [allCandidates]);
 
+  // Helper: Group candidates by email (same as CandidateTable)
+  const candidatesByEmail = React.useMemo(() => {
+    const groups: Record<string, Candidate[]> = {};
+    mergedCandidates.forEach((c) => {
+      if (!c.email) return;
+      if (!groups[c.email]) groups[c.email] = [];
+      groups[c.email].push(c);
+    });
+    return groups;
+  }, [mergedCandidates]);
+
+  const emailOrder = React.useMemo(() => {
+    const seen = new Set<string>();
+    return mergedCandidates
+      .map((c) => c.email)
+      .filter((email) => email && !seen.has(email) && seen.add(email));
+  }, [mergedCandidates]);
+
+  const [expandedEmails, setExpandedEmails] = React.useState<Record<string, boolean>>({});
+
+  const renderGroupedCandidateTable = (
+    candidates: Candidate[],
+    type: 'applied' | 'matches',
+    searchTerm: string,
+    setSearchTerm: (term: string) => void,
+    sortColumn: string,
+    sortDirection: 'asc' | 'desc',
+    showTypeBadge: boolean = false,
+    positionId?: string
+  ): JSX.Element => {
+    let rowNumber = 1;
+    return (
+      <div className="space-y-4">
+        {/* Search and filters */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search candidates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                onClick={() => setSearchTerm('')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        {/* Table */}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8 text-center">#</TableHead>
+                <TableHead>Name / Email</TableHead>
+                <TableHead>Fit Score</TableHead>
+                <TableHead>Recruiter</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Applied Date</TableHead>
+                {type === 'applied' && showTypeBadge && <TableHead>Association</TableHead>}
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {emailOrder.map((email) => {
+                const group = candidatesByEmail[email];
+                if (!group || group.length === 0) return null;
+                if (group.length === 1) {
+                  const candidate = group[0];
+                  return (
+                    <TableRow key={candidate.id} className="hover:bg-muted/50 cursor-pointer">
+                      <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
+                      <TableCell>
+                        <div>
+                          {candidate.name}
+                          <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                          {showTypeBadge && positionId && (
+                            <div className="mt-1">
+                              {(() => {
+                                let hasJobMatch = false;
+                                if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
+                                  hasJobMatch = true;
+                                } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+                                  const jobMatches = (candidate.parsedData as any).job_matches;
+                                  if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+                                    hasJobMatch = true;
+                                  }
+                                }
+                                return (
+                                  <>
+                                    {hasJobMatch ? (
+                                      <Badge variant="secondary" className="mr-1">Job Match</Badge>
+                                    ) : null}
+                                    {candidate.positionId === positionId ? (
+                                      <Badge variant="default">Job Applied</Badge>
+                                    ) : null}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                          <ScoreBadge score={candidate.fitScore}>
+                            {formatScoreWithGrade(candidate.fitScore)}
+                          </ScoreBadge>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
+                      <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
+                      <TableCell>
+                        {candidate.applicationDate ? (
+                          <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
+                            {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      {type === 'applied' && showTypeBadge && <TableCell>{/* Association badge logic here if needed */}</TableCell>}
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCandidateClick(candidate.id);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                } else {
+                  const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
+                  return (
+                    <React.Fragment key={email}>
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={99} className="p-0">
+                          <div className="flex items-center gap-2 px-2 py-1">
+                            <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'} className="border border-primary">
+                              {isExpanded ? <ChevronDown /> : <ChevronUp />}
+                            </Button>
+                            <span className="font-semibold">{email}</span>
+                            <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded && group.map((candidate) => (
+                        <TableRow key={candidate.id} className="hover:bg-muted/50 cursor-pointer">
+                          <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
+                          <TableCell>
+                            <div>
+                              {candidate.name}
+                              <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                              {showTypeBadge && positionId && (
+                                <div className="mt-1">
+                                  {(() => {
+                                    let hasJobMatch = false;
+                                    if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
+                                      hasJobMatch = true;
+                                    } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+                                      const jobMatches = (candidate.parsedData as any).job_matches;
+                                      if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+                                        hasJobMatch = true;
+                                      }
+                                    }
+                                    return (
+                                      <>
+                                        {hasJobMatch ? (
+                                          <Badge variant="secondary" className="mr-1">Job Match</Badge>
+                                        ) : null}
+                                        {candidate.positionId === positionId ? (
+                                          <Badge variant="default">Job Applied</Badge>
+                                        ) : null}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                              <ScoreBadge score={candidate.fitScore}>
+                                {formatScoreWithGrade(candidate.fitScore)}
+                              </ScoreBadge>
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
+                          <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
+                          <TableCell>
+                            {candidate.applicationDate ? (
+                              <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
+                                {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
+                              </span>
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          {type === 'applied' && showTypeBadge && <TableCell>{/* Association badge logic here if needed */}</TableCell>}
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCandidateClick(candidate.id);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-muted/20">
+                        <TableCell colSpan={99} className="text-right text-xs italic px-4 py-2 border-t">
+                          Group total: {group.length} candidate{group.length !== 1 ? 's' : ''}
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  );
+                }
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -415,226 +660,6 @@ export default function PositionDetailPage() {
       </div>
     );
   }
-
-  const renderCandidateTable = (
-    candidates: Candidate[],
-    type: 'applied' | 'matches',
-    searchTerm: string,
-    setSearchTerm: (term: string) => void,
-    sortColumn: string,
-    sortDirection: 'asc' | 'desc',
-    showTypeBadge: boolean = false,
-    positionId?: string // <-- add positionId param
-  ): JSX.Element => (
-    <div className="space-y-4">
-      {/* Search and filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search candidates..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
-              onClick={() => setSearchTerm('')}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('name', type)}>
-                <div className="flex items-center gap-1">
-                  Name / Email
-                  {sortColumn === 'name' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort(type === 'applied' ? 'fitScore' : 'fitScore', type)}>
-                <div className="flex items-center gap-1">
-                  {type === 'applied' ? 'Fit Score' : 'Match Score'}
-                  {sortColumn === 'fitScore' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead>Recruiter</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('status', type)}>
-                <div className="flex items-center gap-1">
-                  Status
-                  {sortColumn === 'status' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => handleSort('applicationDate', type)}>
-                <div className="flex items-center gap-1">
-                  Applied Date
-                  {sortColumn === 'applicationDate' && (
-                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              {type === 'applied' && showTypeBadge && (
-                <TableHead>Association</TableHead>
-              )}
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {candidates.map((candidate: Candidate) => (
-              <TableRow 
-                key={candidate.id} 
-                className="hover:bg-muted/50 cursor-pointer"
-                onClick={() => handleCandidateClick(candidate.id)}
-              >
-                <TableCell className="font-medium">
-                  <div>
-                    {candidate.name}
-                    <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                    {showTypeBadge && positionId && (
-                      <div className="mt-1">
-                        {(() => {
-                          // Check for job match in both JobMatch table and legacy parsedData
-                          let hasJobMatch = false;
-                          if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
-                            hasJobMatch = true;
-                          } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-                            const jobMatches = (candidate.parsedData as any).job_matches;
-                            if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
-                              hasJobMatch = true;
-                            }
-                          }
-                          
-                          return (
-                            <>
-                              {hasJobMatch ? (
-                                <Badge variant="secondary" className="mr-1">Job Match</Badge>
-                              ) : null}
-                              {candidate.positionId === positionId ? (
-                                <Badge variant="default">Job Applied</Badge>
-                              ) : null}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                    <ScoreBadge score={candidate.fitScore}>
-                      {formatScoreWithGrade(candidate.fitScore)}
-                    </ScoreBadge>
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={candidate.recruiterId ?? "unassigned"}
-                    onValueChange={(value) => handleAssignRecruiter(candidate.id, value === "unassigned" ? null : value)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Assign recruiter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {availableRecruiters.map((recruiter) => (
-                        <SelectItem key={recruiter.id} value={recruiter.id}>
-                          {recruiter.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{candidate.status || 'New'}</Badge>
-                </TableCell>
-                <TableCell>
-                  {candidate.applicationDate ? (
-                    <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
-                      {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
-                    </span>
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
-                {type === 'applied' && showTypeBadge && (
-                  <TableCell>
-                                      {(() => {
-                    // Job Applied: candidate.positionId matches the current positionId
-                    const isApplied = !!candidate.positionId && String(candidate.positionId) === String(positionId);
-                    
-                    // Job Match: check both JobMatch table and legacy parsedData
-                    let isMatched = false;
-                    if (Array.isArray(candidate.jobMatches) && candidate.jobMatches.some(
-                      jm => !!jm.jobId && String(jm.jobId) === String(positionId)
-                    )) {
-                      isMatched = true;
-                    } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-                      const jobMatches = (candidate.parsedData as any).job_matches;
-                      if (Array.isArray(jobMatches) && jobMatches.some((match: any) => !!match.jobId && String(match.jobId) === String(positionId))) {
-                        isMatched = true;
-                      }
-                    }
-                    
-                    if (isApplied && isMatched) {
-                      return (
-                        <>
-                          <Badge variant="default" className="mr-1">Job Applied</Badge>
-                          <Badge variant="secondary">Job Match</Badge>
-                        </>
-                      );
-                    } else if (isApplied) {
-                      return <Badge variant="default">Job Applied</Badge>;
-                    } else if (isMatched) {
-                      return <Badge variant="secondary">Job Match</Badge>;
-                    } else {
-                      return null;
-                    }
-                  })()}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCandidateClick(candidate.id);
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {candidates.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No candidates found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -741,7 +766,7 @@ export default function PositionDetailPage() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-4">
-                {renderCandidateTable(
+                {renderGroupedCandidateTable(
                   mergedCandidates,
                   'applied',
                   appliedSearchTerm,
@@ -753,7 +778,7 @@ export default function PositionDetailPage() {
                 )}
               </TabsContent>
               <TabsContent value="applied" className="mt-4">
-                {renderCandidateTable(
+                {renderGroupedCandidateTable(
                   candidatesApplied,
                   'applied',
                   appliedSearchTerm,
@@ -765,7 +790,7 @@ export default function PositionDetailPage() {
                 )}
               </TabsContent>
               <TabsContent value="matches" className="mt-4">
-                {renderCandidateTable(
+                {renderGroupedCandidateTable(
                   candidateMatches,
                   'matches',
                   matchesSearchTerm,

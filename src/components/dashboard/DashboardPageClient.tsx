@@ -1122,7 +1122,7 @@ export default function DashboardPageClient({
                     <TableHead>Candidate</TableHead>
                     <TableHead>Position</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Fit Score</TableHead>
+                    <TableHead>Applied Fit Score</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1247,7 +1247,7 @@ export default function DashboardPageClient({
                         <TableHead>Candidate</TableHead>
                         <TableHead>Position</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Fit Score</TableHead>
+                        <TableHead>Applied Fit Score</TableHead>
                         <TableHead>Applied</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1308,7 +1308,7 @@ export default function DashboardPageClient({
                         <TableHead>Candidate</TableHead>
                         <TableHead>Position</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Fit Score</TableHead>
+                        <TableHead>Applied Fit Score</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

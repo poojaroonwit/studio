@@ -45,6 +45,7 @@ import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
@@ -1798,45 +1799,80 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                          )}
          </section>
        </div>
-       {/* RIGHT SIDEBAR: Comments & Activity and Attachments */}
-       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} space-y-6 bg-card p-6 rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto`}>
-          {/* Comments & Activity Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-              Comments & Activity
-            </h3>
-            <div className="bg-muted rounded-lg p-4">
-              <CandidateCommentsSection
-                candidateId={candidateId}
-                comments={comments}
-                isEditing={false}
-                onCommentsChange={() => {
-                  // Refresh comments
-                  onRefresh();
-                }}
-              />
-            </div>
-          </div>
-          {/* Attachments Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center">
-              <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-              Attachments
-            </h3>
-            <div className="bg-muted rounded-lg p-4">
-              <CandidateResumesSection
-                candidateId={candidateId}
-                resumes={resumes}
-                isEditing={false}
-                onResumesChange={() => {
-                  // Refresh resumes
-                  onRefresh();
-                }}
-              />
-            </div>
-          </div>
-        </div>
+       {/* RIGHT SIDEBAR: Recruiter Assignment, Comments & Activity, Attachments */}
+       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} bg-muted rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto`}>
+         <Accordion type="multiple" defaultValue={["recruiter-assignment", "comments-activity", "attachments"]}>
+           {/* Recruiter Assignment Section */}
+           <AccordionItem value="recruiter-assignment" className="border-b">
+             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
+               <div className="flex items-center">
+                 <Users className="mr-2 h-5 w-5 text-primary bg-card" />
+                 <span className="text-lg font-semibold">Recruiter Assignment</span>
+               </div>
+             </AccordionTrigger>
+             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+               <div className="flex items-center gap-2">
+                 <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
+                 <Select
+                   value={candidate?.recruiterId || 'unassign'}
+                   onValueChange={(value) => {
+                     // Implement recruiter assignment logic here
+                   }}
+                   disabled={false}
+                 >
+                   <SelectTrigger className="min-w-[120px] border-none bg-transparent shadow-none">
+                     <SelectValue placeholder="Assign..." />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="unassign">Unassign</SelectItem>
+                     {availableRecruiters.map((recruiter) => (
+                       <SelectItem key={recruiter.id} value={recruiter.id}>
+                         {recruiter.name}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             </AccordionContent>
+           </AccordionItem>
+
+           {/* Comments & Activity Section */}
+           <AccordionItem value="comments-activity" className="border-b">
+             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
+               <div className="flex items-center bg-card">
+                 <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+                 <span className="text-lg font-semibold ">Comments & Activity</span>
+               </div>
+             </AccordionTrigger>
+             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+               <CandidateCommentsSection 
+                 candidateId={candidateId} 
+                 comments={comments} 
+                 isEditing={isEditing} 
+                 onCommentsChange={() => onRefresh()} 
+               />
+             </AccordionContent>
+           </AccordionItem>
+           
+           {/* Attachments Section */}
+           <AccordionItem value="attachments" className="border-b-0">
+             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
+               <div className="flex items-center bg-card">
+                 <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+                 <span className="text-lg font-semibold">Attachments</span>
+               </div>
+             </AccordionTrigger>
+             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+               <CandidateResumesSection 
+                 candidateId={candidateId} 
+                 resumes={resumes} 
+                 isEditing={isEditing} 
+                 onResumesChange={() => onRefresh()} 
+               />
+             </AccordionContent>
+           </AccordionItem>
+         </Accordion>
+       </div>
       </div>
  
       {/* Modals */}

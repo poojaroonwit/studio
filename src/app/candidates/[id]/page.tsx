@@ -1442,7 +1442,6 @@ export default function CandidateDetailPage() {
                                 whiteSpace: 'normal',
                                 WebkitLineClamp: 2,
                                 WebkitBoxOrient: 'vertical',
-                                display: '-webkit-box',
                                 verticalAlign: 'middle',
                                 cursor: 'pointer',
                               }}

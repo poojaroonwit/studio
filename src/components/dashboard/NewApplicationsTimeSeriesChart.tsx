@@ -127,24 +127,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
             formatFn = (date: Date) => format(date, 'yyyy');
           }
           break;
-        case 'nextN':
-          if (periodUnit === 'week') {
-            start = now;
-            end = addDays(now, n * 7);
-            intervalFn = eachWeekOfInterval;
-            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
-          } else if (periodUnit === 'month') {
-            start = now;
-            end = addDays(now, n * 31);
-            intervalFn = eachMonthOfInterval;
-            formatFn = (date: Date) => format(date, 'MMM yyyy');
-          } else {
-            start = now;
-            end = addDays(now, n * 366);
-            intervalFn = eachYearOfInterval;
-            formatFn = (date: Date) => format(date, 'yyyy');
-          }
-          break;
       }
     }
     return { startDate: start, endDate: end, intervalFunction: intervalFn, formatFunction: formatFn };

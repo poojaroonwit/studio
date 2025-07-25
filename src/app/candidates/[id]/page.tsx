@@ -722,12 +722,12 @@ export default function CandidateDetailPage() {
             ...s,
             skill_string: s.skill?.join(', ') || ''
           })) || [],
-          experience: ((updatedCandidate.parsedData as CandidateDetails)?.experience?.map(exp => ({
+          experience: ((updatedCandidate.parsedData as CandidateDetails)?.experience || []).map(exp => ({
             ...exp,
             is_current_position: typeof exp.is_current_position === 'string'
               ? exp.is_current_position === 'true'
               : !!exp.is_current_position,
-          })) || []) as {
+          })) as {
             period?: string | null;
             duration?: string | null;
             company?: string | null;
@@ -736,6 +736,13 @@ export default function CandidateDetailPage() {
             is_current_position?: boolean;
             positionLevel?: string | null;
           }[],
+          education: ((updatedCandidate.parsedData as CandidateDetails)?.education || []).map(edu => ({
+            ...edu,
+            startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+            startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+            endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+            endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+          })),
         }
       });
       toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
@@ -904,12 +911,12 @@ export default function CandidateDetailPage() {
                         ? s.skill.filter((sk): sk is string => typeof sk === 'string').join(', ')
                         : (typeof s.skill_string === 'string' ? s.skill_string : '')
                 })) || [],
-                experience: ((candidate.parsedData as CandidateDetails)?.experience?.map(exp => ({
+                experience: ((candidate.parsedData as CandidateDetails)?.experience || []).map(exp => ({
                     ...exp,
                     is_current_position: typeof exp.is_current_position === 'string'
                         ? exp.is_current_position === 'true'
                         : !!exp.is_current_position,
-                })) || []) as {
+                })) as {
                     period?: string | null;
                     duration?: string | null;
                     company?: string | null;
@@ -918,6 +925,13 @@ export default function CandidateDetailPage() {
                     is_current_position?: boolean;
                     postition_level?: string | null;
                 }[],
+                education: ((candidate.parsedData as CandidateDetails)?.education || []).map(edu => ({
+                    ...edu,
+                    startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+                    startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+                    endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+                    endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+                })),
                 job_matches: ((candidate.parsedData as CandidateDetails)?.job_matches?.map(match => ({
                     ...match,
                     matchReasons_string: Array.isArray(match.matchReasons) 

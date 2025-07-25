@@ -78,6 +78,8 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
       success: Number(summary.success) || 0,
       error: Number(summary.error) || 0,
     };
+    // Fix: define total from countRes
+    const total = Number(countRes.rows[0]?.count) || 0;
     client.release();
     const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));

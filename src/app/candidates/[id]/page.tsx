@@ -55,6 +55,13 @@ const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-re
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
 const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
 
+// Add at the top of the file, after imports:
+const months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+const currentYear = new Date().getFullYear();
+const yearRange = Array.from({ length: 50 }, (_, i) => String(currentYear - i));
 
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -86,7 +93,11 @@ const contactInfoEditSchema = z.object({
 const educationEntryEditSchema = z.object({
     major: z.string().optional().nullable(),
     field: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
+    startMonth: z.string().optional().nullable(),
+    startYear: z.string().optional().nullable(),
+    endMonth: z.string().optional().nullable(),
+    endYear: z.string().optional().nullable(),
+    isCurrent: z.boolean().optional(),
     duration: z.string().optional().nullable(),
     GPA: z.string().optional().nullable(),
     university: z.string().optional().nullable(),
@@ -97,9 +108,12 @@ const experienceEntryEditSchema = z.object({
     company: z.string().optional().nullable(),
     position: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
+    startMonth: z.string().optional().nullable(),
+    startYear: z.string().optional().nullable(),
+    endMonth: z.string().optional().nullable(),
+    endYear: z.string().optional().nullable(),
+    isCurrent: z.boolean().optional(),
     duration: z.string().optional().nullable(),
-    is_current_position: z.boolean().optional(),
     positionLevel: z.string().optional().nullable(),
 }).deepPartial();
 
@@ -237,6 +251,14 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
   return `${percent}% (${grade})`;
 }
 
+// Add this helper function near the top or utilities:
+function formatTimeline(startMonth?: string, startYear?: string, endMonth?: string, endYear?: string, isCurrent?: boolean) {
+  if (!startMonth || !startYear) return '';
+  const start = `${startMonth} ${startYear}`;
+  const end = isCurrent ? 'Present' : (endMonth && endYear ? `${endMonth} ${endYear}` : '');
+  return end ? `${start} - ${end}` : start;
+}
+
 export default function CandidateDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -346,7 +368,7 @@ export default function CandidateDetailPage() {
     }
   });
 
-  const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register } = form;
+  const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register, watch } = form;
 
   // Field arrays for form sections
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control, name: "parsedData.education" });
@@ -2132,24 +2154,30 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
                                         <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                                         <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                                        <Controller
-                                          name={`parsedData.education.${index}.period`}
-                                          control={control}
-                                          render={({ field }) => (
-                                            <MonthYearPicker
-                                              value={field.value || ''}
-                                              onChange={field.onChange}
-                                              label="Period"
-                                            />
-                                          )}
-                                        />
+                                        {/* Education Edit Fields */}
+                                        <select {...register(`parsedData.education.${index}.startMonth`)}>
+                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                        <select {...register(`parsedData.education.${index}.startYear`)}>
+                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                        <span>-</span>
+                                        <select {...register(`parsedData.education.${index}.endMonth`)} disabled={!!watch(`parsedData.education.${index}.isCurrent`)}>
+                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                        <select {...register(`parsedData.education.${index}.endYear`)} disabled={!!watch(`parsedData.education.${index}.isCurrent`)}>
+                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                        <label>
+                                          <input type="checkbox" {...register(`parsedData.education.${index}.isCurrent`)} /> Present
+                                        </label>
                                         <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>
                                 ))}
-                                 <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+                                 <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false, duration: '', GPA: '' })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Education
                                 </Button>
                             </div>
@@ -2159,18 +2187,7 @@ export default function CandidateDetailPage() {
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
                               {education.map((edu: any, index: number) => {
-                                let periodDisplay = '', duration = '';
-                                if (edu.period) {
-                                  const match = edu.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
-                                  if (match) {
-                                    const left = `<strong>${match[1]} ${match[2]}</strong>`;
-                                    const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
-                                    periodDisplay = `${left} - ${right}`;
-                                    duration = calculateDuration(edu.period);
-                                  } else {
-                                    periodDisplay = edu.period;
-                                  }
-                                }
+                                const periodDisplay = formatTimeline(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, edu.isCurrent);
                                 return (
                                   <div key={`edu-${index}-${edu.university || index}`} className="relative">
                                     <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full ">
@@ -2179,8 +2196,8 @@ export default function CandidateDetailPage() {
                                         {periodDisplay && (
                                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                                         )}
-                                        {duration && (
-                                          <div className="text-sm text-muted-foreground">({duration})</div>
+                                        {edu.duration && (
+                                          <div className="text-sm text-muted-foreground">({edu.duration})</div>
                                         )}
                                       </div>
                                       {/* Timeline icon and vertical line */}
@@ -2246,17 +2263,23 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                                         <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                                         <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                                        <Controller
-                                          name={`parsedData.experience.${index}.period`}
-                                          control={control}
-                                          render={({ field }) => (
-                                            <MonthYearPicker
-                                              value={field.value || ''}
-                                              onChange={field.onChange}
-                                              label="Period"
-                                            />
-                                          )}
-                                        />
+                                        {/* Experience Edit Fields: same as above, but for experience */}
+                                        <select {...register(`parsedData.experience.${index}.startMonth`)}>
+                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                        <select {...register(`parsedData.experience.${index}.startYear`)}>
+                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                        <span>-</span>
+                                        <select {...register(`parsedData.experience.${index}.endMonth`)} disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
+                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                        <select {...register(`parsedData.experience.${index}.endYear`)} disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
+                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                        <label>
+                                          <input type="checkbox" {...register(`parsedData.experience.${index}.isCurrent`)} /> Present
+                                        </label>
                                         <Controller
                                           name={`parsedData.experience.${index}.positionLevel`}
                                           control={control}
@@ -2269,7 +2292,7 @@ export default function CandidateDetailPage() {
                                         </Button>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', period: '', duration: '', is_current_position: false, description: '', positionLevel: null })}>
+                                <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', description: '', startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false, duration: '', positionLevel: '' })}>
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
                                 </Button>
                             </div>
@@ -2279,18 +2302,7 @@ export default function CandidateDetailPage() {
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
                               {experience.map((exp: any, index: number) => {
-                                let periodDisplay = '', duration = '';
-                                if (exp.period) {
-                                  const match = exp.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
-                                  if (match) {
-                                    const left = `<strong>${match[1]} ${match[2]}</strong>`;
-                                    const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
-                                    periodDisplay = `${left} - ${right}`;
-                                    duration = calculateDuration(exp.period);
-                                  } else {
-                                    periodDisplay = exp.period;
-                                  }
-                                }
+                                const periodDisplay = formatTimeline(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, exp.isCurrent);
                                 return (
                                   <div key={`exp-${index}-${exp.company || index}`} className="relative">
                                     <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-4 items-stretch h-full">
@@ -2299,8 +2311,8 @@ export default function CandidateDetailPage() {
                                         {periodDisplay && (
                                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                                         )}
-                                        {duration && (
-                                          <div className="text-sm text-muted-foreground">({duration})</div>
+                                        {exp.duration && (
+                                          <div className="text-sm text-muted-foreground">({exp.duration})</div>
                                         )}
                                       </div>
                                       {/* Timeline icon and vertical line */}

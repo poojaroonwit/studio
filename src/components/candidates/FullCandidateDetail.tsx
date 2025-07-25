@@ -83,7 +83,11 @@ const contactInfoEditSchema = z.object({
 const educationEntryEditSchema = z.object({
     major: z.string().optional().nullable(),
     field: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
+    startMonth: z.string().optional().nullable(),
+    startYear: z.string().optional().nullable(),
+    endMonth: z.string().optional().nullable(),
+    endYear: z.string().optional().nullable(),
+    isCurrent: z.boolean().optional(),
     duration: z.string().optional().nullable(),
     GPA: z.string().optional().nullable(),
     university: z.string().optional().nullable(),
@@ -94,9 +98,12 @@ const experienceEntryEditSchema = z.object({
     company: z.string().optional().nullable(),
     position: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
-    period: z.string().optional().nullable(),
+    startMonth: z.string().optional().nullable(),
+    startYear: z.string().optional().nullable(),
+    endMonth: z.string().optional().nullable(),
+    endYear: z.string().optional().nullable(),
+    isCurrent: z.boolean().optional(),
     duration: z.string().optional().nullable(),
-    is_current_position: z.boolean().optional(),
     positionLevel: z.string().optional().nullable(),
 }).deepPartial();
 
@@ -1478,13 +1485,70 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                    <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
                    <Controller
-                     name={`parsedData.education.${index}.period`}
+                     name={`parsedData.education.${index}.startMonth`}
                      control={control}
                      render={({ field }) => (
                        <MonthYearPicker
                          value={field.value || ''}
                          onChange={field.onChange}
-                         label="Period"
+                         label="Start Month"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.education.${index}.startYear`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Start Year"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.education.${index}.endMonth`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="End Month"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.education.${index}.endYear`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="End Year"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.education.${index}.isCurrent`}
+                     control={control}
+                     render={({ field }) => (
+                       <Checkbox
+                         checked={field.value}
+                         onCheckedChange={field.onChange}
+                         id={`parsedData.education.${index}.isCurrent`}
+                       >
+                         Current
+                       </Checkbox>
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.education.${index}.duration`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Duration"
                        />
                      )}
                    />
@@ -1494,7 +1558,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    </Button>
                  </div>
                ))}
-               <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', period: '', duration: '', GPA: '' })}>
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendEducation({ university: '', major: '', field: '', campus: '', startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false, duration: '', GPA: '' })}>
                  <PlusCircle className="mr-2 h-4 w-4" /> Add Education
                </Button>
                    </div>
@@ -1505,16 +1569,26 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                )}
                {getEducation(candidate).map((edu: any, index: number) => {
                  let periodDisplay = '', duration = '';
-                 if (edu.period) {
-                   const match = edu.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
-                   if (match) {
-                     const left = `<strong>${match[1]} ${match[2]}</strong>`;
-                     const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
-                     periodDisplay = `${left} - ${right}`;
-                     duration = calculateDuration(edu.period);
-                   } else {
-                     periodDisplay = edu.period;
-                   }
+                 if (edu.startYear && edu.startMonth && edu.endYear && edu.endMonth) {
+                   const left = `<strong>${edu.startMonth} ${edu.startYear}</strong>`;
+                   const right = `<strong>${edu.endMonth} ${edu.endYear}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${edu.startMonth} ${edu.startYear} - ${edu.endMonth} ${edu.endYear}`);
+                 } else if (edu.startYear && edu.startMonth) {
+                   const left = `<strong>${edu.startMonth} ${edu.startYear}</strong>`;
+                   const right = `<strong>Present</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${edu.startMonth} ${edu.startYear} - Present`);
+                 } else if (edu.startYear && edu.endYear) {
+                   const left = `<strong>${edu.startYear}</strong>`;
+                   const right = `<strong>${edu.endYear}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${edu.startYear} - ${edu.endYear}`);
+                 } else if (edu.startMonth && edu.endMonth) {
+                   const left = `<strong>${edu.startMonth}</strong>`;
+                   const right = `<strong>${edu.endMonth}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${edu.startMonth} - ${edu.endMonth}`);
                  }
                  return (
                    <div key={`edu-${index}-${edu.university || index}`} className="relative">
@@ -1593,13 +1667,70 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                    <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
                    <Controller
-                     name={`parsedData.experience.${index}.period`}
+                     name={`parsedData.experience.${index}.startMonth`}
                      control={control}
                      render={({ field }) => (
                        <MonthYearPicker
                          value={field.value || ''}
                          onChange={field.onChange}
-                         label="Period"
+                         label="Start Month"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.experience.${index}.startYear`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Start Year"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.experience.${index}.endMonth`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="End Month"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.experience.${index}.endYear`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="End Year"
+                       />
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.experience.${index}.isCurrent`}
+                     control={control}
+                     render={({ field }) => (
+                       <Checkbox
+                         checked={field.value}
+                         onCheckedChange={field.onChange}
+                         id={`parsedData.experience.${index}.isCurrent`}
+                       >
+                         Current
+                       </Checkbox>
+                     )}
+                   />
+                   <Controller
+                     name={`parsedData.experience.${index}.duration`}
+                     control={control}
+                     render={({ field }) => (
+                       <MonthYearPicker
+                         value={field.value || ''}
+                         onChange={field.onChange}
+                         label="Duration"
                        />
                      )}
                    />
@@ -1609,7 +1740,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    </Button>
                  </div>
                ))}
-               <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', description: '', period: '', duration: '', is_current_position: false, positionLevel: '' })}>
+               <Button type="button" variant="outline" className="mt-2" onClick={() => appendExperience({ company: '', position: '', description: '', startMonth: '', startYear: '', endMonth: '', endYear: '', isCurrent: false, duration: '', positionLevel: '' })}>
                  <PlusCircle className="mr-2 h-4 w-4" /> Add Experience
                </Button>
                    </div>
@@ -1620,16 +1751,26 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                )}
                {getExperience(candidate).map((exp: any, index: number) => {
                  let periodDisplay = '', duration = '';
-                 if (exp.period) {
-                   const match = exp.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
-                   if (match) {
-                     const left = `<strong>${match[1]} ${match[2]}</strong>`;
-                     const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
-                     periodDisplay = `${left} - ${right}`;
-                     duration = calculateDuration(exp.period);
-                   } else {
-                     periodDisplay = exp.period;
-                   }
+                 if (exp.startYear && exp.startMonth && exp.endYear && exp.endMonth) {
+                   const left = `<strong>${exp.startMonth} ${exp.startYear}</strong>`;
+                   const right = `<strong>${exp.endMonth} ${exp.endYear}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${exp.startMonth} ${exp.startYear} - ${exp.endMonth} ${exp.endYear}`);
+                 } else if (exp.startYear && exp.startMonth) {
+                   const left = `<strong>${exp.startMonth} ${exp.startYear}</strong>`;
+                   const right = `<strong>Present</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${exp.startMonth} ${exp.startYear} - Present`);
+                 } else if (exp.startYear && exp.endYear) {
+                   const left = `<strong>${exp.startYear}</strong>`;
+                   const right = `<strong>${exp.endYear}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${exp.startYear} - ${exp.endYear}`);
+                 } else if (exp.startMonth && exp.endMonth) {
+                   const left = `<strong>${exp.startMonth}</strong>`;
+                   const right = `<strong>${exp.endMonth}</strong>`;
+                   periodDisplay = `${left} - ${right}`;
+                   duration = calculateDuration(`${exp.startMonth} - ${exp.endMonth}`);
                  }
                  return (
                    <div key={`exp-${index}-${exp.company || index}`} className="relative">

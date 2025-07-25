@@ -57,9 +57,29 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
        ${whereSQL}`,
       values.slice(0, values.length - 2)
     );
-    const total = parseInt(countRes.rows[0].count, 10);
+    // Add summary counts by status
+    const summaryRes = await client.query(
+      `SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
+        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
+        COUNT(*) FILTER (WHERE uq.status = 'success') as success,
+        COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
+      FROM upload_queue uq 
+      LEFT JOIN "Position" p ON uq.position_id = p.id 
+      ${whereSQL}`,
+      values.slice(0, values.length - 2)
+    );
+    const summary = summaryRes.rows[0];
+    const safeSummary = {
+      total: Number(summary.total) || 0,
+      queued: Number(summary.queued) || 0,
+      inprocess: Number(summary.inprocess) || 0,
+      success: Number(summary.success) || 0,
+      error: Number(summary.error) || 0,
+    };
     client.release();
-    const data = JSON.stringify({ type: 'queue', data: res.rows, total });
+    const data = JSON.stringify({ type: 'queue', data: res.rows, total, summary: safeSummary });
     controller.enqueue(encoder.encode(`data: ${data}\n\n`));
   } catch (error) {
     const encoder = new TextEncoder();

@@ -416,6 +416,9 @@ export const CandidateImportUploadQueue: React.FC<{
         if (typeof latestSSEData.total === 'number') {
           setTotal(latestSSEData.total);
         }
+        if (latestSSEData.summary) {
+          setStatusSummary(latestSSEData.summary);
+        }
         latestSSEData = null;
         setIsLoading(false); // Set isLoading to false when SSE update is applied
       }

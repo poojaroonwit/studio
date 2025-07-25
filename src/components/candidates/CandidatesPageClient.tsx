@@ -359,8 +359,6 @@ export function CandidatesPageClient({
         query.append('location', currentFilters.location);
         if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
       }
-      if (currentFilters.university) query.append('university', currentFilters.university);
-      if (currentFilters.major) query.append('major', currentFilters.major);
       if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
         if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
       } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {

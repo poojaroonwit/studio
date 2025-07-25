@@ -133,6 +133,7 @@ export interface CandidateFilterValues {
       end: string;
     };
   };
+  locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
 }
 
 interface CandidateFiltersProps {
@@ -683,8 +684,6 @@ export function CandidateFilters({
     setMatchingFitScoreRange([70, 100]);
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
-    setUniversity('');
-    setMajor('');
     setAiSearchQueryInput('');
     setAiSearchType('hybrid');
     setAiSearchFilters({});

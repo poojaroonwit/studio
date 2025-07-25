@@ -538,7 +538,7 @@ export const CandidateImportUploadQueue: React.FC<{
       case 'queued':
         return { label: 'Queued', className: 'bg-blue-200 text-blue-900 border-blue-200' };
       case 'inprocess':
-        return { label: 'In Progress', className: 'bg-yellow-200 text-yellow-900 border-yellow-200' };
+        return { label: 'Inprocess', className: 'bg-yellow-200 text-yellow-900 border-yellow-200' };
       case 'success':
         return { label: 'Success', className: 'bg-green-200 text-green-900 border-green-200' };
       case 'error':
@@ -650,7 +650,7 @@ export const CandidateImportUploadQueue: React.FC<{
       case 'queued':
         return 'Queued';
       case 'inprocess':
-        return 'In Progress';
+        return 'Inprocess';
       case 'success':
         return 'Success';
       case 'error':
@@ -664,7 +664,7 @@ export const CandidateImportUploadQueue: React.FC<{
   // Map display labels to all possible status codes that share the label
   const statusLabelToCodes: { [label: string]: string[] } = {
     'Queued': ['queued'],
-    'In Progress': ['inprocess'],
+    'Inprocess': ['inprocess'],
     'Success': ['success'],
     'Error': ['error', 'fail'],
     'Cancelled': ['cancelled'],

@@ -213,9 +213,19 @@ async function runProcessorLoop(): Promise<never> {
     // console.log('[Memory Usage]', `rss: ${(mem.rss/1024/1024).toFixed(2)} MB, heapUsed: ${(mem.heapUsed/1024/1024).toFixed(2)} MB, heapTotal: ${(mem.heapTotal/1024/1024).toFixed(2)} MB, external: ${(mem.external/1024/1024).toFixed(2)} MB`);
     try {
       const maxConcurrent = await getMaxConcurrentProcessors();
-      // console.log('Max concurrent processors:', maxConcurrent);
-      const jobs = Array.from({ length: maxConcurrent });
-      await Promise.all(jobs.map(() => processJob(apiKey)));
+      // Query the current number of in-process jobs
+      const client = await getPool().connect();
+      const countRes = await client.query(
+        `SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess'`
+      );
+      const currentInProgress = parseInt(countRes.rows[0].count, 10);
+      client.release();
+
+      const availableSlots = Math.max(0, maxConcurrent - currentInProgress);
+      if (availableSlots > 0) {
+        const jobs = Array.from({ length: availableSlots });
+        await Promise.all(jobs.map(() => processJob(apiKey)));
+      }
       backoff = BASE_INTERVAL_MS; // Reset backoff on success
     } catch (err) {
       hadError = true;

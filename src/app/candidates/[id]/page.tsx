@@ -2320,14 +2320,41 @@ export default function CandidateDetailPage() {
                         (skills && skills.length > 0) ? (
                             <ul className="space-y-4">
                                 {skills.map((skillEntry: any, index: number) => {
+                                    // Match FullCandidateDetail logic: handle string, array, and object
                                     if (typeof skillEntry === 'string') {
                                         // Render string-only skill entry as badges
-                                        const skills = skillEntry.split(',');
                                         return (
-                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted">
+                                            <li key={`skill-${index}-${skillEntry}`} className="p-3 border rounded-md bg-muted/30">
                                                 <h4 className="font-semibold text-foreground mb-2">Skills</h4>
                                                 <div className="flex flex-wrap gap-1.5 mt-1">
-                                                    {skills.map((s: string, i: number) => {
+                                                    {skillEntry.split(',').map((s: string, i: number) => {
+                                                        const trimmedSkill = s.trim();
+                                                        return trimmedSkill ? (
+                                                            <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </li>
+                                        );
+                                    } else if (Array.isArray(skillEntry.skill) && skillEntry.skill.length > 0) {
+                                        // Render SkillEntry object with skill array
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                <h4 className="font-semibold text-foreground mb-2">{skillEntry.segment_skill || 'Skills'}</h4>
+                                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                                    {skillEntry.skill.map((s: string, i: number) => (
+                                                        <Badge key={`${index}-${i}-${s}`} variant="secondary" className="text-xs px-2 py-1">{s}</Badge>
+                                                    ))}
+                                                </div>
+                                            </li>
+                                        );
+                                    } else if (typeof skillEntry.skill_string === 'string' && skillEntry.skill_string.length > 0) {
+                                        // Render SkillEntry object with skill_string
+                                        return (
+                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted/30">
+                                                <h4 className="font-semibold text-foreground mb-2">{skillEntry.segment_skill || 'Skills'}</h4>
+                                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                                    {skillEntry.skill_string.split(',').map((s: string, i: number) => {
                                                         const trimmedSkill = s.trim();
                                                         return trimmedSkill ? (
                                                             <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
@@ -2337,28 +2364,11 @@ export default function CandidateDetailPage() {
                                             </li>
                                         );
                                     } else {
-                                        // Render SkillEntry object
+                                        // No skills listed
                                         return (
-                                            <li key={`skill-${index}-${skillEntry.segment_skill || index}`} className="p-3 border rounded-md bg-muted">
+                                            <li key={`skill-${index}-empty`} className="p-3 border rounded-md bg-muted/30">
                                                 <h4 className="font-semibold text-foreground mb-2">{skillEntry.segment_skill || 'Skills'}</h4>
-                                                {skillEntry.skill && skillEntry.skill.length > 0 ? (
-                                                    <div className="flex flex-wrap gap-1.5 mt-1">
-                                                        {skillEntry.skill.map((s: string, i: number) => (
-                                                            <Badge key={`${index}-${i}-${s}`} variant="secondary" className="text-xs px-2 py-1">{s}</Badge>
-                                                        ))}
-                                                    </div>
-                                                ) : skillEntry.skill_string ? (
-                                                    <div className="flex flex-wrap gap-1.5 mt-1">
-                                                        {skillEntry.skill_string.split(',').map((s: string, i: number) => {
-                                                            const trimmedSkill = s.trim();
-                                                            return trimmedSkill ? (
-                                                                <Badge key={`${index}-${i}-${trimmedSkill}`} variant="secondary" className="text-xs px-2 py-1">{trimmedSkill}</Badge>
-                                                            ) : null;
-                                                        })}
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-sm text-muted-foreground">No skills listed</div>
-                                                )}
+                                                <div className="text-sm text-muted-foreground">No skills listed</div>
                                             </li>
                                         );
                                     }

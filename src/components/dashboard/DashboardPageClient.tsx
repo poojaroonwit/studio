@@ -371,10 +371,21 @@ export default function DashboardPageClient({
 
   const highPriorityCandidates = useMemo(() => {
     const safeAllCandidates = Array.isArray(allCandidates) ? allCandidates : [];
-    return safeAllCandidates.filter((c: Candidate) => 
-      !BACKLOG_EXCLUSION_STATUSES.includes(c.status) && 
-      typeof c.fitScore === 'number' && c.fitScore > 80
-    );
+    return safeAllCandidates.filter((c: Candidate) => {
+      if (BACKLOG_EXCLUSION_STATUSES.includes(c.status)) return false;
+      let appliedFitScore: number | undefined = undefined;
+      // Check if parsedData is CandidateDetails and has job_applied
+      const parsed = c.parsedData as any;
+      if (parsed && typeof parsed === 'object' && 'job_applied' in parsed && parsed.job_applied && typeof parsed.job_applied.fitScore === 'number') {
+        const rawScore = parsed.job_applied.fitScore;
+        if (typeof rawScore === 'number') {
+          appliedFitScore = (rawScore > 0 && rawScore <= 1) ? Math.round(rawScore * 100) : Math.round(rawScore);
+        }
+      } else if (typeof c.fitScore === 'number') {
+        appliedFitScore = c.fitScore;
+      }
+      return typeof appliedFitScore === 'number' && appliedFitScore >= 80;
+    });
   }, [allCandidates]);
 
   const recentApplications = useMemo(() => {
@@ -641,7 +652,7 @@ export default function DashboardPageClient({
               }
             },
             { // High Priority
-              title: "High Priority",
+              title: "High Score (80+)",
               value: highPriorityCandidates.length,
               icon: UserRoundSearch,
               color: "text-yellow-500 dark:text-yellow-400", 
@@ -650,7 +661,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:90 maxFitScore:100'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:80'))
               }
             },
             { 

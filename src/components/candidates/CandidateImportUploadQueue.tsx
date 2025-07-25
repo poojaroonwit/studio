@@ -174,6 +174,16 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   };
 
+  // Map display labels to all possible status codes that share the label - moved before usage
+  const statusLabelToCodes: { [label: string]: string[] } = {
+    'Queued': ['queued'],
+    'Inprocess': ['inprocess'],
+    'Success': ['success'],
+    'Error': ['error', 'fail'],
+    'Cancelled': ['cancelled'],
+  };
+  const uniqueStatusLabels = Object.keys(statusLabelToCodes);
+
   const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
     if (!column) {
       setSortColumn(null);
@@ -677,16 +687,6 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   };
 
-  // Map display labels to all possible status codes that share the label
-  const statusLabelToCodes: { [label: string]: string[] } = {
-    'Queued': ['queued'],
-    'Inprocess': ['inprocess'],
-    'Success': ['success'],
-    'Error': ['error', 'fail'],
-    'Cancelled': ['cancelled'],
-  };
-  const uniqueStatusLabels = Object.keys(statusLabelToCodes);
-
   // Bulk selection logic
   const allSelected = filteredJobs.length > 0 && bulkDeleteIds.length === filteredJobs.length;
   const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < filteredJobs.length;
@@ -804,6 +804,20 @@ export const CandidateImportUploadQueue: React.FC<{
       .filter(ds => ds.data[0].x !== undefined && ds.data[0].y !== undefined),
   };
 
+  // Calculate max duration for y-axis
+  const maxJobDuration = jobs
+    .filter(job => job.completed_date && job.process_date)
+    .map(job => {
+      const completed = job.completed_date ? new Date(job.completed_date) : null;
+      const process = job.process_date ? new Date(job.process_date) : null;
+      if (completed && process) {
+        return (completed.getTime() - process.getTime()) / 1000;
+      }
+      return 0;
+    })
+    .reduce((max, curr) => Math.max(max, curr), 0);
+  const yAxisMax = maxJobDuration > 0 ? Math.ceil(maxJobDuration + 60) : 600; // max duration + 60s, or 10min default
+
   const scatterOptions = {
     responsive: true,
     plugins: {
@@ -838,8 +852,8 @@ export const CandidateImportUploadQueue: React.FC<{
       },
       y: {
         type: 'logarithmic' as const,
-        min: 60, // 1 minute
-        max: 600, // 10 minutes in seconds
+        min: 10, // 10 seconds
+        max: yAxisMax, // max duration + 60s, or 10min default
         title: { display: true, text: 'Job duration (seconds)' },
         ticks: {
           callback: function(value: any) {

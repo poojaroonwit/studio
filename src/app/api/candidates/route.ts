@@ -234,6 +234,8 @@ export async function GET(request: NextRequest) {
     applicationDateEnd: searchParams.get('applicationDateEnd') || undefined,
     minFitScore: searchParams.get('minFitScore') || undefined,
     maxFitScore: searchParams.get('maxFitScore') || undefined,
+    matchingMinFitScore: searchParams.get('matchingMinFitScore') || undefined,
+    matchingMaxFitScore: searchParams.get('matchingMaxFitScore') || undefined,
   };
 
   let whereClauses: string[] = [];
@@ -443,14 +445,17 @@ export async function GET(request: NextRequest) {
   // Handle experience years filter (search in parsed data)
   if (filters.minExperienceYears || filters.maxExperienceYears) {
     if (filters.minExperienceYears && filters.maxExperienceYears) {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++} AND c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%"experience":${filters.minExperienceYears}%`, `%"experience":${filters.maxExperienceYears}%`);
+      whereClauses.push('(c."parsedData"->>\'experience\')::float >= $' + paramIndex + ' AND (c."parsedData"->>\'experience\')::float <= $' + (paramIndex + 1));
+      queryParams.push(filters.minExperienceYears, filters.maxExperienceYears);
+      paramIndex += 2;
     } else if (filters.minExperienceYears) {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%"experience":${filters.minExperienceYears}%`);
+      whereClauses.push('(c."parsedData"->>\'experience\')::float >= $' + paramIndex);
+      queryParams.push(filters.minExperienceYears);
+      paramIndex++;
     } else if (filters.maxExperienceYears) {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%"experience":${filters.maxExperienceYears}%`);
+      whereClauses.push('(c."parsedData"->>\'experience\')::float <= $' + paramIndex);
+      queryParams.push(filters.maxExperienceYears);
+      paramIndex++;
     }
   }
 
@@ -471,14 +476,37 @@ export async function GET(request: NextRequest) {
   // Handle fit score range filter
   if (filters.minFitScore || filters.maxFitScore) {
     if (filters.minFitScore && filters.maxFitScore) {
-      whereClauses.push(`c."fitScore" >= $${paramIndex++} AND c."fitScore" <= $${paramIndex++}`);
+      // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
+      whereClauses.push(`((c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100) AND c."fitScore" <= $${paramIndex + 1})`);
       queryParams.push(parseInt(filters.minFitScore), parseInt(filters.maxFitScore));
+      paramIndex++;
     } else if (filters.minFitScore) {
-      whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+      whereClauses.push(`(c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100)`);
       queryParams.push(parseInt(filters.minFitScore));
+      paramIndex++;
     } else if (filters.maxFitScore) {
-      whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+      whereClauses.push(`c."fitScore" <= $${paramIndex}`);
       queryParams.push(parseInt(filters.maxFitScore));
+      paramIndex++;
+    }
+  }
+
+  // Handle matching fit score range filter (best job match)
+  if (filters.matchingMinFitScore || filters.matchingMaxFitScore) {
+    // Add a lateral join to get the max fitScore from JobMatch for each candidate
+    // We'll add the filter to the WHERE clause using the alias jm_max
+    if (filters.matchingMinFitScore && filters.matchingMaxFitScore) {
+      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex} AND COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex + 1}`);
+      queryParams.push(parseInt(filters.matchingMinFitScore), parseInt(filters.matchingMaxFitScore));
+      paramIndex += 2;
+    } else if (filters.matchingMinFitScore) {
+      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex}`);
+      queryParams.push(parseInt(filters.matchingMinFitScore));
+      paramIndex++;
+    } else if (filters.matchingMaxFitScore) {
+      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex}`);
+      queryParams.push(parseInt(filters.matchingMaxFitScore));
+      paramIndex++;
     }
   }
 
@@ -514,6 +542,9 @@ export async function GET(request: NextRequest) {
         FROM "JobMatch" jm
         WHERE jm."candidateId" = c.id
       ) AS jm_data ON true
+      LEFT JOIN LATERAL (
+        SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
+      ) AS jm_max ON true
       ${whereString}
       ORDER BY ${sortColumn} ${sortDirection}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1};

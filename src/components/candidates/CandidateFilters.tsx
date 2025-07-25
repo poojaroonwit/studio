@@ -133,9 +133,6 @@ export interface CandidateFilterValues {
       end: string;
     };
   };
-  university?: string;
-  major?: string;
-  locationOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith' | 'other';
 }
 
 interface CandidateFiltersProps {
@@ -265,30 +262,6 @@ export function CandidateFilters({
   // Add locationOperator state
   const [locationOperator, setLocationOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'>(initialFilters.locationOperator || 'contains');
 
-  // Add state for university and major
-  const [university, setUniversity] = useState(initialFilters.university || '');
-  const [major, setMajor] = useState(initialFilters.major || '');
-
-  // Add state for dynamic options
-  const [universityOptions, setUniversityOptions] = useState<string[]>([]);
-  const [majorOptions, setMajorOptions] = useState<string[]>([]);
-
-  // Fetch university options on mount
-  useEffect(() => {
-    fetch('/api/candidates/universities')
-      .then(res => res.json())
-      .then(data => setUniversityOptions(Array.isArray(data.data) ? data.data : []))
-      .catch(() => setUniversityOptions([]));
-  }, []);
-
-  // Fetch major options on mount
-  useEffect(() => {
-    fetch('/api/candidates/majors')
-      .then(res => res.json())
-      .then(data => setMajorOptions(Array.isArray(data.data) ? data.data : []))
-      .catch(() => setMajorOptions([]));
-  }, []);
-
   // Define a list of common skills
   const skillOptions = [
     'React', 'Python', 'AWS', 'Java', 'SQL', 'JavaScript', 'TypeScript', 'Node.js', 'Docker', 'Kubernetes', 'C#', 'C++', 'Go', 'Ruby', 'PHP', 'HTML', 'CSS', 'Angular', 'Vue', 'Swift', 'Objective-C', 'Scala', 'Perl', 'R', 'MATLAB', 'Azure', 'GCP', 'Linux', 'Windows', 'iOS', 'Android', 'Flutter', 'Spring', 'Django', 'Flask', 'Express', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis', 'GraphQL', 'REST', 'SOAP', 'Jenkins', 'CI/CD', 'Terraform', 'Ansible', 'Puppet', 'Figma', 'Sketch', 'Zeplin', 'Jira', 'Confluence', 'Salesforce', 'SAP', 'PowerBI', 'Tableau', 'Excel', 'Other'
@@ -388,12 +361,6 @@ export function CandidateFilters({
             }
           } catch {}
           break;
-        case 'university':
-          filters.university = value;
-          break;
-        case 'major':
-          filters.major = value;
-          break;
         case 'location':
           filters.location = value;
           break;
@@ -437,8 +404,6 @@ export function CandidateFilters({
         to: parsedFilters.applicationDateEnd
       });
     }
-    if (parsedFilters.university) setUniversity(parsedFilters.university);
-    if (parsedFilters.major) setMajor(parsedFilters.major);
     if (parsedFilters.location) setLocation(parsedFilters.location);
     if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
     
@@ -451,8 +416,6 @@ export function CandidateFilters({
       matchingMaxFitScore: parsedFilters.matchingMaxFitScore ?? matchingFitScoreRange[1],
       applicationDateStart: parsedFilters.applicationDateStart,
       applicationDateEnd: parsedFilters.applicationDateEnd,
-      university: parsedFilters.university,
-      major: parsedFilters.major,
       location: parsedFilters.location,
       locationOperator: parsedFilters.locationOperator,
       aiSearchQuery: undefined,
@@ -489,8 +452,6 @@ export function CandidateFilters({
     }
     if (applicationDateRange?.from) parts.push(`applicationDateStart:${applicationDateRange.from.toISOString().slice(0, 10)}`);
     if (applicationDateRange?.to) parts.push(`applicationDateEnd:${applicationDateRange.to.toISOString().slice(0, 10)}`);
-    if (university) parts.push(`university:${university}`);
-    if (major) parts.push(`major:${major}`);
     
     setAdvancedQueryInput(parts.join(' '));
   };
@@ -529,8 +490,6 @@ export function CandidateFilters({
             to: parsedFilters.applicationDateEnd
           });
         }
-        if (parsedFilters.university) setUniversity(parsedFilters.university);
-        if (parsedFilters.major) setMajor(parsedFilters.major);
         if (parsedFilters.location) setLocation(parsedFilters.location);
         if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
         
@@ -541,8 +500,6 @@ export function CandidateFilters({
           maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
           applicationDateStart: parsedFilters.applicationDateStart,
           applicationDateEnd: parsedFilters.applicationDateEnd,
-          university: parsedFilters.university,
-          major: parsedFilters.major,
           location: parsedFilters.location,
           locationOperator: parsedFilters.locationOperator,
           aiSearchQuery: undefined,
@@ -563,8 +520,6 @@ export function CandidateFilters({
     setFitScoreRange([0, 100]);
     setMatchingFitScoreRange([70, 100]);
     setApplicationDateRange(undefined);
-    setUniversity('');
-    setMajor('');
     setLocation('');
     setLocationOperator('contains');
     setAiSearchQueryInput('');
@@ -595,8 +550,6 @@ export function CandidateFilters({
       matchingMaxFitScore: 100,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
-      university: undefined,
-      major: undefined,
       location: undefined,
       locationOperator: 'contains',
       aiSearchQuery: undefined,
@@ -625,8 +578,6 @@ export function CandidateFilters({
     setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
     setAiSearchType(initialFilters.aiSearchType || 'hybrid');
     setAiSearchFilters(initialFilters.aiSearchFilters || {});
-    setUniversity(initialFilters.university || '');
-    setMajor(initialFilters.major || '');
   }, [initialFilters]);
 
   // Auto-apply filters when they are set from URL parameters
@@ -641,8 +592,6 @@ export function CandidateFilters({
                          initialFilters.skills ||
                          initialFilters.location ||
                          initialFilters.aiSearchQuery ||
-                         initialFilters.university ||
-                         initialFilters.major ||
                          initialFilters.locationOperator;
     
         if (hasUrlFilters) {
@@ -666,8 +615,6 @@ export function CandidateFilters({
         maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
         applicationDateStart: parsedFilters.applicationDateStart,
         applicationDateEnd: parsedFilters.applicationDateEnd,
-        university: parsedFilters.university,
-        major: parsedFilters.major,
         location: parsedFilters.location,
         locationOperator: parsedFilters.locationOperator,
         aiSearchQuery: undefined,
@@ -693,8 +640,6 @@ export function CandidateFilters({
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-        university: university || undefined,
-        major: major || undefined,
         aiSearchQuery: undefined,
       });
     }
@@ -753,8 +698,6 @@ export function CandidateFilters({
       selectedRecruiterIds: undefined,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
-      university: undefined,
-      major: undefined,
       location: undefined,
       locationOperator: 'contains',
       aiSearchQuery: undefined,
@@ -1173,32 +1116,6 @@ export function CandidateFilters({
                               <Input id="location-search" placeholder="e.g., Bangkok, Thailand..." value={location} onChange={(e) => setLocation(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
                             </div>
                           </div>
-                          <div>
-                            <Label htmlFor="university-search" className="text-xs">University</Label>
-                            <Select value={university || undefined} onValueChange={setUniversity} disabled={isLoading || isAiSearching}>
-                              <SelectTrigger className="w-full h-8 text-sm mt-1">
-                                <SelectValue placeholder="Select university..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {universityOptions.map(u => (
-                                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="major-search" className="text-xs">Major</Label>
-                            <Select value={major || undefined} onValueChange={setMajor} disabled={isLoading || isAiSearching}>
-                              <SelectTrigger className="w-full h-8 text-sm mt-1">
-                                <SelectValue placeholder="Select major..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {majorOptions.map(m => (
-                                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -1522,8 +1439,8 @@ export function CandidateFilters({
                               <li><b>matchingfitscore</b>: Matching fit score range. <code>matchingFitScoreMin:70 matchingFitScoreMax:100</code></li>
                               <li><b>applicationdatestart</b>: Start date (YYYY-MM-DD). <code>applicationDateStart:2024-01-01</code></li>
                               <li><b>applicationdateend</b>: End date (YYYY-MM-DD). <code>applicationDateEnd:2024-01-31</code></li>
-                              <li><b>university</b>: University. <code>university:Chulalongkorn</code></li>
-                              <li><b>major</b>: Major. <code>major:Computer Science</code></li>
+                              <li><b>location</b>: Location. <code>location:Bangkok,Thailand</code></li>
+                              <li><b>locationoperator</b>: Location operator (contains, is, startsWith, endsWith, other). <code>locationOperator:contains</code></li>
                             </ul>
                             <div className="mt-4">
                               <b>Examples:</b>
@@ -1533,7 +1450,6 @@ export function CandidateFilters({
                                 <li><code>recruiterId:unassigned</code> <span className="text-muted-foreground">// Not assigned to any recruiter</span></li>
                                 <li><code>status:Off</code> <span className="text-muted-foreground">// Candidates with no status assigned</span></li>
                                 <li><code>positionId:pos1,pos2 status:Screening</code> <span className="text-muted-foreground">// Candidates in specific positions and status</span></li>
-                                <li><code>university:Chulalongkorn major:Computer Science</code> <span className="text-muted-foreground">// Candidates with specific education</span></li>
                               </ul>
                             </div>
                           </div>

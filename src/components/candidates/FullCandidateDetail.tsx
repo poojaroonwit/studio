@@ -13,7 +13,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { format } from 'date-fns';
+import { format, differenceInMonths } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
@@ -42,7 +42,7 @@ import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
-import { differenceInMonths, parse, isValid } from 'date-fns';
+import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -168,6 +168,61 @@ function displayFitScore(score: number | undefined | null) {
   if (typeof score !== 'number' || isNaN(score)) return '';
   if (score >= 0 && score <= 1) return `${Math.round(score * 100)}%`;
   return `${Math.round(score)}%`;
+}
+
+function formatTimelinePeriod(
+  startMonth: string | undefined,
+  startYear: string | undefined,
+  endMonth: string | undefined,
+  endYear: string | undefined,
+  isCurrent: boolean
+) {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  let left = '', right = '';
+  if (startMonth && startYear) {
+    left = `<strong>${months[parseInt(startMonth, 10) - 1] || startMonth} ${startYear}</strong>`;
+  } else if (startYear) {
+    left = `<strong>${startYear}</strong>`;
+  }
+  if (isCurrent) {
+    right = `<strong>Present</strong>`;
+  } else if (endMonth && endYear) {
+    right = `<strong>${months[parseInt(endMonth, 10) - 1] || endMonth} ${endYear}</strong>`;
+  } else if (endYear) {
+    right = `<strong>${endYear}</strong>`;
+  }
+  return `${left} - ${right}`;
+}
+
+function formatTimelineDuration(
+  startMonth: string | undefined,
+  startYear: string | undefined,
+  endMonth: string | undefined,
+  endYear: string | undefined,
+  isCurrent: boolean
+) {
+  if (!startYear) return '';
+  const startYearNum = startYear ? parseInt(startYear, 10) : undefined;
+  const endYearNum = endYear ? parseInt(endYear, 10) : undefined;
+  const start = startMonth && startYearNum !== undefined ? new Date(startYearNum, parseInt(startMonth, 10) - 1) : new Date(startYearNum || 0, 0);
+  let end;
+  if (isCurrent) {
+    end = new Date();
+  } else if (endYearNum !== undefined) {
+    end = endMonth ? new Date(endYearNum, parseInt(endMonth, 10) - 1) : new Date(endYearNum, 0);
+  } else {
+    end = new Date();
+  }
+  const months = differenceInMonths(end, start);
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  let parts = [];
+  if (years > 0) parts.push(`${years} Year${years > 1 ? 's' : ''}`);
+  if (remMonths > 0) parts.push(`${remMonths} Month${remMonths > 1 ? 's' : ''}`);
+  return parts.length ? `(${parts.join(', ')})` : '';
 }
 
 const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, isModal = false, onClose, comments, resumes, onRefresh }) => {
@@ -303,7 +358,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
           fitScore: data.fitScore || null,
           status: data.status || '',
-          parsedData: data.parsedData,
+          parsedData: {
+            ...data.parsedData,
+            education: data.parsedData?.education || [],
+            experience: data.parsedData?.experience || [],
+            skills: data.parsedData?.skills || [],
+            job_suitable: data.parsedData?.job_suitable || [],
+            job_matches: data.parsedData?.job_matches || [],
+          },
         });
       } catch (err) {
         console.error('Error fetching candidate:', err);
@@ -1028,7 +1090,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           {/* Remove Basic Information section here */}
         </div>
         {/* MAIN CONTENT (50%) with Sections */}
-        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto`}>
+        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted`}>
           {/* Job Applied Section */}
           <section className="mb-4">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
@@ -1182,7 +1244,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                         }}
                       >
                         <div 
-                          className="rounded-lg p-4 h-full border shadow-lg"
+                          className="rounded-lg p-4 h-full border shadow-lg bg-card"
                         >
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-semibold text-foreground text-lg">
@@ -1568,38 +1630,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                )}
                {getEducation(candidate).map((edu: any, index: number) => {
-                 let periodDisplay = '', duration = '';
-                 if (edu.startYear && edu.startMonth && edu.endYear && edu.endMonth) {
-                   const left = `<strong>${edu.startMonth} ${edu.startYear}</strong>`;
-                   const right = `<strong>${edu.endMonth} ${edu.endYear}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${edu.startMonth} ${edu.startYear} - ${edu.endMonth} ${edu.endYear}`);
-                 } else if (edu.startYear && edu.startMonth) {
-                   const left = `<strong>${edu.startMonth} ${edu.startYear}</strong>`;
-                   const right = `<strong>Present</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${edu.startMonth} ${edu.startYear} - Present`);
-                 } else if (edu.startYear && edu.endYear) {
-                   const left = `<strong>${edu.startYear}</strong>`;
-                   const right = `<strong>${edu.endYear}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${edu.startYear} - ${edu.endYear}`);
-                 } else if (edu.startMonth && edu.endMonth) {
-                   const left = `<strong>${edu.startMonth}</strong>`;
-                   const right = `<strong>${edu.endMonth}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${edu.startMonth} - ${edu.endMonth}`);
-                 }
+                 const isCurrent = !edu.endYear && !edu.endMonth;
+                 const periodDisplay = formatTimelinePeriod(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, isCurrent);
+                 const duration = formatTimelineDuration(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, isCurrent);
                  return (
                    <div key={`edu-${index}-${edu.university || index}`} className="relative">
                      <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                        <div className="text-right h-full flex flex-col items-end justify-start">
-                         {/* Period and duration display */}
                          {periodDisplay && (
-                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                           <div className="text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                          )}
                          {duration && (
-                           <div className="text-sm text-muted-foreground">({duration})</div>
+                           <div className="text-sm text-muted-foreground">{duration}</div>
                          )}
                        </div>
                        {/* Timeline icon and vertical line */}
@@ -1750,38 +1792,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                )}
                {getExperience(candidate).map((exp: any, index: number) => {
-                 let periodDisplay = '', duration = '';
-                 if (exp.startYear && exp.startMonth && exp.endYear && exp.endMonth) {
-                   const left = `<strong>${exp.startMonth} ${exp.startYear}</strong>`;
-                   const right = `<strong>${exp.endMonth} ${exp.endYear}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${exp.startMonth} ${exp.startYear} - ${exp.endMonth} ${exp.endYear}`);
-                 } else if (exp.startYear && exp.startMonth) {
-                   const left = `<strong>${exp.startMonth} ${exp.startYear}</strong>`;
-                   const right = `<strong>Present</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${exp.startMonth} ${exp.startYear} - Present`);
-                 } else if (exp.startYear && exp.endYear) {
-                   const left = `<strong>${exp.startYear}</strong>`;
-                   const right = `<strong>${exp.endYear}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${exp.startYear} - ${exp.endYear}`);
-                 } else if (exp.startMonth && exp.endMonth) {
-                   const left = `<strong>${exp.startMonth}</strong>`;
-                   const right = `<strong>${exp.endMonth}</strong>`;
-                   periodDisplay = `${left} - ${right}`;
-                   duration = calculateDuration(`${exp.startMonth} - ${exp.endMonth}`);
-                 }
+                 const isCurrent = !exp.endYear && !exp.endMonth;
+                 const periodDisplay = formatTimelinePeriod(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, isCurrent);
+                 const duration = formatTimelineDuration(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, isCurrent);
                  return (
                    <div key={`exp-${index}-${exp.company || index}`} className="relative">
                      <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                        <div className="text-right h-full flex flex-col items-end justify-start">
-                         {/* Period and duration display */}
                          {periodDisplay && (
-                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                           <div className="text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                          )}
                          {duration && (
-                           <div className="text-sm text-muted-foreground">({duration})</div>
+                           <div className="text-sm text-muted-foreground">{duration}</div>
                          )}
                        </div>
                        {/* Timeline icon and vertical line */}

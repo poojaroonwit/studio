@@ -4,6 +4,47 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Briefcase, Building } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
 
+function formatTimelinePeriod(startMonth, startYear, endMonth, endYear, isCurrent) {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  let left = '', right = '';
+  if (startMonth && startYear) {
+    left = `<strong>${months[parseInt(startMonth, 10) - 1] || startMonth} ${startYear}</strong>`;
+  } else if (startYear) {
+    left = `<strong>${startYear}</strong>`;
+  }
+  if (isCurrent) {
+    right = `<strong>Present</strong>`;
+  } else if (endMonth && endYear) {
+    right = `<strong>${months[parseInt(endMonth, 10) - 1] || endMonth} ${endYear}</strong>`;
+  } else if (endYear) {
+    right = `<strong>${endYear}</strong>`;
+  }
+  return `${left} - ${right}`;
+}
+
+function formatTimelineDuration(startMonth, startYear, endMonth, endYear, isCurrent) {
+  if (!startYear) return '';
+  const start = startMonth ? new Date(startYear, parseInt(startMonth, 10) - 1) : new Date(startYear, 0);
+  let end;
+  if (isCurrent) {
+    end = new Date();
+  } else if (endYear) {
+    end = endMonth ? new Date(endYear, parseInt(endMonth, 10) - 1) : new Date(endYear, 0);
+  } else {
+    end = new Date();
+  }
+  const months = differenceInMonths(end, start);
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  let parts = [];
+  if (years > 0) parts.push(`${years} Year${years > 1 ? 's' : ''}`);
+  if (remMonths > 0) parts.push(`${remMonths} Month${remMonths > 1 ? 's' : ''}`);
+  return parts.length ? `(${parts.join(', ')})` : '';
+}
+
 interface CandidateExperienceProps {
   experience: ExperienceEntry[];
   // Add any handlers or state needed for editing, saving, etc.
@@ -183,82 +224,82 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
       <CardContent>
         {sortedExperience && sortedExperience.length > 0 ? (
           <div className="relative">
-            {sortedExperience.map((entry, idx) => (
-              <div key={idx} className="relative">
-                {/* Timeline item */}
-                <div className="flex items-start space-x-4">
-                  {/* Cycle node */}
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                      <Briefcase className="w-4 h-4 text-primary-foreground" />
+            {sortedExperience.map((entry, idx) => {
+              const isCurrent = entry.is_current_position === true || entry.isCurrent === true || (!entry.endMonth && !entry.endYear);
+              const periodDisplay = formatTimelinePeriod(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear, isCurrent);
+              const duration = formatTimelineDuration(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear, isCurrent);
+              return (
+                <div key={idx} className="relative">
+                  {/* Timeline item */}
+                  <div className="flex items-start space-x-4">
+                    {/* Cycle node */}
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                        <Briefcase className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 pb-12">
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        {/* Position and Level */}
+                        <div className="mb-2">
+                          <span className="text-primary font-semibold">
+                            {entry.position || 'Position not specified'}
+                          </span>
+                          {entry.positionLevel && entry.positionLevel !== 'undefined' && entry.positionLevel !== undefined && (
+                            <span className="text-foreground font-semibold">
+                              {' '}({entry.positionLevel})
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Company with Building Icon */}
+                        {entry.company && (
+                          <div className="mb-3 flex items-center gap-2">
+                            {/* <span className="text-foreground">at</span> */}
+                            <Building className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-foreground">
+                              {entry.company}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Period and Duration */}
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-3">
+                          {periodDisplay && (
+                            <span dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                          )}
+                          {duration && (
+                            <span>{duration}</span>
+                          )}
+                        </div>
+                        
+                        {/* Description */}
+                        {entry.description && (
+                          <div className="mt-3">
+                            <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                            <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                              {entry.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 pb-12">
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      {/* Position and Level */}
-                      <div className="mb-2">
-                        <span className="text-primary font-semibold">
-                          {entry.position || 'Position not specified'}
-                        </span>
-                        {entry.positionLevel && entry.positionLevel !== 'undefined' && entry.positionLevel !== undefined && (
-                          <span className="text-foreground font-semibold">
-                            {' '}({entry.positionLevel})
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Company with Building Icon */}
-                      {entry.company && (
-                        <div className="mb-3 flex items-center gap-2">
-                          {/* <span className="text-foreground">at</span> */}
-                          <Building className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground">
-                            {entry.company}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Period and Duration */}
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-3">
-                        {entry.period && (
-                          <span>Period: {entry.period}</span>
-                        )}
-                        {calculateDuration(entry) && (
-                          <span>Duration: {calculateDuration(entry)}</span>
-                        )}
-                        {(entry.is_current_position === true || entry.isCurrent === true ||
-                          (entry.period && (entry.period.includes('Present') || entry.period.includes('present'))) ||
-                          !entry.endMonth || !entry.endYear) && (
-                          <span className="text-primary font-medium">Current Position</span>
-                        )}
-                      </div>
-                      
-                      {/* Description */}
-                      {entry.description && (
-                        <div className="mt-3">
-                          <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
-                          <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
-                            {entry.description}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  {/* Connecting line (except for the last item) */}
+                  {idx < sortedExperience.length - 1 && (
+                    <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
+                  )}
+                  
+                  {/* Line for the last item that extends to bottom */}
+                  {idx === sortedExperience.length - 1 && (
+                    <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
+                  )}
                 </div>
-                
-                {/* Connecting line (except for the last item) */}
-                {idx < sortedExperience.length - 1 && (
-                  <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
-                )}
-                
-                {/* Line for the last item that extends to bottom */}
-                {idx === sortedExperience.length - 1 && (
-                  <div className="absolute left-4 top-8 w-0.5 h-12 bg-border" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-muted-foreground text-center py-8">

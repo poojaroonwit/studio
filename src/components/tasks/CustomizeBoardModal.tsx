@@ -128,7 +128,7 @@ function MultiSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-popover border rounded-lg shadow-lg">
+        <div className="absolute z-[210] mt-1 w-full bg-popover border rounded-lg shadow-lg">
           {/* Search */}
           <div className="p-2 border-b">
             <input

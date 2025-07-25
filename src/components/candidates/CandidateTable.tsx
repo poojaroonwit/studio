@@ -673,7 +673,7 @@ export function CandidateTable({
                     <React.Fragment key={email}>
                       <TableRow className="bg-muted/30">
                         <TableCell colSpan={99} className="p-0">
-                          <div className="flex items-center gap-2 px-2 py-1">
+                          <div className="flex items-center gap-2 px-2 py-1 bg-muted">
                             <Button variant="ghost" size="icon" onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))} aria-label={isExpanded ? 'Collapse group' : 'Expand group'} className="border border-primary">
                               {isExpanded ? <ChevronDown /> : <ChevronUp />}
                             </Button>
@@ -833,7 +833,7 @@ export function CandidateTable({
                           return [
                             row,
                             <TableRow key={`${email}-footer`} className="bg-muted/20">
-                              <TableCell colSpan={99} className="text-right text-xs italic px-4 py-2 border-t">
+                              <TableCell colSpan={99} className="text-right text-xs italic px-4 py-2 border-t bg-muted">
                                 Group total: {group.length} candidate{group.length !== 1 ? 's' : ''}
                               </TableCell>
                             </TableRow>

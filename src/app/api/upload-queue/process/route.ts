@@ -362,6 +362,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           signal: AbortSignal.timeout(3600000), // 1 hour timeout
         });
         webhookResStatus = webhookRes.status;
+        let webhookResponseText = null;
         if (webhookResStatus === 200) {
           status = 'success';
           error = null;
@@ -370,16 +371,28 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           status = 'fail';
           error = `Webhook responded with status ${webhookResStatus}`;
           try {
-            error_details = await webhookRes.text();
+            webhookResponseText = await webhookRes.text();
+            error_details = webhookResponseText;
             console.error('[Webhook] Non-200 response body:', error_details);
           } catch {
             error_details = error;
           }
         }
+        // --- Store webhook details in payload for UI ---
+        payload = {
+          ...(job.webhook_payload || {}),
+          webhookResStatus,
+          webhookResponseText,
+          webhookError: status === 'fail' ? error : undefined,
+        };
       } catch (err) {
         status = 'fail';
         error = 'Webhook call failed';
         error_details = err instanceof Error ? err.message : String(err);
+        payload = {
+          ...(job.webhook_payload || {}),
+          webhookError: error,
+        };
         console.error('[Webhook] Call failed:', error_details);
       }
     } else {

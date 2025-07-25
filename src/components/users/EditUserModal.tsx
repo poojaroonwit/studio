@@ -266,7 +266,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                                         <SelectValue placeholder="Select a role" />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent className="z-[210]">
                                       {userRoleOptions.map(roleValue => (
                                         <SelectItem key={roleValue} value={roleValue}>{roleValue}</SelectItem>
                                       ))}
@@ -293,7 +293,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                                           <SelectValue placeholder="Select authentication method" />
                                         </SelectTrigger>
                                       </FormControl>
-                                      <SelectContent>
+                                      <SelectContent className="z-[210]">
                                         <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                                         <SelectItem value="azure">Azure AD</SelectItem>
                                       </SelectContent>

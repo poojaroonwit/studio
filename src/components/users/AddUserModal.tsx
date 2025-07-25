@@ -257,7 +257,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                                       <SelectValue placeholder="Select a role" />
                                     </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent>
+                                  <SelectContent className="z-[210]">
                                     {userRoleOptions.map(role => (
                                       <SelectItem key={role} value={role}>{role}</SelectItem>
                                     ))}
@@ -282,7 +282,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                                       <SelectValue placeholder="Select authentication method" />
                                     </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent>
+                                  <SelectContent className="z-[210]">
                                     <SelectItem value="basic">Basic (Email/Password)</SelectItem>
                                     <SelectItem value="azure">Azure AD</SelectItem>
                                   </SelectContent>

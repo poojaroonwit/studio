@@ -292,6 +292,19 @@ export async function POST(request: NextRequest) {
     } catch (sseError) {
       console.error('Failed to broadcast upload queue update via SSE:', sseError);
     }
+
+    // Automatically trigger processing of the queue
+    try {
+      const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+      await fetch(processUrl, {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.PROCESSOR_API_KEY || '',
+        },
+      });
+    } catch (autoProcessError) {
+      console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
+    }
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

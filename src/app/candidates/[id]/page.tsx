@@ -1737,7 +1737,7 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Job Matches Section */}
-                  <section className={`mb-4 bg-card ${(!candidateJobMatches || candidateJobMatches.length === 0) ? 'border border-border rounded-lg p-4' : ''}`}>
+                  <section className={`mb-4 ${(!candidateJobMatches || candidateJobMatches.length === 0) ? 'border border-border rounded-lg p-4' : ''}`}>
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobMatchesOpen(o => !o)}>
                       <ListChecks className="mr-2 h-6 w-6 text-primary" />
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
@@ -2415,17 +2415,17 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-3 bg-card rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="lg:col-span-3 bg-muted  rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto">
               <Accordion type="multiple" defaultValue={["recruiter-assignment", "comments-activity", "attachments"]}>
                 {/* Recruiter Assignment Section */}
                 <AccordionItem value="recruiter-assignment" className="border-b">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
                     <div className="flex items-center">
-                      <Users className="mr-2 h-5 w-5 text-primary" />
+                      <Users className="mr-2 h-5 w-5 text-primary bg-card" />
                       <span className="text-lg font-semibold">Recruiter Assignment</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4">
+                  <AccordionContent className="px-6 pb-4 pt-4 bg/muted">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
                       <Select
@@ -2451,13 +2451,13 @@ export default function CandidateDetailPage() {
 
                 {/* Comments & Activity Section */}
                 <AccordionItem value="comments-activity" className="border-b">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                    <div className="flex items-center">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
+                    <div className="flex items-center bg-card">
                       <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                      <span className="text-lg font-semibold">Comments & Activity</span>
+                      <span className="text-lg font-semibold ">Comments & Activity</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4">
+                  <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
                     <CandidateCommentsSection 
                       candidateId={candidateId} 
                       comments={comments} 
@@ -2469,13 +2469,13 @@ export default function CandidateDetailPage() {
                 
                 {/* Attachments Section */}
                 <AccordionItem value="attachments" className="border-b-0">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                    <div className="flex items-center">
+                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
+                    <div className="flex items-center bg-card">
                       <UploadCloud className="mr-2 h-5 w-5 text-primary" />
                       <span className="text-lg font-semibold">Attachments</span>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4">
+                  <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
                     <CandidateResumesSection 
                       candidateId={candidateId} 
                       resumes={Array.isArray(attachments) ? attachments : []} 

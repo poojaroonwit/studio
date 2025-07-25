@@ -192,7 +192,11 @@ export const CandidateImportUploadQueue: React.FC<{
   const filteredJobs = jobs.filter(job => {
     // Show all jobs, regardless of source
     const matchesName = job.file_name?.toLowerCase().includes(filter.toLowerCase());
-    const matchesStatus = statusFilter ? getDisplayStatus(job.status) === statusFilter : true;
+    let matchesStatus = true;
+    if (statusFilter) {
+      const codes = statusLabelToCodes[statusFilter] || [];
+      matchesStatus = codes.includes(getDisplayStatus(job.status));
+    }
     // Date range filter
     const inDateRange = isInRange(job.upload_date);
     return matchesName && matchesStatus && inDateRange;
@@ -662,6 +666,17 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   };
 
+  // Map display labels to all possible status codes that share the label
+  const statusLabelToCodes: { [label: string]: string[] } = {
+    'Queued': ['queued'],
+    'In Progress': ['inprogress', 'inprocess'],
+    'Processing': ['processing'],
+    'Success': ['success'],
+    'Error': ['error', 'fail'],
+    'Cancelled': ['cancelled'],
+  };
+  const uniqueStatusLabels = Object.keys(statusLabelToCodes);
+
   // Bulk selection logic
   const allSelected = filteredJobs.length > 0 && bulkDeleteIds.length === filteredJobs.length;
   const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < filteredJobs.length;
@@ -774,9 +789,9 @@ export const CandidateImportUploadQueue: React.FC<{
             className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
           >
             <option value="">All Statuses</option>
-            {/* Show all possible statuses, not just those present in jobs */}
-            {allPossibleStatuses.map(status => (
-              <option key={status} value={status}>{getStatusDisplayLabel(status)}</option>
+            {/* Show only unique display labels */}
+            {uniqueStatusLabels.map(label => (
+              <option key={label} value={label}>{label}</option>
             ))}
           </select>
           <div className="flex items-center gap-2">

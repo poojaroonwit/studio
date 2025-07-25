@@ -199,6 +199,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
                 <div className="flex items-center gap-2 mb-1">
                   {getFileIcon(attachment)}
                   <button
+                    type="button"
                     onClick={() => handleFileClick(attachment)}
                     className="font-medium hover:underline text-primary truncate text-left"
                   >

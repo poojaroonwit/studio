@@ -53,7 +53,7 @@ const WEBHOOK_EVENT_CATEGORIES = [
     category: 'Upload Queue Events',
     events: [
       { id: 'upload_queue.created', label: 'Upload Queue Created', description: 'Triggered when an upload queue item is created.' },
-      { id: 'upload_queue.processing', label: 'Upload Queue Processing', description: 'Triggered when an upload queue item is processing.' },
+      { id: 'upload_queue.inprocess', label: 'Upload Queue In Process', description: 'Triggered when an upload queue item is in process.' },
       { id: 'upload_queue.completed', label: 'Upload Queue Completed', description: 'Triggered when an upload queue item is completed.' },
       { id: 'upload_queue.failed', label: 'Upload Queue Failed', description: 'Triggered when an upload queue item fails.' },
       { id: 'upload_queue.retry', label: 'Upload Queue Retry', description: 'Triggered when an upload queue item is retried.' },

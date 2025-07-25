@@ -177,7 +177,7 @@ function UploadPageContent() {
       const numSuccess = queueResults.filter(r => r.success).length;
       const numError = queueResults.length - numSuccess;
       if (numError === 0) {
-        toast.success(`Bulk upload: ${numSuccess} file(s) queued for processing.`);
+        toast.success(`Bulk upload: ${numSuccess} file(s) queued for upload.`);
       } else {
         toast.error(`Bulk upload: ${numError} failed, ${numSuccess} queued.`);
         console.table(queueResults);

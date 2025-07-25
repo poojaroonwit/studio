@@ -70,20 +70,20 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('BEGIN');
-    // Lock all inprogress/inprocess/processing rows to prevent race conditions
+    // Lock all inprocess rows to prevent race conditions
     const countRes = await client.query(
-      `SELECT COUNT(*) AS count FROM upload_queue WHERE status IN ('inprogress', 'inprocess', 'processing') FOR UPDATE`
+      `SELECT id FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
     );
-    const currentInProgress = Number(countRes.rows[0]?.count || 0);
+    const currentInProgress = countRes.rowCount;
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
       await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
-    // Atomically pick and mark the oldest queued job as 'inprogress'
+    // Atomically pick and mark the oldest queued job as 'inprocess'
     const res = await client.query(
       `UPDATE upload_queue
-       SET status = 'inprogress', process_date = now(), updated_at = now()
+       SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
          SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED

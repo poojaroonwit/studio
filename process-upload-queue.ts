@@ -183,11 +183,8 @@ async function cleanupStuckJobs() {
   try {
     const res = await client.query(
       `UPDATE upload_queue
-       SET status = 'error', error = 'Stuck in inprogress/inprocess/processing for over 1 hour', error_details = 'Automatically marked as error by processor cleanup', completed_date = now(), updated_at = now()
-       WHERE status IN ('inprogress', 'inprocess', 'processing')
-         AND process_date IS NOT NULL
-         AND process_date < NOW() - INTERVAL '1 hour'
-       RETURNING id, file_name, process_date`
+       SET status = 'error', error = 'Stuck in inprocess for over 1 hour', error_details = 'Automatically marked as error by processor cleanup', completed_date = now(), updated_at = now()
+       WHERE status = 'inprocess' AND updated_at < NOW() - INTERVAL '1 hour'`
     );
     if (res.rowCount && res.rowCount > 0) {
       console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);

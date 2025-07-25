@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
       `SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE uq.status = 'inprogress' OR uq.status = 'inprocess' OR uq.status = 'processing') as inprogress,
+        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprogress,
         COUNT(*) FILTER (WHERE uq.status = 'success') as success,
         COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
       FROM upload_queue uq 
@@ -295,6 +295,7 @@ export async function POST(request: NextRequest) {
 
     // Automatically trigger processing of the queue
     try {
+      console.log('process.env.PROCESSOR_URL:', process.env.PROCESSOR_URL); // Debug log
       const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
       console.log('Auto-triggering upload queue processing at:', processUrl); // Debug log
       await fetch(processUrl, {

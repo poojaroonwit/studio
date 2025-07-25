@@ -214,7 +214,7 @@ async function main() {
         id: '40000000-0000-0000-0000-000000000002',
         fileName: 'jane_smith_cv.docx',
         fileSize: BigInt(512000), // 500KB
-        status: 'processing',
+        status: 'inprocess',
         source: 'bulk_import',
         filePath: '/uploads/resumes/jane_smith_cv.docx',
         positionId: '22222222-2222-2222-2222-222222222222',
@@ -266,7 +266,7 @@ async function main() {
         id: '40000000-0000-0000-0000-000000000006',
         fileName: 'emma_davis_cv.pdf',
         fileSize: BigInt(409600), // 400KB
-        status: 'processing',
+        status: 'inprocess',
         source: 'bulk_import',
         filePath: '/uploads/resumes/emma_davis_cv.pdf',
         positionId: '22222222-2222-2222-2222-222222222222',
@@ -318,7 +318,7 @@ async function main() {
         id: '40000000-0000-0000-0000-000000000010',
         fileName: 'maria_garcia_cv.pdf',
         fileSize: BigInt(358400), // 350KB
-        status: 'processing',
+        status: 'inprocess',
         source: 'bulk_import',
         filePath: '/uploads/resumes/maria_garcia_cv.pdf',
         positionId: '22222222-2222-2222-2222-222222222222',

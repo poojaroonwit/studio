@@ -2071,7 +2071,7 @@ export function getSwaggerSpec() {
             id: { type: 'string', format: 'uuid' },
             file_name: { type: 'string' },
             file_size: { type: 'integer' },
-            status: { type: 'string', enum: ['queued', 'processing', 'completed', 'failed'] },
+            status: { type: 'string', enum: ['queued', 'inprocess', 'completed', 'failed'] },
             source: { type: 'string' },
             upload_id: { type: 'string', format: 'uuid' },
             created_by: { type: 'string', format: 'uuid' },
@@ -2083,7 +2083,7 @@ export function getSwaggerSpec() {
           properties: {
             file_name: { type: 'string' },
             file_size: { type: 'integer' },
-            status: { type: 'string', enum: ['queued', 'processing', 'completed', 'failed'] },
+            status: { type: 'string', enum: ['queued', 'inprocess', 'completed', 'failed'] },
             source: { type: 'string' },
             upload_id: { type: 'string', format: 'uuid' },
             file_path: { type: 'string' },

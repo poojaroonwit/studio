@@ -151,9 +151,8 @@ export const CandidateImportUploadQueue: React.FC<{
   // Helper function to get display status for filtering - moved before usage
   const getDisplayStatus = (status: string) => {
     switch (status) {
-      case 'inprogress':
       case 'inprocess':
-        return 'inprogress';
+        return 'inprocess';
       case 'error':
       case 'fail':
         return 'error';
@@ -538,7 +537,6 @@ export const CandidateImportUploadQueue: React.FC<{
     switch (status) {
       case 'queued':
         return { label: 'Queued', className: 'bg-blue-200 text-blue-900 border-blue-200' };
-      case 'inprogress':
       case 'inprocess':
         return { label: 'In Progress', className: 'bg-yellow-200 text-yellow-900 border-yellow-200' };
       case 'success':
@@ -563,7 +561,7 @@ export const CandidateImportUploadQueue: React.FC<{
 
   // Status counts - Use statusSummary (no status filter) for status cards, summary for table info
   const numQueued = statusSummary ? Number(statusSummary.queued) : filteredJobs.filter(j => j.status === 'queued').length;
-  const numInProgress = statusSummary ? Number(statusSummary.inprogress) : filteredJobs.filter(j => j.status === 'inprogress' || j.status === 'inprocess' || j.status === 'processing').length;
+  const numInProgress = statusSummary ? Number(statusSummary.inprocess) : filteredJobs.filter(j => j.status === 'inprocess').length;
   const numSuccess = statusSummary ? Number(statusSummary.success) : filteredJobs.filter(j => j.status === 'success').length;
   const numError = statusSummary ? Number(statusSummary.error) : filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
   const totalFilteredJobs = summary ? Number(summary.total) : filteredJobs.length;
@@ -571,9 +569,7 @@ export const CandidateImportUploadQueue: React.FC<{
   // Collect all unique statuses from jobs for the filter dropdown
   const allPossibleStatuses = [
     'queued',
-    'inprogress',
     'inprocess',
-    'processing',
     'success',
     'error',
     'cancelled',
@@ -653,7 +649,6 @@ export const CandidateImportUploadQueue: React.FC<{
     switch (status) {
       case 'queued':
         return 'Queued';
-      case 'inprogress':
       case 'inprocess':
         return 'In Progress';
       case 'success':
@@ -669,8 +664,7 @@ export const CandidateImportUploadQueue: React.FC<{
   // Map display labels to all possible status codes that share the label
   const statusLabelToCodes: { [label: string]: string[] } = {
     'Queued': ['queued'],
-    'In Progress': ['inprogress', 'inprocess'],
-    'Processing': ['processing'],
+    'In Progress': ['inprocess'],
     'Success': ['success'],
     'Error': ['error', 'fail'],
     'Cancelled': ['cancelled'],

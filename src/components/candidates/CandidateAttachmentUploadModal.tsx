@@ -45,10 +45,10 @@ export const CandidateAttachmentUploadModal: React.FC<CandidateAttachmentUploadM
     try {
       const formData = new FormData();
       Array.from(files).forEach((file) => {
-        formData.append('attachment', file);
+        formData.append('attachments', file);
       });
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `/api/candidates/${candidateId}/attachments`);
+      xhr.open('POST', `/api/candidates/${candidateId}/resumes`);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           setProgress(Math.round((event.loaded / event.total) * 100));

@@ -434,7 +434,7 @@ export function CandidatesPageClient({
       setIsFetching(false);
       currentRequestRef.current = null; // Clear the current request ref
     }
-  }, []); // Removed sessionStatus dependency to prevent recreation
+  }, [sortColumn, sortDirection]); // Include sorting dependencies
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -703,16 +703,16 @@ export function CandidatesPageClient({
     }
     
     // Create a unique request ID to prevent infinite loops
-    const requestId = JSON.stringify({ filters, page, pageSize });
+    const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
     if (currentRequestRef.current === requestId) {
       // console.log('Skipping fetch - same request already in progress');
       return;
     }
     
     currentRequestRef.current = requestId;
-    // console.log('Fetching candidates due to filter change');
+    // console.log('Fetching candidates due to filter/sort change');
     fetchPaginatedCandidates(filters, page, pageSize);
-  }, [filters, page, pageSize, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters]);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated' && !serverAuthError && !serverPermissionError) {
@@ -1456,37 +1456,11 @@ export function CandidatesPageClient({
     }
   };
 
-  const getSortableValue = (candidate: Candidate, column: string) => {
-    switch (column) {
-      case 'candidate':
-        return candidate.name?.toLowerCase() || '';
-      case 'fitScore':
-        return candidate.fitScore ?? -1;
-      case 'appliedJob':
-        return candidate.position?.title?.toLowerCase() || '';
-      case 'recruiter':
-        return candidate.recruiter?.name?.toLowerCase() || '';
-      case 'status':
-        return candidate.status?.toLowerCase() || '';
-      case 'applicationDate':
-        return candidate.applicationDate || '';
-      case 'lastUpdate':
-        return candidate.updatedAt || candidate.createdAt || '';
-      default:
-        return '';
-    }
-  };
-
+  // Server-side sorting is handled by the API, so we don't need client-side sorting
+  // The candidates come pre-sorted from the server based on sortColumn and sortDirection
   const sortedCandidates = useMemo(() => {
-    const sorted = [...mappedCandidates].sort((a, b) => {
-      const aValue = getSortableValue(a, sortColumn);
-      const bValue = getSortableValue(b, sortColumn);
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [mappedCandidates, sortColumn, sortDirection]);
+    return mappedCandidates;
+  }, [mappedCandidates]);
 
   // ALL EARLY RETURNS MOVED TO AFTER ALL HOOKS
   // Centralized error UI for auth/permission

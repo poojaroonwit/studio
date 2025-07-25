@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import DragDropUpload, { UploadFile } from '../ui/drag-drop-upload';
 import { toast } from 'react-hot-toast';
-import { FileTextIcon, FileIcon, ImageIcon } from 'lucide-react';
+import { FileTextIcon, FileIcon, ImageIcon, UploadCloud, X } from 'lucide-react';
 import { FileViewerModal } from '../ui/file-viewer-modal';
+import UploadAttachmentsModal from './UploadAttachmentsModal';
 
 interface Attachment {
   id: string;
@@ -30,9 +30,9 @@ interface CandidateResumesSectionProps {
 // Helper to render file icon based on extension
 function getFileIcon(fileOrUrl: { fileName: string }) {
   const name = fileOrUrl.fileName;
-  if (name.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) return <ImageIcon className="w-5 h-5 text-blue-500" />;
-  if (name.match(/\.pdf$/i)) return <FileTextIcon className="w-5 h-5 text-red-500" />;
-  return <FileIcon className="w-5 h-5 text-gray-500" />;
+  if (name.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)) return <ImageIcon className="w-6 h-6 text-blue-500" />;
+  if (name.match(/\.pdf$/i)) return <FileTextIcon className="w-6 h-6 text-red-500" />;
+  return <FileIcon className="w-6 h-6 text-gray-500" />;
 }
 
 const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candidateId, resumes, isEditing, onResumesChange }) => {
@@ -47,6 +47,7 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
     fileSize?: number;
   } | null>(null);
   const [isFileViewerOpen, setIsFileViewerOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   
   // Note: This component relies on parent for data updates (no automatic polling)
   // onResumesChange callback is used to trigger manual refresh after user actions
@@ -100,144 +101,84 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
     }
   };
 
-  const handleUpload = async (files: File[], onProgress?: (fileId: string, progress: number) => void) => {
-    if (!files || files.length === 0) return;
-    
-    setUploading(true);
-    setUploadError(null);
-    
-    try {
-      // Upload files one by one with progress tracking
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('attachments', file);
 
-        // Create a promise that resolves with upload progress
-        const uploadPromise = new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const progress = Math.round((event.loaded / event.total) * 100);
-              const fileId = `${Date.now()}-${file.name}`;
-              onProgress?.(fileId, progress);
-            }
-          });
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
-            }
-          });
-
-          xhr.addEventListener('error', () => {
-            reject(new Error('Network error during upload'));
-          });
-
-          xhr.open('POST', `/api/candidates/${candidateId}/resumes`);
-          xhr.send(formData);
-        });
-
-        await uploadPromise;
-      }
-
-      // Trigger manual refresh after upload
-      onResumesChange();
-      toast.success(`Successfully uploaded ${files.length} file(s)`);
-      
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setUploadError(err.message || 'Upload failed');
-      toast.error(err.message || 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-2">
         <span className="font-semibold">Attachments</span>
-        <Button size="sm" variant="outline" onClick={() => setSortDesc(!sortDesc)}>
-          Sort by Date {sortDesc ? '↓' : '↑'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsUploadModalOpen(true)}
+            disabled={uploading}
+          >
+            <UploadCloud className="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setSortDesc(!sortDesc)}>
+            Sort by Date {sortDesc ? '↓' : '↑'}
+          </Button>
+        </div>
       </div>
 
-      {/* Drag and Drop Upload Area */}
-      <div className="mb-6">
-        <DragDropUpload
-          onUpload={handleUpload}
-          accept="application/pdf,.doc,.docx,.rtf"
-          multiple={true}
-          maxFiles={10}
-          maxFileSize={10 * 1024 * 1024} // 10MB
-          disabled={uploading}
-          className="w-full"
-        />
-        {uploadError && (
-          <p className="text-sm text-red-500 mt-2">{uploadError}</p>
-        )}
-      </div>
+      {uploadError && (
+        <p className="text-sm text-red-500">{uploadError}</p>
+      )}
 
       {/* Existing Attachments List */}
       <div className="space-y-3">
         {sortedAttachments.length === 0 && (
           <div className="text-muted-foreground text-sm text-center py-8">
             No attachments uploaded yet.
-            {!isEditing && (
-              <p className="text-xs mt-2">Enable edit mode to upload attachments</p>
-            )}
+            <p className="text-xs mt-2">Click the upload button above to add attachments</p>
           </div>
         )}
         
         {(Array.isArray(sortedAttachments) ? sortedAttachments : []).map(attachment => (
-          <div key={attachment.id} className="border rounded-lg p-4 bg-card hover:bg-muted/50 transition-colors">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  {getFileIcon(attachment)}
-                  <button
-                    type="button"
-                    onClick={() => handleFileClick(attachment)}
-                    className="font-medium hover:underline text-primary truncate text-left"
-                  >
-                    {attachment.fileName}
-                  </button>
-                  {attachment.label && (
-                    <Badge variant="secondary" className="text-xs ml-2">{attachment.label}</Badge>
-                  )}
-                  {attachment.isPrimary && (
-                    <Badge variant="default" className="text-xs">Primary</Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Updated: {new Date(attachment.updatedAt).toLocaleString()}
-                </div>
-              </div>
-              
-              {isEditing && (
-                <div className="flex gap-2 flex-shrink-0">
-                  {!attachment.isPrimary && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleSetPrimary(attachment.id)}
-                    >
-                      Set Primary
-                    </Button>
-                  )}
+          <div key={attachment.id} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
+            {attachment.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+              <img src={attachment.url} alt={attachment.fileName} className="w-6 h-6 object-cover rounded" />
+            ) : (
+              getFileIcon(attachment)
+            )}
+            <button
+              type="button"
+              onClick={() => handleFileClick(attachment)}
+              className="font-medium text-xs hover:underline text-left flex-1 min-w-0 truncate"
+            >
+              {attachment.fileName}
+            </button>
+            {attachment.label && (
+              <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border">{attachment.label}</span>
+            )}
+            {attachment.isPrimary && (
+              <Badge variant="default" className="text-xs">Primary</Badge>
+            )}
+            {isEditing && (
+              <div className="flex gap-1 flex-shrink-0">
+                {!attachment.isPrimary && (
                   <Button 
                     size="sm" 
-                    variant="destructive" 
-                    onClick={() => handleDelete(attachment.id)}
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={() => handleSetPrimary(attachment.id)}
                   >
-                    Delete
+                    <span className="text-xs">★</span>
                   </Button>
-                </div>
-              )}
-            </div>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  onClick={() => handleDelete(attachment.id)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -247,6 +188,20 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
         isOpen={isFileViewerOpen}
         onOpenChange={setIsFileViewerOpen}
         file={selectedFile}
+      />
+
+      {/* Upload Attachments Modal */}
+      <UploadAttachmentsModal
+        isOpen={isUploadModalOpen}
+        onOpenChange={(open) => {
+          console.log('Modal onOpenChange called with:', open);
+          if (!open && isUploadModalOpen) {
+            console.log('Closing modal from onOpenChange');
+            setIsUploadModalOpen(false);
+          }
+        }}
+        candidate={{ id: candidateId } as any}
+        onUploadSuccess={onResumesChange}
       />
     </div>
   );

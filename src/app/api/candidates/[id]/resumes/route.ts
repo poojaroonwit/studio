@@ -50,6 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Parse multipart form
   const formData = await req.formData();
   const files = formData.getAll('attachments');
+  const label = formData.get('label') as string || 'resume';
   
   if (!files || files.length === 0) {
     return NextResponse.json({ message: 'No files uploaded' }, { status: 400 });
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           filePath: objectName,
           fileName: file.name,
           isPrimary: isFirstFile,
-          label: 'resume',
+          label: label,
         },
         include: { uploadedBy: { select: { id: true, name: true, email: true } } },
       });

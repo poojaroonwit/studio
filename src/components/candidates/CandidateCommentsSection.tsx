@@ -7,8 +7,12 @@ import { FileViewerModal } from '../ui/file-viewer-modal';
 
 const LABEL_OPTIONS = [
   { value: 'resume', label: 'Resume' },
+  { value: 'cover-letter', label: 'Cover Letter' },
   { value: 'certificate', label: 'Certificate' },
-  { value: 'other', label: 'Other' },
+  { value: 'portfolio', label: 'Portfolio' },
+  { value: 'reference-letter', label: 'Reference Letter' },
+  { value: 'transcript', label: 'Transcript' },
+  { value: 'other', label: 'Other' }
 ];
 
 function getFileIcon(fileOrUrl: File | { fileName: string; label: string; url: string }) {
@@ -423,6 +427,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
                             getFileIcon(att)
                           )}
                           <button 
+                            type="button"
                             onClick={() => handleFileClick(att)}
                             className="font-medium text-xs hover:underline text-left"
                           >

@@ -2135,10 +2135,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           </Button>
         </div>
       )}
-      {/* Add Attachment Button (place near resumes or top actions) */}
-      <Button variant="outline" className="mb-4" onClick={() => setIsAttachmentModalOpen(true)}>
-        Add Attachment
-      </Button>
       <CandidateAttachmentUploadModal
         candidateId={candidateId}
         open={isAttachmentModalOpen}

@@ -207,10 +207,11 @@ export async function GET(request: NextRequest) {
     fitScore: 'c."fitScore"',
     applicationDate: 'c."applicationDate"',
     status: 'c.status',
+    lastUpdate: 'c."updatedAt"',
   };
-  const sortColumnParam = searchParams.get('sortColumn') || 'applicationDate';
+  const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
   const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-  const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."applicationDate"';
+  const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
   const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
 
   // Filters
@@ -442,18 +443,44 @@ export async function GET(request: NextRequest) {
     queryParams.push(`%${filters.jobSuitablePosition}%`);
   }
 
-  // Handle experience years filter (search in parsed data)
+  // Handle experience years filter (calculate from experienceData)
   if (filters.minExperienceYears || filters.maxExperienceYears) {
+    // Calculate total experience years from experienceData array
+    const experienceCalculation = `
+      COALESCE(
+        (
+          SELECT SUM(
+            CASE 
+              WHEN exp->>'startYear' IS NOT NULL AND exp->>'startMonth' IS NOT NULL THEN
+                CASE 
+                  WHEN (exp->>'isCurrent')::boolean = true OR exp->>'endYear' IS NULL OR exp->>'endMonth' IS NULL THEN
+                    EXTRACT(YEAR FROM AGE(CURRENT_DATE, 
+                      MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
+                    ))
+                  ELSE
+                    EXTRACT(YEAR FROM AGE(
+                      MAKE_DATE((exp->>'endYear')::int, (exp->>'endMonth')::int, 1),
+                      MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
+                    ))
+                END
+              ELSE 0
+            END
+          )::float
+          FROM jsonb_array_elements(COALESCE(c."experienceData", '[]'::jsonb)) AS exp
+        ), 0
+      )
+    `;
+    
     if (filters.minExperienceYears && filters.maxExperienceYears) {
-      whereClauses.push('(c."parsedData"->>\'experience\')::float >= $' + paramIndex + ' AND (c."parsedData"->>\'experience\')::float <= $' + (paramIndex + 1));
+      whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
       queryParams.push(filters.minExperienceYears, filters.maxExperienceYears);
       paramIndex += 2;
     } else if (filters.minExperienceYears) {
-      whereClauses.push('(c."parsedData"->>\'experience\')::float >= $' + paramIndex);
+      whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
       queryParams.push(filters.minExperienceYears);
       paramIndex++;
     } else if (filters.maxExperienceYears) {
-      whereClauses.push('(c."parsedData"->>\'experience\')::float <= $' + paramIndex);
+      whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
       queryParams.push(filters.maxExperienceYears);
       paramIndex++;
     }
@@ -547,11 +574,11 @@ export async function GET(request: NextRequest) {
       ) AS jm_max ON true
       ${whereString}
       ORDER BY ${sortColumn} ${sortDirection}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
+      LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2};
     `;
     const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
     const totalQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereString};`;
-    const totalResult = await client.query(totalQuery, queryParams.slice(0, paramIndex - 1));
+    const totalResult = await client.query(totalQuery, queryParams);
     const total = parseInt(totalResult.rows[0].count, 10);
     const candidates = candidatesResult.rows.map(row => {
       let customAttributes = row.customAttributes || {};
@@ -620,7 +647,12 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    return NextResponse.json({ message: 'Error fetching candidates', error: error.message }, { status: 500 });
+    console.error('Error fetching candidates:', error);
+    return NextResponse.json({ 
+      message: 'Error fetching candidates', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   } finally {
     client.release();
   }

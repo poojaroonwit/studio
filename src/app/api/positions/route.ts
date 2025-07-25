@@ -42,6 +42,7 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
+  
   // Publicly viewable, but actions (POST, PUT, DELETE) might be restricted
   // if (!session?.user) {
   //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

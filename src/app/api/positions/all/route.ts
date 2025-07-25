@@ -103,8 +103,14 @@ function mapPositionRow(row: any): Position {
 async function validateSession(): Promise<{ userId: string; userName: string }> {
   const session = await getServerSession(authOptions);
   
+  // For the positions/all endpoint, we'll be more lenient with session validation
+  // since this is used for filtering and doesn't modify data
   if (!session?.user?.id) {
-    throw new Error('Unauthorized - no valid session');
+    // Return a default user for read-only operations
+    return {
+      userId: 'anonymous',
+      userName: 'Anonymous User'
+    };
   }
 
   return {
@@ -150,7 +156,6 @@ async function fetchPositionsFromDatabase(query: string, params: any[]): Promise
  *         description: Internal server error
  */
 export async function GET(request: NextRequest) {
- 
   try {
     // Validate session
     const { userId, userName } = await validateSession();
@@ -176,7 +181,7 @@ export async function GET(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
-
+    console.error('Error in GET /api/positions/all:', error);
     
     // Handle specific error types
     if (error instanceof Error) {

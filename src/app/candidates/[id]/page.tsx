@@ -557,7 +557,7 @@ export default function CandidateDetailPage() {
   // Manual refresh after user actions (not automatic polling)
   const handleResumesChange = () => {
     fetch(`/api/candidates/${candidateId}/resumes`).then(res => res.ok ? res.json() : []).then(data => {
-      setResumes(Array.isArray(data) ? data : (data.data || []));
+      setAttachments(Array.isArray(data) ? data : (data.data || []));
     });
   };
 
@@ -653,6 +653,8 @@ export default function CandidateDetailPage() {
     toast("Resume has been uploaded and candidate details updated.");
     fetchCandidateDetails(); // Re-fetch to ensure all data is fresh
   };
+
+
 
   const handleTransitionsUpdated = (updatedHistory: TransitionRecord[], newStatus: string) => {
     if (candidate) {
@@ -878,12 +880,11 @@ export default function CandidateDetailPage() {
       if (!response.ok) {
         throw new Error(`Failed to update candidate: ${response.statusText}`);
       }
+      // Show toast only after successful save
+      toast.success('Candidate details updated successfully.');
       // No PATCH to v1 API for job matches
       await fetchCandidateDetails();
       setIsEditing(false);
-      if (data && Object.keys(data).length > 0) {
-        toast.success('Candidate details updated successfully.');
-      }
     } catch (error) {
       toast.error((error as Error).message);
     }
@@ -2632,6 +2633,8 @@ export default function CandidateDetailPage() {
           candidate={candidate}
           onUploadSuccess={handleUploadSuccess}
         />
+
+
 
         {/* Floating Save/Cancel Buttons for Edit Mode */}
         {isEditing && (

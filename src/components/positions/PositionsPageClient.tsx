@@ -57,6 +57,9 @@ export default function PositionsPageClient() {
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
+  
+
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -153,24 +156,46 @@ export default function PositionsPageClient() {
 
   // Fetch all departments for the filter dropdown
   const fetchAllDepartments = useCallback(async () => {
+    setIsLoadingDepartments(true);
     try {
       const response = await fetch('/api/positions/all');
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch departments');
+        throw new Error(`Failed to fetch departments: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        throw new Error('Invalid response format');
+      }
+      
       const departments = Array.from(new Set(data.data.map((p: any) => p.department)))
         .filter((d): d is string => typeof d === 'string' && !!d)
         .sort();
+      
       setAllDepartments(departments);
     } catch (error) {
       console.error('Error fetching departments:', error);
-      // Fallback to current positions if API fails
-      setAllDepartments(Array.from(new Set(positions.map(p => p.department || "")))
-        .filter((d): d is string => typeof d === 'string' && !!d)
-        .sort());
+      
+      // If the main API fails, try the fallback endpoint
+      try {
+        const fallbackResponse = await fetch('/api/positions?limit=1000');
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          const fallbackDepts = Array.from(new Set(fallbackData.data?.map((p: any) => p.department) || []))
+            .filter((d): d is string => typeof d === 'string' && !!d)
+            .sort();
+          setAllDepartments(fallbackDepts);
+        }
+      } catch (fallbackError) {
+        console.error('Fallback department fetch also failed:', fallbackError);
+        setAllDepartments([]);
+      }
+    } finally {
+      setIsLoadingDepartments(false);
     }
-  }, [positions]);
+  }, []); // Remove dependency on positions
 
   // Fetch positions with pagination and statistics
   const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
@@ -195,9 +220,9 @@ export default function PositionsPageClient() {
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
-      const data = await response.json();
-      setPositions(data.data || []);
-      setTotal(data.total || 0);
+              const data = await response.json();
+        setPositions(data.data || []);
+        setTotal(data.total || 0);
       
             // Update statistics if included in response
       if (data.statistics) {
@@ -399,7 +424,9 @@ export default function PositionsPageClient() {
       setIsAddModalOpen(false);
       toast.success('Position added successfully');
       // Refresh departments in case a new department was added
-      fetchAllDepartments();
+      setTimeout(() => {
+        fetchAllDepartments();
+      }, 500);
     } catch (error) {
       toast.error('Failed to add position');
     }
@@ -424,7 +451,9 @@ export default function PositionsPageClient() {
       setSelectedPosition(null);
       toast.success('Position updated successfully');
       // Refresh departments in case the department was changed
-      fetchAllDepartments();
+      setTimeout(() => {
+        fetchAllDepartments();
+      }, 500);
     } catch (error) {
       toast.error('Failed to update position');
     }
@@ -534,57 +563,77 @@ export default function PositionsPageClient() {
               <SelectItem value="closed">Closed Only</SelectItem>
             </SelectContent>
           </Select>
-          {allDepartments.length > 0 ? (
-            <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
-                  {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[280px] p-0" align="start">
-                <Command>
-                  <div className="flex items-center border-b px-3">
-                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                    <input
-                      placeholder="Search departments..."
-                      value={departmentSearch}
-                      onChange={(e) => setDepartmentSearch(e.target.value)}
-                      className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    />
+                          {isLoadingDepartments ? (
+                  <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Loading departments...
                   </div>
-                  <CommandList>
-                    <CommandEmpty>No departments found.</CommandEmpty>
-                    <div className="max-h-[200px] overflow-auto p-1">
-                      <div
-                        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                        onClick={() => handleDepartmentSelect('all')}
-                      >
-                        <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
-                        All Departments
-                      </div>
-                      {allDepartments
-                        .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                        .map(dept => (
-                          <div
-                            key={dept}
-                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                            onClick={() => handleDepartmentSelect(dept)}
-                          >
-                            <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
-                            {dept}
+                ) : allDepartments.length > 0 ? (
+                  <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                        {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start">
+                      <Command>
+                        <div className="flex items-center border-b px-3">
+                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                          <input
+                            placeholder="Search departments..."
+                            value={departmentSearch}
+                            onChange={(e) => setDepartmentSearch(e.target.value)}
+                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </div>
+                        <CommandList>
+                        
+                          <div className="max-h-[200px] overflow-auto p-1">
+                            <div
+                              className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                              onClick={() => handleDepartmentSelect('all')}
+                            >
+                              <Check className={`mr-2 h-4 w-4 ${departmentFilter === 'all' ? 'opacity-100' : 'opacity-0'}`} />
+                              All Departments
+                            </div>
+                            {allDepartments
+                              .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                              .map(dept => (
+                                <div
+                                  key={dept}
+                                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                  onClick={() => handleDepartmentSelect(dept)}
+                                >
+                                  <Check className={`mr-2 h-4 w-4 ${departmentFilter === dept ? 'opacity-100' : 'opacity-0'}`} />
+                                  {dept}
+                                </div>
+                              ))}
                           </div>
-                        ))}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                    <div className="flex items-center gap-2">
+                      <span>No departments available</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 text-xs"
+                        onClick={() => fetchAllDepartments()}
+                        title="Retry loading departments"
+                      >
+                        <Loader2 className="h-3 w-3" />
+                      </Button>
                     </div>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          ) : (
-            <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
-              No departments available
-            </div>
-          )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Add positions with departments to see them here
+                    </div>
+
+                  </div>
+                )}
         </div>
         {canManagePositions && (
           <div className="flex gap-2">

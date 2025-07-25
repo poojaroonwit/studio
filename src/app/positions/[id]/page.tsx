@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Briefcase, Edit, Loader2, ServerCrash, ShieldAlert, Users, ChevronUp, ChevronDown, Search, X, Eye } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
-import parseISO from 'date-fns/parseISO';
+import parseISO from 'date-fns/parseISO'
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { EditPositionModal, type EditPositionFormValues } from '@/components/positions/EditPositionModal';
@@ -21,6 +21,7 @@ import FullCandidateDetail from '@/components/candidates/FullCandidateDetail';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { getScoreBgColor, getScoreColor, formatScoreWithGrade, getScoreGrade, normalizeFitScore } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
+import { Pagination } from '@/components/ui/pagination';
 
 function displayFitScore(score: number | undefined | null) {
   if (typeof score !== 'number' || isNaN(score)) return '';
@@ -58,12 +59,26 @@ export default function PositionDetailPage() {
   const [matchesSortColumn, setMatchesSortColumn] = useState<string>('fitScore');
   const [matchesSortDirection, setMatchesSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  // State for all candidates (merged view)
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
+  const [allCandidatesPage, setAllCandidatesPage] = useState(1);
+  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(20);
+  const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
+  const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
+  const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string>('applicationDate');
+  const [allCandidatesSortDirection, setAllCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
+
   // Modal states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
 
   const { data: session, status: sessionStatus } = useSession();
+
+  // Calculate total pages for pagination
+  const appliedTotalPages = useMemo(() => Math.max(1, Math.ceil(appliedTotal / appliedPageSize)), [appliedTotal, appliedPageSize]);
+  const matchesTotalPages = useMemo(() => Math.max(1, Math.ceil(matchesTotal / matchesPageSize)), [matchesTotal, matchesPageSize]);
+  const allCandidatesTotalPages = useMemo(() => Math.max(1, Math.ceil(allCandidatesTotal / allCandidatesPageSize)), [allCandidatesTotal, allCandidatesPageSize]);
 
   // Fetch position data
   const fetchPosition = useCallback(async () => {
@@ -94,10 +109,16 @@ export default function PositionDetailPage() {
     try {
       const query = new URLSearchParams();
       query.append('positionId', positionId);
+      query.append('page', String(appliedPage));
       query.append('limit', String(appliedPageSize));
-      query.append('offset', String((appliedPage - 1) * appliedPageSize));
       if (appliedSearchTerm) {
-        query.append('search', appliedSearchTerm);
+        query.append('searchTerm', appliedSearchTerm);
+      }
+      if (appliedSortColumn) {
+        query.append('sortColumn', appliedSortColumn);
+      }
+      if (appliedSortDirection) {
+        query.append('sortDirection', appliedSortDirection);
       }
       
       const response = await fetch(`/api/candidates?${query.toString()}`);
@@ -105,14 +126,6 @@ export default function PositionDetailPage() {
       
       const data = await response.json();
       let candidates = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
-      
-      // Sort candidates
-      candidates = candidates.sort((a: Candidate, b: Candidate) => {
-        const aValue = getSortValue(a, appliedSortColumn);
-        const bValue = getSortValue(b, appliedSortColumn);
-        const multiplier = appliedSortDirection === 'asc' ? 1 : -1;
-        return aValue < bValue ? -1 * multiplier : aValue > bValue ? 1 * multiplier : 0;
-      });
       
       setCandidatesApplied(candidates);
       setAppliedTotal(data.pagination?.total || data.total || candidates.length);
@@ -129,10 +142,16 @@ export default function PositionDetailPage() {
     try {
       // Fetch all candidates and filter those with job matches for this position
       const query = new URLSearchParams();
+      query.append('page', String(matchesPage));
       query.append('limit', String(matchesPageSize));
-      query.append('offset', String((matchesPage - 1) * matchesPageSize));
       if (matchesSearchTerm) {
-        query.append('search', matchesSearchTerm);
+        query.append('searchTerm', matchesSearchTerm);
+      }
+      if (matchesSortColumn) {
+        query.append('sortColumn', matchesSortColumn);
+      }
+      if (matchesSortDirection) {
+        query.append('sortDirection', matchesSortDirection);
       }
       
       const response = await fetch(`/api/candidates?${query.toString()}`);
@@ -159,14 +178,6 @@ export default function PositionDetailPage() {
         return false;
       });
       
-      // Sort candidates
-      matchedCandidates.sort((a: Candidate, b: Candidate) => {
-        const aValue = getSortValue(a, matchesSortColumn);
-        const bValue = getSortValue(b, matchesSortColumn);
-        const multiplier = matchesSortDirection === 'asc' ? 1 : -1;
-        return aValue < bValue ? -1 * multiplier : aValue > bValue ? 1 * multiplier : 0;
-      });
-      
       setCandidateMatches(matchedCandidates);
       setMatchesTotal(matchedCandidates.length);
     } catch (error) {
@@ -174,6 +185,86 @@ export default function PositionDetailPage() {
       setCandidateMatches([]);
     }
   }, [positionId, matchesPage, matchesPageSize, matchesSearchTerm, matchesSortColumn, matchesSortDirection]);
+
+  // Fetch all candidates related to this position (both applied and matched) with pagination
+  const fetchAllCandidates = useCallback(async () => {
+    if (!positionId) return;
+    
+    try {
+      // Fetch candidates applied to this position
+      const appliedQuery = new URLSearchParams();
+      appliedQuery.append('positionId', positionId);
+      appliedQuery.append('page', String(allCandidatesPage));
+      appliedQuery.append('limit', String(allCandidatesPageSize));
+      if (allCandidatesSearchTerm) {
+        appliedQuery.append('searchTerm', allCandidatesSearchTerm);
+      }
+      if (allCandidatesSortColumn) {
+        appliedQuery.append('sortColumn', allCandidatesSortColumn);
+      }
+      if (allCandidatesSortDirection) {
+        appliedQuery.append('sortDirection', allCandidatesSortDirection);
+      }
+      
+      const appliedResponse = await fetch(`/api/candidates?${appliedQuery.toString()}`);
+      if (!appliedResponse.ok) throw new Error('Failed to fetch applied candidates');
+      const appliedData = await appliedResponse.json();
+      const appliedCandidates = Array.isArray(appliedData.data) ? appliedData.data : [];
+
+      // Fetch all candidates with job matches for this position
+      const matchesQuery = new URLSearchParams();
+      matchesQuery.append('page', String(allCandidatesPage));
+      matchesQuery.append('limit', String(allCandidatesPageSize));
+      if (allCandidatesSearchTerm) {
+        matchesQuery.append('searchTerm', allCandidatesSearchTerm);
+      }
+      if (allCandidatesSortColumn) {
+        matchesQuery.append('sortColumn', allCandidatesSortColumn);
+      }
+      if (allCandidatesSortDirection) {
+        matchesQuery.append('sortDirection', allCandidatesSortDirection);
+      }
+      
+      const matchesResponse = await fetch(`/api/candidates?${matchesQuery.toString()}`);
+      if (!matchesResponse.ok) throw new Error('Failed to fetch candidate matches');
+      const matchesData = await matchesResponse.json();
+      let allCandidatesData = Array.isArray(matchesData.data) ? matchesData.data : [];
+      
+      // Filter candidates that have job matches for this position
+      const matchedCandidates = allCandidatesData.filter((candidate: Candidate) => {
+        // Check if candidate has job matches for this position from JobMatch table
+        if (candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId)) {
+          return true;
+        }
+        
+        // Fallback: Check job matches in parsedData for legacy data
+        if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
+          const jobMatches = (candidate.parsedData as any).job_matches;
+          if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+
+      // Merge and deduplicate candidates by ID
+      const allRelatedCandidates = [...appliedCandidates, ...matchedCandidates];
+      const seen = new Set();
+      const deduped = allRelatedCandidates.filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
+      setAllCandidates(deduped);
+      setAllCandidatesTotal(deduped.length);
+    } catch (error) {
+      console.error('Error fetching all candidates:', error);
+      setAllCandidates([]);
+      setAllCandidatesTotal(0);
+    }
+  }, [positionId, allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection]);
 
   // Fetch recruiters
   const fetchRecruiters = useCallback(async () => {
@@ -200,7 +291,7 @@ export default function PositionDetailPage() {
   };
 
   // Handle sort
-  const handleSort = (column: string, type: 'applied' | 'matches'): void => {
+  const handleSort = (column: string, type: 'applied' | 'matches' | 'all'): void => {
     if (type === 'applied') {
       if (appliedSortColumn === column) {
         setAppliedSortDirection(appliedSortDirection === 'asc' ? 'desc' : 'asc');
@@ -208,12 +299,19 @@ export default function PositionDetailPage() {
         setAppliedSortColumn(column);
         setAppliedSortDirection('desc');
       }
-    } else {
+    } else if (type === 'matches') {
       if (matchesSortColumn === column) {
         setMatchesSortDirection(matchesSortDirection === 'asc' ? 'desc' : 'asc');
       } else {
         setMatchesSortColumn(column);
         setMatchesSortDirection('desc');
+      }
+    } else if (type === 'all') {
+      if (allCandidatesSortColumn === column) {
+        setAllCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        setAllCandidatesSortColumn(column);
+        setAllCandidatesSortDirection('desc');
       }
     }
   };
@@ -289,72 +387,6 @@ export default function PositionDetailPage() {
     loadInitialData();
   }, [positionId, sessionStatus, fetchPosition, fetchRecruiters]);
 
-  // State for all candidates (merged view)
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
-  const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
-
-  // Fetch all candidates related to this position (both applied and matched)
-  const fetchAllCandidates = useCallback(async () => {
-    if (!positionId) return;
-    
-    try {
-      // Fetch candidates applied to this position (without pagination limit for "All" tab)
-      const appliedQuery = new URLSearchParams();
-      appliedQuery.append('positionId', positionId);
-      appliedQuery.append('limit', '1000'); // Large limit to get all applied candidates
-      appliedQuery.append('offset', '0');
-      
-      const appliedResponse = await fetch(`/api/candidates?${appliedQuery.toString()}`);
-      if (!appliedResponse.ok) throw new Error('Failed to fetch applied candidates');
-      const appliedData = await appliedResponse.json();
-      const appliedCandidates = Array.isArray(appliedData.data) ? appliedData.data : [];
-
-      // Fetch all candidates with job matches for this position (without pagination limit)
-      const matchesQuery = new URLSearchParams();
-      matchesQuery.append('limit', '1000'); // Large limit to get all candidates
-      matchesQuery.append('offset', '0');
-      
-      const matchesResponse = await fetch(`/api/candidates?${matchesQuery.toString()}`);
-      if (!matchesResponse.ok) throw new Error('Failed to fetch candidate matches');
-      const matchesData = await matchesResponse.json();
-      let allCandidatesData = Array.isArray(matchesData.data) ? matchesData.data : [];
-      
-      // Filter candidates that have job matches for this position
-      const matchedCandidates = allCandidatesData.filter((candidate: Candidate) => {
-        // Check if candidate has job matches for this position from JobMatch table
-        if (candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId)) {
-          return true;
-        }
-        
-        // Fallback: Check job matches in parsedData for legacy data
-        if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-          const jobMatches = (candidate.parsedData as any).job_matches;
-          if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-
-      // Merge and deduplicate candidates by ID
-      const allRelatedCandidates = [...appliedCandidates, ...matchedCandidates];
-      const seen = new Set();
-      const deduped = allRelatedCandidates.filter((c) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      });
-
-      setAllCandidates(deduped);
-      setAllCandidatesTotal(deduped.length);
-    } catch (error) {
-      console.error('Error fetching all candidates:', error);
-      setAllCandidates([]);
-      setAllCandidatesTotal(0);
-    }
-  }, [positionId]);
-
   // Fetch candidates when position is loaded
   useEffect(() => {
     if (position) {
@@ -364,34 +396,29 @@ export default function PositionDetailPage() {
     }
   }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
 
-  // Helper function to merge and deduplicate candidates by ID (kept for backward compatibility)
-  const mergedCandidates = useMemo(() => {
-    return allCandidates;
-  }, [allCandidates]);
-
   // Helper: Group candidates by email (same as CandidateTable)
   const candidatesByEmail = React.useMemo(() => {
     const groups: Record<string, Candidate[]> = {};
-    mergedCandidates.forEach((c) => {
+    allCandidates.forEach((c) => {
       if (!c.email) return;
       if (!groups[c.email]) groups[c.email] = [];
       groups[c.email].push(c);
     });
     return groups;
-  }, [mergedCandidates]);
+  }, [allCandidates]);
 
   const emailOrder = React.useMemo(() => {
     const seen = new Set<string>();
-    return mergedCandidates
+    return allCandidates
       .map((c) => c.email)
       .filter((email) => email && !seen.has(email) && seen.add(email));
-  }, [mergedCandidates]);
+  }, [allCandidates]);
 
   const [expandedEmails, setExpandedEmails] = React.useState<Record<string, boolean>>({});
 
   const renderGroupedCandidateTable = (
     candidates: Candidate[],
-    type: 'applied' | 'matches',
+    type: 'applied' | 'matches' | 'all',
     searchTerm: string,
     setSearchTerm: (term: string) => void,
     sortColumn: string,
@@ -753,7 +780,7 @@ export default function PositionDetailPage() {
               <Users className="h-5 w-5" />
               <span className="text-lg font-semibold">Candidates</span>
             </div>
-            <Tabs defaultValue="applied" className="w-full">
+            <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="all">
                   All ({allCandidatesTotal})
@@ -767,15 +794,23 @@ export default function PositionDetailPage() {
               </TabsList>
               <TabsContent value="all" className="mt-4">
                 {renderGroupedCandidateTable(
-                  mergedCandidates,
-                  'applied',
-                  appliedSearchTerm,
-                  setAppliedSearchTerm,
-                  appliedSortColumn,
-                  appliedSortDirection,
+                  allCandidates,
+                  'all',
+                  allCandidatesSearchTerm,
+                  setAllCandidatesSearchTerm,
+                  allCandidatesSortColumn,
+                  allCandidatesSortDirection,
                   true, // showTypeBadge
                   positionId // <-- pass positionId
                 )}
+                <Pagination
+                  currentPage={allCandidatesPage}
+                  totalPages={allCandidatesTotalPages}
+                  pageSize={allCandidatesPageSize}
+                  total={allCandidatesTotal}
+                  onPageChange={setAllCandidatesPage}
+                  onPageSizeChange={setAllCandidatesPageSize}
+                />
               </TabsContent>
               <TabsContent value="applied" className="mt-4">
                 {renderGroupedCandidateTable(
@@ -788,6 +823,14 @@ export default function PositionDetailPage() {
                   false, // showTypeBadge
                   positionId // <-- pass positionId (optional, for consistency)
                 )}
+                <Pagination
+                  currentPage={appliedPage}
+                  totalPages={appliedTotalPages}
+                  pageSize={appliedPageSize}
+                  total={appliedTotal}
+                  onPageChange={setAppliedPage}
+                  onPageSizeChange={setAppliedPageSize}
+                />
               </TabsContent>
               <TabsContent value="matches" className="mt-4">
                 {renderGroupedCandidateTable(
@@ -800,6 +843,14 @@ export default function PositionDetailPage() {
                   false, // showTypeBadge
                   positionId // <-- pass positionId (optional, for consistency)
                 )}
+                <Pagination
+                  currentPage={matchesPage}
+                  totalPages={matchesTotalPages}
+                  pageSize={matchesPageSize}
+                  total={matchesTotal}
+                  onPageChange={setMatchesPage}
+                  onPageSizeChange={setMatchesPageSize}
+                />
               </TabsContent>
             </Tabs>
           </Card>

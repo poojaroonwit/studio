@@ -797,19 +797,19 @@ export function CandidateFilters({
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <div
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClearAll();
                     }}
-                    disabled={isLoading || isAiSearching}
-                    className="h-6 px-2 hover:bg-accent/50"
+                    className={cn(
+                      "h-6 px-2 hover:bg-accent/50 rounded-md flex items-center cursor-pointer transition-colors",
+                      (isLoading || isAiSearching) && "opacity-50 cursor-not-allowed"
+                    )}
                   >
                     <FilterX className="h-3 w-3 mr-1" />
                     Clear All
-                  </Button>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Clear all filters</p>
@@ -924,19 +924,19 @@ export function CandidateFilters({
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <div
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClearAll();
                     }}
-                    disabled={isLoading || isAiSearching}
-                    className="h-6 px-2 hover:bg-accent/50"
+                    className={cn(
+                      "h-6 px-2 hover:bg-accent/50 rounded-md flex items-center cursor-pointer transition-colors",
+                      (isLoading || isAiSearching) && "opacity-50 cursor-not-allowed"
+                    )}
                   >
                     <FilterX className="h-3 w-3 mr-1" />
                     Clear All
-                  </Button>
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Clear all filters</p>

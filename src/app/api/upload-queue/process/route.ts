@@ -241,6 +241,13 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ job: { ...job, status, error, error_details }, webhookResults });
   } catch (err) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Error during transaction rollback:', rollbackError);
+      }
+    }
     if (job) {
       // Ensure error variables are properly set for exception cases
       const errorMessage = (err as Error).message;
@@ -257,7 +264,10 @@ export async function POST(request: NextRequest) {
         stack: errorStack
       });
     }
-    return { error: (err as Error).message, stack: (err as Error).stack };
+    return NextResponse.json(
+      { error: (err as Error).message, stack: (err as Error).stack },
+      { status: 500 }
+    );
   } finally {
     if (client) {
       try {

@@ -4,35 +4,47 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { GraduationCap } from 'lucide-react';
 import { differenceInMonths } from 'date-fns';
 
-function formatTimelinePeriod(startMonth, startYear, endMonth, endYear, isCurrent) {
+function formatTimelinePeriod(
+  startMonth: number | null,
+  startYear: number | null,
+  endMonth: number | null,
+  endYear: number | null,
+  isCurrent: boolean
+) {
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
   let left = '', right = '';
   if (startMonth && startYear) {
-    left = `<strong>${months[parseInt(startMonth, 10) - 1] || startMonth} ${startYear}</strong>`;
+    left = `<strong>${months[startMonth - 1] || startMonth} ${startYear}</strong>`;
   } else if (startYear) {
     left = `<strong>${startYear}</strong>`;
   }
   if (isCurrent) {
     right = `<strong>Present</strong>`;
   } else if (endMonth && endYear) {
-    right = `<strong>${months[parseInt(endMonth, 10) - 1] || endMonth} ${endYear}</strong>`;
+    right = `<strong>${months[endMonth - 1] || endMonth} ${endYear}</strong>`;
   } else if (endYear) {
     right = `<strong>${endYear}</strong>`;
   }
   return `${left} - ${right}`;
 }
 
-function formatTimelineDuration(startMonth, startYear, endMonth, endYear, isCurrent) {
+function formatTimelineDuration(
+  startMonth: number | null,
+  startYear: number | null,
+  endMonth: number | null,
+  endYear: number | null,
+  isCurrent: boolean
+) {
   if (!startYear) return '';
-  const start = startMonth ? new Date(startYear, parseInt(startMonth, 10) - 1) : new Date(startYear, 0);
+  const start = startMonth ? new Date(startYear, startMonth - 1) : new Date(startYear, 0);
   let end;
   if (isCurrent) {
     end = new Date();
   } else if (endYear) {
-    end = endMonth ? new Date(endYear, parseInt(endMonth, 10) - 1) : new Date(endYear, 0);
+    end = endMonth ? new Date(endYear, endMonth - 1) : new Date(endYear, 0);
   } else {
     end = new Date();
   }
@@ -78,8 +90,20 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
             
             {sortedEducation.map((entry, idx) => {
               const isCurrent = !entry.endYear && !entry.endMonth;
-              const periodDisplay = formatTimelinePeriod(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear, isCurrent);
-              const duration = formatTimelineDuration(entry.startMonth, entry.startYear, entry.endMonth, entry.endYear, isCurrent);
+              const periodDisplay = formatTimelinePeriod(
+                entry.startMonth ?? null,
+                entry.startYear ?? null,
+                entry.endMonth ?? null,
+                entry.endYear ?? null,
+                isCurrent
+              );
+              const duration = formatTimelineDuration(
+                entry.startMonth ?? null,
+                entry.startYear ?? null,
+                entry.endMonth ?? null,
+                entry.endYear ?? null,
+                isCurrent
+              );
               return (
                 <div key={idx} className="relative">
                   {/* Timeline item */}

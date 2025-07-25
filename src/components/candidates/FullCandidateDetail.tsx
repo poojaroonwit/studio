@@ -46,6 +46,7 @@ import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
@@ -259,6 +260,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [filteredRecruiters, setFilteredRecruiters] = useState<{ id: string; name: string }[]>([]);
   const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
   const { data: session } = useSession();
+  const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
 
   // Form setup
   const {
@@ -2133,6 +2135,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           </Button>
         </div>
       )}
+      {/* Add Attachment Button (place near resumes or top actions) */}
+      <Button variant="outline" className="mb-4" onClick={() => setIsAttachmentModalOpen(true)}>
+        Add Attachment
+      </Button>
+      <CandidateAttachmentUploadModal
+        candidateId={candidateId}
+        open={isAttachmentModalOpen}
+        onClose={() => setIsAttachmentModalOpen(false)}
+        onUploadSuccess={onRefresh}
+      />
     </div>
   );
  };

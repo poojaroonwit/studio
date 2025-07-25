@@ -47,6 +47,7 @@ import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
 import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import CandidateAttachmentUploadModal from '@/components/candidates/CandidateAttachmentUploadModal';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;

@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
       `SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE uq.status = 'queued') as queued,
-        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprogress,
+        COUNT(*) FILTER (WHERE uq.status = 'inprocess') as inprocess,
         COUNT(*) FILTER (WHERE uq.status = 'success') as success,
         COUNT(*) FILTER (WHERE uq.status = 'error' OR uq.status = 'fail') as error
       FROM upload_queue uq 
@@ -197,6 +197,13 @@ export async function GET(request: NextRequest) {
       values.slice(0, values.length - 2)
     );
     const summary = summaryRes.rows[0];
+    const safeSummary = {
+      total: Number(summary.total) || 0,
+      queued: Number(summary.queued) || 0,
+      inprocess: Number(summary.inprocess) || 0,
+      success: Number(summary.success) || 0,
+      error: Number(summary.error) || 0,
+    };
     await logAudit('AUDIT', `Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, 'API:UploadQueue:Get', actingUserId, { 
       limit, 
       offset, 
@@ -208,7 +215,7 @@ export async function GET(request: NextRequest) {
       ...job,
       url: job.file_path ? `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}` : null,
     }));
-    return NextResponse.json({ data: jobsWithUrl, total: parseInt(countRes.rows[0].count, 10), summary });
+    return NextResponse.json({ data: jobsWithUrl, total: parseInt(countRes.rows[0].count, 10), summary: safeSummary });
   } catch (error) {
     await logAudit('ERROR', `Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:Get', actingUserId);
     throw error;

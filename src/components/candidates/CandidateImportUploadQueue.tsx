@@ -20,6 +20,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
+import { Scatter } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  LinearScale,
+  PointElement,
+  Tooltip,
+  Legend,
+  TimeScale,
+} from 'chart.js';
+import 'chartjs-adapter-date-fns';
+
+ChartJS.register(LinearScale, PointElement, Tooltip, Legend, TimeScale);
 
 export type CandidateJobType = "upload" | "import";
 
@@ -755,6 +767,79 @@ export const CandidateImportUploadQueue: React.FC<{
     fetchPositions();
   }, []);
 
+  const [showDurationChart, setShowDurationChart] = useState(false);
+
+  // Helper for chart colors by status
+  const statusColorMap: Record<string, string> = {
+    success: '#22c55e', // green
+    error: '#ef4444',   // red
+    fail: '#ef4444',    // red
+    inprocess: '#eab308', // yellow
+    queued: '#3b82f6',  // blue
+    cancelled: '#6b7280', // gray
+  };
+
+  const scatterData = {
+    datasets: jobs
+      .filter(job => job.completed_date && job.upload_date)
+      .map(job => ({
+        label: job.status,
+        data: [{
+          x: job.completed_date ? new Date(job.completed_date) : undefined,
+          y: job.upload_date && job.completed_date ? new Date(job.completed_date).getTime() - new Date(job.upload_date).getTime() : undefined,
+          jobId: job.id,
+        }],
+        backgroundColor: statusColorMap[job.status] || '#6b7280',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        showLine: false,
+        status: job.status,
+      }))
+      .filter(ds => ds.data[0].x !== undefined && ds.data[0].y !== undefined),
+  };
+
+  const scatterOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const job = jobs.find(j => j.id === context.raw.jobId);
+            return [
+              `Status: ${job?.status}`,
+              `Duration: ${job && job.upload_date && job.completed_date ? formatDuration(job.upload_date, job.completed_date) : ''}`,
+              `Completed: ${job?.completed_date ? format(new Date(job.completed_date as string), 'yyyy-MM-dd HH:mm') : ''}`,
+              `Job ID: ${job?.id}`,
+            ];
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        type: 'timeseries' as const,
+        time: { unit: 'hour' as const, tooltipFormat: 'yyyy-MM-dd HH:mm' },
+        title: { display: true, text: 'Completed Date/Time' },
+        ticks: { autoSkip: true, maxTicksLimit: 20, font: { size: 12 } },
+      },
+      y: {
+        type: 'logarithmic' as const,
+        min: 10,
+        max: 1000000,
+        title: { display: true, text: 'Job duration (ms)' },
+        ticks: {
+          callback: function(value: any) {
+            if (value >= 1000000) return '1,000,000';
+            if (value >= 10000) return value.toLocaleString();
+            return value;
+          },
+          font: { size: 12 },
+        },
+      },
+    },
+  };
+
   return (
     <div className="mb-6">
       {/* Filters and Bulk Actions in Card */}
@@ -862,98 +947,123 @@ export const CandidateImportUploadQueue: React.FC<{
           </Button> */}
         </div>
       </Card>
-      {/* Summary Status Cards */}
-      <div className="mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-          {/* All Upload Jobs Card - Black */}
-          <Card
-            className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">All Jobs</p>
-                  <p className="text-2xl font-bold text-foreground">{totalFilteredJobs}</p>
-                </div>
-                <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <span className="text-white text-xs font-bold">A</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Queued Card - Blue */}
-          <Card
-            className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Queue</p>
-                  <p className="text-2xl font-bold text-foreground">{numQueued}</p>
-                </div>
-                <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <span className="text-white text-xs font-bold">Q</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* In Progress Card - Yellow */}
-          <Card
-            className="group relative overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 backdrop-blur-sm"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">In Process</p>
-                  <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
-                  {maxConcurrentProcessors !== null && (
-                    <span className="text-xs text-muted-foreground">Max concurrent: {maxConcurrentProcessors}</span>
-                  )}
-                </div>
-                <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <span className="text-white text-xs font-bold">P</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Success Card - Green */}
-          <Card
-            className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Success</p>
-                  <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
-                </div>
-                <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Error Card - Red */}
-          <Card
-            className="group relative overflow-hidden border-2 border-red-200 dark:border-red-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 backdrop-blur-sm"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Error</p>
-                  <p className="text-2xl font-bold text-foreground">{numError}</p>
-                </div>
-                <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                  <XCircle className="h-4 w-4 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Toggle Switch for Cards/Chart */}
+      <div className="flex items-center mb-2">
+        <button
+          className={`px-3 py-1 rounded-l border ${!showDurationChart ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}
+          onClick={() => setShowDurationChart(false)}
+          aria-pressed={!showDurationChart}
+        >
+          Status Cards
+        </button>
+        <button
+          className={`px-3 py-1 rounded-r border-l-0 border ${showDurationChart ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}
+          onClick={() => setShowDurationChart(true)}
+          aria-pressed={showDurationChart}
+        >
+          Duration Graph
+        </button>
       </div>
+      {showDurationChart ? (
+        <div className="mb-6 bg-white dark:bg-gray-900 rounded-lg p-4 border">
+          <div className="flex items-center mb-2">
+            <span className="text-sm text-muted-foreground mr-2">Each point is a job. Color = status. Y = duration. X = completed date/time.</span>
+          </div>
+          <Scatter data={scatterData} options={scatterOptions} height={320} />
+        </div>
+      ) : (
+        <div className="mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+            {/* All Upload Jobs Card - Black */}
+            <Card
+              className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">All Jobs</p>
+                    <p className="text-2xl font-bold text-foreground">{totalFilteredJobs}</p>
+                  </div>
+                  <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                    <span className="text-white text-xs font-bold">A</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Queued Card - Blue */}
+            <Card
+              className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Queue</p>
+                    <p className="text-2xl font-bold text-foreground">{numQueued}</p>
+                  </div>
+                  <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                    <span className="text-white text-xs font-bold">Q</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* In Progress Card - Yellow */}
+            <Card
+              className="group relative overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 backdrop-blur-sm"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">In Process</p>
+                    <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
+                    {maxConcurrentProcessors !== null && (
+                      <span className="text-xs text-muted-foreground">Max concurrent: {maxConcurrentProcessors}</span>
+                    )}
+                  </div>
+                  <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                    <span className="text-white text-xs font-bold">P</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Success Card - Green */}
+            <Card
+              className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Success</p>
+                    <p className="text-2xl font-bold text-foreground">{numSuccess}</p>
+                  </div>
+                  <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                    <CheckCircle className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Error Card - Red */}
+            <Card
+              className="group relative overflow-hidden border-2 border-red-200 dark:border-red-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 backdrop-blur-sm"
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Error</p>
+                    <p className="text-2xl font-bold text-foreground">{numError}</p>
+                  </div>
+                  <div className="h-8 w-8 rounded-xl bg-red-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
+                    <XCircle className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
       {/* Bulk Action Bar - show only when items are selected */}
       {bulkDeleteIds.length > 0 && (
         <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-muted-foreground/10">

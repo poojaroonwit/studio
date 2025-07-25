@@ -22,9 +22,24 @@ interface NewApplicationsTimeSeriesChartProps {
 type TimePeriod = 'month' | 'week' | 'year' | 'custom';
 type ComparisonPeriod = '12' | '24' | '36' | '48' | '60';
 
+// Add new types for period selection
+const PERIOD_TYPES = [
+  { label: 'This', value: 'this' },
+  { label: 'Last', value: 'last' },
+  { label: 'Past', value: 'pastN' },
+  { label: 'Custom', value: 'custom' },
+];
+const PERIOD_UNITS = [
+  { label: 'Week(s)', value: 'week' },
+  { label: 'Month(s)', value: 'month' },
+  { label: 'Year(s)', value: 'year' },
+];
+
 export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }: NewApplicationsTimeSeriesChartProps) {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
-  const [comparisonPeriod, setComparisonPeriod] = useState<ComparisonPeriod>('24');
+  // New state for period selection
+  const [periodType, setPeriodType] = useState<'this'|'last'|'pastN'|'custom'>('pastN');
+  const [periodUnit, setPeriodUnit] = useState<'week'|'month'|'year'>('week');
+  const [periodN, setPeriodN] = useState<number>(12);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();
     const startDate = subMonths(now, 12);
@@ -34,72 +49,118 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
     };
   });
 
+  // Calculate start and end dates based on new periodType/unit/N
+  const { startDate, endDate, intervalFunction, formatFunction } = useMemo(() => {
+    const now = new Date();
+    let start: Date = now;
+    let end: Date = now;
+    let intervalFn: any = eachWeekOfInterval;
+    let formatFn: (date: Date) => string = (date) => format(date, 'MMM dd');
+    if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
+      start = dateRange.from;
+      end = dateRange.to;
+      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff <= 30) {
+        intervalFn = eachDayOfInterval;
+        formatFn = (date: Date) => format(date, 'MMM dd');
+      } else if (daysDiff <= 180) {
+        intervalFn = eachWeekOfInterval;
+        formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+      } else {
+        intervalFn = eachMonthOfInterval;
+        formatFn = (date: Date) => format(date, 'MMM yyyy');
+      }
+    } else {
+      let n = periodN;
+      switch (periodType) {
+        case 'this':
+          if (periodUnit === 'week') {
+            start = startOfWeek(now);
+            end = endOfWeek(now);
+            intervalFn = eachDayOfInterval;
+            formatFn = (date: Date) => format(date, 'EEE dd');
+          } else if (periodUnit === 'month') {
+            start = startOfMonth(now);
+            end = endOfMonth(now);
+            intervalFn = eachWeekOfInterval;
+            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+          } else {
+            start = startOfYear(now);
+            end = endOfYear(now);
+            intervalFn = eachMonthOfInterval;
+            formatFn = (date: Date) => format(date, 'MMM');
+          }
+          break;
+        case 'last':
+          if (periodUnit === 'week') {
+            start = startOfWeek(subWeeks(now, 1));
+            end = endOfWeek(subWeeks(now, 1));
+            intervalFn = eachDayOfInterval;
+            formatFn = (date: Date) => format(date, 'EEE dd');
+          } else if (periodUnit === 'month') {
+            start = startOfMonth(subMonths(now, 1));
+            end = endOfMonth(subMonths(now, 1));
+            intervalFn = eachWeekOfInterval;
+            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+          } else {
+            start = startOfYear(subYears(now, 1));
+            end = endOfYear(subYears(now, 1));
+            intervalFn = eachMonthOfInterval;
+            formatFn = (date: Date) => format(date, 'MMM');
+          }
+          break;
+        case 'pastN':
+          if (periodUnit === 'week') {
+            start = subWeeks(now, n);
+            end = now;
+            intervalFn = eachWeekOfInterval;
+            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+          } else if (periodUnit === 'month') {
+            start = subMonths(now, n);
+            end = now;
+            intervalFn = eachMonthOfInterval;
+            formatFn = (date: Date) => format(date, 'MMM yyyy');
+          } else {
+            start = subYears(now, n);
+            end = now;
+            intervalFn = eachYearOfInterval;
+            formatFn = (date: Date) => format(date, 'yyyy');
+          }
+          break;
+        case 'nextN':
+          if (periodUnit === 'week') {
+            start = now;
+            end = addDays(now, n * 7);
+            intervalFn = eachWeekOfInterval;
+            formatFn = (date: Date) => `Week ${format(date, 'w')}`;
+          } else if (periodUnit === 'month') {
+            start = now;
+            end = addDays(now, n * 31);
+            intervalFn = eachMonthOfInterval;
+            formatFn = (date: Date) => format(date, 'MMM yyyy');
+          } else {
+            start = now;
+            end = addDays(now, n * 366);
+            intervalFn = eachYearOfInterval;
+            formatFn = (date: Date) => format(date, 'yyyy');
+          }
+          break;
+      }
+    }
+    return { startDate: start, endDate: end, intervalFunction: intervalFn, formatFunction: formatFn };
+  }, [periodType, periodUnit, periodN, dateRange]);
+
   const chartData = useMemo(() => {
     if (!candidates || candidates.length === 0) {
       return { labels: [], datasets: [] };
     }
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date;
-    let intervalFunction: any;
-    let formatFunction: (date: Date) => string;
-    let comparisonStartDate: Date;
-
-    const comparisonPeriods = parseInt(comparisonPeriod);
-    
-    if (timePeriod === 'custom' && dateRange?.from && dateRange?.to) {
-      startDate = dateRange.from;
-      endDate = dateRange.to;
-      // For custom date range, use daily intervals if range is less than 30 days, weekly if less than 6 months, monthly otherwise
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff <= 30) {
-        intervalFunction = eachDayOfInterval;
-        formatFunction = (date: Date) => format(date, 'MMM dd');
-      } else if (daysDiff <= 180) {
-        intervalFunction = eachWeekOfInterval;
-        formatFunction = (date: Date) => `Week ${format(date, 'w')}`;
-      } else {
-        intervalFunction = eachMonthOfInterval;
-        formatFunction = (date: Date) => format(date, 'MMM yyyy');
-      }
-      // For custom range, comparison period is the same length before the start date
-      const rangeLength = endDate.getTime() - startDate.getTime();
-      comparisonStartDate = new Date(startDate.getTime() - rangeLength);
-    } else {
-      switch (timePeriod) {
-        case 'week':
-          startDate = subWeeks(now, 12); // Last 12 weeks
-          endDate = now;
-          comparisonStartDate = subWeeks(now, 12 + comparisonPeriods); // Dynamic comparison period
-          intervalFunction = eachWeekOfInterval;
-          formatFunction = (date: Date) => `Week ${format(date, 'w')}`;
-          break;
-        case 'year':
-          startDate = subYears(now, 5); // Last 5 years
-          endDate = now;
-          comparisonStartDate = subYears(now, 5 + comparisonPeriods); // Dynamic comparison period
-          intervalFunction = eachYearOfInterval;
-          formatFunction = (date: Date) => format(date, 'yyyy');
-          break;
-        default: // month
-          startDate = subMonths(now, 12); // Last 12 months
-          endDate = now;
-          comparisonStartDate = subMonths(now, 12 + comparisonPeriods); // Dynamic comparison period
-          intervalFunction = eachMonthOfInterval;
-          formatFunction = (date: Date) => format(date, 'MMM yyyy');
-          break;
-      }
-    }
-
-    // Create intervals for current period
+    // Use new startDate, endDate, intervalFunction, formatFunction
     const intervals = intervalFunction({ start: startDate, end: endDate });
-    
     // Count applications for current period
     const currentPeriodCounts = intervals.map((intervalStart: Date) => {
       let intervalEnd: Date;
-      
-      if (timePeriod === 'custom' && dateRange?.from && dateRange?.to) {
+      // Use same logic as before for intervalEnd
+      if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
         const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
@@ -109,7 +170,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
           intervalEnd = endOfMonth(intervalStart);
         }
       } else {
-        switch (timePeriod) {
+        switch (periodUnit) {
           case 'week':
             intervalEnd = endOfWeek(intervalStart);
             break;
@@ -121,7 +182,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
             break;
         }
       }
-
       const count = candidates.filter(candidate => {
         if (!candidate.applicationDate) return false;
         try {
@@ -132,7 +192,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
           return false;
         }
       }).length;
-
       return {
         label: formatFunction(intervalStart),
         count,
@@ -140,13 +199,14 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
         end: intervalEnd
       };
     });
-
-    // Create comparison data
-    const comparisonIntervals = intervalFunction({ start: comparisonStartDate, end: startDate });
+    // For comparison, just use previous period of same length
+    const rangeLength = endDate.getTime() - startDate.getTime();
+    const comparisonStart = new Date(startDate.getTime() - rangeLength);
+    const comparisonEnd = startDate;
+    const comparisonIntervals = intervalFunction({ start: comparisonStart, end: comparisonEnd });
     const comparisonData = comparisonIntervals.map((intervalStart: Date) => {
       let intervalEnd: Date;
-      
-      if (timePeriod === 'custom' && dateRange?.from && dateRange?.to) {
+      if (periodType === 'custom' && dateRange?.from && dateRange?.to) {
         const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
         if (daysDiff <= 30) {
           intervalEnd = addDays(intervalStart, 1);
@@ -156,7 +216,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
           intervalEnd = endOfMonth(intervalStart);
         }
       } else {
-        switch (timePeriod) {
+        switch (periodUnit) {
           case 'week':
             intervalEnd = endOfWeek(intervalStart);
             break;
@@ -168,7 +228,6 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
             break;
         }
       }
-
       const count = candidates.filter(candidate => {
         if (!candidate.applicationDate) return false;
         try {
@@ -178,13 +237,11 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
           return false;
         }
       }).length;
-
       return count;
     });
-
     const datasets = [
       {
-        label: 'Current Period',
+        label: 'Current',
         data: currentPeriodCounts.map((item: any) => item.count),
         borderColor: 'rgba(59, 130, 246, 1)', // blue-500
         backgroundColor: (context: any) => {
@@ -212,10 +269,8 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
         pointHoverBorderWidth: 3,
       },
     ];
-
-    // Always add comparison dataset
     datasets.push({
-      label: 'Previous Period',
+      label: 'Previous',
       data: comparisonData,
       borderColor: 'rgba(156, 163, 175, 0.8)', // gray-400
       backgroundColor: (context: any) => {
@@ -242,44 +297,23 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
       pointHoverBorderColor: '#ffffff',
       pointHoverBorderWidth: 2,
     });
-
     return {
       labels: currentPeriodCounts.map((item: any) => item.label),
       datasets,
     };
-  }, [candidates, timePeriod, comparisonPeriod, dateRange]);
+  }, [candidates, startDate, endDate, intervalFunction, formatFunction, dateRange, periodType, periodUnit, periodN]);
 
   const totalApplications = useMemo(() => {
     return candidates.filter(candidate => {
       if (!candidate.applicationDate) return false;
       try {
         const appDate = parseISO(candidate.applicationDate);
-        
-        if (timePeriod === 'custom' && dateRange?.from && dateRange?.to) {
-          return appDate >= dateRange.from && appDate <= dateRange.to;
-        } else {
-          const now = new Date();
-          let startDate: Date;
-          
-          switch (timePeriod) {
-            case 'week':
-              startDate = subWeeks(now, 12);
-              break;
-            case 'year':
-              startDate = subYears(now, 5);
-              break;
-            default:
-              startDate = subMonths(now, 12);
-              break;
-          }
-          
-          return appDate >= startDate && appDate <= now;
-        }
+        return appDate >= startDate && appDate <= endDate;
       } catch {
         return false;
       }
     }).length;
-  }, [candidates, timePeriod, dateRange]);
+  }, [candidates, startDate, endDate]);
 
   const averageApplications = useMemo(() => {
     if (chartData.labels.length === 0) return 0;
@@ -317,57 +351,80 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {timePeriod !== 'custom' && (
-              <Select value={comparisonPeriod} onValueChange={(value: ComparisonPeriod) => setComparisonPeriod(value)}>
-                <SelectTrigger className="w-32 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12">12 Periods</SelectItem>
-                  <SelectItem value="24">24 Periods</SelectItem>
-                  <SelectItem value="36">36 Periods</SelectItem>
-                  <SelectItem value="48">48 Periods</SelectItem>
-                  <SelectItem value="60">60 Periods</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
-              <SelectTrigger className="w-32 h-8 text-xs">
+            <Select value={periodType} onValueChange={v => setPeriodType(v as any)}>
+              <SelectTrigger className="w-28 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="year">Year</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
+                {PERIOD_TYPES.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            {timePeriod === 'custom' && (
+            {periodType === 'pastN' && (
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={periodN}
+                  onChange={e => setPeriodN(Number(e.target.value))}
+                  className="w-16 h-8 text-xs border rounded px-2"
+                  style={{ minWidth: 40 }}
+                />
+                <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
+                  <SelectTrigger className="w-28 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERIOD_UNITS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {periodType !== 'custom' && periodType !== 'pastN' && (
+              <Select value={periodUnit} onValueChange={v => setPeriodUnit(v as any)}>
+                <SelectTrigger className="w-28 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_UNITS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {periodType === 'custom' && (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
+                  <button
                     className={cn(
-                      "w-40 justify-start text-left font-normal text-xs h-8",
+                      "flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors text-xs font-medium shadow-sm",
                       !dateRange && "text-muted-foreground"
                     )}
+                    style={{ minWidth: 180 }}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "MMM dd")} -{" "}
-                          {format(dateRange.to, "MMM dd, y")}
-                        </>
+                    <CalendarIcon className="h-4 w-4 text-blue-500" />
+                    <span className="whitespace-nowrap">
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            <span className="font-semibold text-blue-700">{format(dateRange.from, "MMM dd, yyyy")}</span>
+                            <span className="mx-1 text-blue-400">–</span>
+                            <span className="font-semibold text-blue-700">{format(dateRange.to, "MMM dd, yyyy")}</span>
+                          </>
+                        ) : (
+                          <span className="font-semibold text-blue-700">{format(dateRange.from, "MMM dd, yyyy")}</span>
+                        )
                       ) : (
-                        format(dateRange.from, "MMM dd, y")
-                      )
-                    ) : (
-                      <span>Pick a date range</span>
-                    )}
-                  </Button>
+                        <span className="text-blue-400">Pick a date range</span>
+                      )}
+                    </span>
+                  </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-4 rounded-xl shadow-lg bg-white border border-blue-200" align="start" style={{ minWidth: 400 }}>
                   <Calendar
                     initialFocus
                     mode="range"
@@ -378,6 +435,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
+                    className="rounded-lg border border-blue-100 shadow-sm"
                   />
                 </PopoverContent>
               </Popover>

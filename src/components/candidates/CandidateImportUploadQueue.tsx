@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, BarChart3, Timer } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import { Scatter } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   LinearScale,
+  LogarithmicScale,
   PointElement,
   Tooltip,
   Legend,
@@ -31,7 +32,7 @@ import {
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
-ChartJS.register(LinearScale, PointElement, Tooltip, Legend, TimeScale);
+ChartJS.register(LinearScale, LogarithmicScale, PointElement, Tooltip, Legend, TimeScale);
 
 export type CandidateJobType = "upload" | "import";
 
@@ -781,12 +782,14 @@ export const CandidateImportUploadQueue: React.FC<{
 
   const scatterData = {
     datasets: jobs
-      .filter(job => job.completed_date && job.upload_date)
+      .filter(job => job.completed_date && job.process_date)
       .map(job => ({
         label: job.status,
         data: [{
           x: job.completed_date ? new Date(job.completed_date) : undefined,
-          y: job.upload_date && job.completed_date ? new Date(job.completed_date).getTime() - new Date(job.upload_date).getTime() : undefined,
+          y: job.process_date && job.completed_date
+            ? (new Date(job.completed_date).getTime() - new Date(job.process_date).getTime()) / 1000 // convert ms to seconds
+            : undefined,
           jobId: job.id,
         }],
         backgroundColor: statusColorMap[job.status] || '#6b7280',
@@ -806,9 +809,16 @@ export const CandidateImportUploadQueue: React.FC<{
         callbacks: {
           label: function(context: any) {
             const job = jobs.find(j => j.id === context.raw.jobId);
+            // Show duration in seconds or minutes
+            let durationSec = context.raw.y;
+            let minutes = Math.floor(durationSec / 60);
+            let seconds = Math.round(durationSec % 60);
+            let durationLabel = minutes > 0
+              ? `${minutes}m${seconds > 0 ? ' ' + seconds + 's' : ''}`
+              : `${seconds}s`;
             return [
               `Status: ${job?.status}`,
-              `Duration: ${job && job.upload_date && job.completed_date ? formatDuration(job.upload_date, job.completed_date) : ''}`,
+              `Duration: ${durationLabel}`,
               `Completed: ${job?.completed_date ? format(new Date(job.completed_date as string), 'yyyy-MM-dd HH:mm') : ''}`,
               `Job ID: ${job?.id}`,
             ];
@@ -818,21 +828,20 @@ export const CandidateImportUploadQueue: React.FC<{
     },
     scales: {
       x: {
-        type: 'timeseries' as const,
+        type: 'time' as const,
         time: { unit: 'hour' as const, tooltipFormat: 'yyyy-MM-dd HH:mm' },
         title: { display: true, text: 'Completed Date/Time' },
         ticks: { autoSkip: true, maxTicksLimit: 20, font: { size: 12 } },
       },
       y: {
         type: 'logarithmic' as const,
-        min: 10,
-        max: 1000000,
-        title: { display: true, text: 'Job duration (ms)' },
+        min: 60, // 1 minute
+        max: 600, // 10 minutes in seconds
+        title: { display: true, text: 'Job duration (seconds)' },
         ticks: {
           callback: function(value: any) {
-            if (value >= 1000000) return '1,000,000';
-            if (value >= 10000) return value.toLocaleString();
-            return value;
+            const minutes = Math.round(value / 60);
+            return `${minutes}m`;
           },
           font: { size: 12 },
         },
@@ -946,30 +955,53 @@ export const CandidateImportUploadQueue: React.FC<{
             Delete Selected
           </Button> */}
         </div>
+        <div className="flex items-center ml-auto mt-2 md:mt-0">
+          <div
+            className="inline-flex rounded-full border border-border bg-background p-1 shadow-sm"
+            role="tablist"
+            aria-label="Graph Tabs"
+          >
+            <button
+              type="button"
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:z-10
+                ${!showDurationChart
+                  ? 'bg-primary/90 text-primary-foreground shadow'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'}
+              `}
+              onClick={() => setShowDurationChart(false)}
+              aria-pressed={!showDurationChart}
+              aria-selected={!showDurationChart}
+              tabIndex={0}
+              role="tab"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Status Cards
+            </button>
+            <button
+              type="button"
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:z-10
+                ${showDurationChart
+                  ? 'bg-primary/90 text-primary-foreground shadow'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'}
+              `}
+              onClick={() => setShowDurationChart(true)}
+              aria-pressed={showDurationChart}
+              aria-selected={showDurationChart}
+              tabIndex={0}
+              role="tab"
+            >
+              <Timer className="w-4 h-4" />
+              Duration Graph
+            </button>
+          </div>
+        </div>
       </Card>
-      {/* Toggle Switch for Cards/Chart */}
-      <div className="flex items-center mb-2">
-        <button
-          className={`px-3 py-1 rounded-l border ${!showDurationChart ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}
-          onClick={() => setShowDurationChart(false)}
-          aria-pressed={!showDurationChart}
-        >
-          Status Cards
-        </button>
-        <button
-          className={`px-3 py-1 rounded-r border-l-0 border ${showDurationChart ? 'bg-primary text-white' : 'bg-muted text-foreground'}`}
-          onClick={() => setShowDurationChart(true)}
-          aria-pressed={showDurationChart}
-        >
-          Duration Graph
-        </button>
-      </div>
       {showDurationChart ? (
         <div className="mb-6 bg-white dark:bg-gray-900 rounded-lg p-4 border">
           <div className="flex items-center mb-2">
             <span className="text-sm text-muted-foreground mr-2">Each point is a job. Color = status. Y = duration. X = completed date/time.</span>
           </div>
-          <Scatter data={scatterData} options={scatterOptions} height={320} />
+          <Scatter data={scatterData} options={scatterOptions} height={35} />
         </div>
       ) : (
         <div className="mb-6">

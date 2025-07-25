@@ -66,6 +66,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/formidable": "^3.4.5",
     "@types/uuid": "^10.0.0",
+    "@wojtekmaj/react-daterange-picker": "^6.0.0",
     "antd": "^5.26.6",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.0",

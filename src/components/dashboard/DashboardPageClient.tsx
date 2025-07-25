@@ -34,9 +34,7 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
 import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Title, Tooltip, Legend, ChartDataLabels);
-
+import '@/lib/chartjs-setup';
 
 
 interface DashboardPageClientProps {
@@ -652,7 +650,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:81'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:90 maxFitScore:100'))
               }
             },
             { 
@@ -1007,7 +1005,13 @@ export default function DashboardPageClient({
         <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
         {/* Sort score ranges by count descending */}
         {(() => {
-          const sortedScoreRanges = [...candidateScoreRanges].sort((b, a) => b.count - a.count);
+          // Sort by grade order: A, B, C, D, E
+          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
+          const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
+            const aGrade = a.label[0];
+            const bGrade = b.label[0];
+            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
+          });
           return (
             <Card className="shadow-sm hover:shadow-md transition-all duration-200">
               <CardContent className="pt-6">

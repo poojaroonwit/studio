@@ -592,7 +592,7 @@ export function CandidateTable({
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
                       {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                        <ScoreBadge score={candidate.fitScore}>
+                        <ScoreBadge score={candidate.fitScore} className="rounded-full">
                           {displayFitScoreWithGrade(candidate.fitScore)}
                         </ScoreBadge>
                       ) : (
@@ -754,7 +754,7 @@ export function CandidateTable({
                             <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                               <div className="flex items-center gap-2">
                                 {(candidate.fitScore !== undefined && candidate.fitScore !== null) ? (
-                                  <ScoreBadge score={candidate.fitScore}>
+                                  <ScoreBadge score={candidate.fitScore} className="rounded-full">
                                     {displayFitScoreWithGrade(candidate.fitScore)}
                                   </ScoreBadge>
                                 ) : (

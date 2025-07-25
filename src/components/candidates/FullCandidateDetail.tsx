@@ -1503,56 +1503,67 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                {getEducation(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                )}
-               {getEducation(candidate).map((edu: any, index: number) => (
-                 <div key={`edu-${index}-${edu.university || index}`} className="relative">
-                   <div className="flex items-start space-x-4 pb-8">
-                     <div className="flex-shrink-0 w-28 text-right">
-                       {/* Date display here */}
-                       {edu.period && (
-                         <div className="text-xs text-muted-foreground whitespace-pre-line mb-1">
-                           {edu.period}
-                         </div>
-                       )}
-                     </div>
-                     {/* Timeline line and node */}
-                     <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
-                       {/* Node (icon) */}
-                       <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                         <GraduationCap className="w-3 h-3 text-foreground" />
+               {getEducation(candidate).map((edu: any, index: number) => {
+                 let periodDisplay = '', duration = '';
+                 if (edu.period) {
+                   const match = edu.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
+                   if (match) {
+                     const left = `<strong>${match[1]} ${match[2]}</strong>`;
+                     const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
+                     periodDisplay = `${left} - ${right}`;
+                     duration = calculateDuration(edu.period);
+                   } else {
+                     periodDisplay = edu.period;
+                   }
+                 }
+                 return (
+                   <div key={`edu-${index}-${edu.university || index}`} className="relative">
+                     <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                       <div className="text-right h-full flex flex-col items-end justify-start">
+                         {/* Period and duration display */}
+                         {periodDisplay && (
+                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                         )}
+                         {duration && (
+                           <div className="text-sm text-muted-foreground">({duration})</div>
+                         )}
                        </div>
-                       {/* Dynamic vertical line connecting nodes (except last node) */}
-                       {index < getEducation(candidate).length - 1 && (
-                         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
-                       )}
-                     </div>
-                     {/* Content */}
-                     <div className="flex-1 min-w-0 pb-0 flex items-center">
-                       <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                         <h4 className="font-semibold text-foreground mb-1">
-                           {edu.university || 'University not specified'}
-                           {edu.campus && ` (${edu.campus})`}
-                         </h4>
-                         <p className="text-sm text-muted-foreground mb-2">
-                           {edu.major && edu.field ? `${edu.major} - ${edu.field}` : 
-                            edu.major || edu.field || 'Field of study not specified'}
-                         </p>
-                         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                           {edu.GPA && (
-                             <span>GPA: {edu.GPA}</span>
-                           )}
+                       {/* Timeline icon and vertical line */}
+                       <div className="flex flex-col items-center h-full">
+                         <div className="w-10 h-10 bg-muted rounded-full bg-card flex items-center justify-center z-10  border-border relative">
+                           <GraduationCap className="w-6 h-6 text-foreground" />
                          </div>
+                         {index < getEducation(candidate).length - 1 && (
+                           <div className="w-px bg-border flex-grow" />
+                         )}
                        </div>
-                       {hasFitScore(edu) && (
-                         <div className="flex flex-col items-center justify-center ml-6">
-                           <ScoreBadge score={edu.fitScore}>
-                             {formatScoreWithGrade(edu.fitScore)}
-                           </ScoreBadge>
+                       {/* Content */}
+                       <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0 mb-8">
+                         <div className="flex-1">
+                           <h4 className="font-semibold text-foreground mb-1">
+                             {edu.major && edu.field ? `${edu.major} - ${edu.field}` : edu.major || edu.field || 'Field of study not specified'}
+                           </h4>
+                           <p className="text-sm text-muted-foreground mb-2">
+                             {edu.university || 'University not specified'}
+                             {edu.campus && ` (${edu.campus})`}
+                           </p>
+                           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                             {edu.GPA && (
+                               <span>GPA: {edu.GPA}</span>
+                             )}
+                           </div>
                          </div>
-                       )}
+                         {hasFitScore(edu) && (
+                           <div className="flex flex-col items-center justify-center ml-6">
+                             <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                             <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                           </div>
+                         )}
+                       </div>
                      </div>
                    </div>
-                 </div>
-               ))}
+                 );
+               })}
              </div>
            )}
          </div>
@@ -1592,15 +1603,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                        />
                      )}
                    />
-
                    <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
-                   <div className="flex items-center space-x-2">
-                     <Checkbox
-                       id={`experience.${index}.is_current_position`}
-                       {...register(`parsedData.experience.${index}.is_current_position`)}
-                     />
-                     <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
-                   </div>
                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
                      <Trash2 className="h-4 w-4 text-destructive" />
                    </Button>
@@ -1615,75 +1618,81 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                {getExperience(candidate).length === 0 && (
                  <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                )}
-               {getExperience(candidate).map((exp: any, index: number) => (
-                 <div key={`exp-${index}-${exp.company || index}`} className="relative">
-                   <div className="flex items-start space-x-4 pb-8">
-                     <div className="flex-shrink-0 w-28 text-right">
-                       {/* Date display here */}
-                       {exp.period && (
-                         <div className="text-xs text-muted-foreground whitespace-pre-line mb-1">
-                           {exp.period}
-                         </div>
-                       )}
-                     </div>
-                     {/* Timeline line and node */}
-                     <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
-                       {/* Node (icon) */}
-                       <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                         <Briefcase className="w-3 h-3 text-foreground" />
+               {getExperience(candidate).map((exp: any, index: number) => {
+                 let periodDisplay = '', duration = '';
+                 if (exp.period) {
+                   const match = exp.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
+                   if (match) {
+                     const left = `<strong>${match[1]} ${match[2]}</strong>`;
+                     const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
+                     periodDisplay = `${left} - ${right}`;
+                     duration = calculateDuration(exp.period);
+                   } else {
+                     periodDisplay = exp.period;
+                   }
+                 }
+                 return (
+                   <div key={`exp-${index}-${exp.company || index}`} className="relative">
+                     <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                       <div className="text-right h-full flex flex-col items-end justify-start">
+                         {/* Period and duration display */}
+                         {periodDisplay && (
+                           <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                         )}
+                         {duration && (
+                           <div className="text-sm text-muted-foreground">({duration})</div>
+                         )}
                        </div>
-                       {/* Dynamic vertical line connecting nodes (except last node) */}
-                       {index < getExperience(candidate).length - 1 && (
-                         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
-                       )}
-                     </div>
-                     {/* Content */}
-                     <div className="flex-1 min-w-0 pb-0 flex items-center">
-                       <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                         {/* Position and Level */}
-                         <div className="mb-2">
-                           <span className="text-primary font-semibold">
-                             {exp.position || 'Position not specified'}
-                           </span>
-                           {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
-                             <span className="text-foreground font-semibold">
-                               {' '}({exp.positionLevel})
+                       {/* Timeline icon and vertical line */}
+                       <div className="flex flex-col items-center h-full">
+                         <div className="w-10 h-10 bg-muted rounded-full bg-card flex items-center justify-center z-10  border-border relative">
+                           <Briefcase className="w-6 h-6 text-foreground" />
+                         </div>
+                         {index < getExperience(candidate).length - 1 && (
+                           <div className="w-px bg-border flex-grow" />
+                         )}
+                       </div>
+                       {/* Content */}
+                       <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0 mb-8">
+                         <div className="flex-1">
+                           <div className="mb-2">
+                             <span className="text-primary font-semibold">
+                               {exp.position || 'Position not specified'}
                              </span>
+                             {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
+                               <span className="text-foreground font-semibold">
+                                 {' '}({exp.positionLevel})
+                               </span>
+                             )}
+                           </div>
+                           {exp.company && (
+                             <div className="mb-3 flex items-center gap-2">
+                               <Building2 className="h-4 w-4 text-muted-foreground" />
+                               <span className="text-foreground">
+                                 {exp.company}
+                               </span>
+                             </div>
+                           )}
+                           {exp.description && (
+                             <div className="mt-3">
+                               <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                               <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                                 {exp.description}
+                               </p>
+                             </div>
                            )}
                          </div>
-                         
-                         {/* Company with Building Icon */}
-                         {exp.company && (
-                           <div className="mb-3 flex items-center gap-2">
-                             <span className="text-foreground">at</span>
-                             <Building2 className="h-4 w-4 text-muted-foreground" />
-                             <span className="font-semibold text-foreground">
-                               {exp.company}
-                             </span>
-                           </div>
-                         )}
-                         
-                         {/* Description */}
-                         {exp.description && (
-                           <div className="mt-3">
-                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
-                             <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
-                               {exp.description}
-                             </p>
+                         {hasFitScore(exp) && (
+                           <div className="flex flex-col items-center justify-center ml-6">
+                             <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                             <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
                            </div>
                          )}
                        </div>
-                       {hasFitScore(exp) && (
-                         <div className="flex flex-col items-center justify-center ml-6">
-                           <ScoreBadge score={exp.fitScore}>
-                             {formatScoreWithGrade(exp.fitScore)}
-                           </ScoreBadge>
-                         </div>
-                       )}
                      </div>
                    </div>
-                 </div>
-               ))}
+                 );
+               })}
              </div>
            )}
          </div>

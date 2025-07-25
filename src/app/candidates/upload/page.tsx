@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, XCircle, FileText, Plus, Trash2, UploadCloud } from "lucide-react";
-import { CandidateQueueProvider, CandidateImportUploadQueue } from "@/components/candidates/CandidateImportUploadQueue";
+import { CandidateQueueProvider } from "@/components/candidates/CandidateImportUploadQueue";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
@@ -16,6 +16,12 @@ import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const CandidateImportUploadQueue = dynamic(
+  () => import('@/components/candidates/CandidateImportUploadQueue').then(mod => mod.CandidateImportUploadQueue),
+  { ssr: false }
+);
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 

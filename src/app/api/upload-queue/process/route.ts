@@ -381,8 +381,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               method: 'POST',
               headers,
               body: JSON.stringify(jsonPayload),
-              // Add timeout and other fetch options for better error handling
-              signal: AbortSignal.timeout(120000), // 2 minute timeout
+              signal: AbortSignal.timeout(3600000), // 1 hour timeout
             });
             console.log(`[Webhook] Response received with status: ${webhookRes.status}`);
             webhookResStatus = webhookRes.status;

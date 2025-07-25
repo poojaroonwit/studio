@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ScoreBadge } from '@/components/ui/score-color';
+import { ScoreBadge, getScoreColorInfo } from '@/components/ui/score-color';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download, Building2 } from 'lucide-react';
 // import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
@@ -46,6 +46,7 @@ import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDr
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
 import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
@@ -1310,11 +1311,18 @@ export default function CandidateDetailPage() {
     return parts.join(' ');
   };
 
-
+  // Helper to map Tailwind bg-* class to hex color
+  const tailwindBgToHex: Record<string, string> = {
+    'bg-red-400': '#f87171',
+    'bg-orange-400': '#fb923c',
+    'bg-yellow-200': '#fef08a',
+    'bg-yellow-400': '#facc15',
+    'bg-lime-400': '#a3e635',
+  };
 
   // Field arrays for form sections
   return (
-    <div className="h-screen overflow-y-auto">
+    <div>
     
       <form onSubmit={handleSubmit(handleSaveDetails)}>
           {/* Header - 2 Columns */}
@@ -1423,7 +1431,26 @@ export default function CandidateDetailPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
                         {candidate.positionId && Array.isArray(allDbPositions) && allDbPositions.length > 0 && (
-                          <span>Applied Job: <span className="font-medium text-foreground">{allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}</span></span>
+                          <span>
+                            Applied Job: 
+                            <span
+                              className="font-medium text-foreground  inline-block align-middle"
+                              style={{
+                                display: 'inline-block',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'normal',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                display: '-webkit-box',
+                                verticalAlign: 'middle',
+                                cursor: 'pointer',
+                              }}
+                              title={allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
+                            >
+                              {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
+                            </span>
+                          </span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
@@ -1689,12 +1716,27 @@ export default function CandidateDetailPage() {
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
-                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span
+                                            className="block  overflow-hidden text-ellipsis whitespace-pre-line line-clamp-2 cursor-pointer"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                                          >
+                                            {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                          {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
+                                        </TooltipContent>
+                                      </Tooltip>
                                     </h4>
                                     {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
-                                      <div className="text-2xl font-bold text-primary flex items-center gap-2">
-                                        <span>{displayFitScore(candidate?.fitScore)}</span>
-                                        <span className="text-lg font-bold text-primary">({getGradeFromScore(candidate?.fitScore || 0)})</span>
+                                      <div className="text-4xl font-extrabold flex items-center gap-2">
+                                        <span
+                                          style={{ color: tailwindBgToHex[getScoreColorInfo(candidate?.fitScore).bg] || '#000' }}
+                                        >
+                                          {displayFitScore(candidate?.fitScore)} ({getGradeFromScore(candidate?.fitScore || 0)})
+                                        </span>
                                       </div>
                                     )}
                                    </div>
@@ -1752,7 +1794,6 @@ export default function CandidateDetailPage() {
                     </button>
                     {jobMatchesOpen && (
                       <div className="space-y-4 transition-all duration-200">
-
                         {/* Edit Section */}
                         {isEditing && (
                           <div className="border rounded-lg p-4 bg-card">
@@ -1925,8 +1966,11 @@ export default function CandidateDetailPage() {
                                 >
                                   <ChevronRight className="h-4 w-4" />
                                     </Button>
+
+                                  
                               )}
-                                
+                                  
+                               
                                     <div 
                                 className="flex overflow-x-auto gap-3 pb-2 job-matches-container scrollbar-hide" 
                                         style={{ 
@@ -1990,16 +2034,16 @@ export default function CandidateDetailPage() {
                     )}
                               </div>
                             )}
+                               {!isEditing && (!candidateJobMatches || candidateJobMatches.length === 0) && (
+                                      <div className="text-center py-8 text-muted-foreground">
+                                        <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                                        <p>No job matches found for this candidate.</p>
+                                        <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
+                                      </div>
+                                    )}
                   </section>
 
-                  {/* Empty state for no job matches */}
-                  {!isEditing && (!candidateJobMatches || candidateJobMatches.length === 0) && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>No job matches found for this candidate.</p>
-                      <p className="text-sm">Job matches will appear here if the candidate matches any positions.</p>
-                    </div>
-                  )}
+                
 
                   {/* Collapsible Candidate Info Sections */}
                   <section className="mb-4 border border-border rounded-lg p-4 bg-card">
@@ -2111,42 +2155,72 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="relative">
+                            <div className="relative mb-8">
                               {education.length === 0 && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
-                              {education.map((edu: any, index: number) => (
-                                <div key={`edu-${index}-${edu.university || index}`} className="relative">
-                                  <div className="flex items-start space-x-4 pb-8">
-                                    <div className="flex-shrink-0 w-28 text-right">
-                                      {/* Date display here */}
-                                    </div>
-                                    {/* Timeline line and node */}
-                                    <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
-                                      {/* Node (icon) */}
-                                      <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                                        <GraduationCap className="w-3 h-3 text-foreground" />
+                              {education.map((edu: any, index: number) => {
+                                let periodDisplay = '', duration = '';
+                                if (edu.period) {
+                                  const match = edu.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
+                                  if (match) {
+                                    const left = `<strong>${match[1]} ${match[2]}</strong>`;
+                                    const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
+                                    periodDisplay = `${left} - ${right}`;
+                                    duration = calculateDuration(edu.period);
+                                  } else {
+                                    periodDisplay = edu.period;
+                                  }
+                                }
+                                return (
+                                  <div key={`edu-${index}-${edu.university || index}`} className="relative">
+                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full ">
+                                      <div className="text-right h-full flex flex-col items-end justify-start pt-2">
+                                        {/* Period and duration display */}
+                                        {periodDisplay && (
+                                          <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                                        )}
+                                        {duration && (
+                                          <div className="text-sm text-muted-foreground">({duration})</div>
+                                        )}
                                       </div>
-                                      {/* Dynamic vertical line connecting nodes (except last node) */}
-                                      {index < education.length - 1 && (
-                                        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
-                                      )}
-                                    </div>
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                        {renderField("Education", edu)}
-                                      </div>
-                                      {hasFitScore(edu) && (
-                                        <div className="flex flex-col items-center justify-center ml-6">
-                                          <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
-                                          <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                                      {/* Timeline icon and vertical line */}
+                                      <div className="flex flex-col items-center h-full">
+                                        <div className="w-10 h-10 bg-muted rounded-full bg-card flex items-center justify-center z-10  border-border relative">
+                                          <GraduationCap className="w-6 h-6 text-foreground" />
                                         </div>
-                                      )}
+                                        {index < education.length - 1 && (
+                                          <div className="w-px bg-border flex-grow" />
+                                        )}
+                                      </div>
+                                      {/* Content */}
+                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0  mb-8">
+                                        <div className="flex-1">
+                                          <h4 className="font-semibold text-foreground mb-1">
+               
+                                            {edu.major && edu.field ? `${edu.major} - ${edu.field}` : edu.major || edu.field || 'Field of study not specified'}
+                                          </h4>
+                                          <p className="text-sm text-muted-foreground mb-2">
+                                            {edu.university || 'University not specified'}
+                                            {edu.campus && ` (${edu.campus})`}
+                                          </p>
+                                          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                            {edu.GPA && (
+                                              <span>GPA: {edu.GPA}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {hasFitScore(edu) && (
+                                          <div className="flex flex-col items-center justify-center ml-6">
+                                            <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(edu.fitScore)}</span>
+                                            <span className="text-lg text-muted-foreground font-semibold mt-1">{edu.fitScore}%</span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                         )}
                       </div>
@@ -2184,28 +2258,13 @@ export default function CandidateDetailPage() {
                                             />
                                           )}
                                         />
-
-                                         <Controller
-                                            name={`parsedData.experience.${index}.positionLevel`}
-                                            control={control}
-                                            render={({ field: controllerField }) => (
-                                                <Input {...controllerField} value={controllerField.value || ''} placeholder="Position Level" />
-                                            )}
+                                        <Controller
+                                          name={`parsedData.experience.${index}.positionLevel`}
+                                          control={control}
+                                          render={({ field: controllerField }) => (
+                                            <Input {...controllerField} value={controllerField.value || ''} placeholder="Position Level" />
+                                          )}
                                         />
-                                        <div className="flex items-center space-x-2">
-                                            <Controller
-                                                name={`parsedData.experience.${index}.is_current_position`}
-                                                control={control}
-                                                render={({ field: controllerField }) => (
-                                                    <Checkbox
-                                                        id={`experience.${index}.is_current_position`}
-                                                        checked={Boolean(controllerField.value)}
-                                                        onCheckedChange={(checked) => controllerField.onChange(checked)}
-                                                    />
-                                                )}
-                                            />
-                                            <Label htmlFor={`experience.${index}.is_current_position`}>Current Position</Label>
-                                        </div>
                                         <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -2216,73 +2275,85 @@ export default function CandidateDetailPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="relative">
+                            <div className="relative mb-8">
                               {(getExperience(candidate).length === 0) && (
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
-                              {experience.map((exp: any, index: number) => (
-                                <div key={`exp-${index}-${exp.company || index}`} className="relative">
-                                  <div className="flex items-start space-x-4 pb-8">
-                                    <div className="flex-shrink-0 w-28 text-right">
-                                      {/* Date display here */}
-                                    </div>
-                                    {/* Timeline line and node */}
-                                    <div className="flex-shrink-0 flex flex-col items-center relative" style={{ width: '2rem' }}>
-                                      {/* Node (icon) */}
-                                      <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center z-10 border-2 border-border relative">
-                                        <Briefcase className="w-3 h-3 text-foreground" />
+                              {experience.map((exp: any, index: number) => {
+                                let periodDisplay = '', duration = '';
+                                if (exp.period) {
+                                  const match = exp.period.match(/([A-Za-z]+) (\d{4}) - (([A-Za-z]+) (\d{4})|Present)/);
+                                  if (match) {
+                                    const left = `<strong>${match[1]} ${match[2]}</strong>`;
+                                    const right = `<strong>${match[3] === 'Present' ? 'Present' : `${match[4]} ${match[5]}`}</strong>`;
+                                    periodDisplay = `${left} - ${right}`;
+                                    duration = calculateDuration(exp.period);
+                                  } else {
+                                    periodDisplay = exp.period;
+                                  }
+                                }
+                                return (
+                                  <div key={`exp-${index}-${exp.company || index}`} className="relative">
+                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-4 items-stretch h-full">
+                                      <div className="text-right h-full flex flex-col items-end justify-start pt-2">
+                                        {/* Period and duration display */}
+                                        {periodDisplay && (
+                                          <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                                        )}
+                                        {duration && (
+                                          <div className="text-sm text-muted-foreground">({duration})</div>
+                                        )}
                                       </div>
-                                      {/* Dynamic vertical line connecting nodes (except last node) */}
-                                      {index < getExperience(candidate).length - 1 && (
-                                        <div className="absolute top-6 left-1/2 -translate-x-1/2 w-px bg-border" style={{ bottom: 0, top: '1.5rem' }} />
-                                      )}
-                                    </div>
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0 pb-0 flex items-center">
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1">
-                                        {/* Position and Level */}
-                                        <div className="mb-2">
-                                          <span className="text-primary font-semibold">
-                                            {exp.position || 'Position not specified'}
-                                          </span>
-                                          {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
-                                            <span className="text-foreground font-semibold">
-                                              {' '}({exp.positionLevel})
+                                      {/* Timeline icon and vertical line */}
+                                      <div className="flex flex-col items-center h-full">
+                                        <div className="w-10 h-10 bg-muted rounded-full bg-card flex items-center justify-center z-10  border-border relative">
+                                          <Briefcase className="w-6 h-6 text-foreground" />
+                                        </div>
+                                        {index < experience.length - 1 && (
+                                          <div className="w-px bg-border flex-grow" />
+                                        )}
+                                      </div>
+                                      {/* Content */}
+                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0  mb-8">
+                                        <div className="flex-1">
+                                          <div className="mb-2">
+                                            <span className="text-primary font-semibold">
+                                              {exp.position || 'Position not specified'}
                                             </span>
+                                            {exp.positionLevel && exp.positionLevel !== 'undefined' && exp.positionLevel !== undefined && (
+                                              <span className="text-foreground font-semibold">
+                                                {' '}({exp.positionLevel})
+                                              </span>
+                                            )}
+                                          </div>
+                                          {exp.company && (
+                                            <div className="mb-3 flex items-center gap-2"> 
+                                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                                              <span className="text-foreground">
+                                                {exp.company}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {exp.description && (
+                                            <div className="mt-3">
+                                              <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
+                                              <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
+                                                {exp.description}
+                                              </p>
+                                            </div>
                                           )}
                                         </div>
-                                        
-                                        {/* Company with Building Icon */}
-                                        {exp.company && (
-                                          <div className="mb-3 flex items-center gap-2">
-                                            <span className="text-foreground">at</span>
-                                            <Building className="h-4 w-4 text-muted-foreground" />
-                                            <span className="font-semibold text-foreground">
-                                              {exp.company}
-                                            </span>
-                                          </div>
-                                        )}
-                                        
-                                        {/* Description */}
-                                        {exp.description && (
-                                          <div className="mt-3">
-                                            <h4 className="text-sm font-medium text-muted-foreground mb-2">Description:</h4>
-                                            <p className="text-sm text-foreground whitespace-pre-wrap bg-card p-3 rounded border">
-                                              {exp.description}
-                                            </p>
+                                        {hasFitScore(exp) && (
+                                          <div className="flex flex-col items-center justify-center ml-6">
+                                            <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
+                                            <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
                                           </div>
                                         )}
                                       </div>
-                                      {hasFitScore(exp) && (
-                                        <div className="flex flex-col items-center justify-center ml-6">
-                                          <span className="text-4xl font-extrabold text-primary leading-none">{formatScoreWithGrade(exp.fitScore)}</span>
-                                          <span className="text-lg text-muted-foreground font-semibold mt-1">{exp.fitScore}%</span>
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                         )}
                       </div>

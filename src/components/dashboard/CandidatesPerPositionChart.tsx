@@ -16,8 +16,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import '@/lib/chartjs-setup';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface CandidatesPerPositionChartProps {
   candidates: Candidate[];

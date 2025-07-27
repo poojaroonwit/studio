@@ -10,6 +10,9 @@ import { logAudit } from '@/lib/auditLog';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import os from 'os';
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 /**
  * @openapi
  * /api/upload-queue/process:

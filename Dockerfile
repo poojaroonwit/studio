@@ -30,5 +30,4 @@ RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8021
 
-# Override the default entrypoint to use our custom script
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["./entrypoint.sh"]

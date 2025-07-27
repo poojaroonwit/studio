@@ -10,9 +10,6 @@ import { logAudit } from '@/lib/auditLog';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import os from 'os';
 
-// Force dynamic rendering to prevent static generation issues
-export const dynamic = 'force-dynamic';
-
 /**
  * @openapi
  * /api/upload-queue/process:
@@ -57,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   await logAudit('INFO', 'Upload queue processing started', 'API:UploadQueue:Process', null);
   
-  const client = await getPool().connect();
+  const client = await getSafeDbClient();
   let job;
   let payload = null;
   try {
@@ -74,54 +71,70 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN');
     
-    // Use a more robust locking mechanism to prevent race conditions
-    // First, lock the entire upload_queue table to ensure atomicity
-    await client.query('LOCK TABLE upload_queue IN ACCESS EXCLUSIVE MODE');
-    
-    // Count current in-process jobs
+    // Step 1: Check current in-process count and lock those rows
     const countRes = await client.query(
-      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess'`
+      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
     );
-    const currentInProgress = parseInt(countRes.rows[0].count) || 0;
-    console.log(`[UPLOAD QUEUE] Current in-process jobs: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
+    const currentInProgress = parseInt(countRes.rows[0].count, 10);
     
+    console.log(`[PROCESS] Current in-process: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
+    
+    // Step 2: Check if we have available slots
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
-      console.log(`[UPLOAD QUEUE] Reached max concurrent limit: ${currentInProgress}/${maxConcurrent}`);
-      await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
-      return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
+      const message = `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent}) - no available slots`;
+      console.log(`[PROCESS] ${message}`);
+      await logAudit('INFO', message, 'API:UploadQueue:Process', null);
+      return NextResponse.json({ 
+        message,
+        availableSlots: 0,
+        currentInProgress,
+        maxConcurrent
+      }, { status: 200 });
     }
     
-    // Atomically pick and mark the oldest queued job as 'inprocess' with additional safety check
+    const availableSlots = maxConcurrent - currentInProgress;
+    console.log(`[PROCESS] Available slots: ${availableSlots}`);
+    
+    // Step 3: Atomically pick and mark the oldest queued job as 'inprocess' (FIFO order)
+    console.log(`[PROCESS] Selecting next job in FIFO order (oldest first)...`);
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
          SELECT id FROM upload_queue 
          WHERE status = 'queued' 
-         AND (
-           SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess'
-         ) < $1
-         ORDER BY upload_date ASC LIMIT 1
+         ORDER BY upload_date ASC, id ASC
+         LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
-       RETURNING *`,
-      [maxConcurrent]
+       RETURNING *`
     );
+    
     if (res.rows.length === 0) {
       await client.query('COMMIT');
+      console.log(`[PROCESS] ⏳ No queued jobs available for processing`);
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
-      return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
+      return NextResponse.json({ 
+        message: 'No queued jobs',
+        availableSlots,
+        currentInProgress,
+        maxConcurrent
+      }, { status: 200 });
     }
+    
     job = res.rows[0];
     await client.query('COMMIT');
     
-    console.log(`[UPLOAD QUEUE] Starting to process job: ${job.file_name} (ID: ${job.id})`);
+    console.log(`[PROCESS] ✅ Selected job for processing: ${job.file_name} (ID: ${job.id})`);
+    console.log(`[PROCESS] Job details: size=${job.file_size}, source=${job.source}, upload_date=${job.upload_date}`);
+    
     await logAudit('INFO', `Processing upload queue job '${job.file_name}' (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
       jobId: job.id,
       fileName: job.file_name,
       fileSize: job.file_size,
-      source: job.source 
+      source: job.source,
+      uploadDate: job.upload_date
     });
     
     // Validate file_path before proceeding
@@ -241,14 +254,12 @@ export async function POST(request: NextRequest) {
     }
     
     if (status === 'success') {
-      console.log(`[UPLOAD QUEUE] Job completed successfully: ${job.file_name} (ID: ${job.id})`);
       await logAudit('AUDIT', `Upload queue job '${job.file_name}' processed successfully`, 'API:UploadQueue:Process', null, { 
         jobId: job.id,
         fileName: job.file_name,
         webhookResults
       });
     } else {
-      console.log(`[UPLOAD QUEUE] Job failed: ${job.file_name} (ID: ${job.id}) - ${error}`);
       await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with webhook error`, 'API:UploadQueue:Process', null, { 
         jobId: job.id,
         fileName: job.file_name,

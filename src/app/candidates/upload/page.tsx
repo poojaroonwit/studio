@@ -124,81 +124,74 @@ function UploadPageContent() {
   const handleConfirmUpload = async () => {
     setUploading(true);
     const batchId = uuidv4();
+    const now = new Date().toISOString();
     try {
       if (selectedFiles.length === 0) return;
-      
-      // Step 1: Upload files to MinIO
-      console.log(`Starting upload of ${selectedFiles.length} files...`);
+      // Upload files
       const formData = new FormData();
       selectedFiles.forEach((file) => {
         formData.append('files', file);
       });
-      
       const uploadRes = await fetch('/api/upload-queue/upload-file', {
         method: 'POST',
         body: formData
       });
-      
       if (!uploadRes.ok) {
-        throw new Error(`File upload failed: ${uploadRes.statusText}`);
+        throw new Error(`File upload failed`);
       }
-      
       const { results } = await uploadRes.json();
-      console.log(`File upload completed. ${results.length} files uploaded.`);
-      
-      // Step 2: Queue all files at once using bulk endpoint
-      const successfulUploads = results.filter((result: any) => result.status === 'success');
-      
-      if (successfulUploads.length === 0) {
-        throw new Error('No files were successfully uploaded');
-      }
-      
-      const filesToQueue = successfulUploads.map((result: any, idx: number) => ({
-        file_name: result.file_name,
-        file_size: selectedFiles[idx]?.size || 0,
-        file_path: result.file_path,
-        webhook_payload: {
-          targetPositionId: selectedPositionId || null,
-          uploadBatch: batchId
+      // Non-blocking upload: process each file via non-blocking endpoint
+      const queueResults: any[] = [];
+      await Promise.all(results.map(async (result: any, idx: number) => {
+        if (result.status === 'success') {
+          const queueData = {
+            file_name: result.file_name,
+            file_size: selectedFiles[idx]?.size || 0,
+            status: 'queued',
+            source: 'bulk',
+            upload_id: batchId,
+            upload_date: now,
+            file_path: result.file_path,
+            webhook_payload: {
+              targetPositionId: selectedPositionId || null,
+              uploadBatch: batchId
+            },
+          };
+          const queueRes = await fetch('/api/upload-queue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(queueData)
+          });
+          let error = undefined;
+          if (!queueRes.ok) {
+            try {
+              const errorData = await queueRes.json();
+              error = errorData.error || 'Failed to add file to upload queue';
+            } catch {
+              error = 'Failed to add file to upload queue';
+            }
+          }
+          queueResults.push({ file: result.file_name, success: queueRes.ok, error });
+        } else {
+          queueResults.push({ file: result.file_name, success: false, error: result.error || 'Upload failed' });
         }
       }));
-      
-      console.log(`Queueing ${filesToQueue.length} files...`);
-      const queueRes = await fetch('/api/upload-queue/bulk-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          files: filesToQueue,
-          batchId,
-          positionId: selectedPositionId || null
-        })
-      });
-      
-      if (!queueRes.ok) {
-        const errorData = await queueRes.json();
-        throw new Error(errorData.error || 'Failed to queue files');
-      }
-      
-      const queueResult = await queueRes.json();
-      console.log(`Queueing completed: ${queueResult.successCount} queued, ${queueResult.errorCount} failed`);
-      
       setSelectedFiles([]);
       setSelectedPositionId("");
       setIsBulkUploadModalOpen(false);
-      
       // Show summary to user
-      if (queueResult.errorCount === 0) {
-        toast.success(`Bulk upload: ${queueResult.successCount} file(s) queued successfully!`);
+      const numSuccess = queueResults.filter(r => r.success).length;
+      const numError = queueResults.length - numSuccess;
+      if (numError === 0) {
+        toast.success(`Bulk upload: ${numSuccess} file(s) queued for upload.`);
       } else {
-        toast.error(`Bulk upload: ${queueResult.errorCount} failed, ${queueResult.successCount} queued.`);
-        console.table(queueResult.results);
+        toast.error(`Bulk upload: ${numError} failed, ${numSuccess} queued.`);
+        console.table(queueResults);
       }
-      
       handleUploadSuccess();
-      
     } catch (error) {
       console.error('Bulk upload error:', error);
-      toast.error(`Bulk upload failed: ${(error as Error).message}`);
+      toast.error('Bulk upload failed');
     } finally {
       setUploading(false);
     }

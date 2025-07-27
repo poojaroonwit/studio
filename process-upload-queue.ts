@@ -207,7 +207,8 @@ async function runProcessorLoop(): Promise<never> {
     // console.log('[Memory Usage]', `rss: ${(mem.rss/1024/1024).toFixed(2)} MB, heapUsed: ${(mem.heapUsed/1024/1024).toFixed(2)} MB, heapTotal: ${(mem.heapTotal/1024/1024).toFixed(2)} MB, external: ${(mem.external/1024/1024).toFixed(2)} MB`);
     try {
       const maxConcurrent = await getMaxConcurrentProcessors();
-      // Query the current number of in-process jobs
+      
+      // Step 1: Check current in-process count
       const client = await getPool().connect();
       const countRes = await client.query(
         `SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess'`
@@ -215,11 +216,27 @@ async function runProcessorLoop(): Promise<never> {
       const currentInProgress = parseInt(countRes.rows[0].count, 10);
       client.release();
 
+      console.log(`[PROCESSOR] Current in-process: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
+      
+      // Step 2: Calculate available slots
       const availableSlots = Math.max(0, maxConcurrent - currentInProgress);
+      
       if (availableSlots > 0) {
+        console.log(`[PROCESSOR] Found ${availableSlots} available slots, processing next jobs in FIFO order...`);
+        
+        // Step 3: Process jobs up to available slots (FIFO order)
         const jobs = Array.from({ length: availableSlots });
-        await Promise.all(jobs.map(() => processJob(apiKey)));
+        const results = await Promise.all(jobs.map(() => processJob(apiKey)));
+        
+        // Log processing results
+        const successfulJobs = results.filter(result => result === true).length;
+        if (successfulJobs > 0) {
+          console.log(`[PROCESSOR] Successfully processed ${successfulJobs} jobs`);
+        }
+      } else {
+        console.log(`[PROCESSOR] No available slots (${currentInProgress}/${maxConcurrent} in process)`);
       }
+      
       backoff = BASE_INTERVAL_MS; // Reset backoff on success
     } catch (err) {
       hadError = true;

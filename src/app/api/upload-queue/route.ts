@@ -8,8 +8,6 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
 
-// Force dynamic rendering to prevent static generation issues
-export const dynamic = 'force-dynamic';
 
 /**
  * @openapi
@@ -132,6 +130,8 @@ export async function GET(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const url = new URL(request.url);
+  
+  // Original GET logic for paginated results
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
   const fileName = url.searchParams.get('file_name');
@@ -149,14 +149,15 @@ export async function GET(request: NextRequest) {
     values.push(`%${fileName}%`);
   }
   if (status) {
-    // Handle special case for "error" status which includes both "error" and "fail"
-    if (status === 'error') {
-      whereClauses.push(`(status = $${paramIdx++} OR status = $${paramIdx++})`);
-      values.push('error');
-      values.push('fail');
-    } else {
+    // Handle multiple status codes (e.g., "error,fail" for Error filter)
+    const statusCodes = status.split(',').map(s => s.trim());
+    if (statusCodes.length === 1) {
       whereClauses.push(`status = $${paramIdx++}`);
       values.push(status);
+    } else {
+      const placeholders = statusCodes.map(() => `$${paramIdx++}`).join(', ');
+      whereClauses.push(`status IN (${placeholders})`);
+      values.push(...statusCodes);
     }
   }
   if (dateStart) {
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
     whereClauses.push(`upload_date <= $${paramIdx++}`);
     values.push(dateEnd);
   }
-  if (positionId) { // <-- Add this block
+  if (positionId) {
     whereClauses.push(`position_id = $${paramIdx++}`);
     values.push(positionId);
   }
@@ -310,8 +311,20 @@ export async function POST(request: NextRequest) {
       console.error('Failed to broadcast upload queue update via SSE:', sseError);
     }
 
-    // Note: Processing is now handled separately by a dedicated processor
-    // This allows for better control over concurrent processing limits
+    // Automatically trigger processing of the queue
+    try {
+      console.log('process.env.PROCESSOR_URL:', process.env.PROCESSOR_URL); // Debug log
+      const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+      console.log('Auto-triggering upload queue processing at:', processUrl); // Debug log
+      await fetch(processUrl, {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.PROCESSOR_API_KEY || '',
+        },
+      });
+    } catch (autoProcessError) {
+      console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
+    }
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

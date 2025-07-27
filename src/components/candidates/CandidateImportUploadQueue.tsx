@@ -253,17 +253,7 @@ export const CandidateImportUploadQueue: React.FC<{
         offset: String((page - 1) * pageSize),
       });
       if (filter) params.set('file_name', filter);
-      if (statusFilter) {
-        // Convert display label to actual status code(s)
-        const codes = statusLabelToCodes[statusFilter] || [];
-        if (codes.length === 1) {
-          params.set('status', codes[0]);
-        } else if (codes.length > 1) {
-          // For multiple codes (like Error: ['error', 'fail']), use the first code
-          // The API will handle the special case for 'error' status
-          params.set('status', codes[0]);
-        }
-      }
+      if (statusFilter) params.set('status', statusFilter);
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
@@ -934,32 +924,6 @@ export const CandidateImportUploadQueue: React.FC<{
             <RotateCcw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
-          {session?.user?.role === 'Admin' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/upload-queue/trigger-process', {
-                    method: 'POST'
-                  });
-                  if (response.ok) {
-                    const result = await response.json();
-                    success(result.message);
-                    fetchJobs();
-                  } else {
-                    error('Failed to trigger processing');
-                  }
-                } catch (err) {
-                  error('Failed to trigger processing');
-                }
-              }}
-              className=""
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Process Queue
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="sm"
@@ -1095,44 +1059,18 @@ export const CandidateImportUploadQueue: React.FC<{
             
             {/* In Progress Card - Yellow */}
             <Card
-              className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 backdrop-blur-sm ${
-                maxConcurrentProcessors !== null && numInProgress > maxConcurrentProcessors
-                  ? 'border-red-200 dark:border-red-800 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50'
-                  : 'border-yellow-200 dark:border-yellow-800 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50'
-              }`}
+              className="group relative overflow-hidden border-2 border-yellow-200 dark:border-yellow-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/50 dark:to-yellow-900/50 backdrop-blur-sm"
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">In Process</p>
-                    <p className={`text-2xl font-bold ${
-                      maxConcurrentProcessors !== null && numInProgress > maxConcurrentProcessors
-                        ? 'text-red-600 dark:text-red-400'
-                        : 'text-foreground'
-                    }`}>
-                      {numInProgress}
-                      {maxConcurrentProcessors !== null && numInProgress > maxConcurrentProcessors && (
-                        <span className="text-sm text-red-500 ml-1">⚠️</span>
-                      )}
-                    </p>
+                    <p className="text-2xl font-bold text-foreground">{numInProgress}</p>
                     {maxConcurrentProcessors !== null && (
-                      <span className={`text-xs ${
-                        numInProgress > maxConcurrentProcessors
-                          ? 'text-red-500 font-semibold'
-                          : 'text-muted-foreground'
-                      }`}>
-                        Max concurrent: {maxConcurrentProcessors}
-                        {numInProgress > maxConcurrentProcessors && (
-                          <span className="ml-1">(LIMIT EXCEEDED!)</span>
-                        )}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Max concurrent: {maxConcurrentProcessors}</span>
                     )}
                   </div>
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm ${
-                    maxConcurrentProcessors !== null && numInProgress > maxConcurrentProcessors
-                      ? 'bg-red-500'
-                      : 'bg-yellow-500'
-                  }`}>
+                  <div className="h-8 w-8 rounded-xl bg-yellow-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                     <span className="text-white text-xs font-bold">P</span>
                   </div>
                 </div>

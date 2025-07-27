@@ -51,14 +51,15 @@ export async function GET(request: NextRequest) {
         values.push(`%${fileName}%`);
       }
       if (status) {
-        // Handle special case for "error" status which includes both "error" and "fail"
-        if (status === 'error') {
-          whereClauses.push(`(status = $${paramIdx++} OR status = $${paramIdx++})`);
-          values.push('error');
-          values.push('fail');
-        } else {
+        // Handle multiple status codes (e.g., "error,fail" for Error filter)
+        const statusCodes = status.split(',').map(s => s.trim());
+        if (statusCodes.length === 1) {
           whereClauses.push(`status = $${paramIdx++}`);
           values.push(status);
+        } else {
+          const placeholders = statusCodes.map(() => `$${paramIdx++}`).join(', ');
+          whereClauses.push(`status IN (${placeholders})`);
+          values.push(...statusCodes);
         }
       }
       if (dateStart) {

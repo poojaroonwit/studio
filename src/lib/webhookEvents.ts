@@ -165,19 +165,6 @@ export class WebhookEvents {
     });
   }
 
-  static async uploadQueueBulkCreated(bulkData: any): Promise<void> {
-    await WebhookService.sendWebhooks('upload_queue.bulk_created', {
-      bulk_upload: {
-        batchId: bulkData.batchId,
-        totalFiles: bulkData.totalFiles,
-        successCount: bulkData.successCount,
-        errorCount: bulkData.errorCount,
-        positionId: bulkData.positionId,
-        created_at: new Date().toISOString()
-      }
-    });
-  }
-
   /**
    * Custom Event
    */

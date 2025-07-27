@@ -207,8 +207,8 @@ services:
       
       # Timezone
       GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
-    volumes:
-      - /var/dockers/8021/n8n_data:/home/node/.n8n
+    # volumes:
+    #   - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:
       - postgres
     restart: unless-stopped

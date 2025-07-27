@@ -77,6 +77,14 @@ node process-upload-queue-continuous.js
 - `GET /api/upload-queue/sse` - Server-Sent Events for real-time updates
 - `GET /api/upload-queue/ws` - WebSocket connection (alternative)
 
+### Webhook Events
+- `upload_queue.created` - When a single file is added to the queue
+- `upload_queue.bulk_created` - When multiple files are added via bulk upload
+- `upload_queue.processing` - When a file starts processing
+- `upload_queue.completed` - When a file completes processing
+- `upload_queue.failed` - When a file fails to process
+- `upload_queue.retry` - When a file is retried
+
 ## Configuration
 
 ### System Settings

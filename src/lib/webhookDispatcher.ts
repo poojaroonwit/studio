@@ -414,5 +414,6 @@ export const dispatchWebhooks = {
   uploadQueueProcessing: (uploadQueueItem: any) => webhookDispatcher.dispatchUploadQueueEvent('upload_queue.processing', uploadQueueItem),
   uploadQueueCompleted: (uploadQueueItem: any, result?: any) => webhookDispatcher.dispatchUploadQueueEvent('upload_queue.completed', uploadQueueItem, { processing_result: result }),
   uploadQueueFailed: (uploadQueueItem: any, error?: any) => webhookDispatcher.dispatchUploadQueueEvent('upload_queue.failed', uploadQueueItem, { error_details: error }),
-  uploadQueueRetry: (uploadQueueItem: any, attempt: number) => webhookDispatcher.dispatchUploadQueueEvent('upload_queue.retry', uploadQueueItem, { retry_attempt: attempt })
+  uploadQueueRetry: (uploadQueueItem: any, attempt: number) => webhookDispatcher.dispatchUploadQueueEvent('upload_queue.retry', uploadQueueItem, { retry_attempt: attempt }),
+  uploadQueueBulkCreated: (bulkData: any) => webhookDispatcher.dispatch('upload_queue.bulk_created', bulkData)
 }; 

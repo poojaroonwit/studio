@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   await logAudit('INFO', 'Upload queue processing started', 'API:UploadQueue:Process', null);
   
-  const client = await getSafeDbClient();
+  const client = await getPool().connect();
   let job;
   let payload = null;
   try {
@@ -70,13 +70,21 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('BEGIN');
-    // Lock all inprocess rows to prevent race conditions
+    
+    // Use a more robust locking mechanism to prevent race conditions
+    // First, lock the entire upload_queue table to ensure atomicity
+    await client.query('LOCK TABLE upload_queue IN ACCESS EXCLUSIVE MODE');
+    
+    // Count current in-process jobs
     const countRes = await client.query(
-      `SELECT id FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
+      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess'`
     );
-    const currentInProgress = countRes.rowCount;
+    const currentInProgress = parseInt(countRes.rows[0].count) || 0;
+    console.log(`[UPLOAD QUEUE] Current in-process jobs: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
+    
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
+      console.log(`[UPLOAD QUEUE] Reached max concurrent limit: ${currentInProgress}/${maxConcurrent}`);
       await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
@@ -98,6 +106,7 @@ export async function POST(request: NextRequest) {
     job = res.rows[0];
     await client.query('COMMIT');
     
+    console.log(`[UPLOAD QUEUE] Starting to process job: ${job.file_name} (ID: ${job.id})`);
     await logAudit('INFO', `Processing upload queue job '${job.file_name}' (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
       jobId: job.id,
       fileName: job.file_name,
@@ -222,12 +231,14 @@ export async function POST(request: NextRequest) {
     }
     
     if (status === 'success') {
+      console.log(`[UPLOAD QUEUE] Job completed successfully: ${job.file_name} (ID: ${job.id})`);
       await logAudit('AUDIT', `Upload queue job '${job.file_name}' processed successfully`, 'API:UploadQueue:Process', null, { 
         jobId: job.id,
         fileName: job.file_name,
         webhookResults
       });
     } else {
+      console.log(`[UPLOAD QUEUE] Job failed: ${job.file_name} (ID: ${job.id}) - ${error}`);
       await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with webhook error`, 'API:UploadQueue:Process', null, { 
         jobId: job.id,
         fileName: job.file_name,

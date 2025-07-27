@@ -119,6 +119,33 @@ function displayAppliedDate(dateString: string | undefined | null, daysThreshold
   return format(date, 'MMM d, yyyy HH:mm');
 }
 
+// Helper to truncate text to 2 lines with ellipsis
+function truncateToTwoLines(text: string, maxLength = 60): string {
+  if (!text) return '';
+  
+  // If text is short enough, return as is
+  if (text.length <= maxLength) return text;
+  
+  // Find the first space after maxLength/2 to break at a word boundary
+  const firstHalf = text.substring(0, Math.floor(maxLength / 2));
+  const lastSpaceInFirstHalf = firstHalf.lastIndexOf(' ');
+  
+  if (lastSpaceInFirstHalf > 0) {
+    const firstLine = text.substring(0, lastSpaceInFirstHalf);
+    const remainingText = text.substring(lastSpaceInFirstHalf + 1);
+    
+    // If remaining text is still too long, truncate it
+    if (remainingText.length > maxLength / 2) {
+      return `${firstLine}\n${remainingText.substring(0, Math.floor(maxLength / 2) - 3)}...`;
+    }
+    
+    return `${firstLine}\n${remainingText}`;
+  }
+  
+  // If no good break point, just truncate at maxLength
+  return `${text.substring(0, maxLength - 3)}...`;
+}
+
 export function CandidateTable({
   candidates,
   availablePositions,
@@ -574,6 +601,14 @@ export function CandidateTable({
                           <span
                             className="font-medium text-primary hover:underline cursor-pointer"
                             title={`Go to ${candidate.position.title}`}
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              lineHeight: '1.2em',
+                              maxHeight: '2.4em'
+                            }}
                           >
                             {candidate.position.title}
                           </span>
@@ -736,6 +771,14 @@ export function CandidateTable({
                                     <span
                                       className="font-medium text-primary hover:underline cursor-pointer"
                                       title={`Go to ${candidate.position.title}`}
+                                      style={{
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        lineHeight: '1.2em',
+                                        maxHeight: '2.4em'
+                                      }}
                                     >
                                       {candidate.position.title}
                                     </span>

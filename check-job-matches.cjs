@@ -12,7 +12,7 @@ async function checkJobMatches() {
     ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
     max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10'),
     idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'),
-    connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '2000')
+    connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000')
   });
   
   try {

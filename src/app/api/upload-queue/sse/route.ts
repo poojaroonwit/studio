@@ -25,8 +25,15 @@ async function sendUploadQueueUpdate(controller: ReadableStreamDefaultController
       values.push(`%${fileName}%`);
     }
     if (status) {
-      whereClauses.push(`uq.status = $${paramIdx++}`);
-      values.push(status);
+      // Handle special case for "error" status which includes both "error" and "fail"
+      if (status === 'error') {
+        whereClauses.push(`(uq.status = $${paramIdx++} OR uq.status = $${paramIdx++})`);
+        values.push('error');
+        values.push('fail');
+      } else {
+        whereClauses.push(`uq.status = $${paramIdx++}`);
+        values.push(status);
+      }
     }
     if (dateStart) {
       whereClauses.push(`uq.upload_date >= $${paramIdx++}`);

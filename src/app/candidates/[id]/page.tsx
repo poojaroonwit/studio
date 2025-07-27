@@ -255,8 +255,41 @@ function displayFitScoreWithGrade(score: number | undefined | null) {
 // Add this helper function near the top or utilities:
 function formatTimeline(startMonth?: string, startYear?: string, endMonth?: string, endYear?: string, isCurrent?: boolean) {
   if (!startMonth || !startYear) return '';
-  const start = `${startMonth} ${startYear}`;
-  const end = isCurrent ? 'Present' : (endMonth && endYear ? `${endMonth} ${endYear}` : '');
+  
+  // Helper function to convert month to proper format
+  const formatMonth = (month: string | undefined) => {
+    if (!month) return '';
+    
+    // If it's already a month name (Jan, Feb, etc.), return as is
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (monthNames.includes(month)) {
+      return month;
+    }
+    
+    // If it's a numeric value (1-12), convert to month name
+    const monthNum = parseInt(month, 10);
+    if (monthNum >= 1 && monthNum <= 12) {
+      return monthNames[monthNum - 1];
+    }
+    
+    // If it's a lowercase month name, capitalize it
+    if (typeof month === 'string' && month.length >= 3) {
+      const lowerMonth = month.toLowerCase();
+      const monthIndex = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(lowerMonth);
+      if (monthIndex !== -1) {
+        return monthNames[monthIndex];
+      }
+    }
+    
+    // Return as is if we can't convert it
+    return month;
+  };
+  
+  const formattedStartMonth = formatMonth(startMonth || '');
+  const formattedEndMonth = formatMonth(endMonth || '');
+  
+  const start = `${formattedStartMonth} ${startYear}`;
+  const end = isCurrent ? 'Present' : (formattedEndMonth && endYear ? `${formattedEndMonth} ${endYear}` : '');
   return end ? `${start} - ${end}` : start;
 }
 
@@ -1380,6 +1413,144 @@ export default function CandidateDetailPage() {
     return parts.join(' ');
   };
 
+  const calculateAverageDurationPerCompany = (experienceArray: any[]) => {
+    const companyDurations: { [key: string]: number } = {};
+    
+    experienceArray.forEach((exp: any) => {
+      if (!exp.company || typeof exp.company !== 'string') return;
+      
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      // Get start date
+      if (exp.startYear && exp.startMonth) {
+        startDate = new Date(exp.startYear, exp.startMonth - 1);
+      } else if (exp.period) {
+        // Extract start date from period string
+        const startMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})/);
+        if (startMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            startDate = new Date(parseInt(startMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Get end date
+      const hasValidEndDate = exp.endYear && exp.endMonth && 
+        exp.endYear <= new Date().getFullYear() + 1 && 
+        exp.endYear >= 1900;
+      
+      if (hasValidEndDate && exp.endYear && exp.endMonth) {
+        endDate = new Date(exp.endYear, exp.endMonth - 1);
+      } else if (exp.is_current_position === true || exp.isCurrent === true || 
+                 (exp.period && (exp.period.includes('Present') || exp.period.includes('present'))) ||
+                 !exp.endMonth || !exp.endYear) {
+        endDate = new Date(); // Current date for current positions
+      } else if (exp.period) {
+        // Extract end date from period string
+        const endMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+        if (endMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            endDate = new Date(parseInt(endMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Calculate duration in months
+      if (startDate && endDate) {
+        const months = differenceInMonths(endDate, startDate);
+        if (months > 0) {
+          const companyKey = exp.company.toLowerCase().trim();
+          companyDurations[companyKey] = (companyDurations[companyKey] || 0) + months;
+        }
+      }
+    });
+    
+    const companies = Object.keys(companyDurations);
+    if (companies.length === 0) return 'N/A';
+    
+    const totalMonths = Object.values(companyDurations).reduce((sum, months) => sum + months, 0);
+    const averageMonths = totalMonths / companies.length;
+    
+    // Convert to years and months
+    const years = Math.floor(averageMonths / 12);
+    const months = Math.round(averageMonths % 12);
+    
+    if (years === 0 && months === 0) {
+      return 'N/A';
+    }
+    
+    const parts = [];
+    if (years > 0) {
+      parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    }
+    if (months > 0) {
+      parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' ');
+  };
+
+  // Add timeline formatting functions to match FullCandidateDetail
+  const formatTimelinePeriod = (
+    startMonth: string | undefined,
+    startYear: string | undefined,
+    endMonth: string | undefined,
+    endYear: string | undefined,
+    isCurrent: boolean
+  ) => {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    let left = '', right = '';
+    if (startMonth && startYear) {
+      left = `<strong>${months[parseInt(startMonth, 10) - 1] || startMonth} ${startYear}</strong>`;
+    } else if (startYear) {
+      left = `<strong>${startYear}</strong>`;
+    }
+    if (isCurrent) {
+      right = `<strong>Present</strong>`;
+    } else if (endMonth && endYear) {
+      right = `<strong>${months[parseInt(endMonth, 10) - 1] || endMonth} ${endYear}</strong>`;
+    } else if (endYear) {
+      right = `<strong>${endYear}</strong>`;
+    }
+    return `${left} - ${right}`;
+  };
+
+  const formatTimelineDuration = (
+    startMonth: string | undefined,
+    startYear: string | undefined,
+    endMonth: string | undefined,
+    endYear: string | undefined,
+    isCurrent: boolean
+  ) => {
+    if (!startYear) return '';
+    const startYearNum = startYear ? parseInt(startYear, 10) : undefined;
+    const endYearNum = endYear ? parseInt(endYear, 10) : undefined;
+    const start = startMonth && startYearNum !== undefined ? new Date(startYearNum, parseInt(startMonth, 10) - 1) : new Date(startYearNum || 0, 0);
+    let end;
+    if (isCurrent) {
+      end = new Date();
+    } else if (endYearNum !== undefined) {
+      end = endMonth ? new Date(endYearNum, parseInt(endMonth, 10) - 1) : new Date(endYearNum, 0);
+    } else {
+      end = new Date();
+    }
+    const months = differenceInMonths(end, start);
+    const years = Math.floor(months / 12);
+    const remMonths = months % 12;
+    let parts = [];
+    if (years > 0) parts.push(`${years} Year${years > 1 ? 's' : ''}`);
+    if (remMonths > 0) parts.push(`${remMonths} Month${remMonths > 1 ? 's' : ''}`);
+    return parts.length ? `(${parts.join(', ')})` : '';
+  };
+
   // Helper to map Tailwind bg-* class to hex color
   const tailwindBgToHex: Record<string, string> = {
     'bg-red-400': '#f87171',
@@ -2286,17 +2457,18 @@ export default function CandidateDetailPage() {
                                 <div className="text-sm text-muted-foreground text-center py-4">No education details provided.</div>
                               )}
                               {education.map((edu: any, index: number) => {
-                                const periodDisplay = formatTimeline(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, edu.isCurrent);
+                                const isCurrent = !edu.endYear && !edu.endMonth;
+                                const periodDisplay = formatTimelinePeriod(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, isCurrent);
+                                const duration = formatTimelineDuration(edu.startMonth, edu.startYear, edu.endMonth, edu.endYear, isCurrent);
                                 return (
                                   <div key={`edu-${index}-${edu.university || index}`} className="relative">
-                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full ">
-                                      <div className="text-right h-full flex flex-col items-end justify-start pt-2">
-                                        {/* Period and duration display */}
+                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                                      <div className="text-right h-full flex flex-col items-end justify-start">
                                         {periodDisplay && (
-                                          <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                                          <div className="text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                                         )}
-                                        {edu.duration && (
-                                          <div className="text-sm text-muted-foreground">({edu.duration})</div>
+                                        {duration && (
+                                          <div className="text-sm text-muted-foreground">{duration}</div>
                                         )}
                                       </div>
                                       {/* Timeline icon and vertical line */}
@@ -2309,10 +2481,9 @@ export default function CandidateDetailPage() {
                                         )}
                                       </div>
                                       {/* Content */}
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0  mb-8">
+                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0 mb-8">
                                         <div className="flex-1">
                                           <h4 className="font-semibold text-foreground mb-1">
-               
                                             {edu.major && edu.field ? `${edu.major} - ${edu.field}` : edu.major || edu.field || 'Field of study not specified'}
                                           </h4>
                                           <p className="text-sm text-muted-foreground mb-2">
@@ -2403,17 +2574,18 @@ export default function CandidateDetailPage() {
                                 <div className="text-sm text-muted-foreground text-center py-4">No experience details provided.</div>
                               )}
                               {experience.map((exp: any, index: number) => {
-                                const periodDisplay = formatTimeline(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, exp.isCurrent);
+                                const isCurrent = !exp.endYear && !exp.endMonth;
+                                const periodDisplay = formatTimelinePeriod(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, isCurrent);
+                                const duration = formatTimelineDuration(exp.startMonth, exp.startYear, exp.endMonth, exp.endYear, isCurrent);
                                 return (
                                   <div key={`exp-${index}-${exp.company || index}`} className="relative">
-                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-4 items-stretch h-full">
-                                      <div className="text-right h-full flex flex-col items-end justify-start pt-2">
-                                        {/* Period and duration display */}
+                                    <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
+                                      <div className="text-right h-full flex flex-col items-end justify-start">
                                         {periodDisplay && (
-                                          <div className=" text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                                          <div className="text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                                         )}
-                                        {exp.duration && (
-                                          <div className="text-sm text-muted-foreground">({exp.duration})</div>
+                                        {duration && (
+                                          <div className="text-sm text-muted-foreground">{duration}</div>
                                         )}
                                       </div>
                                       {/* Timeline icon and vertical line */}
@@ -2426,7 +2598,7 @@ export default function CandidateDetailPage() {
                                         )}
                                       </div>
                                       {/* Content */}
-                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0  mb-8">
+                                      <div className="bg-muted/50 rounded-lg p-4 flex-1 flex items-center min-w-0 mb-8">
                                         <div className="flex-1">
                                           <div className="mb-2">
                                             <span className="text-primary font-semibold">
@@ -2439,7 +2611,7 @@ export default function CandidateDetailPage() {
                                             )}
                                           </div>
                                           {exp.company && (
-                                            <div className="mb-3 flex items-center gap-2"> 
+                                            <div className="mb-3 flex items-center gap-2">
                                               <Building2 className="h-4 w-4 text-muted-foreground" />
                                               <span className="text-foreground">
                                                 {exp.company}
@@ -2618,7 +2790,7 @@ export default function CandidateDetailPage() {
               
               {/* Quick Stats Section */}
               <div className="px-3 py-3 bg-gradient-to-br from-slate-50/30 to-blue-50/20 dark:from-slate-800/20 dark:to-slate-700/10">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
                     <div className="text-lg font-bold text-foreground">
                       {(() => {
@@ -2628,6 +2800,19 @@ export default function CandidateDetailPage() {
                     </div>
                     <div className="text-[10px] text-muted-foreground">Experience</div>
                     </div>
+                  
+                  <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-lg p-2 border border-green-200/20 dark:border-green-700/10 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
+                      <div className="text-lg font-bold text-foreground">
+                        {(() => {
+                          const avgDuration = calculateAverageDurationPerCompany(experience);
+                          return avgDuration || '-';
+                        })()}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Avg/Company</div>
+                  </div>
                   
                   <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
                     <div className="text-lg font-bold text-foreground">

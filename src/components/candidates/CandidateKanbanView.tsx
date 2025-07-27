@@ -126,11 +126,10 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   onDragEnd: () => void;
   visibleFields?: string[];
 }) => {
-
+  const [isDragStarting, setIsDragStarting] = useState(false);
   
   // Validate candidate data
   if (!candidate || !candidate.id) {
-
     return (
       <Card className="p-4 border border-destructive/20 bg-destructive/5">
         <div className="text-center text-destructive text-sm">
@@ -146,16 +145,48 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   const personalInfo = getParsedDataProperty(candidate, 'personal_info');
   const contactInfo = getParsedDataProperty(candidate, 'contact_info');
 
+  const handleDragStart = (e: React.DragEvent) => {
+    setIsDragStarting(true);
+    onDragStart();
+    
+    // Set drag image and data
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', candidate.id);
+      
+      // Create a custom drag image
+      const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+      dragImage.style.opacity = '0.8';
+      dragImage.style.transform = 'rotate(5deg)';
+      dragImage.style.width = '200px';
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 100, 50);
+      
+      // Remove the drag image after a short delay
+      setTimeout(() => {
+        if (document.body.contains(dragImage)) {
+          document.body.removeChild(dragImage);
+        }
+      }, 100);
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setIsDragStarting(false);
+    onDragEnd();
+  };
+
   return (
     <Card 
       className={cn(
-        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-pointer",
-        isDragged && "opacity-60 scale-95"
+        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-grab active:cursor-grabbing",
+        isDragged && "opacity-60 scale-95 shadow-lg",
+        isDragStarting && "scale-105 shadow-xl"
       )}
       onClick={onClick}
       draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {/* Name and position always shown */}
       {visibleFields.includes('name') && (() => {
@@ -483,6 +514,8 @@ export function FlexibleKanbanView({
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverRow, setDragOverRow] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
   let rowValuesToShow = visibleRowValues.length > 0
     ? visibleRowValues
     : Array.from(new Set(candidates.map(c => (c[rowField as keyof typeof c] ?? c.customAttributes?.[rowField])))).filter(Boolean);
@@ -500,17 +533,85 @@ export function FlexibleKanbanView({
   const handleCardClick = (candidate: Candidate) => {
     if (onCardClick) onCardClick(candidate);
   };
-  const handleDragStart = (candidate: Candidate) => setDraggedCandidate(candidate);
-  const handleDragEnd = () => setDraggedCandidate(null);
-  const handleDragOver = (rowValue: string, colValue: string, e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverRow(rowValue);
-    setDragOverColumn(colValue);
+  
+  const handleDragStart = (candidate: Candidate) => {
+    setDraggedCandidate(candidate);
+    setIsDragging(true);
+    document.body.style.cursor = 'grabbing';
   };
-  const handleDrop = (rowValue: string, colValue: string) => {
+  
+  const handleDragEnd = () => {
     setDraggedCandidate(null);
     setDragOverRow(null);
     setDragOverColumn(null);
+    setIsDragging(false);
+    document.body.style.cursor = '';
+  };
+  
+  const handleDragOver = (rowValue: string, colValue: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only allow dropping if we're dragging a candidate
+    if (draggedCandidate) {
+      setDragOverRow(rowValue);
+      setDragOverColumn(colValue);
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+  
+  const handleDragLeave = (rowValue: string, colValue: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if we're actually leaving the drop zone
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverRow(null);
+      setDragOverColumn(null);
+    }
+  };
+  
+  const handleDrop = (rowValue: string, colValue: string) => {
+    if (draggedCandidate) {
+      // Determine which field to update based on the layout
+      if (isColumnBased && !isRowBased) {
+        // Column-based layout: update column field
+        const newValue = colValue;
+        if (draggedCandidate[columnField as keyof typeof draggedCandidate] !== newValue) {
+          onMoveCandidate?.(draggedCandidate, newValue);
+        }
+      } else if (isRowBased && !isColumnBased) {
+        // Row-based layout: update row field
+        const newValue = rowValue;
+        if (draggedCandidate[rowField as keyof typeof draggedCandidate] !== newValue) {
+          onMoveCandidate?.(draggedCandidate, newValue);
+        }
+      } else if (isRowBased && isColumnBased) {
+        // Both row and column: update both fields
+        const updateData: any = {};
+        if (draggedCandidate[rowField as keyof typeof draggedCandidate] !== rowValue) {
+          updateData[rowField] = rowValue;
+        }
+        if (draggedCandidate[columnField as keyof typeof draggedCandidate] !== colValue) {
+          updateData[columnField] = colValue;
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          // For now, prioritize row field update
+          onMoveCandidate?.(draggedCandidate, rowValue);
+        }
+      }
+    }
+    
+    setDraggedCandidate(null);
+    setDragOverRow(null);
+    setDragOverColumn(null);
+    setIsDragging(false);
+    document.body.style.cursor = '';
   };
 
   // If no candidates, show fallback
@@ -548,7 +649,10 @@ export function FlexibleKanbanView({
           );
           return (
             <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
-              <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+              <Card className={cn(
+                "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
+                dragOverColumn === colValue && dragOverRow === 'none' && "ring-2 ring-primary ring-opacity-50 bg-primary/5"
+              )}>
                 <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -562,14 +666,33 @@ export function FlexibleKanbanView({
                     </div>
                   </div>
                 </CardHeader>
-                <div className="flex-1 min-h-0 p-4 space-y-4">
+                <div 
+                  className={cn(
+                    "flex-1 min-h-0 p-4 space-y-4 transition-all duration-200 relative",
+                    dragOverColumn === colValue && dragOverRow === 'none' && "bg-primary/5"
+                  )}
+                  onDragOver={(e) => handleDragOver('none', colValue, e)}
+                  onDragLeave={(e) => handleDragLeave('none', colValue, e)}
+                  onDrop={() => handleDrop('none', colValue)}
+                >
+                  {/* Drop zone indicator */}
+                  {dragOverColumn === colValue && dragOverRow === 'none' && (
+                    <div className="absolute inset-0 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg pointer-events-none z-10 flex items-center justify-center">
+                      <div className="text-center">
+                        <Plus className="w-8 h-8 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium text-primary">Drop here</p>
+                        <p className="text-xs text-primary/70">Move to {colValue}</p>
+                      </div>
+                    </div>
+                  )}
+                  
                   {colCandidates.length > 0 ? (
                     <div className="space-y-2">
                       {colCandidates.map(candidate => (
                         <div
                           key={candidate.id}
                           className={cn(
-                            "group w-full",
+                            "group w-full transition-all duration-200",
                             draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                           )}
                         >
@@ -585,10 +708,23 @@ export function FlexibleKanbanView({
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-16">
+                    <div className={cn(
+                      "flex items-center justify-center h-16 border-2 border-dashed rounded-lg transition-all duration-200",
+                      dragOverColumn === colValue && dragOverRow === 'none' 
+                        ? "border-primary bg-primary/5" 
+                        : "border-muted"
+                    )}>
                       <div className="text-center">
-                        <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Drop here</p>
+                        <Plus className={cn(
+                          "w-4 h-4 mx-auto mb-1 transition-colors duration-200",
+                          dragOverColumn === colValue && dragOverRow === 'none' ? "text-primary" : "text-muted-foreground"
+                        )} />
+                        <p className={cn(
+                          "text-xs transition-colors duration-200",
+                          dragOverColumn === colValue && dragOverRow === 'none' ? "text-primary font-medium" : "text-muted-foreground"
+                        )}>
+                          {dragOverColumn === colValue && dragOverRow === 'none' ? "Drop here" : "Drop here"}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -599,7 +735,10 @@ export function FlexibleKanbanView({
         })}
         {/* Always show Uncategorized column */}
         <div key="uncategorized" className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
-          <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+          <Card className={cn(
+            "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
+            dragOverColumn === 'uncategorized' && dragOverRow === 'none' && "ring-2 ring-primary ring-opacity-50 bg-primary/5"
+          )}>
             <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8">
@@ -611,13 +750,32 @@ export function FlexibleKanbanView({
                 </div>
               </div>
             </CardHeader>
-            <div className="flex-1 min-h-0 p-4 space-y-4">
+            <div 
+              className={cn(
+                "flex-1 min-h-0 p-4 space-y-4 transition-all duration-200 relative",
+                dragOverColumn === 'uncategorized' && dragOverRow === 'none' && "bg-primary/5"
+              )}
+              onDragOver={(e) => handleDragOver('none', 'uncategorized', e)}
+              onDragLeave={(e) => handleDragLeave('none', 'uncategorized', e)}
+              onDrop={() => handleDrop('none', 'uncategorized')}
+            >
+              {/* Drop zone indicator */}
+              {dragOverColumn === 'uncategorized' && dragOverRow === 'none' && (
+                <div className="absolute inset-0 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg pointer-events-none z-10 flex items-center justify-center">
+                  <div className="text-center">
+                    <Plus className="w-8 h-8 mx-auto mb-2 text-primary" />
+                    <p className="text-sm font-medium text-primary">Drop here</p>
+                    <p className="text-xs text-primary/70">Move to Uncategorized</p>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 {uncategorizedCandidates.length > 0 ? uncategorizedCandidates.map(candidate => (
                   <div
                     key={candidate.id}
                     className={cn(
-                      "group w-full",
+                      "group w-full transition-all duration-200",
                       draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                     )}
                   >
@@ -631,10 +789,23 @@ export function FlexibleKanbanView({
                     />
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-16">
+                  <div className={cn(
+                    "flex items-center justify-center h-16 border-2 border-dashed rounded-lg transition-all duration-200",
+                    dragOverColumn === 'uncategorized' && dragOverRow === 'none' 
+                      ? "border-primary bg-primary/5" 
+                      : "border-muted"
+                  )}>
                     <div className="text-center">
-                      <Plus className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">Drop here</p>
+                      <Plus className={cn(
+                        "w-4 h-4 mx-auto mb-1 transition-colors duration-200",
+                        dragOverColumn === 'uncategorized' && dragOverRow === 'none' ? "text-primary" : "text-muted-foreground"
+                      )} />
+                      <p className={cn(
+                        "text-xs transition-colors duration-200",
+                        dragOverColumn === 'uncategorized' && dragOverRow === 'none' ? "text-primary font-medium" : "text-muted-foreground"
+                      )}>
+                        {dragOverColumn === 'uncategorized' && dragOverRow === 'none' ? "Drop here" : "Drop here"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1689,6 +1860,7 @@ export function HorizontalStageKanbanView({
 }: CandidateKanbanViewProps) {
   const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1718,19 +1890,48 @@ export function HorizontalStageKanbanView({
     return grouped;
   }, [candidates, stagesToShow]);
 
-  // Drag and drop handlers
+  // Enhanced drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
     setDraggedCandidate(candidate);
+    setIsDragging(true);
+    // Add a small delay to prevent immediate drag end
+    setTimeout(() => {
+      if (isDragging) {
+        document.body.style.cursor = 'grabbing';
+      }
+    }, 50);
   };
 
   const handleDragEnd = () => {
     setDraggedCandidate(null);
     setDragOverStage(null);
+    setIsDragging(false);
+    document.body.style.cursor = '';
   };
 
   const handleDragOver = (stage: string, e: React.DragEvent) => {
     e.preventDefault();
-    setDragOverStage(stage);
+    e.stopPropagation();
+    
+    // Only allow dropping if we're dragging a candidate and it's not the same stage
+    if (draggedCandidate && draggedCandidate.status !== stage) {
+      setDragOverStage(stage);
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleDragLeave = (stage: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if we're actually leaving the drop zone
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverStage(null);
+    }
   };
 
   const handleDrop = (stage: string) => {
@@ -1739,6 +1940,8 @@ export function HorizontalStageKanbanView({
     }
     setDraggedCandidate(null);
     setDragOverStage(null);
+    setIsDragging(false);
+    document.body.style.cursor = '';
   };
 
   const handleCardClick = (candidate: Candidate) => {
@@ -1848,6 +2051,8 @@ export function HorizontalStageKanbanView({
         >
           {stagesToShow.map((stage) => {
             const stageCandidates = candidatesByStage[stage] || [];
+            const isDragOver = dragOverStage === stage;
+            const isCurrentStage = draggedCandidate?.status === stage;
             
             return (
               <div
@@ -1855,11 +2060,18 @@ export function HorizontalStageKanbanView({
                 className="flex-shrink-0 w-80"
                 style={{ minWidth: '320px' }}
               >
-                <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+                <Card className={cn(
+                  "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
+                  isDragOver && !isCurrentStage && "ring-2 ring-primary ring-opacity-50 bg-primary/5",
+                  isCurrentStage && isDragging && "opacity-50"
+                )}>
                   <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                        <div className={cn(
+                          "w-3 h-3 rounded-full transition-colors duration-200",
+                          isDragOver && !isCurrentStage ? "bg-primary" : "bg-primary"
+                        )}></div>
                         <div>
                           <CardTitle className="text-sm font-semibold text-foreground capitalize">
                             {stage}
@@ -1877,19 +2089,31 @@ export function HorizontalStageKanbanView({
                   
                   <div 
                     className={cn(
-                      "flex-1 min-h-0 p-4 space-y-3 transition-all duration-200",
-                      dragOverStage === stage && "bg-primary/5"
+                      "flex-1 min-h-0 p-4 space-y-3 transition-all duration-200 relative",
+                      isDragOver && !isCurrentStage && "bg-primary/5"
                     )}
                     onDragOver={(e) => handleDragOver(stage, e)}
+                    onDragLeave={(e) => handleDragLeave(stage, e)}
                     onDrop={() => handleDrop(stage)}
                   >
+                    {/* Drop zone indicator */}
+                    {isDragOver && !isCurrentStage && (
+                      <div className="absolute inset-0 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg pointer-events-none z-10 flex items-center justify-center">
+                        <div className="text-center">
+                          <Plus className="w-8 h-8 mx-auto mb-2 text-primary" />
+                          <p className="text-sm font-medium text-primary">Drop here</p>
+                          <p className="text-xs text-primary/70">Move to {stage}</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     {stageCandidates.length > 0 ? (
                       <div className="space-y-3">
                         {stageCandidates.map(candidate => (
                           <div
                             key={candidate.id}
                             className={cn(
-                              "group w-full",
+                              "group w-full transition-all duration-200",
                               draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
                             )}
                           >
@@ -1905,10 +2129,23 @@ export function HorizontalStageKanbanView({
                         ))}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-32 border-2 border-dashed border-muted rounded-lg">
+                      <div className={cn(
+                        "flex items-center justify-center h-32 border-2 border-dashed rounded-lg transition-all duration-200",
+                        isDragOver && !isCurrentStage 
+                          ? "border-primary bg-primary/5" 
+                          : "border-muted"
+                      )}>
                         <div className="text-center">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Drop candidates here</p>
+                          <Plus className={cn(
+                            "w-6 h-6 mx-auto mb-2 transition-colors duration-200",
+                            isDragOver && !isCurrentStage ? "text-primary" : "text-muted-foreground"
+                          )} />
+                          <p className={cn(
+                            "text-sm transition-colors duration-200",
+                            isDragOver && !isCurrentStage ? "text-primary font-medium" : "text-muted-foreground"
+                          )}>
+                            {isDragOver && !isCurrentStage ? "Drop here" : "Drop candidates here"}
+                          </p>
                           <p className="text-xs text-muted-foreground/60 mt-1">
                             {stage} stage
                           </p>

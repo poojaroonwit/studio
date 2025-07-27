@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
   const status = url.searchParams.get('status');
   const dateStart = url.searchParams.get('date_start');
   const dateEnd = url.searchParams.get('date_end');
-  const positionId = url.searchParams.get('position_id'); // <-- Add this line
+  const positionId = url.searchParams.get('position_id');
 
   // Build dynamic WHERE clause
   const whereClauses = [];
@@ -146,8 +146,15 @@ export async function GET(request: NextRequest) {
     values.push(`%${fileName}%`);
   }
   if (status) {
-    whereClauses.push(`status = $${paramIdx++}`);
-    values.push(status);
+    // Handle special case for "error" status which includes both "error" and "fail"
+    if (status === 'error') {
+      whereClauses.push(`(status = $${paramIdx++} OR status = $${paramIdx++})`);
+      values.push('error');
+      values.push('fail');
+    } else {
+      whereClauses.push(`status = $${paramIdx++}`);
+      values.push(status);
+    }
   }
   if (dateStart) {
     whereClauses.push(`upload_date >= $${paramIdx++}`);

@@ -253,7 +253,17 @@ export const CandidateImportUploadQueue: React.FC<{
         offset: String((page - 1) * pageSize),
       });
       if (filter) params.set('file_name', filter);
-      if (statusFilter) params.set('status', statusFilter);
+      if (statusFilter) {
+        // Convert display label to actual status code(s)
+        const codes = statusLabelToCodes[statusFilter] || [];
+        if (codes.length === 1) {
+          params.set('status', codes[0]);
+        } else if (codes.length > 1) {
+          // For multiple codes (like Error: ['error', 'fail']), use the first code
+          // The API will handle the special case for 'error' status
+          params.set('status', codes[0]);
+        }
+      }
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);

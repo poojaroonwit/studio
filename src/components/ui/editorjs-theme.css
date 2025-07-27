@@ -1,0 +1,643 @@
+/* ===== EDITOR.JS THEME OVERRIDES FOR STUDIO-7 ===== */
+
+/* ===== MAIN EDITOR CONTAINER ===== */
+.codex-editor {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  transition: background-color 0.2s, color 0.2s;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* ===== TOOLBAR STYLING ===== */
+.ce-toolbar {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  transition: background-color 0.2s, color 0.2s;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+  color: var(--muted-foreground) !important;
+  transition: color 0.2s;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+  color: var(--foreground) !important;
+  background-color: var(--muted) !important;
+}
+
+/* ===== BLOCK STYLING ===== */
+.ce-block,
+.ce-block__content {
+  margin-top: 0.25rem !important;   /* 4px */
+  margin-bottom: 0.25rem !important; /* 4px */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  transition: background-color 0.2s;
+}
+
+.ce-block--selected,
+.ce-block--focused {
+  background-color: var(--muted) !important;
+  border-radius: 0.5rem;
+}
+
+/* ===== TEXT ELEMENTS ===== */
+.ce-paragraph,
+.ce-header {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  font-family: inherit !important;
+  line-height: 1.6 !important;
+}
+
+.ce-paragraph {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ce-paragraph[data-placeholder]:empty:before {
+  color: var(--muted-foreground) !important;
+  opacity: 0.7;
+  font-style: italic;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.ce-header {
+  font-weight: 600 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ===== POPOVER TOOLS DISPLAY ===== */
+.ce-popover {
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  z-index: 1000 !important;
+}
+
+.ce-popover-item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0.5rem !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s !important;
+}
+
+.ce-popover-item:hover {
+  background-color: var(--muted) !important;
+}
+
+.ce-popover-item__icon {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  margin-right: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ce-popover-item__title {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+
+
+/* ===== INPUT FIELDS ===== */
+.ce-inline-tool-input,
+.ce-header input {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem !important;
+  font-size: 0.875rem !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ce-inline-tool-input:focus,
+.ce-header input:focus {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 2px var(--ring) !important;
+  outline: none !important;
+}
+
+/* ===== LIST STYLING ===== */
+.ce-list {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+.ce-list__item {
+  color: var(--foreground) !important;
+}
+
+/* ===== QUOTE STYLING ===== */
+.ce-quote {
+  background-color: var(--muted) !important;
+  border-left: 4px solid var(--primary) !important;
+  padding: 1rem !important;
+  margin: 0.5rem 0 !important;
+  border-radius: 0.375rem !important;
+}
+
+.ce-quote__text {
+  color: var(--foreground) !important;
+  font-style: italic !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ce-quote__caption {
+  color: var(--muted-foreground) !important;
+  font-size: 0.875rem !important;
+}
+
+/* ===== CODE STYLING ===== */
+.ce-code {
+  background-color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.375rem !important;
+  padding: 1rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.ce-code__textarea {
+  background-color: transparent !important;
+  color: var(--foreground) !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  font-size: 0.875rem !important;
+  border: none !important;
+  outline: none !important;
+  resize: vertical !important;
+  min-height: 100px !important;
+}
+
+
+
+/* ===== LINK TOOL STYLING ===== */
+.ce-link-tool {
+  background-color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.375rem !important;
+  padding: 1rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.ce-link-tool__content {
+  color: var(--foreground) !important;
+}
+
+.ce-link-tool__title {
+  font-weight: 600 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ce-link-tool__description {
+  color: var(--muted-foreground) !important;
+  font-size: 0.875rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ce-link-tool__url {
+  color: var(--primary) !important;
+  text-decoration: none !important;
+  font-size: 0.875rem !important;
+}
+
+/* ===== CHECKLIST STYLING ===== */
+.ce-checklist {
+  margin: 0.5rem 0 !important;
+}
+
+.ce-checklist__item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.ce-checklist__item-checkbox {
+  margin-top: 0.125rem !important;
+}
+
+.ce-checklist__item-text {
+  color: var(--foreground) !important;
+  flex: 1 !important;
+}
+
+/* ===== TABLE STYLING ===== */
+.ce-table {
+  margin: 1rem 0 !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.ce-table__cell {
+  border: 1px solid var(--border) !important;
+  padding: 0.5rem !important;
+  color: var(--foreground) !important;
+}
+
+.ce-table__add-row,
+.ce-table__add-column {
+  color: var(--muted-foreground) !important;
+  background-color: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.25rem !important;
+  cursor: pointer !important;
+}
+
+/* ===== EMBED STYLING ===== */
+.ce-embed {
+  margin: 1rem 0 !important;
+}
+
+.ce-embed__iframe {
+  width: 100% !important;
+  height: 400px !important;
+  border: none !important;
+  border-radius: 0.375rem !important;
+}
+
+/* ===== DELIMITER STYLING ===== */
+.ce-delimiter {
+  text-align: center !important;
+  margin: 1rem 0 !important;
+}
+
+.ce-delimiter::before {
+  content: '***' !important;
+  color: var(--muted-foreground) !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.5rem !important;
+}
+
+/* ===== INLINE TOOLBAR ===== */
+.ce-inline-toolbar {
+  background-color: var(--background) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.ce-inline-toolbar__buttons {
+  background-color: var(--background) !important;
+}
+
+.ce-inline-tool {
+  color: var(--muted-foreground) !important;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.ce-inline-tool:hover {
+  color: var(--foreground) !important;
+  background-color: var(--muted) !important;
+}
+
+.ce-inline-tool--active {
+  color: var(--primary) !important;
+  background-color: var(--primary-foreground) !important;
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+@media (prefers-color-scheme: dark) {
+  .ce-inline-toolbar {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .ce-popover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+}
+
+.dark .ce-popover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .ce-toolbar {
+    padding: 0.5rem !important;
+  }
+  
+  .ce-block,
+  .ce-block__content {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .ce-inline-toolbar {
+    max-width: 90vw !important;
+  }
+}
+
+/* ===== ACCESSIBILITY ===== */
+.ce-block:focus-within {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* ===== ANIMATIONS ===== */
+.ce-block {
+  animation: none !important;
+}
+
+/* ===== MODAL ANTI-FLICKER ===== */
+[data-radix-dialog-content] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-dialog-overlay] {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== LOADING STATE ANTI-FLICKER ===== */
+.animate-pulse,
+.animate-spin {
+  animation: none !important;
+}
+
+/* ===== DISABLE ALL TRANSITIONS ===== */
+* {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ===== SPECIFIC OVERRIDES ===== */
+.codex-editor *,
+input, textarea, select, button {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ===== TAILWIND ANIMATIONS OVERRIDE ===== */
+.animate-in,
+.animate-out,
+.fade-in-0,
+.fade-out-0,
+.zoom-in-95,
+.zoom-out-95,
+.slide-in-from-left-1/2,
+.slide-in-from-top-[48%],
+.slide-out-to-left-1/2,
+.slide-out-to-top-[48%] {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== FOCUS RING OVERRIDE ===== */
+.focus-within\:ring-2:focus-within {
+  box-shadow: none !important;
+}
+
+.focus-within\:ring-primary:focus-within {
+  box-shadow: none !important;
+}
+
+/* ===== MODAL CONTENT ANTI-FLICKER ===== */
+[data-radix-dialog-content] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== FORM FIELD ANTI-FLICKER ===== */
+input, textarea, select, button, div {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== SCROLL AREA ANTI-FLICKER ===== */
+[data-radix-scroll-area-viewport] {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== MODAL RENDERING ANTI-FLICKER ===== */
+[data-radix-dialog-root] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-dialog-root] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== PORTAL ANTI-FLICKER ===== */
+[data-radix-portal] {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-radix-portal] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ===== FORCE SINGLE BLOCK DISPLAY ===== */
+.codex-editor .ce-block {
+  display: none !important;
+}
+
+.codex-editor .ce-block:first-child {
+  display: block !important;
+}
+
+.codex-editor .ce-block:nth-child(n+2) {
+  display: none !important;
+}
+
+.codex-editor .ce-block:not(:first-child) {
+  display: none !important;
+}
+
+/* ===== HIDE ALL BLOCKS EXCEPT FIRST ===== */
+.codex-editor .ce-block:nth-child(2),
+.codex-editor .ce-block:nth-child(3),
+.codex-editor .ce-block:nth-child(4),
+.codex-editor .ce-block:nth-child(5),
+.codex-editor .ce-block:nth-child(6),
+.codex-editor .ce-block:nth-child(7),
+.codex-editor .ce-block:nth-child(8),
+.codex-editor .ce-block:nth-child(9),
+.codex-editor .ce-block:nth-child(10) {
+  display: none !important;
+}
+
+/* ===== HIDE ALL BLOCKS AFTER FIRST ===== */
+.codex-editor .ce-block:nth-child(n+2) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ===== ENSURE BLOCK CONTENT IS VISIBLE ===== */
+.codex-editor .ce-block:first-child .ce-block__content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.codex-editor .ce-block:first-child .ce-paragraph {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.codex-editor .ce-block:first-child .ce-paragraph[data-placeholder] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* ===== ENSURE TEXT IS VISIBLE ===== */
+.codex-editor .ce-block:first-child .ce-paragraph .ce-paragraph__content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* ===== FORCE CONTENT VISIBILITY ===== */
+.codex-editor .ce-block:first-child * {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.codex-editor .ce-block:first-child .ce-paragraph * {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* ===== HIDE EMPTY BLOCKS ===== */
+.codex-editor .ce-block:empty {
+  display: none !important;
+}
+
+.codex-editor .ce-block[data-empty="true"] {
+  display: none !important;
+}
+
+/* ===== PREVENT CONTENT FLASHING ===== */
+.codex-editor {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.codex-editor * {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ===== POPOVER ITEM HTML STYLING ===== */
+.ce-popover .ce-popover-item-html {
+  color: #000000 !important;
+}
+
+.ce-popover .ce-popover-item-html .ce-popover-item__icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.ce-popover .ce-popover-item-html .ce-popover-item__title {
+  color: #000000 !important;
+}
+
+/* ===== ALL POPOVER ITEMS (NON-HTML TOO) ===== */
+.ce-popover .ce-popover-item {
+  color: #000000 !important;
+}
+
+.ce-popover .ce-popover-item .ce-popover-item__icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.ce-popover .ce-popover-item .ce-popover-item__title {
+  color: #000000 !important;
+}
+
+/* ===== FORCE BLACK ICONS IN ALL THEMES ===== */
+@media (prefers-color-scheme: dark) {
+  .ce-popover .ce-popover-item-html {
+    color: #000000 !important;
+  }
+  
+  .ce-popover .ce-popover-item-html .ce-popover-item__icon {
+    color: #000000 !important;
+    fill: #000000 !important;
+    stroke: #000000 !important;
+  }
+  
+  .ce-popover .ce-popover-item-html .ce-popover-item__title {
+    color: #000000 !important;
+  }
+  
+  .ce-popover .ce-popover-item {
+    color: #000000 !important;
+  }
+  
+  .ce-popover .ce-popover-item .ce-popover-item__icon {
+    color: #000000 !important;
+    fill: #000000 !important;
+    stroke: #000000 !important;
+  }
+  
+  .ce-popover .ce-popover-item .ce-popover-item__title {
+    color: #000000 !important;
+  }
+}
+
+.dark .ce-popover .ce-popover-item-html {
+  color: #000000 !important;
+}
+
+.dark .ce-popover .ce-popover-item-html .ce-popover-item__icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.dark .ce-popover .ce-popover-item-html .ce-popover-item__title {
+  color: #000000 !important;
+}
+
+.dark .ce-popover .ce-popover-item {
+  color: #000000 !important;
+}
+
+.dark .ce-popover .ce-popover-item .ce-popover-item__icon {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.dark .ce-popover .ce-popover-item .ce-popover-item__title {
+  color: #000000 !important;
+} 

@@ -525,14 +525,15 @@ export default function CandidateDetailPage() {
 
   // Merge attachments from resumes and comments
   useEffect(() => {
-    loadAllAttachments();
-    // Only run when candidateId changes or editing mode toggles
-  }, [candidateId, isEditing, loadAllAttachments]);
+    // Only run when candidateId changes or editing mode toggles, not when comments change
+    if (candidateId) {
+      loadAllAttachments();
+    }
+  }, [candidateId, isEditing]); // Removed loadAllAttachments from dependencies to prevent infinite loops
 
   // Manual refresh after user actions (not automatic polling)
   const handleCommentsChange = async () => {
-    await loadAllAttachments();
-    // Re-fetch comments after user add/edit/delete actions
+    // Only reload attachments, don't trigger full page refresh
     try {
       const response = await fetch(`/api/candidates/${candidateId}/comments`);
       if (!response.ok) {
@@ -549,6 +550,36 @@ export default function CandidateDetailPage() {
       } else {
         setComments([]);
       }
+      
+      // Update attachments without triggering the useEffect that causes page refresh
+      const [resumeAttachments, commentList] = await Promise.all([
+        fetchResumes(),
+        fetchComments(),
+      ]);
+      
+      // Extract attachments from comments
+      const commentAttachments = (commentList || []).flatMap((comment: any) =>
+        (comment.attachments || []).map((att: any) => ({
+          ...att,
+          label: att.label || 'comment',
+          updatedAt: att.updatedAt || comment.createdAt || new Date().toISOString(),
+        }))
+      );
+      
+      // Merge and remove duplicates by filePath, id, or url
+      const all = [...(resumeAttachments || []), ...commentAttachments];
+      const unique: any[] = [];
+      const seen = new Set();
+      for (const att of all) {
+        const key = att.filePath || att.id || att.url;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(att);
+        }
+      }
+      unique.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setAttachments(unique);
+      
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
@@ -1365,7 +1396,7 @@ export default function CandidateDetailPage() {
       <form onSubmit={handleSubmit(handleSaveDetails)}>
           {/* Header - 2 Columns */}
           {candidate && (
-            <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
+            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 border-b border-border/50 p-6 sticky top-0 z-50 shadow-lg backdrop-blur-sm">
               <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
                 {/* Column 1: Candidate Header (6 cols) */}
                 <div className="lg:col-span-7">
@@ -1375,17 +1406,21 @@ export default function CandidateDetailPage() {
                       {(() => {
                         const nameInfo = formatCandidateNameWithLang(candidate);
                         return (
-                          <Avatar className="w-20 h-20 text-3xl relative group">
+                          <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                            <Avatar className="w-20 h-20 text-3xl relative ring-4 ring-background/80 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30">
                             {candidate.avatarUrl ? (
-                              <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
+                                <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover" />
                             ) : (
-                              <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
+                                <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
+                                  {nameInfo.name?.[0] || '?'}
+                                </AvatarFallback>
                             )}
                             {/* Pencil icon button for avatar upload */}
                             <div
                               role="button"
                               tabIndex={0}
-                              className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
+                                className="absolute -bottom-1 -right-1 p-2 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full hover:bg-primary/10 hover:scale-110 transition-all duration-200 z-10 flex items-center justify-center shadow-lg"
                               title="Change profile picture"
                               onClick={() => {
                                 if (avatarInputRef?.current) avatarInputRef.current.click();
@@ -1398,7 +1433,7 @@ export default function CandidateDetailPage() {
                               aria-disabled={avatarUploading}
                               style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
                             >
-                              <Edit className="w-5 h-5 text-primary" />
+                                <Edit className="w-4 h-4 text-primary" />
                             </div>
                             {/* Hidden file input for avatar upload */}
                             <input
@@ -1416,7 +1451,7 @@ export default function CandidateDetailPage() {
                             />
                             {/* Existing overlay for edit mode remains unchanged */}
                             {isEditing && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
                                 <ImageUpload
                                   value={candidate.avatarUrl || ''}
                                   onChange={async (urlOrFile) => {
@@ -1442,60 +1477,51 @@ export default function CandidateDetailPage() {
                               <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
                             )}
                           </Avatar>
+                          </div>
                         );
                       })()}
-                      {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
+                      {avatarError && <div className="text-xs text-destructive mt-2 text-center bg-destructive/10 px-2 py-1 rounded-md">{avatarError}</div>}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
                         {(() => {
                           const nameInfo = formatCandidateNameWithLang(candidate);
                           return (
                             <span 
-                              className={`text-2xl font-bold tracking-tight text-foreground line-clamp-1 ${nameInfo.fontClass}`}
+                              className={`text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent line-clamp-1 ${nameInfo.fontClass}`}
                               lang={nameInfo.lang}
                             >
                               {nameInfo.name}
                             </span>
                           );
                         })()}
+                        <div className="flex items-center gap-2">
                         {candidate.id && (
-                          <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">ID: {candidate.id}</Badge>
+                            <Badge variant="outline" className="text-xs px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm">
+                              <span className="text-muted-foreground">ID:</span> {candidate.id}
+                            </Badge>
                         )}
                         {candidate.status && (
-                          <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
+                            <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-3 py-1 rounded-full shadow-sm">
+                              {candidate.status}
+                            </Badge>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
-                        {candidate.positionId && Array.isArray(allDbPositions) && allDbPositions.length > 0 && (
-                          <span>
-                            Applied Job: 
-                            <span
-                              className="font-medium text-foreground  inline-block align-middle"
-                              style={{
-                                display: 'inline-block',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'normal',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                verticalAlign: 'middle',
-                                cursor: 'pointer',
-                              }}
-                              title={allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
-                            >
-                              {allDbPositions.find(p => p.id === candidate.positionId)?.title || 'N/A'}
-                            </span>
-                          </span>
-                        )}
                       </div>
+
                       <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
                         {candidate.email && (
-                          <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground/60" />
+                            <span className="font-medium text-foreground">{candidate.email}</span>
+                          </div>
                         )}
                         {candidate.phone && (
-                          <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground/60" />
+                            <span className="font-medium text-foreground">{candidate.phone}</span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1506,12 +1532,13 @@ export default function CandidateDetailPage() {
                 
                 {/* Column 2: Action Buttons (4 cols) */}
                 <div className="lg:col-span-3">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-3">
                     {!isEditing ? (
                       <>
                         <Button
                           variant="outline"
                           size="default"
+                          className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
                           onClick={() => {
                             setIsEditing(true);
                             if (candidate) {
@@ -1539,6 +1566,7 @@ export default function CandidateDetailPage() {
                         <Button
                           variant="outline"
                           size="default"
+                          className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
                           onClick={() => openManageTransitionsModal()}
                           disabled={availableStages.length === 0}
                         >
@@ -1563,10 +1591,56 @@ export default function CandidateDetailPage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
             {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
-            <div className="lg:col-span-2 bg-card sticky top-6 p-6 space-y-6 z-10">
+            <div className="lg:col-span-2 bg-background sticky top-6 p-4 space-y-4 z-10 border-r border-border">
+              {/* Recruiter Assignment Section */}
+              <div className="w-full">
+                <div className="bg-card rounded-lg p-4 border border-border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Recruiter Assignment</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {/* <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-foreground">Current:</span>
+                      <Badge variant="outline" className="text-xs">
+                        {candidate.recruiter?.name || 'Unassigned'}
+                      </Badge>
+                    </div> */}
+                    <Select
+                      value={candidate.recruiterId || 'unassign'}
+                      onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
+                      disabled={isAssigningRecruiter}
+                    >
+                      <SelectTrigger className="w-full text-xs">
+                        <SelectValue placeholder="Select recruiter..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassign" className="text-destructive">Unassign</SelectItem>
+                        {recruiters.map((recruiter) => (
+                          <SelectItem key={recruiter.id} value={recruiter.id}>
+                            {recruiter.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isAssigningRecruiter && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Assigning...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
               {/* Recruitment Pipeline */}
               {availableStages.length > 0 && candidate && (
                 <div className="w-full">
+                  <div className="bg-card rounded-lg p-4 border border-border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ListChecks className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Recruitment Pipeline</h3>
+                    </div>
                   <RecruitmentPipelineCard
                     stages={availableStages}
                     transitionHistory={transitionHistory}
@@ -1584,9 +1658,9 @@ export default function CandidateDetailPage() {
                     }}
                     candidateId={candidateId}
                   />
+                  </div>
                 </div>
               )}
-              {/* Recruiter Assignment Section removed from left sidebar as per requirements */}
             </div>
             {/* MAIN CONTENT (50%) with Tabs */}
             <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/50">
@@ -1595,7 +1669,9 @@ export default function CandidateDetailPage() {
                   {/* Job Applied Section */}
                   <section className="mb-4">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen((o: boolean) => !o)}>
-                      <Briefcase className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
                       {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -1749,18 +1825,21 @@ export default function CandidateDetailPage() {
                                 }}
                               >
                                 <div 
-                                  className="rounded-lg p-4 h-full border shadow-lg bg-card"
+                                  className="rounded-lg p-6 h-full border shadow-lg bg-card"
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
                                       <Tooltip>
                                         <TooltipTrigger asChild>
+                                          <div className="flex items-start gap-2">
+                                            <Building2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                                           <span
-                                            className="block  overflow-hidden text-ellipsis whitespace-pre-line line-clamp-2 cursor-pointer"
+                                              className="overflow-hidden text-ellipsis whitespace-pre-line line-clamp-2 cursor-pointer"
                                             style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
                                           >
                                             {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
                                           </span>
+                                          </div>
                                         </TooltipTrigger>
                                         <TooltipContent side="top">
                                           {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
@@ -1768,12 +1847,10 @@ export default function CandidateDetailPage() {
                                       </Tooltip>
                                     </h4>
                                     {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
-                                      <div className="text-4xl font-extrabold flex items-center gap-2">
-                                        <span
-                                          style={{ color: tailwindBgToHex[getScoreColorInfo(candidate?.fitScore).bg] || '#000' }}
-                                        >
+                                      <div className="flex items-center gap-2">
+                                        <ScoreBadge score={candidate?.fitScore} className="text-3xl font-extrabold px-5 py-3">
                                           {displayFitScore(candidate?.fitScore)} ({getGradeFromScore(candidate?.fitScore || 0)})
-                                        </span>
+                                        </ScoreBadge>
                                       </div>
                                     )}
                                    </div>
@@ -2083,9 +2160,11 @@ export default function CandidateDetailPage() {
                 
 
                   {/* Collapsible Candidate Info Sections */}
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setInfoOpen(o => !o)}>
-                      <UserCircle className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <UserCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
                       {infoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -2128,9 +2207,11 @@ export default function CandidateDetailPage() {
                   </section>
 
                   {/* Contact Information Section */}
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
-                      <Mail className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
                       {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -2154,9 +2235,11 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
-                      <GraduationCap className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <GraduationCap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
                       {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -2258,9 +2341,11 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
-                      <Briefcase className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
                         Experience
                         {(() => {
@@ -2386,9 +2471,11 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
-                      <Star className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <Star className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
                       {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -2472,9 +2559,11 @@ export default function CandidateDetailPage() {
                       </div>
                     )}
                   </section>
-                  <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+                  <section className="mb-4 border border-border rounded-lg p-8 bg-card">
                     <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
-                      <UserCog className="mr-2 h-6 w-6 text-primary" />
+                      <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                        <UserCog className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
                       <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitability</h2>
                       {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                     </button>
@@ -2518,49 +2607,80 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-            <div className="lg:col-span-3 bg-muted  rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto">
-              <Accordion type="multiple" defaultValue={["recruiter-assignment", "comments-activity", "attachments"]}>
-                {/* Recruiter Assignment Section */}
-                <AccordionItem value="recruiter-assignment" className="border-b">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-                    <div className="flex items-center">
-                      <Users className="mr-2 h-5 w-5 text-primary bg-card" />
-                      <span className="text-lg font-semibold">Recruiter Assignment</span>
+                          <div className="lg:col-span-3 bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50">
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-md border-b border-border/30 px-6 py-4">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Quick Stats
+                </h3>
+                
+              </div>
+              
+              {/* Quick Stats Section */}
+              <div className="px-3 py-3 bg-gradient-to-br from-slate-50/30 to-blue-50/20 dark:from-slate-800/20 dark:to-slate-700/10">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
+                    <div className="text-lg font-bold text-foreground">
+                      {(() => {
+                        const totalExp = calculateTotalExperienceDuration(experience);
+                        return totalExp || '-';
+                      })()}
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4 pt-4 bg/muted">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
-                      <Select
-                        value={candidate.recruiterId || 'unassign'}
-                        onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
-                        disabled={isAssigningRecruiter}
-                      >
-                        <SelectTrigger className="min-w-[120px] border-none bg-transparent shadow-none">
-                          <SelectValue placeholder="Assign..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassign">Unassign</SelectItem>
-                          {recruiters.map((recruiter) => (
-                            <SelectItem key={recruiter.id} value={recruiter.id}>
-                              {recruiter.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="text-[10px] text-muted-foreground">Experience</div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
+                  
+                  <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
+                    <div className="text-lg font-bold text-foreground">
+                      {(() => {
+                        const appliedDate = candidate.createdAt ? new Date(candidate.createdAt) : null;
+                        const endDate = candidate.status === 'Hired' || candidate.status === 'Rejected' ? 
+                          (candidate.updatedAt ? new Date(candidate.updatedAt) : new Date()) : 
+                          new Date();
+                        
+                        if (!appliedDate) return 'N/A';
+                        
+                        const diffTime = Math.abs(endDate.getTime() - appliedDate.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 0) return 'Today';
+                        if (diffDays === 1) return '1 Day';
+                        if (diffDays < 7) return `${diffDays} Days`;
+                        if (diffDays < 30) {
+                          const weeks = Math.floor(diffDays / 7);
+                          const remainingDays = diffDays % 7;
+                          if (remainingDays === 0) return `${weeks} Week${weeks > 1 ? 's' : ''}`;
+                          return `${weeks} Week${weeks > 1 ? 's' : ''} ${remainingDays} Day${remainingDays > 1 ? 's' : ''}`;
+                        }
+                        
+                        const months = Math.floor(diffDays / 30);
+                        const remainingDays = diffDays % 30;
+                        
+                        if (months === 0) return `${diffDays} Days`;
+                        if (remainingDays === 0) return `${months} Month${months > 1 ? 's' : ''}`;
+                        return `${months} Month${months > 1 ? 's' : ''} ${remainingDays} Day${remainingDays > 1 ? 's' : ''}`;
+                      })()}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">Process</div>
+                  </div>
+                </div>
+              </div>
+              
+              <Accordion type="multiple" defaultValue={["comments-activity", "attachments"]} className="px-4 py-2 shadow-lg roudned">
 
                 {/* Comments & Activity Section */}
-                <AccordionItem value="comments-activity" className="border-b">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-                    <div className="flex items-center bg-card">
-                      <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                      <span className="text-lg font-semibold ">Comments & Activity</span>
+                <AccordionItem value="comments-activity" className="rounded-lg mb-3 bg-white dark:bg-slate-800">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/10 to-blue-600/15 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
+                        <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-sm font-semibold text-foreground">Comments & Activity</span>
+                        <p className="text-xs text-muted-foreground">View and add comments</p>
+                      </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+                  <AccordionContent className="px-6 pb-4 pt-4 bg-card">
                     <CandidateCommentsSection 
                       candidateId={candidateId} 
                       comments={comments} 
@@ -2571,20 +2691,28 @@ export default function CandidateDetailPage() {
                 </AccordionItem>
                 
                 {/* Attachments Section */}
-                <AccordionItem value="attachments" className="border-b-0">
-                  <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-                    <div className="flex items-center bg-card">
-                      <UploadCloud className="mr-2 h-5 w-5 text-primary" />
-                      <span className="text-lg font-semibold">Attachments</span>
+                <AccordionItem value="attachments" className="rounded-lg mb-3 bg-white dark:bg-slate-800">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/5 to-blue-600/10 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
+                        <UploadCloud className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-sm font-semibold text-foreground">Attachments</span>
+                        <p className="text-xs text-muted-foreground">Manage files and documents</p>
+                      </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+                  <AccordionContent className="px-4 py-4 bg-card/30">
+                    <div className="space-y-3">
+                    
                     <CandidateResumesSection 
                       candidateId={candidateId} 
                       resumes={Array.isArray(attachments) ? attachments : []} 
                       isEditing={isEditing} 
                       onResumesChange={handleResumesChange} 
                     />
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>

@@ -1,0 +1,36 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { url } = await request.json();
+    
+    if (!url) {
+      return NextResponse.json(
+        { error: 'URL is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that it's an image URL
+    if (!url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+      return NextResponse.json(
+        { error: 'URL must be an image' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: 1,
+      file: {
+        url: url
+      }
+    });
+
+  } catch (error) {
+    console.error('Fetch image error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch image' },
+      { status: 500 }
+    );
+  }
+} 

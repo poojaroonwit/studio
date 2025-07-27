@@ -473,7 +473,11 @@ export default function PositionDetailPage() {
                 if (group.length === 1) {
                   const candidate = group[0];
                   return (
-                    <TableRow key={candidate.id} className="hover:bg-muted/50 cursor-pointer">
+                    <TableRow 
+                      key={candidate.id} 
+                      className="hover:bg-muted/50 cursor-pointer"
+                      onClick={() => handleCandidateClick(candidate.id)}
+                    >
                       <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                       <TableCell>
                         <div>
@@ -557,7 +561,11 @@ export default function PositionDetailPage() {
                         </TableCell>
                       </TableRow>
                       {isExpanded && group.map((candidate) => (
-                        <TableRow key={candidate.id} className="hover:bg-muted/50 cursor-pointer">
+                        <TableRow 
+                          key={candidate.id} 
+                          className="hover:bg-muted/50 cursor-pointer"
+                          onClick={() => handleCandidateClick(candidate.id)}
+                        >
                           <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                           <TableCell>
                             <div>

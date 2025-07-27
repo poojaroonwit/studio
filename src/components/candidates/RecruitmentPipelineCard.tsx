@@ -107,12 +107,12 @@ export function RecruitmentPipelineCard({
 
   return (
     <Card className="w-full border-0 shadow-none">
-      <CardHeader className="pb-4">
+      {/* <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Activity className="w-5 h-5 text-primary" />
           Recruitment Pipeline
         </CardTitle>
-      </CardHeader>
+      </CardHeader> */}
       <CardContent>
         <div className="relative">
           {!localStages || localStages.length === 0 ? (

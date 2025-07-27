@@ -239,6 +239,18 @@ export async function GET(request: NextRequest) {
     matchingMaxFitScore: searchParams.get('matchingMaxFitScore') || undefined,
   };
 
+
+
+  // Filter out undefined values to prevent PostgreSQL errors
+  Object.keys(filters).forEach(key => {
+    if (filters[key] === undefined || filters[key] === '') {
+      console.log(`Removing undefined/empty filter: ${key} = ${filters[key]}`);
+      delete filters[key];
+    }
+  });
+  
+
+
   let whereClauses: string[] = [];
   let queryParams: any[] = [];
   let paramIndex = 1;
@@ -445,6 +457,7 @@ export async function GET(request: NextRequest) {
 
   // Handle experience years filter (calculate from experienceData)
   if (filters.minExperienceYears || filters.maxExperienceYears) {
+    
     // Calculate total experience years from experienceData array
     const experienceCalculation = `
       COALESCE(
@@ -473,15 +486,40 @@ export async function GET(request: NextRequest) {
     
     if (filters.minExperienceYears && filters.maxExperienceYears) {
       whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
-      queryParams.push(filters.minExperienceYears, filters.maxExperienceYears);
+      const minExperienceYears = parseInt(filters.minExperienceYears);
+      const maxExperienceYears = parseInt(filters.maxExperienceYears);
+      if (isNaN(minExperienceYears) || isNaN(maxExperienceYears)) {
+        console.error('Invalid experience years values:', { minExperienceYears: filters.minExperienceYears, maxExperienceYears: filters.maxExperienceYears });
+      }
+      if (!isNaN(minExperienceYears) && !isNaN(maxExperienceYears)) {
+        queryParams.push(minExperienceYears, maxExperienceYears);
+      } else {
+        console.error('Skipping invalid experience years parameters');
+      }
       paramIndex += 2;
     } else if (filters.minExperienceYears) {
       whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
-      queryParams.push(filters.minExperienceYears);
+      const minExperienceYears = parseInt(filters.minExperienceYears);
+      if (isNaN(minExperienceYears)) {
+        console.error('Invalid min experience years value:', filters.minExperienceYears);
+      }
+      if (!isNaN(minExperienceYears)) {
+        queryParams.push(minExperienceYears);
+      } else {
+        console.error('Skipping invalid min experience years parameter');
+      }
       paramIndex++;
     } else if (filters.maxExperienceYears) {
       whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
-      queryParams.push(filters.maxExperienceYears);
+      const maxExperienceYears = parseInt(filters.maxExperienceYears);
+      if (isNaN(maxExperienceYears)) {
+        console.error('Invalid max experience years value:', filters.maxExperienceYears);
+      }
+      if (!isNaN(maxExperienceYears)) {
+        queryParams.push(maxExperienceYears);
+      } else {
+        console.error('Skipping invalid max experience years parameter');
+      }
       paramIndex++;
     }
   }
@@ -505,39 +543,92 @@ export async function GET(request: NextRequest) {
     if (filters.minFitScore && filters.maxFitScore) {
       // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
       whereClauses.push(`((c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100) AND c."fitScore" <= $${paramIndex + 1})`);
-      queryParams.push(parseInt(filters.minFitScore), parseInt(filters.maxFitScore));
-      paramIndex++;
+      const minFitScore = parseInt(filters.minFitScore);
+      const maxFitScore = parseInt(filters.maxFitScore);
+      if (isNaN(minFitScore) || isNaN(maxFitScore)) {
+        console.error('Invalid fit score values:', { minFitScore: filters.minFitScore, maxFitScore: filters.maxFitScore });
+      }
+      if (!isNaN(minFitScore) && !isNaN(maxFitScore)) {
+        queryParams.push(minFitScore, maxFitScore);
+      } else {
+        console.error('Skipping invalid fit score parameters');
+      }
+      paramIndex += 2;
     } else if (filters.minFitScore) {
       whereClauses.push(`(c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100)`);
-      queryParams.push(parseInt(filters.minFitScore));
+      const minFitScore = parseInt(filters.minFitScore);
+      if (isNaN(minFitScore)) {
+        console.error('Invalid min fit score value:', filters.minFitScore);
+      }
+      if (!isNaN(minFitScore)) {
+        queryParams.push(minFitScore);
+      } else {
+        console.error('Skipping invalid min fit score parameter');
+      }
       paramIndex++;
     } else if (filters.maxFitScore) {
       whereClauses.push(`c."fitScore" <= $${paramIndex}`);
-      queryParams.push(parseInt(filters.maxFitScore));
+      const maxFitScore = parseInt(filters.maxFitScore);
+      if (isNaN(maxFitScore)) {
+        console.error('Invalid max fit score value:', filters.maxFitScore);
+      }
+      if (!isNaN(maxFitScore)) {
+        queryParams.push(maxFitScore);
+      } else {
+        console.error('Skipping invalid max fit score parameter');
+      }
       paramIndex++;
     }
   }
 
   // Handle matching fit score range filter (best job match)
   if (filters.matchingMinFitScore || filters.matchingMaxFitScore) {
+    
     // Add a lateral join to get the max fitScore from JobMatch for each candidate
     // We'll add the filter to the WHERE clause using the alias jm_max
     if (filters.matchingMinFitScore && filters.matchingMaxFitScore) {
       whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex} AND COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex + 1}`);
-      queryParams.push(parseInt(filters.matchingMinFitScore), parseInt(filters.matchingMaxFitScore));
+      const matchingMinFitScore = parseInt(filters.matchingMinFitScore);
+      const matchingMaxFitScore = parseInt(filters.matchingMaxFitScore);
+      if (isNaN(matchingMinFitScore) || isNaN(matchingMaxFitScore)) {
+        console.error('Invalid matching fit score values:', { matchingMinFitScore: filters.matchingMinFitScore, matchingMaxFitScore: filters.matchingMaxFitScore });
+      }
+      if (!isNaN(matchingMinFitScore) && !isNaN(matchingMaxFitScore)) {
+        queryParams.push(matchingMinFitScore, matchingMaxFitScore);
+      } else {
+        console.error('Skipping invalid matching fit score parameters');
+      }
       paramIndex += 2;
     } else if (filters.matchingMinFitScore) {
       whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex}`);
-      queryParams.push(parseInt(filters.matchingMinFitScore));
+      const matchingMinFitScore = parseInt(filters.matchingMinFitScore);
+      if (isNaN(matchingMinFitScore)) {
+        console.error('Invalid matching min fit score value:', filters.matchingMinFitScore);
+      }
+      if (!isNaN(matchingMinFitScore)) {
+        queryParams.push(matchingMinFitScore);
+      } else {
+        console.error('Skipping invalid matching min fit score parameter');
+      }
       paramIndex++;
     } else if (filters.matchingMaxFitScore) {
       whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex}`);
-      queryParams.push(parseInt(filters.matchingMaxFitScore));
+      const matchingMaxFitScore = parseInt(filters.matchingMaxFitScore);
+      if (isNaN(matchingMaxFitScore)) {
+        console.error('Invalid matching max fit score value:', filters.matchingMaxFitScore);
+      }
+      if (!isNaN(matchingMaxFitScore)) {
+        queryParams.push(matchingMaxFitScore);
+      } else {
+        console.error('Skipping invalid matching max fit score parameter');
+      }
       paramIndex++;
     }
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+
 
   const client = await getPool().connect();
   try {
@@ -549,6 +640,9 @@ export async function GET(request: NextRequest) {
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN LATERAL (
+        SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
+      ) AS jm_max ON true
       LEFT JOIN LATERAL (
         SELECT json_agg(
           json_build_object(
@@ -569,16 +663,29 @@ export async function GET(request: NextRequest) {
         FROM "JobMatch" jm
         WHERE jm."candidateId" = c.id
       ) AS jm_data ON true
+      ${whereString}
+      ORDER BY ${sortColumn} ${sortDirection}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
+    `;
+    
+
+    // Validate that all query parameters are valid (not undefined, null, NaN, empty arrays, or empty strings)
+    const finalQueryParams = [...queryParams, limit, offset].map((param, index) => {
+      if (param === undefined || param === null || (typeof param === 'number' && isNaN(param)) || (Array.isArray(param) && param.length === 0) || (typeof param === 'string' && param === '')) {
+        return 0; // Default fallback
+      }
+      return param;
+    });
+    const candidatesResult = await client.query(candidatesQuery, finalQueryParams);
+    const totalQuery = `
+      SELECT COUNT(*) 
+      FROM "Candidate" c
       LEFT JOIN LATERAL (
         SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
       ) AS jm_max ON true
-      ${whereString}
-      ORDER BY ${sortColumn} ${sortDirection}
-      LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2};
+      ${whereString};
     `;
-    const candidatesResult = await client.query(candidatesQuery, [...queryParams, limit, offset]);
-    const totalQuery = `SELECT COUNT(*) FROM "Candidate" c ${whereString};`;
-    const totalResult = await client.query(totalQuery, queryParams);
+    const totalResult = await client.query(totalQuery, finalQueryParams.slice(0, -2)); // Remove limit and offset for count query
     const total = parseInt(totalResult.rows[0].count, 10);
     const candidates = candidatesResult.rows.map(row => {
       let customAttributes = row.customAttributes || {};

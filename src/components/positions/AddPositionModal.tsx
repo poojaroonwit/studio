@@ -25,8 +25,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 
-// Import the new WYSIWYG editors
-import { TipTapEditor, QuillEditor } from '@/components/ui/wysiwyg-editors';
+// Import Editor.js
+import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
 
 const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -45,7 +45,7 @@ interface AddPositionModalProps {
 }
 
 export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPositionModalProps) {
-
+  const [isModalReady, setIsModalReady] = useState(false);
   
   const form = useForm<AddPositionFormValues>({
     resolver: zodResolver(addPositionFormSchema),
@@ -60,6 +60,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
   useEffect(() => {
     if (isOpen) {
+      setIsModalReady(true);
       form.reset({
         title: '',
         department: '',
@@ -67,6 +68,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         isOpen: true,
         positionLevel: '',
       });
+    } else {
+      setIsModalReady(false);
     }
   }, [isOpen, form]);
 
@@ -74,98 +77,110 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
     await onAddPosition(data);
   };
 
+  // Don't render anything if modal is not open
+  if (!isOpen) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position
-          </DialogTitle>
-          <DialogDescription>
-            Enter the details for the new job position.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
-          <div>
-            <Label htmlFor="title-add">Position Title *</Label>
-            <Input 
-              id="title-add" 
-              {...form.register('title')} 
-              className="mt-1" 
-              placeholder="Enter position title"
-            />
-            {form.formState.errors.title && (
-              <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="department-add">Department *</Label>
-            <Input 
-              id="department-add" 
-              {...form.register('department')} 
-              className="mt-1" 
-              placeholder="Enter department name"
-            />
-            {form.formState.errors.department && (
-              <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="positionLevel-add">Position Level</Label>
-            <Input 
-              id="positionLevel-add" 
-              {...form.register('positionLevel')} 
-              className="mt-1" 
-              placeholder="e.g., Senior, Mid-Level, L3"
-            />
-            {form.formState.errors.positionLevel && (
-              <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="description-add">Job Description</Label>
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field }) => (
-                <QuillEditor
-                  value={field.value || ''}
-                  onChange={field.onChange}
-                  placeholder="Enter job description"
-                  className=""
-                  rows={5}
-                />
-              )}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Controller
-              name="isOpen"
-              control={form.control}
-              render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Label htmlFor="isOpen-add">Position is Open</Label>
-          </div>
+        <DialogContent className="sm:max-w-6xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width */}
+          <DialogHeader className="px-8 pt-8 pb-6">
+            <DialogTitle className="flex items-center">
+              <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position
+            </DialogTitle>
+            <DialogDescription>
+              Enter the details for the new job position.
+            </DialogDescription>
+          </DialogHeader>
           
-          <DialogFooter className="pt-4">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            <div className="grid md:grid-cols-2 gap-8 flex-1 min-h-0 px-8 pb-6">
+              {/* Left Column: Form Fields */}
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="title-add">Position Title *</Label>
+                  <Input 
+                    id="title-add" 
+                    {...form.register('title')} 
+                    className="mt-2" 
+                    placeholder="Enter position title"
+                  />
+                  {form.formState.errors.title && (
+                    <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="department-add">Department *</Label>
+                  <Input 
+                    id="department-add" 
+                    {...form.register('department')} 
+                    className="mt-2" 
+                    placeholder="Enter department name"
+                  />
+                  {form.formState.errors.department && (
+                    <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="positionLevel-add">Position Level</Label>
+                  <Input 
+                    id="positionLevel-add" 
+                    {...form.register('positionLevel')} 
+                    className="mt-2" 
+                    placeholder="e.g., Senior, Mid-Level, L3"
+                  />
+                  {form.formState.errors.positionLevel && (
+                    <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
+                  )}
+                </div>
+                <div className="flex items-center space-x-3 pt-2">
+                  <Controller
+                    name="isOpen"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="isOpen-add">Position is Open</Label>
+                </div>
+              </div>
+              
+              {/* Right Column: Job Description */}
+              <div className="flex flex-col min-h-0">
+                <Label htmlFor="description-add" className="mb-3">Job Description</Label>
+                <Controller
+                  name="description"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="flex-1 flex flex-col min-h-0">
+                                          <EditorJSEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Enter job description"
+                        className="flex-1 min-h-0"
+                        isOpen={isModalReady}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter className="px-8 py-6 border-t mt-auto">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={form.formState.isSubmitting} variant="default">
+                {form.formState.isSubmitting ? 'Adding Position...' : 'Add Position'}
               </Button>
-            </DialogClose>
-            <Button type="submit" disabled={form.formState.isSubmitting} variant="default">
-              {form.formState.isSubmitting ? 'Adding Position...' : 'Add Position'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
   );
 }
 

@@ -24,7 +24,7 @@ export function removeSseController(controller: ReadableStreamDefaultController<
 }
 
 export function broadcastCandidateUpdate(candidate: any) {
-  const data = `data: ${JSON.stringify(candidate)}\n\n`;
+  const data = `event: candidate\ndata: ${JSON.stringify({ type: 'candidate_update', candidateId: candidate.id, candidate })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {
@@ -32,6 +32,21 @@ export function broadcastCandidateUpdate(candidate: any) {
       controller.enqueue(encodedData);
     } catch (e) {
       console.error('[SSE] Error broadcasting candidate update:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
+}
+
+export function broadcastCandidateListUpdate() {
+  const data = `event: candidate\ndata: ${JSON.stringify({ type: 'candidate_list_update', timestamp: new Date().toISOString() })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting candidate list update:', e);
       // Remove the controller if it's causing errors
       controllers.delete(controller);
     }

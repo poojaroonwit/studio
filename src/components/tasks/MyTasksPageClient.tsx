@@ -15,7 +15,7 @@ import { Search, Filter, Settings, RefreshCw, Kanban, List, Users, MoreHorizonta
 import { CustomizeBoardModal } from './CustomizeBoardModal';
 import { MyTasksFilterModal } from './MyTasksFilterModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
-import { CandidateKanbanView } from '@/components/candidates/CandidateKanbanView';
+import { CandidateKanbanView, HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
@@ -37,8 +37,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [loading, setLoading] = useState(false);
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [boardPrefs, setBoardPrefs] = useState({
-    rowField: 'status',
-    columnField: 'none',
+    rowField: 'none',
+    columnField: 'status',
     visibleFields: ['name', 'email', 'status', 'fitScore'],
     visibleRowValues: [],
     visibleColumnValues: [],
@@ -46,8 +46,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const { data: session } = useSession();
   const [visibleRowValues, setVisibleRowValues] = useState<string[]>([]);
   const [visibleColumnValues, setVisibleColumnValues] = useState<string[]>([]);
-  const [rowField, setRowField] = useState('status');
-  const [columnField, setColumnField] = useState('recruiterId');
+  const [rowField, setRowField] = useState('none');
+  const [columnField, setColumnField] = useState('status');
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
   // Add debouncing for search
@@ -160,8 +160,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
         const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
         const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
-        const newRowField = rowPref && rowPref.customNote !== undefined ? rowPref.customNote : 'status';
-        const newColumnField = colPref && colPref.customNote !== undefined ? colPref.customNote : 'none';
+        const newRowField = rowPref && rowPref.customNote !== undefined ? rowPref.customNote : 'none';
+        const newColumnField = colPref && colPref.customNote !== undefined ? colPref.customNote : 'status';
         let newVisibleFields = ['name', 'email', 'status', 'fitScore'];
         if (visibleFieldsPref) {
           try {
@@ -222,15 +222,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       })
       .catch((error) => {
       
-        setRowField('status');
-        setColumnField('none');
+        setRowField('none');
+        setColumnField('status');
         setBoardPrefs(prev => ({
           ...prev,
-          rowField: 'status',
-          columnField: 'none',
+          rowField: 'none',
+          columnField: 'status',
         }));
-        setVisibleRowValues(stages.length > 0 ? stages : []);
-        setVisibleColumnValues([]);
+        setVisibleRowValues([]);
+        setVisibleColumnValues(stages.length > 0 ? stages : []);
       });
   }, [uniqueRowValues, uniqueColumnValues, stages]);
 
@@ -241,25 +241,25 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [metadataLoaded]);
 
-  // Fallback: ensure visibleRowValues has a value when stages are loaded
+  // Fallback: ensure visibleColumnValues has a value when stages are loaded (for horizontal layout)
   useEffect(() => {
-    // Only set visibleRowValues to stages if rowField is 'status' (not 'none')
-    if (rowField === 'status' && stages.length > 0 && visibleRowValues.length === 0) {
-      setVisibleRowValues(stages);
-    } else if (rowField === 'recruiterId' && recruiters.length > 0 && visibleRowValues.length === 0) {
-      setVisibleRowValues(recruiters.map(r => r.id));
-    } else if (rowField === 'positionId' && positions.length > 0 && visibleRowValues.length === 0) {
-      setVisibleRowValues(positions.map(p => p.id));
-    } else if (rowField && visibleRowValues.length === 0) {
+    // Set visibleColumnValues to stages if columnField is 'status' and no values are set
+    if (columnField === 'status' && stages.length > 0 && visibleColumnValues.length === 0) {
+      setVisibleColumnValues(stages);
+    } else if (columnField === 'recruiterId' && recruiters.length > 0 && visibleColumnValues.length === 0) {
+      setVisibleColumnValues(recruiters.map(r => r.id));
+    } else if (columnField === 'positionId' && positions.length > 0 && visibleColumnValues.length === 0) {
+      setVisibleColumnValues(positions.map(p => p.id));
+    } else if (columnField && columnField !== 'none' && visibleColumnValues.length === 0) {
       // For other fields, get unique values from candidates
-      const candidateValues = Array.from(new Set(candidates.map(c => (c[rowField] ?? c.customAttributes?.[rowField] ?? '')))).filter(Boolean);
-      setVisibleRowValues(candidateValues);
+      const candidateValues = Array.from(new Set(candidates.map(c => (c[columnField] ?? c.customAttributes?.[columnField] ?? '')))).filter(Boolean);
+      setVisibleColumnValues(candidateValues);
     }
-    // Also ensure that when row field is status, we always show all stages
-    if (stages.length > 0 && rowField === 'status' && visibleRowValues.length > 0 && visibleRowValues.length < stages.length) {
-      setVisibleRowValues(stages);
+    // Also ensure that when column field is status, we always show all stages
+    if (stages.length > 0 && columnField === 'status' && visibleColumnValues.length > 0 && visibleColumnValues.length < stages.length) {
+      setVisibleColumnValues(stages);
     }
-  }, [stages, recruiters, positions, candidates, visibleRowValues.length, rowField]);
+  }, [stages, recruiters, positions, candidates, visibleColumnValues.length, columnField]);
 
   // When modal closes after save, reload preferences
   const handleCustomizeModalChange = (open: boolean) => {
@@ -596,7 +596,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             {/* Board Views */}
             {viewMode === 'kanban' ? (
               (() => {
-                // Fallback logic for columns
+                // Special case: If column field is 'status' (recruitment stages), use horizontal layout
+                if (columnField === 'status') {
+                  return (
+                    <HorizontalStageKanbanView
+                      candidates={displayedCandidates}
+                      statuses={stages}
+                      onMoveCandidate={handleMoveCandidate}
+                      onCardClick={(candidate) => setSelectedCandidate(candidate)}
+                      visibleFields={boardPrefs.visibleFields}
+                      visibleRowValues={visibleRowValues}
+                      visibleColumnValues={visibleColumnValues}
+                    />
+                  );
+                }
+
+                // Fallback logic for other column configurations
                 let effectiveColumnField = columnField;
                 let effectiveColumnValues = visibleColumnValues;
                 if (columnField !== 'none' && (Array.isArray(visibleColumnValues) && visibleColumnValues.length === 0)) {

@@ -179,7 +179,10 @@ export function CandidateFilters({
     initialFilters.minFitScore || 0,
     initialFilters.maxFitScore || 100,
   ]);
-  const [matchingFitScoreRange, setMatchingFitScoreRange] = useState<[number, number]>([70, 100]);
+  const [matchingFitScoreRange, setMatchingFitScoreRange] = useState<[number, number]>([
+    initialFilters.matchingMinFitScore ?? 0,
+    initialFilters.matchingMaxFitScore ?? 100,
+  ]);
   
   const [applicationDateRange, setApplicationDateRange] = useState<DateRange | undefined>(
     initialFilters.applicationDateStart && initialFilters.applicationDateEnd
@@ -605,6 +608,61 @@ export function CandidateFilters({
     }
   }, [initialFilters]); // Removed onFilterChange from dependencies to prevent infinite loop
 
+  // Auto-apply filters when input values change (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Skip if there's an advanced query active
+      if (advancedQueryInput.trim()) return;
+      
+      // Only apply filters if we have meaningful changes
+      const hasFilters = name || email || phone || 
+                        selectedPositionIds.size > 0 || 
+                        selectedStatuses.size > 0 || 
+                        skills.size > 0 || 
+                        location ||
+                        experienceYearsRange[0] > 0 || 
+                        experienceYearsRange[1] < 50 ||
+                        fitScoreRange[0] > 0 || 
+                        fitScoreRange[1] < 100 ||
+                        matchingFitScoreRange[0] > 0 || 
+                        matchingFitScoreRange[1] < 100 ||
+                        applicationDateRange?.from ||
+                        applicationDateRange?.to ||
+                        selectedRecruiterIds.size > 0;
+      
+      onFilterChange({
+        name: name || undefined,
+        nameOperator,
+        email: email || undefined,
+        emailOperator,
+        phone: phone || undefined,
+        phoneOperator,
+        selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+        selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+        location: location || undefined,
+        locationOperator,
+        minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+        maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+        minFitScore: fitScoreRange[0],
+        maxFitScore: fitScoreRange[1],
+        matchingMinFitScore: matchingFitScoreRange[0],
+        matchingMaxFitScore: matchingFitScoreRange[1],
+        applicationDateStart: applicationDateRange?.from,
+        applicationDateEnd: applicationDateRange?.to,
+        selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+        aiSearchQuery: undefined,
+      });
+    }, 150); // Reduced to 150ms for faster response
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    name, nameOperator, email, emailOperator, phone, phoneOperator,
+    selectedPositionIds, selectedStatuses, skills, location, locationOperator,
+    experienceYearsRange, fitScoreRange, matchingFitScoreRange, applicationDateRange, selectedRecruiterIds,
+    advancedQueryInput
+  ]);
+
   const handleApplyStandardFilters = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     // If there's an advanced query, parse and apply it
@@ -622,7 +680,7 @@ export function CandidateFilters({
       });
     } else {
       // Apply standard filters
-      onFilterChange({
+      const filterValues = {
         name: name || undefined,
         nameOperator,
         email: email || undefined,
@@ -638,11 +696,19 @@ export function CandidateFilters({
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
         minFitScore: fitScoreRange[0],
         maxFitScore: fitScoreRange[1],
+        matchingMinFitScore: matchingFitScoreRange[0],
+        matchingMaxFitScore: matchingFitScoreRange[1],
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
         aiSearchQuery: undefined,
-      });
+      };
+      
+
+      
+
+      
+      onFilterChange(filterValues);
     }
   };
 
@@ -663,6 +729,55 @@ export function CandidateFilters({
     setAiSearchQueryInput(example);
   };
 
+  // Wrapper functions to apply filters when dropdown values change
+  const handlePositionChange = (newSelectedIds: Set<string>) => {
+    setSelectedPositionIds(newSelectedIds);
+    // Apply filters immediately when positions change
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
+  const handleStatusChange = (newSelectedStatuses: Set<string>) => {
+    setSelectedStatuses(newSelectedStatuses);
+    // Apply filters immediately when statuses change
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
+  const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
+    setSelectedRecruiterIds(newSelectedRecruiterIds);
+    // Apply filters immediately when recruiters change
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
+  const handleExperienceYearsChange = (newRange: [number, number]) => {
+    setExperienceYearsRange(newRange);
+    // Apply filters immediately when experience years change
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
+  const handleFitScoreRangeChange = (newRange: [number, number]) => {
+    setFitScoreRange(newRange);
+    // Apply filters immediately when fit score range changes
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
+  const handleMatchingFitScoreRangeChange = (newRange: [number, number]) => {
+    setMatchingFitScoreRange(newRange);
+    // Apply filters immediately when matching fit score range changes
+    if (!isLoading && !isAiSearching) {
+      handleApplyStandardFilters();
+    }
+  };
+
   const handleResetFilters = () => {
     // If onClearAllFilters is provided, use it to properly clear all filters and URL parameters
     if (onClearAllFilters) {
@@ -681,7 +796,7 @@ export function CandidateFilters({
     setLocationOperator('contains');
     setExperienceYearsRange([0, 50]);
     setFitScoreRange([0, 100]);
-    setMatchingFitScoreRange([70, 100]);
+    setMatchingFitScoreRange([0, 100]);
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
     setAiSearchQueryInput('');
@@ -690,7 +805,7 @@ export function CandidateFilters({
     onFilterChange({
       minFitScore: 0,
       maxFitScore: 100,
-      matchingMinFitScore: 70,
+      matchingMinFitScore: 0,
       matchingMaxFitScore: 100,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
@@ -956,12 +1071,9 @@ export function CandidateFilters({
                 {/* Filters Tab */}
                 <TabsContent value="filters" className="space-y-4 mt-3">
                   <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      handleApplyStandardFilters();
-                    }}
+                    onSubmit={handleApplyStandardFilters}
                   >
-                    <Accordion type="multiple" className="w-full" defaultValue={[]}>
+                    <Accordion type="multiple" className="w-full" defaultValue={["application-status"]}>
                       {/* Candidate Information Section */}
                     <AccordionItem value="candidate-info">
                       <AccordionTrigger>
@@ -986,7 +1098,20 @@ export function CandidateFilters({
                                   <SelectItem value="endsWith">ends with</SelectItem>
                                 </SelectContent>
                               </Select>
-                              <Input id="name-search" placeholder="Filter by name..." value={name} onChange={(e) => setName(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                              <Input 
+                                id="name-search" 
+                                placeholder="Filter by name..." 
+                                value={name} 
+                                onChange={(e) => setName(e.target.value)} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                    e.preventDefault();
+                                    handleApplyStandardFilters();
+                                  }
+                                }}
+                                className="flex-1 h-8 text-sm" 
+                                disabled={isLoading || isAiSearching}
+                              />
                             </div>
                           </div>
                           <div>
@@ -1003,7 +1128,20 @@ export function CandidateFilters({
                                   <SelectItem value="endsWith">ends with</SelectItem>
                                 </SelectContent>
                               </Select>
-                              <Input id="email-search" placeholder="Filter by email..." value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                              <Input 
+                                id="email-search" 
+                                placeholder="Filter by email..." 
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                    e.preventDefault();
+                                    handleApplyStandardFilters();
+                                  }
+                                }}
+                                className="flex-1 h-8 text-sm" 
+                                disabled={isLoading || isAiSearching}
+                              />
                             </div>
                           </div>
                           <div>
@@ -1020,7 +1158,20 @@ export function CandidateFilters({
                                   <SelectItem value="endsWith">ends with</SelectItem>
                                 </SelectContent>
                               </Select>
-                              <Input id="phone-search" placeholder="Filter by phone..." value={phone} onChange={(e) => setPhone(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
+                              <Input 
+                                id="phone-search" 
+                                placeholder="Filter by phone..." 
+                                value={phone} 
+                                onChange={(e) => setPhone(e.target.value)} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                    e.preventDefault();
+                                    handleApplyStandardFilters();
+                                  }
+                                }}
+                                className="flex-1 h-8 text-sm" 
+                                disabled={isLoading || isAiSearching}
+                              />
                             </div>
                           </div>
                           <div>
@@ -1037,9 +1188,9 @@ export function CandidateFilters({
                               {Array.from(skills).map((skill) => (
                                 <Badge key={skill} variant="secondary" className="flex items-center gap-1 px-2 py-0.5 text-xs">
                                   {skill}
-                                  <button
-                                    type="button"
-                                    className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none"
+                                  <span
+                                    role="button"
+                                    className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
                                     onClick={e => {
                                       e.stopPropagation();
                                       if (isLoading || isAiSearching) return;
@@ -1051,7 +1202,7 @@ export function CandidateFilters({
                                     tabIndex={-1}
                                   >
                                     <X className="w-3 h-3" />
-                                  </button>
+                                  </span>
                                 </Badge>
                               ))}
                               <input
@@ -1071,6 +1222,14 @@ export function CandidateFilters({
                                       setSkills(newSkills);
                                     }
                                     (e.target as HTMLInputElement).value = '';
+                                    // Apply filters after adding skill
+                                    if (e.key === 'Enter') {
+                                      handleApplyStandardFilters();
+                                    }
+                                  } else if (e.key === 'Enter' && !value) {
+                                    // If Enter is pressed with empty input, apply filters
+                                    e.preventDefault();
+                                    handleApplyStandardFilters();
                                   } else if (e.key === 'Backspace' && !value && skills.size > 0) {
                                     // Remove last skill if input is empty and backspace is pressed
                                     const arr = Array.from(skills);
@@ -1112,37 +1271,20 @@ export function CandidateFilters({
                                   <SelectItem value="other">other</SelectItem>
                                 </SelectContent>
                               </Select>
-                              <Input id="location-search" placeholder="e.g., Bangkok, Thailand..." value={location} onChange={(e) => setLocation(e.target.value)} className="flex-1 h-8 text-sm" disabled={isLoading || isAiSearching}/>
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-
-                    {/* Experience Section */}
-                    <AccordionItem value="experience">
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <h4 className="text-sm font-medium">Experience</h4>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-xs font-medium">Experience Years</Label>
-                            <div className="flex items-center gap-2">
-                              <Slider
-                                value={experienceYearsRange}
-                                onValueChange={val => setExperienceYearsRange([val[0], val[1]])}
-                                max={50}
-                                step={1}
-                                className="flex-1"
+                              <Input 
+                                id="location-search" 
+                                placeholder="e.g., Bangkok, Thailand..." 
+                                value={location} 
+                                onChange={(e) => setLocation(e.target.value)} 
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !isLoading && !isAiSearching) {
+                                    e.preventDefault();
+                                    handleApplyStandardFilters();
+                                  }
+                                }}
+                                className="flex-1 h-8 text-sm" 
                                 disabled={isLoading || isAiSearching}
                               />
-                              <span className="text-xs w-16">
-                                {experienceYearsRange[0]}-{experienceYearsRange[1]} years
-                              </span>
                             </div>
                           </div>
                         </div>
@@ -1163,7 +1305,7 @@ export function CandidateFilters({
                             <Label htmlFor="position-select" className="text-xs">Position(s)</Label>
                             <PositionMultiSelectDropdown
                               selectedIds={selectedPositionIds}
-                              onSelectionChange={setSelectedPositionIds}
+                              onSelectionChange={handlePositionChange}
                               placeholder="Select positions..."
                               disabled={isLoading || isAiSearching}
                               showOpenStatus={true}
@@ -1198,15 +1340,13 @@ export function CandidateFilters({
                                         key={stage.name}
                                         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                                         onClick={() => {
-                                          setSelectedStatuses(prev => {
-                                            const newSet = new Set(prev);
-                                            if (newSet.has(stage.name)) {
-                                              newSet.delete(stage.name);
-                                            } else {
-                                              newSet.add(stage.name);
-                                            }
-                                            return newSet;
-                                          });
+                                          const newSet = new Set(selectedStatuses);
+                                          if (newSet.has(stage.name)) {
+                                            newSet.delete(stage.name);
+                                          } else {
+                                            newSet.add(stage.name);
+                                          }
+                                          handleStatusChange(newSet);
                                         }}
                                       >
                                         <Check
@@ -1228,6 +1368,36 @@ export function CandidateFilters({
                       </AccordionContent>
                     </AccordionItem>
 
+                    {/* Experience Section */}
+                    <AccordionItem value="experience">
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium">Experience</h4>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-xs font-medium">Experience Years</Label>
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                value={experienceYearsRange}
+                                onValueChange={val => handleExperienceYearsChange([val[0], val[1]])}
+                                max={50}
+                                step={1}
+                                className="flex-1"
+                                disabled={isLoading || isAiSearching}
+                              />
+                              <span className="text-xs w-16">
+                                {experienceYearsRange[0]}-{experienceYearsRange[1]} years
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
                     {/* Fit Score Section */}
                     <AccordionItem value="fit-score">
                       <AccordionTrigger>
@@ -1244,7 +1414,7 @@ export function CandidateFilters({
                             <div className="flex items-center gap-2">
                               <Slider
                                 value={fitScoreRange}
-                                onValueChange={val => setFitScoreRange([val[0], val[1]])}
+                                onValueChange={val => handleFitScoreRangeChange([val[0], val[1]])}
                                 max={100}
                                 step={1}
                                 className="flex-1"
@@ -1275,14 +1445,15 @@ export function CandidateFilters({
                             <div className="flex items-center gap-2">
                               <Slider
                                 value={matchingFitScoreRange}
-                                onValueChange={val => setMatchingFitScoreRange([val[0], val[1]])}
+                                onValueChange={val => handleMatchingFitScoreRangeChange([val[0], val[1]])}
                                 max={100}
                                 step={1}
                                 className="flex-1"
                                 disabled={isLoading || isAiSearching}
                               />
                               <span className="text-xs w-16">
-                                {matchingFitScoreRange[0]}-{matchingFitScoreRange[1]}
+                                {/* Only show min if > 0 */}
+                                {matchingFitScoreRange[0] > 0 ? `${matchingFitScoreRange[0]}-` : ''}{matchingFitScoreRange[1]}
                               </span>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
@@ -1333,7 +1504,7 @@ export function CandidateFilters({
                                         } else {
                                           newSelected.add('unassigned');
                                         }
-                                        setSelectedRecruiterIds(newSelected);
+                                        handleRecruiterChange(newSelected);
                                       }}
                                     >
                                       <Check
@@ -1355,7 +1526,7 @@ export function CandidateFilters({
                                           } else {
                                             newSelected.add(recruiter.id);
                                           }
-                                          setSelectedRecruiterIds(newSelected);
+                                          handleRecruiterChange(newSelected);
                                         }}
                                       >
                                         <Check
@@ -1382,10 +1553,10 @@ export function CandidateFilters({
                       <Button
                         type="submit"
                         disabled={isLoading || isAiSearching}
-                        className="flex-1"
                         size="sm"
+                        className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
                       >
-                        <Search className="mr-2 h-4 w-4" />
+                        <Filter className="mr-2 h-4 w-4" />
                         Apply Filters
                       </Button>
                       <Button
@@ -1393,11 +1564,12 @@ export function CandidateFilters({
                         onClick={handleResetFilters}
                         disabled={isLoading || isAiSearching}
                         size="sm"
+                        className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
                       >
                         <FilterX className="mr-2 h-4 w-4" />
                         Clear All
                       </Button>
-                                          </div>
+                    </div>
                   </form>
                 </TabsContent>
 

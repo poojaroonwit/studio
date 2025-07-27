@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
@@ -143,34 +143,60 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   const paginatedActivities = combinedActivities.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   // Drag-and-drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(true);
-  };
-  const handleDragLeave = (e: React.DragEvent) => {
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
-  };
-  const handleDrop = (e: React.DragEvent) => {
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
     const droppedFiles = Array.from(e.dataTransfer.files);
-    setFiles(prev => Array.isArray(prev) ? [...prev, ...droppedFiles] : droppedFiles);
-    setLabels(prev => Array.isArray(prev) ? [...prev, ...droppedFiles.map(() => 'other')] : droppedFiles.map(() => 'other'));
-  };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFiles(prev => {
+      const currentFiles = Array.isArray(prev) ? prev : [];
+      return [...currentFiles, ...droppedFiles];
+    });
+    setLabels(prev => {
+      const currentLabels = Array.isArray(prev) ? prev : [];
+      return [...currentLabels, ...droppedFiles.map(() => 'other')];
+    });
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault(); // Prevent any default behavior
     const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    setFiles(prev => Array.isArray(prev) ? [...prev, ...selectedFiles] : selectedFiles);
-    setLabels(prev => Array.isArray(prev) ? [...prev, ...selectedFiles.map(() => 'other')] : selectedFiles.map(() => 'other'));
-    e.target.value = '';
-  };
-  const handleRemoveFile = (idx: number) => {
+    
+    // Preserve existing files and add new ones
+    setFiles(prev => {
+      const currentFiles = Array.isArray(prev) ? prev : [];
+      return [...currentFiles, ...selectedFiles];
+    });
+    
+    setLabels(prev => {
+      const currentLabels = Array.isArray(prev) ? prev : [];
+      return [...currentLabels, ...selectedFiles.map(() => 'other')];
+    });
+    
+    // Don't clear the input value immediately to prevent issues
+    // The value will be cleared after successful upload
+  }, []);
+
+  const handleRemoveFile = useCallback((idx: number) => {
     setFiles(prev => Array.isArray(prev) ? prev.filter((_, i) => i !== idx) : []);
     setLabels(prev => Array.isArray(prev) ? prev.filter((_, i) => i !== idx) : []);
-  };
-  const handleLabelChange = (idx: number, value: string) => {
+  }, []);
+
+  const handleLabelChange = useCallback((idx: number, value: string) => {
     setLabels(prev => Array.isArray(prev) ? prev.map((l, i) => (i === idx ? value : l)) : []);
-  };
+  }, []);
 
   // Add comment with attachments
   const handleAddComment = async (e?: React.FormEvent) => {
@@ -207,14 +233,6 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
     // Add optimistic comment to the top for immediate UI feedback
     setComments(prev => [optimisticComment, ...(Array.isArray(prev) ? prev : [])]);
     
-    // Clear form immediately for better UX
-    setNewComment('');
-    setFiles([]);
-    setLabels([]);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-    
     try {
       const res = await fetch(`/api/candidates/${candidateId}/comments`, {
         method: 'POST',
@@ -239,6 +257,19 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       
       const result = await res.json();
       
+      // Clear form only after successful upload
+      setNewComment('');
+      setFiles([]);
+      setLabels([]);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
+      
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
       // Trigger manual refresh to sync with server
       onCommentsChange();
       
@@ -260,6 +291,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       
       // Remove optimistic comment on error
       setComments(prev => Array.isArray(prev) ? prev.filter(c => c.id !== optimisticComment.id) : []);
+      
     } finally {
       setSaving(false);
     }
@@ -322,7 +354,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   };
 
   return (
-    <div className="space-y-6">
+    <div>
       {/* Combined Activity and Comments List */}
       <div className="space-y-0">
         {logsLoading ? (
@@ -331,130 +363,193 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
           <div className="text-muted-foreground text-sm py-4 text-center">No activities or comments yet.</div>
         ) : (
           paginatedActivities.map((item, index) => (
-            <div key={item.id} className={`py-4 ${index !== paginatedActivities.length - 1 ? 'border-b border-border' : ''}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-2">
-                  {/* Icon based on type */}
-                  {item.type === 'comment' ? (
-                    <MessageSquare className="w-4 h-4 text-blue-500" />
-                  ) : (
-                    <Activity className="w-4 h-4 text-green-500" />
-                  )}
-                  <span className="font-semibold text-sm">
-                    {item.type === 'comment'
-                      ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
-                          ? item.author.name
-                          : item.author || 'Unknown')
-                      : item.user || 'System'
-                    }
-                  </span>
-                  <span className="text-xs text-muted-foreground">•</span>
-                                     <span className="text-xs text-muted-foreground">
-                     {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
-                   </span>
-                </div>
-                {isEditing && item.type === 'comment' && (
-                  <div className="flex items-center gap-1">
-                    {editingId === item.id ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditComment(item.id)}
-                          disabled={editingSaving === item.id}
-                        >
-                          {editingSaving === item.id ? 'Saving...' : 'Save'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingId(null);
-                            setEditingContent('');
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingId(item.id);
-                            setEditingContent(item.content || '');
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteComment(item.id)}
-                          disabled={deleteLoading === item.id}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </>
-                    )}
+            <div key={item.id} className={`py-2 ${index !== paginatedActivities.length - 1 ? 'border-b border-border' : ''}`}>
+              <div className="flex gap-3">
+                {/* Icon with background based on type */}
+                {item.type === 'comment' ? (
+                  <div className="px-1.5 py-0.5 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                    <MessageSquare className="w-3 h-3 text-blue-600 dark:text-blue-300" />
+                  </div>
+                ) : (
+                  <div className="px-1.5 py-0.5 bg-green-500/10 dark:bg-green-400/20 rounded-lg w-8 h-8 flex items-center justify-center">
+                    <Activity className="w-3 h-3 text-green-600 dark:text-green-300" />
                   </div>
                 )}
-              </div>
-              
-              {item.type === 'comment' ? (
-                <>
-                  {editingId === item.id ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="min-h-[80px]"
-                      />
+                
+                {/* Content area */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm">
+                        {item.type === 'comment'
+                          ? (typeof item.author === 'object' && item.author !== null && 'name' in item.author
+                              ? item.author.name
+                              : item.author || 'Unknown')
+                          : item.user || 'System'
+                        }
+                      </span>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date((item as any).createdAt || (item as any).time || '').toLocaleString()}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="text-sm mb-3 whitespace-pre-wrap">{item.content}</div>
-                  )}
-                  {/* Attachments under comment */}
-                  {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
-                        <div key={att.id || idx} className="flex items-center gap-2 border rounded px-3 py-2 bg-muted/50 hover:bg-muted/70 transition-colors">
-                          {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                            <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
-                          ) : (
-                            getFileIcon(att)
-                          )}
-                          <button 
-                            type="button"
-                            onClick={() => handleFileClick(att)}
-                            className="font-medium text-xs hover:underline text-left"
-                          >
-                            {att.fileName}
-                          </button>
-                          <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
+                    {isEditing && item.type === 'comment' && (
+                      <div className="flex items-center gap-1">
+                        {editingId === item.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEditComment(item.id)}
+                              disabled={editingSaving === item.id}
+                            >
+                              {editingSaving === item.id ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditingContent('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditingId(item.id);
+                                setEditingContent(item.content || '');
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteComment(item.id)}
+                              disabled={deleteLoading === item.id}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              {deleteLoading === item.id ? 'Deleting...' : 'Delete'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Comment or Activity Content */}
+                  {item.type === 'comment' ? (
+                    <>
+                      {editingId === item.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="min-h-[80px]"
+                          />
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-sm mb-2 whitespace-pre-wrap">{item.content}</div>
+                      )}
+                      {/* Attachments under comment */}
+                      {(Array.isArray(item.attachments) ? item.attachments : []).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {(Array.isArray(item.attachments) ? item.attachments : []).map((att: any, idx: number) => (
+                            <div key={att.id || idx} className="flex items-center gap-2 border rounded px-2 py-1 bg-muted/50 hover:bg-muted/70 transition-colors">
+                              {att.fileName.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                                <img src={att.url} alt={att.fileName} className="w-6 h-6 object-cover rounded" />
+                              ) : (
+                                getFileIcon(att)
+                              )}
+                              <button 
+                                type="button"
+                                onClick={() => handleFileClick(att)}
+                                className="font-medium text-xs hover:underline text-left"
+                              >
+                                {att.fileName}
+                              </button>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary border ml-1">{att.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-sm">
+                      <span className="font-medium">{item.action}</span>
+                      {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="text-sm">
-                  <span className="font-medium">{item.action}</span>
-                  {item.note && <span className="ml-2 text-muted-foreground whitespace-pre-line">{item.note}</span>}
                 </div>
-              )}
+              </div>
             </div>
           ))
         )}
       </div>
+      
       {/* Pagination Controls */}
       {combinedActivities.length > ITEMS_PER_PAGE && (
-        <div className="flex justify-center items-center gap-2 mt-2">
-          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-          <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
-          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
+        <div className="flex justify-between items-center mt-4 p-3  rounded-lg border border-border/20">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground">
+              Showing {((page - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(page * ITEMS_PER_PAGE, combinedActivities.length)} of {combinedActivities.length}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setPage(p => Math.max(1, p - 1))} 
+              disabled={page === 1}
+              className="h-8 w-8 p-0 hover:bg-background/50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Button>
+            
+            <div className="flex items-center gap-1 mx-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = i + 1;
+                const isActive = pageNum === page;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`h-8 w-8 rounded-md text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && (
+                <span className="text-muted-foreground text-sm px-2">...</span>
+              )}
+            </div>
+            
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+              disabled={page === totalPages}
+              className="h-8 w-8 p-0 hover:bg-background/50"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
+          </div>
         </div>
       )}
       

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Candidate, CandidateStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1673,6 +1673,280 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
           </Card>
         </div>
       ))}
+    </div>
+  );
+}
+
+// New Horizontal Stage Kanban View for recruitment stages as columns
+export function HorizontalStageKanbanView({ 
+  candidates, 
+  statuses, 
+  onMoveCandidate, 
+  onCardClick, 
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  visibleRowValues = [],
+  visibleColumnValues = []
+}: CandidateKanbanViewProps) {
+  const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Use visibleColumnValues if provided, otherwise use all stages
+  const stagesToShow = visibleColumnValues.length > 0 ? visibleColumnValues : statuses;
+
+  // Group candidates by stage
+  const candidatesByStage = useMemo(() => {
+    const grouped: Record<string, Candidate[]> = {};
+    
+    // Initialize all stages with empty arrays
+    stagesToShow.forEach(stage => {
+      grouped[stage] = [];
+    });
+    
+    // Group candidates by their status
+    candidates.forEach(candidate => {
+      const stage = candidate.status;
+      if (stage && stagesToShow.includes(stage)) {
+        if (!grouped[stage]) {
+          grouped[stage] = [];
+        }
+        grouped[stage].push(candidate);
+      }
+    });
+    
+    return grouped;
+  }, [candidates, stagesToShow]);
+
+  // Drag and drop handlers
+  const handleDragStart = (candidate: Candidate) => {
+    setDraggedCandidate(candidate);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCandidate(null);
+    setDragOverStage(null);
+  };
+
+  const handleDragOver = (stage: string, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverStage(stage);
+  };
+
+  const handleDrop = (stage: string) => {
+    if (draggedCandidate && draggedCandidate.status !== stage) {
+      onMoveCandidate?.(draggedCandidate, stage);
+    }
+    setDraggedCandidate(null);
+    setDragOverStage(null);
+  };
+
+  const handleCardClick = (candidate: Candidate) => {
+    if (onCardClick) {
+      onCardClick(candidate);
+    }
+  };
+
+  // Navigation handlers
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const scrollAmount = Math.min(400, container.scrollLeft);
+      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const scrollAmount = Math.min(400, maxScroll - container.scrollLeft);
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    setScrollPosition(target.scrollLeft);
+  };
+
+  // Check if scroll buttons should be shown
+  const showScrollButtons = stagesToShow.length > 2;
+
+  return (
+    <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4">
+      {/* Navigation Controls */}
+      {showScrollButtons && (
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScrollLeft}
+            className="h-8 px-3"
+            disabled={scrollPosition <= 0}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Previous
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              {stagesToShow.length} stages
+            </span>
+            <Badge variant="secondary" className="text-xs">
+              {candidates.length} candidates
+            </Badge>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScrollRight}
+            className="h-8 px-3"
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
+
+      {/* Horizontal Scrollable Container */}
+      <div className="relative">
+        {/* Left Scroll Button */}
+        {showScrollButtons && scrollPosition > 0 && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg"
+            onClick={handleScrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Right Scroll Button */}
+        {showScrollButtons && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg"
+            onClick={handleScrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* Scrollable Stages Container */}
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+          onScroll={handleScroll}
+        >
+          {stagesToShow.map((stage) => {
+            const stageCandidates = candidatesByStage[stage] || [];
+            
+            return (
+              <div
+                key={stage}
+                className="flex-shrink-0 w-80"
+                style={{ minWidth: '320px' }}
+              >
+                <Card className="flex flex-col h-full shadow-sm border border-border bg-card">
+                  <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full bg-primary"></div>
+                        <div>
+                          <CardTitle className="text-sm font-semibold text-foreground capitalize">
+                            {stage}
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground">
+                            Recruitment Stage
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {stageCandidates.length}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <div 
+                    className={cn(
+                      "flex-1 min-h-0 p-4 space-y-3 transition-all duration-200",
+                      dragOverStage === stage && "bg-primary/5"
+                    )}
+                    onDragOver={(e) => handleDragOver(stage, e)}
+                    onDrop={() => handleDrop(stage)}
+                  >
+                    {stageCandidates.length > 0 ? (
+                      <div className="space-y-3">
+                        {stageCandidates.map(candidate => (
+                          <div
+                            key={candidate.id}
+                            className={cn(
+                              "group w-full",
+                              draggedCandidate?.id === candidate.id && "opacity-60 scale-95"
+                            )}
+                          >
+                            <EnhancedCandidateCard
+                              candidate={candidate}
+                              isDragged={draggedCandidate?.id === candidate.id}
+                              onClick={() => handleCardClick(candidate)}
+                              onDragStart={() => handleDragStart(candidate)}
+                              onDragEnd={handleDragEnd}
+                              visibleFields={visibleFields}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-32 border-2 border-dashed border-muted rounded-lg">
+                        <div className="text-center">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Drop candidates here</p>
+                          <p className="text-xs text-muted-foreground/60 mt-1">
+                            {stage} stage
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Scroll Progress Indicator */}
+      {showScrollButtons && (
+        <div className="flex justify-center mt-4">
+          <div className="flex gap-1">
+            {stagesToShow.map((_, index) => {
+              const container = scrollContainerRef.current;
+              if (!container) return null;
+              
+              const stageWidth = 320 + 16; // card width + gap
+              const isActive = scrollPosition >= index * stageWidth && scrollPosition < (index + 1) * stageWidth;
+              
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-2 h-2 rounded-full transition-all duration-200",
+                    isActive ? "bg-primary" : "bg-muted"
+                  )}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

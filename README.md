@@ -65,7 +65,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 ### 🔧 **Technical Features**
 - **Real-time Updates**: WebSocket-based live collaboration
 - **File Storage**: MinIO integration for secure file management
-- **Caching**: Redis-powered performance optimization
+- **Caching**: Built-in performance optimization
 - **Audit Logging**: Complete system activity tracking with search/filter
 - **Health Monitoring**: Built-in health checks and monitoring
 - **Background Processing**: Queue-based file processing system
@@ -81,7 +81,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 | **Database** | PostgreSQL 15 |
 | **Authentication** | NextAuth.js (Azure AD + Credentials) |
 | **File Storage** | MinIO Object Storage |
-| **Caching** | Redis |
+| **Caching** | Built-in caching |
 | **AI/ML** | Genkit (Google AI) |
 | **Deployment** | Docker, Docker Compose |
 | **Monitoring** | Built-in health checks, audit logging |
@@ -91,7 +91,7 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 - **Docker & Docker Compose** (for production deployment)
 - **Node.js 18+** (for development)
 - **PostgreSQL 15+** (if not using Docker)
-- **Redis 6+** (if not using Docker)
+
 
 ## 🚀 Quick Start
 
@@ -120,7 +120,9 @@ A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Nex
 4. **Access the application:**
    - **Main App**: http://localhost:8021
    - **MinIO Console**: http://localhost:9848
+   - **N8N Workflow Automation**: http://localhost:8921
    - **Default Login**: admin@ncc.com / nccadmin
+   - **N8N Login**: admin / admin
 
 ### Option 2: Portainer Deployment
 
@@ -157,8 +159,7 @@ MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
 MINIO_BUCKET_NAME=studio-files
 
-# Redis Cache
-REDIS_URL=redis://redis:6379
+
 ```
 
 #### **Optional Configuration**
@@ -186,7 +187,55 @@ GOOGLE_API_KEY=your-google-ai-key
 | **MinIO API** | 9000 | 9847 | Object storage API |
 | **MinIO Console** | 9001 | 9848 | Storage management UI |
 | **PostgreSQL** | 8521 | 5432 | Database |
-| **Redis** | 6379 | 9849 | Cache |
+| **N8N** | 5678 | 8921 | Workflow automation |
+
+## 🤖 N8N Workflow Automation
+
+CandiTrack includes N8N for powerful workflow automation capabilities. N8N allows you to create automated workflows that can integrate with your recruitment processes.
+
+### Features
+- **Visual Workflow Builder**: Drag-and-drop interface for creating automation workflows
+- **Integration Hub**: Connect with 200+ services including email, CRM, HR systems
+- **Webhook Support**: Trigger workflows via HTTP requests
+- **Database Integration**: Direct connection to PostgreSQL database
+- **Custom Nodes**: Extend functionality with custom integrations
+- **Scheduling**: Time-based workflow execution
+- **Error Handling**: Robust error handling and retry mechanisms
+
+### Default Configuration
+- **URL**: http://localhost:8921
+- **Username**: admin
+- **Password**: admin
+- **Database**: Uses the same PostgreSQL instance as the main application
+
+### Environment Variables
+```env
+# N8N Configuration
+N8N_PORT=8921
+N8N_DB_NAME=n8n
+N8N_BASIC_AUTH_ACTIVE=true
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=admin
+N8N_HOST=localhost
+N8N_PROTOCOL=http
+N8N_ENCRYPTION_KEY=your-encryption-key-here-change-this-in-production
+N8N_WEBHOOK_URL=http://localhost:8921/
+```
+
+### Use Cases
+- **Automated Email Notifications**: Send emails when candidates move through stages
+- **CRM Integration**: Sync candidate data with external CRM systems
+- **Resume Processing**: Automate resume parsing and data extraction
+- **Interview Scheduling**: Integrate with calendar systems
+- **Background Checks**: Automate background check processes
+- **Reporting**: Generate and send automated reports
+
+### Security Notes
+⚠️ **Important**: 
+- Change the default admin password immediately after deployment
+- Update the `N8N_ENCRYPTION_KEY` with a strong, unique key
+- Consider enabling HTTPS in production environments
+- Review and configure webhook security settings
 
 ## 🔐 Authentication
 

@@ -42,6 +42,7 @@ import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
+import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
@@ -248,6 +249,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [avatarInputRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
   const [availableRecruiters, setAvailableRecruiters] = useState<UserProfile[]>([]);
+  const [isAssigningRecruiter, setIsAssigningRecruiter] = useState(false);
   const [infoOpen, setInfoOpen] = useState(true);
   const [personalInfoOpen, setPersonalInfoOpen] = useState(true);
   const [contactOpen, setContactOpen] = useState(true);
@@ -418,6 +420,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     fetchPositions();
   }, []);
 
+  // Fetch recruiters
+  useEffect(() => {
+    const fetchRecruiters = async () => {
+      try {
+        const res = await fetch('/api/users');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableRecruiters(data.data || []);
+          setRecruiters(data.data?.map((user: any) => ({ id: user.id, name: user.name })) || []);
+        } else {
+          console.error('Failed to fetch recruiters');
+        }
+      } catch (e) {
+        console.error('Error fetching recruiters:', e);
+      }
+    };
+    fetchRecruiters();
+  }, []);
+
   // Ensure candidateJobMatches is always in sync with candidate data
   useEffect(() => {
     let jobMatches: any[] = [];
@@ -578,6 +599,31 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       toast.error('Failed to update avatar');
     } finally {
       setAvatarUploading(false);
+    }
+  };
+
+  const handleAssignRecruiter = async (newRecruiterId: string | null) => {
+    setIsAssigningRecruiter(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recruiterId: newRecruiterId }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign recruiter');
+      }
+
+      const updatedCandidate = await response.json();
+      setCandidate(updatedCandidate);
+      toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+    } catch (error) {
+      console.error('Error assigning recruiter:', error);
+      toast.error('Failed to assign recruiter');
+    } finally {
+      setIsAssigningRecruiter(false);
     }
   };
 
@@ -874,8 +920,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     <div className={isModal ? "h-full overflow-y-auto" : "h-screen overflow-y-auto"}>
       {/* Header - 2 Columns */}
       {candidate && (
-        <div className="bg-card border-b border-border p-6 sticky top-0 z-50">
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
+        <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-6 sticky top-0 z-50">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
             {/* Modal Close Button in header */}
             {isModal && typeof onClose === 'function' && (
               <button
@@ -887,216 +933,250 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 <X className="w-6 h-6 text-muted-foreground" />
               </button>
             )}
-            {/* Action Buttons - always top right of header */}
-            <div className="absolute top-0 right-12 mt-2 flex gap-2 z-40">
-              {!isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => {
-                      setIsEditing(true);
-                      if (candidate) {
-                        reset({
-                          name: candidate.name || '',
-                          email: candidate.email || '',
-                          phone: candidate.phone || '',
-                          positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
-                          fitScore: candidate.fitScore || null,
-                          assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
-                          status: candidate.status || '',
-                          recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                          parsedData: (candidate.parsedData as any) || {}
-                        });
-                      }
-                    }}
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Edit Candidate Profile
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => setIsTransitionsModalOpen(true)}
-                    disabled={availableStages.length === 0}
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Manage Transitions
-                  </Button>
-                </>
-              ) : (
-                <div className="flex gap-2">
-                  {/* Save/Cancel buttons will be floating */}
-                </div>
-              )}
-            </div>
             {/* Column 1: Candidate Header (7 cols) */}
-            <div className={isModal ? "lg:col-span-10" : "lg:col-span-7"}>
-                                  <div className="flex flex-col md:flex-row items-center gap-6">
-                      {/* Avatar */}
-                      <div className="flex-shrink-0">
-                        {(() => {
-                          const nameInfo = formatCandidateNameWithLang(candidate);
-                          return (
-                            <div className="relative group">
-                              <Avatar className="w-20 h-20 text-3xl">
-                                {candidate.avatarUrl ? (
-                                  <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} />
-                                ) : (
-                                  <AvatarFallback>{nameInfo.name?.[0] || '?'}</AvatarFallback>
-                                )}
-                              </Avatar>
-                              {/* Pencil icon button for avatar upload */}
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="absolute bottom-1 right-1 p-1 hover:bg-primary/10 transition z-10 flex items-center justify-center"
-                                title="Change profile picture"
-                                onClick={() => {
-                                  // Open hidden file input for image upload
-                                  if (avatarInputRef?.current) avatarInputRef.current.click();
-                                }}
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    if (avatarInputRef?.current) avatarInputRef.current.click();
-                                  }
-                                }}
-                                aria-disabled={avatarUploading}
-                                style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
-                              >
-                                <Edit className="w-5 h-5 text-primary" />
-                              </div>
-                              {/* Hidden file input for avatar upload */}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                ref={avatarInputRef}
-                                style={{ display: 'none' }}
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) await handleAvatarUpload(file);
-                                  e.target.value = '';
-                                }}
-                                tabIndex={-1}
-                                aria-hidden="true"
-                              />
-                              {/* Existing overlay for edit mode remains unchanged */}
-                              {isEditing && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <ImageUpload
-                                    value={candidate.avatarUrl || ''}
-                                    onChange={async (urlOrFile) => {
-                                      if (typeof urlOrFile === 'string') {
-                                        await handleAvatarUpload(urlOrFile);
-                                      } else if (urlOrFile && typeof urlOrFile === 'object' && 'name' in urlOrFile && 'type' in urlOrFile) {
-                                        await handleAvatarUpload(urlOrFile);
-                                      }
-                                    }}
-                                    label="Upload Profile Image"
-                                    accept="image/*"
-                                    maxSize={2 * 1024 * 1024}
-                                    showPreview={false}
-                                    allowUrl={false}
-                                    allowFile={true}
-                                    disabled={avatarUploading}
-                                    className="w-full h-full"
-                                  />
-                                  {avatarUploading && <Loader2 className="animate-spin text-white h-6 w-6 absolute" />}
-                                </div>
-                              )}
-                              {avatarUploading && !isEditing && (
-                                <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
-                              )}
-                            </div>
-                          );
-                        })()}
-                  {avatarError && <div className="text-xs text-destructive mt-1">{avatarError}</div>}
+            <div className={isModal ? "lg:col-span-7" : "lg:col-span-7"}>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                {/* Avatar */}
+                <div className="flex-shrink-0 relative">
+                  {(() => {
+                    const nameInfo = formatCandidateNameWithLang(candidate);
+                    return (
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
+                        <Avatar className="w-20 h-20 text-3xl relative ring-4 ring-background/80 shadow-xl bg-gradient-to-br from-blue-100 to-indigo-200 dark:from-blue-900/30 dark:to-indigo-800/30">
+                          {candidate.avatarUrl ? (
+                            <AvatarImage src={candidate.avatarUrl} alt={nameInfo.name} className="object-cover" />
+                          ) : (
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
+                              {nameInfo.name?.[0] || '?'}
+                            </AvatarFallback>
+                          )}
+                          {/* Pencil icon button for avatar upload */}
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            className="absolute -bottom-1 -right-1 p-2 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full hover:bg-primary/10 hover:scale-110 transition-all duration-200 z-10 flex items-center justify-center shadow-lg"
+                            title="Change profile picture"
+                            onClick={() => {
+                              if (avatarInputRef?.current) avatarInputRef.current.click();
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                if (avatarInputRef?.current) avatarInputRef.current.click();
+                              }
+                            }}
+                            aria-disabled={avatarUploading}
+                            style={{ pointerEvents: avatarUploading ? 'none' : 'auto' }}
+                          >
+                            <Edit className="w-4 h-4 text-primary" />
+                          </div>
+                          {/* Hidden file input for avatar upload */}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            ref={avatarInputRef}
+                            style={{ display: 'none' }}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) await handleAvatarUpload(file);
+                              e.target.value = '';
+                            }}
+                            tabIndex={-1}
+                            aria-hidden="true"
+                          />
+                          {avatarUploading && !isEditing && (
+                            <Loader2 className="animate-spin text-primary h-7 w-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20" />
+                          )}
+                        </Avatar>
+                      </div>
+                    );
+                  })()}
+                  {avatarError && <div className="text-xs text-destructive mt-2 text-center bg-destructive/10 px-2 py-1 rounded-md">{avatarError}</div>}
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <div className="flex flex-wrap items-center gap-3 mb-3">
                     {(() => {
                       const nameInfo = formatCandidateNameWithLang(candidate);
                       return (
                         <span 
-                          className={`text-2xl font-bold tracking-tight text-foreground line-clamp-1 ${nameInfo.fontClass}`}
+                          className={`text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent line-clamp-1 ${nameInfo.fontClass}`}
                           lang={nameInfo.lang}
                         >
                           {nameInfo.name}
                         </span>
                       );
                     })()}
-                    {candidateId && (
-                      <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">ID: {candidateId}</Badge>
-                    )}
-                    {candidate.status && (
-                      <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-2 py-1 rounded-full">{candidate.status}</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {candidate.id && (
+                        <Badge variant="outline" className="text-xs px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border-border/50 shadow-sm">
+                          <span className="text-muted-foreground">ID:</span> {candidate.id}
+                        </Badge>
+                      )}
+                      {candidate.status && (
+                        <Badge variant={getStatusBadgeVariant(candidate.status)} className="text-xs px-3 py-1 rounded-full shadow-sm">
+                          {candidate.status}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm mb-1">
-                    {candidate.positionId && candidate.position && (
-                      <span>Applied Job: <span className="font-medium text-foreground">{candidate.position.title}</span></span>
-                    )}
-                    {candidate.updatedAt && (
-                      <span className="ml-auto">Last update: {format(parseISO(candidate.updatedAt), 'yyyy-MM-dd HH:mm')}</span>
-                    )}
-                  </div>
+
                   <div className="flex flex-wrap items-center gap-4 text-muted-foreground text-sm">
                     {candidate.email && (
-                      <span>Email: <span className="font-medium text-foreground">{candidate.email}</span></span>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground/60" />
+                        <span className="font-medium text-foreground">{candidate.email}</span>
+                      </div>
                     )}
                     {candidate.phone && (
-                      <span>Phone: <span className="font-medium text-foreground">{candidate.phone}</span></span>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground/60" />
+                        <span className="font-medium text-foreground">{candidate.phone}</span>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
-          
+            
+
+            
+            {/* Column 2: Action Buttons (5 cols) */}
+            <div className={isModal ? "lg:col-span-5" : "lg:col-span-5"}>
+              <div className="flex justify-end gap-3">
+                {!isEditing ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
+                      onClick={() => {
+                        setIsEditing(true);
+                        if (candidate) {
+                          reset({
+                            name: candidate.name || '',
+                            email: candidate.email || '',
+                            phone: candidate.phone || '',
+                            positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+                            fitScore: candidate.fitScore || null,
+                            assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                            status: candidate.status || '',
+                            recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                            parsedData: (candidate.parsedData as any) || {}
+                          });
+                        }
+                      }}
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Candidate Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
+                      onClick={() => setIsTransitionsModalOpen(true)}
+                      disabled={availableStages.length === 0}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Transitions
+                    </Button>
+                  </>
+                ) : (
+                  <div className="flex gap-2">
+                    {/* Save/Cancel buttons will be floating */}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Empty space for 2 cols to maintain 12-column grid */}
+           
           </div>
         </div>
       )}
       
-      <div className={`grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden ${isModal ? 'lg:grid-cols-12' : ''}`}>
-        {/* LEFT SIDEBAR: Recruitment Pipeline (20%) */}
-        <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-2'} bg-card sticky top-6 p-6 space-y-6`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-12 border-t bg-card overflow-hidden ${isModal ? 'lg:grid-cols-12' : ''}`}>
+        {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
+        <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-2'} bg-background sticky top-6 p-4 space-y-4 z-10 border-r border-border`}>
+          {/* Recruiter Assignment Section */}
+          <div className="w-full">
+            <div className="bg-card rounded-lg p-4 border border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">Recruiter Assignment</h3>
+              </div>
+              <div className="space-y-3">
+                <Select
+                  value={candidate.recruiterId || 'unassign'}
+                  onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
+                  disabled={isAssigningRecruiter}
+                >
+                  <SelectTrigger className="w-full text-xs">
+                    <SelectValue placeholder="Select recruiter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassign" className="text-destructive">Unassign</SelectItem>
+                    {recruiters.map((recruiter) => (
+                      <SelectItem key={recruiter.id} value={recruiter.id}>
+                        {recruiter.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isAssigningRecruiter && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Assigning...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
           {/* Recruitment Pipeline */}
           {availableStages.length > 0 && candidate && (
             <div className="w-full">
-              <RecruitmentPipelineCard
-                stages={availableStages}
-                transitionHistory={transitionHistory}
-                currentStatus={candidate.status}
-                onStageClick={(stageName) => {
-                  setIsTransitionsModalOpen(true);
-                }}
-                editableNotes={true}
-                onNoteEdit={async (transitionId, newNote) => {
-                  await fetch(`/api/transitions/${transitionId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ notes: newNote }),
-                    credentials: 'include',
-                  });
-                  // Refresh transition history
-                  const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
-                  if (res.ok) {
-                    const data = await res.json();
-                    setTransitionHistory(Array.isArray(data) ? data : (data.data || []));
-                  }
-                }}
-                candidateId={candidateId}
-              />
+              <div className="bg-card rounded-lg p-4 border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <ListChecks className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Recruitment Pipeline</h3>
+                </div>
+                <RecruitmentPipelineCard
+                  stages={availableStages}
+                  transitionHistory={transitionHistory}
+                  currentStatus={candidate.status}
+                  onStageClick={(stageName) => {
+                    setIsTransitionsModalOpen(true);
+                  }}
+                  editableNotes={true}
+                  onNoteEdit={async (transitionId, newNote) => {
+                    await fetch(`/api/transitions/${transitionId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ notes: newNote }),
+                      credentials: 'include',
+                    });
+                    // Refresh transition history
+                    const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setTransitionHistory(Array.isArray(data) ? data : (data.data || []));
+                    }
+                  }}
+                  candidateId={candidateId}
+                />
+              </div>
             </div>
           )}
-          {/* Remove Basic Information section here */}
         </div>
         {/* MAIN CONTENT (50%) with Sections */}
-        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-5'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted`}>
+        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-8'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/50`}>
           {/* Job Applied Section */}
           <section className="mb-4">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
-              <Briefcase className="mr-2 h-6 w-6 text-primary" />
+              <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
               {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
             </button>
@@ -1460,9 +1540,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
           {/* Personal Information Section */}
           {candidate?.parsedData && (getParsedDataProperty('personal_info')) && (
-            <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+            <section className="mb-4 border border-border rounded-lg p-8 bg-card">
               <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setPersonalInfoOpen(o => !o)}>
-                <UserCircle className="mr-2 h-6 w-6 text-primary" />
+                <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                  <UserCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
                 <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Personal Information</h2>
                 {personalInfoOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
               </button>
@@ -1478,8 +1560,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       <Input id="parsedData.personal_info.lastname" {...register('parsedData.personal_info.lastname')} className="mb-4" />
                       <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
                       <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
-                      <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
-                      <Textarea id="parsedData.personal_info.introduction_aboutme" {...register('parsedData.personal_info.introduction_aboutme')} className="mb-4" />
+                                        <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
+                  <Controller
+                    name="parsedData.personal_info.introduction_aboutme"
+                    control={control}
+                    render={({ field }) => (
+                      <EditorJSEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Tell us about yourself..."
+                        className="mb-4"
+                      />
+                    )}
+                  />
                       <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
                       <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
                     </>
@@ -1504,9 +1597,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           )}
 
           {/* Contact Information Section */}
-          <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+          <section className="mb-4 border border-border rounded-lg p-8 bg-card">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setContactOpen(o => !o)}>
-              <Mail className="mr-2 h-6 w-6 text-primary" />
+              <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
               <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Contact Information</h2>
               {contactOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
             </button>
@@ -1532,9 +1627,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           </section>
 
           {/* Education Section */}
-       <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+       <section className="mb-4 border border-border rounded-lg p-8 bg-card">
        <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setEducationOpen(o => !o)}>
-         <GraduationCap className="mr-2 h-6 w-6 text-primary" />
+         <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+           <GraduationCap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+         </div>
          <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Education</h2>
          {educationOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
          </button>
@@ -1689,9 +1786,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
      </section>
 
      {/* Experience Section */}
-     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+     <section className="mb-4 border border-border rounded-lg p-8 bg-card">
        <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setExperienceOpen(o => !o)}>
-         <Briefcase className="mr-2 h-6 w-6 text-primary" />
+         <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+           <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+         </div>
          <h2 className="text-xl font-bold tracking-tight flex-1 text-left">
          Experience
          {(() => {
@@ -1709,7 +1808,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                    <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                    <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
-                   <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
+                   <div>
+                    <Label className="text-xs">Description</Label>
+                    <Controller
+                      name={`parsedData.experience.${index}.description`}
+                      control={control}
+                      render={({ field }) => (
+                        <EditorJSEditor
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          placeholder="Describe your role and responsibilities..."
+                          className="mt-1"
+                        />
+                      )}
+                    />
+                  </div>
                    <Controller
                      name={`parsedData.experience.${index}.startMonth`}
                      control={control}
@@ -1865,9 +1978,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
      </section>
 
      {/* Skills Section */}
-     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+     <section className="mb-4 border border-border rounded-lg p-8 bg-card">
        <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setSkillsOpen(o => !o)}>
-         <HardDrive className="mr-2 h-6 w-6 text-primary" />
+         <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+           <HardDrive className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+         </div>
          <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Skills</h2>
          {skillsOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
        </button>
@@ -1927,9 +2042,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
      </section>
 
      {/* Job Suitable Section */}
-     <section className="mb-4 border border-border rounded-lg p-4 bg-card">
+     <section className="mb-4 border border-border rounded-lg p-8 bg-card">
        <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobSuitableOpen(o => !o)}>
-         <Target className="mr-2 h-6 w-6 text-primary" />
+         <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+           <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+         </div>
          <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Suitable</h2>
          {jobSuitableOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
        </button>
@@ -1973,52 +2090,69 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                          )}
          </section>
        </div>
-       {/* RIGHT SIDEBAR: Recruiter Assignment, Comments & Activity, Attachments */}
-       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-3'} bg-muted rounded-xl shadow-sm max-h-[calc(100vh-200px)] overflow-y-auto`}>
-         <Accordion type="multiple" defaultValue={["recruiter-assignment", "comments-activity", "attachments"]}>
-           {/* Recruiter Assignment Section */}
-           <AccordionItem value="recruiter-assignment" className="border-b">
-             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-               <div className="flex items-center">
-                 <Users className="mr-2 h-5 w-5 text-primary bg-card" />
-                 <span className="text-lg font-semibold">Recruiter Assignment</span>
+       {/* RIGHT SIDEBAR: Quick Stats, Comments & Activity, Attachments */}
+       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-2'} bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50`}>
+         {/* Quick Stats Section */}
+         <div className="px-3 py-3 bg-gradient-to-br from-slate-50/30 to-blue-50/20 dark:from-slate-800/20 dark:to-slate-700/10">
+           <div className="grid grid-cols-2 gap-2">
+             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
+               <div className="text-lg font-bold text-foreground">
+                 {(() => {
+                   const totalExp = calculateTotalExperienceDuration(getExperience(candidate));
+                   return totalExp || '-';
+                 })()}
                </div>
-             </AccordionTrigger>
-             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
-               <div className="flex items-center gap-2">
-                 <span className="text-sm font-medium text-muted-foreground">Current Recruiter:</span>
-                 <Select
-                   value={candidate?.recruiterId || 'unassign'}
-                   onValueChange={(value) => {
-                     // Implement recruiter assignment logic here
-                   }}
-                   disabled={false}
-                 >
-                   <SelectTrigger className="min-w-[120px] border-none bg-transparent shadow-none">
-                     <SelectValue placeholder="Assign..." />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="unassign">Unassign</SelectItem>
-                     {availableRecruiters.map((recruiter) => (
-                       <SelectItem key={recruiter.id} value={recruiter.id}>
-                         {recruiter.name}
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
+               <div className="text-[10px] text-muted-foreground">Experience</div>
+             </div>
+             
+             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
+               <div className="text-lg font-bold text-foreground">
+                 {(() => {
+                   const appliedDate = candidate.createdAt ? new Date(candidate.createdAt) : null;
+                   const endDate = candidate.status === 'Hired' || candidate.status === 'Rejected' ? 
+                     (candidate.updatedAt ? new Date(candidate.updatedAt) : new Date()) : 
+                     new Date();
+                   
+                   if (!appliedDate) return 'N/A';
+                   
+                   const diffTime = Math.abs(endDate.getTime() - appliedDate.getTime());
+                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                   
+                   if (diffDays === 0) return 'Today';
+                   if (diffDays === 1) return '1 Day';
+                   if (diffDays < 7) return `${diffDays} Days`;
+                   if (diffDays < 30) {
+                     const weeks = Math.floor(diffDays / 7);
+                     const remainingDays = diffDays % 7;
+                     if (remainingDays === 0) return `${weeks} Week${weeks > 1 ? 's' : ''}`;
+                     return `${weeks} Week${weeks > 1 ? 's' : ''} ${remainingDays} Day${remainingDays > 1 ? 's' : ''}`;
+                   }
+                   
+                   const months = Math.floor(diffDays / 30);
+                   const remainingDays = diffDays % 30;
+                   
+                   if (months === 0) return `${diffDays} Days`;
+                   if (remainingDays === 0) return `${months} Month${months > 1 ? 's' : ''}`;
+                   return `${months} Month${months > 1 ? 's' : ''} ${remainingDays} Day${remainingDays > 1 ? 's' : ''}`;
+                 })()}
                </div>
-             </AccordionContent>
-           </AccordionItem>
+               <div className="text-[10px] text-muted-foreground">Process</div>
+             </div>
+           </div>
+         </div>
 
+         <Accordion type="multiple" defaultValue={["comments-activity", "attachments"]}>
            {/* Comments & Activity Section */}
-           <AccordionItem value="comments-activity" className="border-b">
-             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-               <div className="flex items-center bg-card">
-                 <MessageSquare className="mr-2 h-5 w-5 text-primary" />
-                 <span className="text-lg font-semibold ">Comments & Activity</span>
+           <AccordionItem value="comments-activity" className="rounded-lg mb-3 bg-white dark:bg-slate-800">
+             <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/5 to-blue-600/10 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
+               <div className="flex items-center gap-3">
+                 <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
+                   <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                 </div>
+                 <span className="text-lg font-semibold">Comments & Activity</span>
                </div>
              </AccordionTrigger>
-             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+             <AccordionContent className="px-4 py-4 bg-white dark:bg-slate-800">
                <CandidateCommentsSection 
                  candidateId={candidateId} 
                  comments={comments} 
@@ -2029,14 +2163,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
            </AccordionItem>
            
            {/* Attachments Section */}
-           <AccordionItem value="attachments" className="border-b-0">
-             <AccordionTrigger className="px-6 py-4 hover:no-underline bg-card">
-               <div className="flex items-center bg-card">
-                 <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+           <AccordionItem value="attachments" className="rounded-lg mb-3 bg-white dark:bg-slate-800">
+             <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/5 to-blue-600/10 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
+               <div className="flex items-center gap-3">
+                 <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
+                   <UploadCloud className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                 </div>
                  <span className="text-lg font-semibold">Attachments</span>
                </div>
              </AccordionTrigger>
-             <AccordionContent className="px-6 pb-4 pt-4 bg-muted">
+             <AccordionContent className="px-4 py-4 bg-white dark:bg-slate-800">
                <CandidateResumesSection 
                  candidateId={candidateId} 
                  resumes={resumes} 

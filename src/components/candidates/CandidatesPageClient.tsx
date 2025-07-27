@@ -8,7 +8,7 @@ import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
 import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
@@ -79,6 +79,10 @@ export function CandidatesPageClient({
     const baseFilters = initialFilters || {
       minFitScore: 0,
       maxFitScore: 100,
+      matchingMinFitScore: 0,
+      matchingMaxFitScore: 100,
+      minExperienceYears: 0,
+      maxExperienceYears: 50,
       selectedPositionIds: [],
       selectedStatuses: []
     };
@@ -346,6 +350,10 @@ export function CandidatesPageClient({
       if (currentFilters.education) query.append('education', currentFilters.education);
       if (currentFilters.minFitScore !== undefined) query.append('minFitScore', String(currentFilters.minFitScore));
       if (currentFilters.maxFitScore !== undefined) query.append('maxFitScore', String(currentFilters.maxFitScore));
+      if (currentFilters.matchingMinFitScore !== undefined) query.append('matchingMinFitScore', String(currentFilters.matchingMinFitScore));
+      if (currentFilters.matchingMaxFitScore !== undefined) query.append('matchingMaxFitScore', String(currentFilters.matchingMaxFitScore));
+      if (currentFilters.minExperienceYears !== undefined) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
       if (currentFilters.applicationDateStart) query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       if (currentFilters.applicationDateEnd) query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
@@ -366,6 +374,8 @@ export function CandidatesPageClient({
       }
       
             const apiUrl = `/api/candidates?${query.toString()}`;
+            
+
 
       // Add timeout and retry logic
       const controller = new AbortController();
@@ -775,10 +785,8 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
-    // console.log('handleFilterChange called with:', newFilters);
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      // console.log('Skipping filter change - currently clearing filters');
       return;
     }
     // Clear any existing timeout
@@ -787,13 +795,11 @@ export function CandidatesPageClient({
     }
     // Debounce the filter change to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
-      // console.log('Applying debounced filter change');
       const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
       // Check if filters have actually changed to prevent unnecessary updates
       const currentFiltersString = JSON.stringify(filters);
       const newFiltersString = JSON.stringify(combinedFilters);
       if (currentFiltersString === newFiltersString) {
-        // console.log('Filters unchanged, skipping update');
         return;
       }
       // Always clear AI search state if filters are changed
@@ -804,7 +810,7 @@ export function CandidatesPageClient({
       }
       setPage(1);
       setFilters(combinedFilters);
-    }, 300); // 300ms debounce
+    }, 150); // Reduced to 150ms for faster response
   };
 
   const handleClearAllFilters = () => {
@@ -838,7 +844,7 @@ export function CandidatesPageClient({
       selectedRecruiterIds: undefined,
       minFitScore: 0,
       maxFitScore: 100,
-      matchingMinFitScore: 70,
+      matchingMinFitScore: 0,
       matchingMaxFitScore: 100,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
@@ -1421,21 +1427,43 @@ export function CandidatesPageClient({
 
   // Paginate candidates for display
   const paginatedCandidates = useMemo(() => {
+    // Debug logging
+    console.log('paginatedCandidates useMemo:', {
+      mappedCandidatesLength: mappedCandidates?.length || 0,
+      allCandidatesLength: allCandidates?.length || 0,
+      isAiSearchActive,
+      aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
+      page,
+      pageSize
+    });
     // Defensive check to prevent temporal dead zone issues
     if (!Array.isArray(mappedCandidates)) {
       return [];
     }
     
+    // For AI search, we need client-side pagination since the API doesn't handle AI search pagination
     if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
-      const filtered = mappedCandidates;
       const safePageSize = pageSize > 0 ? pageSize : 20;
       const safePage = page > 0 ? page : 1;
       const start = (safePage - 1) * safePageSize;
       const end = start + safePageSize;
-      return filtered.slice(start, end);
+      return mappedCandidates.slice(start, end);
     }
+    
+    // For regular searches, the API already returns paginated data, so just return the mapped candidates
+    // But we need to ensure we're not returning an empty array when there are candidates
+    if (mappedCandidates.length === 0 && allCandidates.length > 0) {
+      // If mappedCandidates is empty but allCandidates has data, there might be a filtering issue
+      // Return the first page of allCandidates as a fallback
+      const safePageSize = pageSize > 0 ? pageSize : 20;
+      const safePage = page > 0 ? page : 1;
+      const start = (safePage - 1) * safePageSize;
+      const end = start + safePageSize;
+      return allCandidates.slice(start, end);
+    }
+    
     return mappedCandidates;
-  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, page, pageSize]);
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, allCandidates, page, pageSize]);
 
   // For row numbering in table
   const baseIndex = useMemo(() => {
@@ -1571,7 +1599,7 @@ export function CandidatesPageClient({
             (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) ||
             filters.minFitScore !== 0 ||
             filters.maxFitScore !== 100 ||
-            (filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore !== 70) ||
+            (filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore > 0) ||
             (filters.matchingMaxFitScore !== undefined && filters.matchingMaxFitScore !== 100) ||
             filters.applicationDateStart ||
             filters.applicationDateEnd ||
@@ -1675,7 +1703,7 @@ export function CandidatesPageClient({
                   Max Score: {filters.maxFitScore}
                 </Badge>
               )}
-              {filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore !== 70 && (
+              {filters.matchingMinFitScore !== undefined && filters.matchingMinFitScore > 0 && (
                 <Badge variant="secondary" className="text-xs">
                   Matching Min: {filters.matchingMinFitScore}
                 </Badge>
@@ -1712,35 +1740,18 @@ export function CandidatesPageClient({
           );
         })()}
 
-        {/* Loading Indicator for Filter Changes */}
-        {(isLoading || isAiSearching) && (
-          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 rounded-md border border-amber-200 dark:border-amber-800">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>{isAiSearching ? 'AI Searching...' : 'Loading candidates...'}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-6 px-2 text-xs text-amber-600 hover:text-amber-700"
-              onClick={() => {
-                // Force a new search
-                fetchPaginatedCandidates(filters, page, pageSize);
-              }}
-            >
-              Retry
-            </Button>
-          </div>
-        )}
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 transition-all duration-300 ease-in-out">
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground ">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground transition-all duration-300 ease-in-out">
               {isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total) !== 1 ? 's' : ''}
             </span>
             {selectedCandidateIds.size > 0 && canManageCandidates && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-auto">
+                              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
                     Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1760,7 +1771,7 @@ export function CandidatesPageClient({
             <div className="flex gap-2 items-center ml-auto">
               {/* Removed Clear All Filters button as per request */}
               {canManageCandidates && (
-                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
+                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
@@ -1789,7 +1800,7 @@ export function CandidatesPageClient({
           </div>
 {/* AI Search Results */}
         {aiSearchReasoning && (
-          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700">
+          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
             <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
             <AlertDescription className="text-blue-700 dark:text-blue-300">
@@ -1806,32 +1817,79 @@ export function CandidatesPageClient({
           </div>
         )}
 
-        <CandidateTable
-          candidates={sortedCandidates}
-          availablePositions={availablePositions}
-          availableStages={availableStages}
-          availableRecruiters={availableRecruiters}
-          onAssignRecruiter={handleAssignRecruiter}
-          onUpdateCandidate={updateCandidateStatus}
-          onDeleteCandidate={handleDeleteCandidate}
-          onOpenUploadModal={handleOpenUploadModal}
-          onEditPosition={handleOpenEditPositionModal}
-          isLoading={isLoading}
-          onRefreshCandidateData={refreshCandidateInList}
-          selectedCandidateIds={selectedCandidateIds}
-          onToggleSelectCandidate={handleToggleSelectCandidate}
-          onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
-          isAllCandidatesSelected={isAllCandidatesSelected}
-          page={page}
-          pageSize={pageSize}
-          baseIndex={baseIndex}
-          sortColumn={sortColumn}
-          sortDirection={sortDirection}
-          onSort={handleSort}
-        />
+        {/* Empty State - Single conditional to prevent duplicates */}
+        {!isLoading && !isAiSearching && (() => {
+          // No candidates in database at all
+          if (allCandidates.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Users className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No candidates found</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  No candidates have been added yet. Add your first candidate to get started.
+                </p>
+                {canManageCandidates && (
+                  <Button onClick={() => setIsAddModalOpen(true)}>
+                    Add First Candidate
+                  </Button>
+                )}
+              </div>
+            );
+          }
+          
+          // Has candidates but no results for current filters
+          if (mappedCandidates.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Search className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No matching candidates</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Try adjusting your filters or search criteria to find more candidates.
+                </p>
+                <Button onClick={handleClearAllFilters} variant="outline">
+                  Clear All Filters
+                </Button>
+              </div>
+            );
+          }
+          
+          // Has candidates and results - show nothing
+          return null;
+        })()}
+
+        {/* Only render table when there are candidates to show */}
+        {sortedCandidates.length > 0 && (
+          <CandidateTable
+            candidates={sortedCandidates}
+            availablePositions={availablePositions}
+            availableStages={availableStages}
+            availableRecruiters={availableRecruiters}
+            onAssignRecruiter={handleAssignRecruiter}
+            onUpdateCandidate={updateCandidateStatus}
+            onDeleteCandidate={handleDeleteCandidate}
+            onOpenUploadModal={handleOpenUploadModal}
+            onEditPosition={handleOpenEditPositionModal}
+            isLoading={isLoading}
+            onRefreshCandidateData={refreshCandidateInList}
+            selectedCandidateIds={selectedCandidateIds}
+            onToggleSelectCandidate={handleToggleSelectCandidate}
+            onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
+            isAllCandidatesSelected={isAllCandidatesSelected}
+            page={page}
+            pageSize={pageSize}
+            baseIndex={baseIndex}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+          />
+        )}
 
         {/* Pagination Controls */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-4 transition-all duration-300 ease-in-out">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -1839,6 +1897,7 @@ export function CandidatesPageClient({
               onClick={() => setPage(1)}
               disabled={page === 1}
               aria-label="First page"
+              className="transition-all duration-200 ease-in-out hover:scale-105"
             >
               <ChevronLeft className="h-4 w-4" />
               <ChevronLeft className="h-4 w-4 -ml-2" />
@@ -1849,6 +1908,7 @@ export function CandidatesPageClient({
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
               aria-label="Previous page"
+              className="transition-all duration-200 ease-in-out hover:scale-105"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -1861,6 +1921,7 @@ export function CandidatesPageClient({
               onClick={() => setPage(page + 1)}
               disabled={page === totalPages}
               aria-label="Next page"
+              className="transition-all duration-200 ease-in-out hover:scale-105"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -1870,6 +1931,7 @@ export function CandidatesPageClient({
               onClick={() => setPage(totalPages)}
               disabled={page === totalPages}
               aria-label="Last page"
+              className="transition-all duration-200 ease-in-out hover:scale-105"
             >
               <ChevronRight className="h-4 w-4" />
               <ChevronRight className="h-4 w-4 -ml-2" />
@@ -1884,7 +1946,7 @@ export function CandidatesPageClient({
                 setPageSize(newPageSize);
                 setPage(1); // Reset to first page when changing page size
               }}
-              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
+              className="border rounded-md px-2 py-1 text-sm bg-background text-foreground transition-all duration-200 ease-in-out hover:border-primary focus:border-primary focus:outline-none"
             >
               {[10, 20, 50, 100].map(size => (
                 <option key={size} value={size}>{size}</option>

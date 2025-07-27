@@ -133,7 +133,13 @@ The system now has multiple layers of protection to ensure the concurrent limit 
 Apply the database constraints to prevent violations:
 
 ```bash
-# On Linux/Mac
+# Using Prisma (recommended)
+npx prisma db execute --schema prisma/schema.prisma --file scripts/add-upload-queue-concurrent-constraint.sql
+
+# Using the simple script
+node scripts/apply-constraints-simple.cjs
+
+# On Linux/Mac (if you have psql installed)
 ./scripts/apply-upload-queue-constraints.sh
 
 # On Windows (if you have psql installed)

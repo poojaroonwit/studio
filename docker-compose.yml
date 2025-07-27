@@ -169,7 +169,7 @@ services:
       - docker_internal
 
   n8n:
-    image: n8nio/n8n:1.103.2
+    image: n8nio/n8n:latest
     ports:
       - "${N8N_PORT:-8921}:5678"
     environment:
@@ -207,9 +207,6 @@ services:
       
       # Timezone
       GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
-      
-      # Fix for N8N permissions issue
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: ${N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS:-true}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
@@ -220,9 +217,6 @@ services:
     networks:
       - docker_internal
 
-volumes:
-  n8n_data:
-    driver: local
 
 networks:
   default:

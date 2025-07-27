@@ -221,6 +221,8 @@ N8N_PROTOCOL=http
 N8N_ENCRYPTION_KEY=your-encryption-key-here-change-this-in-production
 N8N_WEBHOOK_URL=http://localhost:8921/
 N8N_TIMEZONE=Asia/Bangkok
+N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+N8N_DB_CONNECTION_TIMEOUT=60000
 ```
 
 ### Use Cases

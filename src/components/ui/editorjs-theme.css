@@ -388,9 +388,9 @@ input, textarea, select, button {
 .fade-out-0,
 .zoom-in-95,
 .zoom-out-95,
-.slide-in-from-left-1/2,
+.slide-in-from-left-1\/2,
 .slide-in-from-top-[48%],
-.slide-out-to-left-1/2,
+.slide-out-to-left-1\/2,
 .slide-out-to-top-[48%] {
   animation: none !important;
   transition: none !important;

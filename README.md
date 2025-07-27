@@ -220,6 +220,7 @@ N8N_HOST=localhost
 N8N_PROTOCOL=http
 N8N_ENCRYPTION_KEY=your-encryption-key-here-change-this-in-production
 N8N_WEBHOOK_URL=http://localhost:8921/
+N8N_TIMEZONE=Asia/Bangkok
 ```
 
 ### Use Cases

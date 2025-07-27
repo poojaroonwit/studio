@@ -74,6 +74,7 @@ services:
     networks:
       - docker_internal
       - default
+
   postgres:
     image: postgres:14-alpine
     ports:
@@ -173,7 +174,7 @@ services:
       - docker_internal
 
   n8n:
-    image: n8nio/n8n
+    image: n8nio/n8n:1.103.2
     ports:
       - "${N8N_PORT:-8921}:5678"
     environment:
@@ -218,7 +219,8 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     mem_limit: 1g
     cpus: 0.5

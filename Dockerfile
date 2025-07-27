@@ -25,11 +25,10 @@ RUN npm run build
 # Build the processor scripts
 RUN npm run build:processor
 
-# Make entrypoint executable and ensure it has Unix line endings
-RUN dos2unix ./entrypoint.sh || true
+# Make entrypoint executable
 RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8021
 
-# Use a simple command instead of entrypoint
-CMD ["sh", "./entrypoint.sh"]
+# Override the default entrypoint to use our custom script
+ENTRYPOINT ["./entrypoint.sh"]

@@ -25,9 +25,11 @@ RUN npm run build
 # Build the processor scripts
 RUN npm run build:processor
 
-# Make entrypoint executable
+# Make entrypoint executable and ensure it has Unix line endings
+RUN dos2unix ./entrypoint.sh || true
 RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8021
 
-CMD ["./entrypoint.sh"]
+# Use a simple command instead of entrypoint
+CMD ["sh", "./entrypoint.sh"]

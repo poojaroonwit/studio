@@ -16,6 +16,11 @@ async function checkQueueStatus() {
     console.log(`Current In-Process: ${data.currentInProcess}`);
     console.log(`Is Over Limit: ${data.isOverLimit ? 'YES ⚠️' : 'No ✅'}`);
     
+    // Check for concurrent limit violations
+    if (data.isOverLimit) {
+      console.log(`[WARNING] ⚠️  CONCURRENT LIMIT VIOLATION: ${data.currentInProcess}/${data.maxConcurrent} jobs in process!`);
+    }
+    
     console.log('\n=== STATUS COUNTS ===');
     Object.entries(data.statusCounts).forEach(([status, count]) => {
       console.log(`${status}: ${count}`);
@@ -41,6 +46,25 @@ async function checkQueueStatus() {
     
   } catch (error) {
     console.error('Error checking queue status:', error.message);
+  }
+}
+
+async function checkConcurrentLimit() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/upload-queue/check-concurrent-limit`);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.isOverLimit) {
+        console.log(`[VIOLATION] 🚨 CONCURRENT LIMIT EXCEEDED: ${result.currentInProgress}/${result.maxConcurrent}`);
+        console.log(`[VIOLATION] In-process jobs:`, result.inProcessJobs.map(job => job.file_name));
+      } else if (result.isAtLimit) {
+        console.log(`[LIMIT] 📊 At concurrent limit: ${result.currentInProgress}/${result.maxConcurrent}`);
+      } else {
+        console.log(`[LIMIT] ✅ Within concurrent limit: ${result.currentInProgress}/${result.maxConcurrent} (${result.availableSlots} slots available)`);
+      }
+    }
+  } catch (error) {
+    console.error('[LIMIT] Error checking concurrent limit:', error.message);
   }
 }
 
@@ -73,10 +97,12 @@ async function monitor() {
   
   // Initial check
   await checkQueueStatus();
+  await checkConcurrentLimit();
   
   // Check every 10 seconds
   setInterval(async () => {
     await checkQueueStatus();
+    await checkConcurrentLimit();
   }, 10000);
 }
 

@@ -307,20 +307,8 @@ export async function POST(request: NextRequest) {
       console.error('Failed to broadcast upload queue update via SSE:', sseError);
     }
 
-    // Automatically trigger processing of the queue
-    try {
-      console.log('process.env.PROCESSOR_URL:', process.env.PROCESSOR_URL); // Debug log
-      const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
-      console.log('Auto-triggering upload queue processing at:', processUrl); // Debug log
-      await fetch(processUrl, {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.PROCESSOR_API_KEY || '',
-        },
-      });
-    } catch (autoProcessError) {
-      console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
-    }
+    // Note: Processing is now handled separately by a dedicated processor
+    // This allows for better control over concurrent processing limits
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {

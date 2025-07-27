@@ -232,6 +232,9 @@ model JobMatch {
   @@index([fitScore])
 }
 
+/// Upload queue for processing file uploads
+/// Note: This table has a database trigger 'enforce_inprocess_limit' that prevents
+/// more than maxConcurrentProcessors jobs from being in 'inprocess' status
 model UploadQueue {
   id             String    @id @default(uuid()) @db.Uuid
   fileName       String    @map("file_name")

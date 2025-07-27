@@ -88,15 +88,22 @@ export async function POST(request: NextRequest) {
       await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
-    // Atomically pick and mark the oldest queued job as 'inprocess'
+    
+    // Atomically pick and mark the oldest queued job as 'inprocess' with additional safety check
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
-         SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
+         SELECT id FROM upload_queue 
+         WHERE status = 'queued' 
+         AND (
+           SELECT COUNT(*) FROM upload_queue WHERE status = 'inprocess'
+         ) < $1
+         ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
-       RETURNING *`
+       RETURNING *`,
+      [maxConcurrent]
     );
     if (res.rows.length === 0) {
       await client.query('COMMIT');

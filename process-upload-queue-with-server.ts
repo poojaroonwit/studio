@@ -13,7 +13,7 @@ if (BASE_INTERVAL_MS_RAW) {
   }
 }
 const MAX_BACKOFF_MS = 60000; // 1 minute max
-const PROCESS_URL = process.env.PROCESSOR_URL || 'http://app:8021/api/upload-queue/process';
+const PROCESS_URL = process.env.UPLOAD_QUEUE_PROCESS_URL || process.env.PROCESSOR_URL || 'http://app:8021/api/upload-queue/process';
 const SERVER_PORT = process.env.PROCESSOR_SERVER_PORT || 8821;
 
 // Exit if API key is not set

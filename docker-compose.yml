@@ -169,6 +169,7 @@ services:
       PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS}
       LOG_INTERVAL_MS: ${LOG_INTERVAL_MS}
       PROCESSOR_URL: ${PROCESSOR_URL}
+      UPLOAD_QUEUE_PROCESS_URL: ${UPLOAD_QUEUE_PROCESS_URL:-http://app:8021/api/upload-queue/process}
       PROCESSOR_API_KEY: ${PROCESSOR_API_KEY}
     depends_on:
       - app

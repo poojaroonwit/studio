@@ -134,13 +134,14 @@ export async function POST(request: NextRequest) {
     );
 
     // Dispatch webhook for upload queue processing event (webhook table only)
-    try {
-      const updatedJob = { ...job, status: 'inprocess' };
-      await dispatchWebhooks.uploadQueueProcessing(updatedJob);
-    } catch (webhookError) {
-      console.error('Failed to dispatch upload queue processing webhook:', webhookError);
-      // Don't fail the request if webhook fails
-    }
+    // DISABLED: This was causing duplicate webhook calls
+    // try {
+    //   const updatedJob = { ...job, status: 'inprocess' };
+    //   await dispatchWebhooks.uploadQueueProcessing(updatedJob);
+    // } catch (webhookError) {
+    //   console.error('Failed to dispatch upload queue processing webhook:', webhookError);
+    //   // Don't fail the request if webhook fails
+    // }
     
     // Broadcast file download completion
     await logAudit('INFO', `Upload queue job '${job.file_name}' file downloaded (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
@@ -186,17 +187,18 @@ export async function POST(request: NextRequest) {
     );
 
     // Dispatch webhook for upload queue completion/failure event
-    try {
-      const finalJob = { ...job, status, error, error_details, completed_date: new Date() };
-      if (status === 'success') {
-        await dispatchWebhooks.uploadQueueCompleted(finalJob, { processing_result: webhookResults });
-      } else {
-        await dispatchWebhooks.uploadQueueFailed(finalJob, { error_details: error_details || error });
-      }
-    } catch (webhookError) {
-      console.error('Failed to dispatch upload queue completion webhook:', webhookError);
-      // Don't fail the request if webhook fails
-    }
+    // DISABLED: This was causing duplicate webhook calls
+    // try {
+    //   const finalJob = { ...job, status, error, error_details, completed_date: new Date() };
+    //   if (status === 'success') {
+    //     await dispatchWebhooks.uploadQueueCompleted(finalJob, { processing_result: webhookResults });
+    //   } else {
+    //     await dispatchWebhooks.uploadQueueFailed(finalJob, { error_details: error_details || error });
+    //   }
+    // } catch (webhookError) {
+    //   console.error('Failed to dispatch upload queue completion webhook:', webhookError);
+    //   // Don't fail the request if webhook fails
+    // }
     
     // Publish queue update event for real-time updates
     await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 

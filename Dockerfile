@@ -21,8 +21,9 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
-# Make entrypoint executable
+# Make entrypoint scripts executable
 RUN chmod +x ./entrypoint.sh
+RUN chmod +x ./entrypoint-processor.sh
 
 EXPOSE 8021
 

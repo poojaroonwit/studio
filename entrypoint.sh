@@ -32,7 +32,7 @@ echo "🔧 Creating n8n database if it doesn't exist..."
 
 # Set PostgreSQL connection variables
 export PG_HOST=${POSTGRES_HOST:-postgres}
-export PG_PORT=${POSTGRES_PORT:-5432}
+export PG_PORT=5432  # Always use internal port 5432
 export PG_USER=${POSTGRES_USER:-postgres}
 export PG_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
 export N8N_DB_NAME=${N8N_DB_NAME:-n8n}
@@ -40,7 +40,7 @@ export N8N_DB_NAME=${N8N_DB_NAME:-n8n}
 # Install PostgreSQL client if not available
 if ! command -v psql >/dev/null 2>&1; then
   echo "🔧 Installing PostgreSQL client..."
-  apk add --no-cache postgresql-client || apt-get update && apt-get install -y postgresql-client || yum install -y postgresql || true
+  apk add --no-cache postgresql-client || true
 fi
 
 # Wait for PostgreSQL to be ready

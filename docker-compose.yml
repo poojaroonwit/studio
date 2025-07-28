@@ -111,8 +111,8 @@ services:
       "
     # volumes:
     #   - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
-    volumes:
-      - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
+    # volumes:
+    #   - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
@@ -147,8 +147,8 @@ services:
       MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With
 
     command: server /data --console-address ":9001" --address ":9000"
-    volumes:
-      - /var/dockers/8021/minio_data:/data
+    # volumes:
+    #   - /var/dockers/8021/minio_data:/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
@@ -221,8 +221,8 @@ services:
       
       # Timezone
       GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
-    volumes:
-      - /var/dockers/8021/n8n_data:/home/node/.n8n
+    # volumes:
+    #   - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:
       postgres:
         condition: service_healthy

@@ -12,7 +12,7 @@ import http from 'http';
 
 // Configuration
 const config = {
-  baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
+  baseUrl: process.env.UPLOAD_QUEUE_PROCESS_URL || process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
   interval: parseInt(process.env.PROCESSOR_INTERVAL_MS || '5000'), // 5 seconds
   maxRetries: 3,
@@ -27,6 +27,17 @@ function log(message, level = 'INFO') {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [${level}] ${message}`);
 }
+
+// Log configuration at startup
+log(`Configuration:`, 'INFO');
+log(`  Base URL: ${config.baseUrl}`, 'INFO');
+log(`  Interval: ${config.interval}ms`, 'INFO');
+log(`  Max Retries: ${config.maxRetries}`, 'INFO');
+log(`  Log Interval: ${config.logInterval}ms`, 'INFO');
+log(`Environment variables:`, 'INFO');
+log(`  PROCESSOR_URL: ${process.env.PROCESSOR_URL || 'not set'}`, 'INFO');
+log(`  UPLOAD_QUEUE_PROCESS_URL: ${process.env.UPLOAD_QUEUE_PROCESS_URL || 'not set'}`, 'INFO');
+log(`  PROCESSOR_API_KEY: ${process.env.PROCESSOR_API_KEY ? 'set' : 'not set'}`, 'INFO');
 
 function makeRequest(url, options) {
   return new Promise((resolve, reject) => {
@@ -82,6 +93,7 @@ async function processQueue() {
       attempt++;
       
       const url = `${config.baseUrl}/api/upload-queue/process`;
+      log(`Attempting to call: ${url}`, 'INFO');
       const options = {
         method: 'POST',
         headers: {

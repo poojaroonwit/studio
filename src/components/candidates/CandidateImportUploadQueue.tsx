@@ -925,6 +925,37 @@ export const CandidateImportUploadQueue: React.FC<{
             Refresh
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/upload-queue/process', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'dev-key',
+                  },
+                });
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.job) {
+                    success(`Processing job: ${result.job.file_name}`);
+                  } else if (result.message) {
+                    success(result.message);
+                  }
+                } else {
+                  error('Failed to trigger processing');
+                }
+              } catch (error) {
+                error('Error triggering processing');
+              }
+            }}
+            className=""
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Process Queue
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
             onClick={() => {

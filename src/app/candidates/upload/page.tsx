@@ -206,12 +206,7 @@ function UploadPageContent() {
           onUploadSuccess={handleUploadSuccess}
         />
 
-      {/* Simple Queue Status */}
-      <div className="mb-6">
-        <UploadQueueStatus />
-      </div>
-
-      {/* Detailed Queue Table */}
+      {/* Upload Queue Table */}
       <CandidateImportUploadQueue 
         initialPage={initialPage}
         initialPageSize={initialPageSize}

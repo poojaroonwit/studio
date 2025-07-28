@@ -48,13 +48,18 @@ done
 # Create n8n database if it doesn't exist
 echo "📊 Creating n8n database..."
 PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-SELECT 'CREATE DATABASE $N8N_DB_NAME'
+SELECT 'CREATE DATABASE \"$N8N_DB_NAME\"'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$N8N_DB_NAME')\gexec
 " || true
 
 # Grant privileges
 PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-GRANT ALL PRIVILEGES ON DATABASE $N8N_DB_NAME TO $PG_USER;
+GRANT ALL PRIVILEGES ON DATABASE \"$N8N_DB_NAME\" TO \"$PG_USER\";
+" || true
+
+# Grant additional privileges for N8N
+PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
 " || true
 
 echo "✅ n8n database created successfully!"

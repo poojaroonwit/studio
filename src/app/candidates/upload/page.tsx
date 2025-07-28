@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -35,6 +36,7 @@ function formatBytes(bytes: number) {
 
 function UploadPageContent() {
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedPositionId, setSelectedPositionId] = useState<string>("");
@@ -140,53 +142,43 @@ function UploadPageContent() {
         throw new Error(`File upload failed`);
       }
       const { results } = await uploadRes.json();
-      // Non-blocking upload: process each file via non-blocking endpoint
-      const queueResults: any[] = [];
-      await Promise.all(results.map(async (result: any, idx: number) => {
-        if (result.status === 'success') {
-          const queueData = {
-            file_name: result.file_name,
-            file_size: selectedFiles[idx]?.size || 0,
-            status: 'queued',
-            source: 'bulk',
-            upload_id: batchId,
-            upload_date: now,
-            file_path: result.file_path,
-            webhook_payload: {
-              targetPositionId: selectedPositionId || null,
-              uploadBatch: batchId
-            },
-          };
-          const queueRes = await fetch('/api/upload-queue', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(queueData)
-          });
-          let error = undefined;
-          if (!queueRes.ok) {
-            try {
-              const errorData = await queueRes.json();
-              error = errorData.error || 'Failed to add file to upload queue';
-            } catch {
-              error = 'Failed to add file to upload queue';
-            }
-          }
-          queueResults.push({ file: result.file_name, success: queueRes.ok, error });
+      // Upload all files to MinIO and add to queue immediately
+      const formData = new FormData();
+      
+      selectedFiles.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      if (selectedPositionId) {
+        formData.append('position_id', selectedPositionId);
+      }
+      formData.append('batch_id', batchId);
+      formData.append('source', 'bulk');
+
+      // Upload to MinIO and add to queue immediately
+      const uploadRes = await fetch('/api/upload-queue/fast-bulk-insert', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (uploadRes.ok) {
+        const uploadData = await uploadRes.json();
+        setSelectedFiles([]);
+        setSelectedPositionId("");
+        setIsBulkUploadModalOpen(false);
+        
+        // Show summary to user
+        if (uploadData.failed === 0) {
+          toast.success(`Upload complete: ${uploadData.successful} file(s) uploaded and queued for processing.`);
         } else {
-          queueResults.push({ file: result.file_name, success: false, error: result.error || 'Upload failed' });
+          toast.success(`Upload complete: ${uploadData.successful} files uploaded successfully, ${uploadData.failed} files failed.`);
+          if (uploadData.errors && uploadData.errors.length > 0) {
+            console.table(uploadData.errors);
+          }
         }
-      }));
-      setSelectedFiles([]);
-      setSelectedPositionId("");
-      setIsBulkUploadModalOpen(false);
-      // Show summary to user
-      const numSuccess = queueResults.filter(r => r.success).length;
-      const numError = queueResults.length - numSuccess;
-      if (numError === 0) {
-        toast.success(`Bulk upload: ${numSuccess} file(s) queued for upload.`);
       } else {
-        toast.error(`Bulk upload: ${numError} failed, ${numSuccess} queued.`);
-        console.table(queueResults);
+        const errorData = await uploadRes.json();
+        toast.error(`Upload failed: ${errorData.error || 'Unknown error'}`);
       }
       handleUploadSuccess();
     } catch (error) {
@@ -219,11 +211,12 @@ function UploadPageContent() {
           Upload CVs
         </Button>
       </div>
-      <BulkUploadCVsModal
-        isOpen={isBulkUploadModalOpen}
-        onOpenChange={setIsBulkUploadModalOpen}
-        onUploadSuccess={handleUploadSuccess}
-      />
+              <BulkUploadCVsModal
+          isOpen={isBulkUploadModalOpen}
+          onOpenChange={setIsBulkUploadModalOpen}
+          onUploadSuccess={handleUploadSuccess}
+        />
+
       <CandidateImportUploadQueue 
         initialPage={initialPage}
         initialPageSize={initialPageSize}

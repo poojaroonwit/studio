@@ -155,30 +155,52 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, []);
 
-  // Helper to add a file to the upload queue and handle errors
-  async function addToUploadQueueNonBlocking(queueData: any, fileName: string) {
+  // Helper to upload files to MinIO and add to queue immediately
+  async function uploadFilesToMinIOAndQueue(files: File[], batchId: string) {
     try {
-      const queueRes = await fetch('/api/upload-queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(queueData)
+      // Create FormData with all files
+      const formData = new FormData();
+      
+      files.forEach(file => {
+        formData.append('files', file);
       });
-      if (!queueRes.ok) {
-        let errorMsg = 'Failed to add file to upload queue';
+      
+      if (selectedPositionId) {
+        formData.append('position_id', selectedPositionId);
+      }
+      formData.append('batch_id', batchId);
+      formData.append('source', 'bulk');
+
+      // Upload to MinIO and add to queue immediately
+      const uploadRes = await fetch('/api/upload-queue/fast-bulk-insert', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!uploadRes.ok) {
+        let errorMsg = 'Failed to upload files';
         try {
-          const errorData = await queueRes.json();
+          const errorData = await uploadRes.json();
           errorMsg = errorData.error || errorMsg;
-          console.error('Upload queue POST error:', errorData);
+          console.error('Fast bulk upload error:', errorData);
         } catch (parseErr) {
-          console.error('Upload queue POST error (non-JSON):', queueRes);
+          console.error('Fast bulk upload error (non-JSON):', uploadRes);
         }
-        errorWithDescription(`${fileName}: ${errorMsg}`, "The file could not be added to the processing queue.");
+        errorWithDescription(`Upload failed: ${errorMsg}`, "The files could not be uploaded to storage and queue.");
         return { success: false, error: errorMsg };
       }
-      return { success: true };
+      
+      const result = await uploadRes.json();
+      return { 
+        success: true, 
+        data: result,
+        successful: result.successful,
+        failed: result.failed,
+        errors: result.errors || []
+      };
     } catch (err) {
-      console.error('Network or unexpected error during upload queue POST:', err);
-              errorWithDescription(`${fileName}: Unexpected error adding to upload queue`, "Please try again or contact support if the issue persists.");
+      console.error('Network or unexpected error during fast bulk upload:', err);
+      errorWithDescription(`Upload failed: Unexpected error`, "Please try again or contact support if the issue persists.");
       return { success: false, error: 'Unexpected error' };
     }
   }
@@ -232,39 +254,31 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       setSelectedFileIndex(0);
       onOpenChange(false);
       successWithDescription('Files uploaded! Now adding to processing queue...', 'Your files are being queued for processing.');
-      // Continue queueing in the background
-      let queueResults: any[] = [];
-      await Promise.all(results.map(async (result: any, idx: number) => {
-        if (result.status === 'success') {
-          const file = selectedFiles[idx];
-          const batchId = fileBatchMap[file?.name] || uuidv4();
-          const queueData = {
-            file_name: result.file_name,
-            file_size: file?.size || 0,
-            status: 'queued',
-            source: 'bulk',
-            upload_id: batchId,
-            upload_date: now,
-            file_path: result.file_path,
-            webhook_payload: {
-              targetPositionId: selectedPositionId || null,
-              uploadBatch: batchId
-            },
-          };
-          const { success, error } = await addToUploadQueueNonBlocking(queueData, result.file_name);
-          queueResults.push({ file: result.file_name, success, error });
+      // Upload all files to MinIO and add to queue immediately
+      const batchId = uuidv4();
+      const { success, data, successful, failed, errors } = await uploadFilesToMinIOAndQueue(selectedFiles, batchId);
+      
+      if (success) {
+        // Show summary to user
+        if (failed === 0) {
+          successWithDescription(
+            `Upload complete: ${successful} file(s) uploaded and queued for processing.`, 
+            "Your files have been successfully uploaded to storage and are queued for processing."
+          );
         } else {
-          queueResults.push({ file: result.file_name, success: false, error: result.error || 'Upload failed' });
+          const errorMsg = `Upload complete: ${successful} files uploaded successfully, ${failed} files failed.`;
+          const details = "Some files could not be uploaded. Check the results below for details.";
+          errorWithDescription(errorMsg, details);
+          
+          if (errors && errors.length > 0) {
+            console.table(errors);
+          }
         }
-      }));
-      // Show summary to user (optional, can be removed if not needed)
-      const numSuccess = queueResults.filter(r => r.success).length;
-      const numError = queueResults.length - numSuccess;
-      if (numError === 0) {
-        successWithDescription(`Bulk upload: ${numSuccess} file(s) queued for processing.`, "Your files have been successfully uploaded and are being processed.");
       } else {
-        errorWithDescription(`Bulk upload: ${numError} failed, ${numSuccess} queued.`, "Some files could not be processed. Check the console for details.");
-        console.table(queueResults);
+        errorWithDescription(
+          `Upload failed: ${data?.error || 'Unknown error'}`, 
+          "The upload process encountered an error. Please try again."
+        );
       }
       if (onUploadSuccess) onUploadSuccess();
       // Trigger a manual refresh so the upload queue updates immediately

@@ -295,10 +295,11 @@ async function processFileUpload(
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   let client: any = null;
+  let session: any = null;
 
   try {
     // Step 1: Authentication and authorization
-    const session = await getServerSession(authOptions);
+    session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

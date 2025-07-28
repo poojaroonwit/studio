@@ -88,7 +88,9 @@ async function uploadToMinIO(file: File, objectName: string): Promise<{ success:
     async () => {
       await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
         'Content-Type': file.type || 'application/pdf',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(file.name)}"`,
+        'Content-Disposition': file.type === 'application/pdf' 
+          ? `inline; filename="${encodeURIComponent(file.name)}"`
+          : `attachment; filename="${encodeURIComponent(file.name)}"`,
       });
     },
     file.name

@@ -827,6 +827,7 @@ export const CandidateImportUploadQueue: React.FC<{
     responsive: true,
     plugins: {
       legend: { display: false },
+      datalabels: { display: false },
       tooltip: {
         callbacks: {
           label: function(context: any) {

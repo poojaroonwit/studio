@@ -22,6 +22,43 @@ mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || 
 echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET_NAME"
 mc policy set download myminio/"$MINIO_BUCKET_NAME" || true
 
+# --- N8N Database Creation ---
+echo "🔧 Creating n8n database if it doesn't exist..."
+
+# Set PostgreSQL connection variables
+export PG_HOST=${POSTGRES_HOST:-postgres}
+export PG_PORT=${POSTGRES_PORT:-5432}
+export PG_USER=${POSTGRES_USER:-postgres}
+export PG_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
+export N8N_DB_NAME=${N8N_DB_NAME:-n8n}
+
+# Install PostgreSQL client if not available
+if ! command -v psql >/dev/null 2>&1; then
+  echo "🔧 Installing PostgreSQL client..."
+  apk add --no-cache postgresql-client || apt-get update && apt-get install -y postgresql-client || yum install -y postgresql || true
+fi
+
+# Wait for PostgreSQL to be ready
+echo "⏳ Waiting for PostgreSQL to be ready..."
+until pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER"; do
+  echo "Waiting for PostgreSQL..."
+  sleep 2
+done
+
+# Create n8n database if it doesn't exist
+echo "📊 Creating n8n database..."
+PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+SELECT 'CREATE DATABASE $N8N_DB_NAME'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$N8N_DB_NAME')\gexec
+" || true
+
+# Grant privileges
+PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+GRANT ALL PRIVILEGES ON DATABASE $N8N_DB_NAME TO $PG_USER;
+" || true
+
+echo "✅ n8n database created successfully!"
+
 # --- Existing DB and App Startup Logic ---
 echo "🔧 Fixing database schema mismatch..."
 

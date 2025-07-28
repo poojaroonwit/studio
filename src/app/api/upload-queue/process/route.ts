@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN');
     
-    // Step 1: Check current in-process count and lock those rows
+    // Step 1: Check current in-process count
     const countRes = await client.query(
-      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
+      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess'`
     );
     const currentInProgress = parseInt(countRes.rows[0].count, 10);
     
@@ -385,8 +385,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
       let webhookResStatus = null;
       try {
-        console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
-        console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
+    
+        
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,

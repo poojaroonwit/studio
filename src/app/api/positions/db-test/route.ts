@@ -2,17 +2,15 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 
 export async function GET() {
-  console.log('[POSITIONS/DB-TEST] Database test endpoint called');
+
   
   try {
-    console.log('[POSITIONS/DB-TEST] Getting database pool...');
     const pool = getPool();
-    console.log('[POSITIONS/DB-TEST] Database pool obtained');
     
     const result = await pool.query('SELECT COUNT(*) as count FROM "Position"');
     
     const count = result.rows[0]?.count || 0;
-    console.log(`[POSITIONS/DB-TEST] Position count: ${count}`);
+
     
     return NextResponse.json({ 
       message: 'Database test successful',

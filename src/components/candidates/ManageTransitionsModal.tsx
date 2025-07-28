@@ -87,7 +87,7 @@ export function ManageTransitionsModal({
         .then(res => res.json())
         .then(data => {
           setStages(Array.isArray(data) ? data : []);
-          console.log('Fetched stages:', data); // Debug log
+      
         })
         .catch(() => setStages([]))
         .finally(() => setLoadingStages(false));

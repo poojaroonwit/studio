@@ -710,7 +710,6 @@ export default function CandidateDetailPage() {
   // }, [availableStages]);
 
   const handleUploadSuccess = (updatedCandidate: Candidate) => {
-    console.log('handleUploadSuccess called', updatedCandidate);
     if (!updatedCandidate || !updatedCandidate.id) return;
     setCandidate(updatedCandidate);
     setIsUploadModalOpen(false);
@@ -823,7 +822,6 @@ export default function CandidateDetailPage() {
   };
 
   const handleJobMatchClick = (jobMatch: any) => {
-    console.log('Raw match object:', jobMatch);
     // Find the position details - try by jobId first, then by jobTitle
     const position = Array.isArray(allDbPositions) ? 
                     (allDbPositions.find(p => p.id === jobMatch.jobId) || 
@@ -853,7 +851,6 @@ export default function CandidateDetailPage() {
         : undefined,
     };
     
-    console.log('Opening JobMatchModal with:', jobMatchData);
     setSelectedJobMatch(jobMatchData);
     setIsJobMatchModalOpen(true);
   };
@@ -900,7 +897,6 @@ export default function CandidateDetailPage() {
 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
-    console.log('handleSaveDetails called', data);
     // Patch: update parsedData.job_applied as well as top-level fields
     const newJobApplied = {
       jobId: data.positionId,

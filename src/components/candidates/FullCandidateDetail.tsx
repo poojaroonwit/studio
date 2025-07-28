@@ -1295,7 +1295,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           console.log('Job Applied card clicked');
                           const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                           if (position) {
-                            console.log('appliedFitScore', appliedFitScore, typeof appliedFitScore); // Debug log
+                        
                             let normalizedFitScore = 0;
                             if (typeof appliedFitScore === 'number' && !isNaN(appliedFitScore)) {
                               if (appliedFitScore > 1 && appliedFitScore <= 100) {

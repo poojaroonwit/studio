@@ -53,11 +53,8 @@ async function downloadFileFromUrl(url: string): Promise<{ buffer: Buffer; fileN
 
 // GET: List attachments for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[ATTACHMENTS] GET request to: ${req.nextUrl.pathname}`);
-  
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
-    console.log(`[ATTACHMENTS] Request appears to be for job-matches, redirecting`);
     return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
       status: 404, 
       headers: { 'Content-Type': 'application/json' } 
@@ -94,16 +91,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 // POST: Upload an attachment (multipart/form-data)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[ATTACHMENTS] POST request to: ${req.nextUrl.pathname}`);
-  console.log(`[ATTACHMENTS] Content-Type: ${req.headers.get('content-type')}`);
-  console.log(`[ATTACHMENTS] User-Agent: ${req.headers.get('user-agent')}`);
-  console.log(`[ATTACHMENTS] Referer: ${req.headers.get('referer')}`);
-  console.log(`[ATTACHMENTS] Origin: ${req.headers.get('origin')}`);
-  console.log(`[ATTACHMENTS] Host: ${req.headers.get('host')}`);
-  
   // Check if this request is actually meant for attachments
   if (req.nextUrl.pathname.includes('/job-matches')) {
-    console.log(`[ATTACHMENTS] Request appears to be for job-matches, redirecting`);
     return new Response(JSON.stringify({ error: 'Route mismatch - this should be handled by job-matches route' }), { 
       status: 404, 
       headers: { 'Content-Type': 'application/json' } 
@@ -135,15 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     const formData = await req.formData();
     
-    // Log all form data for debugging
-    const formEntries = Array.from(formData.entries());
-    console.log(`[ATTACHMENTS] Form data entries:`, formEntries.map(([key, value]) => ({
-      key,
-      type: typeof value,
-      isFile: value instanceof File,
-      size: value instanceof File ? value.size : 'N/A',
-      name: value instanceof File ? value.name : 'N/A'
-    })));
+
     
     // Try both field names for compatibility
     let file = formData.get('attachment');
@@ -199,7 +180,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
     // Validate file size
     if (file.size === 0) {
-      console.log(`[ATTACHMENTS] ERROR: Zero-byte file detected: ${file.name}`);
       return handleApiError(req, createValidationError('Invalid input', { 
         attachment: ['File is empty (0 bytes)'] 
       }));
@@ -207,7 +187,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     
     // Validate file name
     if (!file.name || file.name.trim() === '') {
-      console.log(`[ATTACHMENTS] ERROR: File with no name detected`);
       return handleApiError(req, createValidationError('Invalid input', { 
         attachment: ['File has no name'] 
       }));
@@ -216,7 +195,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const ext = (file.name || 'pdf').split('.').pop();
     const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
     
-    console.log(`[ATTACHMENTS] Processing file: ${file.name} (${file.size} bytes) -> ${objectName}`);
+
     
     const arrayBuffer = await file.arrayBuffer();
     await minioClient.putObject(
@@ -240,7 +219,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
     
-    console.log(`[ATTACHMENTS] Successfully uploaded: ${file.name} -> ${newAttachment.id}`);
+
     
     return createSuccessResponse(req, { 
       ...newAttachment, 
@@ -256,7 +235,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 // PATCH: Upload an attachment from URL
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[ATTACHMENTS] PATCH request to: ${req.nextUrl.pathname}`);
   
   const { id } = params;
   
@@ -323,7 +301,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const ext = fileName.split('.').pop() || 'bin';
     const objectName = `attachments/${id}/${uuidv4()}.${ext}`;
     
-    console.log(`[ATTACHMENTS] Processing downloaded file: ${fileName} (${buffer.length} bytes) -> ${objectName}`);
+
     
     // Upload to MinIO
     await minioClient.putObject(
@@ -351,7 +329,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       include: { uploadedBy: { select: { id: true, name: true, email: true } } },
     });
     
-    console.log(`[ATTACHMENTS] Successfully uploaded from URL: ${fileName} -> ${newAttachment.id}`);
+
     
     return createSuccessResponse(req, { 
       ...newAttachment, 

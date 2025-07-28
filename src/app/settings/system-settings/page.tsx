@@ -333,7 +333,6 @@ export default function SystemSettingsPage() {
                                 } else {
                                   toast.error(`Webhook test failed: ${result.error}`);
                                 }
-                                console.log('Webhook test result:', result);
                               } catch (error) {
                                 toast.error('Failed to test webhook');
                                 console.error('Webhook test error:', error);
@@ -430,7 +429,6 @@ export default function SystemSettingsPage() {
                                 } else {
                                   toast.error(`Webhook test failed: ${result.error}`);
                                 }
-                                console.log('Webhook test result:', result);
                               } catch (error) {
                                 toast.error('Failed to test webhook');
                                 console.error('Webhook test error:', error);

@@ -252,7 +252,7 @@ async function invalidateUserSessions(userId: string): Promise<void> {
     // This function is no longer needed as removeUserPresence is removed.
     // If presence tracking is required, it should be implemented client-side or via SSE.
     
-    console.log(`Session cleanup completed for user ${userId}`);
+
   } catch (error) {
     console.error(`Failed to cleanup sessions for user ${userId}:`, error);
   }

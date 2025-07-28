@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
         }
         
         await client.query('COMMIT');
-        console.log(`[SYSTEM SETTINGS] Auto-synced ${settingsToInsert.length} environment variables to database:`, settingsToInsert.map(s => s.key));
+    
       } catch (error) {
         await client.query('ROLLBACK');
         console.error('[SYSTEM SETTINGS] Failed to auto-sync environment variables:', error);

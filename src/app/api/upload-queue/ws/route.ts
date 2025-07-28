@@ -158,14 +158,14 @@ async function cleanupRedisSubscription(redisSubscription: any) {
       // Check if client is still connected before attempting operations
       // No longer needed
     } catch (error) {
-      console.log('[WEBSOCKET] Redis unsubscribe error (ignored):', error instanceof Error ? error.message : 'Unknown error');
+  
     }
     
     try {
       // Only disconnect if client is still open
       // No longer needed
     } catch (error) {
-      console.log('[WEBSOCKET] Redis disconnect error (ignored):', error instanceof Error ? error.message : 'Unknown error');
+  
     }
   }
 } 

@@ -64,7 +64,7 @@ const FileUploadArea: FC<FileUploadAreaProps> = ({
   }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('FileUploadArea: File change event triggered', e.target.files);
+
     onFilesChange(e.target.files);
     // Reset the input value to allow selecting the same file again
     if (e.target) {

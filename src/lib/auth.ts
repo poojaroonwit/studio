@@ -263,30 +263,20 @@ export const authOptions: NextAuthOptions = {
                   
                   res = await client.query('SELECT * FROM "Account" WHERE "provider" = $1 AND "providerAccountId" = $2', [account.provider, account.providerAccountId]);
                   if (res.rows.length === 0) {
-                      console.log('[AZURE AD SIGNIN] Creating account entry');
                       await client.query(
                           'INSERT INTO "Account" (id, "userId", type, provider, "providerAccountId", access_token, expires_at, scope, token_type, id_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
                           [uuidv4(), userId, account.type, account.provider, account.providerAccountId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token]
                       );
-                      console.log('[AZUREAD SIGNIN] Account entry created successfully');
                   } else {
-                      console.log('[AZUREAD SIGNIN] Account entry already exists');
                       // Check if the existing account entry has the correct userId
                       const existingAccount = res.rows[0];
                       if (existingAccount.userId !== userId) {
-                          console.log('[AZURE AD SIGNIN] Updating existing account entry with correct userId');
-                          console.log('[AZURE AD SIGNIN] Old userId:', existingAccount.userId, 'New userId:', userId);
                           await client.query(
                               'UPDATE "Account" SET "userId" = $1, access_token = $2, expires_at = $3, scope = $4, token_type = $5, id_token = $6 WHERE id = $7',
                               [userId, account.access_token, account.expires_at, account.scope, account.token_type, account.id_token, existingAccount.id]
                           );
-                          console.log('[AZURE AD SIGNIN] Account entry updated successfully');
-                      } else {
-                          console.log('[AZURE AD SIGNIN] Account entry already has correct userId');
                       }
                   }
-                  
-                  console.log('[AZURE AD SIGNIN] Azure AD sign-in completed successfully');
               } catch (err) {
                   console.error('[AZURE AD SIGNIN] Error during Azure AD sign-in DB operations:', err);
                   console.error('[AZURE AD SIGNIN] Error details:', {
@@ -299,11 +289,6 @@ export const authOptions: NextAuthOptions = {
               } finally {
                   client.release();
               }
-          } else {
-              console.log('[AZURE AD SIGNIN] Not an Azure AD sign-in or Azure AD not configured');
-              console.log('[AZURE AD SIGNIN] - isAzureADConfigured():', isAzureADConfigured());
-              console.log('[AZURE AD SIGNIN] - account.provider:', account?.provider);
-              console.log('[AZURE AD SIGNIN] - profile.email:', profile?.email);
           }
           return true;
       }

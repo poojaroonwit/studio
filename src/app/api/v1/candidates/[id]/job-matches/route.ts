@@ -22,7 +22,6 @@ const jobMatchesUpdateSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[JOB-MATCHES] GET request to: ${req.nextUrl.pathname}`);
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -72,7 +71,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log(`[JOB-MATCHES] POST request to: ${req.nextUrl.pathname}`);
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
   const user = token ? await verifyApiToken(token) : null;
@@ -89,7 +87,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   
   try {
     body = await req.json();
-    console.log('[JOB-MATCHES] Request body:', JSON.stringify(body, null, 2));
     body = normalizePayloadTypes(body);
   } catch (error) {
     console.error('[JOB-MATCHES] JSON parse error:', error);
@@ -103,36 +100,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const { job_matches } = validationResult.data;
-  console.log('[JOB-MATCHES] Validated job_matches:', JSON.stringify(job_matches, null, 2));
   
   try {
-    console.log('[JOB-MATCHES] Starting database transaction...');
     
     const result = await withDbTransaction(async (client) => {
       // Check if candidate exists
-      console.log('[JOB-MATCHES] Checking if candidate exists:', id);
       const candidateQuery = 'SELECT id FROM "Candidate" WHERE id = $1';
       const candidateResult = await client.query(candidateQuery, [id]);
-      console.log('[JOB-MATCHES] Candidate query result:', candidateResult.rows.length, 'rows');
       
       if (candidateResult.rows.length === 0) {
         throw new Error('Candidate not found');
       }
 
-    // Check if JobMatch table exists
-    console.log('[JOB-MATCHES] Checking JobMatch table structure...');
-    try {
-      const tableCheckQuery = `
-        SELECT column_name, data_type, is_nullable 
-        FROM information_schema.columns 
-        WHERE table_name = 'JobMatch' 
-        ORDER BY ordinal_position
-      `;
-      const tableResult = await client.query(tableCheckQuery);
-      console.log('[JOB-MATCHES] JobMatch table columns:', tableResult.rows);
-    } catch (tableError) {
-      console.error('[JOB-MATCHES] Table check error:', tableError);
-    }
+
 
     // Insert or update job matches
     const insertJobMatchQuery = `
@@ -155,34 +135,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const insertedMatches = [];
     
     for (const match of job_matches || []) { // Use || [] to handle empty array
-      console.log('[JOB-MATCHES] Processing match:', {
-        candidateId: id,
-        jobId: match.jobId || null,
-        fitScore: match.fitScore || null,
-        matchReasons: match.matchReasons || []
-      });
-      
       try {
         // Check if job match already exists
-        console.log('[JOB-MATCHES] Checking for existing match...');
         const existingResult = await client.query(checkExistingQuery, [id, match.jobId || null]);
-        console.log('[JOB-MATCHES] Existing match check result:', existingResult.rows.length, 'rows');
         
         let result;
         if (existingResult.rows.length > 0) {
           // Update existing match
-          console.log('[JOB-MATCHES] Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
             match.fitScore || null, // Already 0-1
             match.matchReasons || [],
             id,
             match.jobId || null,
           ]);
-          console.log('[JOB-MATCHES] Update result:', result.rows[0]);
         } else {
           // Insert new match
           const matchId = uuidv4();
-          console.log('[JOB-MATCHES] Inserting new match:', matchId);
           result = await client.query(insertJobMatchQuery, [
             matchId,
             id,
@@ -190,7 +158,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             match.fitScore || null, // Already 0-1
             match.matchReasons || [],
           ]);
-          console.log('[JOB-MATCHES] Insert result:', result.rows[0]);
+
         }
         
         const processedMatch = result.rows[0];
@@ -211,7 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-      console.log('[JOB-MATCHES] Successfully processed', insertedMatches.length, 'job matches');
+  
       return insertedMatches;
     });
 
@@ -278,7 +246,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const { job_matches } = validationResult.data;
-  console.log('[JOB-MATCHES] PATCH Validated job_matches:', JSON.stringify(job_matches, null, 2));
   
   const client = await getPool().connect();
   
@@ -315,13 +282,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const updatedMatches = [];
     
     for (const match of job_matches || []) { // Use || [] to handle empty array
-      console.log('[JOB-MATCHES] PATCH Processing match:', {
-        candidateId: id,
-        jobId: match.jobId || null,
-        fitScore: match.fitScore || null,
-        matchReasons: match.matchReasons || []
-      });
-      
       try {
         // Check if job match already exists
         const existingResult = await client.query(checkExistingQuery, [id, match.jobId || null]);
@@ -329,7 +289,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         let result;
         if (existingResult.rows.length > 0) {
           // Update existing match
-          console.log('[JOB-MATCHES] PATCH Updating existing match:', existingResult.rows[0].id);
           result = await client.query(updateJobMatchQuery, [
             match.fitScore || null, // Already 0-1
             match.matchReasons || [],
@@ -339,7 +298,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         } else {
           // Insert new match
           const matchId = uuidv4();
-          console.log('[JOB-MATCHES] PATCH Inserting new match:', matchId);
           result = await client.query(insertJobMatchQuery, [
             matchId,
             id,
@@ -363,7 +321,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     await client.query('COMMIT');
-    console.log('[JOB-MATCHES] PATCH Successfully processed', updatedMatches.length, 'job matches');
     
     return new Response(JSON.stringify({ 
       message: 'Job matches updated successfully', 

@@ -36,7 +36,6 @@ export class WebhookDispatcher {
    */
   async dispatch(event: string, data: any): Promise<WebhookResult[]> {
     if (this.isProcessing) {
-      console.log('Webhook dispatcher is already processing, skipping...');
       return [];
     }
 
@@ -47,7 +46,6 @@ export class WebhookDispatcher {
       // Check global rate limit
       const globalLimit = await webhookRateLimits.global.checkLimit('global');
       if (!globalLimit.allowed) {
-        console.log('Global webhook rate limit exceeded');
         return [{
           webhook_id: 'global',
           success: false,
@@ -60,7 +58,6 @@ export class WebhookDispatcher {
       // Check burst protection
       const burstLimit = await webhookRateLimits.burst.checkLimit('burst');
       if (!burstLimit.allowed) {
-        console.log('Webhook burst protection triggered');
         return [{
           webhook_id: 'burst',
           success: false,
@@ -81,11 +78,8 @@ export class WebhookDispatcher {
       });
 
       if (webhooks.length === 0) {
-        console.log(`No webhooks configured for event: ${event}`);
         return [];
       }
-
-      console.log(`Dispatching ${event} to ${webhooks.length} webhooks`);
 
       // Send webhooks in parallel
       const webhookPromises = webhooks.map((webhook: any) =>
@@ -123,7 +117,6 @@ export class WebhookDispatcher {
     // Check per-webhook rate limit
     const webhookLimit = await webhookRateLimits.perWebhook.checkLimit(webhook.id);
     if (!webhookLimit.allowed) {
-      console.log(`Rate limit exceeded for webhook: ${webhook.id}`);
       return {
         webhook_id: webhook.id,
         success: false,

@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const client = await getPool().connect();
   
   try {
-    console.log('[DEBUG] Fixing orphaned Azure AD accounts...');
+  
     
     // Find orphaned account entries (where userId doesn't exist in User table)
     const orphanedResult = await client.query(`
@@ -24,12 +24,8 @@ export async function POST(req: NextRequest) {
     
     for (const orphanedAccount of orphanedResult.rows) {
       try {
-        console.log(`[DEBUG] Found orphaned account: ${orphanedAccount.id} with userId: ${orphanedAccount.userId}`);
-        
         // Try to find a user by email using the access_token (if it contains user info)
         // For now, we'll delete orphaned accounts as they can't be safely linked
-        
-        console.log(`[DEBUG] Deleting orphaned account: ${orphanedAccount.id} with userId: ${orphanedAccount.userId}`);
         
         await client.query('DELETE FROM "Account" WHERE id = $1', [orphanedAccount.id]);
         
@@ -60,15 +56,12 @@ export async function POST(req: NextRequest) {
     
     for (const duplicate of duplicateResult.rows) {
       try {
-        console.log(`[DEBUG] Found duplicate accounts for providerAccountId: ${duplicate.providerAccountId}`);
-        
         // Keep the first account, delete the rest
         const accountIds = duplicate.account_ids;
         const keepId = accountIds[0];
         const deleteIds = accountIds.slice(1);
         
         for (const deleteId of deleteIds) {
-          console.log(`[DEBUG] Deleting duplicate account: ${deleteId}`);
           await client.query('DELETE FROM "Account" WHERE id = $1', [deleteId]);
           
           fixedAccounts.push({
@@ -88,7 +81,7 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    console.log(`[DEBUG] Fixed ${fixedAccounts.length} accounts, ${errors.length} errors`);
+
     
     return createSuccessResponse(req, {
       message: 'Azure AD accounts fixed successfully',

@@ -520,7 +520,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   const seenKeys = new Set<string>();
   const rowAndColumnFields = baseRowColumnFields.filter(field => {
     if (seenKeys.has(field.key)) {
-      console.log(`CustomizeBoardModal: Duplicate field key filtered out: ${field.key}`);
+
       return false;
     }
     seenKeys.add(field.key);
@@ -528,7 +528,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   });
   
   // Debug logging
-  console.log('CustomizeBoardModal: Available row/column fields:', rowAndColumnFields.map(f => ({ key: f.key, label: f.label })));
+  
   
   // For card fields: candidateFields + customFieldKeys + parsedDataFields
   const cardFields = [

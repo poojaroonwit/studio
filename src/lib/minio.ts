@@ -180,10 +180,8 @@ export async function startupMinIOInitialization() {
 // Function to check if MinIO is available
 async function checkMinIOAvailability(): Promise<boolean> {
   try {
-    console.log('[MINIO] Checking MinIO availability...');
     // Try to list buckets (this will fail if MinIO is not available)
     await minioClient.listBuckets();
-    console.log('[MINIO] MinIO is available');
     return true;
   } catch (error) {
     console.error('[MINIO] MinIO is not available:', error);

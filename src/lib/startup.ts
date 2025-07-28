@@ -30,14 +30,11 @@ export interface StartupResult {
 export async function initializeServices() {
   // Skip during build time
   if (process.env.NEXT_PHASE === 'phase-production-build') {
-    console.log('[STARTUP] Skipping service initialization during build');
     return {
       minio: { status: 'skipped', message: 'Build time - not initialized' },
       redis: { status: 'skipped', message: 'Build time - not initialized' }
     };
   }
-
-  console.log('[STARTUP] Initializing services...');
   
   const results = {
     minio: { status: 'unknown', message: 'Not initialized' },
@@ -84,7 +81,6 @@ export async function initializeServices() {
     };
   }
 
-  console.log('[STARTUP] Service initialization completed:', results);
   return results;
 }
 
@@ -260,7 +256,7 @@ export function validateEnvironmentVariables() {
     return false;
   }
 
-  console.log('✅ All required environment variables are set');
+
   return true;
 }
 

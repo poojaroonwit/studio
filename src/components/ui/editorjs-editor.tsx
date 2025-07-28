@@ -50,8 +50,6 @@ export function EditorJSEditor({
 
   // ===== EFFECTS =====
   useEffect(() => {
-    console.log('EditorJSEditor effect - isOpen:', isOpen, 'isInitialized:', isInitialized, 'value length:', value?.length);
-    
     if (isOpen && !isInitialized) {
       // Initialize editor when modal opens
       if (editorRef.current) {
@@ -63,14 +61,12 @@ export function EditorJSEditor({
         setTimeout(() => {
           const holderElement = document.getElementById(editorId);
           if (holderElement && !isInitialized) {
-            console.log('Starting editor initialization...');
             initEditor(holderElement, placeholder);
           }
         }, 0);
       }
     } else if (!isOpen && isInitialized) {
       // Destroy editor when modal closes
-      console.log('Destroying editor...');
       destroyEditor();
     }
     prevIsOpen.current = isOpen;
@@ -121,7 +117,6 @@ export function EditorJSEditor({
               }
             }
           });
-          console.log('Forced single block display and ensured content visibility');
         }
       };
 

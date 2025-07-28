@@ -48,21 +48,7 @@ function logStats() {
     ? stats.processingTimes.reduce((a, b) => a + b, 0) / stats.processingTimes.length
     : 0;
 
-  console.log('='.repeat(80));
-  console.log(`📊 PROCESSOR STATS - ${now.toISOString()}`);
-  console.log('='.repeat(80));
-  console.log(`⏱️  Uptime: ${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`);
-  console.log(`📈 Total Jobs Processed: ${stats.totalJobsProcessed}`);
-  console.log(`✅ Successful Jobs: ${stats.successfulJobs}`);
-  console.log(`❌ Failed Jobs: ${stats.failedJobs}`);
-  console.log(`⚠️  Total Errors: ${stats.totalErrors}`);
-  console.log(`🔄 Consecutive Errors: ${stats.consecutiveErrors}`);
-  console.log(`📊 Max Consecutive Errors: ${stats.maxConsecutiveErrors}`);
-  console.log(`⏱️  Average Processing Time: ${avgProcessingTime.toFixed(2)}ms`);
-  console.log(`💾 Memory Usage: RSS ${(mem.rss/1024/1024).toFixed(2)}MB, Heap ${(mem.heapUsed/1024/1024).toFixed(2)}MB/${(mem.heapTotal/1024/1024).toFixed(2)}MB`);
-  console.log(`🔧 Configuration: Interval=${BASE_INTERVAL_MS}ms`);
-  console.log(`🌐 Target URL: ${PROCESS_URL}`);
-  console.log('='.repeat(80));
+  console.log(`📊 PROCESSOR STATS - Uptime: ${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m, Jobs: ${stats.totalJobsProcessed} total, ${stats.successfulJobs} success, ${stats.failedJobs} failed, Memory: ${(mem.rss/1024/1024).toFixed(2)}MB`);
 }
 
 function logHealthCheck() {
@@ -70,10 +56,7 @@ function logHealthCheck() {
   const uptime = Math.floor((now.getTime() - stats.startTime.getTime()) / 1000);
   const mem = process.memoryUsage();
 
-  console.log(`💓 HEALTH CHECK - ${now.toISOString()} - Uptime: ${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${uptime % 60}s`);
-  console.log(`   Memory: RSS ${(mem.rss/1024/1024).toFixed(2)}MB, Heap ${(mem.heapUsed/1024/1024).toFixed(2)}MB/${(mem.heapTotal/1024/1024).toFixed(2)}MB`);
-  console.log(`   Jobs: ${stats.totalJobsProcessed} total, ${stats.successfulJobs} success, ${stats.failedJobs} failed`);
-  console.log(`   Errors: ${stats.consecutiveErrors} consecutive, ${stats.maxConsecutiveErrors} max`);
+  console.log(`💓 HEALTH CHECK - Uptime: ${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m, Memory: ${(mem.rss/1024/1024).toFixed(2)}MB, Jobs: ${stats.totalJobsProcessed} total, ${stats.successfulJobs} success, ${stats.failedJobs} failed`);
 }
 
 async function getMaxConcurrentProcessors(): Promise<number> {
@@ -104,7 +87,6 @@ async function processJob(apiKey: string) {
 
     if (!res.ok) {
       console.error(`❌ HTTP Error: ${res.status} - ${res.statusText} (${processingTime}ms)`);
-      console.error(`   Response body:`, text);
       stats.failedJobs++;
       stats.totalErrors++;
       stats.consecutiveErrors++;
@@ -114,8 +96,6 @@ async function processJob(apiKey: string) {
 
     if (text.trim().startsWith('<!DOCTYPE html') || text.trim().startsWith('<html')) {
       console.error(`❌ HTML Response Error (${processingTime}ms): Received HTML instead of JSON`);
-      console.error(`   HTTP status: ${res.status}`);
-      console.error(`   Response text: ${text.substring(0, 500)}`);
       stats.failedJobs++;
       stats.totalErrors++;
       stats.consecutiveErrors++;
@@ -136,10 +116,7 @@ async function processJob(apiKey: string) {
         return true;
       }
     } catch (err: any) {
-      console.error(`❌ JSON Parse Error (${processingTime}ms): Could not parse response`);
-      console.error(`   HTTP status: ${res.status}`);
-      console.error(`   Response text: ${text}`);
-      console.error(`   JSON parse error: ${err.message}`);
+      console.error(`❌ JSON Parse Error (${processingTime}ms): ${err.message}`);
       stats.failedJobs++;
       stats.totalErrors++;
       stats.consecutiveErrors++;
@@ -180,12 +157,9 @@ async function cleanupStuckJobs() {
        SET status = 'error', error = 'Stuck in inprocess for over 1 hour', error_details = 'Automatically marked as error by processor cleanup', completed_date = now(), updated_at = now()
        WHERE status = 'inprocess' AND updated_at < NOW() - INTERVAL '1 hour'`
     );
-    if (res.rowCount && res.rowCount > 0) {
-      console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);
-      res.rows.forEach((row: { id: number; file_name: string; process_date: Date }) => {
-        console.warn(`[CLEANUP] Job ID: ${row.id}, File: ${row.file_name}, Process Date: ${row.process_date}`);
-      });
-    }
+          if (res.rowCount && res.rowCount > 0) {
+        console.warn(`[CLEANUP] Marked ${res.rowCount} stuck upload_queue jobs as error (over 1 hour in progress)`);
+      }
   } catch (err) {
     console.error('[CLEANUP] Error cleaning up stuck jobs:', err);
   } finally {
@@ -216,14 +190,10 @@ async function runProcessorLoop(): Promise<never> {
       const currentInProgress = parseInt(countRes.rows[0].count, 10);
       client.release();
 
-      console.log(`[PROCESSOR] Current in-process: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
-      
       // Step 2: Calculate available slots
       const availableSlots = Math.max(0, maxConcurrent - currentInProgress);
       
       if (availableSlots > 0) {
-        console.log(`[PROCESSOR] Found ${availableSlots} available slots, processing next jobs in FIFO order...`);
-        
         // Step 3: Process jobs up to available slots (FIFO order)
         const jobs = Array.from({ length: availableSlots });
         const results = await Promise.all(jobs.map(() => processJob(apiKey)));
@@ -233,8 +203,6 @@ async function runProcessorLoop(): Promise<never> {
         if (successfulJobs > 0) {
           console.log(`[PROCESSOR] Successfully processed ${successfulJobs} jobs`);
         }
-      } else {
-        console.log(`[PROCESSOR] No available slots (${currentInProgress}/${maxConcurrent} in process)`);
       }
       
       backoff = BASE_INTERVAL_MS; // Reset backoff on success

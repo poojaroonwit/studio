@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  console.log('[POSITIONS/TEST] Test endpoint called');
+
   
   try {
     return NextResponse.json({ 

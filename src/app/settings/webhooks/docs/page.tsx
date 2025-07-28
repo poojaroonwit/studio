@@ -342,7 +342,7 @@ app.post('/webhooks/recruitment', (req, res) => {
   const { event, timestamp, data } = req.body;
   
   // Process the webhook data
-  console.log('Received webhook:', event, data);
+  
   
   // Return success
   res.status(200).json({ received: true });

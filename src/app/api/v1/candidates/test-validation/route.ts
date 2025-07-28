@@ -61,13 +61,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Log original body
-  console.log('Original request body:', JSON.stringify(body, null, 2));
+  
   
   // Apply normalization
   const normalizedBody = normalizePayloadTypes(body);
   const finalBody = normalizeDataTypes(normalizedBody);
   
-  console.log('Normalized request body:', JSON.stringify(finalBody, null, 2));
+  
 
   // Test validation
   const validationResult = createCandidateSchema.safeParse(finalBody);

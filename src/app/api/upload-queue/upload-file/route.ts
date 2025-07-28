@@ -51,11 +51,11 @@ import { authOptions } from '@/lib/auth';
  */
 export async function POST(request: NextRequest) {
   try {
-    console.log('[UPLOAD] Starting file upload process...');
+
     
     const session = await getServerSession(authOptions);
     if (!session) {
-      console.log('[UPLOAD] Unauthorized upload attempt');
+
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -60,11 +60,8 @@ export function useEditorJS({
 
   const initEditor = useCallback(async (holderElement: HTMLElement, placeholder: string = "Start writing...") => {
     if (readOnly || isInitialized.current) {
-      console.log('Editor already initialized or readOnly, skipping...');
       return;
     }
-    
-    console.log('Initializing editor with value:', value?.substring(0, 100) + '...');
     
     try {
       // Set loading state immediately
@@ -202,7 +199,7 @@ export function useEditorJS({
                 version: '2.28.2'
               };
               
-              console.log('Setting content with single block:', data);
+        
               await editor.render(data);
             }
           } catch (error) {
@@ -301,7 +298,7 @@ const convertHtmlToEditorJSData = (html: string) => {
   const lines = allText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const textContent = lines[0] || html.trim();
 
-  console.log('Converting HTML to EditorJS data:', { html, textContent, allLines: lines });
+  
 
   // Always create only ONE paragraph block to avoid duplicates
   const result = {
@@ -316,6 +313,6 @@ const convertHtmlToEditorJSData = (html: string) => {
     version: '2.28.2'
   };
 
-  console.log('Converted data:', result);
+  
   return result;
 }; 

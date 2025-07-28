@@ -36,8 +36,7 @@ export async function POST(request: NextRequest) {
       headers['Authorization'] = `Bearer ${webhookToken}`;
     }
     
-    console.log(`[Webhook Test] Testing connectivity to: ${webhookUrl}`);
-    console.log(`[Webhook Test] Payload:`, JSON.stringify(testPayload, null, 2));
+
     
     const startTime = Date.now();
     const response = await fetch(webhookUrl, {
@@ -73,7 +72,7 @@ export async function POST(request: NextRequest) {
       testPayload
     };
     
-    console.log(`[Webhook Test] Result:`, result);
+
     
     await logAudit('AUDIT', `Webhook connectivity test completed for ${webhookUrl}`, 'API:WebhookTest', session?.user?.id, {
       webhookUrl,

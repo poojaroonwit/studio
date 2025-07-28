@@ -946,7 +946,7 @@ export const CandidateImportUploadQueue: React.FC<{
                 } else {
                   error('Failed to trigger processing');
                 }
-              } catch (error) {
+              } catch (err) {
                 error('Error triggering processing');
               }
             }}

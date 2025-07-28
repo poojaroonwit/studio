@@ -8,7 +8,6 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
 
-
 /**
  * @openapi
  * /api/upload-queue:
@@ -130,15 +129,13 @@ export async function GET(request: NextRequest) {
   const actingUserName = validation.userName!;
   
   const url = new URL(request.url);
-  
-  // Original GET logic for paginated results
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
   const fileName = url.searchParams.get('file_name');
   const status = url.searchParams.get('status');
   const dateStart = url.searchParams.get('date_start');
   const dateEnd = url.searchParams.get('date_end');
-  const positionId = url.searchParams.get('position_id');
+  const positionId = url.searchParams.get('position_id'); // <-- Add this line
 
   // Build dynamic WHERE clause
   const whereClauses = [];
@@ -168,7 +165,7 @@ export async function GET(request: NextRequest) {
     whereClauses.push(`upload_date <= $${paramIdx++}`);
     values.push(dateEnd);
   }
-  if (positionId) {
+  if (positionId) { // <-- Add this block
     whereClauses.push(`position_id = $${paramIdx++}`);
     values.push(positionId);
   }
@@ -270,7 +267,8 @@ export async function POST(request: NextRequest) {
   if (!finalPositionId && webhook_payload && typeof webhook_payload === 'object' && webhook_payload.targetPositionId) {
     finalPositionId = webhook_payload.targetPositionId;
   }
-
+  console.log('Upload queue POST received:', data);
+  console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload, finalPositionId });
   if (!file_path) {
     await logAudit('WARN', `Upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
@@ -312,7 +310,9 @@ export async function POST(request: NextRequest) {
 
     // Automatically trigger processing of the queue
     try {
+      console.log('process.env.PROCESSOR_URL:', process.env.PROCESSOR_URL); // Debug log
       const processUrl = process.env.PROCESSOR_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+      console.log('Auto-triggering upload queue processing at:', processUrl); // Debug log
       await fetch(processUrl, {
         method: 'POST',
         headers: {

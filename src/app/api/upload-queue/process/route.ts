@@ -70,53 +70,31 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('BEGIN');
-    
-    // Step 1: Check current in-process count
+    // Lock all inprocess rows to prevent race conditions
     const countRes = await client.query(
-      `SELECT COUNT(*) as count FROM upload_queue WHERE status = 'inprocess'`
+      `SELECT id FROM upload_queue WHERE status = 'inprocess' FOR UPDATE`
     );
-    const currentInProgress = parseInt(countRes.rows[0].count, 10);
-    
-    // Step 2: Check if we have available slots
+    const currentInProgress = countRes.rowCount;
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
-      const message = `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent}) - no available slots`;
-      await logAudit('INFO', message, 'API:UploadQueue:Process', null);
-      return NextResponse.json({ 
-        message,
-        availableSlots: 0,
-        currentInProgress,
-        maxConcurrent
-      }, { status: 200 });
+      await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
+      return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
-    
-    const availableSlots = maxConcurrent - currentInProgress;
-    
-    // Step 3: Atomically pick and mark the oldest queued job as 'inprocess' (FIFO order)
+    // Atomically pick and mark the oldest queued job as 'inprocess'
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
-         SELECT id FROM upload_queue 
-         WHERE status = 'queued' 
-         ORDER BY upload_date ASC, id ASC
-         LIMIT 1
+         SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`
     );
-    
     if (res.rows.length === 0) {
       await client.query('COMMIT');
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
-      return NextResponse.json({ 
-        message: 'No queued jobs',
-        availableSlots,
-        currentInProgress,
-        maxConcurrent
-      }, { status: 200 });
+      return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
-    
     job = res.rows[0];
     await client.query('COMMIT');
     
@@ -124,8 +102,7 @@ export async function POST(request: NextRequest) {
       jobId: job.id,
       fileName: job.file_name,
       fileSize: job.file_size,
-      source: job.source,
-      uploadDate: job.upload_date
+      source: job.source 
     });
     
     // Validate file_path before proceeding
@@ -156,8 +133,14 @@ export async function POST(request: NextRequest) {
       [job.id]
     );
 
-    // Note: Removed webhook dispatcher call to avoid conflicts with system settings webhook
-    // The actual resume processing webhook is handled separately below
+    // Dispatch webhook for upload queue processing event (webhook table only)
+    try {
+      const updatedJob = { ...job, status: 'inprocess' };
+      await dispatchWebhooks.uploadQueueProcessing(updatedJob);
+    } catch (webhookError) {
+      console.error('Failed to dispatch upload queue processing webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     // Broadcast file download completion
     await logAudit('INFO', `Upload queue job '${job.file_name}' file downloaded (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
@@ -202,8 +185,18 @@ export async function POST(request: NextRequest) {
       [status, error, error_details, job.id]
     );
 
-    // Note: Removed webhook dispatcher calls to avoid conflicts with system settings webhook
-    // The actual resume processing webhook is handled separately above
+    // Dispatch webhook for upload queue completion/failure event
+    try {
+      const finalJob = { ...job, status, error, error_details, completed_date: new Date() };
+      if (status === 'success') {
+        await dispatchWebhooks.uploadQueueCompleted(finalJob, { processing_result: webhookResults });
+      } else {
+        await dispatchWebhooks.uploadQueueFailed(finalJob, { error_details: error_details || error });
+      }
+    } catch (webhookError) {
+      console.error('Failed to dispatch upload queue completion webhook:', webhookError);
+      // Don't fail the request if webhook fails
+    }
     
     // Publish queue update event for real-time updates
     await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
@@ -320,14 +313,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     // 3. POST to the configured webhook endpoint (any compatible service)
     // Priority: Database setting first, then environment variable as fallback
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
-    console.log('[Webhook Debug] System setting resumeProcessingWebhookUrl:', resumeWebhookUrl);
-    
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
-      console.log('[Webhook Debug] Fallback to env RESUME_PROCESSING_WEBHOOK_URL:', resumeWebhookUrl);
     }
-    
-    console.log('[Webhook Debug] Final webhook URL:', resumeWebhookUrl);
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       // Build JSON payload as required
       const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
@@ -356,11 +344,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         user: job.id, // Use queue job id instead of hardcoded value
       };
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
-      console.log('[Webhook Debug] System setting resumeProcessingWebhookToken:', webhookToken ? '***SET***' : 'NOT SET');
-      
       if (!webhookToken) {
         webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
-        console.log('[Webhook Debug] Fallback to env RESUME_PROCESSING_WEBHOOK_TOKEN:', webhookToken ? '***SET***' : 'NOT SET');
       }
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (webhookToken) {
@@ -368,8 +353,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
       let webhookResStatus = null;
       try {
-    
-        
+        console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
+        console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,
@@ -413,17 +398,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     } else {
       // Webhook not set, set status to error
       status = 'error';
-      webhookError = 'Webhook URL not configured in system settings. Please configure resumeProcessingWebhookUrl in System Settings.';
+      webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
       error = webhookError;
       error_details = webhookError;
       payload = { error: webhookError };
       console.warn('[Webhook Skipped]', webhookError);
-      
-      await logAudit('WARN', `Upload queue job '${job.file_name}' failed - webhook not configured`, 'API:UploadQueue:Process', null, {
-        jobId: job.id,
-        fileName: job.file_name,
-        error: 'Webhook URL not configured in system settings'
-      });
     }
     // 4. Update job status
     await client.query(

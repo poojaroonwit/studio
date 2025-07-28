@@ -210,30 +210,17 @@ export const CandidateImportUploadQueue: React.FC<{
     }
   };
 
-  // Filtering logic (client-side for now)
-  const filteredJobs = jobs.filter(job => {
-    // Show all jobs, regardless of source
-    const matchesName = job.file_name?.toLowerCase().includes(filter.toLowerCase());
-    let matchesStatus = true;
-    if (statusFilter) {
-      const codes = statusLabelToCodes[statusFilter] || [];
-      matchesStatus = codes.includes(getDisplayStatus(job.status));
-    }
-    // Date range filter
-    const inDateRange = isInRange(job.upload_date);
-    return matchesName && matchesStatus && inDateRange;
-  });
-
+  // Server-side filtering is used, so we use jobs directly
   const sortedJobs = useMemo(() => {
-    if (!sortColumn) return filteredJobs;
-    return [...filteredJobs].sort((a, b) => {
+    if (!sortColumn) return jobs;
+    return [...jobs].sort((a, b) => {
       const aValue = getSortableValue(a, sortColumn);
       const bValue = getSortableValue(b, sortColumn);
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [filteredJobs, sortColumn, sortDirection]);
+  }, [jobs, sortColumn, sortDirection]);
 
   // Fetch paginated jobs
   const fetchJobs = useCallback(async () => {
@@ -253,7 +240,16 @@ export const CandidateImportUploadQueue: React.FC<{
         offset: String((page - 1) * pageSize),
       });
       if (filter) params.set('file_name', filter);
-      if (statusFilter) params.set('status', statusFilter);
+      if (statusFilter) {
+        // Convert display label to actual status codes for backend
+        const codes = statusLabelToCodes[statusFilter] || [];
+        if (codes.length === 1) {
+          params.set('status', codes[0]);
+        } else if (codes.length > 1) {
+          // For multiple codes (like Error: ['error', 'fail']), send all codes
+          params.set('status', codes.join(','));
+        }
+      }
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
@@ -438,7 +434,16 @@ export const CandidateImportUploadQueue: React.FC<{
       try {
         const params = new URLSearchParams();
         if (filter) params.set('file_name', filter);
-        if (statusFilter) params.set('status', statusFilter);
+        if (statusFilter) {
+          // Convert display label to actual status codes for backend
+          const codes = statusLabelToCodes[statusFilter] || [];
+          if (codes.length === 1) {
+            params.set('status', codes[0]);
+          } else if (codes.length > 1) {
+            // For multiple codes (like Error: ['error', 'fail']), send all codes
+            params.set('status', codes.join(','));
+          }
+        }
         if (dateRange.start) params.set('date_start', formatDate(dateRange.start));
         if (dateRange.end) params.set('date_end', formatDate(dateRange.end));
         if (positionIdFilter) params.set('position_id', positionIdFilter);
@@ -586,11 +591,11 @@ export const CandidateImportUploadQueue: React.FC<{
   }, []);
 
   // Status counts - Use statusSummary (no status filter) for status cards, summary for table info
-  const numQueued = statusSummary ? Number(statusSummary.queued) : filteredJobs.filter(j => j.status === 'queued').length;
-  const numInProgress = statusSummary ? Number(statusSummary.inprocess) : filteredJobs.filter(j => j.status === 'inprocess').length;
-  const numSuccess = statusSummary ? Number(statusSummary.success) : filteredJobs.filter(j => j.status === 'success').length;
-  const numError = statusSummary ? Number(statusSummary.error) : filteredJobs.filter(j => j.status === 'error' || j.status === 'fail').length;
-  const totalFilteredJobs = summary ? Number(summary.total) : filteredJobs.length;
+  const numQueued = statusSummary ? Number(statusSummary.queued) : jobs.filter(j => j.status === 'queued').length;
+  const numInProgress = statusSummary ? Number(statusSummary.inprocess) : jobs.filter(j => j.status === 'inprocess').length;
+  const numSuccess = statusSummary ? Number(statusSummary.success) : jobs.filter(j => j.status === 'success').length;
+  const numError = statusSummary ? Number(statusSummary.error) : jobs.filter(j => j.status === 'error' || j.status === 'fail').length;
+  const totalFilteredJobs = summary ? Number(summary.total) : jobs.length;
 
   // Collect all unique statuses from jobs for the filter dropdown
   const allPossibleStatuses = [
@@ -688,12 +693,12 @@ export const CandidateImportUploadQueue: React.FC<{
   };
 
   // Bulk selection logic
-  const allSelected = filteredJobs.length > 0 && bulkDeleteIds.length === filteredJobs.length;
-  const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < filteredJobs.length;
+  const allSelected = jobs.length > 0 && bulkDeleteIds.length === jobs.length;
+  const someSelected = bulkDeleteIds.length > 0 && bulkDeleteIds.length < jobs.length;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setBulkDeleteIds(filteredJobs.map(job => job.id));
+      setBulkDeleteIds(jobs.map(job => job.id));
     } else {
       setBulkDeleteIds([]);
     }
@@ -714,7 +719,7 @@ export const CandidateImportUploadQueue: React.FC<{
   const handleBulkRetryAll = useCallback(async () => {
     setBulkRetryLoading(true);
     try {
-      const errorJobIds = filteredJobs.filter(job => job.status === 'error' || job.status === 'fail').map(job => job.id);
+      const errorJobIds = jobs.filter(job => job.status === 'error' || job.status === 'fail').map(job => job.id);
       await Promise.all(errorJobIds.map(async (id) => {
         await fetch(`/api/upload-queue/${id}`, {
           method: 'PATCH',
@@ -730,12 +735,12 @@ export const CandidateImportUploadQueue: React.FC<{
     } finally {
       setBulkRetryLoading(false);
     }
-  }, [filteredJobs, fetchJobs, success, error]);
+  }, [jobs, fetchJobs, success, error]);
 
   const handleDownloadCSV = useCallback(() => {
     const csvRows = [
       ['File Name', 'File Size', 'Position', 'Status', 'Source', 'Upload Date', 'Completed Date', 'ID'],
-      ...filteredJobs.map(job => [
+      ...jobs.map(job => [
         job.file_name,
         job.file_size,
         job.position_title || '',
@@ -756,7 +761,7 @@ export const CandidateImportUploadQueue: React.FC<{
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [filteredJobs]);
+  }, [jobs]);
 
   // Fetch available positions for filter
   useEffect(() => {
@@ -923,37 +928,6 @@ export const CandidateImportUploadQueue: React.FC<{
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             Refresh
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/upload-queue/process', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': 'dev-key',
-                  },
-                });
-                if (response.ok) {
-                  const result = await response.json();
-                  if (result.job) {
-                    success(`Processing job: ${result.job.file_name}`);
-                  } else if (result.message) {
-                    success(result.message);
-                  }
-                } else {
-                  error('Failed to trigger processing');
-                }
-              } catch (err) {
-                error('Error triggering processing');
-              }
-            }}
-            className=""
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Process Queue
           </Button>
           <Button
             variant="ghost"
@@ -1151,7 +1125,7 @@ export const CandidateImportUploadQueue: React.FC<{
           <Button
             variant="outline"
             size="sm"
-            disabled={bulkRetryLoading || !bulkDeleteIds.some(id => filteredJobs.find(job => job.id === id && (job.status === 'error' || job.status === 'fail')))}
+            disabled={bulkRetryLoading || !bulkDeleteIds.some(id => jobs.find(job => job.id === id && (job.status === 'error' || job.status === 'fail')))}
             onClick={() => setShowBulkRetryConfirm(true)}
             aria-label="Retry selected jobs"
           >
@@ -1316,7 +1290,7 @@ export const CandidateImportUploadQueue: React.FC<{
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredJobs.length === 0 ? (
+            ) : jobs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground">
                   {isLoading ? (
@@ -1541,7 +1515,7 @@ export const CandidateImportUploadQueue: React.FC<{
             <DialogTitle>Error Log</DialogTitle>
           </DialogHeader>
           <div className="max-h-60 overflow-auto text-sm text-destructive">
-            {filteredJobs.find(j => j.id === showErrorLogId)?.error_details || 'No error details available.'}
+            {jobs.find(j => j.id === showErrorLogId)?.error_details || 'No error details available.'}
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -1590,7 +1564,7 @@ export const CandidateImportUploadQueue: React.FC<{
               onClick={async () => {
                 setBulkRetryLoading(true);
                 try {
-                  const jobsToRetry = filteredJobs.filter(job => 
+                  const jobsToRetry = jobs.filter(job => 
                     bulkDeleteIds.includes(job.id) && (job.status === "error" || job.status === "fail")
                   );
                   await Promise.all(jobsToRetry.map(job => fetch(`/api/upload-queue/${job.id}`, {

@@ -257,7 +257,6 @@ model UploadQueue {
   @@index([processDate])
   @@index([createdBy])
   @@index([source])
-  @@index([status, uploadDate, id])
   @@map("upload_queue")
 }
 

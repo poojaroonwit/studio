@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Minimal entrypoint for upload queue processor
 # This only runs the processor without database setup

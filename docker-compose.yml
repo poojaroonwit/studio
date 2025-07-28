@@ -196,7 +196,7 @@ services:
       N8N_SESSION_COOKIE_SECURE: ${N8N_SESSION_COOKIE_SECURE:-false}
       
               # Timezone
-        GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
+      GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
     # volumes:
     #   - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:

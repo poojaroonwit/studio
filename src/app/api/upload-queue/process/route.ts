@@ -336,9 +336,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     // 3. POST to the configured webhook endpoint (any compatible service)
     // Priority: Database setting first, then environment variable as fallback
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
+    console.log('[Webhook Debug] System setting resumeProcessingWebhookUrl:', resumeWebhookUrl);
+    
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
+      console.log('[Webhook Debug] Fallback to env RESUME_PROCESSING_WEBHOOK_URL:', resumeWebhookUrl);
     }
+    
+    console.log('[Webhook Debug] Final webhook URL:', resumeWebhookUrl);
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       // Build JSON payload as required
       const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
@@ -367,8 +372,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         user: job.id, // Use queue job id instead of hardcoded value
       };
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
+      console.log('[Webhook Debug] System setting resumeProcessingWebhookToken:', webhookToken ? '***SET***' : 'NOT SET');
+      
       if (!webhookToken) {
         webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
+        console.log('[Webhook Debug] Fallback to env RESUME_PROCESSING_WEBHOOK_TOKEN:', webhookToken ? '***SET***' : 'NOT SET');
       }
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (webhookToken) {
@@ -421,11 +429,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     } else {
       // Webhook not set, set status to error
       status = 'error';
-      webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
+      webhookError = 'Webhook URL not configured in system settings. Please configure resumeProcessingWebhookUrl in System Settings.';
       error = webhookError;
       error_details = webhookError;
       payload = { error: webhookError };
       console.warn('[Webhook Skipped]', webhookError);
+      
+      await logAudit('WARN', `Upload queue job '${job.file_name}' failed - webhook not configured`, 'API:UploadQueue:Process', null, {
+        jobId: job.id,
+        fileName: job.file_name,
+        error: 'Webhook URL not configured in system settings'
+      });
     }
     // 4. Update job status
     await client.query(

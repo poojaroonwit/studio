@@ -73,36 +73,62 @@ async function processQueue() {
   isRunning = true;
   
   try {
-    const url = `${config.baseUrl}/api/upload-queue/process`;
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
-        'User-Agent': 'UploadQueueProcessor/1.0'
-      }
-    };
-
-    const response = await makeRequest(url, options);
+    let processedJobs = 0;
+    let maxAttempts = 10; // Prevent infinite loops
+    let attempt = 0;
     
-    if (response.status === 200) {
-      consecutiveErrors = 0;
+    // Process multiple jobs until no more can be processed
+    while (attempt < maxAttempts) {
+      attempt++;
       
-      if (response.data.message === 'No queued jobs') {
-        // No jobs to process, this is normal
-        if (Date.now() - lastLogTime > config.logInterval) {
-          log('No queued jobs to process', 'INFO');
-          lastLogTime = Date.now();
+      const url = `${config.baseUrl}/api/upload-queue/process`;
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': config.apiKey,
+          'User-Agent': 'UploadQueueProcessor/1.0'
         }
-      } else if (response.data.job) {
-        log(`Processed job: ${response.data.job.file_name} (${response.data.job.status})`, 'INFO');
+      };
+
+      const response = await makeRequest(url, options);
+      
+      if (response.status === 200) {
+        consecutiveErrors = 0;
+        
+        if (response.data.message === 'No queued jobs') {
+          // No jobs to process, this is normal
+          if (processedJobs === 0 && Date.now() - lastLogTime > config.logInterval) {
+            log('No queued jobs to process', 'INFO');
+            lastLogTime = Date.now();
+          }
+          break; // Exit the loop
+        } else if (response.data.message && response.data.message.includes('no available slots')) {
+          // No available slots, wait a bit and try again
+          log(`No available slots (${response.data.currentInProgress}/${response.data.maxConcurrent}), waiting...`, 'INFO');
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+          break; // Exit the loop
+        } else if (response.data.job) {
+          processedJobs++;
+          log(`Processed job: ${response.data.job.file_name} (${response.data.job.status})`, 'INFO');
+          
+          // Small delay between jobs to prevent overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          log('Queue processing completed', 'INFO');
+          break; // Exit the loop
+        }
       } else {
-        log('Queue processing completed', 'INFO');
+        consecutiveErrors++;
+        log(`HTTP ${response.status}: ${JSON.stringify(response.data)}`, 'ERROR');
+        break; // Exit the loop on error
       }
-    } else {
-      consecutiveErrors++;
-      log(`HTTP ${response.status}: ${JSON.stringify(response.data)}`, 'ERROR');
     }
+    
+    if (processedJobs > 0) {
+      log(`Processing cycle completed: ${processedJobs} jobs processed`, 'INFO');
+    }
+    
   } catch (error) {
     consecutiveErrors++;
     log(`Processing error: ${error.message}`, 'ERROR');

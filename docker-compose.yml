@@ -66,19 +66,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_DB_NAME: ${N8N_DB_NAME:-n8n}
     depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_started
+      - postgres
+      - minio
     restart: unless-stopped
     mem_limit: 1g
     cpus: 0.5
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8021/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     deploy:
       resources:
         limits:
@@ -114,12 +106,6 @@ services:
     # volumes:
     #   - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     # Resource limits
     mem_limit: 512m
     cpus: 0.25
@@ -224,10 +210,8 @@ services:
     # volumes:
     #   - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:
-      postgres:
-        condition: service_healthy
-      app:
-        condition: service_started
+      - postgres
+      - app
     restart: unless-stopped
     mem_limit: 1g
     cpus: 0.5

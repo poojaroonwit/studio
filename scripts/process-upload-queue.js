@@ -7,8 +7,8 @@
  * It can be run as a background service to ensure queue processing happens automatically.
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
 // Configuration
 const config = {

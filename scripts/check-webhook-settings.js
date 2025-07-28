@@ -6,8 +6,8 @@
  * This script checks if the webhook settings are properly configured in the system.
  */
 
-const https = require('https');
-const http = require('http');
+import https from 'https';
+import http from 'http';
 
 // Configuration
 const config = {

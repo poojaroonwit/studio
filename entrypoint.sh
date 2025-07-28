@@ -16,11 +16,16 @@ if ! command -v mc >/dev/null 2>&1; then
 fi
 
 # Set MinIO alias (idempotent)
-mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" || true
+echo "🔧 Setting up MinIO client..."
+mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" 2>/dev/null || {
+  echo "⚠️  MinIO client setup failed, but continuing..."
+}
 
 # Set public read policy on the bucket (idempotent)
 echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET_NAME"
-mc policy set download myminio/"$MINIO_BUCKET_NAME" || true
+mc policy set download myminio/"$MINIO_BUCKET_NAME" 2>/dev/null || {
+  echo "⚠️  MinIO policy setup failed, but continuing..."
+}
 
 # --- N8N Database Creation ---
 echo "🔧 Creating n8n database if it doesn't exist..."
@@ -47,10 +52,14 @@ done
 
 # Create n8n database if it doesn't exist
 echo "📊 Creating n8n database..."
-PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-SELECT 'CREATE DATABASE \"$N8N_DB_NAME\"'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$N8N_DB_NAME')\gexec
-" || true
+DB_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$N8N_DB_NAME'")
+
+if [ "$DB_EXISTS" != "1" ]; then
+  echo "📊 Creating N8N database '$N8N_DB_NAME'..."
+  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$N8N_DB_NAME\";"
+else
+  echo "✅ N8N database '$N8N_DB_NAME' already exists!"
+fi
 
 # Grant privileges
 PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "

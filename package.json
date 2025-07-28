@@ -15,6 +15,7 @@
     "lint": "next lint",
     "processor": "node scripts/process-upload-queue.js",
     "check-webhook": "node scripts/check-webhook-settings.js",
+    "disable-problematic-webhooks": "node scripts/disable-problematic-webhooks.js",
     "clean": "rimraf dist src/**/*.js src/**/*.jsx prisma/seed.js tailwind.config.js",
     "optimize": "echo Optimization script not available",
     "db:migrate": "prisma migrate deploy --schema=prisma/schema.prisma",

@@ -12,7 +12,7 @@ import http from 'http';
 
 // Configuration
 const config = {
-  baseUrl: process.env.UPLOAD_QUEUE_PROCESS_URL || process.env.PROCESSOR_URL || 'http://localhost:8021',
+  baseUrl: process.env.UPLOAD_QUEUE_PROCESS_URL || process.env.PROCESSOR_URL || 'http://localhost:8021/api/upload-queue/process',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
   interval: parseInt(process.env.PROCESSOR_INTERVAL_MS || '5000'), // 5 seconds
   maxRetries: 3,
@@ -92,7 +92,7 @@ async function processQueue() {
     while (attempt < maxAttempts) {
       attempt++;
       
-      const url = `${config.baseUrl}/api/upload-queue/process`;
+      const url = config.baseUrl;
       log(`Attempting to call: ${url}`, 'INFO');
       const options = {
         method: 'POST',

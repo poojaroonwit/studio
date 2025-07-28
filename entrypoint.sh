@@ -92,8 +92,13 @@ echo "🌱 Seeding database..."
 npx prisma db seed
 
 echo "✅ Database schema fixed and seeded successfully!"
-echo "🚀 Starting application..." 
 
-# Start the main application
-echo "🌐 Starting main application..."
-npm run start 
+# Check if we should run in processor mode
+if [ "$PROCESSOR_MODE" = "true" ]; then
+  echo "🔧 Starting in PROCESSOR MODE..."
+  echo "🚀 Starting upload queue processor..."
+  npm run processor
+else
+  echo "🚀 Starting main application..."
+  npm run start
+fi 

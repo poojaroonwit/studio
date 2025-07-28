@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
         // Handle multiple status codes (e.g., "error,fail" for Error filter)
         const statusCodes = status.split(',').map(s => s.trim());
         if (statusCodes.length === 1) {
-          whereClauses.push(`status = $${paramIdx++}`);
-          values.push(status);
+        whereClauses.push(`status = $${paramIdx++}`);
+        values.push(status);
         } else {
           const placeholders = statusCodes.map(() => `$${paramIdx++}`).join(', ');
           whereClauses.push(`status IN (${placeholders})`);

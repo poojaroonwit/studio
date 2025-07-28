@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 8021",
+    "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "prebuild": "echo Build started",
@@ -12,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "postbuild": "echo Build finished",
     "start": "next start -p 8021",
+    "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
     "lint": "next lint",
     "processor": "node scripts/process-upload-queue.js",
     "check-webhook": "node scripts/check-webhook-settings.js",

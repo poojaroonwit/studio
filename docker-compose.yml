@@ -97,8 +97,8 @@ services:
       "
     # volumes:
     #   - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
-    # volumes:
-    #   - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
+    volumes:
+      - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
@@ -127,8 +127,8 @@ services:
       MINIO_API_CORS_ALLOW_HEADERS: Authorization,Content-Type,X-Amz-Date,X-Amz-Content-Sha256,X-Amz-Security-Token,X-Requested-With
 
     command: server /data --console-address ":9001" --address ":9000"
-    # volumes:
-    #   - /var/dockers/8021/minio_data:/data
+    volumes:
+      - /var/dockers/8021/minio_data:/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
@@ -136,7 +136,27 @@ services:
     networks:
       - docker_internal
 
-  # upload-queue-processor service removed - auto-triggering is now built into the upload API
+  # Upload Queue Processor Service
+  upload-queue-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PROCESSOR_API_KEY: ${PROCESSOR_API_KEY:-dev-key}
+      PROCESSOR_URL: ${PROCESSOR_URL:-http://app:8021}
+      PROCESSOR_INTERVAL_MS: ${PROCESSOR_INTERVAL_MS:-5000}
+      LOG_INTERVAL_MS: ${LOG_INTERVAL_MS:-30000}
+      NODE_ENV: ${NODE_ENV}
+      PROCESSOR_MODE: "true"
+    depends_on:
+      - postgres
+      - app
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    networks:
+      - docker_internal
 
   n8n:
     image: n8nio/n8n:latest
@@ -181,8 +201,8 @@ services:
       
       # Timezone
       GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
-    # volumes:
-    #   - /var/dockers/8021/n8n_data:/home/node/.n8n
+    volumes:
+      - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:
       - postgres
     restart: unless-stopped

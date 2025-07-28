@@ -93,7 +93,6 @@ function detectAndConvertEncoding(buffer: Buffer): string {
   // For Thai language support, prioritize UTF-8
   // Check for UTF-8 BOM first
   if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
-    console.log('Detected UTF-8 BOM, using UTF-8 encoding');
     return buffer.toString('utf-8');
   }
   
@@ -103,16 +102,14 @@ function detectAndConvertEncoding(buffer: Buffer): string {
     // Check if it looks like valid UTF-8 by trying to parse as CSV
     try {
       parseCsv(utf8String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
-      console.log('UTF-8 encoding detected and validated');
       return utf8String;
     } catch (parseError) {
-      console.log('UTF-8 parsing failed, but continuing with UTF-8 for Thai support:', parseError);
       // For Thai language support, we'll still use UTF-8 even if CSV parsing fails
       // The actual parsing will be done later with better error handling
       return utf8String;
     }
   } catch (error) {
-    console.log('UTF-8 conversion failed:', error);
+    // UTF-8 conversion failed, try other encodings
   }
 
   // Only try other encodings if UTF-8 completely fails
@@ -121,7 +118,6 @@ function detectAndConvertEncoding(buffer: Buffer): string {
     const win1252String = buffer.toString('latin1');
     try {
       parseCsv(win1252String, { columns: true, skip_empty_lines: true, max_record_size: 1000 });
-      console.log('Windows-1252 encoding detected');
       return win1252String;
     } catch {
       // Windows-1252 parsing failed
@@ -133,11 +129,9 @@ function detectAndConvertEncoding(buffer: Buffer): string {
   // Try ISO-8859-1 as fallback
   try {
     const isoString = buffer.toString('latin1');
-    console.log('ISO-8859-1 encoding used as fallback');
     return isoString;
   } catch {
     // If all else fails, return as UTF-8 and let it fail with a clear error
-    console.log('All encoding attempts failed, using UTF-8 as final fallback');
     return buffer.toString('utf-8');
   }
 }
@@ -176,10 +170,6 @@ export async function POST(request: NextRequest) {
         csvString = csvString.slice(1);
       }
       
-      // Debug: Log the first few lines of the CSV to see what we're working with
-      console.log('CSV string (first 500 chars):', csvString.substring(0, 500));
-      console.log('CSV string length:', csvString.length);
-      
       let records;
       try {
         records = parseCsv(csvString, { 
@@ -187,10 +177,6 @@ export async function POST(request: NextRequest) {
           skip_empty_lines: true,
           trim: true // Trim whitespace from headers and values
         });
-        console.log('CSV parsed successfully. Number of records:', records.length);
-        if (records.length > 0) {
-          console.log('CSV headers detected:', Object.keys(records[0]));
-        }
       } catch (parseError) {
         const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
         console.error('CSV parsing error:', parseError);
@@ -211,9 +197,7 @@ export async function POST(request: NextRequest) {
       
       const firstRecord = records[0];
       
-      // Debug: Log the first record to see what headers are actually detected
-      console.log('First record headers:', Object.keys(firstRecord));
-      console.log('First record values:', firstRecord);
+      // Validate first record
       
       if (!firstRecord.title) {
         // Provide more detailed error information

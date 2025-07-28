@@ -77,13 +77,10 @@ export async function POST(request: NextRequest) {
     );
     const currentInProgress = parseInt(countRes.rows[0].count, 10);
     
-    console.log(`[PROCESS] Current in-process: ${currentInProgress}, Max concurrent: ${maxConcurrent}`);
-    
     // Step 2: Check if we have available slots
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
       const message = `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent}) - no available slots`;
-      console.log(`[PROCESS] ${message}`);
       await logAudit('INFO', message, 'API:UploadQueue:Process', null);
       return NextResponse.json({ 
         message,
@@ -94,10 +91,8 @@ export async function POST(request: NextRequest) {
     }
     
     const availableSlots = maxConcurrent - currentInProgress;
-    console.log(`[PROCESS] Available slots: ${availableSlots}`);
     
     // Step 3: Atomically pick and mark the oldest queued job as 'inprocess' (FIFO order)
-    console.log(`[PROCESS] Selecting next job in FIFO order (oldest first)...`);
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -113,7 +108,6 @@ export async function POST(request: NextRequest) {
     
     if (res.rows.length === 0) {
       await client.query('COMMIT');
-      console.log(`[PROCESS] ⏳ No queued jobs available for processing`);
       await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
       return NextResponse.json({ 
         message: 'No queued jobs',
@@ -125,9 +119,6 @@ export async function POST(request: NextRequest) {
     
     job = res.rows[0];
     await client.query('COMMIT');
-    
-    console.log(`[PROCESS] ✅ Selected job for processing: ${job.file_name} (ID: ${job.id})`);
-    console.log(`[PROCESS] Job details: size=${job.file_size}, source=${job.source}, upload_date=${job.upload_date}`);
     
     await logAudit('INFO', `Processing upload queue job '${job.file_name}' (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
       jobId: job.id,

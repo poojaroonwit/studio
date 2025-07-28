@@ -126,25 +126,11 @@ function UploadPageContent() {
   const handleConfirmUpload = async () => {
     setUploading(true);
     const batchId = uuidv4();
-    const now = new Date().toISOString();
     try {
       if (selectedFiles.length === 0) return;
-      // Upload files
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-      });
-      const uploadRes = await fetch('/api/upload-queue/upload-file', {
-        method: 'POST',
-        body: formData
-      });
-      if (!uploadRes.ok) {
-        throw new Error(`File upload failed`);
-      }
-      const { results } = await uploadRes.json();
-      // Upload all files to MinIO and add to queue immediately
-      const formData = new FormData();
       
+      // Use the unified upload endpoint
+      const formData = new FormData();
       selectedFiles.forEach(file => {
         formData.append('files', file);
       });
@@ -155,8 +141,7 @@ function UploadPageContent() {
       formData.append('batch_id', batchId);
       formData.append('source', 'bulk');
 
-      // Upload to MinIO and add to queue immediately
-      const uploadRes = await fetch('/api/upload-queue/fast-bulk-insert', {
+      const uploadRes = await fetch('/api/upload-queue/upload-file', {
         method: 'POST',
         body: formData
       });
@@ -168,12 +153,15 @@ function UploadPageContent() {
         setIsBulkUploadModalOpen(false);
         
         // Show summary to user
-        if (uploadData.failed === 0) {
-          toast.success(`Upload complete: ${uploadData.successful} file(s) uploaded and queued for processing.`);
+        if (uploadData.summary.failed === 0) {
+          toast.success(`Upload complete: ${uploadData.summary.success} file(s) uploaded and queued for processing.`);
         } else {
-          toast.success(`Upload complete: ${uploadData.successful} files uploaded successfully, ${uploadData.failed} files failed.`);
-          if (uploadData.errors && uploadData.errors.length > 0) {
-            console.table(uploadData.errors);
+          toast.success(`Upload complete: ${uploadData.summary.success} files uploaded successfully, ${uploadData.summary.failed} files failed.`);
+          if (uploadData.results) {
+            const failedFiles = uploadData.results.filter((r: any) => r.status === 'failed');
+            if (failedFiles.length > 0) {
+              console.table(failedFiles);
+            }
           }
         }
       } else {

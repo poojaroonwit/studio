@@ -2,13 +2,230 @@ import { NextRequest, NextResponse } from 'next/server';
 import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { authOptions, validateUserSession } from '@/lib/auth';
+import { getPool } from '@/lib/db';
+import { logAudit } from '@/lib/auditLog';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
+import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
+
+// Configuration constants
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const ALLOWED_FILE_TYPES = ['application/pdf'];
+const MAX_FILES_PER_REQUEST = 50;
+
+// File validation interface
+interface FileValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+// Upload result interface
+interface UploadResult {
+  file_name: string;
+  status: 'success' | 'failed';
+  file_path?: string;
+  file_size?: number;
+  error?: string;
+  queue_id?: string;
+}
+
+// Request validation interface
+interface UploadRequest {
+  files: File[];
+  position_id?: string;
+  batch_id?: string;
+  source?: string;
+  webhook_payload?: any;
+}
+
+/**
+ * Validates a single file for upload
+ */
+function validateFile(file: File): FileValidationResult {
+  // Check file type
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return {
+      isValid: false,
+      error: `Invalid file type. Only PDF files are allowed. Got: ${file.type}`
+    };
+  }
+
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      isValid: false,
+      error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB. Got: ${(file.size / (1024 * 1024)).toFixed(2)}MB`
+    };
+  }
+
+  // Check file name
+  if (!file.name || file.name.trim().length === 0) {
+    return {
+      isValid: false,
+      error: 'File name is required'
+    };
+  }
+
+  // Check for potentially dangerous file names
+  if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+    return {
+      isValid: false,
+      error: 'File name contains invalid characters'
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Uploads a single file to MinIO with retry logic
+ */
+async function uploadToMinIO(file: File, objectName: string): Promise<{ success: boolean; error?: string }> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  
+  return await retryMinIOUpload(
+    async () => {
+      await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
+        'Content-Type': file.type || 'application/pdf',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(file.name)}"`,
+      });
+    },
+    file.name
+  );
+}
+
+/**
+ * Inserts a job into the upload queue database
+ */
+async function insertIntoUploadQueue(
+  client: any,
+  jobData: {
+    id: string;
+    file_name: string;
+    file_size: number;
+    file_path: string;
+    position_id?: string;
+    batch_id?: string;
+    source?: string;
+    webhook_payload?: any;
+    created_by: string;
+  }
+): Promise<{ success: boolean; error?: string; job?: any }> {
+  const result = await retryDatabaseOperation(
+    async () => {
+      const res = await client.query(
+        `INSERT INTO upload_queue (
+          id, file_name, file_size, status, source, upload_id, created_by, 
+          file_path, webhook_payload, position_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *`,
+        [
+          jobData.id,
+          jobData.file_name,
+          jobData.file_size,
+          'queued',
+          jobData.source || 'bulk',
+          jobData.batch_id || uuidv4(),
+          jobData.created_by,
+          jobData.file_path,
+          jobData.webhook_payload ? JSON.stringify(jobData.webhook_payload) : null,
+          jobData.position_id || null
+        ]
+      );
+      return res.rows[0];
+    },
+    `insert_upload_queue_${jobData.file_name}`
+  );
+
+  return {
+    success: result.success,
+    job: result.data,
+    error: result.success ? undefined : result.error
+  };
+}
+
+/**
+ * Processes a single file upload with atomic MinIO+DB operations
+ */
+async function processFileUpload(
+  file: File,
+  client: any,
+  options: {
+    position_id?: string;
+    batch_id?: string;
+    source?: string;
+    webhook_payload?: any;
+    created_by: string;
+  }
+): Promise<UploadResult> {
+  const jobId = uuidv4();
+  const ext = file.name.split('.').pop() || 'pdf';
+  const objectName = `uploads/${jobId}.${ext}`;
+
+  // Step 1: Validate file
+  const validation = validateFile(file);
+  if (!validation.isValid) {
+    return {
+      file_name: file.name,
+      status: 'failed',
+      error: validation.error
+    };
+  }
+
+  // Step 2: Upload to MinIO
+  const minioResult = await uploadToMinIO(file, objectName);
+  if (!minioResult.success) {
+    return {
+      file_name: file.name,
+      status: 'failed',
+      error: minioResult.error
+    };
+  }
+
+  // Step 3: Insert into upload queue
+  const dbResult = await insertIntoUploadQueue(client, {
+    id: jobId,
+    file_name: file.name,
+    file_size: file.size,
+    file_path: objectName,
+    position_id: options.position_id,
+    batch_id: options.batch_id,
+    source: options.source,
+    webhook_payload: options.webhook_payload,
+    created_by: options.created_by
+  });
+
+  if (!dbResult.success) {
+    // If DB insert fails, we should clean up the MinIO file
+    try {
+      await minioClient.removeObject(MINIO_BUCKET, objectName);
+    } catch (cleanupError) {
+      console.error(`[UPLOAD] Failed to cleanup MinIO file after DB failure: ${objectName}`, cleanupError);
+    }
+
+    return {
+      file_name: file.name,
+      status: 'failed',
+      error: dbResult.error
+    };
+  }
+
+  return {
+    file_name: file.name,
+    status: 'success',
+    file_path: objectName,
+    file_size: file.size,
+    queue_id: jobId
+  };
+}
 
 /**
  * @openapi
  * /api/upload-queue/upload-file:
  *   post:
- *     summary: Upload multiple files to MinIO
+ *     summary: Upload multiple files to MinIO and add to processing queue
+ *     description: Uploads multiple PDF files to MinIO storage and adds them to the upload queue for processing. Requires authentication.
  *     requestBody:
  *       required: true
  *       content:
@@ -21,9 +238,19 @@ import { authOptions } from '@/lib/auth';
  *                 items:
  *                   type: string
  *                   format: binary
+ *                 description: PDF files to upload
+ *               position_id:
+ *                 type: string
+ *                 description: Optional position ID to assign files to
+ *               batch_id:
+ *                 type: string
+ *                 description: Optional batch ID for grouping uploads
+ *               source:
+ *                 type: string
+ *                 description: Source of the upload (e.g., 'bulk', 'manual')
  *     responses:
  *       200:
- *         description: Files uploaded with status
+ *         description: Files uploaded with detailed results
  *         content:
  *           application/json:
  *             schema:
@@ -38,127 +265,248 @@ import { authOptions } from '@/lib/auth';
  *                         type: string
  *                       status:
  *                         type: string
+ *                         enum: [success, failed]
  *                       file_path:
  *                         type: string
+ *                       file_size:
+ *                         type: number
  *                       error:
  *                         type: string
+ *                       queue_id:
+ *                         type: string
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     success:
+ *                       type: number
+ *                     failed:
+ *                       type: number
  *       400:
- *         description: No files uploaded
+ *         description: Invalid request (no files, too many files, validation errors)
  *       401:
  *         description: Unauthorized
+ *       403:
+ *         description: Insufficient permissions
  *       500:
  *         description: Internal server error
  */
 export async function POST(request: NextRequest) {
-  try {
+  const startTime = Date.now();
+  let client: any = null;
 
-    
+  try {
+    // Step 1: Authentication and authorization
     const session = await getServerSession(authOptions);
     if (!session) {
-
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log(`[UPLOAD] Processing upload for user: ${session.user?.email}`);
+    const validation = await validateUserSession(session);
+    if (!validation.isValid) {
+      await logAudit('ERROR', `Upload attempt with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:UploadFile', null, { 
+        invalidUserId: validation.userId,
+        sessionUser: validation.userName,
+        error: validation.error
+      });
+      return NextResponse.json({ error: validation.error }, { status: 401 });
+    }
 
+    const actingUserId = validation.userId!;
+    const actingUserName = validation.userName!;
+
+    // Check permissions
+    const canUpload = session.user.role === 'Admin' || 
+      session.user.modulePermissions?.includes('BULK_UPLOAD') ||
+      session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+    
+    if (!canUpload) {
+      await logAudit('WARN', `Forbidden upload attempt by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId);
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to upload files' }, { status: 403 });
+    }
+
+    // Step 2: Parse and validate request
     const formData = await request.formData();
-    // Accept both 'files' (array) and fallback to 'file' (single) for backward compatibility
-    let files = formData.getAll('files');
+    
+    // Extract files
+    let files = formData.getAll('files') as File[];
     if (!files.length) {
-      // fallback to single file field
+      // Fallback to single file field for backward compatibility
       const singleFile = formData.get('file');
       if (singleFile && typeof singleFile !== 'string') {
-        files = [singleFile];
+        files = [singleFile as File];
       }
     }
-    
-    console.log(`[UPLOAD] Found ${files.length} files to process`);
-    
+
     if (!files.length) {
-      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
+      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
-    // Ensure bucket exists before uploading
-    console.log('[UPLOAD] Ensuring MinIO bucket exists...');
+    // Validate number of files
+    if (files.length > MAX_FILES_PER_REQUEST) {
+      return NextResponse.json({ 
+        error: `Too many files. Maximum ${MAX_FILES_PER_REQUEST} files per request. Got: ${files.length}` 
+      }, { status: 400 });
+    }
+
+    // Extract additional parameters
+    const position_id = formData.get('position_id') as string || undefined;
+    const batch_id = formData.get('batch_id') as string || uuidv4();
+    const source = formData.get('source') as string || 'bulk';
+    const webhook_payload = formData.get('webhook_payload') ? 
+      JSON.parse(formData.get('webhook_payload') as string) : undefined;
+
+    // Step 3: Ensure MinIO bucket exists
     try {
       await ensureBucketExists();
-      console.log('[UPLOAD] MinIO bucket is ready');
     } catch (minioError) {
       console.error('[UPLOAD] MinIO bucket check error:', minioError);
+      await logAudit('ERROR', `MinIO bucket access failed during upload by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId, {
+        error: minioError instanceof Error ? minioError.message : 'Unknown error'
+      });
       return NextResponse.json({
-        error: 'Failed to access storage. Please check your MinIO configuration.',
-        details: minioError instanceof Error ? minioError.message : 'Unknown error'
-      }, { status: 500 });
+        error: 'Storage service unavailable. Please try again later.',
+        details: 'Failed to access file storage'
+      }, { status: 503 });
     }
 
-    const results = await Promise.all(files.map(async (file: any, index: number) => {
-      console.log(`[UPLOAD] Processing file ${index + 1}/${files.length}: ${file?.name || 'unknown'}`);
-      
-      if (!file || typeof file === 'string') {
-        console.log(`[UPLOAD] Invalid file object for file ${index + 1}`);
-        return {
-          file_name: typeof file === 'string' ? file : 'unknown',
-          status: 'failed',
-          error: 'Invalid file object',
-        };
-      }
+    // Step 4: Process files with database transaction
+    client = await getPool().connect();
+    await client.query('BEGIN');
 
-      const ext = file.name.split('.').pop() || 'bin';
-      const objectName = `uploads/${uuidv4()}.${ext}`;
-      
-      let buffer;
-      try {
-        console.log(`[UPLOAD] Reading file buffer for: ${file.name}`);
-        buffer = Buffer.from(await file.arrayBuffer());
-        console.log(`[UPLOAD] File buffer size: ${buffer.length} bytes`);
-      } catch (err) {
-        console.error(`[UPLOAD] Failed to read file buffer for ${file.name}:`, err);
-        return {
-          file_name: file.name,
-          status: 'failed',
-          error: 'Failed to read file buffer',
-        };
-      }
+    const results: UploadResult[] = [];
+    const uploadPromises = files.map(async (file) => {
+      return await processFileUpload(file, client, {
+        position_id,
+        batch_id,
+        source,
+        webhook_payload,
+        created_by: actingUserId
+      });
+    });
 
-      try {
-        console.log(`[UPLOAD] Uploading ${file.name} to MinIO as ${objectName}`);
-        await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
-          'Content-Type': file.type || 'application/octet-stream',
-        });
-        console.log(`[UPLOAD] Successfully uploaded ${file.name}`);
-        return {
-          file_name: file.name,
-          status: 'success',
-          file_path: objectName,
-        };
-      } catch (minioError) {
-        console.error(`[UPLOAD] MinIO upload error for ${file.name}:`, minioError);
-        return {
-          file_name: file.name,
-          status: 'failed',
-          error: `Failed to upload file to storage: ${minioError instanceof Error ? minioError.message : 'Unknown error'}`,
-        };
-      }
-    }));
+    const uploadResults = await Promise.all(uploadPromises);
+    results.push(...uploadResults);
 
+    // Step 5: Commit transaction if all operations succeeded
+    await client.query('COMMIT');
+
+    // Step 6: Calculate summary
     const successCount = results.filter(r => r.status === 'success').length;
     const failureCount = results.filter(r => r.status === 'failed').length;
-    
-    console.log(`[UPLOAD] Upload completed. Success: ${successCount}, Failed: ${failureCount}`);
 
-    return NextResponse.json({ 
+    // Step 7: Log audit events
+    const processingTime = Date.now() - startTime;
+    await logAudit('AUDIT', `Bulk file upload completed by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId, {
+      totalFiles: files.length,
+      successfulUploads: successCount,
+      failedUploads: failureCount,
+      processingTimeMs: processingTime,
+      batchId: batch_id,
+      positionId: position_id,
+      source: source
+    });
+
+    // Step 8: Dispatch webhooks for successful uploads
+    const successfulJobs = results.filter(r => r.status === 'success');
+    for (const result of successfulJobs) {
+      try {
+        await dispatchWebhooks.uploadQueueCreated({
+          id: result.queue_id,
+          file_name: result.file_name,
+          file_size: result.file_size,
+          status: 'queued',
+          source: source,
+          file_path: result.file_path
+        });
+      } catch (webhookError) {
+        console.error(`[UPLOAD] Failed to dispatch webhook for ${result.file_name}:`, webhookError);
+        // Don't fail the request if webhook fails
+      }
+    }
+
+    // Step 9: Broadcast SSE update for real-time UI updates
+    try {
+      broadcastUploadQueueUpdate();
+    } catch (sseError) {
+      console.error('[UPLOAD] Failed to broadcast upload queue update via SSE:', sseError);
+    }
+
+    // Step 10: Auto-trigger queue processing if there are successful uploads
+    if (successfulJobs.length > 0) {
+      try {
+        const processUrl = process.env.UPLOAD_QUEUE_PROCESS_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
+        await fetch(processUrl, {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.PROCESSOR_API_KEY || '',
+          },
+        });
+      } catch (autoProcessError) {
+        console.error('[UPLOAD] Failed to auto-trigger upload queue processing:', autoProcessError);
+        // Don't fail the request if auto-processing fails
+      }
+    }
+
+    // Step 11: Return response
+    const response = {
       results,
       summary: {
         total: results.length,
         success: successCount,
         failed: failureCount
-      }
+      },
+      batch_id,
+      processing_time_ms: processingTime
+    };
+
+    return NextResponse.json(response, { 
+      status: failureCount === 0 ? 200 : 207 // 207 Multi-Status if some files failed
     });
+
   } catch (error) {
+    // Rollback transaction if it was started
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[UPLOAD] Error during transaction rollback:', rollbackError);
+      }
+    }
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const processingTime = Date.now() - startTime;
+
     console.error('[UPLOAD] Upload files error:', error);
+    
+    // Log the error
+    try {
+      await logAudit('ERROR', `Bulk file upload failed`, 'API:UploadQueue:UploadFile', 
+        session?.user?.id, {
+          error: errorMessage,
+          processingTimeMs: processingTime,
+          stack: error instanceof Error ? error.stack : undefined
+        }
+      );
+    } catch (logError) {
+      console.error('[UPLOAD] Failed to log audit event:', logError);
+    }
+
     return NextResponse.json({
       error: 'Internal server error during file upload',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
+      processing_time_ms: processingTime
     }, { status: 500 });
+
+  } finally {
+    // Release database client
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.error('[UPLOAD] Error releasing database client:', releaseError);
+      }
+    }
   }
 } 

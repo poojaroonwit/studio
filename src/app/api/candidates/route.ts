@@ -244,7 +244,6 @@ export async function GET(request: NextRequest) {
   // Filter out undefined values to prevent PostgreSQL errors
   Object.keys(filters).forEach(key => {
     if (filters[key] === undefined || filters[key] === '') {
-      console.log(`Removing undefined/empty filter: ${key} = ${filters[key]}`);
       delete filters[key];
     }
   });

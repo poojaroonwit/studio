@@ -6,7 +6,6 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Position statistics API called with params:', params);
     const positionId = params.id;
     
     if (!positionId) {
@@ -16,12 +15,9 @@ export async function GET(
       );
     }
 
-    console.log('Processing position ID:', positionId);
-
     // Test database connection first
     try {
       await prisma.$connect();
-      console.log('Database connection successful');
     } catch (dbError) {
       console.error('Database connection failed:', dbError);
       return NextResponse.json(
@@ -31,7 +27,6 @@ export async function GET(
     }
 
     // Get total candidates who applied to this position
-    console.log('Fetching total applied candidates...');
     let totalApplied = 0;
     try {
       totalApplied = await prisma.candidate.count({
@@ -39,14 +34,12 @@ export async function GET(
           positionId: positionId
         }
       });
-      console.log('Total applied candidates:', totalApplied);
     } catch (error) {
       console.error('Error fetching applied candidates:', error);
       totalApplied = 0;
     }
 
     // Get candidates who have job matches for this position
-    console.log('Fetching candidates with job matches...');
     let totalMatching = 0;
     let matchingNotApplied = 0;
     
@@ -66,8 +59,6 @@ export async function GET(
         }
       });
 
-      console.log('Job matches found in JobMatch table:', jobMatchCandidates.length);
-
       // Get unique candidate IDs from JobMatch table
       const jobMatchCandidateIds = new Set(jobMatchCandidates.map(match => match.candidateId));
 
@@ -79,8 +70,6 @@ export async function GET(
           parsedData: true
         }
       });
-      
-      console.log('Total candidates found:', allCandidates.length);
       
       // Filter candidates who have job matches for this position in parsedData
       const parsedDataCandidateIds = new Set();
@@ -101,16 +90,13 @@ export async function GET(
             parsedDataCandidateIds.add(candidate.id);
           }
         } catch (error) {
-          console.log('Error parsing candidate data for candidate', candidate.id, ':', error);
+                    console.error('Error parsing candidate data for candidate', candidate.id, ':', error);
         }
       });
-
-      console.log('Candidates with job matches in parsedData:', parsedDataCandidateIds.size);
 
       // Combine both sources - get unique candidate IDs
       const allMatchingCandidateIds = new Set([...jobMatchCandidateIds, ...parsedDataCandidateIds]);
       totalMatching = allMatchingCandidateIds.size;
-      console.log('Total unique matching candidates:', totalMatching);
 
       // Calculate matching but not applied
       // Get candidates who match but haven't applied to this position
@@ -134,8 +120,6 @@ export async function GET(
           matchingNotApplied++;
         });
 
-      console.log('Matching but not applied candidates:', matchingNotApplied);
-      
     } catch (error) {
       console.error('Error calculating job matching statistics:', error);
       totalMatching = 0;
@@ -148,12 +132,9 @@ export async function GET(
       matchingNotApplied
     };
 
-    console.log(`Position statistics for ${positionId}:`, result);
-    
     // Close database connection
     try {
       await prisma.$disconnect();
-      console.log('Database connection closed');
     } catch (error) {
       console.error('Error closing database connection:', error);
     }

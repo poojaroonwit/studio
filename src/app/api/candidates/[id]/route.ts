@@ -186,7 +186,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
-  console.log('API received payload:', { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes });
+  
 
   // Extra validation to prevent DB errors
   if (!status || typeof status !== 'string' || status.trim() === '') {
@@ -328,7 +328,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Create transition record if status changed
     if (oldStatus !== status) {
-      console.log('Creating transition record:', { oldStatus, newStatus: status, transitionNotes, actingUserId });
       const safePositionId = positionId ?? null; // Default to null if undefined
       const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
       const newTransitionId = uuidv4();
@@ -340,7 +339,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         await client.query(insertTransitionQuery, [
           newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
         ]);
-        console.log('Transition record created successfully');
         
         // Get the created transition record to broadcast
         const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
@@ -395,8 +393,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         console.error('Error creating recruiter change transition record:', transitionError);
         throw transitionError;
       }
-    } else {
-      console.log('No status or recruiter change detected, skipping transition record creation');
     }
 
     await client.query('COMMIT');

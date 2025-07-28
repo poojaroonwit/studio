@@ -1,3 +1,0 @@
-title,department,description,isOpen,positionLevel,custom_attributes
-Software Engineer,Engineering,Develops software applications. Responsible for backend and frontend development.,true,Mid-Level,"{\"remote\":true}"
-Product Manager,Product,Manages product lifecycle and leads product strategy.,true,Senior,"{\"remote\":false}" 

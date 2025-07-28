@@ -171,8 +171,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
       formData.append('batch_id', batchId);
       formData.append('source', 'bulk');
 
-      // Upload to MinIO and add to queue immediately
-      const uploadRes = await fetch('/api/upload-queue/fast-bulk-insert', {
+      // Upload to MinIO and add to queue immediately using the new unified endpoint
+      const uploadRes = await fetch('/api/upload-queue/upload-file', {
         method: 'POST',
         body: formData
       });
@@ -182,24 +182,32 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         try {
           const errorData = await uploadRes.json();
           errorMsg = errorData.error || errorMsg;
-          console.error('Fast bulk upload error:', errorData);
+          console.error('Upload error:', errorData);
         } catch (parseErr) {
-          console.error('Fast bulk upload error (non-JSON):', uploadRes);
+          console.error('Upload error (non-JSON):', uploadRes);
         }
         errorWithDescription(`Upload failed: ${errorMsg}`, "The files could not be uploaded to storage and queue.");
         return { success: false, error: errorMsg };
       }
       
       const result = await uploadRes.json();
+      
+      // Map the new response format to the expected format
+      const successful = result.summary?.success || 0;
+      const failed = result.summary?.failed || 0;
+      const errors = result.results
+        ?.filter((r: any) => r.status === 'failed')
+        ?.map((r: any) => `${r.file_name}: ${r.error}`) || [];
+      
       return { 
         success: true, 
         data: result,
-        successful: result.successful,
-        failed: result.failed,
-        errors: result.errors || []
+        successful,
+        failed,
+        errors
       };
     } catch (err) {
-      console.error('Network or unexpected error during fast bulk upload:', err);
+      console.error('Network or unexpected error during upload:', err);
       errorWithDescription(`Upload failed: Unexpected error`, "Please try again or contact support if the issue persists.");
       return { success: false, error: 'Unexpected error' };
     }
@@ -222,39 +230,10 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
 
   const handleConfirmUpload = useCallback(async () => {
     setUploading(true);
-    const now = new Date().toISOString();
     try {
       if (selectedFiles.length === 0) return;
-      const formData = new FormData();
-      selectedFiles.forEach((file) => {
-        formData.append('files', file);
-      });
-      const uploadRes = await fetch('/api/upload-queue/upload-file', {
-        method: 'POST',
-        body: formData
-      });
-      if (!uploadRes.ok) {
-        let errorMsg = 'File upload failed';
-        try {
-          const errorData = await uploadRes.json();
-          errorMsg = errorData.error || errorMsg;
-          console.error('File upload error:', errorData);
-        } catch (parseErr) {
-          console.error('File upload error (non-JSON):', uploadRes);
-        }
-        errorWithDescription(errorMsg, "Please check your connection and try again.");
-        return;
-      }
-      const { results } = await uploadRes.json();
-      // Close modal immediately after upload to MinIO
-      setSelectedFiles([]);
-      setSelectedPositionId("");
-      setSelectedPositionIds(new Set());
-      setFileBatchMap({});
-      setSelectedFileIndex(0);
-      onOpenChange(false);
-      successWithDescription('Files uploaded! Now adding to processing queue...', 'Your files are being queued for processing.');
-      // Upload all files to MinIO and add to queue immediately
+      
+      // Use the unified upload endpoint directly
       const batchId = uuidv4();
       const { success, data, successful, failed, errors } = await uploadFilesToMinIOAndQueue(selectedFiles, batchId);
       
@@ -274,15 +253,24 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
             console.table(errors);
           }
         }
+        
+        // Close modal and reset state
+        setSelectedFiles([]);
+        setSelectedPositionId("");
+        setSelectedPositionIds(new Set());
+        setFileBatchMap({});
+        setSelectedFileIndex(0);
+        onOpenChange(false);
+        
+        if (onUploadSuccess) onUploadSuccess();
+        // Trigger a manual refresh so the upload queue updates immediately
+        window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
       } else {
         errorWithDescription(
           `Upload failed: ${data?.error || 'Unknown error'}`, 
           "The upload process encountered an error. Please try again."
         );
       }
-      if (onUploadSuccess) onUploadSuccess();
-      // Trigger a manual refresh so the upload queue updates immediately
-      window.dispatchEvent(new CustomEvent('refreshCandidateQueue'));
     } catch (error) {
       console.error('Bulk upload error:', error);
       errorWithDescription('Bulk upload failed (unexpected error)', "Please try again or contact support if the issue persists.");

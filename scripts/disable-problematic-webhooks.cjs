@@ -3,127 +3,104 @@
 /**
  * Disable Problematic Webhooks
  * 
- * This script disables webhooks that are configured to use environment URLs
- * instead of system settings, to prevent conflicts.
+ * This script disables webhooks that are using old/incorrect URLs.
  */
 
-const https = require('https');
-const http = require('http');
+const { PrismaClient } = require('@prisma/client');
 
-// Configuration
-const config = {
-  baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
-  apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-};
-
-function log(message, level = 'INFO') {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [${level}] ${message}`);
-}
-
-function makeRequest(url, options) {
-  return new Promise((resolve, reject) => {
-    const protocol = url.startsWith('https:') ? https : http;
-    
-    const req = protocol.request(url, options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const jsonData = JSON.parse(data);
-          resolve({ status: res.statusCode, data: jsonData });
-        } catch (error) {
-          resolve({ status: res.statusCode, data: data });
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    req.setTimeout(10000); // 10 second timeout
-
-    if (options.body) {
-      req.write(options.body);
-    }
-    req.end();
-  });
-}
+const prisma = new PrismaClient();
 
 async function disableProblematicWebhooks() {
   try {
-    log('Checking for problematic webhooks...', 'INFO');
+    console.log('🔍 Checking for problematic webhooks...');
     
-    // Get all webhooks
-    const webhooksUrl = `${config.baseUrl}/api/settings/webhooks`;
-    const webhooksResponse = await makeRequest(webhooksUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
+    // Find webhooks with problematic URLs
+    const problematicWebhooks = await prisma.webhook.findMany({
+      where: {
+        OR: [
+          {
+            url: {
+              contains: 'ncc-dify.qsncc.com'
+            }
+          },
+          {
+            url: {
+              contains: 'dify.qsncc.com'
+            }
+          },
+          {
+            url: {
+              contains: 'qsncc.com'
+            }
+          }
+        ]
       }
     });
 
-    if (webhooksResponse.status === 200) {
-      const webhooks = webhooksResponse.data;
-      
-      log(`Found ${webhooks.length} webhooks`, 'INFO');
-      
-      let disabledCount = 0;
-      
-      for (const webhook of webhooks) {
-        // Check if webhook is active and uses problematic URLs
-        const problematicUrls = [
-          'ncc-dify.qsncc.com',
-          'https://ncc-dify.qsncc.com',
-          'http://ncc-dify.qsncc.com'
-        ];
-        
-        const isProblematic = problematicUrls.some(url => 
-          webhook.url && webhook.url.includes(url)
-        );
-        
-        if (webhook.is_active && isProblematic) {
-          log(`Found problematic webhook: ${webhook.name} (${webhook.url})`, 'WARN');
-          
-          // Disable the webhook
-          const disableUrl = `${config.baseUrl}/api/settings/webhooks/${webhook.id}`;
-          const disableResponse = await makeRequest(disableUrl, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': config.apiKey,
-            },
-            body: JSON.stringify({
-              is_active: false,
-              name: `${webhook.name} (DISABLED - Use System Settings)`
-            })
-          });
-          
-          if (disableResponse.status === 200) {
-            log(`✅ Disabled webhook: ${webhook.name}`, 'INFO');
-            disabledCount++;
-          } else {
-            log(`❌ Failed to disable webhook: ${webhook.name}`, 'ERROR');
-          }
-        }
-      }
-      
-      if (disabledCount === 0) {
-        log('✅ No problematic webhooks found', 'INFO');
-      } else {
-        log(`✅ Disabled ${disabledCount} problematic webhooks`, 'INFO');
-      }
-      
-    } else {
-      log(`Failed to fetch webhooks: HTTP ${webhooksResponse.status}`, 'ERROR');
+    if (problematicWebhooks.length === 0) {
+      console.log('✅ No problematic webhooks found');
+      return;
     }
+
+    console.log(`⚠️  Found ${problematicWebhooks.length} problematic webhook(s):`);
     
+    for (const webhook of problematicWebhooks) {
+      console.log(`   - ID: ${webhook.id}`);
+      console.log(`   - Name: ${webhook.name}`);
+      console.log(`   - URL: ${webhook.url}`);
+      console.log(`   - Active: ${webhook.is_active}`);
+      console.log(`   - Events: ${webhook.events.join(', ')}`);
+      console.log('');
+    }
+
+    // Disable all problematic webhooks
+    const updateResult = await prisma.webhook.updateMany({
+      where: {
+        OR: [
+          {
+            url: {
+              contains: 'ncc-dify.qsncc.com'
+            }
+          },
+          {
+            url: {
+              contains: 'dify.qsncc.com'
+            }
+          },
+          {
+            url: {
+              contains: 'qsncc.com'
+            }
+          }
+        ]
+      },
+      data: {
+        is_active: false
+      }
+    });
+
+    console.log(`✅ Disabled ${updateResult.count} problematic webhook(s)`);
+    
+    // Show remaining active webhooks
+    const activeWebhooks = await prisma.webhook.findMany({
+      where: {
+        is_active: true
+      }
+    });
+
+    if (activeWebhooks.length === 0) {
+      console.log('ℹ️  No active webhooks remaining');
+    } else {
+      console.log(`ℹ️  ${activeWebhooks.length} active webhook(s) remaining:`);
+      for (const webhook of activeWebhooks) {
+        console.log(`   - ${webhook.name}: ${webhook.url}`);
+      }
+    }
+
   } catch (error) {
-    log(`Error disabling problematic webhooks: ${error.message}`, 'ERROR');
+    console.error('❌ Error disabling problematic webhooks:', error);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

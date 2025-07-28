@@ -95,8 +95,8 @@ services:
         apk add --no-cache musl-locales musl-locales-lang &&
         docker-entrypoint.sh postgres
       "
-    volumes:
-      - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
+    # volumes:
+    #   - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
     # volumes:
     #   - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
     restart: unless-stopped

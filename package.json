@@ -21,7 +21,7 @@
     "db:setup:ps": "powershell -ExecutionPolicy Bypass -File scripts/setup-db-with-postgres-user.ps1",
     "setup:local": "node scripts/setup-local-dev.js",
     "db:check": "node scripts/check-database-schema.js",
-    "build:processor": "tsc --project tsconfig.processor.json",
+    "build:processor": "echo 'Processor build skipped - auto-triggering is now built into the upload API'",
     "seed:upload-queue": "node scripts/seed-upload-queue.js",
     "start:docker": "docker-compose up -d",
     "start:docker:ps": "powershell -ExecutionPolicy Bypass -File scripts/start-app.ps1",

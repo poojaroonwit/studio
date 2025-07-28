@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 
+// Force this route to be dynamic (not statically generated)
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
 
   

@@ -5,14 +5,14 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
-import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+// import { dispatchWebhooks } from '@/lib/webhookDispatcher'; // Disabled for simplicity
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
 
 // Configuration constants
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_FILE_TYPES = ['application/pdf'];
-const MAX_FILES_PER_REQUEST = 50;
+const MAX_FILES_PER_REQUEST = 200; // Increased to handle larger batches
 
 // File validation interface
 interface FileValidationResult {
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
         files = [singleFile as File];
       }
     }
-
+    
     if (!files.length) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
     // Step 6: Calculate summary
     const successCount = results.filter(r => r.status === 'success').length;
     const failureCount = results.filter(r => r.status === 'failed').length;
-
+    
     // Step 7: Log audit events
     const processingTime = Date.now() - startTime;
     await logAudit('AUDIT', `Bulk file upload completed by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId, {
@@ -409,23 +409,8 @@ export async function POST(request: NextRequest) {
       source: source
     });
 
-    // Step 8: Dispatch webhooks for successful uploads
-    const successfulJobs = results.filter(r => r.status === 'success');
-    for (const result of successfulJobs) {
-      try {
-        await dispatchWebhooks.uploadQueueCreated({
-          id: result.queue_id,
-          file_name: result.file_name,
-          file_size: result.file_size,
-          status: 'queued',
-          source: source,
-          file_path: result.file_path
-        });
-      } catch (webhookError) {
-        console.error(`[UPLOAD] Failed to dispatch webhook for ${result.file_name}:`, webhookError);
-        // Don't fail the request if webhook fails
-      }
-    }
+    // Step 8: Webhooks disabled for simplicity
+    // (Webhooks can be re-enabled later when external services are available)
 
     // Step 9: Broadcast SSE update for real-time UI updates
     try {
@@ -435,7 +420,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 10: Auto-trigger queue processing if there are successful uploads
-    if (successfulJobs.length > 0) {
+    if (successCount > 0) {
       try {
         const processUrl = process.env.UPLOAD_QUEUE_PROCESS_URL || `${request.nextUrl.origin}/api/upload-queue/process`;
         await fetch(processUrl, {

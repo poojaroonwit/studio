@@ -26,6 +26,10 @@ function getMinioRemotePattern() {
 
 const nextConfig = {
   reactStrictMode: true,
+  // Disable static generation for API routes that use dynamic features
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+  },
   async headers() {
     return [
       {
@@ -47,10 +51,6 @@ const nextConfig = {
         ],
       },
     ];
-  },
-  // Add any custom Next.js config options here
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
   images: {
     domains: ['localhost', '127.0.0.1'],

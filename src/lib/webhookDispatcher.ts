@@ -1,5 +1,6 @@
 import prisma from './prisma';
 import { webhookRateLimits, addRateLimitHeaders, RateLimitResult } from './webhookRateLimit';
+import { areWebhooksEnabled } from './webhookConfig';
 
 export interface WebhookPayload {
   event: string;
@@ -36,6 +37,12 @@ export class WebhookDispatcher {
    */
   async dispatch(event: string, data: any): Promise<WebhookResult[]> {
     if (this.isProcessing) {
+      return [];
+    }
+
+    // Check if webhooks are enabled globally
+    if (!areWebhooksEnabled()) {
+      console.log(`[Webhook] Webhooks disabled globally, skipping dispatch for event: ${event}`);
       return [];
     }
 
@@ -164,7 +171,8 @@ export class WebhookDispatcher {
     for (let attempt = 0; attempt <= webhook.retry_count; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), webhook.timeout * 1000);
+        const timeoutMs = (webhook.timeout || 30) * 1000; // Default 30 seconds
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         const response = await fetch(webhook.url, {
           method: webhook.method,
@@ -202,6 +210,9 @@ export class WebhookDispatcher {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         lastError = errorMessage;
         
+        // Log the specific error for debugging
+        console.warn(`[Webhook] Attempt ${attempt + 1} failed for ${webhook.url}:`, errorMessage);
+        
         // If it's a timeout or network error, continue retrying
         if (attempt === webhook.retry_count) {
           break;
@@ -209,7 +220,10 @@ export class WebhookDispatcher {
         
         // Wait before retrying (exponential backoff)
         if (attempt > 0) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          const baseDelay = 2000; // 2 seconds base
+          const maxDelay = 10000; // 10 seconds max
+          const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }

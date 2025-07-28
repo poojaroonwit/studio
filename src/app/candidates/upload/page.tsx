@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import BulkUploadCVsModal from "@/components/BulkUploadCVsModal";
+import { UploadQueueStatus } from "@/components/UploadQueueStatus";
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -205,6 +206,12 @@ function UploadPageContent() {
           onUploadSuccess={handleUploadSuccess}
         />
 
+      {/* Simple Queue Status */}
+      <div className="mb-6">
+        <UploadQueueStatus />
+      </div>
+
+      {/* Detailed Queue Table */}
       <CandidateImportUploadQueue 
         initialPage={initialPage}
         initialPageSize={initialPageSize}

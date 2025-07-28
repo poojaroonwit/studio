@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Force this route to be dynamic (not statically generated)
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     let candidates = [];

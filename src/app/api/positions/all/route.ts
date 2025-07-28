@@ -3,6 +3,9 @@ import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
+// Force this route to be dynamic (not statically generated)
+export const dynamic = 'force-dynamic';
+
 // Types
 interface PositionFilters {
   title?: string;

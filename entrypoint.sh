@@ -102,11 +102,21 @@ fi
 
 # Check if _prisma_migrations table exists, if not, run db push first
 echo "🔍 Checking Prisma migration status..."
-MIGRATION_TABLE_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$(echo $DATABASE_URL | sed 's/.*\///' | sed 's/\?.*//')" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations'" 2>/dev/null || echo "0")
+DB_NAME=$(echo "$DATABASE_URL" | sed 's/.*\///' | sed 's/\?.*//' 2>/dev/null || echo "studio_production")
+MIGRATION_TABLE_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations'" 2>/dev/null || echo "0")
 
 if [ "$MIGRATION_TABLE_EXISTS" != "1" ]; then
   echo "🔄 Prisma migration table not found. Running db push first..."
   npx prisma db push
+else
+  echo "✅ Prisma migration table exists. Checking for failed migrations..."
+  # Check if there are failed migrations and resolve them
+  FAILED_MIGRATIONS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL" 2>/dev/null || echo "0")
+  
+  if [ "$FAILED_MIGRATIONS" != "0" ]; then
+    echo "🔄 Found failed migrations. Resolving..."
+    npx prisma migrate resolve --rolled-back 20250728171145_init || true
+  fi
 fi
 
 # Force reset the database schema

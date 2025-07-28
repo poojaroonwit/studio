@@ -52,11 +52,13 @@ done
 
 # Create n8n database if it doesn't exist
 echo "📊 Creating n8n database..."
-DB_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$N8N_DB_NAME'")
+DB_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$N8N_DB_NAME'" 2>/dev/null || echo "0")
 
 if [ "$DB_EXISTS" != "1" ]; then
   echo "📊 Creating N8N database '$N8N_DB_NAME'..."
-  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$N8N_DB_NAME\";"
+  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$N8N_DB_NAME\";" 2>/dev/null || {
+    echo "⚠️  Failed to create N8N database, but continuing..."
+  }
 else
   echo "✅ N8N database '$N8N_DB_NAME' already exists!"
 fi
@@ -97,6 +99,16 @@ if [ -z "$(ls -A prisma/migrations 2>/dev/null)" ]; then
   echo "⚠️  No migrations found. Creating initial migration..."
   npx prisma migrate dev --name init --create-only
 fi
+
+# Check if _prisma_migrations table exists, if not, run db push first
+echo "🔍 Checking Prisma migration status..."
+MIGRATION_TABLE_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$(echo $DATABASE_URL | sed 's/.*\///' | sed 's/\?.*//')" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations'" 2>/dev/null || echo "0")
+
+if [ "$MIGRATION_TABLE_EXISTS" != "1" ]; then
+  echo "🔄 Prisma migration table not found. Running db push first..."
+  npx prisma db push
+fi
+
 # Force reset the database schema
 echo "🔄 Running database migrations (safe for production)..."
 npx prisma migrate deploy

@@ -93,16 +93,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      # Ensure proper initialization
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-    # Install locale utilities to prevent warnings
-    command: >
-      sh -c "
-        apk add --no-cache musl-locales musl-locales-lang &&
-        docker-entrypoint.sh postgres
-      "
-    # volumes:
-    #   - ./scripts/init-n8n-db.sql:/docker-entrypoint-initdb.d/init-n8n-db.sql
     # volumes:
     #   - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -205,8 +195,8 @@ services:
       N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false}
       N8N_SESSION_COOKIE_SECURE: ${N8N_SESSION_COOKIE_SECURE:-false}
       
-      # Timezone
-      GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
+              # Timezone
+        GENERIC_TIMEZONE: ${N8N_TIMEZONE:-UTC}
     # volumes:
     #   - /var/dockers/8021/n8n_data:/home/node/.n8n
     depends_on:

@@ -17,7 +17,6 @@ import {
   AlignRight,
   AlignJustify,
   Minus,
-  Table,
 } from 'lucide-react';
 
 interface TiptapToolbarProps {
@@ -115,15 +114,6 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
         <Minus className="h-3 w-3" />
       </Button>
       
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-        className="h-7 w-7 p-0"
-      >
-        <Table className="h-3 w-3" />
-      </Button>
-
       <Separator orientation="vertical" className="h-5" />
 
       {/* Text Alignment */}

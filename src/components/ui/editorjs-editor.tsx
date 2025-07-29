@@ -78,50 +78,41 @@ export function EditorJSEditor({
     };
   }, [isOpen, readOnly, placeholder, initEditor, destroyEditor, isInitialized, editorId, prevIsOpen]);
 
-  // ===== FORCE SINGLE BLOCK EFFECT =====
+  // ===== ENSURE ALL BLOCKS ARE VISIBLE =====
   useEffect(() => {
     if (isOpen && isInitialized && editorRef.current) {
-      const forceSingleBlock = () => {
+      const ensureBlocksVisible = () => {
         const blocks = editorRef.current?.querySelectorAll('.ce-block');
-        if (blocks && blocks.length > 1) {
-          blocks.forEach((block, index) => {
-            if (index > 0) {
-              // Hide all blocks except the first one
-              (block as HTMLElement).style.display = 'none';
-              (block as HTMLElement).style.visibility = 'hidden';
-              (block as HTMLElement).style.opacity = '0';
-              (block as HTMLElement).style.height = '0';
-              (block as HTMLElement).style.overflow = 'hidden';
-            } else {
-              // Ensure first block is visible and has content
-              (block as HTMLElement).style.display = 'block';
-              (block as HTMLElement).style.visibility = 'visible';
-              (block as HTMLElement).style.opacity = '1';
-              (block as HTMLElement).style.height = 'auto';
-              (block as HTMLElement).style.overflow = 'visible';
-              
-              // Ensure paragraph content is visible
-              const paragraph = block.querySelector('.ce-paragraph');
-              if (paragraph) {
-                (paragraph as HTMLElement).style.display = 'block';
-                (paragraph as HTMLElement).style.visibility = 'visible';
-                (paragraph as HTMLElement).style.opacity = '1';
-              }
-              
-              // Ensure block content is visible
-              const blockContent = block.querySelector('.ce-block__content');
-              if (blockContent) {
-                (blockContent as HTMLElement).style.display = 'block';
-                (blockContent as HTMLElement).style.visibility = 'visible';
-                (blockContent as HTMLElement).style.opacity = '1';
-              }
+        if (blocks) {
+          blocks.forEach((block) => {
+            // Ensure all blocks are visible
+            (block as HTMLElement).style.display = 'block';
+            (block as HTMLElement).style.visibility = 'visible';
+            (block as HTMLElement).style.opacity = '1';
+            (block as HTMLElement).style.height = 'auto';
+            (block as HTMLElement).style.overflow = 'visible';
+            
+            // Ensure paragraph content is visible
+            const paragraph = block.querySelector('.ce-paragraph');
+            if (paragraph) {
+              (paragraph as HTMLElement).style.display = 'block';
+              (paragraph as HTMLElement).style.visibility = 'visible';
+              (paragraph as HTMLElement).style.opacity = '1';
+            }
+            
+            // Ensure block content is visible
+            const blockContent = block.querySelector('.ce-block__content');
+            if (blockContent) {
+              (blockContent as HTMLElement).style.display = 'block';
+              (blockContent as HTMLElement).style.visibility = 'visible';
+              (blockContent as HTMLElement).style.opacity = '1';
             }
           });
         }
       };
 
-      // Force single block after a short delay
-      const timer = setTimeout(forceSingleBlock, 200);
+      // Ensure blocks are visible after a short delay
+      const timer = setTimeout(ensureBlocksVisible, 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen, isInitialized, value]);

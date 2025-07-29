@@ -269,21 +269,12 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
                 <div className="space-y-2">
                   <Label htmlFor="position-level-add" className="font-medium">Position Level *</Label>
-                  <Select onValueChange={(value) => form.setValue('positionLevel', value)} disabled={isSaving}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select position level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Entry Level">Entry Level</SelectItem>
-                      <SelectItem value="Junior">Junior</SelectItem>
-                      <SelectItem value="Mid Level">Mid Level</SelectItem>
-                      <SelectItem value="Senior">Senior</SelectItem>
-                      <SelectItem value="Lead">Lead</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Director">Director</SelectItem>
-                      <SelectItem value="Executive">Executive</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="position-level-add"
+                    placeholder="Enter position level (e.g., Entry Level, Senior, Manager)"
+                    {...form.register('positionLevel')}
+                    disabled={isSaving}
+                  />
                   {form.formState.errors.positionLevel && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
                   )}

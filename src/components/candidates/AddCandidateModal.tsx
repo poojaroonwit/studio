@@ -30,7 +30,6 @@ import { PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import type { PersonalInfo, ContactInfo, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, Position, CandidateStatus, positionLevel, RecruitmentStage } from '@/lib/types';
 import { PositionSelectDropdown } from "@/components/candidates/PositionSelectDropdown";
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
 
 const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
 
@@ -249,17 +248,11 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                 </div>
                 <div>
                   <Label htmlFor="personal_info.introduction_aboutme">About Me</Label>
-                  <Controller
-                    name="personal_info.introduction_aboutme"
-                    control={form.control}
-                    render={({ field }) => (
-                      <EditorJSEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Tell us about yourself..."
-                        className="mt-1"
-                      />
-                    )}
+                  <Textarea
+                    id="personal_info.introduction_aboutme"
+                    {...form.register('personal_info.introduction_aboutme')}
+                    placeholder="Tell us about yourself..."
+                    className="mt-1 min-h-[100px]"
                   />
                 </div>
               </fieldset>
@@ -570,17 +563,10 @@ export function AddCandidateModal({ isOpen, onOpenChange, onAddCandidate, availa
                      )}
                     <div>
                       <Label className="text-xs">Description</Label>
-                      <Controller
-                        name={`experience.${index}.description`}
-                        control={form.control}
-                        render={({ field }) => (
-                          <EditorJSEditor
-                            value={field.value || ''}
-                            onChange={field.onChange}
-                            placeholder="Describe your role and responsibilities..."
-                            className="mt-1"
-                          />
-                        )}
+                      <Textarea
+                        {...form.register(`experience.${index}.description`)}
+                        placeholder="Describe your role and responsibilities..."
+                        className="mt-1 min-h-[80px]"
                       />
                     </div>
                     <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>

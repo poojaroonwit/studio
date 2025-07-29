@@ -42,7 +42,7 @@ import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
+
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
@@ -1561,17 +1561,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
                       <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
                                         <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
-                  <Controller
-                    name="parsedData.personal_info.introduction_aboutme"
-                    control={control}
-                    render={({ field }) => (
-                      <EditorJSEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Tell us about yourself..."
-                        className="mb-4"
-                      />
-                    )}
+                  <Textarea
+                    id="parsedData.personal_info.introduction_aboutme"
+                    {...register('parsedData.personal_info.introduction_aboutme')}
+                    placeholder="Tell us about yourself..."
+                    className="mb-4 min-h-[100px]"
                   />
                       <Label htmlFor="parsedData.personal_info.location" className="mb-2">Location</Label>
                       <Input id="parsedData.personal_info.location" {...register('parsedData.personal_info.location')} className="mb-4" />
@@ -1810,17 +1804,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                    <div>
                     <Label className="text-xs">Description</Label>
-                    <Controller
-                      name={`parsedData.experience.${index}.description`}
-                      control={control}
-                      render={({ field }) => (
-                        <EditorJSEditor
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="Describe your role and responsibilities..."
-                          className="mt-1"
-                        />
-                      )}
+                    <Textarea
+                      {...register(`parsedData.experience.${index}.description`)}
+                      placeholder="Describe your role and responsibilities..."
+                      className="mt-1 min-h-[80px]"
                     />
                   </div>
                    <Controller

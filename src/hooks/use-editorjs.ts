@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 
 interface EditorJSInstance {
   destroy?: () => void;
@@ -186,20 +186,8 @@ export function useEditorJS({
         setTimeout(async () => {
           try {
             if (editor && editor.render) {
-              // Create a single paragraph block with the content
-              const data = {
-                time: Date.now(),
-                blocks: [
-                  {
-                    id: `paragraph-${Date.now()}`,
-                    type: 'paragraph',
-                    data: { text: value.trim() }
-                  }
-                ],
-                version: '2.28.2'
-              };
-              
-        
+              // Convert HTML to Editor.js data format for proper block structure
+              const data = convertHtmlToEditorJSData(value);
               await editor.render(data);
             }
           } catch (error) {
@@ -211,6 +199,27 @@ export function useEditorJS({
       console.error('Error initializing Editor.js:', error);
     }
   }, [value, readOnly, onChange]);
+
+  // ===== VALUE UPDATE EFFECT =====
+  useEffect(() => {
+    if (isInitialized.current && editorJSRef.current && value !== lastSavedValue.current) {
+      // Only update if the value has actually changed and is different from what we last saved
+      const updateEditorContent = async () => {
+        try {
+          if (editorJSRef.current && editorJSRef.current.render) {
+            // Convert HTML to Editor.js data format
+            const data = convertHtmlToEditorJSData(value);
+            await editorJSRef.current.render(data);
+            lastSavedValue.current = value;
+          }
+        } catch (error) {
+          console.error('Error updating editor content:', error);
+        }
+      };
+      
+      updateEditorContent();
+    }
+  }, [value]);
 
   // ===== PUBLIC METHODS =====
   const focus = useCallback(() => {
@@ -289,30 +298,148 @@ const convertHtmlToEditorJSData = (html: string) => {
     return { time: Date.now(), blocks: [], version: '2.28.2' };
   }
 
-  // Extract text content from HTML - take only the first meaningful content
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
   
-  // Get all text content and take only the first non-empty line
-  const allText = tempDiv.textContent || '';
-  const lines = allText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  const textContent = lines[0] || html.trim();
+  const blocks: any[] = [];
+  let blockId = 0;
 
-  
-
-  // Always create only ONE paragraph block to avoid duplicates
-  const result = {
-    time: Date.now(),
-    blocks: [
-      {
-        id: `paragraph-${Date.now()}`,
-        type: 'paragraph',
-        data: { text: textContent }
+  // Function to process child nodes recursively
+  const processNode = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        blocks.push({
+          id: `paragraph-${blockId++}`,
+          type: 'paragraph',
+          data: { text }
+        });
       }
-    ],
-    version: '2.28.2'
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node as Element;
+      const tagName = element.tagName.toLowerCase();
+      
+      switch (tagName) {
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          const level = parseInt(tagName.charAt(1));
+          const headerText = element.textContent?.trim();
+          if (headerText) {
+            blocks.push({
+              id: `header-${blockId++}`,
+              type: 'header',
+              data: { text: headerText, level }
+            });
+          }
+          break;
+          
+        case 'p':
+          const paragraphText = element.textContent?.trim();
+          if (paragraphText) {
+            blocks.push({
+              id: `paragraph-${blockId++}`,
+              type: 'paragraph',
+              data: { text: paragraphText }
+            });
+          }
+          break;
+          
+        case 'ul':
+        case 'ol':
+          const listItems: string[] = [];
+          const listElements = element.querySelectorAll('li');
+          listElements.forEach(li => {
+            const itemText = li.textContent?.trim();
+            if (itemText) {
+              listItems.push(itemText);
+            }
+          });
+          
+          if (listItems.length > 0) {
+            blocks.push({
+              id: `list-${blockId++}`,
+              type: 'list',
+              data: { 
+                style: tagName === 'ol' ? 'ordered' : 'unordered',
+                items: listItems
+              }
+            });
+          }
+          break;
+          
+        case 'blockquote':
+          const quoteText = element.textContent?.trim();
+          if (quoteText) {
+            blocks.push({
+              id: `quote-${blockId++}`,
+              type: 'quote',
+              data: { text: quoteText, caption: '' }
+            });
+          }
+          break;
+          
+        case 'table':
+          const rows: string[][] = [];
+          const tableRows = element.querySelectorAll('tr');
+          tableRows.forEach(row => {
+            const cells: string[] = [];
+            const tableCells = row.querySelectorAll('td, th');
+            tableCells.forEach(cell => {
+              const cellText = cell.textContent?.trim() || '';
+              cells.push(cellText);
+            });
+            if (cells.length > 0) {
+              rows.push(cells);
+            }
+          });
+          
+          if (rows.length > 0) {
+            blocks.push({
+              id: `table-${blockId++}`,
+              type: 'table',
+              data: { content: rows }
+            });
+          }
+          break;
+          
+        case 'hr':
+          blocks.push({
+            id: `delimiter-${blockId++}`,
+            type: 'delimiter',
+            data: {}
+          });
+          break;
+          
+        default:
+          // For other elements, process their children
+          Array.from(element.childNodes).forEach(processNode);
+          break;
+      }
+    }
   };
 
-  
-  return result;
+  // Process all child nodes
+  Array.from(tempDiv.childNodes).forEach(processNode);
+
+  // If no blocks were created, create a paragraph with the original HTML text
+  if (blocks.length === 0) {
+    const textContent = tempDiv.textContent?.trim();
+    if (textContent) {
+      blocks.push({
+        id: `paragraph-${blockId++}`,
+        type: 'paragraph',
+        data: { text: textContent }
+      });
+    }
+  }
+
+  return {
+    time: Date.now(),
+    blocks,
+    version: '2.28.2'
+  };
 }; 

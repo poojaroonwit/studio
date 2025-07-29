@@ -274,8 +274,6 @@ export default function SystemPreferencesPage() {
   // Preferences state
   const [themePreference, setThemePreference] = useState<ThemePreference>(DEFAULT_THEME);
   const [appName, setAppName] = useState<string>(DEFAULT_APP_NAME);
-  // Default match criteria state
-  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
   // App Logo state
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -346,7 +344,6 @@ export default function SystemPreferencesPage() {
           const data = await res.json();
           setThemePreference((data[APP_THEME_KEY] as ThemePreference) || DEFAULT_THEME);
           setAppName(data[APP_NAME_KEY] || DEFAULT_APP_NAME);
-          setDefaultMatchCriteria(data.defaultMatchCriteria || '');
           setSavedLogoUrl(data.appLogoDataUrl || null);
           setLogoPreviewUrl(data.appLogoDataUrl || null);
           setSavedFaviconUrl(data.appFaviconDataUrl || null);
@@ -615,7 +612,6 @@ export default function SystemPreferencesPage() {
       let settingsToSave = [
         { key: 'themePreference', value: themePreference },
         { key: 'appName', value: appName },
-        { key: 'defaultMatchCriteria', value: defaultMatchCriteria },
         { key: 'appLogoDataUrl', value: logoPreviewUrl || savedLogoUrl },
         { key: 'appFaviconDataUrl', value: faviconPreviewUrl || savedFaviconUrl },
         // New contextual logo settings
@@ -877,32 +873,7 @@ export default function SystemPreferencesPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Default Match Criteria Section */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Type className="h-5 w-5 text-primary" />
-                        Default Match Criteria Config
-                      </CardTitle>
-                      <CardDescription>
-                        Set the default match criteria that will be used when creating new positions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <Label htmlFor="default-match-criteria">Default Match Criteria</Label>
-                        <TiptapEditor
-                          value={defaultMatchCriteria}
-                          onChange={setDefaultMatchCriteria}
-                          placeholder="Enter default match criteria for new positions..."
-                          className="min-h-[200px]"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          This content will be automatically populated in the Match Criteria field when creating new positions
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+
 
                   {/* Theme Section */}
                   <Card>

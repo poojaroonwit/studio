@@ -226,6 +226,17 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
 
       if (data.description) {
         form.setValue('description', data.description);
+        
+        // Add a small delay to allow Editor.js to properly render the HTML content
+        setTimeout(() => {
+          // Force a re-render by triggering the onChange
+          const currentValue = form.getValues('description');
+          if (currentValue === data.description) {
+            // The value was set successfully, trigger onChange to ensure Editor.js updates
+            form.trigger('description');
+          }
+        }, 100);
+        
         showSuccess('Job description generated successfully!');
       } else {
         throw new Error('No description generated');

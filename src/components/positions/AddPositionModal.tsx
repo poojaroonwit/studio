@@ -68,6 +68,11 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
     },
   });
 
+  // Use watch for real-time field values
+  const watchedTitle = form.watch('title');
+  const watchedDepartment = form.watch('department');
+  const watchedPositionLevel = form.watch('positionLevel');
+
   useEffect(() => {
     if (isOpen) {
       setIsModalReady(true);
@@ -119,13 +124,11 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
   // Check if all required fields for AI generation are filled
   const areRequiredFieldsFilled = () => {
-    const title = form.getValues('title');
-    const department = form.getValues('department');
-    const positionLevel = form.getValues('positionLevel');
-    
-    return title && title.trim() !== '' && 
-           department && department.trim() !== '' && 
-           positionLevel && positionLevel.trim() !== '';
+    return (
+      watchedTitle && watchedTitle.trim() !== '' &&
+      watchedDepartment && watchedDepartment.trim() !== '' &&
+      watchedPositionLevel && watchedPositionLevel.trim() !== ''
+    );
   };
 
   // AI Generation function for job description
@@ -179,6 +182,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       });
 
       const data = await response.json();
+      console.log('AI Generation response:', data);
       
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
@@ -188,9 +192,22 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       }
 
       if (data.description) {
+        console.log('Setting description:', data.description);
         form.setValue('description', data.description);
+        
+        // Add a small delay to allow Editor.js to properly render the HTML content
+        setTimeout(() => {
+          // Force a re-render by triggering the onChange
+          const currentValue = form.getValues('description');
+          if (currentValue === data.description) {
+            // The value was set successfully, trigger onChange to ensure Editor.js updates
+            form.trigger('description');
+          }
+        }, 100);
+        
         showSuccess('Job description generated successfully!');
       } else {
+        console.error('No description in response:', data);
         throw new Error('No description generated');
       }
     } catch (error) {

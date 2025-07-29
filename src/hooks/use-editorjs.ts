@@ -298,13 +298,15 @@ const convertHtmlToEditorJSData = (html: string) => {
     return { time: Date.now(), blocks: [], version: '2.28.2' };
   }
 
+  console.log('Converting HTML to EditorJS data:', html.substring(0, 200) + '...');
+  
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
-  
+
   const blocks: any[] = [];
   let blockId = 0;
 
-  // Function to process child nodes recursively
+  // Recursively process all nodes
   const processNode = (node: Node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent?.trim();
@@ -318,14 +320,15 @@ const convertHtmlToEditorJSData = (html: string) => {
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const element = node as Element;
       const tagName = element.tagName.toLowerCase();
-      
+      console.log('Processing element:', tagName, element.textContent?.substring(0, 50) + '...');
+
       switch (tagName) {
         case 'h1':
         case 'h2':
         case 'h3':
         case 'h4':
         case 'h5':
-        case 'h6':
+        case 'h6': {
           const level = parseInt(tagName.charAt(1));
           const headerText = element.textContent?.trim();
           if (headerText) {
@@ -336,8 +339,8 @@ const convertHtmlToEditorJSData = (html: string) => {
             });
           }
           break;
-          
-        case 'p':
+        }
+        case 'p': {
           const paragraphText = element.textContent?.trim();
           if (paragraphText) {
             blocks.push({
@@ -347,31 +350,27 @@ const convertHtmlToEditorJSData = (html: string) => {
             });
           }
           break;
-          
+        }
         case 'ul':
-        case 'ol':
+        case 'ol': {
           const listItems: string[] = [];
-          const listElements = element.querySelectorAll('li');
-          listElements.forEach(li => {
+          element.querySelectorAll('li').forEach(li => {
             const itemText = li.textContent?.trim();
-            if (itemText) {
-              listItems.push(itemText);
-            }
+            if (itemText) listItems.push(itemText);
           });
-          
           if (listItems.length > 0) {
             blocks.push({
               id: `list-${blockId++}`,
               type: 'list',
-              data: { 
+              data: {
                 style: tagName === 'ol' ? 'ordered' : 'unordered',
                 items: listItems
               }
             });
           }
           break;
-          
-        case 'blockquote':
+        }
+        case 'blockquote': {
           const quoteText = element.textContent?.trim();
           if (quoteText) {
             blocks.push({
@@ -381,21 +380,32 @@ const convertHtmlToEditorJSData = (html: string) => {
             });
           }
           break;
-          
-        case 'table':
+        }
+        case 'table': {
           const rows: string[][] = [];
+          console.log('Processing table element:', element);
+          
+          // Handle both thead and tbody, or just tr elements directly
           const tableRows = element.querySelectorAll('tr');
-          tableRows.forEach(row => {
+          console.log('Found table rows:', tableRows.length);
+          
+          tableRows.forEach((row, rowIndex) => {
             const cells: string[] = [];
             const tableCells = row.querySelectorAll('td, th');
-            tableCells.forEach(cell => {
+            console.log(`Row ${rowIndex} has ${tableCells.length} cells`);
+            
+            tableCells.forEach((cell, cellIndex) => {
               const cellText = cell.textContent?.trim() || '';
               cells.push(cellText);
+              console.log(`Cell ${cellIndex}: "${cellText}"`);
             });
+            
             if (cells.length > 0) {
               rows.push(cells);
             }
           });
+          
+          console.log('Processed table rows:', rows);
           
           if (rows.length > 0) {
             blocks.push({
@@ -403,29 +413,32 @@ const convertHtmlToEditorJSData = (html: string) => {
               type: 'table',
               data: { content: rows }
             });
+            console.log('Added table block with content:', rows);
+          } else {
+            console.warn('No valid rows found in table');
           }
           break;
-          
-        case 'hr':
+        }
+        case 'hr': {
           blocks.push({
             id: `delimiter-${blockId++}`,
             type: 'delimiter',
             data: {}
           });
           break;
-          
+        }
         default:
-          // For other elements, process their children
+          // Recursively process all children
           Array.from(element.childNodes).forEach(processNode);
           break;
       }
     }
   };
 
-  // Process all child nodes
+  // Process all child nodes of the root
   Array.from(tempDiv.childNodes).forEach(processNode);
 
-  // If no blocks were created, create a paragraph with the original HTML text
+  // Fallback: if no blocks, add all text as a paragraph
   if (blocks.length === 0) {
     const textContent = tempDiv.textContent?.trim();
     if (textContent) {
@@ -437,6 +450,7 @@ const convertHtmlToEditorJSData = (html: string) => {
     }
   }
 
+  console.log('Final EditorJS data blocks:', blocks);
   return {
     time: Date.now(),
     blocks,

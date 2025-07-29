@@ -109,16 +109,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-const updatePositionSchema = z.object({
-  title: z.string().min(1).optional(),
-  department: z.string().min(1).optional(),
-  description: z.string().optional().nullable(),
-  matchCriteria: z.string().optional().nullable(),
-  isOpen: z.boolean().optional(),
-  positionLevel: z.string().optional().nullable(),
-  custom_attributes: z.record(z.any()).optional().nullable(),
-});
-
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   const actingUserId = session?.user?.id;

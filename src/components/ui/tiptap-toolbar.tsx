@@ -16,15 +16,12 @@ import {
   List,
   ListOrdered,
   Quote,
-  Table,
-  Image,
   Link,
   AlignLeft,
   AlignCenter,
   AlignRight,
   AlignJustify,
   Minus,
-  CheckSquare,
 } from 'lucide-react';
 
 interface TiptapToolbarProps {
@@ -35,13 +32,6 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
   if (!editor) {
     return null;
   }
-
-  const addImage = () => {
-    const url = window.prompt('Enter image URL');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  };
 
   const setLink = () => {
     const url = window.prompt('Enter URL');
@@ -143,14 +133,6 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
       >
         <ListOrdered className="h-4 w-4" />
       </Button>
-      
-      <Button
-        variant={editor.isActive('taskList') ? 'default' : 'ghost'}
-        size="sm"
-        onClick={() => editor.chain().focus().toggleTaskList().run()}
-      >
-        <CheckSquare className="h-4 w-4" />
-      </Button>
 
       <Separator orientation="vertical" className="h-6" />
 
@@ -181,26 +163,7 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
 
       <Separator orientation="vertical" className="h-6" />
 
-      {/* Table */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-      >
-        <Table className="h-4 w-4" />
-      </Button>
-
-      <Separator orientation="vertical" className="h-6" />
-
-      {/* Media */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={addImage}
-      >
-        <Image className="h-4 w-4" />
-      </Button>
-      
+      {/* Links */}
       <Button
         variant={editor.isActive('link') ? 'default' : 'ghost'}
         size="sm"

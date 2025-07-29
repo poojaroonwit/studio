@@ -3,21 +3,6 @@
 import React, { useEffect, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import CodeBlock from '@tiptap/extension-code-block';
-import Blockquote from '@tiptap/extension-blockquote';
-import BulletList from '@tiptap/extension-bullet-list';
-import OrderedList from '@tiptap/extension-ordered-list';
-import ListItem from '@tiptap/extension-list-item';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import HorizontalRule from '@tiptap/extension-horizontal-rule';
-import Image from '@tiptap/extension-image';
-import Typography from '@tiptap/extension-typography';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
@@ -78,85 +63,8 @@ export function TiptapEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable some default extensions that we'll configure separately
-        bulletList: false,
-        orderedList: false,
-        listItem: false,
-        blockquote: false,
-        codeBlock: false,
-        horizontalRule: false,
+        // Use default configuration for most extensions
       }),
-      Placeholder.configure({
-        placeholder,
-        emptyEditorClass: 'is-editor-empty',
-      }),
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: 'border-collapse border border-gray-300',
-        },
-      }),
-      TableRow.configure({
-        HTMLAttributes: {
-          class: 'border-b border-gray-300',
-        },
-      }),
-      TableHeader.configure({
-        HTMLAttributes: {
-          class: 'bg-gray-100 font-bold border border-gray-300 px-2 py-1',
-        },
-      }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: 'border border-gray-300 px-2 py-1',
-        },
-      }),
-      CodeBlock.configure({
-        HTMLAttributes: {
-          class: 'bg-gray-100 p-2 rounded font-mono text-sm',
-        },
-      }),
-      Blockquote.configure({
-        HTMLAttributes: {
-          class: 'border-l-4 border-gray-300 pl-4 italic',
-        },
-      }),
-      BulletList.configure({
-        HTMLAttributes: {
-          class: 'list-disc list-inside',
-        },
-      }),
-      OrderedList.configure({
-        HTMLAttributes: {
-          class: 'list-decimal list-inside',
-        },
-      }),
-      ListItem.configure({
-        HTMLAttributes: {
-          class: 'mb-1',
-        },
-      }),
-      TaskList.configure({
-        HTMLAttributes: {
-          class: 'list-none',
-        },
-      }),
-      TaskItem.configure({
-        HTMLAttributes: {
-          class: 'flex items-start gap-2',
-        },
-      }),
-      HorizontalRule.configure({
-        HTMLAttributes: {
-          class: 'border-t border-gray-300 my-4',
-        },
-      }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto',
-        },
-      }),
-      Typography,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -184,6 +92,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4',
+        placeholder: placeholder,
       },
     },
   });

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
+import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
 const positionImportSchema = z.object({
   positions: z.array(z.object({
@@ -30,17 +31,8 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import positions' }), { status: 403, headers: handleCors(req) });
   }
 
-  // Fetch default match criteria from system settings
-  let defaultMatchCriteria = '';
-  try {
-    const settingsResponse = await fetch(`${req.nextUrl.origin}/api/settings/system-settings`);
-    if (settingsResponse.ok) {
-      const settings = await settingsResponse.json();
-      defaultMatchCriteria = settings.defaultMatchCriteria || '';
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default match criteria:', error);
-  }
+  // Get default match criteria from system settings
+  const defaultMatchCriteria = await getDefaultMatchCriteria();
 
   let body;
   try {

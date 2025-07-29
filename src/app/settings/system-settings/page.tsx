@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -41,6 +42,10 @@ export default function SystemSettingsPage() {
   // Add state for manual link and type
   const [manualLink, setManualLink] = useState('');
   const [manualType, setManualType] = useState('external');
+
+  // Add state for default match criteria
+  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState('');
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   const fetchSystemSettings = useCallback(async () => {
     setIsLoading(true);
@@ -79,6 +84,8 @@ export default function SystemSettingsPage() {
       // In fetchSystemSettings, load manualLink and manualType
       setManualLink(settings.manualLink || '');
       setManualType(settings.manualType || 'external');
+      // Load default match criteria
+      setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
     } catch (error) {
       setFetchError((error as Error).message);
     } finally {
@@ -93,6 +100,17 @@ export default function SystemSettingsPage() {
       fetchSystemSettings();
     }
   }, [sessionStatus, pathname, fetchSystemSettings]);
+
+  // Set editor as ready after component mounts and data is loaded
+  useEffect(() => {
+    if (!isLoading && !fetchError) {
+      // Small delay to ensure proper initialization
+      const timer = setTimeout(() => {
+        setIsEditorReady(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, fetchError]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -113,6 +131,7 @@ export default function SystemSettingsPage() {
       { key: 'geminiApiKey', value: geminiApiKey },
       { key: 'manualLink', value: manualLink },
       { key: 'manualType', value: manualType },
+      { key: 'defaultMatchCriteria', value: defaultMatchCriteria },
     ];
     try {
       const controller = new AbortController();
@@ -645,6 +664,43 @@ export default function SystemSettingsPage() {
                         </Select>
                         <p className="text-xs text-muted-foreground">
                           Set the manual link to an external URL or display it in-app using an iframe.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Default Match Criteria */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BrainCircuit className="h-5 w-5 text-primary" />
+                        Default Match Criteria
+                      </CardTitle>
+                      <CardDescription>
+                        Configure the default match criteria template for new positions. This will be used when creating new positions if no specific criteria are provided.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="default-match-criteria">Default Match Criteria Template</Label>
+                        <div className="min-h-[200px] border rounded-md">
+                          {!isEditorReady ? (
+                            <div className="min-h-[200px] flex items-center justify-center text-muted-foreground">
+                              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                              Loading editor...
+                            </div>
+                          ) : (
+                            <textarea
+                              value={defaultMatchCriteria}
+                              onChange={(e) => setDefaultMatchCriteria(e.target.value)}
+                              placeholder="Enter default match criteria template for new positions..."
+                              className="w-full min-h-[200px] p-3 border-0 resize-none focus:outline-none focus:ring-0"
+                              disabled={isSaving}
+                            />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This template will be used as the default match criteria when creating new positions. You can include requirements, skills, experience levels, and other criteria.
                         </p>
                       </div>
                     </CardContent>

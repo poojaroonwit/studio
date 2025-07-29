@@ -18,7 +18,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Briefcase, Save, Loader2, Edit3, Users, FileText, Target } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -103,7 +103,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-6xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width */}
+        <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
           <DialogHeader className="px-8 pt-8 pb-6">
             <DialogTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position
@@ -114,9 +114,13 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
           </DialogHeader>
           
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-            <div className="grid md:grid-cols-2 gap-8 flex-1 min-h-0 px-8 pb-6">
-              {/* Left Column: Form Fields */}
-              <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 px-8 pb-6">
+              {/* First Column: Basic Information */}
+              <div className="space-y-6 bg-muted/30 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                  <h3 className="font-medium text-sm">Basic Information</h3>
+                </div>
                 <div>
                   <Label htmlFor="title-add">Position Title *</Label>
                   <Input 
@@ -168,58 +172,61 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                 </div>
               </div>
               
-              {/* Right Column: Job Description and Match Criteria */}
-              <div className="flex flex-col min-h-0 space-y-6">
-                {/* Job Description */}
-                <div className="flex flex-col min-h-0">
-                  <Label htmlFor="description-add" className="mb-3">Job Description</Label>
-                  <Controller
-                    name="description"
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <EditorJSEditor
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="Enter job description"
-                          className="flex-1 min-h-0"
-                          isOpen={isModalReady}
-                        />
-                      </div>
-                    )}
-                  />
+              {/* Second Column: Job Description */}
+              <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <Label htmlFor="description-add" className="font-medium">Job Description</Label>
                 </div>
+                <Controller
+                  name="description"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <EditorJSEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Enter job description"
+                        className="flex-1 min-h-0"
+                        isOpen={isModalReady}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
 
-                {/* Match Criteria */}
-                <div className="flex flex-col min-h-0">
-                  <div className="flex items-center justify-between mb-3">
-                    <Label htmlFor="matchCriteria-add">Match Criteria</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
-                      disabled={!defaultMatchCriteria}
-                    >
-                      Set to Default
-                    </Button>
+              {/* Third Column: Match Criteria */}
+              <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    <Label htmlFor="matchCriteria-add" className="font-medium">Match Criteria</Label>
                   </div>
-                  <Controller
-                    name="matchCriteria"
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <EditorJSEditor
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="Enter match criteria for this position..."
-                          className="flex-1 min-h-0"
-                          isOpen={isModalReady}
-                        />
-                      </div>
-                    )}
-                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
+                    disabled={!defaultMatchCriteria}
+                  >
+                    Set to Default
+                  </Button>
                 </div>
+                <Controller
+                  name="matchCriteria"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <EditorJSEditor
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        placeholder="Enter match criteria for this position..."
+                        className="flex-1 min-h-0"
+                        isOpen={isModalReady}
+                      />
+                    </div>
+                  )}
+                />
               </div>
             </div>
             

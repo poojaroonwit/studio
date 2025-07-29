@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getSystemSetting } from '@/lib/settings';
 import { Buffer } from 'buffer';
-import { logAudit } from '@/lib/auditLog';
+// import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import os from 'os';
 
@@ -46,13 +46,13 @@ export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
 
   if (apiKey !== process.env.PROCESSOR_API_KEY) {
-    await logAudit('WARN', 'Unauthorized attempt to process upload queue with invalid API key', 'API:UploadQueue:Process', null, { 
+    console.warn('Unauthorized attempt to process upload queue with invalid API key', { 
       providedKey: apiKey ? 'present' : 'missing' 
     });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  await logAudit('INFO', 'Upload queue processing started', 'API:UploadQueue:Process', null);
+  console.log('Upload queue processing started');
   
   const client = await getSafeDbClient();
   let job;
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const currentInProgress = countRes.rowCount;
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
-      await logAudit('INFO', `Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`, 'API:UploadQueue:Process', null);
+      console.log(`Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`);
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
     // Atomically pick and mark the oldest queued job as 'inprocess'
@@ -92,13 +92,13 @@ export async function POST(request: NextRequest) {
     );
     if (res.rows.length === 0) {
       await client.query('COMMIT');
-      await logAudit('INFO', 'Upload queue processing completed - no queued jobs', 'API:UploadQueue:Process', null);
+      console.log('Upload queue processing completed - no queued jobs');
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
     job = res.rows[0];
     await client.query('COMMIT');
     
-    await logAudit('INFO', `Processing upload queue job '${job.file_name}' (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+    console.log(`Processing upload queue job '${job.file_name}' (ID: ${job.id})`, { 
       jobId: job.id,
       fileName: job.file_name,
       fileSize: job.file_size,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
         ['Invalid file_path (null or empty) in job', `file_path: ${job.file_path}`, job.id]
       );
-      await logAudit('ERROR', `Upload queue job failed - invalid file_path for job ${job.id}`, 'API:UploadQueue:Process', null, { 
+      console.error(`Upload queue job failed - invalid file_path for job ${job.id}`, { 
         jobId: job.id,
         fileName: job.file_name,
         error: 'Invalid file_path' 
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     // }
     
     // Broadcast file download completion
-    await logAudit('INFO', `Upload queue job '${job.file_name}' file downloaded (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+    console.log(`Upload queue job '${job.file_name}' file downloaded (ID: ${job.id})`, { 
       jobId: job.id,
       fileName: job.file_name,
       fileSize: job.file_size,
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     // }
     
     // Publish queue update event for real-time updates
-    await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+    console.log(`Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, { 
       jobId: job.id,
       fileName: job.file_name,
       status: status,
@@ -224,13 +224,13 @@ export async function POST(request: NextRequest) {
     }
     
     if (status === 'success') {
-      await logAudit('AUDIT', `Upload queue job '${job.file_name}' processed successfully`, 'API:UploadQueue:Process', null, { 
+      console.log(`Upload queue job '${job.file_name}' processed successfully`, { 
         jobId: job.id,
         fileName: job.file_name,
         webhookResults
       });
     } else {
-      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with webhook error`, 'API:UploadQueue:Process', null, { 
+      console.error(`Upload queue job '${job.file_name}' failed with webhook error`, { 
         jobId: job.id,
         fileName: job.file_name,
         error,
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [errorMessage, errorStack, payload, job.id]
       );
-      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, {
+      console.error(`Upload queue job '${job.file_name}' failed with exception`, {
         jobId: job.id,
         fileName: job.file_name,
         error: errorMessage,
@@ -298,7 +298,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
         ['Invalid file_path (null or empty) in job', `file_path: ${job.file_path}`, job.id]
       );
-      await logAudit('ERROR', `Upload queue job failed - invalid file_path for job ${job.id}`, 'API:UploadQueue:Process', null, {
+      console.error(`Upload queue job failed - invalid file_path for job ${job.id}`, {
         jobId: job.id,
         fileName: job.file_name,
         error: 'Invalid file_path'
@@ -412,7 +412,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       [status, error, error_details, payload, job.id]
     );
     // Publish queue update event
-    await logAudit('INFO', `Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, 'API:UploadQueue:Process', null, { 
+    console.log(`Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, { 
       jobId: job.id,
       fileName: job.file_name,
       status: status,
@@ -423,14 +423,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       global.gc();
     }
     if (status === 'success') {
-      await logAudit('AUDIT', `Upload queue job '${job.file_name}' processed successfully`, 'API:UploadQueue:Process', null, {
+      console.log(`Upload queue job '${job.file_name}' processed successfully`, {
         jobId: job.id,
         fileName: job.file_name,
         webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
         hasAppliedJob: !!appliedJob
       });
     } else {
-      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with webhook error`, 'API:UploadQueue:Process', null, {
+      console.error(`Upload queue job '${job.file_name}' failed with webhook error`, {
         jobId: job.id,
         fileName: job.file_name,
         webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
@@ -449,7 +449,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
         [errorMessage, errorStack, payload, job.id]
       );
-      await logAudit('ERROR', `Upload queue job '${job.file_name}' failed with exception`, 'API:UploadQueue:Process', null, {
+      console.error(`Upload queue job '${job.file_name}' failed with exception`, {
         jobId: job.id,
         fileName: job.file_name,
         error: errorMessage,

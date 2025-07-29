@@ -13,6 +13,7 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 import { logAudit } from '@/lib/auditLog';
+import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
 const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
@@ -100,17 +101,8 @@ export async function POST(req: NextRequest) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 
-  // Fetch default match criteria from system settings
-  let defaultMatchCriteria = '';
-  try {
-    const settingsResponse = await fetch(`${req.nextUrl.origin}/api/settings/system-settings`);
-    if (settingsResponse.ok) {
-      const settings = await settingsResponse.json();
-      defaultMatchCriteria = settings.defaultMatchCriteria || '';
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default match criteria:', error);
-  }
+  // Get default match criteria from system settings
+  const defaultMatchCriteria = await getDefaultMatchCriteria();
 
   let body;
   try {

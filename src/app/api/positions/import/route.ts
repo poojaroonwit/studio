@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { IncomingForm, Fields, Files, File } from 'formidable';
 import fs from 'fs';
+import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
 export const dynamic = "force-dynamic";
 
@@ -146,17 +147,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Fetch default match criteria from system settings
-  let defaultMatchCriteria = '';
-  try {
-    const settingsResponse = await fetch(`${request.nextUrl.origin}/api/settings/system-settings`);
-    if (settingsResponse.ok) {
-      const settings = await settingsResponse.json();
-      defaultMatchCriteria = settings.defaultMatchCriteria || '';
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default match criteria:', error);
-  }
+  // Get default match criteria from system settings
+  const defaultMatchCriteria = await getDefaultMatchCriteria();
 
   // Check if this is a file upload (multipart/form-data)
   const contentType = request.headers.get('content-type') || '';

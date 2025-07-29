@@ -77,7 +77,7 @@ function MultiSelect({
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-[9999]">
       {/* Trigger */}
       <div
         className={cn(
@@ -128,7 +128,7 @@ function MultiSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-[210] mt-1 w-full bg-popover border rounded-lg shadow-lg">
+        <div className="absolute z-[9999] mt-1 w-full bg-popover border rounded-lg shadow-lg">
           {/* Search */}
           <div className="p-2 border-b">
             <input
@@ -196,7 +196,7 @@ function MultiSelect({
       {/* Click outside to close */}
       {open && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-[9998]" 
           onClick={() => setOpen(false)}
         />
       )}
@@ -650,7 +650,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0">
+      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col gap-6 p-0 overflow-visible">
         <DialogHeader className="p-6 pb-0 border-b flex-shrink-0 bg-card rounded-t-xl">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Settings className="w-6 h-6" />
@@ -660,7 +660,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
             Configure how your task board is organized and which fields are visible on each card.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-8">
+        <div className="flex-1 min-h-0 overflow-visible px-6 py-4 flex flex-col gap-8">
           {/* Board Grouping Section */}
           <div className="bg-muted/40 rounded-xl p-6 shadow-sm border flex flex-col gap-6">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
@@ -681,7 +681,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select row attribute" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {rowAndColumnFields.map(f => (
                       <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
                         <span>{f.icon}</span>
@@ -722,7 +722,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select column attribute" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     {rowAndColumnFields.map(f => (
                       <SelectItem key={f.key} value={f.key} className="flex items-center gap-2">
                         <span>{f.icon}</span>

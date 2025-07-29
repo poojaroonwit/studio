@@ -3,7 +3,7 @@ import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
-import { logAudit } from '@/lib/auditLog';
+// import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
 import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
-    await logAudit('ERROR', `Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:Get', null, { 
+    console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
       invalidUserId: validation.userId,
       sessionUser: validation.userName,
       error: validation.error
@@ -212,7 +212,7 @@ export async function GET(request: NextRequest) {
       success: Number(summary.success) || 0,
       error: Number(summary.error) || 0,
     };
-    await logAudit('AUDIT', `Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, 'API:UploadQueue:Get', actingUserId, { 
+    console.log(`Upload queue accessed by ${actingUserName}. Retrieved ${dataRes.rows.length} items.`, { 
       limit, 
       offset, 
       totalCount: parseInt(countRes.rows[0].count, 10),
@@ -225,7 +225,11 @@ export async function GET(request: NextRequest) {
     }));
     return NextResponse.json({ data: jobsWithUrl, total: parseInt(countRes.rows[0].count, 10), summary: safeSummary });
   } catch (error) {
-    await logAudit('ERROR', `Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:Get', actingUserId);
+    console.error(`Failed to fetch upload queue by ${actingUserName}. Error: ${(error as Error).message}`, { 
+      actingUserId,
+      actingUserName,
+      error: (error as Error).message
+    });
     throw error;
   } finally {
     client.release();
@@ -243,13 +247,13 @@ export async function POST(request: NextRequest) {
     session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
   
   if (!canManageUploadQueue) {
-    await logAudit('WARN', `Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`, 'API:UploadQueue:Post', session.user.id);
+    console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
     return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
   }
 
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
-    await logAudit('ERROR', `Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:Post', null, { 
+    console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
       invalidUserId: validation.userId,
       sessionUser: validation.userName,
       error: validation.error
@@ -270,7 +274,7 @@ export async function POST(request: NextRequest) {
   console.log('Upload queue POST received:', data);
   console.log('Parsed values:', { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload, finalPositionId });
   if (!file_path) {
-    await logAudit('WARN', `Upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { data });
+    console.warn(`Upload queue entry attempted without file_path by ${actingUserName}`, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
   }
   
@@ -284,7 +288,7 @@ export async function POST(request: NextRequest) {
       [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
     );
     
-    await logAudit('AUDIT', `File '${file_name}' added to upload queue by ${actingUserName}`, 'API:UploadQueue:Post', actingUserId, { 
+    console.log(`File '${file_name}' added to upload queue by ${actingUserName}`, { 
       queueId: id,
       fileName: file_name,
       fileSize: file_size,
@@ -325,7 +329,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(res.rows[0], { status: 201 });
   } catch (error) {
-    await logAudit('ERROR', `Failed to add file '${file_name}' to upload queue by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:Post', actingUserId, { 
+    console.error(`Failed to add file '${file_name}' to upload queue by ${actingUserName}. Error: ${(error as Error).message}`, { 
       fileName: file_name,
       error: (error as Error).message 
     });

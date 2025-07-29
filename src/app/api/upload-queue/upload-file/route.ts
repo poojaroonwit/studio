@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
 import { getPool } from '@/lib/db';
-import { logAudit } from '@/lib/auditLog';
+// import { logAudit } from '@/lib/auditLog'; // Disabled for simplicity
 // import { dispatchWebhooks } from '@/lib/webhookDispatcher'; // Disabled for simplicity
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
 
     const validation = await validateUserSession(session);
     if (!validation.isValid) {
-      await logAudit('ERROR', `Upload attempt with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:UploadFile', null, { 
+      console.error(`Upload attempt with invalid session by ${validation.userName || 'Unknown'}`, { 
         invalidUserId: validation.userId,
         sessionUser: validation.userName,
         error: validation.error
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
       session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
     
     if (!canUpload) {
-      await logAudit('WARN', `Forbidden upload attempt by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId);
+      console.warn(`Forbidden upload attempt by ${actingUserName}`);
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions to upload files' }, { status: 403 });
     }
 
@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
       await ensureBucketExists();
     } catch (minioError) {
       console.error('[UPLOAD] MinIO bucket check error:', minioError);
-      await logAudit('ERROR', `MinIO bucket access failed during upload by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId, {
+      console.error(`MinIO bucket access failed during upload by ${actingUserName}`, {
         error: minioError instanceof Error ? minioError.message : 'Unknown error'
       });
       return NextResponse.json({
@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
     
     // Step 7: Log audit events
     const processingTime = Date.now() - startTime;
-    await logAudit('AUDIT', `Bulk file upload completed by ${actingUserName}`, 'API:UploadQueue:UploadFile', actingUserId, {
+    console.log(`Bulk file upload completed by ${actingUserName}`, {
       totalFiles: files.length,
       successfulUploads: successCount,
       failedUploads: failureCount,
@@ -470,13 +470,11 @@ export async function POST(request: NextRequest) {
     
     // Log the error
     try {
-      await logAudit('ERROR', `Bulk file upload failed`, 'API:UploadQueue:UploadFile', 
-        session?.user?.id, {
-          error: errorMessage,
-          processingTimeMs: processingTime,
-          stack: error instanceof Error ? error.stack : undefined
-        }
-      );
+      console.error(`Bulk file upload failed`, {
+        error: errorMessage,
+        processingTimeMs: processingTime,
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } catch (logError) {
       console.error('[UPLOAD] Failed to log audit event:', logError);
     }

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card imports
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Edit3, Users, Loader2, Save } from 'lucide-react';
+import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users } from 'lucide-react';
 import type { Position, Candidate } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -162,7 +162,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         }
       }}
     >
-      <DialogContent className="sm:max-w-6xl w-full max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
           <DialogHeader className="p-6 pb-4 border-b"> {/* Added padding and border */}
             <DialogTitle className="flex items-center">
               <Edit3 className="mr-2 h-5 w-5 text-primary" /> Edit Position: {position?.title}
@@ -180,10 +180,14 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               </div>
             )}
 
-            <div className="grid md:grid-cols-2 gap-6 flex-1 min-h-0 p-6"> {/* Main content area with proper height constraints */}
-              {/* Left Column: Form */}
-              <ScrollArea className="h-full"> {/* Ensure ScrollArea takes full height of its container */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 p-6"> {/* Main content area with proper height constraints */}
+              {/* First Column: Basic Information */}
+              <ScrollArea className="h-full bg-muted/30 p-4 rounded-lg"> {/* Ensure ScrollArea takes full height of its container */}
                 <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Briefcase className="h-4 w-4 text-primary" />
+                    <h3 className="font-medium text-sm">Basic Information</h3>
+                  </div>
                   <div>
                     <Label htmlFor="title-edit">Position Title *</Label>
                     <Input id="title-edit" {...form.register('title')} className="mt-1" />
@@ -215,12 +219,15 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                   </div>
                 </div>
               </ScrollArea>
-              {/* Right Column: Job Description and Match Criteria Cards */}
-              <div className="flex flex-col min-h-0 space-y-6">
-                {/* Job Description Card */}
-                <Card className="flex flex-col min-h-0">
+              
+              {/* Second Column: Job Description */}
+              <div className="flex flex-col min-h-0">
+                <Card className="flex flex-col min-h-0 bg-muted/20">
                   <CardHeader className="flex-shrink-0">
-                    <CardTitle>Job Description</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <CardTitle>Job Description</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col min-h-0 p-0">
                     <Controller
@@ -243,12 +250,17 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                     />
                   </CardContent>
                 </Card>
+              </div>
 
-                {/* Match Criteria Card */}
-                <Card className="flex flex-col min-h-0">
+              {/* Third Column: Match Criteria */}
+              <div className="flex flex-col min-h-0">
+                <Card className="flex flex-col min-h-0 bg-muted/20">
                   <CardHeader className="flex-shrink-0">
                     <div className="flex items-center justify-between">
-                      <CardTitle>Match Criteria</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-primary" />
+                        <CardTitle>Match Criteria</CardTitle>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"

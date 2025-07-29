@@ -39,6 +39,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -220,17 +221,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403, headers: handleCors(request) });
   }
 
-  // Fetch default match criteria from system settings
-  let defaultMatchCriteria = '';
-  try {
-    const settingsResponse = await fetch(`${request.nextUrl.origin}/api/settings/system-settings`);
-    if (settingsResponse.ok) {
-      const settings = await settingsResponse.json();
-      defaultMatchCriteria = settings.defaultMatchCriteria || '';
-    }
-  } catch (error) {
-    console.warn('Failed to fetch default match criteria:', error);
-  }
+  // Get default match criteria from system settings
+  const defaultMatchCriteria = await getDefaultMatchCriteria();
 
   let body;
   try {

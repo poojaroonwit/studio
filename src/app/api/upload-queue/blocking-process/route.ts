@@ -3,7 +3,7 @@ import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions, validateUserSession } from '@/lib/auth';
-import { logAudit } from '@/lib/auditLog';
+// import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { processSingleUploadQueueJob } from '../process/route';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   const validation = await validateUserSession(session);
   if (!validation.isValid) {
-    await logAudit('ERROR', `Blocking upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, 'API:UploadQueue:BlockingPost', null, {
+    console.error(`Blocking upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, {
       invalidUserId: validation.userId,
       sessionUser: validation.userName,
       error: validation.error
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const { file_name, file_size, status, source, upload_id, file_path, webhook_payload, position_id, applied_position_id } = data;
   const finalPositionId = position_id || applied_position_id || null;
   if (!file_path) {
-    await logAudit('WARN', `Blocking upload queue entry attempted without file_path by ${actingUserName}`, 'API:UploadQueue:BlockingPost', actingUserId, { data });
+    console.warn(`Blocking upload queue entry attempted without file_path by ${actingUserName}`, { data });
     return NextResponse.json({ error: 'file_path is required' }, { status: 400 });
   }
   const id = uuidv4();
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
     );
     const job = res.rows[0];
-    await logAudit('AUDIT', `File '${file_name}' added to upload queue (blocking) by ${actingUserName}`, 'API:UploadQueue:BlockingPost', actingUserId, {
+    console.log(`File '${file_name}' added to upload queue (blocking) by ${actingUserName}`, {
       queueId: id,
       fileName: file_name,
       fileSize: file_size,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const result = await processSingleUploadQueueJob(job, client);
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    await logAudit('ERROR', `Failed to add/process file '${file_name}' to upload queue (blocking) by ${actingUserName}. Error: ${(error as Error).message}`, 'API:UploadQueue:BlockingPost', actingUserId, {
+    console.error(`Failed to add/process file '${file_name}' to upload queue (blocking) by ${actingUserName}. Error: ${(error as Error).message}`, {
       fileName: file_name,
       error: (error as Error).message
     });

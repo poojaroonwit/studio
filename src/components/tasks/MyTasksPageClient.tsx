@@ -526,16 +526,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </>
               )}
 
-              {/* Demo Link */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 text-xs"
-                onClick={() => window.open('/drag-drop-demo', '_blank')}
-              >
-                <Kanban className="w-4 h-4 mr-1"/>
-                Demo
-              </Button>
+
 
               {/* Refresh */}
               <Button

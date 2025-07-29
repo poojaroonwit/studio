@@ -292,6 +292,7 @@ export interface Position {
   title: string;
   department: string;
   description?: string | null;
+  matchCriteria?: string | null;
   isOpen: boolean;
   positionLevel?: string | null;
   customAttributes?: Record<string, any> | null;
@@ -472,6 +473,7 @@ export type SystemSettingKey =
   | 'appLogoDataUrl'
   | 'appFaviconDataUrl'
   | 'appThemePreference'
+  | 'defaultMatchCriteria'
   // New contextual logo settings
   | 'loginPageLogoLightMode'
   | 'loginPageLogoDarkMode'

@@ -780,6 +780,19 @@ export default function PositionDetailPage() {
                 <div className="text-muted-foreground italic">No job description provided.</div>
               )}
             </div>
+            
+            {/* Match Criteria */}
+            <div className="space-y-2 mt-6">
+              <h4 className="font-medium text-sm">Match Criteria:</h4>
+              {position.matchCriteria ? (
+                <div 
+                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: position.matchCriteria }}
+                />
+              ) : (
+                <div className="text-muted-foreground italic">No match criteria defined.</div>
+              )}
+            </div>
           </Card>
 
           {/* Right Column - 70% */}

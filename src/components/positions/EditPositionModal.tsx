@@ -36,6 +36,7 @@ const editPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   department: z.string().min(1, "Department is required"),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
 });
@@ -54,6 +55,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalReady, setIsModalReady] = useState(false);
+  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
 
   const form = useForm<EditPositionFormValues>({
     resolver: zodResolver(editPositionFormSchema),
@@ -61,6 +63,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       title: '',
       department: '',
       description: '',
+      matchCriteria: '',
       isOpen: true,
       positionLevel: '',
     },
@@ -70,6 +73,21 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
     if (position && isOpen && position.title && position.department) {
       // Set modal as ready immediately
       setIsModalReady(true);
+
+      // Fetch default match criteria
+      const fetchDefaultMatchCriteria = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            const defaultCriteria = data.defaultMatchCriteria || '';
+            setDefaultMatchCriteria(defaultCriteria);
+          }
+        } catch (error) {
+          console.error('Failed to fetch default match criteria:', error);
+        }
+      };
+      fetchDefaultMatchCriteria();
 
       const fetchCandidates = async () => {
         if (!position.id) return;
@@ -94,7 +112,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       fetchCandidates();
 
     } else if (!isOpen) {
-        form.reset({ title: '', department: '', description: '', isOpen: true, positionLevel: '' });
+        form.reset({ title: '', department: '', description: '', matchCriteria: '', isOpen: true, positionLevel: '' });
         setAssociatedCandidates([]);
         setIsModalReady(false);
     }
@@ -107,6 +125,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         title: position.title ?? '',
         department: position.department ?? '',
         description: position.description ?? '',
+        matchCriteria: position.matchCriteria ?? '',
         isOpen: typeof position.isOpen === 'boolean' ? position.isOpen : true,
         positionLevel: position.positionLevel ?? '',
       };
@@ -196,32 +215,73 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                   </div>
                 </div>
               </ScrollArea>
-              {/* Right Column: Job Description Card */}
-              <Card className="flex flex-col min-h-0">
-                <CardHeader className="flex-shrink-0">
-                  <CardTitle>Job Description</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 p-0">
-                  <Controller
-                    name="description"
-                    control={form.control}
-                    render={({ field }) => (
-                      <div className="flex-1 flex flex-col min-h-0">
-                                              <EditorJSEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Enter job description"
-                        className="flex-1 min-h-0"
-                        isOpen={isModalReady}
-                      />
-                        {form.formState.errors.description && (
-                          <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
-                        )}
-                      </div>
-                    )}
-                  />
-                </CardContent>
-              </Card>
+              {/* Right Column: Job Description and Match Criteria Cards */}
+              <div className="flex flex-col min-h-0 space-y-6">
+                {/* Job Description Card */}
+                <Card className="flex flex-col min-h-0">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle>Job Description</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+                    <Controller
+                      name="description"
+                      control={form.control}
+                      render={({ field }) => (
+                        <div className="flex-1 flex flex-col min-h-0">
+                          <EditorJSEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Enter job description"
+                            className="flex-1 min-h-0"
+                            isOpen={isModalReady}
+                          />
+                          {form.formState.errors.description && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
+                          )}
+                        </div>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Match Criteria Card */}
+                <Card className="flex flex-col min-h-0">
+                  <CardHeader className="flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Match Criteria</CardTitle>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
+                        disabled={!defaultMatchCriteria}
+                      >
+                        Set to Default
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col min-h-0 p-0">
+                    <Controller
+                      name="matchCriteria"
+                      control={form.control}
+                      render={({ field }) => (
+                        <div className="flex-1 flex flex-col min-h-0">
+                          <EditorJSEditor
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            placeholder="Enter match criteria for this position..."
+                            className="flex-1 min-h-0"
+                            isOpen={isModalReady}
+                          />
+                          {form.formState.errors.matchCriteria && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.matchCriteria.message}</p>
+                          )}
+                        </div>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
             
             <DialogFooter className="p-6 pt-4 border-t mt-auto"> {/* Added padding */}

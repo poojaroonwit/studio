@@ -312,9 +312,25 @@ Get a specific candidate by ID.
 ```
 
 #### PUT `/api/v1/candidates/{id}`
-Update a candidate with candidate information. Job matches and applied job data should be managed through separate endpoints.
+Update a candidate. Only the fields you want to update need to be included in the request. Job matches and applied job data can also be updated through this endpoint.
 
-**Request Body:**
+**Example - Update only the status:**
+```json
+{
+  "status": "Shortlisted"
+}
+```
+
+**Example - Update basic information:**
+```json
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1-555-0123"
+}
+```
+
+**Example - Update candidate info structure:**
 ```json
 {
   "candidate_info": {
@@ -326,6 +342,29 @@ Update a candidate with candidate information. Job matches and applied job data 
       "email": "john.updated@example.com"
     }
   }
+}
+```
+
+**Example - Update job matches:**
+```json
+{
+  "job_matches": [
+    {
+      "fitScore": 0.85,
+      "jobId": "position-uuid",
+      "matchReasons": ["Strong technical skills", "Relevant experience"]
+    }
+  ]
+}
+```
+
+**Example - Update multiple fields:**
+```json
+{
+  "name": "John Doe Updated",
+  "status": "Interviewing",
+  "positionId": "new-position-uuid",
+  "fitScore": 0.92
 }
 ```
 
@@ -542,6 +581,7 @@ Get a list of positions with pagination and filtering.
       "title": "Software Engineer",
       "department": "Engineering",
       "description": "Full-stack development role",
+      "matchCriteria": "<h2>Compare Candidate and Job</h2>...",
       "isOpen": true,
       "positionLevel": "Mid-level",
       "customAttributes": {},
@@ -562,6 +602,7 @@ Create a new position.
   "title": "Software Engineer",                     // Required
   "department": "Engineering",                      // Required
   "description": "Full-stack development role",     // Optional
+  "matchCriteria": "",                              // Optional (default: system default)
   "isOpen": true,                                   // Optional (default: true)
   "positionLevel": "Mid-level",                    // Optional
   "customAttributes": {}                            // Optional (default: {})
@@ -576,6 +617,7 @@ Create a new position.
 
 **Optional Fields:**
 - `description` - Position description
+- `matchCriteria` - Match criteria content (if empty, uses system default)
 - `isOpen` - Whether position is open for applications (default: true)
 - `positionLevel` - Position level (e.g., "Entry", "Mid-level", "Senior")
 - `customAttributes` - Custom attributes object (default: {})
@@ -589,12 +631,28 @@ Create a new position.
 Get a specific position by ID.
 
 #### PUT `/api/v1/positions/{id}`
-Update a position.
+Update a position. Only the fields you want to update need to be included in the request.
 
 **Note:** The following fields are automatically handled and should not be included in the request:
 - `createdAt`: Automatically set to current timestamp
 - `updatedAt`: Automatically set to current timestamp
 - `id`: Automatically generated UUID
+
+**Example - Update only the title:**
+```json
+{
+  "title": "Updated Software Engineer Position"
+}
+```
+
+**Example - Update multiple fields:**
+```json
+{
+  "title": "Senior Software Engineer",
+  "department": "Engineering",
+  "isOpen": false
+}
+```
 
 #### DELETE `/api/v1/positions/{id}`
 Delete a position.
@@ -639,6 +697,7 @@ Import positions from JSON.
       "title": "Software Engineer",                     // Required
       "department": "Engineering",                      // Required
       "description": "Full-stack development role",     // Optional
+      "matchCriteria": "",                              // Optional (default: system default)
       "isOpen": true,                                   // Optional (default: true)
       "positionLevel": "Mid-level",                    // Optional
       "customAttributes": {}                            // Optional (default: {})
@@ -655,6 +714,7 @@ Import positions from JSON.
 
 **Optional Fields:**
 - `positions[].description` - Position description
+- `positions[].matchCriteria` - Match criteria content (if empty, uses system default)
 - `positions[].isOpen` - Whether position is open for applications (default: true)
 - `positions[].positionLevel` - Position level (e.g., "Entry", "Mid-level", "Senior")
 - `positions[].customAttributes` - Custom attributes object (default: {})

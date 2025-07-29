@@ -32,6 +32,7 @@ const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   department: z.string().min(1, "Department is required"),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
 });
@@ -46,6 +47,7 @@ interface AddPositionModalProps {
 
 export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPositionModalProps) {
   const [isModalReady, setIsModalReady] = useState(false);
+  const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
   
   const form = useForm<AddPositionFormValues>({
     resolver: zodResolver(addPositionFormSchema),
@@ -53,6 +55,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       title: '',
       department: '',
       description: '',
+      matchCriteria: '',
       isOpen: true,
       positionLevel: '',
     },
@@ -61,10 +64,28 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   useEffect(() => {
     if (isOpen) {
       setIsModalReady(true);
+      // Fetch default match criteria
+      const fetchDefaultMatchCriteria = async () => {
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            const defaultCriteria = data.defaultMatchCriteria || '';
+            setDefaultMatchCriteria(defaultCriteria);
+            // Set the default match criteria in the form
+            form.setValue('matchCriteria', defaultCriteria);
+          }
+        } catch (error) {
+          console.error('Failed to fetch default match criteria:', error);
+        }
+      };
+      fetchDefaultMatchCriteria();
+      
       form.reset({
         title: '',
         department: '',
         description: '',
+        matchCriteria: '',
         isOpen: true,
         positionLevel: '',
       });
@@ -147,24 +168,58 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                 </div>
               </div>
               
-              {/* Right Column: Job Description */}
-              <div className="flex flex-col min-h-0">
-                <Label htmlFor="description-add" className="mb-3">Job Description</Label>
-                <Controller
-                  name="description"
-                  control={form.control}
-                  render={({ field }) => (
-                    <div className="flex-1 flex flex-col min-h-0">
-                                          <EditorJSEditor
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        placeholder="Enter job description"
-                        className="flex-1 min-h-0"
-                        isOpen={isModalReady}
-                      />
-                    </div>
-                  )}
-                />
+              {/* Right Column: Job Description and Match Criteria */}
+              <div className="flex flex-col min-h-0 space-y-6">
+                {/* Job Description */}
+                <div className="flex flex-col min-h-0">
+                  <Label htmlFor="description-add" className="mb-3">Job Description</Label>
+                  <Controller
+                    name="description"
+                    control={form.control}
+                    render={({ field }) => (
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <EditorJSEditor
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          placeholder="Enter job description"
+                          className="flex-1 min-h-0"
+                          isOpen={isModalReady}
+                        />
+                      </div>
+                    )}
+                  />
+                </div>
+
+                {/* Match Criteria */}
+                <div className="flex flex-col min-h-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label htmlFor="matchCriteria-add">Match Criteria</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
+                      disabled={!defaultMatchCriteria}
+                    >
+                      Set to Default
+                    </Button>
+                  </div>
+                  <Controller
+                    name="matchCriteria"
+                    control={form.control}
+                    render={({ field }) => (
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <EditorJSEditor
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          placeholder="Enter match criteria for this position..."
+                          className="flex-1 min-h-0"
+                          isOpen={isModalReady}
+                        />
+                      </div>
+                    )}
+                  />
+                </div>
               </div>
             </div>
             

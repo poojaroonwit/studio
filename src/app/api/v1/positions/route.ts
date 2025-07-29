@@ -18,6 +18,7 @@ const createPositionSchema = z.object({
   title: z.string().min(1, { message: 'Title is required' }),
   department: z.string().min(1, { message: 'Department is required' }),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean({ required_error: 'isOpen status is required' }),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    let query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
+    let query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
     const conditions = [];
     const queryParams = [];
@@ -99,6 +100,18 @@ export async function POST(req: NextRequest) {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create positions'));
   }
 
+  // Fetch default match criteria from system settings
+  let defaultMatchCriteria = '';
+  try {
+    const settingsResponse = await fetch(`${req.nextUrl.origin}/api/settings/system-settings`);
+    if (settingsResponse.ok) {
+      const settings = await settingsResponse.json();
+      defaultMatchCriteria = settings.defaultMatchCriteria || '';
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default match criteria:', error);
+  }
+
   let body;
   try {
     body = await req.json();
@@ -118,8 +131,8 @@ export async function POST(req: NextRequest) {
   try {
     const newPositionId = uuidv4();
     const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *;
     `;
     const values = [
@@ -127,6 +140,7 @@ export async function POST(req: NextRequest) {
       validatedData.title,
       validatedData.department,
       validatedData.description || null,
+      (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? validatedData.matchCriteria : defaultMatchCriteria,
       validatedData.isOpen,
       validatedData.positionLevel || null,
       validatedData.custom_attributes || {},

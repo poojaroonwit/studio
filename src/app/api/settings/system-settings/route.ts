@@ -41,6 +41,7 @@ import { Buffer } from 'buffer';
 
 const systemSettingKeyEnum = z.enum([
     'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
+    'defaultMatchCriteria',
     // New contextual logo settings
     'loginPageLogoLightMode', 'loginPageLogoDarkMode',
     'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',

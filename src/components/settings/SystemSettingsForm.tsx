@@ -19,6 +19,7 @@ interface SystemSettingsFormProps {
 // Allowed system setting keys (must match backend systemSettingKeyEnum)
 const ALLOWED_SYSTEM_SETTING_KEYS = [
   'appName', 'appLogoDataUrl', 'appFaviconDataUrl', 'appThemePreference',
+  'defaultMatchCriteria',
   // New contextual logo settings
   'loginPageLogoLightMode', 'loginPageLogoDarkMode',
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',

@@ -61,6 +61,12 @@ export default function ApiDocsUIPage() {
       width: '100%',
       overflow: 'hidden'
     }}>
+      <style jsx global>{`
+        /* Hide server selection dropdown since we only have one server */
+        .servers, .servers-title, .servers-container {
+          display: none !important;
+        }
+      `}</style>
       <SwaggerUI 
         spec={swaggerSpec}
         docExpansion="list"

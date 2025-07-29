@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt"
+      SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt"
       FROM "Position"
       ORDER BY "createdAt" DESC
     `;
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     
     // Convert to CSV format
     const headers = [
-      'ID', 'Title', 'Department', 'Description', 'Is Open', 'Position Level', 
+      'ID', 'Title', 'Department', 'Description', 'Match Criteria', 'Is Open', 'Position Level', 
       'Created At', 'Updated At'
     ];
     
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
         `"${(row.title || '').replace(/"/g, '""')}"`,
         `"${(row.department || '').replace(/"/g, '""')}"`,
         `"${(row.description || '').replace(/"/g, '""')}"`,
+        `"${(row.matchCriteria || '').replace(/"/g, '""')}"`,
         row.isOpen ? 'true' : 'false',
         `"${(row.positionLevel || '').replace(/"/g, '""')}"`,
         row.createdAt || '',

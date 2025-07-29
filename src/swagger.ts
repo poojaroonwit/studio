@@ -1,10 +1,8 @@
 // Comprehensive OpenAPI 3.0 specification for Studio API
 
-import { getApiServers } from './lib/apiServers';
-
 export function getSwaggerSpec() {
   // Use production server URL for Swagger API testing
-  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://localhost:8021';
+  const serverUrl = process.env.PRODUCTION_HOST || process.env.API_BASE_URL || 'http://app:8021';
   return {
     openapi: '3.0.0',
     info: {
@@ -20,7 +18,12 @@ export function getSwaggerSpec() {
         url: 'https://opensource.org/licenses/MIT'
       }
     },
-    servers: getApiServers(),
+    servers: [
+      {
+        url: serverUrl,
+        description: 'Studio API Server',
+      },
+    ],
     security: [
       {
         bearerAuth: []
@@ -123,6 +126,7 @@ export function getSwaggerSpec() {
                     title: { type: 'string' },
                     department: { type: 'string' },
                     description: { type: 'string', nullable: true },
+                    matchCriteria: { type: 'string', nullable: true, description: 'Match criteria in HTML format' },
                     isOpen: { type: 'boolean' },
                     positionLevel: { type: 'string', nullable: true },
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true }
@@ -136,6 +140,7 @@ export function getSwaggerSpec() {
                       title: 'Software Engineer',
                       department: 'Engineering',
                       description: 'Full-stack development role',
+                      matchCriteria: '<h2>Match Criteria</h2><p>Evaluate candidates based on technical skills and experience.</p>',
                       isOpen: true,
                       positionLevel: 'Mid-level',
                       customAttributes: {
@@ -143,6 +148,14 @@ export function getSwaggerSpec() {
                         salaryRange: '100k-150k',
                         benefits: ['Health Insurance', 'Stock Options']
                       }
+                    }
+                  },
+                  'minimal_example': {
+                    summary: 'Minimal Example',
+                    value: {
+                      title: 'Software Engineer',
+                      department: 'Engineering',
+                      isOpen: true
                     }
                   }
                 }
@@ -184,7 +197,7 @@ export function getSwaggerSpec() {
         },
         put: {
           summary: 'Update position by ID (v1 API)',
-          description: 'Updates a position. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
+          description: 'Updates a position. Only the fields you want to update need to be included in the request. Requires Bearer token authentication and Admin or POSITIONS_MANAGE permission.',
           tags: ['V1 Positions'],
           security: [{ bearerAuth: [] }],
           parameters: [
@@ -200,18 +213,38 @@ export function getSwaggerSpec() {
                     title: { type: 'string' },
                     department: { type: 'string' },
                     description: { type: 'string', nullable: true },
+                    matchCriteria: { type: 'string', nullable: true, description: 'Match criteria in HTML format' },
                     isOpen: { type: 'boolean' },
                     positionLevel: { type: 'string', nullable: true },
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true }
                   }
                 },
                 examples: {
+                  'status_update_example': {
+                    summary: 'Update Status Only',
+                    value: {
+                      isOpen: false
+                    }
+                  },
+                  'title_update_example': {
+                    summary: 'Update Title Only',
+                    value: {
+                      title: 'Senior Software Engineer'
+                    }
+                  },
+                  'match_criteria_update_example': {
+                    summary: 'Update Match Criteria Only',
+                    value: {
+                      matchCriteria: '<h2>Updated Match Criteria</h2><p>New evaluation criteria for this position.</p>'
+                    }
+                  },
                   'detailed_update_example': {
                     summary: 'Full Update Example',
                     value: {
                       title: 'Senior Software Engineer',
                       department: 'Engineering',
                       description: 'Lead backend development',
+                      matchCriteria: '<h2>Match Criteria</h2><p>Evaluate candidates based on technical skills and experience.</p>',
                       isOpen: false,
                       positionLevel: 'Senior',
                       customAttributes: {
@@ -684,7 +717,7 @@ export function getSwaggerSpec() {
         },
         put: {
           summary: 'Update candidate by ID (v1 API)',
-          description: 'Updates a candidate with candidate information, job matches, and applied job data. Supports both legacy and new formats. Requires Bearer token authentication and Admin or CANDIDATES_MANAGE permission.',
+          description: 'Updates a candidate. Only the fields you want to update need to be included in the request. Supports both legacy and new formats. Requires Bearer token authentication and Admin or CANDIDATES_MANAGE permission.',
           tags: ['V1 Candidates'],
           security: [{ bearerAuth: [] }],
           parameters: [
@@ -761,6 +794,48 @@ export function getSwaggerSpec() {
                   }
                 },
                 examples: {
+                  'status_update_example': {
+                    summary: 'Update Status Only',
+                    value: {
+                      status: 'Shortlisted'
+                    }
+                  },
+                  'basic_info_update_example': {
+                    summary: 'Update Basic Information Only',
+                    value: {
+                      name: 'John Doe Updated',
+                      email: 'john.updated@example.com',
+                      phone: '+1-555-0123'
+                    }
+                  },
+                  'candidate_info_update_example': {
+                    summary: 'Update Candidate Info Structure Only',
+                    value: {
+                      candidate_info: {
+                        personal_info: {
+                          firstname: 'John',
+                          lastname: 'Doe Updated',
+                          location: 'San Francisco, CA'
+                        },
+                        contact_info: {
+                          email: 'john.updated@example.com',
+                          phone: '+1-555-0123'
+                        }
+                      }
+                    }
+                  },
+                  'job_matches_update_example': {
+                    summary: 'Update Job Matches Only',
+                    value: {
+                      job_matches: [
+                        {
+                          fitScore: 0.85,
+                          jobId: 'position-uuid',
+                          matchReasons: ['Strong technical skills', 'Relevant experience']
+                        }
+                      ]
+                    }
+                  },
                   'detailed_update_example': {
                     summary: 'Full Update Example',
                     value: {
@@ -1942,6 +2017,7 @@ export function getSwaggerSpec() {
             title: { type: 'string' },
             department: { type: 'string' },
             description: { type: 'string', nullable: true },
+            matchCriteria: { type: 'string', nullable: true, description: 'Match criteria in HTML format' },
             isOpen: { type: 'boolean' },
             positionLevel: { type: 'string', nullable: true },
             customAttributes: { type: 'object', additionalProperties: true, nullable: true },
@@ -1956,6 +2032,7 @@ export function getSwaggerSpec() {
             title: { type: 'string', minLength: 1 },
             department: { type: 'string', minLength: 1 },
             description: { type: 'string', nullable: true },
+            matchCriteria: { type: 'string', nullable: true, description: 'Match criteria in HTML format' },
             isOpen: { type: 'boolean' },
             positionLevel: { type: 'string', nullable: true },
             customAttributes: { type: 'object', additionalProperties: true, nullable: true }
@@ -1968,6 +2045,7 @@ export function getSwaggerSpec() {
             title: { type: 'string', minLength: 1 },
             department: { type: 'string', minLength: 1 },
             description: { type: 'string', nullable: true },
+            matchCriteria: { type: 'string', nullable: true, description: 'Match criteria in HTML format' },
             isOpen: { type: 'boolean' },
             positionLevel: { type: 'string', nullable: true },
             customAttributes: { type: 'object', additionalProperties: true, nullable: true }

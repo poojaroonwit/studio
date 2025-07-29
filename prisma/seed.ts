@@ -172,6 +172,93 @@ async function main() {
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },
       { key: 'loginPageLayoutType', value: '2column' },
+      { 
+        key: 'defaultMatchCriteria', 
+        value: `<h2>Compare Candidate and Job</h2>
+<p>Evaluate matches in the following categories:</p>
+<ul>
+<li>Skills</li>
+<li>Experience</li>
+<li>Education</li>
+<li>Overall qualitative/cultural alignment</li>
+</ul>
+<p><em>if information is not enough in each categories, please share that weight % to other categories</em></p>
+
+<h3>Scoring Criteria</h3>
+<p>Each category is scored based on how well the candidate aligns, using the following levels:</p>
+
+<p>Use the following relevance levels to assess how well a candidate matches the job criteria within each category:</p>
+
+<table border="1" style="border-collapse: collapse; width: 100%;">
+<thead>
+<tr>
+<th>Relevance Level</th>
+<th>Score</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Perfect Match</strong></td>
+<td>100</td>
+<td>Candidate fully meets or exceeds all expectations. Directly matches required qualifications with no gaps. Skills, responsibilities, or background are ideal.</td>
+</tr>
+<tr>
+<td><strong>Relevant</strong></td>
+<td>75</td>
+<td>Candidate meets most of the key requirements. Some minor gaps or deviations, but still a strong and workable fit.</td>
+</tr>
+<tr>
+<td><strong>Somewhat Relevant</strong></td>
+<td>50</td>
+<td>Candidate meets parts of the requirement but has noticeable gaps. May need upskilling or additional context to be a good fit.</td>
+</tr>
+<tr>
+<td><strong>Marginally Related</strong></td>
+<td>25</td>
+<td>Candidate shows limited relevance. Experience or qualifications are loosely connected but not sufficient.</td>
+</tr>
+<tr>
+<td><strong>Not Matched</strong></td>
+<td>0</td>
+<td>No meaningful alignment with the criteria in this category. Candidate lacks the required or even adjacent experience or skills.</td>
+</tr>
+</tbody>
+</table>
+
+<p>Apply this relevance scoring to the weighted categories below:</p>
+
+<p><em>if information is not enough in each categories, please share that weight % to other categories</em></p>
+
+<ul>
+<li><strong>Skills Match (weight 40%)</strong>
+<ul>
+<li>Match required and preferred skills against the candidate's.</li>
+<li>Calculate the average skill relevance score.</li>
+<li>Weighted score = (average skill relevance / 100) × 0.40</li>
+</ul>
+</li>
+<li><strong>Experience Match (weight 30%)</strong>
+<ul>
+<li>Assess how well the candidate's job history aligns with responsibilities and industry of the job.</li>
+<li>Consider depth, title relevance, and duration.</li>
+<li>Weighted score = (average experience relevance / 100) × 0.30</li>
+</ul>
+</li>
+<li><strong>Education Match (weight 15%)</strong>
+<ul>
+<li>Evaluate field of study, degree level, and match with educational requirements.</li>
+<li>Weighted score = (education relevance / 100) × 0.15</li>
+</ul>
+</li>
+<li><strong>Overall Alignment (weight 15%)</strong>
+<ul>
+<li>Make a subjective judgment based on tone, communication, company mission alignment, etc.</li>
+<li>Weighted score = (alignment relevance / 100) × 0.15</li>
+</ul>
+</li>
+</ul>` 
+      },
       // Add a default logo (simple SVG data URL)
       { key: 'appLogoDataUrl', value: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0idXJsKCNncmFkaWVudCkiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IndoaXRlIi8+Cjx0ZXh0IHg9IjgwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPkNhbmRpVHJhY2s8L3RleHQ+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCIgeTE9IjAiIHgyPSIyMDAiIHkyPSI4MCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkZGO3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2RjA7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+' },
       // Contextual logos - initially null, can be set through preferences

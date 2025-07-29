@@ -6,6 +6,16 @@ import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 
+const updatePositionSchema = z.object({
+  title: z.string().min(1).optional(),
+  department: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
+  isOpen: z.boolean().optional(),
+  positionLevel: z.string().optional().nullable(),
+  custom_attributes: z.record(z.any()).optional().nullable(),
+});
+
 /**
  * @openapi
  * /api/positions/{id}:
@@ -72,7 +82,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
+    const query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -103,9 +113,10 @@ const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
   department: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
-  custom_attributes: z.record(z.any()).optional().nullable(), // New
+  custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
@@ -130,7 +141,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, department, description, isOpen, positionLevel, custom_attributes } = validationResult.data;
+  const { title, department, description, matchCriteria, isOpen, positionLevel, custom_attributes } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -146,15 +157,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Update position
-          const updateQuery = `
-        UPDATE "Position" 
-        SET title = $1, department = $2, description = $3, "isOpen" = $4, 
-            "positionLevel" = $5, "customAttributes" = $6, "updatedAt" = NOW()
-        WHERE id = $7
-        RETURNING *;
-      `;
+    const updateQuery = `
+      UPDATE "Position" 
+      SET title = $1, department = $2, description = $3, "matchCriteria" = $4, "isOpen" = $5, 
+          "positionLevel" = $6, "customAttributes" = $7, "updatedAt" = NOW()
+      WHERE id = $8
+      RETURNING *;
+    `;
     const updateResult = await client.query(updateQuery, [
-      title, department, description, isOpen, positionLevel, custom_attributes || {}, id
+      title, department, description, matchCriteria, isOpen, positionLevel, custom_attributes || {}, id
     ]);
 
     await client.query('COMMIT');

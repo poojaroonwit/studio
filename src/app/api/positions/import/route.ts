@@ -80,6 +80,7 @@ const importPositionSchema = z.object({
   title: z.string().min(1, "Title is required"),
   department: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.any().optional().nullable(),
@@ -143,6 +144,18 @@ export async function POST(request: NextRequest) {
 
   if (!actingUserId) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Fetch default match criteria from system settings
+  let defaultMatchCriteria = '';
+  try {
+    const settingsResponse = await fetch(`${request.nextUrl.origin}/api/settings/system-settings`);
+    if (settingsResponse.ok) {
+      const settings = await settingsResponse.json();
+      defaultMatchCriteria = settings.defaultMatchCriteria || '';
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default match criteria:', error);
   }
 
   // Check if this is a file upload (multipart/form-data)
@@ -239,6 +252,7 @@ export async function POST(request: NextRequest) {
           title: row.title,
           department: row.department,
           description: combinedDescription || null,
+          matchCriteria: (row.matchCriteria && row.matchCriteria.trim() !== '') ? row.matchCriteria : defaultMatchCriteria,
           isOpen: row.isOpen && String(row.isOpen).toLowerCase() === 'true',
           positionLevel: row.positionLevel || null,
           custom_attributes: customAttributes,
@@ -269,14 +283,14 @@ export async function POST(request: NextRequest) {
             continue;
           }
           const insertQuery = `
-            INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
             RETURNING *;
           `;
           const positionId = uuidv4();
           await client.query(insertQuery, [
             positionId, position.title, position.department, position.description, 
-            position.isOpen, position.positionLevel, position.custom_attributes || {}
+            position.matchCriteria, position.isOpen, position.positionLevel, position.custom_attributes || {}
           ]);
           results.success++;
         } catch (error: any) {
@@ -328,14 +342,14 @@ export async function POST(request: NextRequest) {
           continue;
         }
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+          INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
           RETURNING *;
         `;
         const positionId = uuidv4();
         await client.query(insertQuery, [
           positionId, position.title, position.department, position.description, 
-          position.isOpen, position.positionLevel, position.custom_attributes || {}
+          (position.matchCriteria && position.matchCriteria.trim() !== '') ? position.matchCriteria : defaultMatchCriteria, position.isOpen, position.positionLevel, position.custom_attributes || {}
         ]);
         results.success++;
       } catch (error: any) {

@@ -19,6 +19,7 @@ const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
   department: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
+    const query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
     const result = await client.query(query, [id]);
     if (result.rows.length === 0) {
       return handleApiError(req, createNotFoundError('Position not found'));
@@ -71,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!validationResult.success) {
     return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
-  const { title, department, description, isOpen, positionLevel, custom_attributes } = validationResult.data;
+  const updateData = validationResult.data;
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
@@ -81,19 +82,61 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       await client.query('ROLLBACK');
       return handleApiError(req, createNotFoundError('Position not found'));
     }
+
+    // Build dynamic UPDATE query based on provided fields
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (updateData.title !== undefined) {
+      updateFields.push(`title = $${paramIndex++}`);
+      updateValues.push(updateData.title);
+    }
+    if (updateData.department !== undefined) {
+      updateFields.push(`department = $${paramIndex++}`);
+      updateValues.push(updateData.department);
+    }
+    if (updateData.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      updateValues.push(updateData.description);
+    }
+    if (updateData.matchCriteria !== undefined) {
+      updateFields.push(`"matchCriteria" = $${paramIndex++}`);
+      updateValues.push(updateData.matchCriteria);
+    }
+    if (updateData.isOpen !== undefined) {
+      updateFields.push(`"isOpen" = $${paramIndex++}`);
+      updateValues.push(updateData.isOpen);
+    }
+    if (updateData.positionLevel !== undefined) {
+      updateFields.push(`"positionLevel" = $${paramIndex++}`);
+      updateValues.push(updateData.positionLevel);
+    }
+    if (updateData.custom_attributes !== undefined) {
+      updateFields.push(`"customAttributes" = $${paramIndex++}`);
+      updateValues.push(updateData.custom_attributes);
+    }
+
+    // Add updatedAt timestamp
+    updateFields.push(`"updatedAt" = NOW()`);
+
+    if (updateFields.length === 0) {
+      await client.query('ROLLBACK');
+      return handleApiError(req, createValidationError('No fields to update'));
+    }
+
     const updateQuery = `
       UPDATE "Position" 
-      SET title = $1, department = $2, description = $3, "isOpen" = $4, 
-          "positionLevel" = $5, "customAttributes" = $6
-      WHERE id = $7
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *;
     `;
-    const updateResult = await client.query(updateQuery, [
-      title, department, description, isOpen, positionLevel, custom_attributes || {}, id
-    ]);
+    updateValues.push(id);
+
+    const updateResult = await client.query(updateQuery, updateValues);
     await client.query('COMMIT');
     const updatedPosition = updateResult.rows[0];
-    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${user.name}.`, 'API:V1:Positions:Update', user.id, { positionId: id, updatedFields: { title, department, description, isOpen, positionLevel, custom_attributes } });
+    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${user.name}.`, 'API:V1:Positions:Update', user.id, { positionId: id, updatedFields: updateData });
     return createSuccessResponse(req, {
       message: 'Position updated successfully',
       position: {

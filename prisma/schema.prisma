@@ -46,6 +46,7 @@ model Position {
   title            String
   department       String
   description      String?
+  matchCriteria    String?
   isOpen           Boolean     @default(true)
   positionLevel    String?
   customAttributes Json?       @default("{}")

@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const includeStats = searchParams.get('includeStats') === 'true';
     const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
 
-    let query = 'SELECT id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
+    let query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
     let countQuery = 'SELECT COUNT(*) FROM "Position"';
     const conditions = [];
     const queryParams = [];
@@ -204,6 +204,7 @@ const createPositionSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   department: z.string().min(1, { message: "Department is required" }),
   description: z.string().optional().nullable(),
+  matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean({ required_error: "isOpen status is required" }),
   positionLevel: z.string().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
@@ -217,6 +218,18 @@ export async function POST(request: NextRequest) {
   if (!session?.user || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('POSITIONS_MANAGE'))) {
     await logAudit('WARN', `Forbidden attempt to create position by ${actingUserName}.`, 'API:Positions:Create', actingUserId);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403, headers: handleCors(request) });
+  }
+
+  // Fetch default match criteria from system settings
+  let defaultMatchCriteria = '';
+  try {
+    const settingsResponse = await fetch(`${request.nextUrl.origin}/api/settings/system-settings`);
+    if (settingsResponse.ok) {
+      const settings = await settingsResponse.json();
+      defaultMatchCriteria = settings.defaultMatchCriteria || '';
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default match criteria:', error);
   }
 
   let body;
@@ -240,8 +253,8 @@ export async function POST(request: NextRequest) {
   try {
     const newPositionId = uuidv4();
     const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *;
     `;
     const values = [
@@ -249,6 +262,7 @@ export async function POST(request: NextRequest) {
       validatedData.title,
       validatedData.department,
       validatedData.description || null,
+      (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? validatedData.matchCriteria : defaultMatchCriteria,
       validatedData.isOpen,
       validatedData.positionLevel || null,
       validatedData.custom_attributes || {},

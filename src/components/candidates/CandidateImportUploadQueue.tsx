@@ -31,8 +31,9 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(LinearScale, LogarithmicScale, PointElement, Tooltip, Legend, TimeScale);
+ChartJS.register(LinearScale, LogarithmicScale, PointElement, Tooltip, Legend, TimeScale, ChartDataLabels);
 
 export type CandidateJobType = "upload" | "import";
 
@@ -827,7 +828,12 @@ export const CandidateImportUploadQueue: React.FC<{
     responsive: true,
     plugins: {
       legend: { display: false },
-      datalabels: { display: false },
+      datalabels: { 
+        display: false,
+        color: 'transparent',
+        font: { size: 0 },
+        formatter: () => ''
+      },
       tooltip: {
         callbacks: {
           label: function(context: any) {

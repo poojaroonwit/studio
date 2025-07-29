@@ -10,6 +10,7 @@ const positionImportSchema = z.object({
     title: z.string().min(1),
     department: z.string().min(1),
     description: z.string().optional().nullable(),
+    matchCriteria: z.string().optional().nullable(),
     isOpen: z.boolean(),
     positionLevel: z.string().optional().nullable(),
     custom_attributes: z.record(z.any()).optional().nullable(),
@@ -27,6 +28,18 @@ export async function POST(req: NextRequest) {
 
   if (user.role !== 'Admin' && !user.modulePermissions?.includes('POSITIONS_MANAGE')) {
     return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions to import positions' }), { status: 403, headers: handleCors(req) });
+  }
+
+  // Fetch default match criteria from system settings
+  let defaultMatchCriteria = '';
+  try {
+    const settingsResponse = await fetch(`${req.nextUrl.origin}/api/settings/system-settings`);
+    if (settingsResponse.ok) {
+      const settings = await settingsResponse.json();
+      defaultMatchCriteria = settings.defaultMatchCriteria || '';
+    }
+  } catch (error) {
+    console.warn('Failed to fetch default match criteria:', error);
   }
 
   let body;
@@ -68,8 +81,8 @@ export async function POST(req: NextRequest) {
 
         // Insert new position
         const insertQuery = `
-          INSERT INTO "Position" (id, title, department, description, "isOpen", "positionLevel", "customAttributes")
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes")
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `;
         
         await client.query(insertQuery, [
@@ -77,6 +90,7 @@ export async function POST(req: NextRequest) {
           position.title,
           position.department,
           position.description || null,
+          (position.matchCriteria && position.matchCriteria.trim() !== '') ? position.matchCriteria : defaultMatchCriteria,
           position.isOpen,
           position.positionLevel || null,
           position.custom_attributes || {}
@@ -119,6 +133,7 @@ export async function GET(req: NextRequest) {
         title: "Software Engineer",
         department: "Engineering",
         description: "Full-stack development role",
+        matchCriteria: "",
         isOpen: true,
         positionLevel: "Mid-level",
         custom_attributes: {}

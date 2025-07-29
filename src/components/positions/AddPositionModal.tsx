@@ -53,6 +53,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const [isLoadingDefaultCriteria, setIsLoadingDefaultCriteria] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { error: showError, success: showSuccess } = useToast();
   
   const form = useForm<AddPositionFormValues>({
     resolver: zodResolver(addPositionFormSchema),
@@ -105,7 +107,14 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   }, [isOpen, form]);
 
   const onSubmit = async (data: AddPositionFormValues) => {
-    await onAddPosition(data);
+    setIsSaving(true);
+    try {
+      await onAddPosition(data);
+    } catch (err: any) {
+      console.error('Error adding position:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Check if all required fields for AI generation are filled
@@ -139,7 +148,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
     }
 
     if (missingFields.length > 0) {
-      toast.error(`Please fill in the following fields first: ${missingFields.join(', ')}`);
+      showError(`Please fill in the following fields first: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -150,7 +159,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
     }
 
     // If no existing content, generate directly
-    await performJobDescriptionGeneration(title, department, positionLevel);
+    await performJobDescriptionGeneration(title, department, positionLevel || '');
   };
 
   // Separate function to perform the actual generation
@@ -180,14 +189,14 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
       if (data.description) {
         form.setValue('description', data.description);
-        toast.success('Job description generated successfully!');
+        showSuccess('Job description generated successfully!');
       } else {
         throw new Error('No description generated');
       }
     } catch (error) {
       console.error('Error generating job description:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate job description. Please try again.';
-      toast.error(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsGeneratingDescription(false);
     }
@@ -200,7 +209,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
     const positionLevel = form.getValues('positionLevel');
     
     setShowReplaceConfirmation(false);
-    await performJobDescriptionGeneration(title, department, positionLevel);
+    await performJobDescriptionGeneration(title, department, positionLevel || '');
   };
 
   // Handle cancellation of replacement
@@ -212,7 +221,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   if (!isOpen) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
           <DialogHeader className="px-8 pt-8 pb-6">
             <DialogTitle className="flex items-center">
@@ -420,6 +430,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
   );
 }
 

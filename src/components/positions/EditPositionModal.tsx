@@ -23,7 +23,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users, BrainCircuit } from 'lucide-react';
 import type { Position, Candidate } from '@/lib/types';
-import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -59,6 +58,8 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { error: showError, success: showSuccess } = useToast();
 
   const form = useForm<EditPositionFormValues>({
     resolver: zodResolver(editPositionFormSchema),
@@ -106,7 +107,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
           setAssociatedCandidates(candidates.sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0)));
         } catch (error) {
           console.error("Error fetching associated candidates:", error);
-          toast.error((error as Error).message || "Could not load candidates for this position.");
+          showError((error as Error).message || "Could not load candidates for this position.");
           setAssociatedCandidates([]);
         } finally {
           setIsLoadingCandidates(false);
@@ -141,12 +142,15 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   const onSubmit = async (data: EditPositionFormValues) => {
     setApiError(null);
     if (!position || form.formState.isSubmitting) return;
+    setIsSaving(true);
     // Always send custom_attributes for API compatibility
     const payload = { ...data, custom_attributes: {} };
     try {
       await onEditPosition(position.id, payload);
     } catch (err: any) {
       setApiError(err?.message || 'Failed to update position.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -181,7 +185,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
     }
 
     if (missingFields.length > 0) {
-      toast.error(`Please fill in the following fields first: ${missingFields.join(', ')}`);
+      showError(`Please fill in the following fields first: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -192,7 +196,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
     }
 
     // If no existing content, generate directly
-    await performJobDescriptionGeneration(title, department, positionLevel);
+    await performJobDescriptionGeneration(title, department, positionLevel || '');
   };
 
   // Separate function to perform the actual generation
@@ -222,14 +226,14 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
 
       if (data.description) {
         form.setValue('description', data.description);
-        toast.success('Job description generated successfully!');
+        showSuccess('Job description generated successfully!');
       } else {
         throw new Error('No description generated');
       }
     } catch (error) {
       console.error('Error generating job description:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate job description. Please try again.';
-      toast.error(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsGeneratingDescription(false);
     }
@@ -242,7 +246,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
     const positionLevel = form.getValues('positionLevel');
     
     setShowReplaceConfirmation(false);
-    await performJobDescriptionGeneration(title, department, positionLevel);
+    await performJobDescriptionGeneration(title, department, positionLevel || '');
   };
 
   // Handle cancellation of replacement
@@ -254,21 +258,12 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   if (!position || !isOpen) return null; 
 
   return (
-    <Dialog 
-      open={isOpen} 
-      onOpenChange={(open) => {
-        onOpenChange(open);
-        if (!open) {
-          form.reset();
-          setAssociatedCandidates([]);
-          setIsModalReady(false);
-        }
-      }}
-    >
-      <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
-          <DialogHeader className="p-6 pb-4 border-b"> {/* Added padding and border */}
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
+          <DialogHeader className="px-8 pt-8 pb-6">
             <DialogTitle className="flex items-center">
-              <Edit3 className="mr-2 h-5 w-5 text-primary" /> Edit Position: {position?.title}
+              <Briefcase className="mr-2 h-5 w-5 text-primary" /> Edit Position
             </DialogTitle>
             <DialogDescription>
               Update the details for this job position.
@@ -283,76 +278,76 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 p-6"> {/* Main content area with proper height constraints */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0 px-8 pb-6">
               {/* First Column: Basic Information */}
-              <ScrollArea className="h-full bg-muted/30 p-4 rounded-lg"> {/* Ensure ScrollArea takes full height of its container */}
-                <div className="space-y-4">
+              <div className="flex flex-col min-h-0">
+                <ScrollArea className="flex-1 bg-muted/30 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-4">
                     <Briefcase className="h-4 w-4 text-primary" />
                     <h3 className="font-medium text-sm">Basic Information</h3>
                   </div>
-                  <div>
-                    <Label htmlFor="title-edit" className="font-medium">Position Title *</Label>
-                    <Input
-                      id="title-edit"
-                      placeholder="Enter position title"
-                      {...form.register('title')}
-                      disabled={isSaving}
-                    />
-                    {form.formState.errors.title && (
-                      <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
-                    )}
-                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="title-edit" className="font-medium">Position Title *</Label>
+                      <Input
+                        id="title-edit"
+                        placeholder="Enter position title"
+                        {...form.register('title')}
+                        disabled={isSaving}
+                      />
+                      {form.formState.errors.title && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="department-edit" className="font-medium">Department *</Label>
-                    <Input
-                      id="department-edit"
-                      placeholder="Enter department"
-                      {...form.register('department')}
-                      disabled={isSaving}
-                    />
-                    {form.formState.errors.department && (
-                      <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
-                    )}
-                  </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="department-edit" className="font-medium">Department *</Label>
+                      <Input
+                        id="department-edit"
+                        placeholder="Enter department"
+                        {...form.register('department')}
+                        disabled={isSaving}
+                      />
+                      {form.formState.errors.department && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="position-level-edit" className="font-medium">Position Level *</Label>
-                    <Select onValueChange={(value) => form.setValue('positionLevel', value)} disabled={isSaving}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select position level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Entry Level">Entry Level</SelectItem>
-                        <SelectItem value="Junior">Junior</SelectItem>
-                        <SelectItem value="Mid Level">Mid Level</SelectItem>
-                        <SelectItem value="Senior">Senior</SelectItem>
-                        <SelectItem value="Lead">Lead</SelectItem>
-                        <SelectItem value="Manager">Manager</SelectItem>
-                        <SelectItem value="Director">Director</SelectItem>
-                        <SelectItem value="Executive">Executive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {form.formState.errors.positionLevel && (
-                      <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2 pt-2">
-                    <Controller
+                    <div className="space-y-2">
+                      <Label htmlFor="position-level-edit" className="font-medium">Position Level *</Label>
+                      <Select onValueChange={(value) => form.setValue('positionLevel', value)} disabled={isSaving}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select position level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Entry Level">Entry Level</SelectItem>
+                          <SelectItem value="Junior">Junior</SelectItem>
+                          <SelectItem value="Mid Level">Mid Level</SelectItem>
+                          <SelectItem value="Senior">Senior</SelectItem>
+                          <SelectItem value="Lead">Lead</SelectItem>
+                          <SelectItem value="Manager">Manager</SelectItem>
+                          <SelectItem value="Director">Director</SelectItem>
+                          <SelectItem value="Executive">Executive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {form.formState.errors.positionLevel && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Controller
                         name="isOpen"
                         control={form.control}
                         render={({ field }) => (
-                            <Switch
-                                id="is-active"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
                         )}
-                    />
-                    <Label htmlFor="is-active">Position is Open</Label>
-                  </div>
-                    
+                      />
+                      <Label htmlFor="is-active">Position is Open</Label>
+                    </div>
+                      
                     {/* Helper text for AI generation */}
                     <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
                       <div className="flex items-start gap-2">
@@ -364,7 +359,8 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                       </div>
                     </div>
                   </div>
-              </ScrollArea>
+                </ScrollArea>
+              </div>
               
               {/* Second Column: Job Description */}
               <div className="flex flex-col min-h-0">
@@ -516,6 +512,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
   );
 }
 

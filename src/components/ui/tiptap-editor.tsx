@@ -122,7 +122,7 @@ export function TiptapEditor({
     )}>
       {showToolbar && !readOnly && <TiptapToolbar editor={editor} />}
       
-      <div className="min-h-[200px] max-h-[400px] overflow-y-auto font-sans text-base text-foreground bg-background transition-colors">
+      <div className="p-6 min-h-[200px] max-h-[400px] overflow-y-auto font-sans text-base text-foreground bg-background transition-colors">
         <EditorContent 
           editor={editor} 
           className="focus:outline-none"

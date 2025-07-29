@@ -26,8 +26,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 
-// Import Editor.js
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
+// Import Tiptap editor
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 
 const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -353,7 +353,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   control={form.control}
                   render={({ field }) => (
                     <div className="flex-1 flex flex-col min-h-0">
-                      <EditorJSEditor
+                      <TiptapEditor
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter job description"
@@ -393,7 +393,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   control={form.control}
                   render={({ field }) => (
                     <div className="flex-1 flex flex-col min-h-0">
-                      <EditorJSEditor
+                      <TiptapEditor
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter match criteria for this position..."

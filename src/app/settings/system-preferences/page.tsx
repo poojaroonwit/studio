@@ -20,7 +20,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 
 const DEFAULT_APP_NAME = "CV-Screening";
 const DEFAULT_THEME: ThemePreference = "system";
@@ -891,7 +891,7 @@ export default function SystemPreferencesPage() {
                     <CardContent>
                       <div className="space-y-2">
                         <Label htmlFor="default-match-criteria">Default Match Criteria</Label>
-                        <EditorJSEditor
+                        <TiptapEditor
                           value={defaultMatchCriteria}
                           onChange={setDefaultMatchCriteria}
                           placeholder="Enter default match criteria for new positions..."

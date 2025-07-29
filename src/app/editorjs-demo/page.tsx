@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { EditorJSEditor } from '@/components/ui/editorjs-editor';
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { Button } from '@/components/ui/button';
 import { 
   FileText, 
@@ -20,37 +20,40 @@ import {
 import { toast } from 'react-hot-toast';
 
 const sampleContent = `
-<h1>Welcome to Editor.js</h1>
-<p>This is a block-based editor that outputs clean JSON data. Each block is independent and can be easily manipulated.</p>
+<h1>Welcome to Tiptap</h1>
+<p>This is a modern, extensible rich text editor built with <strong>ProseMirror</strong>. It provides a better editing experience with improved HTML handling.</p>
 
 <h2>Key Features</h2>
 <ul>
-<li>Block-based editing</li>
-<li>Clean JSON output</li>
+<li>Modern block-based editing</li>
+<li>Better HTML input/output</li>
 <li>Extensible with plugins</li>
-<li>Modern UI/UX</li>
+<li>Improved table support</li>
+<li>Task lists and checkboxes</li>
+<li>Text alignment options</li>
+<li>Typography improvements</li>
 </ul>
 
-<h2>Supported Blocks</h2>
+<h2>Supported Elements</h2>
 <ol>
 <li>Headers (H1, H2, H3)</li>
-<li>Paragraphs</li>
-<li>Lists (ordered and unordered)</li>
-<li>Quotes</li>
+<li>Paragraphs with formatting</li>
+<li>Lists (ordered, unordered, and task lists)</li>
+<li>Blockquotes</li>
 <li>Code blocks</li>
-<li>Tables</li>
-<li>Images</li>
-<li>Links</li>
-<li>Checklists</li>
-<li>And more...</li>
+<li>Tables with resizable columns</li>
+<li>Images and links</li>
+<li>Horizontal rules</li>
+<li>Text alignment</li>
+<li>And much more...</li>
 </ol>
 
-<blockquote>Editor.js is designed to be developer-friendly with clean data output and a simple API.</blockquote>
+<blockquote>Tiptap is designed to be developer-friendly with clean HTML output and a simple, extensible API.</blockquote>
 
-<p><strong>Try it out:</strong> Use the toolbar to add different types of blocks and see how the editor handles them!</p>
+<p><strong>Try it out:</strong> Use the toolbar above to add different types of content and see how the editor handles them!</p>
 `;
 
-export default function EditorJSDemoPage() {
+export default function TiptapDemoPage() {
   const [content, setContent] = useState(sampleContent);
   const [showJson, setShowJson] = useState(false);
 
@@ -71,34 +74,18 @@ export default function EditorJSDemoPage() {
   };
 
   const downloadJson = () => {
-    // Convert HTML to Editor.js JSON format (simplified)
+    // Convert HTML to JSON format (simplified)
     const jsonData = {
       time: Date.now(),
-      blocks: [
-        {
-          id: 'header-1',
-          type: 'header',
-          data: {
-            text: 'Sample Editor.js Content',
-            level: 1
-          }
-        },
-        {
-          id: 'paragraph-1',
-          type: 'paragraph',
-          data: {
-            text: 'This is a sample JSON output from Editor.js'
-          }
-        }
-      ],
-      version: '2.28.2'
+      content: content,
+      version: '1.0.0'
     };
     
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'editorjs-content.json';
+    a.download = 'tiptap-content.json';
     a.click();
     URL.revokeObjectURL(url);
     toast.success('JSON file downloaded!');
@@ -176,22 +163,22 @@ export default function EditorJSDemoPage() {
       {/* Editor Section */}
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Try Editor.js</h2>
-          <p className="text-muted-foreground">Edit the content below and see Editor.js in action</p>
+          <h2 className="text-2xl font-bold mb-2">Try Tiptap</h2>
+          <p className="text-muted-foreground">Edit the content below and see Tiptap in action</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Editor.js Block-based Editor
+              Tiptap Rich Text Editor
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <EditorJSEditor
+            <TiptapEditor
               value={content}
               onChange={setContent}
-              placeholder="Start typing or use the toolbar to add blocks..."
+              placeholder="Start typing or use the toolbar to add content..."
             />
             
             <div className="flex flex-wrap gap-2">
@@ -199,7 +186,7 @@ export default function EditorJSDemoPage() {
                 <Copy className="h-4 w-4 mr-2" />
                 Copy HTML
               </Button>
-              <Button onClick={() => downloadHtml(content, 'editorjs-content.html')} size="sm">
+              <Button onClick={() => downloadHtml(content, 'tiptap-content.html')} size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download HTML
               </Button>
@@ -260,7 +247,7 @@ export default function EditorJSDemoPage() {
         <h2 className="text-2xl font-bold">Learn More</h2>
         <div className="flex items-center justify-center gap-4">
           <Button asChild variant="outline">
-            <a href="https://editorjs.io/" target="_blank" rel="noopener noreferrer">
+            <a href="https://tiptap.dev/" target="_blank" rel="noopener noreferrer">
               <FileText className="h-4 w-4 mr-2" />
               Official Documentation
             </a>
@@ -272,6 +259,15 @@ export default function EditorJSDemoPage() {
             </a>
           </Button>
         </div>
+      </div>
+      <div className="text-center text-sm text-muted-foreground mt-8">
+        <p>
+          Learn more about{' '}
+          <a href="https://tiptap.dev/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Tiptap
+          </a>
+          {' '}and its features.
+        </p>
       </div>
     </div>
   );

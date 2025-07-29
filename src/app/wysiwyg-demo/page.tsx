@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { FileText, Code, Palette, Zap } from 'lucide-react';
 
 export default function WYSIWYGDemoPage() {
@@ -54,7 +54,7 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EditorJSEditor
+          <TiptapEditor
             value={content1}
             onChange={setContent1}
             placeholder="Start typing your content..."
@@ -79,7 +79,7 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EditorJSEditor
+          <TiptapEditor
             value={content2}
             onChange={setContent2}
             placeholder="Add headers, lists, quotes, and more..."
@@ -104,7 +104,7 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EditorJSEditor
+          <TiptapEditor
             value={content3}
             onChange={setContent3}
             placeholder="Click the + button to add new blocks, or start typing..."

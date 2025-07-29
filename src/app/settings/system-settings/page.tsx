@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
-import { EditorJSEditor } from '@/components/ui/wysiwyg-editors';
+import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -691,7 +691,7 @@ export default function SystemSettingsPage() {
                             </div>
                           ) : (
                             <div className={`relative ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
-                              <EditorJSEditor
+                              <TiptapEditor
                                 key={`default-match-criteria-editor-${isEditorReady}`}
                                 value={defaultMatchCriteria}
                                 onChange={setDefaultMatchCriteria}

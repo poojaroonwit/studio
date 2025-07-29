@@ -690,13 +690,24 @@ export default function SystemSettingsPage() {
                               Loading editor...
                             </div>
                           ) : (
-                            <textarea
-                              value={defaultMatchCriteria}
-                              onChange={(e) => setDefaultMatchCriteria(e.target.value)}
-                              placeholder="Enter default match criteria template for new positions..."
-                              className="w-full min-h-[200px] p-3 border-0 resize-none focus:outline-none focus:ring-0"
-                              disabled={isSaving}
-                            />
+                            <div className={`relative ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
+                              <EditorJSEditor
+                                key={`default-match-criteria-editor-${isEditorReady}`}
+                                value={defaultMatchCriteria}
+                                onChange={setDefaultMatchCriteria}
+                                placeholder="Enter default match criteria template for new positions..."
+                                className="min-h-[200px]"
+                                isOpen={isEditorReady}
+                              />
+                              {isSaving && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-md">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Saving...
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">

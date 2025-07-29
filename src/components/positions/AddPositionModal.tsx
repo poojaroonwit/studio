@@ -18,7 +18,8 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import { Briefcase, Save, Loader2, Edit3, Users, FileText, Target } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Briefcase, Save, Loader2, Edit3, Users, FileText, Target, BrainCircuit } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,7 +48,11 @@ interface AddPositionModalProps {
 
 export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPositionModalProps) {
   const [isModalReady, setIsModalReady] = useState(false);
+  // Add state for default match criteria
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
+  const [isLoadingDefaultCriteria, setIsLoadingDefaultCriteria] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
   
   const form = useForm<AddPositionFormValues>({
     resolver: zodResolver(addPositionFormSchema),
@@ -64,23 +69,8 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   useEffect(() => {
     if (isOpen) {
       setIsModalReady(true);
-      // Fetch default match criteria
-      const fetchDefaultMatchCriteria = async () => {
-        try {
-          const response = await fetch('/api/settings/system-settings');
-          if (response.ok) {
-            const data = await response.json();
-            const defaultCriteria = data.defaultMatchCriteria || '';
-            setDefaultMatchCriteria(defaultCriteria);
-            // Set the default match criteria in the form
-            form.setValue('matchCriteria', defaultCriteria);
-          }
-        } catch (error) {
-          console.error('Failed to fetch default match criteria:', error);
-        }
-      };
-      fetchDefaultMatchCriteria();
       
+      // Reset form first
       form.reset({
         title: '',
         department: '',
@@ -89,6 +79,26 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         isOpen: true,
         positionLevel: '',
       });
+      
+      // Fetch default match criteria and set it in the form
+      const fetchDefaultMatchCriteria = async () => {
+        setIsLoadingDefaultCriteria(true);
+        try {
+          const response = await fetch('/api/settings/system-settings');
+          if (response.ok) {
+            const data = await response.json();
+            const defaultCriteria = data.defaultMatchCriteria || '';
+            setDefaultMatchCriteria(defaultCriteria);
+            // Set the default match criteria in the form after reset
+            form.setValue('matchCriteria', defaultCriteria);
+          }
+        } catch (error) {
+          console.error('Failed to fetch default match criteria:', error);
+        } finally {
+          setIsLoadingDefaultCriteria(false);
+        }
+      };
+      fetchDefaultMatchCriteria();
     } else {
       setIsModalReady(false);
     }
@@ -96,6 +106,106 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
 
   const onSubmit = async (data: AddPositionFormValues) => {
     await onAddPosition(data);
+  };
+
+  // Check if all required fields for AI generation are filled
+  const areRequiredFieldsFilled = () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    
+    return title && title.trim() !== '' && 
+           department && department.trim() !== '' && 
+           positionLevel && positionLevel.trim() !== '';
+  };
+
+  // AI Generation function for job description
+  const generateJobDescription = async () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    const currentDescription = form.getValues('description');
+
+    // Check if required fields are filled
+    const missingFields = [];
+    if (!title || title.trim() === '') {
+      missingFields.push('Position Title');
+    }
+    if (!department || department.trim() === '') {
+      missingFields.push('Department');
+    }
+    if (!positionLevel || positionLevel.trim() === '') {
+      missingFields.push('Position Level');
+    }
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in the following fields first: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Check if there's existing content and show confirmation
+    if (currentDescription && currentDescription.trim() !== '') {
+      setShowReplaceConfirmation(true);
+      return;
+    }
+
+    // If no existing content, generate directly
+    await performJobDescriptionGeneration(title, department, positionLevel);
+  };
+
+  // Separate function to perform the actual generation
+  const performJobDescriptionGeneration = async (title: string, department: string, positionLevel: string) => {
+    setIsGeneratingDescription(true);
+    try {
+      const response = await fetch('/api/ai/generate-job-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          department,
+          positionLevel: positionLevel || 'Not specified'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 503 && data.error?.includes('API Key')) {
+          throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings > AI Configuration.');
+        }
+        throw new Error(data.error || 'Failed to generate job description');
+      }
+
+      if (data.description) {
+        form.setValue('description', data.description);
+        toast.success('Job description generated successfully!');
+      } else {
+        throw new Error('No description generated');
+      }
+    } catch (error) {
+      console.error('Error generating job description:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate job description. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
+  // Handle confirmation for replacing existing content
+  const handleConfirmReplace = async () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    
+    setShowReplaceConfirmation(false);
+    await performJobDescriptionGeneration(title, department, positionLevel);
+  };
+
+  // Handle cancellation of replacement
+  const handleCancelReplace = () => {
+    setShowReplaceConfirmation(false);
   };
 
   // Don't render anything if modal is not open
@@ -122,37 +232,48 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   <h3 className="font-medium text-sm">Basic Information</h3>
                 </div>
                 <div>
-                  <Label htmlFor="title-add">Position Title *</Label>
-                  <Input 
-                    id="title-add" 
-                    {...form.register('title')} 
-                    className="mt-2" 
+                  <Label htmlFor="title-add" className="font-medium">Position Title *</Label>
+                  <Input
+                    id="title-add"
                     placeholder="Enter position title"
+                    {...form.register('title')}
+                    disabled={isSaving}
                   />
                   {form.formState.errors.title && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="department-add">Department *</Label>
-                  <Input 
-                    id="department-add" 
-                    {...form.register('department')} 
-                    className="mt-2" 
-                    placeholder="Enter department name"
+
+                <div className="space-y-2">
+                  <Label htmlFor="department-add" className="font-medium">Department *</Label>
+                  <Input
+                    id="department-add"
+                    placeholder="Enter department"
+                    {...form.register('department')}
+                    disabled={isSaving}
                   />
                   {form.formState.errors.department && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="positionLevel-add">Position Level</Label>
-                  <Input 
-                    id="positionLevel-add" 
-                    {...form.register('positionLevel')} 
-                    className="mt-2" 
-                    placeholder="e.g., Senior, Mid-Level, L3"
-                  />
+
+                <div className="space-y-2">
+                  <Label htmlFor="position-level-add" className="font-medium">Position Level *</Label>
+                  <Select onValueChange={(value) => form.setValue('positionLevel', value)} disabled={isSaving}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select position level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Entry Level">Entry Level</SelectItem>
+                      <SelectItem value="Junior">Junior</SelectItem>
+                      <SelectItem value="Mid Level">Mid Level</SelectItem>
+                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="Lead">Lead</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Director">Director</SelectItem>
+                      <SelectItem value="Executive">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {form.formState.errors.positionLevel && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
                   )}
@@ -170,13 +291,44 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   />
                   <Label htmlFor="isOpen-add">Position is Open</Label>
                 </div>
+                
+                {/* Helper text for AI generation */}
+                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-2">
+                    <BrainCircuit className="h-3 w-3 mt-0.5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">AI Generation Requirements</p>
+                      <p>Fill in Position Title, Department, and Position Level to enable AI job description generation.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               {/* Second Column: Job Description */}
               <div className="flex flex-col min-h-0 bg-muted/20 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <Label htmlFor="description-add" className="font-medium">Job Description</Label>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <Label htmlFor="description-add" className="font-medium">Job Description</Label>
+                    {isGeneratingDescription && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Generating...
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={generateJobDescription}
+                    disabled={isGeneratingDescription || !areRequiredFieldsFilled()}
+                    className="flex items-center gap-2"
+                    title={!areRequiredFieldsFilled() ? "Please fill in Position Title, Department, and Position Level first" : "Generate job description using AI"}
+                  >
+                    <BrainCircuit className="h-3 w-3" />
+                    {isGeneratingDescription ? 'Generating...' : "Let's AI Generate"}
+                  </Button>
                 </div>
                 <Controller
                   name="description"
@@ -201,13 +353,19 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   <div className="flex items-center gap-2">
                     <Target className="h-4 w-4 text-primary" />
                     <Label htmlFor="matchCriteria-add" className="font-medium">Match Criteria</Label>
+                    {isLoadingDefaultCriteria && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading default...
+                      </div>
+                    )}
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
-                    disabled={!defaultMatchCriteria}
+                    disabled={!defaultMatchCriteria || isLoadingDefaultCriteria}
                   >
                     Set to Default
                   </Button>
@@ -243,6 +401,25 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog for Replacing Job Description */}
+      <AlertDialog open={showReplaceConfirmation} onOpenChange={setShowReplaceConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace Existing Job Description?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You already have a job description for this position. Generating a new one will replace the existing content. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelReplace}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Replace Description
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
   );
 }
 

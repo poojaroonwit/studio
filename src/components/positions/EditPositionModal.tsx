@@ -18,9 +18,10 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card imports
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users } from 'lucide-react';
+import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users, BrainCircuit } from 'lucide-react';
 import type { Position, Candidate } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -56,6 +57,8 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   const [apiError, setApiError] = useState<string | null>(null);
   const [isModalReady, setIsModalReady] = useState(false);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
 
   const form = useForm<EditPositionFormValues>({
     resolver: zodResolver(editPositionFormSchema),
@@ -146,6 +149,106 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       setApiError(err?.message || 'Failed to update position.');
     }
   };
+
+  // Check if all required fields for AI generation are filled
+  const areRequiredFieldsFilled = () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    
+    return title && title.trim() !== '' && 
+           department && department.trim() !== '' && 
+           positionLevel && positionLevel.trim() !== '';
+  };
+
+  // AI Generation function for job description
+  const generateJobDescription = async () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    const currentDescription = form.getValues('description');
+
+    // Check if required fields are filled
+    const missingFields = [];
+    if (!title || title.trim() === '') {
+      missingFields.push('Position Title');
+    }
+    if (!department || department.trim() === '') {
+      missingFields.push('Department');
+    }
+    if (!positionLevel || positionLevel.trim() === '') {
+      missingFields.push('Position Level');
+    }
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in the following fields first: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Check if there's existing content and show confirmation
+    if (currentDescription && currentDescription.trim() !== '') {
+      setShowReplaceConfirmation(true);
+      return;
+    }
+
+    // If no existing content, generate directly
+    await performJobDescriptionGeneration(title, department, positionLevel);
+  };
+
+  // Separate function to perform the actual generation
+  const performJobDescriptionGeneration = async (title: string, department: string, positionLevel: string) => {
+    setIsGeneratingDescription(true);
+    try {
+      const response = await fetch('/api/ai/generate-job-description', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          department,
+          positionLevel: positionLevel || 'Not specified'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 503 && data.error?.includes('API Key')) {
+          throw new Error('AI features are not configured. Please configure the Gemini API Key in System Settings > AI Configuration.');
+        }
+        throw new Error(data.error || 'Failed to generate job description');
+      }
+
+      if (data.description) {
+        form.setValue('description', data.description);
+        toast.success('Job description generated successfully!');
+      } else {
+        throw new Error('No description generated');
+      }
+    } catch (error) {
+      console.error('Error generating job description:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate job description. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
+  // Handle confirmation for replacing existing content
+  const handleConfirmReplace = async () => {
+    const title = form.getValues('title');
+    const department = form.getValues('department');
+    const positionLevel = form.getValues('positionLevel');
+    
+    setShowReplaceConfirmation(false);
+    await performJobDescriptionGeneration(title, department, positionLevel);
+  };
+
+  // Handle cancellation of replacement
+  const handleCancelReplace = () => {
+    setShowReplaceConfirmation(false);
+  };
   
   // Don't render anything if no position and modal is not open
   if (!position || !isOpen) return null; 
@@ -189,19 +292,51 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                     <h3 className="font-medium text-sm">Basic Information</h3>
                   </div>
                   <div>
-                    <Label htmlFor="title-edit">Position Title *</Label>
-                    <Input id="title-edit" {...form.register('title')} className="mt-1" />
-                    {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
+                    <Label htmlFor="title-edit" className="font-medium">Position Title *</Label>
+                    <Input
+                      id="title-edit"
+                      placeholder="Enter position title"
+                      {...form.register('title')}
+                      disabled={isSaving}
+                    />
+                    {form.formState.errors.title && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                    )}
                   </div>
-                  <div>
-                    <Label htmlFor="department-edit">Department *</Label>
-                    <Input id="department-edit" {...form.register('department')} className="mt-1" />
-                    {form.formState.errors.department && <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="department-edit" className="font-medium">Department *</Label>
+                    <Input
+                      id="department-edit"
+                      placeholder="Enter department"
+                      {...form.register('department')}
+                      disabled={isSaving}
+                    />
+                    {form.formState.errors.department && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.department.message}</p>
+                    )}
                   </div>
-                  <div>
-                    <Label htmlFor="positionLevel-edit">Position Level</Label>
-                    <Input id="positionLevel-edit" {...form.register('positionLevel')} className="mt-1" placeholder="e.g., Senior, Mid-Level, L3"/>
-                    {form.formState.errors.positionLevel && <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position-level-edit" className="font-medium">Position Level *</Label>
+                    <Select onValueChange={(value) => form.setValue('positionLevel', value)} disabled={isSaving}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select position level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Entry Level">Entry Level</SelectItem>
+                        <SelectItem value="Junior">Junior</SelectItem>
+                        <SelectItem value="Mid Level">Mid Level</SelectItem>
+                        <SelectItem value="Senior">Senior</SelectItem>
+                        <SelectItem value="Lead">Lead</SelectItem>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="Director">Director</SelectItem>
+                        <SelectItem value="Executive">Executive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.positionLevel && (
+                      <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2 pt-2">
                     <Controller
@@ -217,16 +352,47 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                     />
                     <Label htmlFor="is-active">Position is Open</Label>
                   </div>
-                </div>
+                    
+                    {/* Helper text for AI generation */}
+                    <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-2">
+                        <BrainCircuit className="h-3 w-3 mt-0.5 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">AI Generation Requirements</p>
+                          <p>Fill in Position Title, Department, and Position Level to enable AI job description generation.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
               </ScrollArea>
               
               {/* Second Column: Job Description */}
               <div className="flex flex-col min-h-0">
                 <Card className="flex flex-col min-h-0 bg-muted/20">
                   <CardHeader className="flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <CardTitle>Job Description</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <CardTitle>Job Description</CardTitle>
+                        {isGeneratingDescription && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Generating...
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={generateJobDescription}
+                        disabled={isGeneratingDescription || !areRequiredFieldsFilled()}
+                        className="flex items-center gap-2"
+                        title={!areRequiredFieldsFilled() ? "Please fill in Position Title, Department, and Position Level first" : "Generate job description using AI"}
+                      >
+                        <BrainCircuit className="h-3 w-3" />
+                        {isGeneratingDescription ? 'Generating...' : "Let's AI Generate"}
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col min-h-0 p-0">
@@ -331,6 +497,25 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog for Replacing Job Description */}
+      <AlertDialog open={showReplaceConfirmation} onOpenChange={setShowReplaceConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace Existing Job Description?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You already have a job description for this position. Generating a new one will replace the existing content. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelReplace}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Replace Description
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
   );
 }
 

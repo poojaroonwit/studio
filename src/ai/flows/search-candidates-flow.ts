@@ -1,17 +1,14 @@
 /**
- * @fileOverview Genkit flow for AI-powered candidate search.
+ * @fileOverview Direct Google Gemini API flow for AI-powered candidate search.
  *
  * - searchCandidatesAIChat - Performs a natural language search across candidate profiles.
  * - SearchCandidatesInput - Input schema for the search query.
  * - SearchCandidatesOutput - Output schema containing matched candidate IDs and AI reasoning.
  */
 
-import { genkit as globalGenkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { getPool } from '@/lib/db';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
-import { ai as globalAi } from '@/ai/genkit';
 
 // Input Schema
 const SearchCandidatesInputSchema = z.object({
@@ -133,8 +130,6 @@ function createCandidateSummary(candidate: Candidate): string {
 
 // The main flow function
 export async function searchCandidatesAIChat(input: SearchCandidatesInput): Promise<SearchCandidatesOutput> {
-  let activeAi = globalAi;
-
   async function getSystemSetting(key: string): Promise<string | null> {
     const client = await getPool().connect();
     try {

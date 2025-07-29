@@ -75,8 +75,8 @@ GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
 
 echo "✅ n8n database created successfully!"
 
-# --- Existing DB and App Startup Logic ---
-echo "🔧 Fixing database schema mismatch..."
+# --- Database Schema Management ---
+echo "🔧 Managing database schema..."
 
 # Set default environment variables if not provided
 export NODE_ENV=${NODE_ENV:-production}
@@ -94,13 +94,13 @@ echo "📊 Current DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Check if migration files exist, if not, create initial migration
+# Check if migration files exist
 if [ -z "$(ls -A prisma/migrations 2>/dev/null)" ]; then
   echo "⚠️  No migrations found. Creating initial migration..."
   npx prisma migrate dev --name init --create-only
 fi
 
-# Check if _prisma_migrations table exists, if not, run db push first
+# Check if _prisma_migrations table exists
 echo "🔍 Checking Prisma migration status..."
 DB_NAME=$(echo "$DATABASE_URL" | sed 's/.*\///' | sed 's/\?.*//' 2>/dev/null || echo "studio_production")
 MIGRATION_TABLE_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT 1 FROM information_schema.tables WHERE table_name = '_prisma_migrations'" 2>/dev/null || echo "0")
@@ -108,26 +108,39 @@ MIGRATION_TABLE_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PO
 if [ "$MIGRATION_TABLE_EXISTS" != "1" ]; then
   echo "🔄 Prisma migration table not found. Running db push first..."
   npx prisma db push
+  echo "✅ Database schema synchronized with db push"
 else
-  echo "✅ Prisma migration table exists. Checking for failed migrations..."
-  # Check if there are failed migrations and resolve them
-  FAILED_MIGRATIONS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE finished_at IS NULL" 2>/dev/null || echo "0")
+  echo "✅ Prisma migration table exists. Checking migration status..."
   
-  if [ "$FAILED_MIGRATIONS" != "0" ]; then
-    echo "🔄 Found failed migrations. Resolving..."
-    npx prisma migrate resolve --rolled-back 20250728171145_init || true
+  # Check if there are any tables in the database
+  TABLE_COUNT=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name NOT LIKE 'pg_%'" 2>/dev/null || echo "0")
+  
+  if [ "$TABLE_COUNT" -gt 0 ]; then
+    echo "📊 Database has $TABLE_COUNT existing tables"
+    
+    # Check if the migration is already applied
+    MIGRATION_APPLIED=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM _prisma_migrations WHERE migration_name = '20250729021758_add_match_criteria_to_position'" 2>/dev/null || echo "0")
+    
+    if [ "$MIGRATION_APPLIED" = "0" ]; then
+      echo "🔄 Baselining existing database with current migration..."
+      npx prisma migrate resolve --applied 20250729021758_add_match_criteria_to_position || {
+        echo "⚠️  Failed to baseline migration, trying db push instead..."
+        npx prisma db push
+      }
+    else
+      echo "✅ Migration already applied"
+    fi
+  else
+    echo "🔄 Empty database, running migrations normally..."
+    npx prisma migrate deploy
   fi
 fi
-
-# Force reset the database schema
-echo "🔄 Running database migrations (safe for production)..."
-npx prisma migrate deploy
 
 # Seed the database
 echo "🌱 Seeding database..."
 npx prisma db seed
 
-echo "✅ Database schema fixed and seeded successfully!"
+echo "✅ Database schema managed and seeded successfully!"
 
 # Start the main application
 echo "🚀 Starting main application..."

@@ -761,6 +761,79 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     return parts.join(' ');
   };
 
+  const calculateAverageDurationPerCompany = (experienceArray: any[]) => {
+    let totalMonths = 0;
+    let validExperiences = 0;
+    
+    const safeExperienceArray = Array.isArray(experienceArray) ? experienceArray : [];
+    safeExperienceArray.forEach((exp: any) => {
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+      
+      // Get start date
+      if (exp.startYear && exp.startMonth) {
+        startDate = new Date(exp.startYear, exp.startMonth - 1);
+      } else if (exp.period) {
+        // Extract start date from period string
+        const startMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})/);
+        if (startMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(startMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            startDate = new Date(parseInt(startMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Get end date
+      if (exp.endYear && exp.endMonth) {
+        endDate = new Date(exp.endYear, exp.endMonth - 1);
+      } else if (exp.isCurrent || (exp.period && exp.period.includes('Present'))) {
+        endDate = new Date(); // Current date for current positions
+      } else if (exp.period) {
+        // Extract end date from period string
+        const endMatch = exp.period.match(/([A-Za-z]+)\s+(\d{4})(?:\s*-\s*|$)/);
+        if (endMatch) {
+          const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const monthIndex = months.indexOf(endMatch[1].toLowerCase());
+          if (monthIndex !== -1) {
+            endDate = new Date(parseInt(endMatch[2]), monthIndex);
+          }
+        }
+      }
+      
+      // Calculate duration for this experience
+      if (startDate && endDate) {
+        const months = differenceInMonths(endDate, startDate);
+        if (months > 0) {
+          totalMonths += months;
+          validExperiences++;
+        }
+      }
+    });
+    
+    if (validExperiences === 0) {
+      return '';
+    }
+    
+    // Calculate average months
+    const averageMonths = Math.round(totalMonths / validExperiences);
+    
+    // Convert average months to years and months
+    const years = Math.floor(averageMonths / 12);
+    const months = averageMonths % 12;
+    
+    const parts = [];
+    if (years > 0) {
+      parts.push(`${years} year${years > 1 ? 's' : ''}`);
+    }
+    if (months > 0) {
+      parts.push(`${months} month${months > 1 ? 's' : ''}`);
+    }
+    
+    return parts.join(' ');
+  };
+
   // Type guards
   const hasFitScore = (obj: any): obj is { fitScore: number } => {
     return typeof obj === 'object' && obj !== null && 'fitScore' in obj && typeof obj.fitScore === 'number';

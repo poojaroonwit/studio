@@ -249,8 +249,8 @@ export default function PositionDetailPage() {
       });
 
       // Merge and deduplicate candidates by ID, prioritizing applied candidates
-      const appliedIds = new Set(appliedCandidates.map(c => c.id));
-      const matchedOnlyCandidates = matchedCandidates.filter(c => !appliedIds.has(c.id));
+      const appliedIds = new Set(appliedCandidates.map((c: Candidate) => c.id));
+      const matchedOnlyCandidates = matchedCandidates.filter((c: Candidate) => !appliedIds.has(c.id));
       const allRelatedCandidates = [...appliedCandidates, ...matchedOnlyCandidates];
 
       setAllCandidates(allRelatedCandidates);

@@ -876,6 +876,7 @@ export const CandidateImportUploadQueue: React.FC<{
         </div>
 
               </Card>
+        {/* Status Cards */}
         <div className="mb-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             {/* All Upload Jobs Card - Black */}
@@ -967,7 +968,6 @@ export const CandidateImportUploadQueue: React.FC<{
             </Card>
           </div>
         </div>
-      )}
       {/* Bulk Action Bar - show only when items are selected */}
       {bulkDeleteIds.length > 0 && (
         <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded border border-muted-foreground/10">

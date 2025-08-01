@@ -171,8 +171,8 @@ CREATE TABLE "CustomFieldDefinition" (
 -- CreateTable
 CREATE TABLE "JobMatch" (
     "id" UUID NOT NULL,
-    "candidateId" UUID NOT NULL,
     "jobId" UUID,
+    "candidateId" UUID NOT NULL,
     "jobTitle" TEXT,
     "fitScore" DOUBLE PRECISION,
     "matchReasons" TEXT[],
@@ -366,8 +366,8 @@ CREATE TABLE "Dashboard" (
 -- CreateTable
 CREATE TABLE "DashboardShare" (
     "id" UUID NOT NULL,
-    "dashboardId" UUID NOT NULL,
     "userId" UUID NOT NULL,
+    "dashboardId" UUID NOT NULL,
     "permission" TEXT NOT NULL DEFAULT 'view',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -653,6 +653,9 @@ ALTER TABLE "TransitionRecord" ADD CONSTRAINT "TransitionRecord_actingUserId_fke
 
 -- AddForeignKey
 ALTER TABLE "TransitionRecord" ADD CONSTRAINT "TransitionRecord_candidateId_fkey" FOREIGN KEY ("candidateId") REFERENCES "Candidate"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TransitionRecord" ADD CONSTRAINT "TransitionRecord_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "LogEntry" ADD CONSTRAINT "LogEntry_actingUserId_fkey" FOREIGN KEY ("actingUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -166,18 +166,36 @@ export async function POST(request: NextRequest) {
     let appliedJob = undefined;
     let webhookResults = null;
     let payload = null;
-    try {
-      // Use the same logic as processSingleUploadQueueJob for resume processing webhook
-      const result = await processSingleUploadQueueJob(job, client);
-      status = result.job?.status || 'success';
-      error = result.job?.error || null;
-      error_details = result.job?.error_details || null;
-      webhookResults = result.webhook_response || null;
-      payload = result.job || null;
-    } catch (err) {
-      status = 'fail';
-      error = 'Resume processing webhook error';
-      error_details = err instanceof Error ? err.message : String(err);
+    
+    // Check if this job has already been processed by external webhooks
+    const jobAlreadyProcessed = job.webhook_payload?.processed_by_external_webhook === true;
+    
+    // Check if duplicate processing prevention is enabled
+    let preventDuplicateProcessing = true; // Default to true
+    const duplicateProcessingSetting = await getSystemSetting('preventDuplicateWebhookProcessing');
+    if (duplicateProcessingSetting !== null) {
+      preventDuplicateProcessing = duplicateProcessingSetting === 'true';
+    }
+    
+    if (jobAlreadyProcessed && preventDuplicateProcessing) {
+      console.log(`[Webhook] Job ${job.id} already processed by external webhook, skipping resume processing webhook`);
+      status = 'success';
+      error = null;
+      error_details = 'Skipped - already processed by external webhook';
+    } else {
+      try {
+        // Use the same logic as processSingleUploadQueueJob for resume processing webhook
+        const result = await processSingleUploadQueueJob(job, client);
+        status = result.job?.status || 'success';
+        error = result.job?.error || null;
+        error_details = result.job?.error_details || null;
+        webhookResults = result.webhook_response || null;
+        payload = result.job || null;
+      } catch (err) {
+        status = 'fail';
+        error = 'Resume processing webhook error';
+        error_details = err instanceof Error ? err.message : String(err);
+      }
     }
 
     // 4. Update job status
@@ -340,6 +358,16 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       if (!responseMode) {
         responseMode = 'blocking'; // Default to blocking mode
       }
+      
+      // Get timeout setting (default 2 hours)
+      let timeoutMs = 7200000; // 2 hours default
+      const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
+      if (timeoutSetting) {
+        const parsedTimeout = parseInt(timeoutSetting, 10);
+        if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
+          timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
+        }
+      }
       const jsonPayload = {
         inputs,
         response_mode: responseMode, // Use configured response mode (blocking/streaming)
@@ -354,30 +382,63 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         headers['Authorization'] = `Bearer ${webhookToken}`;
       }
       let webhookResStatus = null;
-      try {
-        console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl}`);
-        console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
-        webhookRes = await fetch(resumeWebhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(jsonPayload),
-          signal: AbortSignal.timeout(3600000), // 1 hour timeout
-        });
-        webhookResStatus = webhookRes.status;
-        let webhookResponseText = null;
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      while (retryCount <= maxRetries) {
+        try {
+          console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl} (attempt ${retryCount + 1}/${maxRetries + 1})`);
+          console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
+          webhookRes = await fetch(resumeWebhookUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(jsonPayload),
+            signal: AbortSignal.timeout(timeoutMs),
+          });
+          webhookResStatus = webhookRes.status;
+          
+          // If we get a 504, retry unless we've exhausted retries
+          if (webhookResStatus === 504 && retryCount < maxRetries) {
+            console.warn(`[Webhook] Got 504 timeout, retrying in 30 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+            retryCount++;
+            continue;
+          }
+          
+          break; // Exit retry loop if successful or max retries reached
+        } catch (err) {
+          if (retryCount < maxRetries) {
+            console.warn(`[Webhook] Request failed, retrying in 30 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+            retryCount++;
+            continue;
+          }
+          throw err; // Re-throw if max retries reached
+        }
+            }
+      let webhookResponseText = null;
         if (webhookResStatus === 200) {
           status = 'success';
           error = null;
           error_details = null;
         } else {
           status = 'fail';
-          error = `Webhook responded with status ${webhookResStatus}`;
+          if (webhookResStatus === 504) {
+            error = `Gateway timeout (504) - Resume processing service took too long to respond`;
+            error_details = `The external resume processing service exceeded the timeout limit. This may indicate high load or processing delays.`;
+          } else {
+            error = `Webhook responded with status ${webhookResStatus}`;
+          }
           try {
             webhookResponseText = await webhookRes.text();
-            error_details = webhookResponseText;
+            if (!error_details) {
+              error_details = webhookResponseText;
+            }
             console.error('[Webhook] Non-200 response body:', error_details);
           } catch {
-            error_details = error;
+            if (!error_details) {
+              error_details = error;
+            }
           }
         }
         // --- Store webhook details in payload for UI ---

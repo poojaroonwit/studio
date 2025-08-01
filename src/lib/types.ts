@@ -344,6 +344,7 @@ export interface Candidate {
   educationData?: StructuredEducationEntry[];
   experienceData?: StructuredExperienceEntry[];
   jobMatches?: JobMatch[]; // Job matches from the JobMatch table
+  associationType?: 'applied' | 'matched' | 'applied_and_matched'; // For position-specific candidate lists
 }
 
 export interface ResumeHistoryEntry {

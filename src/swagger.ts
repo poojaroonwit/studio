@@ -697,6 +697,71 @@ export function getSwaggerSpec() {
           }
         }
       },
+      '/api/v1/candidates/bulk-upload-cv': {
+        post: {
+          summary: 'Upload CV file to queue for processing (v1 API)',
+          description: 'Upload a single CV file (PDF) to the upload queue for automated processing. The file will be processed through webhook automation to extract candidate information and create candidate records. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          tags: ['V1 Candidates', 'V1 Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    file: {
+                      type: 'string',
+                      format: 'binary',
+                      description: 'CV file in PDF format'
+                    },
+                    positionId: {
+                      type: 'string',
+                      format: 'uuid',
+                      description: 'ID of the target position for this candidate'
+                    }
+                  },
+                  required: ['file', 'positionId']
+                }
+              }
+            }
+          },
+          responses: {
+            '201': {
+              description: 'CV uploaded successfully and added to queue',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      uploadQueueJob: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          file_name: { type: 'string' },
+                          file_size: { type: 'integer' },
+                          status: { type: 'string', enum: ['queued', 'inprocess', 'completed', 'failed'] },
+                          source: { type: 'string' },
+                          upload_id: { type: 'string', format: 'uuid' },
+                          file_path: { type: 'string' },
+                          webhook_payload: { type: 'object', additionalProperties: true },
+                          created_by: { type: 'string', format: 'uuid' },
+                          upload_date: { type: 'string', format: 'date-time' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid file format or missing required fields' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '500': { description: 'Internal server error or queue processing failed' }
+          }
+        }
+      },
       '/api/v1/candidates/{id}': {
         get: {
           summary: 'Get candidate by ID (v1 API)',
@@ -1918,6 +1983,220 @@ export function getSwaggerSpec() {
             '401': { description: 'Unauthorized' },
             '403': { description: 'Insufficient permissions' },
             '404': { description: 'User not found' }
+          }
+        }
+      },
+      '/api/upload-queue': {
+        get: {
+          summary: 'Get upload queue status',
+          description: 'Returns the current status of all files in the upload queue. Requires authentication.',
+          tags: ['Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'status', in: 'query', description: 'Filter by status', schema: { type: 'string', enum: ['queued', 'inprocess', 'completed', 'failed'] } },
+            { name: 'source', in: 'query', description: 'Filter by source', schema: { type: 'string' } },
+            { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 50 } },
+            { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0 } }
+          ],
+          responses: {
+            '200': {
+              description: 'Upload queue status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      items: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/UploadQueueItem' }
+                      },
+                      total: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      offset: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' }
+          }
+        },
+        post: {
+          summary: 'Add file to upload queue',
+          description: 'Add a file to the upload queue for processing. Requires authentication and appropriate permissions.',
+          tags: ['Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UploadQueueCreate' }
+              }
+            }
+          },
+          responses: {
+            '201': {
+              description: 'File added to queue successfully',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/UploadQueueItem' }
+                }
+              }
+            },
+            '400': { description: 'Invalid request data' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' }
+          }
+        }
+      },
+      '/api/upload-queue/upload-file': {
+        post: {
+          summary: 'Upload multiple files to queue',
+          description: 'Upload multiple CV files (up to 200) to the upload queue for bulk processing. Files are uploaded to MinIO storage and added to the processing queue. Requires authentication and BULK_UPLOAD permission.',
+          tags: ['Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'multipart/form-data': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    files: {
+                      type: 'array',
+                      items: {
+                        type: 'string',
+                        format: 'binary'
+                      },
+                      description: 'CV files in PDF format (max 200 files)'
+                    },
+                    position_id: {
+                      type: 'string',
+                      format: 'uuid',
+                      description: 'Target position ID for the candidates'
+                    },
+                    batch_id: {
+                      type: 'string',
+                      description: 'Optional batch ID for grouping uploads'
+                    },
+                    source: {
+                      type: 'string',
+                      description: 'Source of the upload (default: bulk)'
+                    },
+                    webhook_payload: {
+                      type: 'string',
+                      description: 'JSON string with additional webhook payload data'
+                    }
+                  },
+                  required: ['files']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Files uploaded successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      results: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            file_name: { type: 'string' },
+                            status: { type: 'string', enum: ['success', 'failed'] },
+                            file_path: { type: 'string' },
+                            file_size: { type: 'integer' },
+                            error: { type: 'string' },
+                            queue_id: { type: 'string', format: 'uuid' }
+                          }
+                        }
+                      },
+                      summary: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer' },
+                          success: { type: 'integer' },
+                          failed: { type: 'integer' }
+                        }
+                      },
+                      batch_id: { type: 'string' },
+                      processing_time_ms: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '207': {
+              description: 'Partial success - some files failed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      results: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            file_name: { type: 'string' },
+                            status: { type: 'string', enum: ['success', 'failed'] },
+                            file_path: { type: 'string' },
+                            file_size: { type: 'integer' },
+                            error: { type: 'string' },
+                            queue_id: { type: 'string', format: 'uuid' }
+                          }
+                        }
+                      },
+                      summary: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer' },
+                          success: { type: 'integer' },
+                          failed: { type: 'integer' }
+                        }
+                      },
+                      batch_id: { type: 'string' },
+                      processing_time_ms: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid file format or too many files' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/upload-queue/process': {
+        post: {
+          summary: 'Process upload queue',
+          description: 'Manually trigger processing of queued files. This endpoint is typically called automatically but can be used for manual processing.',
+          tags: ['Upload Queue'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Processing started successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      processed: { type: 'integer' },
+                      remaining: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '500': { description: 'Processing failed' }
           }
         }
       }

@@ -522,7 +522,7 @@ export function CandidateFilters({
     setSelectedStatuses(new Set());
     setSelectedRecruiterIds(new Set());
     setFitScoreRange([0, 100]);
-    setMatchingFitScoreRange([70, 100]);
+    setMatchingFitScoreRange([0, 100]);
     setApplicationDateRange(undefined);
     setLocation('');
     setLocationOperator('contains');
@@ -550,8 +550,8 @@ export function CandidateFilters({
       selectedRecruiterIds: undefined,
       minFitScore: 0,
       maxFitScore: 100,
-      matchingMinFitScore: 70,
-      matchingMaxFitScore: 100,
+      matchingMinFitScore: undefined,
+      matchingMaxFitScore: undefined,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
       location: undefined,
@@ -805,8 +805,8 @@ export function CandidateFilters({
     onFilterChange({
       minFitScore: 0,
       maxFitScore: 100,
-      matchingMinFitScore: 0,
-      matchingMaxFitScore: 100,
+      matchingMinFitScore: undefined,
+      matchingMaxFitScore: undefined,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,

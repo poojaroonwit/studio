@@ -172,21 +172,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 
   const { id } = params;
+  
+  // Validate UUID format
+  const uuidSchema = z.string().uuid();
+  if (!uuidSchema.safeParse(id).success) {
+    console.error('Invalid candidate ID format:', id);
+    return NextResponse.json({ message: 'Invalid candidate ID format' }, { status: 400 });
+  }
+  
   let body;
   try {
     body = await request.json();
-  } catch {
+  } catch (error) {
+    console.error('Failed to parse request body:', error);
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
+  console.log('Updating candidate:', id, 'with body:', body);
+
   const validationResult = updateCandidateSchema.safeParse(body);
   if (!validationResult.success) {
+    console.error('Validation failed:', validationResult.error.flatten().fieldErrors);
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
-
-  
 
   // Extra validation to prevent DB errors
   if (!status || typeof status !== 'string' || status.trim() === '') {
@@ -207,26 +217,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     await client.query('BEGIN');
 
-    // Existence checks for foreign keys
-    if (positionId) {
-      const posCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [positionId]);
-      if (posCheck.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ message: 'Position not found.' }, { status: 400 });
-      }
-    }
-    if (recruiterId) {
-      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid', [recruiterId]);
-      if (recCheck.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return NextResponse.json({ message: 'Recruiter not found.' }, { status: 400 });
-      }
-    }
-    
-    // Check if candidate exists
+    // Check if candidate exists first
     const existingResult = await client.query('SELECT * FROM "Candidate" WHERE id = $1::uuid', [id]);
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
+      console.error('Candidate not found:', id);
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
@@ -234,6 +229,26 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const oldStatus = existingCandidate.status;
     const oldRecruiterId = existingCandidate.recruiterId;
 
+    console.log('Existing candidate:', existingCandidate.name, 'current status:', oldStatus, 'new status:', status);
+
+    // Existence checks for foreign keys
+    if (positionId) {
+      const posCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [positionId]);
+      if (posCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        console.error('Position not found:', positionId);
+        return NextResponse.json({ message: 'Position not found.' }, { status: 400 });
+      }
+    }
+    if (recruiterId) {
+      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid', [recruiterId]);
+      if (recCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        console.error('Recruiter not found:', recruiterId);
+        return NextResponse.json({ message: 'Recruiter not found.' }, { status: 400 });
+      }
+    }
+    
     // Build dynamic update query based on provided fields
     const updateFields = [];
     const updateValues = [];
@@ -306,6 +321,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     `;
     updateValues.push(id);
 
+    console.log('Update query:', updateQuery);
+    console.log('Update values:', updateValues);
+
     const updateResult = await client.query(updateQuery, updateValues);
 
     // --- Recruiter change detection ---
@@ -328,7 +346,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Create transition record if status changed
     if (oldStatus !== status) {
-      const safePositionId = positionId ?? null; // Default to null if undefined
+      const safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
       const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
       const newTransitionId = uuidv4();
       const insertTransitionQuery = `
@@ -336,6 +354,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
       `;
       try {
+        console.log('Creating transition record:', {
+          transitionId: newTransitionId,
+          candidateId: id,
+          positionId: safePositionId,
+          stage: status,
+          notes: transitionMessage,
+          actingUserId
+        });
+        
         await client.query(insertTransitionQuery, [
           newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
         ]);
@@ -358,7 +385,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     } else if (recruiterChanged) {
       // Create transition record for recruiter change
-      const safePositionId = positionId ?? null;
+      const safePositionId = positionId ?? existingCandidate.positionId ?? null;
       let transitionMessage = '';
       if (oldRecruiterId && recruiterId) {
         transitionMessage = `Recruiter changed from ${oldRecruiterName || oldRecruiterId} to ${newRecruiterName || recruiterId}`;
@@ -396,7 +423,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Candidate '${name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status });
+    await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status });
+    
     // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
     const candidateResult = await client.query(`
       SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
@@ -405,7 +433,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       LEFT JOIN "User" r ON c."recruiterId" = r.id
       WHERE c.id = $1::uuid;
     `, [id]);
+    
+    if (candidateResult.rows.length === 0) {
+      throw new Error('Candidate not found after update');
+    }
+    
     const candidate = candidateResult.rows[0];
+    
     // Get job matches for this candidate
     const jobMatchesResult = await client.query(`
       SELECT jm.*, p.title as "positionTitle"
@@ -414,6 +448,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       WHERE jm."candidateId" = $1::uuid
       ORDER BY jm."fitScore" DESC;
     `, [id]);
+    
     // Get attachment history for this candidate
     const attachmentsResult = await client.query(`
       SELECT a.*, u.name as "uploadedByUserName"
@@ -422,6 +457,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       WHERE a."candidateId" = $1::uuid
       ORDER BY a."uploadedAt" DESC;
     `, [id]);
+    
     // Defensive: always provide customAttributes as an object
     let customAttributes = {};
     try {
@@ -436,7 +472,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     } catch (e) {
       customAttributes = {};
     }
-    broadcastCandidateUpdate({ ...candidate, customAttributes }); // Broadcast update
+    
+    // Broadcast update with safe candidate data
+    broadcastCandidateUpdate({ ...candidate, customAttributes });
+    
+    console.log('Successfully updated candidate:', id, 'new status:', status);
+    
     return NextResponse.json({
       ...candidate,
       assignmentJustification: candidate.assignmentJustification || null,
@@ -451,6 +492,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     });
   } catch (error: any) {
     await client.query('ROLLBACK');
+    console.error('Error updating candidate:', id, error);
     await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
     if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
       return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });

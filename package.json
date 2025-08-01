@@ -17,6 +17,7 @@
     "lint": "next lint",
     "processor": "node scripts/process-upload-queue.js",
     "check-webhook": "node scripts/check-webhook-settings.js",
+    "diagnose-webhook": "node scripts/diagnose-webhook-conflict.js",
     "disable-problematic-webhooks": "node scripts/disable-problematic-webhooks.js",
     "fix-webhook": "node scripts/fix-webhook-config.js",
     "mock-webhook": "node scripts/mock-webhook-server.cjs",

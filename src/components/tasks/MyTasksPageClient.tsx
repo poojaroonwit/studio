@@ -11,146 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, RefreshCw, Kanban, List, Users, TrendingUp } from 'lucide-react';
+import { Search, Filter, RefreshCw, Kanban, List, Users } from 'lucide-react';
 import { HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
-import { getScoreRangesForChart, normalizeFitScore, getScoreBgColor } from '@/lib/scoreUtils';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
 }
-
-// Score Distribution Bar Component
-const ScoreDistributionBar = ({ candidates }: { candidates: any[] }) => {
-  const scoreRanges = getScoreRangesForChart();
-  
-  // Calculate score distribution
-  const scoreDistribution = useMemo(() => {
-    const distribution = scoreRanges.map(range => ({
-      ...range,
-      count: 0,
-      percentage: 0
-    }));
-    
-    let totalCandidates = 0;
-    
-    candidates.forEach(candidate => {
-      const score = candidate.fitScore;
-      if (score !== null && score !== undefined) {
-        const normalizedScore = normalizeFitScore(score);
-        const range = distribution.find(r => normalizedScore >= r.min && normalizedScore <= r.max);
-        if (range) {
-          range.count++;
-          totalCandidates++;
-        }
-      }
-    });
-    
-    // Calculate percentages
-    if (totalCandidates > 0) {
-      distribution.forEach(range => {
-        range.percentage = Math.round((range.count / totalCandidates) * 100);
-      });
-    }
-    
-    return distribution;
-  }, [candidates]);
-  
-  const totalCandidates = scoreDistribution.reduce((sum, range) => sum + range.count, 0);
-  
-  if (totalCandidates === 0) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-4 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-foreground">Score Distribution</h3>
-        </div>
-        <p className="text-sm text-muted-foreground">No candidates with scores available</p>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="bg-card border border-border rounded-lg p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-foreground">Score Distribution</h3>
-          <Badge variant="secondary" className="text-xs">
-            {totalCandidates} candidates
-          </Badge>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Average: {(() => {
-            const totalScore = candidates.reduce((sum, c) => {
-              const score = normalizeFitScore(c.fitScore);
-              return sum + score;
-            }, 0);
-            const avgScore = totalCandidates > 0 ? Math.round(totalScore / totalCandidates) : 0;
-            return `${avgScore}%`;
-          })()}
-        </div>
-      </div>
-      
-      {/* Horizontal Score Bar */}
-      <div className="flex h-8 rounded-lg overflow-hidden border border-border">
-        {scoreDistribution.map((range, index) => {
-          if (range.count === 0) return null;
-          
-          return (
-            <div
-              key={range.letter}
-              className={cn(
-                "flex items-center justify-center text-xs font-medium text-black relative group cursor-pointer transition-all duration-200",
-                getScoreBgColor(range.min + (range.max - range.min) / 2),
-                "hover:brightness-110"
-              )}
-              style={{ width: `${range.percentage}%` }}
-              title={`${range.letter} Grade (${range.label}): ${range.count} candidates (${range.percentage}%)`}
-            >
-              <span className="truncate px-1">
-                {range.count > 0 && (
-                  <>
-                    <span className="font-bold">{range.letter}</span>
-                    <span className="ml-1">({range.count})</span>
-                  </>
-                )}
-              </span>
-              
-              {/* Tooltip on hover */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                {range.letter} Grade ({range.label})
-                <br />
-                {range.count} candidates ({range.percentage}%)
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        {scoreDistribution.map((range) => (
-          <div key={range.letter} className="flex items-center gap-1 text-xs">
-            <div 
-              className={cn(
-                "w-3 h-3 rounded-sm",
-                getScoreBgColor(range.min + (range.max - range.min) / 2)
-              )}
-            />
-            <span className="text-muted-foreground">
-              {range.letter} ({range.label}): {range.count}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -292,6 +162,19 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Handle drag-and-drop move - Fixed to always update status field
   const handleMoveCandidate = (candidate: any, newStatus: string) => {
+    // Validate the new status
+    if (!newStatus || typeof newStatus !== 'string' || newStatus.trim() === '') {
+      toast.error('Invalid status: Status cannot be empty');
+      return;
+    }
+
+    // Check if the status is the same (no change needed)
+    if (candidate.status === newStatus) {
+      return;
+    }
+
+    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newStatus);
+
     // Optimistically update UI
     setCandidates((prev) =>
       prev.map((c) =>
@@ -306,8 +189,20 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
-    }).then(response => {
+    }).then(async response => {
       if (!response.ok) {
+        // Get error details from response
+        let errorMessage = 'Failed to update candidate status';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If we can't parse the error response, use the status text
+          errorMessage = `${errorMessage}: ${response.statusText}`;
+        }
+        
+        console.error('API Error:', response.status, errorMessage, 'for candidate:', candidate.id);
+        
         // Revert optimistic update on error
         setCandidates((prev) =>
           prev.map((c) =>
@@ -316,12 +211,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               : c
           )
         );
-        toast.error('Failed to update candidate status');
+        toast.error(errorMessage);
       } else {
+        console.log('Successfully moved candidate:', candidate.id, 'to status:', newStatus);
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
       }
     }).catch(error => {
-      console.error('Error updating candidate status:', error);
+      console.error('Network error updating candidate status:', error, 'for candidate:', candidate.id);
       // Revert optimistic update on error
       setCandidates((prev) =>
         prev.map((c) =>
@@ -330,7 +226,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             : c
         )
       );
-      toast.error('Failed to update candidate status');
+      toast.error('Network error: Failed to update candidate status. Please try again.');
     });
   };
 
@@ -503,28 +399,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             </div>
           </div>
         ) : (
-          <div className="p-6">
-
-
-            {/* Score Distribution Bar - Only show in Kanban view */}
-            {viewMode === 'kanban' && (
-              <ScoreDistributionBar candidates={displayedCandidates} />
-            )}
-
+          <div className="p-6 overflow-x-auto scrollbar-custom scroll-smooth">
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <HorizontalStageKanbanView
-                candidates={displayedCandidates}
-                statuses={stages}
-                onMoveCandidate={handleMoveCandidate}
-                onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                visibleFields={['name', 'email', 'status', 'fitScore', 'positionId']}
-                visibleRowValues={[]}
-                visibleColumnValues={stages}
-              />
+              <div className="min-w-max">
+                <HorizontalStageKanbanView
+                  candidates={displayedCandidates}
+                  statuses={stages}
+                  onMoveCandidate={handleMoveCandidate}
+                  onCardClick={(candidate) => setSelectedCandidate(candidate)}
+                  visibleFields={['name', 'email', 'status', 'fitScore', 'positionId']}
+                  visibleRowValues={[]}
+                  visibleColumnValues={stages}
+                />
+              </div>
             ) : (
               // Table View (styled like candidate list)
-              <div className="border rounded-lg shadow overflow-hidden">
+              <div className="border rounded-lg shadow overflow-hidden min-w-max">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -539,7 +430,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   <TableBody>
                     {displayedCandidates.map(candidate => (
                       <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => {
-                      
+                       
                         setSelectedCandidate(candidate);
                       }}>
                         <TableCell>
@@ -569,7 +460,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                         <TableCell className="text-right">
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
-                          
+                           
                             setSelectedCandidate(candidate); 
                           }}>
                             View
@@ -588,12 +479,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       {/* Modals */}
       {selectedCandidate && (
         <>
-  
+   
           <CandidateDetailModal
             candidateId={selectedCandidate.id}
             open={!!selectedCandidate}
             onClose={() => {
-     
+      
               setSelectedCandidate(null);
             }}
           />

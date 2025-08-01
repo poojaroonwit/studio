@@ -53,6 +53,7 @@ model Position {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   candidates       Candidate[]
+  transitionRecords TransitionRecord[]
 
   @@index([title])
   @@index([department])
@@ -119,6 +120,7 @@ model TransitionRecord {
   updatedAt    DateTime  @updatedAt
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
   candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  position     Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
   @@index([actingUserId])

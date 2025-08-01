@@ -368,6 +368,29 @@ export class WebhookDispatcher {
    * Dispatch webhook for upload queue events
    */
   async dispatchUploadQueueEvent(event: string, uploadQueueItem: any, additionalData?: any) {
+    // Mark this job as processed by external webhook to prevent duplicate processing
+    if (uploadQueueItem.id) {
+      try {
+        const pool = await import('@/lib/db').then(m => m.getPool());
+        const client = await pool.connect();
+        try {
+          await client.query(
+            `UPDATE upload_queue SET webhook_payload = jsonb_set(
+              COALESCE(webhook_payload, '{}'::jsonb), 
+              '{processed_by_external_webhook}', 
+              'true'::jsonb
+            ) WHERE id = $1`,
+            [uploadQueueItem.id]
+          );
+          console.log(`[Webhook] Marked upload queue job ${uploadQueueItem.id} as processed by external webhook`);
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        console.error(`[Webhook] Failed to mark job ${uploadQueueItem.id} as processed:`, error);
+      }
+    }
+
     return this.dispatch(event, {
       upload_queue: {
         id: uploadQueueItem.id,

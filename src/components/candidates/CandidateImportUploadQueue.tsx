@@ -194,6 +194,11 @@ export const CandidateImportUploadQueue: React.FC<{
       case 'process_date': return job.process_date || '';
       case 'completed_date': return job.completed_date || '';
       case 'upload_date': return job.upload_date || '';
+      case 'duration': 
+        if (!job.process_date) return 0;
+        const start = new Date(job.process_date);
+        const end = job.completed_date ? new Date(job.completed_date) : new Date();
+        return end.getTime() - start.getTime();
       default: return '';
     }
   };
@@ -1094,6 +1099,30 @@ export const CandidateImportUploadQueue: React.FC<{
                   </DropdownMenu>
                 </span>
               </TableHead>
+              <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('duration'); setOpenMenu(null); }}>
+                <span className="inline-flex items-center gap-1">
+                  Duration
+                  <DropdownMenu open={openMenu === 'duration'} onOpenChange={open => setOpenMenu(open ? 'duration' : null)}>
+                    <DropdownMenuTrigger asChild>
+                      {sortColumn === 'duration' ? (
+                        <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('duration'); }} aria-label="Sort options">
+                          {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                      ) : (
+                        <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('duration'); }} aria-label="Sort options">
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { handleSort('duration', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleSort('duration', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </span>
+              </TableHead>
               <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('upload_date'); setOpenMenu(null); }}>
                 <span className="inline-flex items-center gap-1">
                   Upload Date
@@ -1204,6 +1233,12 @@ export const CandidateImportUploadQueue: React.FC<{
                     </TableCell>
                     <TableCell>{item.process_date ? format(new Date(item.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</TableCell>
                     <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
+                    <TableCell>
+                      {item.process_date ? 
+                        formatDuration(item.process_date, item.completed_date || undefined) : 
+                        '-'
+                      }
+                    </TableCell>
                     <TableCell>{item.upload_date ? new Date(item.upload_date).toLocaleString() : '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       {item.file_path && item.url && (

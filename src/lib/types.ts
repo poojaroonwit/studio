@@ -492,6 +492,8 @@ export type SystemSettingKey =
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'
+  | 'resumeProcessingWebhookTimeout'
+  | 'preventDuplicateWebhookProcessing'
   | 'generalPdfWebhookUrl'
   | 'generalPdfWebhookToken'
   | 'generalPdfWebhookResponseMode'

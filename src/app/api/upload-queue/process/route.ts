@@ -337,8 +337,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
     }
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
-      // Build JSON payload as required
-      const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+      try {
+        // Build JSON payload as required
+        const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
       // Get targetPositionId from webhook_payload if available
       let targetPositionId = null;
       if (job.webhook_payload && typeof job.webhook_payload === 'object') {
@@ -415,7 +416,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           }
           throw err; // Re-throw if max retries reached
         }
-            }
+      }
       let webhookResponseText = null;
         if (webhookResStatus === 200) {
           status = 'success';
@@ -430,11 +431,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
             error = `Webhook responded with status ${webhookResStatus}`;
           }
           try {
-            webhookResponseText = await webhookRes.text();
-            if (!error_details) {
-              error_details = webhookResponseText;
+            if (webhookRes) {
+              webhookResponseText = await webhookRes.text();
+              if (!error_details) {
+                error_details = webhookResponseText;
+              }
+              console.error('[Webhook] Non-200 response body:', error_details);
             }
-            console.error('[Webhook] Non-200 response body:', error_details);
           } catch {
             if (!error_details) {
               error_details = error;

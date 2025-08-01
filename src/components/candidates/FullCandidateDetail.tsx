@@ -921,7 +921,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       {/* Header - 2 Columns */}
       {candidate && (
         <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 shadow-lg backdrop-blur-sm border-b border-border p-6 sticky top-0 z-50">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 relative">
             {/* Modal Close Button in header */}
             {isModal && typeof onClose === 'function' && (
               <button
@@ -934,7 +934,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               </button>
             )}
             {/* Column 1: Candidate Header (7 cols) */}
-            <div className={isModal ? "lg:col-span-7" : "lg:col-span-7"}>
+            <div className="lg:col-span-7">
               <div className="flex flex-col md:flex-row items-center gap-6">
                 {/* Avatar */}
                 <div className="flex-shrink-0 relative">
@@ -1089,15 +1089,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               </div>
             </div>
             
-            {/* Empty space for 2 cols to maintain 12-column grid */}
-           
+            {/* Empty space for 3 cols to maintain 10-column grid */}
+            <div className="lg:col-span-3">
+              
+            </div>
           </div>
         </div>
       )}
       
-      <div className={`grid grid-cols-1 lg:grid-cols-12 border-t bg-card overflow-hidden ${isModal ? 'lg:grid-cols-12' : ''}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
         {/* LEFT SIDEBAR: Recruitment Pipeline & Recruiter Assignment (20%) */}
-        <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-2'} bg-background sticky top-6 p-4 space-y-4 z-10 border-r border-border`}>
+        <div className="lg:col-span-2 bg-background sticky top-6 p-4 space-y-4 z-10 border-r border-border">
           {/* Recruiter Assignment Section */}
           <div className="w-full">
             <div className="bg-card rounded-lg p-4 border border-border">
@@ -1170,7 +1172,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           )}
         </div>
         {/* MAIN CONTENT (50%) with Sections */}
-        <div className={`${isModal ? 'lg:col-span-6' : 'lg:col-span-8'} space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/50`}>
+        <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/50">
           {/* Job Applied Section */}
           <section className="mb-4">
             <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
@@ -2078,10 +2080,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
          </section>
        </div>
        {/* RIGHT SIDEBAR: Quick Stats, Comments & Activity, Attachments */}
-       <div className={`${isModal ? 'lg:col-span-3' : 'lg:col-span-2'} bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50`}>
+       <div className="lg:col-span-3 bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50">
+         <div className="sticky top-0 z-10 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-md border-b border-border/30 px-6 py-4">
+           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+             <BarChart3 className="h-5 w-5 text-primary" />
+             Quick Stats
+           </h3>
+         </div>
+         
          {/* Quick Stats Section */}
          <div className="px-3 py-3 bg-gradient-to-br from-slate-50/30 to-blue-50/20 dark:from-slate-800/20 dark:to-slate-700/10">
-           <div className="grid grid-cols-2 gap-2">
+           <div className="grid grid-cols-3 gap-2">
              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
                <div className="text-lg font-bold text-foreground">
                  {(() => {
@@ -2090,6 +2099,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  })()}
                </div>
                <div className="text-[10px] text-muted-foreground">Experience</div>
+             </div>
+             
+             <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-lg p-2 border border-green-200/20 dark:border-green-700/10 text-center">
+               <div className="flex items-center justify-center gap-1 mb-1">
+                 <Building2 className="h-3 w-3 text-green-600 dark:text-green-400" />
+                 <div className="text-lg font-bold text-foreground">
+                   {(() => {
+                     const avgDuration = calculateAverageDurationPerCompany(getExperience(candidate));
+                     return avgDuration || '-';
+                   })()}
+                 </div>
+               </div>
+               <div className="text-[10px] text-muted-foreground">Avg/Company</div>
              </div>
              
              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg p-2 border border-blue-200/20 dark:border-blue-700/10 text-center">
@@ -2128,18 +2150,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
            </div>
          </div>
 
-         <Accordion type="multiple" defaultValue={["comments-activity", "attachments"]}>
+         <Accordion type="multiple" defaultValue={["comments-activity", "attachments"]} className="px-4 py-2 shadow-lg roudned">
            {/* Comments & Activity Section */}
            <AccordionItem value="comments-activity" className="rounded-lg mb-3 bg-white dark:bg-slate-800">
-             <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/5 to-blue-600/10 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
+             <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gradient-to-r from-blue-500/10 to-blue-600/15 dark:from-blue-400/20 dark:to-blue-500/25 rounded-t-lg">
                <div className="flex items-center gap-3">
                  <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
                    <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-300" />
                  </div>
-                 <span className="text-lg font-semibold">Comments & Activity</span>
+                 <div className="text-left">
+                   <span className="text-sm font-semibold text-foreground">Comments & Activity</span>
+                   <p className="text-xs text-muted-foreground">View and add comments</p>
+                 </div>
                </div>
              </AccordionTrigger>
-             <AccordionContent className="px-4 py-4 bg-white dark:bg-slate-800">
+             <AccordionContent className="px-6 pb-4 pt-4 bg-card">
                <CandidateCommentsSection 
                  candidateId={candidateId} 
                  comments={comments} 
@@ -2156,16 +2181,21 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  <div className="p-2 bg-blue-500/10 dark:bg-blue-400/20 rounded-lg">
                    <UploadCloud className="h-4 w-4 text-blue-600 dark:text-blue-300" />
                  </div>
-                 <span className="text-lg font-semibold">Attachments</span>
+                 <div className="text-left">
+                   <span className="text-sm font-semibold text-foreground">Attachments</span>
+                   <p className="text-xs text-muted-foreground">Manage files and documents</p>
+                 </div>
                </div>
              </AccordionTrigger>
-             <AccordionContent className="px-4 py-4 bg-white dark:bg-slate-800">
-               <CandidateResumesSection 
-                 candidateId={candidateId} 
-                 resumes={resumes} 
-                 isEditing={isEditing} 
-                 onResumesChange={() => onRefresh()} 
-               />
+             <AccordionContent className="px-4 py-4 bg-card/30">
+               <div className="space-y-3">
+                 <CandidateResumesSection 
+                   candidateId={candidateId} 
+                   resumes={resumes} 
+                   isEditing={isEditing} 
+                   onResumesChange={() => onRefresh()} 
+                 />
+               </div>
              </AccordionContent>
            </AccordionItem>
          </Accordion>

@@ -211,10 +211,10 @@ export default function PositionDetailPage() {
       const appliedData = await appliedResponse.json();
       const appliedCandidates = Array.isArray(appliedData.data) ? appliedData.data : [];
 
-      // Fetch all candidates with job matches for this position
+      // Fetch all candidates and filter those with job matches for this position
       const matchesQuery = new URLSearchParams();
       matchesQuery.append('page', String(allCandidatesPage));
-      matchesQuery.append('limit', String(allCandidatesPageSize));
+      matchesQuery.append('limit', String(allCandidatesPageSize * 2)); // Fetch more to account for filtering
       if (allCandidatesSearchTerm) {
         matchesQuery.append('searchTerm', allCandidatesSearchTerm);
       }
@@ -248,17 +248,13 @@ export default function PositionDetailPage() {
         return false;
       });
 
-      // Merge and deduplicate candidates by ID
-      const allRelatedCandidates = [...appliedCandidates, ...matchedCandidates];
-      const seen = new Set();
-      const deduped = allRelatedCandidates.filter((c) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      });
+      // Merge and deduplicate candidates by ID, prioritizing applied candidates
+      const appliedIds = new Set(appliedCandidates.map(c => c.id));
+      const matchedOnlyCandidates = matchedCandidates.filter(c => !appliedIds.has(c.id));
+      const allRelatedCandidates = [...appliedCandidates, ...matchedOnlyCandidates];
 
-      setAllCandidates(deduped);
-      setAllCandidatesTotal(deduped.length);
+      setAllCandidates(allRelatedCandidates);
+      setAllCandidatesTotal(allRelatedCandidates.length);
     } catch (error) {
       console.error('Error fetching all candidates:', error);
       setAllCandidates([]);
@@ -462,7 +458,7 @@ export default function PositionDetailPage() {
                 <TableHead>Recruiter</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Applied Date</TableHead>
-                {type === 'applied' && showTypeBadge && <TableHead>Association</TableHead>}
+                {showTypeBadge && <TableHead>Association</TableHead>}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -483,31 +479,26 @@ export default function PositionDetailPage() {
                         <div>
                           {candidate.name}
                           <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                          {showTypeBadge && positionId && (
-                            <div className="mt-1">
-                              {(() => {
-                                let hasJobMatch = false;
-                                if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
-                                  hasJobMatch = true;
-                                } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-                                  const jobMatches = (candidate.parsedData as any).job_matches;
-                                  if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
-                                    hasJobMatch = true;
-                                  }
-                                }
-                                return (
-                                  <>
-                                    {hasJobMatch ? (
-                                      <Badge variant="secondary" className="mr-1">Job Match</Badge>
-                                    ) : null}
-                                    {candidate.positionId === positionId ? (
-                                      <Badge variant="default">Job Applied</Badge>
-                                    ) : null}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          )}
+                                                        {showTypeBadge && positionId && (
+                                <div className="mt-1">
+                                  {(() => {
+                                    const hasApplied = candidate.positionId === positionId;
+                                    const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
+                                      (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
+                                       Array.isArray((candidate.parsedData as any).job_matches) && 
+                                       (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
+                                    
+                                    if (hasApplied && hasJobMatch) {
+                                      return <Badge variant="default" className="mr-1">Applied & Matched</Badge>;
+                                    } else if (hasApplied) {
+                                      return <Badge variant="default">Applied</Badge>;
+                                    } else if (hasJobMatch) {
+                                      return <Badge variant="secondary">Matched</Badge>;
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                              )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -530,7 +521,27 @@ export default function PositionDetailPage() {
                           '-'
                         )}
                       </TableCell>
-                      {type === 'applied' && showTypeBadge && <TableCell>{/* Association badge logic here if needed */}</TableCell>}
+                      {showTypeBadge && (
+                        <TableCell>
+                          {(() => {
+                            const hasApplied = candidate.positionId === positionId;
+                            const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
+                              (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
+                               Array.isArray((candidate.parsedData as any).job_matches) && 
+                               (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
+                            
+                            if (hasApplied && hasJobMatch) {
+                              return <Badge variant="default">Applied & Matched</Badge>;
+                            } else if (hasApplied) {
+                              return <Badge variant="default">Applied</Badge>;
+                            } else if (hasJobMatch) {
+                              return <Badge variant="secondary">Matched</Badge>;
+                            } else {
+                              return <Badge variant="outline">Unknown</Badge>;
+                            }
+                          })()}
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -574,25 +585,20 @@ export default function PositionDetailPage() {
                               {showTypeBadge && positionId && (
                                 <div className="mt-1">
                                   {(() => {
-                                    let hasJobMatch = false;
-                                    if (candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId)) {
-                                      hasJobMatch = true;
-                                    } else if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-                                      const jobMatches = (candidate.parsedData as any).job_matches;
-                                      if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
-                                        hasJobMatch = true;
-                                      }
+                                    const hasApplied = candidate.positionId === positionId;
+                                    const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
+                                      (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
+                                       Array.isArray((candidate.parsedData as any).job_matches) && 
+                                       (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
+                                    
+                                    if (hasApplied && hasJobMatch) {
+                                      return <Badge variant="default" className="mr-1">Applied & Matched</Badge>;
+                                    } else if (hasApplied) {
+                                      return <Badge variant="default">Applied</Badge>;
+                                    } else if (hasJobMatch) {
+                                      return <Badge variant="secondary">Matched</Badge>;
                                     }
-                                    return (
-                                      <>
-                                        {hasJobMatch ? (
-                                          <Badge variant="secondary" className="mr-1">Job Match</Badge>
-                                        ) : null}
-                                        {candidate.positionId === positionId ? (
-                                          <Badge variant="default">Job Applied</Badge>
-                                        ) : null}
-                                      </>
-                                    );
+                                    return null;
                                   })()}
                                 </div>
                               )}
@@ -618,7 +624,27 @@ export default function PositionDetailPage() {
                               '-'
                             )}
                           </TableCell>
-                          {type === 'applied' && showTypeBadge && <TableCell>{/* Association badge logic here if needed */}</TableCell>}
+                          {showTypeBadge && (
+                            <TableCell>
+                              {(() => {
+                                const hasApplied = candidate.positionId === positionId;
+                                const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
+                                  (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
+                                   Array.isArray((candidate.parsedData as any).job_matches) && 
+                                   (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
+                                
+                                if (hasApplied && hasJobMatch) {
+                                  return <Badge variant="default">Applied & Matched</Badge>;
+                                } else if (hasApplied) {
+                                  return <Badge variant="default">Applied</Badge>;
+                                } else if (hasJobMatch) {
+                                  return <Badge variant="secondary">Matched</Badge>;
+                                } else {
+                                  return <Badge variant="outline">Unknown</Badge>;
+                                }
+                              })()}
+                            </TableCell>
+                          )}
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -841,7 +867,7 @@ export default function PositionDetailPage() {
                   setAppliedSearchTerm,
                   appliedSortColumn,
                   appliedSortDirection,
-                  false, // showTypeBadge
+                  true, // showTypeBadge
                   positionId // <-- pass positionId (optional, for consistency)
                 )}
                 <Pagination
@@ -861,7 +887,7 @@ export default function PositionDetailPage() {
                   setMatchesSearchTerm,
                   matchesSortColumn,
                   matchesSortDirection,
-                  false, // showTypeBadge
+                  true, // showTypeBadge
                   positionId // <-- pass positionId (optional, for consistency)
                 )}
                 <Pagination

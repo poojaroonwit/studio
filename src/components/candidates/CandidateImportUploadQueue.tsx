@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, BarChart3, Timer } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -20,20 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
-import { Scatter } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  LinearScale,
-  LogarithmicScale,
-  PointElement,
-  Tooltip,
-  Legend,
-  TimeScale,
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
 
-ChartJS.register(LinearScale, LogarithmicScale, PointElement, Tooltip, Legend, TimeScale, ChartDataLabels);
 
 export type CandidateJobType = "upload" | "import";
 
@@ -777,106 +764,9 @@ export const CandidateImportUploadQueue: React.FC<{
     fetchPositions();
   }, []);
 
-  const [showDurationChart, setShowDurationChart] = useState(false);
 
-  // Helper for chart colors by status
-  const statusColorMap: Record<string, string> = {
-    success: '#22c55e', // green
-    error: '#ef4444',   // red
-    fail: '#ef4444',    // red
-    inprocess: '#eab308', // yellow
-    queued: '#3b82f6',  // blue
-    cancelled: '#6b7280', // gray
-  };
 
-  const scatterData = {
-    datasets: jobs
-      .filter(job => job.completed_date && job.process_date)
-      .map(job => ({
-        label: job.status,
-        data: [{
-          x: job.completed_date ? new Date(job.completed_date) : undefined,
-          y: job.process_date && job.completed_date
-            ? (new Date(job.completed_date).getTime() - new Date(job.process_date).getTime()) / 1000 // convert ms to seconds
-            : undefined,
-          jobId: job.id,
-        }],
-        backgroundColor: statusColorMap[job.status] || '#6b7280',
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        showLine: false,
-        status: job.status,
-      }))
-      .filter(ds => ds.data[0].x !== undefined && ds.data[0].y !== undefined),
-  };
 
-  // Calculate max duration for y-axis
-  const maxJobDuration = jobs
-    .filter(job => job.completed_date && job.process_date)
-    .map(job => {
-      const completed = job.completed_date ? new Date(job.completed_date) : null;
-      const process = job.process_date ? new Date(job.process_date) : null;
-      if (completed && process) {
-        return (completed.getTime() - process.getTime()) / 1000;
-      }
-      return 0;
-    })
-    .reduce((max, curr) => Math.max(max, curr), 0);
-  const yAxisMax = maxJobDuration > 0 ? Math.ceil(maxJobDuration + 60) : 600; // max duration + 60s, or 10min default
-
-  const scatterOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      datalabels: { 
-        display: false,
-        color: 'transparent',
-        font: { size: 0 },
-        formatter: () => ''
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context: any) {
-            const job = jobs.find(j => j.id === context.raw.jobId);
-            // Show duration in seconds or minutes
-            let durationSec = context.raw.y;
-            let minutes = Math.floor(durationSec / 60);
-            let seconds = Math.round(durationSec % 60);
-            let durationLabel = minutes > 0
-              ? `${minutes}m${seconds > 0 ? ' ' + seconds + 's' : ''}`
-              : `${seconds}s`;
-            return [
-              `Status: ${job?.status}`,
-              `Duration: ${durationLabel}`,
-              `Completed: ${job?.completed_date ? format(new Date(job.completed_date as string), 'yyyy-MM-dd HH:mm') : ''}`,
-              `Job ID: ${job?.id}`,
-            ];
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        type: 'time' as const,
-        time: { unit: 'hour' as const, tooltipFormat: 'yyyy-MM-dd HH:mm' },
-        title: { display: true, text: 'Completed Date/Time' },
-        ticks: { autoSkip: true, maxTicksLimit: 20, font: { size: 12 } },
-      },
-      y: {
-        type: 'logarithmic' as const,
-        min: 10, // 10 seconds
-        max: yAxisMax, // max duration + 60s, or 10min default
-        title: { display: true, text: 'Job duration (seconds)' },
-        ticks: {
-          callback: function(value: any) {
-            const minutes = Math.round(value / 60);
-            return `${minutes}m`;
-          },
-          font: { size: 12 },
-        },
-      },
-    },
-  };
 
   return (
     <div className="mb-6">
@@ -984,55 +874,8 @@ export const CandidateImportUploadQueue: React.FC<{
             Delete Selected
           </Button> */}
         </div>
-        <div className="flex items-center ml-auto mt-2 md:mt-0">
-          <div
-            className="inline-flex rounded-full border border-border bg-background p-1 shadow-sm"
-            role="tablist"
-            aria-label="Graph Tabs"
-          >
-            <button
-              type="button"
-              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:z-10
-                ${!showDurationChart
-                  ? 'bg-primary/90 text-primary-foreground shadow'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'}
-              `}
-              onClick={() => setShowDurationChart(false)}
-              aria-pressed={!showDurationChart}
-              aria-selected={!showDurationChart}
-              tabIndex={0}
-              role="tab"
-            >
-              <BarChart3 className="w-4 h-4" />
-              Status Cards
-            </button>
-            <button
-              type="button"
-              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:z-10
-                ${showDurationChart
-                  ? 'bg-primary/90 text-primary-foreground shadow'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'}
-              `}
-              onClick={() => setShowDurationChart(true)}
-              aria-pressed={showDurationChart}
-              aria-selected={showDurationChart}
-              tabIndex={0}
-              role="tab"
-            >
-              <Timer className="w-4 h-4" />
-              Duration Graph
-            </button>
-          </div>
-        </div>
-      </Card>
-      {showDurationChart ? (
-        <div className="mb-6 bg-white dark:bg-gray-900 rounded-lg p-4 border">
-          <div className="flex items-center mb-2">
-            <span className="text-sm text-muted-foreground mr-2">Each point is a job. Color = status. Y = duration. X = completed date/time.</span>
-          </div>
-          <Scatter data={scatterData} options={scatterOptions} height={35} />
-        </div>
-      ) : (
+
+              </Card>
         <div className="mb-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             {/* All Upload Jobs Card - Black */}

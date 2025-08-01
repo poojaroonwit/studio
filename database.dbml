@@ -1,0 +1,488 @@
+// CandiTrack Database Schema
+// Generated from Prisma schema
+
+Table User {
+  id String [pk, note: 'UUID']
+  name String [not null]
+  email String [unique, not null]
+  password String [not null]
+  role String [not null]
+  avatarUrl String [null]
+  image String [null]
+  dataAiHint String [null]
+  modulePermissions String[] [default: '[]']
+  authenticationMethod String [default: 'basic', note: 'authentication_method']
+  forcePasswordChange Boolean [default: false, note: 'force_password_change']
+  emailVerified DateTime [null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+  apiKey String [unique, null]
+  azure_oid String [unique, null]
+
+  indexes {
+    email
+    role
+    authenticationMethod
+  }
+}
+
+Table Position {
+  id String [pk, note: 'UUID']
+  title String [not null]
+  department String [not null]
+  description String [null]
+  matchCriteria String [null]
+  isOpen Boolean [default: true]
+  positionLevel String [null]
+  customAttributes Json [default: '{}', null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    title
+    department
+    isOpen
+  }
+}
+
+Table Candidate {
+  id String [pk, note: 'UUID']
+  name String [not null]
+  email String [not null]
+  phone String [null]
+  positionId String [null, note: 'UUID']
+  recruiterId String [null, note: 'UUID']
+  fitScore Float [default: 0, null]
+  status String [default: 'Applied']
+  applicationDate DateTime [default: `now()`]
+  parsedData Json [null]
+  customAttributes Json [default: '{}', null]
+  resumePath String [null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+  avatarUrl String [null]
+  dataAiHint String [null]
+  assignmentJustification String [null]
+  educationData Json [default: '[]', null]
+  experienceData Json [default: '[]', null]
+
+  indexes {
+    email
+    status
+    positionId
+    recruiterId
+    applicationDate
+    fitScore
+  }
+}
+
+Table RecruitmentStage {
+  id String [pk, note: 'UUID']
+  name String [unique, not null]
+  description String [null]
+  isSystem Boolean [note: 'is_system']
+  sortOrder Int [note: 'sort_order']
+  color_complete String [null]
+  color_badge String [null]
+
+  indexes {
+    sortOrder
+    isSystem
+  }
+}
+
+Table TransitionRecord {
+  id String [pk, note: 'UUID']
+  candidateId String [not null, note: 'UUID']
+  positionId String [null, note: 'UUID']
+  date DateTime [default: `now()`]
+  stage String [not null]
+  notes String [null]
+  actingUserId String [null, note: 'UUID']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    candidateId
+    actingUserId
+    date
+    stage
+    positionId
+  }
+}
+
+Table LogEntry {
+  id String [pk, note: 'UUID']
+  timestamp DateTime [default: `now()`]
+  level String [not null]
+  message String [not null]
+  source String [null]
+  actingUserId String [null, note: 'UUID']
+  details Json [null]
+  createdAt DateTime [default: `now()`]
+
+  indexes {
+    timestamp
+    level
+    source
+    actingUserId
+  }
+}
+
+Table AuditLog {
+  id String [pk, note: 'UUID']
+  level String [not null]
+  message String [not null]
+  source String [null]
+  actingUserId String [null, note: 'UUID']
+  details Json [null]
+  timestamp DateTime [default: `now()`]
+  user_id String [null, note: 'UUID']
+  action String [null]
+  entity String [null]
+  entity_id String [null, note: 'UUID']
+
+  indexes {
+    timestamp
+    level
+    source
+    actingUserId
+    user_id
+  }
+}
+
+Table UserGroup {
+  id String [pk, note: 'UUID']
+  name String [unique, not null]
+  description String [null]
+  permissions String[] [default: '[]']
+  isDefault Boolean [default: false, note: 'is_default']
+  isSystemRole Boolean [default: false, note: 'is_system_role']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    isDefault
+    isSystemRole
+  }
+}
+
+Table User_UserGroup {
+  userId String [not null, note: 'UUID']
+  groupId String [not null, note: 'UUID']
+
+  indexes {
+    userId
+    groupId
+  }
+}
+
+Table SystemSetting {
+  key String [pk]
+  value String [null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`, note: 'updatedAt']
+
+  indexes {
+    updatedAt
+  }
+}
+
+Table CustomFieldDefinition {
+  id String [pk, note: 'UUID']
+  modelName String [not null, note: 'model_name']
+  fieldKey String [not null, note: 'field_key']
+  label String [not null]
+  fieldType String [not null, note: 'field_type']
+  options Json [null]
+  isRequired Boolean [default: false, note: 'is_required']
+  sortOrder Int [default: 0, note: 'sort_order']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+
+  indexes {
+    modelName
+    sortOrder
+  }
+}
+
+Table JobMatch {
+  id String [pk, note: 'UUID']
+  candidateId String [not null, note: 'UUID']
+  jobId String [null, note: 'UUID']
+  jobTitle String [null, note: 'jobTitle']
+  fitScore Float [null, note: 'fitScore']
+  matchReasons String[] [note: 'matchReasons']
+  jobDescriptionSummary String [null, note: 'job_description_summary']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    candidateId
+    jobId
+    fitScore
+  }
+}
+
+Table UploadQueue {
+  id String [pk, note: 'UUID']
+  fileName String [not null, note: 'file_name']
+  fileSize BigInt [not null, note: 'file_size']
+  status String [not null]
+  error String [null]
+  errorDetails String [null, note: 'error_details']
+  source String [null]
+  uploadDate DateTime [default: `now()`, note: 'upload_date']
+  completedDate DateTime [null, note: 'completed_date']
+  uploadId String [null, note: 'upload_id']
+  createdBy String [null, note: 'created_by, UUID']
+  updatedAt DateTime [default: `now()`, note: 'updated_at']
+  filePath String [not null, note: 'file_path']
+  webhookPayload Json [null, note: 'webhook_payload']
+  positionId String [null, note: 'position_id, UUID']
+  processDate DateTime [null, note: 'process_date']
+
+  indexes {
+    status
+    uploadDate
+    completedDate
+    processDate
+    createdBy
+    source
+  }
+}
+
+Table UserUIDisplayPreference {
+  id String [pk, note: 'UUID']
+  userId String [not null, note: 'userId, UUID']
+  modelType String [not null, note: 'model_type']
+  attributeKey String [not null, note: 'attribute_key']
+  uiPreference String [not null, note: 'ui_preference']
+  customNote String [null, note: 'custom_note']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    userId
+    modelType
+    attributeKey
+  }
+}
+
+Table Account {
+  id String [pk, note: 'UUID']
+  userId String [not null, note: 'UUID']
+  type String [not null]
+  provider String [not null]
+  providerAccountId String [not null]
+  refresh_token String [null]
+  access_token String [null]
+  expires_at Int [null]
+  token_type String [null]
+  scope String [null]
+  id_token String [null]
+  session_state String [null]
+
+  indexes {
+    userId
+  }
+}
+
+Table DataModel {
+  id String [pk, note: 'UUID']
+  name String [not null]
+  modelType String [not null]
+  description String [null]
+  schema Json [null]
+  isActive Boolean [default: true]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+}
+
+Table SystemPreference {
+  id String [pk, note: 'UUID']
+  userId String [not null, note: 'UUID']
+  key String [not null]
+  value String [null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+}
+
+Table CandidateComment {
+  id String [pk, note: 'UUID']
+  candidateId String [not null, note: 'UUID']
+  authorId String [not null, note: 'UUID']
+  content String [not null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+  attachmentIds String[] [not null]
+
+  indexes {
+    candidateId
+    authorId
+  }
+}
+
+Table Attachment {
+  id String [pk, note: 'UUID']
+  candidateId String [not null, note: 'UUID']
+  uploadedById String [not null, note: 'UUID']
+  filePath String [not null]
+  fileName String [not null]
+  label String [not null]
+  isPrimary Boolean [default: false]
+  uploadedAt DateTime [default: `now()`]
+  updatedAt DateTime [note: 'updatedAt']
+
+  indexes {
+    candidateId
+    uploadedById
+    label
+    isPrimary
+  }
+}
+
+Table Webhook {
+  id String [pk, note: 'UUID']
+  name String [not null]
+  url String [not null]
+  method String [not null]
+  headers Json [null]
+  auth_header_name String [null, note: 'auth_header_name']
+  auth_header_value String [null, note: 'auth_header_value']
+  auth_password String [null, note: 'auth_password']
+  auth_token String [null, note: 'auth_token']
+  auth_type String [default: 'none', note: 'auth_type']
+  auth_username String [null, note: 'auth_username']
+  createdAt DateTime [default: `now()`, note: 'createdAt']
+  events String[] [not null]
+  is_active Boolean [default: true, note: 'is_active']
+  retry_count Int [default: 3, note: 'retry_count']
+  timeout Int [default: 30]
+  updatedAt DateTime [note: 'updatedAt']
+  body_template String [null, note: 'body_template']
+  field_mappings Json [null, note: 'field_mappings']
+  include_metadata Boolean [default: true, note: 'include_metadata']
+  custom_payload Boolean [default: false, note: 'custom_payload']
+
+  indexes {
+    is_active
+    events
+    createdAt
+  }
+}
+
+Table WebhookBodyConfig {
+  id String [pk, note: 'UUID']
+  webhook_id String [not null, note: 'webhook_id, UUID']
+  event_type String [not null, note: 'event_type']
+  body_template String [not null, note: 'body_template']
+  field_mappings Json [null, note: 'field_mappings']
+  is_active Boolean [default: true, note: 'is_active']
+  created_at DateTime [default: `now()`, note: 'created_at']
+  updated_at DateTime [note: 'updated_at']
+
+  indexes {
+    webhook_id
+    event_type
+    is_active
+  }
+}
+
+Table WebhookLog {
+  id String [pk, note: 'UUID']
+  webhook_id String [not null, note: 'webhook_id, UUID']
+  event_type String [not null, note: 'event_type']
+  payload Json [not null]
+  response_status Int [null, note: 'response_status']
+  response_body String [null, note: 'response_body']
+  success Boolean [not null]
+  error_message String [null, note: 'error_message']
+  duration_ms Int [default: 0, note: 'duration_ms']
+  createdAt DateTime [default: `now()`, note: 'createdAt']
+
+  indexes {
+    webhook_id
+    event_type
+    success
+    createdAt
+  }
+}
+
+Table Dashboard {
+  id String [pk, note: 'UUID']
+  name String [not null]
+  description String [null]
+  userId String [not null, note: 'UUID']
+  layout String [default: 'grid']
+  theme String [default: 'default']
+  isPublic Boolean [default: false]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [not null]
+
+  indexes {
+    createdAt
+    isPublic
+    updatedAt
+    userId
+  }
+}
+
+Table DashboardShare {
+  id String [pk, note: 'UUID']
+  dashboardId String [not null, note: 'UUID']
+  userId String [not null, note: 'UUID']
+  permission String [default: 'view']
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [not null]
+
+  indexes {
+    dashboardId
+    permission
+    userId
+  }
+}
+
+Table DashboardWidget {
+  id String [pk, note: 'UUID']
+  dashboardId String [not null, note: 'UUID']
+  type String [not null]
+  title String [not null]
+  config Json [null]
+  position Json [null]
+  dataSource String [null]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [not null]
+
+  indexes {
+    createdAt
+    dashboardId
+    type
+  }
+}
+
+// Relationships
+Ref: User.id < Candidate.recruiterId
+Ref: Position.id < Candidate.positionId
+Ref: Candidate.id < TransitionRecord.candidateId
+Ref: User.id < TransitionRecord.actingUserId
+Ref: User.id < LogEntry.actingUserId
+Ref: User.id < AuditLog.actingUserId
+Ref: User.id < AuditLog.user_id
+Ref: User.id < User_UserGroup.userId
+Ref: UserGroup.id < User_UserGroup.groupId
+Ref: Candidate.id < JobMatch.candidateId
+Ref: User.id < UploadQueue.createdBy
+Ref: User.id < UserUIDisplayPreference.userId
+Ref: User.id < Account.userId
+Ref: User.id < SystemPreference.userId
+Ref: Candidate.id < CandidateComment.candidateId
+Ref: User.id < CandidateComment.authorId
+Ref: Candidate.id < Attachment.candidateId
+Ref: User.id < Attachment.uploadedById
+Ref: Webhook.id < WebhookBodyConfig.webhook_id
+Ref: Webhook.id < WebhookLog.webhook_id
+Ref: User.id < Dashboard.userId
+Ref: Dashboard.id < DashboardShare.dashboardId
+Ref: User.id < DashboardShare.userId
+Ref: Dashboard.id < DashboardWidget.dashboardId 

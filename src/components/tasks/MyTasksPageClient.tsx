@@ -11,20 +11,146 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Settings, RefreshCw, Kanban, List, Users, MoreHorizontal, Calendar, Target, User, TrendingUp } from 'lucide-react';
-import { CustomizeBoardModal } from './CustomizeBoardModal';
-import { MyTasksFilterModal } from './MyTasksFilterModal';
-import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
-import { CandidateKanbanView, HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
+import { Search, Filter, RefreshCw, Kanban, List, Users, TrendingUp } from 'lucide-react';
+import { HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import { getScoreRangesForChart, normalizeFitScore, getScoreBgColor } from '@/lib/scoreUtils';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
 }
+
+// Score Distribution Bar Component
+const ScoreDistributionBar = ({ candidates }: { candidates: any[] }) => {
+  const scoreRanges = getScoreRangesForChart();
+  
+  // Calculate score distribution
+  const scoreDistribution = useMemo(() => {
+    const distribution = scoreRanges.map(range => ({
+      ...range,
+      count: 0,
+      percentage: 0
+    }));
+    
+    let totalCandidates = 0;
+    
+    candidates.forEach(candidate => {
+      const score = candidate.fitScore;
+      if (score !== null && score !== undefined) {
+        const normalizedScore = normalizeFitScore(score);
+        const range = distribution.find(r => normalizedScore >= r.min && normalizedScore <= r.max);
+        if (range) {
+          range.count++;
+          totalCandidates++;
+        }
+      }
+    });
+    
+    // Calculate percentages
+    if (totalCandidates > 0) {
+      distribution.forEach(range => {
+        range.percentage = Math.round((range.count / totalCandidates) * 100);
+      });
+    }
+    
+    return distribution;
+  }, [candidates]);
+  
+  const totalCandidates = scoreDistribution.reduce((sum, range) => sum + range.count, 0);
+  
+  if (totalCandidates === 0) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium text-foreground">Score Distribution</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">No candidates with scores available</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium text-foreground">Score Distribution</h3>
+          <Badge variant="secondary" className="text-xs">
+            {totalCandidates} candidates
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Average: {(() => {
+            const totalScore = candidates.reduce((sum, c) => {
+              const score = normalizeFitScore(c.fitScore);
+              return sum + score;
+            }, 0);
+            const avgScore = totalCandidates > 0 ? Math.round(totalScore / totalCandidates) : 0;
+            return `${avgScore}%`;
+          })()}
+        </div>
+      </div>
+      
+      {/* Horizontal Score Bar */}
+      <div className="flex h-8 rounded-lg overflow-hidden border border-border">
+        {scoreDistribution.map((range, index) => {
+          if (range.count === 0) return null;
+          
+          return (
+            <div
+              key={range.letter}
+              className={cn(
+                "flex items-center justify-center text-xs font-medium text-black relative group cursor-pointer transition-all duration-200",
+                getScoreBgColor(range.min + (range.max - range.min) / 2),
+                "hover:brightness-110"
+              )}
+              style={{ width: `${range.percentage}%` }}
+              title={`${range.letter} Grade (${range.range}): ${range.count} candidates (${range.percentage}%)`}
+            >
+              <span className="truncate px-1">
+                {range.count > 0 && (
+                  <>
+                    <span className="font-bold">{range.letter}</span>
+                    <span className="ml-1">({range.count})</span>
+                  </>
+                )}
+              </span>
+              
+              {/* Tooltip on hover */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                {range.letter} Grade ({range.range})
+                <br />
+                {range.count} candidates ({range.percentage}%)
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 mt-3">
+        {scoreDistribution.map((range) => (
+          <div key={range.letter} className="flex items-center gap-1 text-xs">
+            <div 
+              className={cn(
+                "w-3 h-3 rounded-sm",
+                getScoreBgColor(range.min + (range.max - range.min) / 2)
+              )}
+            />
+            <span className="text-muted-foreground">
+              {range.letter} ({range.range}): {range.count}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -35,19 +161,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [positions, setPositions] = useState<any[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
-  const [boardPrefs, setBoardPrefs] = useState({
-    rowField: 'none',
-    columnField: 'status',
-    visibleFields: ['name', 'email', 'status', 'fitScore'],
-    visibleRowValues: [],
-    visibleColumnValues: [],
-  });
   const { data: session } = useSession();
-  const [visibleRowValues, setVisibleRowValues] = useState<string[]>([]);
-  const [visibleColumnValues, setVisibleColumnValues] = useState<string[]>([]);
-  const [rowField, setRowField] = useState('none');
-  const [columnField, setColumnField] = useState('status');
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
   // Add debouncing for search
@@ -115,165 +229,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetchCandidates();
   }, []); // Only run on mount
 
-  // Get all possible values for row and column fields (not just from current candidates)
-  const uniqueRowValues = useMemo(() => {
-    if (rowField === 'status') {
-      // For status field, use all available stages
-      return stages;
-    } else if (rowField === 'recruiterId') {
-      // For recruiter field, use all available recruiters
-      return recruiters.map(r => r.id);
-    } else if (rowField === 'positionId') {
-      // For position field, use all available positions
-      return positions.map(p => p.id);
-    } else {
-      // For other fields, get unique values from candidates + any additional values from preferences
-      const candidateValues = Array.from(new Set(candidates.map(c => (c[rowField] ?? c.customAttributes?.[rowField] ?? '')))).filter(Boolean);
-      return candidateValues;
-    }
-  }, [candidates, rowField, stages, recruiters, positions]);
-
-  const uniqueColumnValues = useMemo(() => {
-    if (columnField === 'status') {
-      // For status field, use all available stages
-      return stages;
-    } else if (columnField === 'recruiterId') {
-      // For recruiter field, use all available recruiters
-      return recruiters.map(r => r.id);
-    } else if (columnField === 'positionId') {
-      // For position field, use all available positions
-      return positions.map(p => p.id);
-    } else {
-      // For other fields, get unique values from candidates + any additional values from preferences
-      const candidateValues = Array.from(new Set(candidates.map(c => (c[columnField] ?? c.customAttributes?.[columnField] ?? '')))).filter(Boolean);
-      return candidateValues;
-    }
-  }, [candidates, columnField, stages, recruiters, positions]);
-
-  // Load preferences (including visibleRowValues/visibleColumnValues) on mount and after modal save
-  const loadBoardPrefs = useCallback(() => {
-    fetch('/api/settings/user-preferences')
-      .then(res => res.json())
-      .then(prefs => {
-        const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
-        const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
-        const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
-        const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-        const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
-        const newRowField = rowPref && rowPref.customNote !== undefined ? rowPref.customNote : 'none';
-        const newColumnField = colPref && colPref.customNote !== undefined ? colPref.customNote : 'status';
-        let newVisibleFields = ['name', 'email', 'status', 'fitScore'];
-        if (visibleFieldsPref) {
-          try {
-            newVisibleFields = JSON.parse(visibleFieldsPref.customNote) || newVisibleFields;
-          } catch (error) {
-            console.error('MyTasksPageClient: Error parsing visible fields:', error);
-          }
-        }
-       
-        setRowField(newRowField);
-        setColumnField(newColumnField);
-        setBoardPrefs(prev => ({
-          ...prev,
-          rowField: newRowField,
-          columnField: newColumnField,
-          visibleFields: newVisibleFields,
-        }));
-        
-        // Handle visible row values
-        if (visibleRowPref) {
-          try {
-            const parsedValues = JSON.parse(visibleRowPref.customNote) || [];
-            
-            setVisibleRowValues(parsedValues);
-          } catch (error) {
-           
-            setVisibleRowValues([]);
-          }
-        } else {
-          // Only set visibleRowValues to stages if rowField is 'status' (not 'none')
-          if (newRowField === 'status') {
-            const defaultValues = stages.length > 0 ? stages : [];
-        
-            setVisibleRowValues(defaultValues);
-          } else {
-            setVisibleRowValues([]);
-          }
-        }
-        
-        // Handle visible column values
-        if (visibleColPref) {
-          try {
-            const parsedValues = JSON.parse(visibleColPref.customNote) || [];
-            
-            setVisibleColumnValues(parsedValues);
-          } catch (error) {
-           
-            setVisibleColumnValues([]);
-          }
-        } else {
-          setVisibleColumnValues([]);
-        }
-        
-        // Ensure we have visible values if none are set
-        if (uniqueRowValues.length === 0 && stages.length > 0) {
-          setVisibleRowValues(stages);
-        }
-      })
-      .catch((error) => {
-      
-        setRowField('none');
-        setColumnField('status');
-        setBoardPrefs(prev => ({
-          ...prev,
-          rowField: 'none',
-          columnField: 'status',
-        }));
-        setVisibleRowValues([]);
-        setVisibleColumnValues(stages.length > 0 ? stages : []);
-      });
-  }, [uniqueRowValues, uniqueColumnValues, stages]);
-
-  useEffect(() => {
-    if (metadataLoaded) {
-      loadBoardPrefs();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metadataLoaded]);
-
-  // Fallback: ensure visibleColumnValues has a value when stages are loaded (for horizontal layout)
-  useEffect(() => {
-    // Set visibleColumnValues to stages if columnField is 'status' and no values are set
-    if (columnField === 'status' && stages.length > 0 && visibleColumnValues.length === 0) {
-      setVisibleColumnValues(stages);
-    } else if (columnField === 'recruiterId' && recruiters.length > 0 && visibleColumnValues.length === 0) {
-      setVisibleColumnValues(recruiters.map(r => r.id));
-    } else if (columnField === 'positionId' && positions.length > 0 && visibleColumnValues.length === 0) {
-      setVisibleColumnValues(positions.map(p => p.id));
-    } else if (columnField && columnField !== 'none' && visibleColumnValues.length === 0) {
-      // For other fields, get unique values from candidates
-      const candidateValues = Array.from(new Set(candidates.map(c => (c[columnField] ?? c.customAttributes?.[columnField] ?? '')))).filter(Boolean);
-      setVisibleColumnValues(candidateValues);
-    }
-    // Also ensure that when column field is status, we always show all stages
-    if (stages.length > 0 && columnField === 'status' && visibleColumnValues.length > 0 && visibleColumnValues.length < stages.length) {
-      setVisibleColumnValues(stages);
-    }
-  }, [stages, recruiters, positions, candidates, visibleColumnValues.length, columnField]);
-
-  // When modal closes after save, reload preferences
-  const handleCustomizeModalChange = (open: boolean) => {
-
-    setIsCustomizeModalOpen(open);
-    if (!open) {
-   
-      // Add a small delay to ensure the save operation completes
-      setTimeout(() => {
-        loadBoardPrefs();
-      }, 500);
-    }
-  };
-
   // Debounced fetch candidates when filters change
   useEffect(() => {
     // Clear existing timeout
@@ -335,25 +290,47 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     });
   }, [filteredCandidates, filters]);
 
-  // Handle drag-and-drop move
-  const handleMoveCandidate = (candidate: any, newValue: string) => {
+  // Handle drag-and-drop move - Fixed to always update status field
+  const handleMoveCandidate = (candidate: any, newStatus: string) => {
     // Optimistically update UI
     setCandidates((prev) =>
       prev.map((c) =>
         c.id === candidate.id
-          ? { ...c, [rowField]: newValue }
+          ? { ...c, status: newStatus }
           : c
       )
     );
     
     // Send update to API
-    const updateData: any = {};
-    updateData[rowField] = newValue;
-    
     fetch(`/api/candidates/${candidate.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updateData),
+      body: JSON.stringify({ status: newStatus }),
+    }).then(response => {
+      if (!response.ok) {
+        // Revert optimistic update on error
+        setCandidates((prev) =>
+          prev.map((c) =>
+            c.id === candidate.id
+              ? { ...c, status: candidate.status }
+              : c
+          )
+        );
+        toast.error('Failed to update candidate status');
+      } else {
+        toast.success(`Moved ${candidate.name} to ${newStatus}`);
+      }
+    }).catch(error => {
+      console.error('Error updating candidate status:', error);
+      // Revert optimistic update on error
+      setCandidates((prev) =>
+        prev.map((c) =>
+          c.id === candidate.id
+            ? { ...c, status: candidate.status }
+            : c
+        )
+      );
+      toast.error('Failed to update candidate status');
     });
   };
 
@@ -474,60 +451,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </TabsList>
               </Tabs>
 
-              {/* Board Settings and Reset - only show in Kanban view */}
-              {viewMode === 'kanban' && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs"
-                    onClick={() => {
-                      setIsCustomizeModalOpen(true);
-                    }}
-                  >
-                    <Settings className="w-4 h-4 mr-1" />
-                    Customize
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs"
-                    onClick={async () => {
-                      try {
-                        // Reset to default preferences
-                        const defaultPrefs = [
-                          { modelType: 'Candidate', attributeKey: 'mytasks_rowField', uiPreference: 'Standard', customNote: 'status' },
-                          { modelType: 'Candidate', attributeKey: 'mytasks_columnField', uiPreference: 'Standard', customNote: 'none' },
-                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleRowValues', uiPreference: 'Standard', customNote: JSON.stringify(stages) },
-                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleColumnValues', uiPreference: 'Standard', customNote: JSON.stringify([]) },
-                          { modelType: 'Candidate', attributeKey: 'mytasks_visibleFields', uiPreference: 'Standard', customNote: JSON.stringify(['name', 'email', 'status']) },
-                        ];
-                        const res = await fetch('/api/settings/user-preferences', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(defaultPrefs),
-                        });
-                        if (res.ok) {
-                          toast.success('Board reset to default configuration');
-                          // Reload preferences
-                          loadBoardPrefs();
-                        } else {
-                          toast.error('Failed to reset board configuration');
-                        }
-                      } catch (error) {
-                        console.error('Error resetting board:', error);
-                        toast.error('Failed to reset board configuration');
-                      }
-                    }}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Reset Board
-                  </Button>
-                </>
-              )}
-
-
-
               {/* Refresh */}
               <Button
                 variant="outline"
@@ -581,62 +504,24 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           </div>
         ) : (
           <div className="p-6">
-            {/* Results Summary */}
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-sm">
-                  {displayedCandidates.length} candidate{displayedCandidates.length !== 1 ? 's' : ''}
-                </Badge>
-                {Object.keys(filters).length > 0 && (
-                  <Badge variant="outline" className="text-sm">
-                    Filtered
-                  </Badge>
-                )}
-              </div>
-            </div>
+
+
+            {/* Score Distribution Bar - Only show in Kanban view */}
+            {viewMode === 'kanban' && (
+              <ScoreDistributionBar candidates={displayedCandidates} />
+            )}
 
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              (() => {
-                // Special case: If column field is 'status' (recruitment stages), use horizontal layout
-                if (columnField === 'status') {
-                  return (
-                    <HorizontalStageKanbanView
-                      candidates={displayedCandidates}
-                      statuses={stages}
-                      onMoveCandidate={handleMoveCandidate}
-                      onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                      visibleFields={boardPrefs.visibleFields}
-                      visibleRowValues={visibleRowValues}
-                      visibleColumnValues={visibleColumnValues}
-                    />
-                  );
-                }
-
-                // Fallback logic for other column configurations
-                let effectiveColumnField = columnField;
-                let effectiveColumnValues = visibleColumnValues;
-                if (columnField !== 'none' && (Array.isArray(visibleColumnValues) && visibleColumnValues.length === 0)) {
-                  effectiveColumnField = 'recruiterId';
-                  effectiveColumnValues = recruiters.map(r => r.id);
-                  console.warn('No visibleColumnValues, defaulting to all recruiters for columns.');
-                }
-                // If columnField is 'none', respect the user's config and do not override.
-                return (
-                  <CandidateKanbanView
-                    candidates={displayedCandidates}
-                    statuses={stages}
-                    onMoveCandidate={handleMoveCandidate}
-                    onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                    showAddButton={false}
-                    rowField={rowField}
-                    columnField={effectiveColumnField}
-                    visibleFields={boardPrefs.visibleFields}
-                    visibleRowValues={visibleRowValues}
-                    visibleColumnValues={effectiveColumnValues}
-                  />
-                );
-              })()
+              <HorizontalStageKanbanView
+                candidates={displayedCandidates}
+                statuses={stages}
+                onMoveCandidate={handleMoveCandidate}
+                onCardClick={(candidate) => setSelectedCandidate(candidate)}
+                visibleFields={['name', 'email', 'status', 'fitScore', 'positionId']}
+                visibleRowValues={[]}
+                visibleColumnValues={stages}
+              />
             ) : (
               // Table View (styled like candidate list)
               <div className="border rounded-lg shadow overflow-hidden">
@@ -701,13 +586,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       </div>
 
       {/* Modals */}
-      <CustomizeBoardModal
-        open={isCustomizeModalOpen}
-        onOpenChange={handleCustomizeModalChange}
-        rowFieldValues={uniqueRowValues}
-        columnFieldValues={uniqueColumnValues}
-      />
-
       {selectedCandidate && (
         <>
   

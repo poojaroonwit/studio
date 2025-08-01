@@ -392,8 +392,8 @@ export default function SystemPreferencesPage() {
           }
 
           // Load primary button colors
-          if (data.primaryGradientStart) setPrimaryGradientStart(data.primaryGradientStart);
-          if (data.primaryGradientEnd) setPrimaryGradientEnd(data.primaryGradientEnd);
+          setPrimaryGradientStart(data.primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START);
+          setPrimaryGradientEnd(data.primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END);
 
           setAppMenuIcon(data.appMenuIcon || "");
           setAppMenuIconType(data.appMenuIcon && (data.appMenuIcon.startsWith('http') || data.appMenuIcon.startsWith('/')) ? "image" : "lucide");
@@ -405,7 +405,7 @@ export default function SystemPreferencesPage() {
       }
       fetchPrefs();
     }
-  }, [sessionStatus, router, pathname, signIn]);
+  }, [sessionStatus]);
 
   useEffect(() => {
     applySidebarStyles(sidebarColors);
@@ -606,6 +606,8 @@ export default function SystemPreferencesPage() {
         'loginBackgroundGradientEnd',
         'loginBackgroundColor',
         'loginPageBackgroundImageUrl',
+        'primaryGradientStart',
+        'primaryGradientEnd',
         // Add all sidebar color keys
         ...Object.keys(sidebarColors)
       ];

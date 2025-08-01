@@ -153,6 +153,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', candidate.id);
+      e.dataTransfer.setData('application/json', JSON.stringify(candidate));
       
       // Create a custom drag image
       const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
@@ -1934,7 +1935,10 @@ export function HorizontalStageKanbanView({
     }
   };
 
-  const handleDrop = (stage: string) => {
+  const handleDrop = (stage: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedCandidate && draggedCandidate.status !== stage) {
       onMoveCandidate?.(draggedCandidate, stage);
     }
@@ -2094,7 +2098,13 @@ export function HorizontalStageKanbanView({
                     )}
                     onDragOver={(e) => handleDragOver(stage, e)}
                     onDragLeave={(e) => handleDragLeave(stage, e)}
-                    onDrop={() => handleDrop(stage)}
+                    onDrop={(e) => handleDrop(stage, e)}
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      if (draggedCandidate && draggedCandidate.status !== stage) {
+                        setDragOverStage(stage);
+                      }
+                    }}
                   >
                     {/* Drop zone indicator */}
                     {isDragOver && !isCurrentStage && (

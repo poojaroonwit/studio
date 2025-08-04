@@ -52,10 +52,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check for bypass parameter
-  const url = new URL(request.url);
-  const bypassDuplicates = url.searchParams.get('bypass_duplicates') === 'true';
-
   console.log('Upload queue processing started');
   
   const client = await getSafeDbClient();
@@ -86,11 +82,9 @@ export async function POST(request: NextRequest) {
     }
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
-    // Allow same file to be processed for different positions (bulk upload support)
-    let sqlQuery;
-    if (bypassDuplicates) {
-      console.log('Bypassing duplicate check for testing');
-      sqlQuery = `UPDATE upload_queue
+    // Also check for duplicate file processing to prevent multiple candidates
+    const res = await client.query(
+      `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
          SELECT id FROM upload_queue 
@@ -98,59 +92,18 @@ export async function POST(request: NextRequest) {
          AND id NOT IN (
            SELECT id FROM upload_queue WHERE status = 'inprocess'
          )
-         ORDER BY upload_date ASC LIMIT 1
-         FOR UPDATE SKIP LOCKED
-       )
-       RETURNING *`;
-    } else {
-      sqlQuery = `UPDATE upload_queue
-       SET status = 'inprocess', process_date = now(), updated_at = now()
-       WHERE id = (
-         SELECT id FROM upload_queue 
-         WHERE status = 'queued' 
-         AND id NOT IN (
-           SELECT id FROM upload_queue WHERE status = 'inprocess'
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM upload_queue uq2
-           WHERE uq2.file_path = upload_queue.file_path
-           AND uq2.position_id = upload_queue.position_id
-           AND uq2.status IN ('success', 'fail', 'error')
-           AND uq2.id != upload_queue.id
-           AND uq2.completed_date > NOW() - INTERVAL '1 hour'  -- Allow reprocessing after 1 hour
+         AND file_path NOT IN (
+           SELECT file_path FROM upload_queue 
+           WHERE status IN ('success', 'fail', 'error')
+           AND file_path IS NOT NULL
          )
          ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
-       RETURNING *`;
-    }
-    
-    const res = await client.query(sqlQuery);
+       RETURNING *`
+    );
     if (res.rows.length === 0) {
       await client.query('COMMIT');
-      
-      // Check why no jobs were selected
-      const queuedJobs = await client.query(
-        `SELECT id, file_name, file_path, position_id, status FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 5`
-      );
-      
-      if (queuedJobs.rows.length > 0) {
-        console.log('Found queued jobs but they were skipped. Checking for duplicates:', queuedJobs.rows);
-        
-        // Check for each queued job if there are duplicates
-        for (const job of queuedJobs.rows) {
-          const duplicates = await client.query(
-            `SELECT id, file_name, file_path, position_id, status FROM upload_queue 
-             WHERE file_path = $1 AND position_id = $2 AND status IN ('success', 'fail', 'error')`,
-            [job.file_path, job.position_id]
-          );
-          
-          if (duplicates.rows.length > 0) {
-            console.log(`Job ${job.id} skipped because of existing processed records:`, duplicates.rows);
-          }
-        }
-      }
-      
       console.log('Upload queue processing completed - no queued jobs');
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
@@ -235,6 +188,21 @@ export async function POST(request: NextRequest) {
     if (duplicateProcessingSetting !== null) {
       preventDuplicateProcessing = duplicateProcessingSetting === 'true';
     }
+    
+    // TEMPORARY: For testing, allow processing even if marked as already processed
+    // Remove this after debugging is complete
+    if (process.env.NODE_ENV === 'development') {
+      preventDuplicateProcessing = false;
+    }
+    
+    console.log('[Webhook] Job processing check:', {
+      jobId: job.id,
+      fileName: job.file_name,
+      webhookPayload: job.webhook_payload,
+      processedByExternalWebhook: job.webhook_payload?.processed_by_external_webhook,
+      jobAlreadyProcessed,
+      preventDuplicateProcessing
+    });
     
     // Check if this file has already been processed successfully
     const alreadyProcessedCheck = await client.query(

@@ -4,6 +4,9 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { minioClient, ensureBucketExists } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
+import { getPool } from '@/lib/db';
+import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { broadcastUploadQueueUpdate } from '@/app/api/upload-queue/sse/broadcastUploadQueueUpdate';
 
 export const runtime = 'nodejs';
 
@@ -91,62 +94,70 @@ export async function POST(req: NextRequest) {
     webhook_payload: { targetPositionId: positionId },
   };
 
-  // Call the upload queue API (internal call)
+  // Add to upload queue directly (no internal HTTP call)
   try {
-    // Construct the proper base URL using the request URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-    const uploadQueueUrl = `${baseUrl}/api/upload-queue`;
+    const id = uuidv4();
+    const client = await getPool().connect();
     
-    console.log('Calling upload queue API:', {
-      url: uploadQueueUrl,
-      method: 'POST',
-      hasAuth: !!req.headers.get('authorization'),
-      bodySize: JSON.stringify(uploadQueueJob).length
-    });
-    
-    const res = await fetch(uploadQueueUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': req.headers.get('authorization') || '',
-      },
-      body: JSON.stringify(uploadQueueJob),
-    });
-    
-    if (!res.ok) {
-      let errorMessage = 'Failed to add to upload queue';
-      try {
-        const errorData = await res.json();
-        errorMessage = errorData.error || errorMessage;
-      } catch (parseError) {
-        console.error('Failed to parse upload queue error response:', parseError);
-      }
-      return new Response(JSON.stringify({ error: errorMessage }), { status: 500, headers: handleCors(req) });
-    }
-    
-    const data = await res.json();
+    try {
+      const res = await client.query(
+        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING *`,
+        [id, uploadQueueJob.file_name, uploadQueueJob.file_size, uploadQueueJob.status, uploadQueueJob.source, uploadQueueJob.upload_id, user.id, uploadQueueJob.file_path, JSON.stringify(uploadQueueJob.webhook_payload), uploadQueueJob.webhook_payload.targetPositionId]
+      );
+      
+      console.log(`File '${uploadQueueJob.file_name}' added to upload queue by ${user.email}`, { 
+        queueId: id,
+        fileName: uploadQueueJob.file_name,
+        fileSize: uploadQueueJob.file_size,
+        status: uploadQueueJob.status,
+        source: uploadQueueJob.source,
+        uploadId: uploadQueueJob.upload_id,
+        filePath: uploadQueueJob.file_path
+      });
 
-  return new Response(JSON.stringify({ success: true, uploadQueueJob: data }), {
-    status: 201,
-    headers: handleCors(req),
-  });
+      // Dispatch webhook for upload queue created event
+      try {
+        await dispatchWebhooks.uploadQueueCreated(res.rows[0]);
+      } catch (webhookError) {
+        console.error('Failed to dispatch upload queue created webhook:', webhookError);
+        // Don't fail the request if webhook fails
+      }
+      
+      // Broadcast SSE update for real-time updates
+      try {
+        broadcastUploadQueueUpdate();
+      } catch (sseError) {
+        console.error('Failed to broadcast upload queue update via SSE:', sseError);
+      }
+
+      // Automatically trigger processing of the queue
+      try {
+        const processUrl = process.env.PROCESSOR_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}/api/upload-queue/process`;
+        console.log('Auto-triggering upload queue processing at:', processUrl);
+        await fetch(processUrl, {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.PROCESSOR_API_KEY || '',
+          },
+        });
+      } catch (autoProcessError) {
+        console.error('Failed to auto-trigger upload queue processing:', autoProcessError);
+      }
+      
+      return new Response(JSON.stringify({ success: true, uploadQueueJob: res.rows[0] }), {
+        status: 201,
+        headers: handleCors(req),
+      });
+    } finally {
+      client.release();
+    }
   } catch (uploadQueueError) {
-    console.error('Upload queue API error:', uploadQueueError);
-    
-    // Check if it's a network error
-    const isNetworkError = uploadQueueError instanceof Error && 
-      (uploadQueueError.message.includes('fetch') || 
-       uploadQueueError.message.includes('network') ||
-       uploadQueueError.message.includes('ENOTFOUND') ||
-       uploadQueueError.message.includes('ECONNREFUSED'));
-    
-    const errorMessage = isNetworkError 
-      ? 'Network error connecting to upload queue service'
-      : 'Failed to add file to upload queue';
-    
+    console.error('Upload queue database error:', uploadQueueError);
     return new Response(JSON.stringify({ 
-      error: errorMessage,
-      details: uploadQueueError instanceof Error ? uploadQueueError.message : 'Upload queue error'
+      error: 'Failed to add file to upload queue',
+      details: uploadQueueError instanceof Error ? uploadQueueError.message : 'Database error'
     }), { 
       status: 500, 
       headers: handleCors(req) 

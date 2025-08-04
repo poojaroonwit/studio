@@ -81,11 +81,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
     // Atomically pick and mark the oldest queued job as 'inprocess'
+    // Use a more robust locking mechanism to prevent duplicate processing
+    // Also check for duplicate file processing to prevent multiple candidates
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
-         SELECT id FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 1
+         SELECT id FROM upload_queue 
+         WHERE status = 'queued' 
+         AND id NOT IN (
+           SELECT id FROM upload_queue WHERE status = 'inprocess'
+         )
+         AND file_path NOT IN (
+           SELECT file_path FROM upload_queue 
+           WHERE status IN ('success', 'fail', 'error')
+           AND file_path IS NOT NULL
+         )
+         ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
        RETURNING *`
@@ -177,7 +189,23 @@ export async function POST(request: NextRequest) {
       preventDuplicateProcessing = duplicateProcessingSetting === 'true';
     }
     
-    if (jobAlreadyProcessed && preventDuplicateProcessing) {
+    // Check if this file has already been processed successfully
+    const alreadyProcessedCheck = await client.query(
+      `SELECT COUNT(*) as count FROM upload_queue 
+       WHERE file_path = $1 
+       AND status IN ('success', 'fail', 'error')
+       AND id != $2`,
+      [job.file_path, job.id]
+    );
+    
+    const alreadyProcessed = parseInt(alreadyProcessedCheck.rows[0].count, 10) > 0;
+    
+    if (alreadyProcessed) {
+      console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate candidates`);
+      status = 'success';
+      error = null;
+      error_details = 'Skipped - file already processed by another job';
+    } else if (jobAlreadyProcessed && preventDuplicateProcessing) {
       console.log(`[Webhook] Job ${job.id} already processed by external webhook, skipping resume processing webhook`);
       status = 'success';
       error = null;
@@ -369,10 +397,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
         }
       }
+      // Generate idempotency key to prevent duplicate webhook processing
+      const idempotencyKey = `${job.id}-${Date.now()}`;
+      
       const jsonPayload = {
         inputs,
         response_mode: responseMode, // Use configured response mode (blocking/streaming)
         user: job.id, // Use queue job id instead of hardcoded value
+        idempotency_key: idempotencyKey, // Prevent duplicate processing
       };
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
       if (!webhookToken) {
@@ -398,10 +430,11 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           });
           webhookResStatus = webhookRes.status;
           
-          // If we get a 504, retry unless we've exhausted retries
+          // If we get a 504, retry with exponential backoff unless we've exhausted retries
           if (webhookResStatus === 504 && retryCount < maxRetries) {
-            console.warn(`[Webhook] Got 504 timeout, retrying in 30 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+            const backoffDelay = Math.min(30000 * Math.pow(2, retryCount), 300000); // 30s, 60s, 120s, 240s, max 5min
+            console.warn(`[Webhook] Got 504 timeout, retrying in ${backoffDelay/1000} seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
             retryCount++;
             continue;
           }
@@ -425,8 +458,12 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         } else {
           status = 'fail';
           if (webhookResStatus === 504) {
-            error = `Gateway timeout (504) - Resume processing service took too long to respond`;
-            error_details = `The external resume processing service exceeded the timeout limit. This may indicate high load or processing delays.`;
+            error = `Gateway timeout (504) - External service overloaded`;
+            error_details = `The external resume processing service is returning 504 Gateway Timeout. This indicates the service is overloaded or experiencing high load. Consider:
+1. Checking the external service status
+2. Reducing concurrent requests
+3. Implementing exponential backoff
+4. Contacting the service provider`;
           } else {
             error = `Webhook responded with status ${webhookResStatus}`;
           }

@@ -260,6 +260,7 @@ model UploadQueue {
   @@index([processDate])
   @@index([createdBy])
   @@index([source])
+  @@unique([filePath, status], name: "unique_file_path_status")
   @@map("upload_queue")
 }
 

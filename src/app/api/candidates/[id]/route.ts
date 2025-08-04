@@ -346,9 +346,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Create transition record if status changed
     if (oldStatus !== status) {
-      const safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
+      let safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
       const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
       const newTransitionId = uuidv4();
+      
+      // Validate positionId before creating transition record
+      if (safePositionId) {
+        const positionCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [safePositionId]);
+        if (positionCheck.rows.length === 0) {
+          console.warn(`Position ${safePositionId} not found, setting positionId to null for transition record`);
+          safePositionId = null;
+        }
+      }
+      
       const insertTransitionQuery = `
         INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
         VALUES ($1, $2, $3, $4, $5, $6, NOW());
@@ -385,7 +395,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     } else if (recruiterChanged) {
       // Create transition record for recruiter change
-      const safePositionId = positionId ?? existingCandidate.positionId ?? null;
+      let safePositionId = positionId ?? existingCandidate.positionId ?? null;
+      
+      // Validate positionId before creating transition record
+      if (safePositionId) {
+        const positionCheck = await client.query('SELECT id FROM "Position" WHERE id = $1::uuid', [safePositionId]);
+        if (positionCheck.rows.length === 0) {
+          console.warn(`Position ${safePositionId} not found, setting positionId to null for transition record`);
+          safePositionId = null;
+        }
+      }
+      
       let transitionMessage = '';
       if (oldRecruiterId && recruiterId) {
         transitionMessage = `Recruiter changed from ${oldRecruiterName || oldRecruiterId} to ${newRecruiterName || recruiterId}`;
@@ -493,9 +513,26 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Error updating candidate:', id, error);
+    console.error('Error details:', {
+      code: error.code,
+      constraint: error.constraint,
+      detail: error.detail,
+      hint: error.hint,
+      where: error.where
+    });
     await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
     if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
       return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });
+    }
+    if (error.code === '23503') {
+      // Foreign key constraint violation
+      if (error.constraint === 'TransitionRecord_positionId_fkey') {
+        return NextResponse.json({ message: 'Invalid position reference in transition record' }, { status: 400 });
+      }
+      if (error.constraint === 'TransitionRecord_candidateId_fkey') {
+        return NextResponse.json({ message: 'Invalid candidate reference in transition record' }, { status: 400 });
+      }
+      return NextResponse.json({ message: 'Foreign key constraint violation', error: error.message }, { status: 400 });
     }
     return NextResponse.json({ message: 'Error updating candidate', error: error.message }, { status: 500 });
   } finally {

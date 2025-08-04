@@ -43,128 +43,136 @@ export async function GET(
 
     const client = await getPool().connect();
     try {
-      // Query to get all candidates related to this position (applied OR matched)
-      const candidatesQuery = `
-        WITH position_candidates AS (
-          -- Candidates who applied to this position
-          SELECT 
-            c.*, 
-            p.id as "positionId", 
-            p.title as "positionTitle", 
-            p.department as "positionDepartment", 
-            p."positionLevel" as "positionLevel",
-            r.id as "recruiterId", 
-            r.name as "recruiterName",
-            'applied' as association_type,
-            COALESCE(th_data.history, '[]'::json) as "transitionHistory",
-            COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-          FROM "Candidate" c
-          LEFT JOIN "Position" p ON c."positionId" = p.id
-          LEFT JOIN "User" r ON c."recruiterId" = r.id
-          LEFT JOIN LATERAL (
-            SELECT json_agg(
-              json_build_object(
-                'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
-              ) ORDER BY th.date DESC
-            ) AS history
-            FROM "TransitionRecord" th
-            WHERE th."candidateId" = c.id
-          ) AS th_data ON true
-          LEFT JOIN LATERAL (
-            SELECT json_agg(
-              json_build_object(
-                'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
-                'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
-                'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
-              ) ORDER BY jm."fitScore" DESC
-            ) AS jobMatches
-            FROM "JobMatch" jm
-            WHERE jm."candidateId" = c.id
-          ) AS jm_data ON true
-          WHERE c."positionId" = $1
-          
-          UNION
-          
-          -- Candidates who have job matches for this position but didn't apply
-          SELECT 
-            c.*, 
-            p.id as "positionId", 
-            p.title as "positionTitle", 
-            p.department as "positionDepartment", 
-            p."positionLevel" as "positionLevel",
-            r.id as "recruiterId", 
-            r.name as "recruiterName",
-            'matched' as association_type,
-            COALESCE(th_data.history, '[]'::json) as "transitionHistory",
-            COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-          FROM "Candidate" c
-          LEFT JOIN "Position" p ON c."positionId" = p.id
-          LEFT JOIN "User" r ON c."recruiterId" = r.id
-          LEFT JOIN LATERAL (
-            SELECT json_agg(
-              json_build_object(
-                'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
-              ) ORDER BY th.date DESC
-            ) AS history
-            FROM "TransitionRecord" th
-            WHERE th."candidateId" = c.id
-          ) AS th_data ON true
-          LEFT JOIN LATERAL (
-            SELECT json_agg(
-              json_build_object(
-                'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
-                'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
-                'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
-              ) ORDER BY jm."fitScore" DESC
-            ) AS jobMatches
-            FROM "JobMatch" jm
-            WHERE jm."candidateId" = c.id
-          ) AS jm_data ON true
-          WHERE c."positionId" != $1 
-            AND EXISTS (
-              SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."jobId" = $1
-            )
-        )
-        SELECT DISTINCT ON (id) *
-        FROM position_candidates
-        WHERE ($2 = '' OR name ILIKE $3 OR email ILIKE $3)
-        ORDER BY id, 
-          CASE 
-            WHEN association_type = 'applied' THEN 1 
-            WHEN association_type = 'matched' THEN 2 
-            ELSE 3 
-          END
-        LIMIT $4 OFFSET $5;
-      `;
+             // Query to get all candidates related to this position (applied OR matched)
+       const candidatesQuery = `
+         WITH applied_candidates AS (
+           -- Candidates who applied to this position
+           SELECT 
+             c.*, 
+             p.id as "positionId", 
+             p.title as "positionTitle", 
+             p.department as "positionDepartment", 
+             p."positionLevel" as "positionLevel",
+             r.id as "recruiterId", 
+             r.name as "recruiterName",
+             'applied' as association_type,
+             COALESCE(th_data.history, '[]'::json) as "transitionHistory",
+             COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
+           FROM "Candidate" c
+           LEFT JOIN "Position" p ON c."positionId" = p.id
+           LEFT JOIN "User" r ON c."recruiterId" = r.id
+           LEFT JOIN LATERAL (
+             SELECT json_agg(
+               json_build_object(
+                 'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
+               ) ORDER BY th.date DESC
+             ) AS history
+             FROM "TransitionRecord" th
+             WHERE th."candidateId" = c.id
+           ) AS th_data ON true
+           LEFT JOIN LATERAL (
+             SELECT json_agg(
+               json_build_object(
+                 'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
+                 'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
+                 'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
+               ) ORDER BY jm."fitScore" DESC
+             ) AS jobMatches
+             FROM "JobMatch" jm
+             WHERE jm."candidateId" = c.id
+           ) AS jm_data ON true
+           WHERE c."positionId" = $1
+         ),
+         matched_candidates AS (
+           -- Candidates who have job matches for this position but didn't apply
+           SELECT 
+             c.*, 
+             p.id as "positionId", 
+             p.title as "positionTitle", 
+             p.department as "positionDepartment", 
+             p."positionLevel" as "positionLevel",
+             r.id as "recruiterId", 
+             r.name as "recruiterName",
+             'matched' as association_type,
+             COALESCE(th_data.history, '[]'::json) as "transitionHistory",
+             COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
+           FROM "Candidate" c
+           LEFT JOIN "Position" p ON c."positionId" = p.id
+           LEFT JOIN "User" r ON c."recruiterId" = r.id
+           LEFT JOIN LATERAL (
+             SELECT json_agg(
+               json_build_object(
+                 'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
+               ) ORDER BY th.date DESC
+             ) AS history
+             FROM "TransitionRecord" th
+             WHERE th."candidateId" = c.id
+           ) AS th_data ON true
+           LEFT JOIN LATERAL (
+             SELECT json_agg(
+               json_build_object(
+                 'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
+                 'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
+                 'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
+               ) ORDER BY jm."fitScore" DESC
+             ) AS jobMatches
+             FROM "JobMatch" jm
+             WHERE jm."candidateId" = c.id
+           ) AS jm_data ON true
+           WHERE c."positionId" != $1 
+             AND EXISTS (
+               SELECT 1 FROM "JobMatch" jm 
+               WHERE jm."candidateId" = c.id AND jm."jobId" = $1
+             )
+         ),
+         all_candidates AS (
+           -- First get all applied candidates
+           SELECT *, 1 as sort_order FROM applied_candidates
+           UNION ALL
+           -- Then append matched candidates (excluding those who already applied)
+           SELECT mc.*, 2 as sort_order 
+           FROM matched_candidates mc
+           WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
+         )
+         SELECT *
+         FROM all_candidates
+         WHERE ($2 = '' OR name ILIKE $3 OR email ILIKE $3)
+         ORDER BY sort_order, ${sortColumn} ${sortDirection}
+         LIMIT $4 OFFSET $5;
+       `;
 
-      // Count query for total
-      const countQuery = `
-        WITH position_candidates AS (
-          -- Candidates who applied to this position
-          SELECT c.id
-          FROM "Candidate" c
-          WHERE c."positionId" = $1
-          
-          UNION
-          
-          -- Candidates who have job matches for this position but didn't apply
-          SELECT c.id
-          FROM "Candidate" c
-          WHERE c."positionId" != $1 
-            AND EXISTS (
-              SELECT 1 FROM "JobMatch" jm 
-              WHERE jm."candidateId" = c.id AND jm."jobId" = $1
-            )
-        )
-        SELECT COUNT(DISTINCT id) as total
-        FROM position_candidates
-        WHERE ($2 = '' OR EXISTS (
-          SELECT 1 FROM "Candidate" c2 
-          WHERE c2.id = position_candidates.id 
-            AND (c2.name ILIKE $3 OR c2.email ILIKE $3)
-        ));
-      `;
+             // Count query for total
+       const countQuery = `
+         WITH applied_candidates AS (
+           -- Candidates who applied to this position
+           SELECT c.id
+           FROM "Candidate" c
+           WHERE c."positionId" = $1
+         ),
+         matched_candidates AS (
+           -- Candidates who have job matches for this position but didn't apply
+           SELECT c.id
+           FROM "Candidate" c
+           WHERE c."positionId" != $1 
+             AND EXISTS (
+               SELECT 1 FROM "JobMatch" jm 
+               WHERE jm."candidateId" = c.id AND jm."jobId" = $1
+             )
+         ),
+         all_candidates AS (
+           -- First get all applied candidates
+           SELECT id FROM applied_candidates
+           UNION ALL
+           -- Then append matched candidates (excluding those who already applied)
+           SELECT mc.id 
+           FROM matched_candidates mc
+           WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
+         )
+         SELECT COUNT(*) as total
+         FROM all_candidates ac
+         JOIN "Candidate" c ON c.id = ac.id
+         WHERE ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+       `;
 
       const searchPattern = `%${searchTerm}%`;
       const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
@@ -195,15 +203,20 @@ export async function GET(
           }
         }
         
-        // Determine association type
-        let associationType = row.association_type;
-        if (associationType === 'applied') {
-          // Check if they also have job matches
-          const hasJobMatch = row.jobMatches && row.jobMatches.some((match: any) => match.jobId === positionId);
-          if (hasJobMatch) {
-            associationType = 'applied_and_matched';
-          }
-        }
+                 // Determine association type
+         let associationType = row.association_type;
+         if (associationType === 'applied') {
+           // Check if they also have job matches
+           const hasJobMatch = row.jobMatches && row.jobMatches.some((match: any) => match.jobId === positionId);
+           if (hasJobMatch) {
+             associationType = 'applied_and_matched';
+           }
+         } else if (associationType === 'matched') {
+           // Double-check that they don't actually have this position as their applied position
+           if (row.positionId === positionId) {
+             associationType = 'applied_and_matched';
+           }
+         }
         
         return {
           id: row.id,

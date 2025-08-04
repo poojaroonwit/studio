@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
-import { authOptions, validateUserSession } from '@/lib/auth';
+import { authOptions, validateUserSession, verifyApiToken } from '@/lib/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
@@ -237,32 +237,61 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Support both session and API token authentication
+  let actingUserId: string;
+  let actingUserName: string;
+  let canManageUploadQueue: boolean = false;
 
-  // Check permissions
-  const canManageUploadQueue = session.user.role === 'Admin' || 
-    session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE');
+  // Try API token first (for v1 endpoints)
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.split(' ')[1];
   
-  if (!canManageUploadQueue) {
-    console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
-    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
-  }
+  if (token) {
+    const user = await verifyApiToken(token);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const validation = await validateUserSession(session);
-  if (!validation.isValid) {
-    console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-      invalidUserId: validation.userId,
-      sessionUser: validation.userName,
-      error: validation.error
-    });
-    return NextResponse.json({ error: validation.error }, { status: 401 });
-  }
+    // Check permissions for API token user
+    canManageUploadQueue = user.role === 'Admin' || 
+      (user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
+    
+    if (!canManageUploadQueue) {
+      console.warn(`Forbidden attempt to add to upload queue by API user ${user.email || 'Unknown'}`);
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
+    }
 
-  const actingUserId = validation.userId!;
-  const actingUserName = validation.userName!;
+    actingUserId = user.id;
+    actingUserName = user.email || user.name || 'API User';
+  } else {
+    // Fall back to session authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check permissions
+    canManageUploadQueue = session.user.role === 'Admin' || 
+      (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
+    
+    if (!canManageUploadQueue) {
+      console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
+      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
+    }
+
+    const validation = await validateUserSession(session);
+    if (!validation.isValid) {
+      console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
+        invalidUserId: validation.userId,
+        sessionUser: validation.userName,
+        error: validation.error
+      });
+      return NextResponse.json({ error: validation.error }, { status: 401 });
+    }
+
+    actingUserId = validation.userId!;
+    actingUserName = validation.userName!;
+  }
   
   const data = await request.json();
   let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;

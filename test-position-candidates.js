@@ -8,28 +8,51 @@ async function testPositionCandidatesAPI() {
     
     console.log('Testing position candidates API...');
     
-    // Test the new endpoint
-    const response = await fetch(`http://localhost:3000/api/positions/${positionId}/candidates?page=1&limit=10`);
+    // Test the new endpoint with different parameters
+    const testCases = [
+      { page: 1, limit: 10, description: 'First page, 10 items' },
+      { page: 1, limit: 20, description: 'First page, 20 items' },
+      { page: 2, limit: 10, description: 'Second page, 10 items' }
+    ];
     
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ API Response:', {
-        total: data.pagination?.total,
-        page: data.pagination?.page,
-        limit: data.pagination?.limit,
-        totalPages: data.pagination?.totalPages,
-        candidatesCount: data.data?.length,
-        sampleCandidate: data.data?.[0] ? {
-          id: data.data[0].id,
-          name: data.data[0].name,
-          email: data.data[0].email,
-          associationType: data.data[0].associationType
-        } : null
+    for (const testCase of testCases) {
+      console.log(`\n--- Testing: ${testCase.description} ---`);
+      
+      const queryParams = new URLSearchParams({
+        page: testCase.page.toString(),
+        limit: testCase.limit.toString(),
+        sortColumn: 'applicationDate',
+        sortDirection: 'desc'
       });
-    } else {
-      console.error('❌ API Error:', response.status, response.statusText);
-      const errorText = await response.text();
-      console.error('Error details:', errorText);
+      
+      const response = await fetch(`http://localhost:3000/api/positions/${positionId}/candidates?${queryParams}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ API Response:', {
+          total: data.pagination?.total,
+          page: data.pagination?.page,
+          limit: data.pagination?.limit,
+          totalPages: data.pagination?.totalPages,
+          candidatesCount: data.data?.length,
+          associationTypes: data.data?.reduce((acc, candidate) => {
+            acc[candidate.associationType] = (acc[candidate.associationType] || 0) + 1;
+            return acc;
+          }, {})
+        });
+        
+        // Show first few candidates with their association types
+        if (data.data && data.data.length > 0) {
+          console.log('Sample candidates:');
+          data.data.slice(0, 3).forEach((candidate, index) => {
+            console.log(`  ${index + 1}. ${candidate.name} (${candidate.email}) - ${candidate.associationType}`);
+          });
+        }
+      } else {
+        console.error('❌ API Error:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error details:', errorText);
+      }
     }
   } catch (error) {
     console.error('❌ Test failed:', error.message);

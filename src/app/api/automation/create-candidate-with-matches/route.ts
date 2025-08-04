@@ -59,6 +59,36 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
 
+    // Check for existing candidate with same email to prevent duplicates
+    const existingCandidateCheck = await client.query(
+      `SELECT id, name, email FROM "Candidate" WHERE email = $1`,
+      [candidate.email]
+    );
+
+    if (existingCandidateCheck.rows.length > 0) {
+      const existingCandidate = existingCandidateCheck.rows[0];
+      console.log(`[Automation] Candidate with email ${candidate.email} already exists, skipping creation`, {
+        existingCandidateId: existingCandidate.id,
+        existingCandidateName: existingCandidate.name,
+        newCandidateName: candidate.name
+      });
+      
+      await client.query('COMMIT');
+      
+      await logAudit('AUDIT', `Duplicate candidate creation prevented for email ${candidate.email}`, 'API:Automation:CreateCandidate', null, { 
+        existingCandidateId: existingCandidate.id,
+        existingCandidateName: existingCandidate.name,
+        newCandidateName: candidate.name,
+        email: candidate.email
+      });
+      
+      return NextResponse.json({ 
+        message: 'Candidate already exists', 
+        existingCandidate: existingCandidate,
+        skipped: true 
+      }, { status: 200 });
+    }
+
     // Always filter job_matches to valid objects with jobId
     let safeJobMatches = Array.isArray(job_matches)
       ? job_matches.filter((m: any) => m && typeof m === 'object' && m.jobId)

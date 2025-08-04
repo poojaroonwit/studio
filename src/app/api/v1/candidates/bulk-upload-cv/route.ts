@@ -82,7 +82,9 @@ export async function POST(req: NextRequest) {
 
   // Call the upload queue API (internal call)
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/upload-queue`, {
+    // Construct the proper base URL using the request URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+    const res = await fetch(`${baseUrl}/api/upload-queue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

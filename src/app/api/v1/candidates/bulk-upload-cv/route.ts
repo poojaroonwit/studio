@@ -16,7 +16,18 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
     }
 
-    if (user.role !== 'Admin' && !user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    console.log('User permissions check:', {
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      modulePermissions: user.modulePermissions,
+      hasCandidatesManage: user.modulePermissions?.includes('CANDIDATES_MANAGE'),
+      hasUploadQueueManage: user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')
+    });
+    
+    if (user.role !== 'Admin' && 
+        !user.modulePermissions?.includes('CANDIDATES_MANAGE') && 
+        !user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE')) {
       return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), { status: 403, headers: handleCors(req) });
     }
 
@@ -84,7 +95,16 @@ export async function POST(req: NextRequest) {
   try {
     // Construct the proper base URL using the request URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-    const res = await fetch(`${baseUrl}/api/upload-queue`, {
+    const uploadQueueUrl = `${baseUrl}/api/upload-queue`;
+    
+    console.log('Calling upload queue API:', {
+      url: uploadQueueUrl,
+      method: 'POST',
+      hasAuth: !!req.headers.get('authorization'),
+      bodySize: JSON.stringify(uploadQueueJob).length
+    });
+    
+    const res = await fetch(uploadQueueUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,8 +132,20 @@ export async function POST(req: NextRequest) {
   });
   } catch (uploadQueueError) {
     console.error('Upload queue API error:', uploadQueueError);
+    
+    // Check if it's a network error
+    const isNetworkError = uploadQueueError instanceof Error && 
+      (uploadQueueError.message.includes('fetch') || 
+       uploadQueueError.message.includes('network') ||
+       uploadQueueError.message.includes('ENOTFOUND') ||
+       uploadQueueError.message.includes('ECONNREFUSED'));
+    
+    const errorMessage = isNetworkError 
+      ? 'Network error connecting to upload queue service'
+      : 'Failed to add file to upload queue';
+    
     return new Response(JSON.stringify({ 
-      error: 'Failed to add file to upload queue',
+      error: errorMessage,
       details: uploadQueueError instanceof Error ? uploadQueueError.message : 'Upload queue error'
     }), { 
       status: 500, 

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
-    // Also check for duplicate file processing to prevent multiple candidates
+    // Allow same file to be processed for different positions (bulk upload support)
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -92,10 +92,12 @@ export async function POST(request: NextRequest) {
          AND id NOT IN (
            SELECT id FROM upload_queue WHERE status = 'inprocess'
          )
-         AND file_path NOT IN (
-           SELECT file_path FROM upload_queue 
-           WHERE status IN ('success', 'fail', 'error')
-           AND file_path IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM upload_queue uq2
+           WHERE uq2.file_path = upload_queue.file_path
+           AND uq2.position_id = upload_queue.position_id
+           AND uq2.status IN ('success', 'fail', 'error')
+           AND uq2.id != upload_queue.id
          )
          ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED

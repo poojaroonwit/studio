@@ -56,6 +56,14 @@ export async function POST(req: NextRequest) {
   const uploadId = uuidv4();
   const objectName = `resumes/upload-queue/${uploadId}.${ext}`;
   
+  console.log('File upload details:', {
+    fileName: file.name,
+    fileSize: buffer.length,
+    uploadId,
+    objectName,
+    positionId
+  });
+  
   try {
     await ensureBucketExists();
     await minioClient.putObject(
@@ -98,6 +106,16 @@ export async function POST(req: NextRequest) {
     const client = await getPool().connect();
     
     try {
+      // Check if there are any existing records with the same file_path
+      const existingCheck = await client.query(
+        `SELECT id, status, file_name FROM upload_queue WHERE file_path = $1`,
+        [uploadQueueJob.file_path]
+      );
+      
+      if (existingCheck.rows.length > 0) {
+        console.log('Found existing records with same file_path:', existingCheck.rows);
+      }
+      
       const res = await client.query(
         `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)

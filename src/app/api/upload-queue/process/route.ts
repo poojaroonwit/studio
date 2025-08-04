@@ -52,6 +52,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check for bypass parameter
+  const url = new URL(request.url);
+  const bypassDuplicates = url.searchParams.get('bypass_duplicates') === 'true';
+
   console.log('Upload queue processing started');
   
   const client = await getSafeDbClient();
@@ -83,8 +87,23 @@ export async function POST(request: NextRequest) {
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
     // Allow same file to be processed for different positions (bulk upload support)
-    const res = await client.query(
-      `UPDATE upload_queue
+    let sqlQuery;
+    if (bypassDuplicates) {
+      console.log('Bypassing duplicate check for testing');
+      sqlQuery = `UPDATE upload_queue
+       SET status = 'inprocess', process_date = now(), updated_at = now()
+       WHERE id = (
+         SELECT id FROM upload_queue 
+         WHERE status = 'queued' 
+         AND id NOT IN (
+           SELECT id FROM upload_queue WHERE status = 'inprocess'
+         )
+         ORDER BY upload_date ASC LIMIT 1
+         FOR UPDATE SKIP LOCKED
+       )
+       RETURNING *`;
+    } else {
+      sqlQuery = `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
        WHERE id = (
          SELECT id FROM upload_queue 
@@ -98,14 +117,40 @@ export async function POST(request: NextRequest) {
            AND uq2.position_id = upload_queue.position_id
            AND uq2.status IN ('success', 'fail', 'error')
            AND uq2.id != upload_queue.id
+           AND uq2.completed_date > NOW() - INTERVAL '1 hour'  -- Allow reprocessing after 1 hour
          )
          ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
        )
-       RETURNING *`
-    );
+       RETURNING *`;
+    }
+    
+    const res = await client.query(sqlQuery);
     if (res.rows.length === 0) {
       await client.query('COMMIT');
+      
+      // Check why no jobs were selected
+      const queuedJobs = await client.query(
+        `SELECT id, file_name, file_path, position_id, status FROM upload_queue WHERE status = 'queued' ORDER BY upload_date ASC LIMIT 5`
+      );
+      
+      if (queuedJobs.rows.length > 0) {
+        console.log('Found queued jobs but they were skipped. Checking for duplicates:', queuedJobs.rows);
+        
+        // Check for each queued job if there are duplicates
+        for (const job of queuedJobs.rows) {
+          const duplicates = await client.query(
+            `SELECT id, file_name, file_path, position_id, status FROM upload_queue 
+             WHERE file_path = $1 AND position_id = $2 AND status IN ('success', 'fail', 'error')`,
+            [job.file_path, job.position_id]
+          );
+          
+          if (duplicates.rows.length > 0) {
+            console.log(`Job ${job.id} skipped because of existing processed records:`, duplicates.rows);
+          }
+        }
+      }
+      
       console.log('Upload queue processing completed - no queued jobs');
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }

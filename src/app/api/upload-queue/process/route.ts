@@ -189,11 +189,7 @@ export async function POST(request: NextRequest) {
       preventDuplicateProcessing = duplicateProcessingSetting === 'true';
     }
     
-    // TEMPORARY: For testing, allow processing even if marked as already processed
-    // Remove this after debugging is complete
-    if (process.env.NODE_ENV === 'development') {
-      preventDuplicateProcessing = false;
-    }
+    // Note: Removed temporary development override since root cause is fixed
     
     console.log('[Webhook] Job processing check:', {
       jobId: job.id,

@@ -115,13 +115,8 @@ export async function POST(req: NextRequest) {
         filePath: uploadQueueJob.file_path
       });
 
-      // Dispatch webhook for upload queue created event
-      try {
-        await dispatchWebhooks.uploadQueueCreated(res.rows[0]);
-      } catch (webhookError) {
-        console.error('Failed to dispatch upload queue created webhook:', webhookError);
-        // Don't fail the request if webhook fails
-      }
+      // Note: Removed upload queue created webhook dispatch to prevent duplicate processing flags
+      // The upload queue process will handle webhook dispatching when actually processing the file
       
       // Broadcast SSE update for real-time updates
       try {

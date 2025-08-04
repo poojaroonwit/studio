@@ -367,7 +367,21 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       try {
         // Build JSON payload as required
-        const publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+        // Handle both cases: file_path might be just the object name or a full URL
+        let publicUrl;
+        if (job.file_path && job.file_path.startsWith('http')) {
+          // file_path is already a full URL, use it as is
+          publicUrl = job.file_path;
+        } else {
+          // file_path is just the object name, construct the full URL
+          publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
+        }
+        
+        console.log('[Webhook] File path debug:', {
+          originalFilePath: job.file_path,
+          constructedUrl: publicUrl,
+          isFullUrl: job.file_path && job.file_path.startsWith('http')
+        });
       // Get targetPositionId from webhook_payload if available
       let targetPositionId = null;
       if (job.webhook_payload && typeof job.webhook_payload === 'object') {

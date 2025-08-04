@@ -81,8 +81,6 @@ export async function POST(req: NextRequest) {
     });
   }
   
-  const filePath = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${objectName}`;
-
   // Prepare upload queue job
   const uploadQueueJob = {
     file_name: file.name,
@@ -90,7 +88,7 @@ export async function POST(req: NextRequest) {
     status: 'queued',
     source: 'bulk',
     upload_id: uploadId,
-    file_path: filePath,
+    file_path: objectName, // Store only the object name, not the full URL
     webhook_payload: { targetPositionId: positionId },
   };
 

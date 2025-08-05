@@ -68,10 +68,10 @@ done
 # GRANT ALL PRIVILEGES ON DATABASE \"$N8N_DB_NAME\" TO \"$PG_USER\";
 # " || true
 
-# # Grant additional privileges for N8N
-# PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-# GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
-# " || true
+# Grant additional privileges for N8N
+PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
+" || true
 
 # echo "✅ n8n database created successfully!"
 

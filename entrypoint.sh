@@ -23,7 +23,7 @@ mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" 2>/
 
 # Set public read policy on the bucket (idempotent)
 echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET_NAME"
-mc policy set download myminio/"$MINIO_BUCKET_NAME" 2>/dev/null || {
+mc anonymous set download myminio/"$MINIO_BUCKET_NAME" 2>/dev/null || {
   echo "⚠️  MinIO policy setup failed, but continuing..."
 }
 
@@ -82,13 +82,37 @@ echo "🔧 Managing database schema..."
 export NODE_ENV=${NODE_ENV:-production}
 export PORT=${PORT:-8021}
 
-# Check if DATABASE_URL is set
+# Check if DATABASE_URL is set, if not construct it for Docker deployment
 if [ -z "$DATABASE_URL" ]; then
-    echo "❌ ERROR: DATABASE_URL environment variable is not set"
-    exit 1
+    echo "🔧 Constructing DATABASE_URL for Docker deployment..."
+    export DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/studio_production"
+fi
+
+# Ensure DATABASE_URL uses the correct Docker host and port
+if echo "$DATABASE_URL" | grep -q "localhost:8521"; then
+    echo "🔧 Updating DATABASE_URL to use Docker PostgreSQL service..."
+    export DATABASE_URL="postgresql://${PG_USER}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/studio_production"
 fi
 
 echo "📊 Current DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
+echo "🔧 PostgreSQL connection details:"
+echo "   Host: $PG_HOST"
+echo "   Port: $PG_PORT"
+echo "   User: $PG_USER"
+echo "   Database: studio_production"
+
+# Test database connection before proceeding
+echo "🔧 Testing database connection..."
+if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "✅ Database connection successful"
+else
+    echo "❌ Database connection failed. Please check:"
+    echo "   - PostgreSQL service is running"
+    echo "   - Credentials are correct"
+    echo "   - Network connectivity between containers"
+    echo "   - DATABASE_URL: $DATABASE_URL"
+    exit 1
+fi
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."

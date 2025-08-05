@@ -50,30 +50,30 @@ until pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER"; do
   sleep 2
 done
 
-# Create n8n database if it doesn't exist
-echo "📊 Creating n8n database..."
-DB_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$N8N_DB_NAME'" 2>/dev/null || echo "0")
+# # Create n8n database if it doesn't exist
+# echo "📊 Creating n8n database..."
+# DB_EXISTS=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$N8N_DB_NAME'" 2>/dev/null || echo "0")
 
-if [ "$DB_EXISTS" != "1" ]; then
-  echo "📊 Creating N8N database '$N8N_DB_NAME'..."
-  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$N8N_DB_NAME\";" 2>/dev/null || {
-    echo "⚠️  Failed to create N8N database, but continuing..."
-  }
-else
-  echo "✅ N8N database '$N8N_DB_NAME' already exists!"
-fi
+# if [ "$DB_EXISTS" != "1" ]; then
+#   echo "📊 Creating N8N database '$N8N_DB_NAME'..."
+#   PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$N8N_DB_NAME\";" 2>/dev/null || {
+#     echo "⚠️  Failed to create N8N database, but continuing..."
+#   }
+# else
+#   echo "✅ N8N database '$N8N_DB_NAME' already exists!"
+# fi
 
-# Grant privileges
-PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-GRANT ALL PRIVILEGES ON DATABASE \"$N8N_DB_NAME\" TO \"$PG_USER\";
-" || true
+# # Grant privileges
+# PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+# GRANT ALL PRIVILEGES ON DATABASE \"$N8N_DB_NAME\" TO \"$PG_USER\";
+# " || true
 
-# Grant additional privileges for N8N
-PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
-GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
-" || true
+# # Grant additional privileges for N8N
+# PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "
+# GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
+# " || true
 
-echo "✅ n8n database created successfully!"
+# echo "✅ n8n database created successfully!"
 
 # --- Database Schema Management ---
 echo "🔧 Managing database schema..."

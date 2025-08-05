@@ -29,10 +29,11 @@ mc policy set download myminio/"$MINIO_BUCKET_NAME" 2>/dev/null || {
 
 # --- Database Connection Setup ---
 echo "🔧 Setting up database connection..."
+echo "📝 Note: Using internal port 5432 for container communication (POSTGRES_PORT is for external access)"
 
 # Set PostgreSQL connection variables with better defaults
 export PG_HOST=${POSTGRES_HOST:-postgres}
-export PG_PORT=${POSTGRES_PORT:-5432}
+export PG_PORT=5432  # Always use internal port 5432 for container communication
 export PG_USER=${POSTGRES_USER:-postgres}
 export PG_PASSWORD=${POSTGRES_PASSWORD:-secure_password}
 export N8N_DB_NAME=${N8N_DB_NAME:-n8n}

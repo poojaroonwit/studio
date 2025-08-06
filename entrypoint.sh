@@ -29,7 +29,7 @@ export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
 # Install MinIO Client (mc) if not already installed
 if ! command -v mc >/dev/null 2>&1; then
   echo "🔧 Installing MinIO Client (mc)..."
-  wget https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc
+  wget --quiet --show-progress https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc
   chmod +x /usr/local/bin/mc
 fi
 
@@ -93,13 +93,13 @@ export N8N_DB_NAME=${N8N_DB_NAME:-n8n}
 # Install PostgreSQL client if not available
 if ! command -v psql >/dev/null 2>&1; then
   echo "🔧 Installing PostgreSQL client..."
-  apk add --no-cache postgresql-client || true
+  apk add --no-cache --quiet postgresql-client || true
 fi
 
 # Install netcat for network connectivity testing
 if ! command -v nc >/dev/null 2>&1; then
   echo "🔧 Installing netcat for network testing..."
-  apk add --no-cache netcat-openbsd || true
+  apk add --no-cache --quiet netcat-openbsd || true
 fi
 
 # Verify psql is available
@@ -143,6 +143,18 @@ DB_MAX_RETRIES=10
 # Get the database name from DATABASE_URL or use POSTGRES_DB
 DB_NAME=$(echo "$DATABASE_URL" | sed 's/.*\///' | sed 's/\?.*//' 2>/dev/null || echo "${POSTGRES_DB:-studio_production}")
 
+# Function to check if this is a credential issue
+check_credential_issue() {
+  local error_msg="$1"
+  if echo "$error_msg" | grep -q "password authentication failed"; then
+    echo "🔍 Detected password authentication failure"
+    echo "💡 This suggests the PostgreSQL container was created with different credentials"
+    echo "💡 You can fix this by clearing the volumes and restarting"
+    return 0
+  fi
+  return 1
+}
+
 while [ $DB_RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
   # First try to connect to the specific database
   if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
@@ -165,7 +177,14 @@ while [ $DB_RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
   echo "Database connection attempt $DB_RETRY_COUNT/$DB_MAX_RETRIES failed. Retrying..."
   # Show the actual error for debugging
   echo "Debug: Testing connection to $DB_NAME..."
-  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" 2>&1 | head -1
+  ERROR_OUTPUT=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" 2>&1 | head -1)
+  echo "$ERROR_OUTPUT"
+  
+  # Check if this is a credential issue
+  if check_credential_issue "$ERROR_OUTPUT"; then
+    echo "💡 Suggestion: Run 'CLEAR_VOLUMES=true docker-compose up' to fix credential issues"
+  fi
+  
   sleep 2
 done
 
@@ -176,6 +195,15 @@ if [ $DB_RETRY_COUNT -eq $DB_MAX_RETRIES ]; then
   echo "User: $PG_USER"
   echo "Password: ${PG_PASSWORD:0:3}..."
   echo "Please check your database credentials and network connectivity."
+  
+  # Offer to clear volumes if this is a credential issue
+  echo ""
+  echo "🔧 This might be a credential mismatch. You can:"
+  echo "1. Set CLEAR_VOLUMES=true and restart to clear old volumes"
+  echo "2. Run: docker-compose down && docker volume prune -f"
+  echo "3. Check if PostgreSQL container was created with different credentials"
+  echo ""
+  echo "To automatically clear volumes, set CLEAR_VOLUMES=true in your environment"
   exit 1
 fi
 
@@ -188,6 +216,16 @@ GRANT CREATE ON SCHEMA public TO \"$PG_USER\";
 
 # --- Database Schema Management ---
 echo "🔧 Managing database schema..."
+
+# Check if we need to clear volumes (for credential issues)
+if [ "${CLEAR_VOLUMES:-false}" = "true" ]; then
+  echo "🧹 Clearing volumes due to credential issues..."
+  docker-compose down
+  docker volume rm $(docker volume ls -q | grep -E "(postgres|minio)") 2>/dev/null || true
+  docker-compose up postgres -d
+  echo "⏳ Waiting for fresh PostgreSQL to start..."
+  sleep 10
+fi
 
 # Set default environment variables if not provided
 export NODE_ENV=${NODE_ENV:-production}

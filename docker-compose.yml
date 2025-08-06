@@ -65,6 +65,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_DB_NAME: ${N8N_DB_NAME:-n8n}
+      CLEAR_VOLUMES: ${CLEAR_VOLUMES:-false}
     depends_on:
       - postgres
       - minio

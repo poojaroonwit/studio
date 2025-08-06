@@ -65,7 +65,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_DB_NAME: ${N8N_DB_NAME:-n8n}
-      CLEAR_VOLUMES: ${CLEAR_VOLUMES:-false}
     depends_on:
       - postgres
       - minio
@@ -84,6 +83,7 @@ services:
     # which uses wait-for-db.sh for optimized startup
     networks:
       - docker_internal
+      - default
 
   postgres:
     image: postgres:14-alpine
@@ -94,7 +94,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - /var/dockers/8021/postgres_data:/var/lib/postgresql/data
+      - /var/dockers/8021/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m
@@ -124,7 +124,7 @@ services:
 
     command: server /data --console-address ":9001" --address ":9000"
     volumes:
-      - /var/dockers/8021/minio_data:/data
+      - /var/dockers/8021/minio:/data
     restart: unless-stopped
     # Resource limits
     mem_limit: 512m

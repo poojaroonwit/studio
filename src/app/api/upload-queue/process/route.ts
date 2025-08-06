@@ -83,6 +83,15 @@ export async function POST(request: NextRequest) {
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
     // Also check for duplicate file processing to prevent multiple candidates
+    // Reset jobs that have been stuck in 'inprocess' for more than 2 hours
+    const stuckTimeoutHours = 2;
+    await client.query(
+      `UPDATE upload_queue 
+       SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to timeout'
+       WHERE status = 'inprocess' 
+       AND process_date < NOW() - INTERVAL '${stuckTimeoutHours} hours'`
+    );
+    
     const res = await client.query(
       `UPDATE upload_queue
        SET status = 'inprocess', process_date = now(), updated_at = now()
@@ -422,14 +431,10 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
         }
       }
-      // Generate idempotency key to prevent duplicate webhook processing
-      const idempotencyKey = `${job.id}-${Date.now()}`;
-      
       const jsonPayload = {
         inputs,
         response_mode: responseMode, // Use configured response mode (blocking/streaming)
         user: job.id, // Use queue job id instead of hardcoded value
-        idempotency_key: idempotencyKey, // Prevent duplicate processing
       };
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
       if (!webhookToken) {
@@ -439,41 +444,30 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       if (webhookToken) {
         headers['Authorization'] = `Bearer ${webhookToken}`;
       }
-      let webhookResStatus = null;
-      let retryCount = 0;
-      const maxRetries = 2;
+            let webhookResStatus = null;
       
-      while (retryCount <= maxRetries) {
-        try {
-          console.log(`[Webhook] Attempting to send request to: ${resumeWebhookUrl} (attempt ${retryCount + 1}/${maxRetries + 1})`);
-          console.log(`[Webhook] Payload:`, JSON.stringify(jsonPayload, null, 2));
-          webhookRes = await fetch(resumeWebhookUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(jsonPayload),
-            signal: AbortSignal.timeout(timeoutMs),
-          });
-          webhookResStatus = webhookRes.status;
-          
-          // If we get a 504, retry with exponential backoff unless we've exhausted retries
-          if (webhookResStatus === 504 && retryCount < maxRetries) {
-            const backoffDelay = Math.min(30000 * Math.pow(2, retryCount), 300000); // 30s, 60s, 120s, 240s, max 5min
-            console.warn(`[Webhook] Got 504 timeout, retrying in ${backoffDelay/1000} seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-            await new Promise(resolve => setTimeout(resolve, backoffDelay));
-            retryCount++;
-            continue;
-          }
-          
-          break; // Exit retry loop if successful or max retries reached
-        } catch (err) {
-          if (retryCount < maxRetries) {
-            console.warn(`[Webhook] Request failed, retrying in 30 seconds... (attempt ${retryCount + 1}/${maxRetries + 1})`);
-            await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
-            retryCount++;
-            continue;
-          }
-          throw err; // Re-throw if max retries reached
-        }
+      try {
+        // Generate idempotency key to prevent duplicate webhook processing
+        const idempotencyKey = `${job.id}-single`;
+        
+        // Add idempotency key to payload
+        const payloadWithIdempotency = {
+          ...jsonPayload,
+          idempotency_key: idempotencyKey, // Prevent duplicate processing
+        };
+        
+        console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
+        console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
+        webhookRes = await fetch(resumeWebhookUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payloadWithIdempotency),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        webhookResStatus = webhookRes.status;
+      } catch (err) {
+        // No retry - just fail immediately
+        throw err;
       }
       let webhookResponseText = null;
         if (webhookResStatus === 200) {

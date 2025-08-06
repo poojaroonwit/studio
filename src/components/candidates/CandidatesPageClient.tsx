@@ -1175,11 +1175,6 @@ export function CandidatesPageClient({
     }
   };
 
-  const handleOpenUploadModal = (candidate: Candidate) => {
-    // For now, we'll redirect to the candidate detail page where the upload modal is available
-    router.push(`/candidates/${candidate.id}`);
-  };
-
   const handleToggleSelectCandidate = (candidateId: string) => {
     setSelectedCandidateIds(prev => {
       const newSet = new Set(prev);
@@ -1871,7 +1866,6 @@ export function CandidatesPageClient({
             onAssignRecruiter={handleAssignRecruiter}
             onUpdateCandidate={updateCandidateStatus}
             onDeleteCandidate={handleDeleteCandidate}
-            onOpenUploadModal={handleOpenUploadModal}
             onEditPosition={handleOpenEditPositionModal}
             isLoading={isLoading}
             onRefreshCandidateData={refreshCandidateInList}

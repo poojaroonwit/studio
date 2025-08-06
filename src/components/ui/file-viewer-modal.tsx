@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, Download, AlertCircle } from 'lucide-react';
+import { FileIcon, FileTextIcon, ImageIcon, ExternalLink, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FileViewerModalProps {
@@ -72,6 +72,8 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   onOpenChange,
   file
 }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!file) return null;
 
   const canPreview = canPreviewFile(file.fileName);
@@ -82,14 +84,36 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
     window.open(file.url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.fileName;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      // Create download URL with proper parameters
+      const downloadUrl = `/api/download?url=${encodeURIComponent(file.url)}&fileName=${encodeURIComponent(file.fileName)}`;
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = file.fileName;
+      link.target = '_blank';
+      link.style.display = 'none';
+      
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to original method if API fails
+      const link = document.createElement('a');
+      link.href = file.url;
+      link.download = file.fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -179,10 +203,15 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
             <Button
               variant="default"
               onClick={handleDownload}
+              disabled={isDownloading}
               className="flex items-center gap-2"
             >
-              <Download className="w-4 h-4" />
-              Download
+              {isDownloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
           </div>
         </DialogFooter>

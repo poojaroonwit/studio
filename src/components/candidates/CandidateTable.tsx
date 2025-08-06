@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
 import CandidateDetailModal from './CandidateDetailModal';
+import UploadResumeModal from './UploadResumeModal';
 
 
 interface CandidateTableProps {
@@ -48,7 +49,6 @@ interface CandidateTableProps {
   onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
   onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
   onDeleteCandidate: (candidateId: string) => Promise<void>;
-  onOpenUploadModal: (candidate: Candidate) => void;
   onEditPosition: (position: Position) => void;
   isLoading?: boolean;
   onRefreshCandidateData: (candidateId: string) => Promise<void>;
@@ -154,7 +154,6 @@ export function CandidateTable({
   onAssignRecruiter,
   onUpdateCandidate,
   onDeleteCandidate,
-  onOpenUploadModal,
   onEditPosition,
   isLoading,
   onRefreshCandidateData,
@@ -180,65 +179,48 @@ export function CandidateTable({
   // Add state for each column's dropdown menu open state
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
+  const [isUploadResumeModalOpen, setIsUploadResumeModalOpen] = useState(false);
+  const [selectedCandidateForUpload, setSelectedCandidateForUpload] = useState<Candidate | null>(null);
 
   // Group candidates by email
-  const candidatesByEmail = React.useMemo(() => {
-    const groups: Record<string, Candidate[]> = {};
-    candidates.forEach((c) => {
-      if (!c.email) return;
-      if (!groups[c.email]) groups[c.email] = [];
-      groups[c.email].push(c);
-    });
-    return groups;
-  }, [candidates]);
+  const candidatesByEmail = candidates.reduce((acc, candidate) => {
+    const email = candidate.email?.toLowerCase() || '';
+    if (!acc[email]) acc[email] = [];
+    acc[email].push(candidate);
+    return acc;
+  }, {} as Record<string, Candidate[]>);
 
-  // Get sorted email groups (preserve order from candidates array)
-  const emailOrder = React.useMemo(() => {
-    const seen = new Set<string>();
-    return candidates
-      .map((c) => c.email)
-      .filter((email) => email && !seen.has(email) && seen.add(email));
-  }, [candidates]);
+  const emailOrder = Object.keys(candidatesByEmail).sort();
 
-  // Helper to combine and sort activities
   const getCombinedActivities = () => {
-    const comments = modalComments.map(comment => ({
-      ...comment,
-      type: 'comment',
-      date: comment.createdAt,
-    }));
-    const logs = modalLogs.map(log => ({
-      ...log,
-      type: 'activity',
-      date: log.time || log.createdAt,
-    }));
-    return [...comments, ...logs].sort((a, b) => {
-      const dateA = a.date ? new Date(a.date).getTime() : 0;
-      const dateB = b.date ? new Date(b.date).getTime() : 0;
-      return dateB - dateA;
-    });
+    return candidates.flatMap(candidate => {
+      const activities = [];
+      if (candidate.updatedAt) activities.push({ date: candidate.updatedAt, type: 'updated', candidate });
+      if (candidate.createdAt) activities.push({ date: candidate.createdAt, type: 'created', candidate });
+      return activities;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  // Update handleManageTransitionsClick to fetch comments and logs
   const handleManageTransitionsClick = async (candidate: Candidate) => {
     setSelectedCandidateForModal(candidate);
-    // Fetch comments
-    const commentsRes = await fetch(`/api/candidates/${candidate.id}/comments`);
-    const commentsData = await commentsRes.json();
-    setModalComments(Array.isArray(commentsData) ? commentsData : (commentsData.data || []));
-    // Fetch logs/activity
-    const logsRes = await fetch(`/api/candidates/${candidate.id}/logs`);
-    const logsData = await logsRes.json();
-    setModalLogs(Array.isArray(logsData) ? logsData : (logsData.data || []));
-    // Open the modal
     setIsManageTransitionsModalOpen(true);
+    // Fetch comments for this candidate
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        setModalComments(Array.isArray(data) ? data : (data.data || []));
+      }
+    } catch (error) {
+      setModalComments([]);
+    }
   };
 
   const handleEditPositionClick = (positionId: string | null | undefined) => {
     if (!positionId) return;
-    const positionToEdit = availablePositions.find(p => p.id === positionId);
-    if (positionToEdit) {
-      onEditPosition(positionToEdit);
+    const position = availablePositions.find(p => p.id === positionId);
+    if (position) {
+      onEditPosition(position);
     }
   };
 
@@ -253,29 +235,30 @@ export function CandidateTable({
     }
   };
 
-  // Add a handler for row click
   const handleRowClick = (candidate: Candidate, e: React.MouseEvent) => {
-    // Prevent opening modal if clicking on a button, link, or checkbox
-    if ((e.target as HTMLElement).closest('button, a, input, [role="checkbox"]')) return;
-    setSelectedCandidateSummary({
-      id: candidate.id,
-      name: candidate.name,
-      email: candidate.email,
-      phone: candidate.phone,
-      status: candidate.status,
-      position: candidate.position,
-      fitScore: candidate.fitScore,
-      parsedData: candidate.parsedData
-    });
-    setIsDetailModalOpen(true);
+    // Don't trigger row click if clicking on interactive elements
+    if ((e.target as HTMLElement).closest('button, a, input, select, [role="button"]')) {
+      return;
+    }
+    // Navigate to candidate detail page
+    window.location.href = `/candidates/${candidate.id}`;
   };
 
-  // Add a helper for sort icon rendering
   const renderSortIcon = (col: string) => {
-    if (sortColumn === col) {
-      return <span className="ml-1 text-primary font-bold">{sortDirection === 'asc' ? '▲' : '▼'}</span>;
-    }
-    return <span className="ml-1 text-muted-foreground">⇅</span>;
+    if (sortColumn !== col) return null;
+    return sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
+  };
+
+  const handleUploadResumeClick = (candidate: Candidate) => {
+    setSelectedCandidateForUpload(candidate);
+    setIsUploadResumeModalOpen(true);
+  };
+
+  const handleUploadSuccess = (updatedCandidate: Candidate) => {
+    // Refresh the candidate data in the table
+    onRefreshCandidateData(updatedCandidate.id);
+    setIsUploadResumeModalOpen(false);
+    setSelectedCandidateForUpload(null);
   };
 
 
@@ -669,34 +652,46 @@ export function CandidateTable({
                     {displayAppliedDate(candidate.applicationDate)}
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
-                          <Eye className="mr-2 h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
-                          <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
-                        </DropdownMenuItem>
-                         <DropdownMenuItem key="upload-resume" onSelect={() => onOpenUploadModal(candidate)}>
-                          <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
-                        </DropdownMenuItem>
-                        {candidate.positionId && (
-                          <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
-                            <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUploadResumeClick(candidate);
+                        }}
+                        className="h-8 px-3 text-xs"
+                        title="Upload Resume"
+                      >
+                        <UploadCloud className="h-3 w-3 mr-1" />
+                        Upload
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator key="separator" />
-                        <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
+                            <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
+                          </DropdownMenuItem>
+                          {candidate.positionId && (
+                            <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
+                              <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator key="separator" />
+                          <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -839,34 +834,46 @@ export function CandidateTable({
                               {displayAppliedDate(candidate.applicationDate)}
                             </TableCell>
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Actions</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
-                                    <Eye className="mr-2 h-4 w-4" /> View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
-                                    <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
-                                  </DropdownMenuItem>
-                                   <DropdownMenuItem key="upload-resume" onSelect={() => onOpenUploadModal(candidate)}>
-                                    <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
-                                  </DropdownMenuItem>
-                                  {candidate.positionId && (
-                                    <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
-                                      <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUploadResumeClick(candidate);
+                                  }}
+                                  className="h-8 px-3 text-xs"
+                                  title="Upload Resume"
+                                >
+                                  <UploadCloud className="h-3 w-3 mr-1" />
+                                  Upload
+                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">Actions</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
+                                      <Eye className="mr-2 h-4 w-4" /> View Details
                                     </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuSeparator key="separator" />
-                                  <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                    <DropdownMenuItem key="manage-transitions" onSelect={() => handleManageTransitionsClick(candidate)}>
+                                      <FileEdit className="mr-2 h-4 w-4" /> Manage Transitions
+                                    </DropdownMenuItem>
+                                    {candidate.positionId && (
+                                      <DropdownMenuItem key="edit-position" onSelect={() => handleEditPositionClick(candidate.positionId)}>
+                                        <Briefcase className="mr-2 h-4 w-4" /> Edit Applied Job
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator key="separator" />
+                                    <DropdownMenuItem key="delete" onSelect={() => confirmDelete(candidate)} className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -929,6 +936,12 @@ export function CandidateTable({
               .then(data => setModalComments(Array.isArray(data) ? data : (data.data || [])));
           }
         }}
+      />
+      <UploadResumeModal
+        candidate={selectedCandidateForUpload}
+        isOpen={isUploadResumeModalOpen}
+        onOpenChange={setIsUploadResumeModalOpen}
+        onUploadSuccess={handleUploadSuccess}
       />
     </>
   );

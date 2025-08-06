@@ -1559,11 +1559,23 @@ export const CandidateImportUploadQueue: React.FC<{
                     </div>
                     {selectedCombinedJob.file_path && (
                       <div className="mt-4">
-                        <Button asChild variant="outline" size="sm">
-                          <a href={`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`} target="_blank" rel="noopener noreferrer">
-                            <Download className="h-4 w-4 mr-2" />
-                            Download File
-                          </a>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            const downloadUrl = `/api/download?url=${encodeURIComponent(`${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${selectedCombinedJob.file_path}`)}&fileName=${encodeURIComponent(selectedCombinedJob.file_name)}`;
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.download = selectedCombinedJob.file_name;
+                            link.target = '_blank';
+                            link.style.display = 'none';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download File
                         </Button>
                       </div>
                     )}

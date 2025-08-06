@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import CandidateDetailModal from './CandidateDetailModal';
 import FullCandidateDetail from './FullCandidateDetail';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
-import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore } from "@/lib/scoreUtils";
+import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -1855,6 +1855,8 @@ export function HorizontalStageKanbanView({
   statuses, 
   onMoveCandidate, 
   onCardClick, 
+  rowField = 'status',
+  columnField = 'none',
   visibleFields = ['name', 'email', 'status', 'fitScore'],
   visibleRowValues = [],
   visibleColumnValues = []
@@ -1865,31 +1867,58 @@ export function HorizontalStageKanbanView({
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Use visibleColumnValues if provided, otherwise use all stages
-  const stagesToShow = visibleColumnValues.length > 0 ? visibleColumnValues : statuses;
+  // Determine what to show as columns based on columnField
+  const getColumnValue = (candidate: Candidate) => {
+    if (columnField === 'none') return 'All Candidates';
+    if (columnField === 'status') return candidate.status;
+    if (columnField === 'recruiterId') return candidate.recruiter?.name || candidate.recruiterId || 'Unassigned';
+    if (columnField === 'positionId') return candidate.position?.title || candidate.positionId || 'No Position';
+    if (columnField === 'fitScore') {
+      if (candidate.fitScore === null || candidate.fitScore === undefined) return 'No Score';
+      const gradeInfo = getScoreGradeInfo(candidate.fitScore);
+      if (gradeInfo) {
+        return `${gradeInfo.letter} (${gradeInfo.range})`;
+      }
+      return 'No Score';
+    }
+    // Check custom attributes
+    if (candidate.customAttributes && candidate.customAttributes[columnField]) {
+      return candidate.customAttributes[columnField];
+    }
+    // Check parsed data
+    const parsedValue = getParsedDataProperty(candidate, columnField);
+    if (parsedValue) return parsedValue;
+    
+    return 'Unknown';
+  };
 
-  // Group candidates by stage
-  const candidatesByStage = useMemo(() => {
+  // Use visibleColumnValues if provided, otherwise use all unique column values
+  const columnsToShow = visibleColumnValues.length > 0 
+    ? visibleColumnValues 
+    : Array.from(new Set(candidates.map(getColumnValue))).filter(Boolean);
+
+  // Group candidates by column value
+  const candidatesByColumn = useMemo(() => {
     const grouped: Record<string, Candidate[]> = {};
     
-    // Initialize all stages with empty arrays
-    stagesToShow.forEach(stage => {
-      grouped[stage] = [];
+    // Initialize all columns with empty arrays
+    columnsToShow.forEach(column => {
+      grouped[column] = [];
     });
     
-    // Group candidates by their status
+    // Group candidates by their column value
     candidates.forEach(candidate => {
-      const stage = candidate.status;
-      if (stage && stagesToShow.includes(stage)) {
-        if (!grouped[stage]) {
-          grouped[stage] = [];
+      const columnValue = getColumnValue(candidate);
+      if (columnValue && columnsToShow.includes(columnValue)) {
+        if (!grouped[columnValue]) {
+          grouped[columnValue] = [];
         }
-        grouped[stage].push(candidate);
+        grouped[columnValue].push(candidate);
       }
     });
     
     return grouped;
-  }, [candidates, stagesToShow]);
+  }, [candidates, columnsToShow, columnField]);
 
   // Enhanced drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
@@ -1910,18 +1939,18 @@ export function HorizontalStageKanbanView({
     document.body.style.cursor = '';
   };
 
-  const handleDragOver = (stage: string, e: React.DragEvent) => {
+  const handleDragOver = (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Only allow dropping if we're dragging a candidate and it's not the same stage
-    if (draggedCandidate && draggedCandidate.status !== stage) {
-      setDragOverStage(stage);
+    // Only allow dropping if we're dragging a candidate and it's not the same column
+    if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
+      setDragOverStage(column);
       e.dataTransfer.dropEffect = 'move';
     }
   };
 
-  const handleDragLeave = (stage: string, e: React.DragEvent) => {
+  const handleDragLeave = (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -1935,12 +1964,19 @@ export function HorizontalStageKanbanView({
     }
   };
 
-  const handleDrop = (stage: string, e: React.DragEvent) => {
+  const handleDrop = (column: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (draggedCandidate && draggedCandidate.status !== stage) {
-      onMoveCandidate?.(draggedCandidate, stage);
+    if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
+      // For status-based columns, update the status
+      if (columnField === 'status') {
+        onMoveCandidate?.(draggedCandidate, column);
+      } else {
+        // For other column types, we might need to update different fields
+        // For now, we'll just call the move function with the column value
+        onMoveCandidate?.(draggedCandidate, column);
+      }
     }
     setDraggedCandidate(null);
     setDragOverStage(null);
@@ -1978,7 +2014,7 @@ export function HorizontalStageKanbanView({
   };
 
   // Check if scroll buttons should be shown
-  const showScrollButtons = stagesToShow.length > 2;
+  const showScrollButtons = columnsToShow.length > 2;
 
   return (
     <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4">
@@ -1998,7 +2034,7 @@ export function HorizontalStageKanbanView({
           
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              {stagesToShow.length} stages
+              {columnsToShow.length} columns
             </span>
             <Badge variant="secondary" className="text-xs">
               {candidates.length} candidates
@@ -2043,7 +2079,7 @@ export function HorizontalStageKanbanView({
           </Button>
         )}
 
-        {/* Scrollable Stages Container */}
+        {/* Scrollable Columns Container */}
         <div
           ref={scrollContainerRef}
           className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide"
@@ -2053,40 +2089,44 @@ export function HorizontalStageKanbanView({
           }}
           onScroll={handleScroll}
         >
-          {stagesToShow.map((stage) => {
-            const stageCandidates = candidatesByStage[stage] || [];
-            const isDragOver = dragOverStage === stage;
-            const isCurrentStage = draggedCandidate?.status === stage;
+          {columnsToShow.map((column) => {
+            const columnCandidates = candidatesByColumn[column] || [];
+            const isDragOver = dragOverStage === column;
+            const isCurrentColumn = draggedCandidate && getColumnValue(draggedCandidate) === column;
             
             return (
               <div
-                key={stage}
+                key={column}
                 className="flex-shrink-0 w-80"
                 style={{ minWidth: '320px' }}
               >
                 <Card className={cn(
                   "flex flex-col h-full shadow-sm border border-border bg-card transition-all duration-200",
-                  isDragOver && !isCurrentStage && "ring-2 ring-primary ring-opacity-50 bg-primary/5",
-                  isCurrentStage && isDragging && "opacity-50"
+                  isDragOver && !isCurrentColumn && "ring-2 ring-primary ring-opacity-50 bg-primary/5",
+                  isCurrentColumn && isDragging && "opacity-50"
                 )}>
                   <CardHeader className="p-4 border-b border-border sticky top-0 bg-card z-10 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-3 h-3 rounded-full transition-colors duration-200",
-                          isDragOver && !isCurrentStage ? "bg-primary" : "bg-primary"
+                          isDragOver && !isCurrentColumn ? "bg-primary" : "bg-primary"
                         )}></div>
                         <div>
                           <CardTitle className="text-sm font-semibold text-foreground capitalize">
-                            {stage}
+                            {column}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground">
-                            Recruitment Stage
+                            {columnField === 'status' ? 'Recruitment Stage' : 
+                             columnField === 'recruiterId' ? 'Recruiter' :
+                             columnField === 'positionId' ? 'Position' :
+                             columnField === 'fitScore' ? 'Fit Score Range' :
+                             'Custom Field'}
                           </p>
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        {stageCandidates.length}
+                        {columnCandidates.length}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -2094,32 +2134,32 @@ export function HorizontalStageKanbanView({
                   <div 
                     className={cn(
                       "flex-1 min-h-0 p-4 space-y-3 transition-all duration-200 relative",
-                      isDragOver && !isCurrentStage && "bg-primary/5"
+                      isDragOver && !isCurrentColumn && "bg-primary/5"
                     )}
-                    onDragOver={(e) => handleDragOver(stage, e)}
-                    onDragLeave={(e) => handleDragLeave(stage, e)}
-                    onDrop={(e) => handleDrop(stage, e)}
+                    onDragOver={(e) => handleDragOver(column, e)}
+                    onDragLeave={(e) => handleDragLeave(column, e)}
+                    onDrop={(e) => handleDrop(column, e)}
                     onDragEnter={(e) => {
                       e.preventDefault();
-                      if (draggedCandidate && draggedCandidate.status !== stage) {
-                        setDragOverStage(stage);
+                      if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
+                        setDragOverStage(column);
                       }
                     }}
                   >
                     {/* Drop zone indicator */}
-                    {isDragOver && !isCurrentStage && (
+                    {isDragOver && !isCurrentColumn && (
                       <div className="absolute inset-0 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg pointer-events-none z-10 flex items-center justify-center">
                         <div className="text-center">
                           <Plus className="w-8 h-8 mx-auto mb-2 text-primary" />
                           <p className="text-sm font-medium text-primary">Drop here</p>
-                          <p className="text-xs text-primary/70">Move to {stage}</p>
+                          <p className="text-xs text-primary/70">Move to {column}</p>
                         </div>
                       </div>
                     )}
                     
-                    {stageCandidates.length > 0 ? (
+                    {columnCandidates.length > 0 ? (
                       <div className="space-y-3">
-                        {stageCandidates.map(candidate => (
+                        {columnCandidates.map(candidate => (
                           <div
                             key={candidate.id}
                             className={cn(
@@ -2141,23 +2181,23 @@ export function HorizontalStageKanbanView({
                     ) : (
                       <div className={cn(
                         "flex items-center justify-center h-32 border-2 border-dashed rounded-lg transition-all duration-200",
-                        isDragOver && !isCurrentStage 
+                        isDragOver && !isCurrentColumn 
                           ? "border-primary bg-primary/5" 
                           : "border-muted"
                       )}>
                         <div className="text-center">
                           <Plus className={cn(
                             "w-6 h-6 mx-auto mb-2 transition-colors duration-200",
-                            isDragOver && !isCurrentStage ? "text-primary" : "text-muted-foreground"
+                            isDragOver && !isCurrentColumn ? "text-primary" : "text-muted-foreground"
                           )} />
                           <p className={cn(
                             "text-sm transition-colors duration-200",
-                            isDragOver && !isCurrentStage ? "text-primary font-medium" : "text-muted-foreground"
+                            isDragOver && !isCurrentColumn ? "text-primary font-medium" : "text-muted-foreground"
                           )}>
-                            {isDragOver && !isCurrentStage ? "Drop here" : "Drop candidates here"}
+                            {isDragOver && !isCurrentColumn ? "Drop here" : "Drop candidates here"}
                           </p>
                           <p className="text-xs text-muted-foreground/60 mt-1">
-                            {stage} stage
+                            {column} {columnField === 'status' ? 'stage' : 'column'}
                           </p>
                         </div>
                       </div>
@@ -2174,12 +2214,12 @@ export function HorizontalStageKanbanView({
       {showScrollButtons && (
         <div className="flex justify-center mt-4">
           <div className="flex gap-1">
-            {stagesToShow.map((_, index) => {
+            {columnsToShow.map((_, index) => {
               const container = scrollContainerRef.current;
               if (!container) return null;
               
-              const stageWidth = 320 + 16; // card width + gap
-              const isActive = scrollPosition >= index * stageWidth && scrollPosition < (index + 1) * stageWidth;
+              const columnWidth = 320 + 16; // card width + gap
+              const isActive = scrollPosition >= index * columnWidth && scrollPosition < (index + 1) * columnWidth;
               
               return (
                 <div

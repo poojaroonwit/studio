@@ -83,7 +83,6 @@ services:
     # which uses wait-for-db.sh for optimized startup
     networks:
       - docker_internal
-      - default
 
   postgres:
     image: postgres:14-alpine

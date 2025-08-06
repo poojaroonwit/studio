@@ -21,7 +21,9 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
-# Make entrypoint scripts executable
+# Fix line endings and make entrypoint scripts executable
+RUN apk add --no-cache dos2unix
+RUN dos2unix ./entrypoint.sh ./entrypoint-processor.sh 2>/dev/null || true
 RUN chmod +x ./entrypoint.sh
 RUN chmod +x ./entrypoint-processor.sh
 

@@ -1,7 +1,25 @@
 #!/bin/sh
 set -e
 
+# Ensure script is executable
+if [ ! -x "$0" ]; then
+  echo "❌ Script is not executable. Making it executable..."
+  chmod +x "$0"
+fi
+
+# Debug: Show script location and permissions
+echo "🔍 Script location: $0"
+echo "🔍 Script permissions: $(ls -la "$0" | awk '{print $1}')"
+
 # --- MinIO Public Policy Automation ---
+echo "🚀 Starting entrypoint script..."
+echo "🔍 Current working directory: $(pwd)"
+echo "🔍 Environment variables:"
+echo "  - MINIO_ENDPOINT: ${MINIO_ENDPOINT:-not set}"
+echo "  - MINIO_PORT: ${MINIO_PORT:-not set}"
+echo "  - POSTGRES_HOST: ${POSTGRES_HOST:-not set}"
+echo "  - POSTGRES_USER: ${POSTGRES_USER:-not set}"
+
 # Set these environment variables or use defaults
 export MINIO_HOST="http://${MINIO_ENDPOINT:-minio}:${MINIO_PORT:-9000}"
 export MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-uploads}
@@ -15,17 +33,52 @@ if ! command -v mc >/dev/null 2>&1; then
   chmod +x /usr/local/bin/mc
 fi
 
-# Set MinIO alias (idempotent)
-echo "🔧 Setting up MinIO client..."
-mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" 2>/dev/null || {
-  echo "⚠️  MinIO client setup failed, but continuing..."
-}
+# Verify mc is available
+if command -v mc >/dev/null 2>&1; then
+  echo "✅ MinIO Client (mc) is available"
+else
+  echo "❌ MinIO Client (mc) is not available"
+fi
 
-# Set public read policy on the bucket (idempotent)
+# Set MinIO alias (idempotent) with retry logic
+echo "🔧 Setting up MinIO client..."
+MINIO_RETRY_COUNT=0
+MINIO_MAX_RETRIES=5
+
+while [ $MINIO_RETRY_COUNT -lt $MINIO_MAX_RETRIES ]; do
+  if mc alias set myminio "$MINIO_HOST" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; then
+    echo "✅ MinIO client setup successful!"
+    break
+  fi
+  
+  MINIO_RETRY_COUNT=$((MINIO_RETRY_COUNT + 1))
+  echo "MinIO client setup attempt $MINIO_RETRY_COUNT/$MINIO_MAX_RETRIES failed. Retrying..."
+  sleep 3
+done
+
+if [ $MINIO_RETRY_COUNT -eq $MINIO_MAX_RETRIES ]; then
+  echo "⚠️  MinIO client setup failed after $MINIO_MAX_RETRIES attempts, but continuing..."
+fi
+
+# Set public read policy on the bucket (idempotent) with retry logic
 echo "🔓 Setting public read policy on bucket: $MINIO_BUCKET_NAME"
-mc policy set download myminio/"$MINIO_BUCKET_NAME" 2>/dev/null || {
-  echo "⚠️  MinIO policy setup failed, but continuing..."
-}
+POLICY_RETRY_COUNT=0
+POLICY_MAX_RETRIES=3
+
+while [ $POLICY_RETRY_COUNT -lt $POLICY_MAX_RETRIES ]; do
+  if mc anonymous set download myminio/"$MINIO_BUCKET_NAME" >/dev/null 2>&1; then
+    echo "✅ MinIO policy setup successful!"
+    break
+  fi
+  
+  POLICY_RETRY_COUNT=$((POLICY_RETRY_COUNT + 1))
+  echo "MinIO policy setup attempt $POLICY_RETRY_COUNT/$POLICY_MAX_RETRIES failed. Retrying..."
+  sleep 2
+done
+
+if [ $POLICY_RETRY_COUNT -eq $POLICY_MAX_RETRIES ]; then
+  echo "⚠️  MinIO policy setup failed after $POLICY_MAX_RETRIES attempts, but continuing..."
+fi
 
 # --- N8N Database Creation ---
 echo "🔧 Creating n8n database if it doesn't exist..."
@@ -43,23 +96,59 @@ if ! command -v psql >/dev/null 2>&1; then
   apk add --no-cache postgresql-client || true
 fi
 
-# Wait for PostgreSQL to be ready
+# Verify psql is available
+if command -v psql >/dev/null 2>&1; then
+  echo "✅ PostgreSQL client (psql) is available"
+else
+  echo "❌ PostgreSQL client (psql) is not available"
+fi
+
+# Wait for PostgreSQL to be ready with better retry logic
 echo "⏳ Waiting for PostgreSQL to be ready..."
-until pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER"; do
-  echo "Waiting for PostgreSQL..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if pg_isready -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" >/dev/null 2>&1; then
+    echo "✅ PostgreSQL is ready!"
+    break
+  fi
+  
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  echo "Waiting for PostgreSQL... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+  sleep 3
+done
+
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+  echo "❌ PostgreSQL failed to start within the expected time"
+  exit 1
+fi
+
+# Test database connection with explicit credentials and retry logic
+echo "🔍 Testing database connection..."
+DB_RETRY_COUNT=0
+DB_MAX_RETRIES=10
+
+while [ $DB_RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
+  if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "✅ Database connection successful!"
+    break
+  fi
+  
+  DB_RETRY_COUNT=$((DB_RETRY_COUNT + 1))
+  echo "Database connection attempt $DB_RETRY_COUNT/$DB_MAX_RETRIES failed. Retrying..."
   sleep 2
 done
 
-# Test database connection with explicit credentials
-echo "🔍 Testing database connection..."
-PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "SELECT 1;" 2>/dev/null || {
-  echo "❌ Database connection test failed. Please check your credentials."
+if [ $DB_RETRY_COUNT -eq $DB_MAX_RETRIES ]; then
+  echo "❌ Database connection test failed after $DB_MAX_RETRIES attempts."
   echo "Host: $PG_HOST"
   echo "Port: $PG_PORT"
   echo "User: $PG_USER"
   echo "Password: ${PG_PASSWORD:0:3}..."
+  echo "Please check your database credentials and network connectivity."
   exit 1
-}
+fi
 
 echo "✅ Database connection successful!"
 

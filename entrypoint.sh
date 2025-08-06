@@ -96,6 +96,12 @@ if ! command -v psql >/dev/null 2>&1; then
   apk add --no-cache postgresql-client || true
 fi
 
+# Install netcat for network connectivity testing
+if ! command -v nc >/dev/null 2>&1; then
+  echo "🔧 Installing netcat for network testing..."
+  apk add --no-cache netcat-openbsd || true
+fi
+
 # Verify psql is available
 if command -v psql >/dev/null 2>&1; then
   echo "✅ PostgreSQL client (psql) is available"
@@ -116,6 +122,11 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
   
   RETRY_COUNT=$((RETRY_COUNT + 1))
   echo "Waiting for PostgreSQL... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+  # Show more detailed error information
+  if [ $RETRY_COUNT -eq 1 ]; then
+    echo "Debug: Testing network connectivity to $PG_HOST:$PG_PORT..."
+    nc -z "$PG_HOST" "$PG_PORT" 2>/dev/null && echo "✅ Network connectivity OK" || echo "❌ Network connectivity failed"
+  fi
   sleep 3
 done
 
@@ -129,14 +140,32 @@ echo "🔍 Testing database connection..."
 DB_RETRY_COUNT=0
 DB_MAX_RETRIES=10
 
+# Get the database name from DATABASE_URL or use POSTGRES_DB
+DB_NAME=$(echo "$DATABASE_URL" | sed 's/.*\///' | sed 's/\?.*//' 2>/dev/null || echo "${POSTGRES_DB:-studio_production}")
+
 while [ $DB_RETRY_COUNT -lt $DB_MAX_RETRIES ]; do
-  if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-    echo "✅ Database connection successful!"
+  # First try to connect to the specific database
+  if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "✅ Database connection successful to $DB_NAME!"
     break
+  fi
+  
+  # If that fails, try to connect to postgres database and create the target database
+  if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "✅ Connected to postgres database, creating $DB_NAME if it doesn't exist..."
+    PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d postgres -c "CREATE DATABASE \"$DB_NAME\";" >/dev/null 2>&1 || true
+    # Now try connecting to the target database again
+    if PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+      echo "✅ Database connection successful to $DB_NAME!"
+      break
+    fi
   fi
   
   DB_RETRY_COUNT=$((DB_RETRY_COUNT + 1))
   echo "Database connection attempt $DB_RETRY_COUNT/$DB_MAX_RETRIES failed. Retrying..."
+  # Show the actual error for debugging
+  echo "Debug: Testing connection to $DB_NAME..."
+  PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" -d "$DB_NAME" -c "SELECT 1;" 2>&1 | head -1
   sleep 2
 done
 

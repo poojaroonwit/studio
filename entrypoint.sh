@@ -29,8 +29,20 @@ export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
 # Install MinIO Client (mc) if not already installed
 if ! command -v mc >/dev/null 2>&1; then
   echo "🔧 Installing MinIO Client (mc)..."
-  wget --quiet --show-progress https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc
-  chmod +x /usr/local/bin/mc
+  if wget --quiet https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc; then
+    chmod +x /usr/local/bin/mc
+    echo "✅ MinIO Client installed successfully with wget"
+  else
+    echo "⚠️  wget failed, trying curl as fallback..."
+    if curl -s -L https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc; then
+      chmod +x /usr/local/bin/mc
+      echo "✅ MinIO Client installed successfully with curl"
+    else
+      echo "❌ Failed to install MinIO Client, but continuing..."
+    fi
+  fi
+else
+  echo "✅ MinIO Client (mc) already available"
 fi
 
 # Verify mc is available
@@ -100,6 +112,12 @@ fi
 if ! command -v nc >/dev/null 2>&1; then
   echo "🔧 Installing netcat for network testing..."
   apk add --no-cache --quiet netcat-openbsd || true
+fi
+
+# Install curl for fallback downloads
+if ! command -v curl >/dev/null 2>&1; then
+  echo "🔧 Installing curl for fallback downloads..."
+  apk add --no-cache --quiet curl || true
 fi
 
 # Verify psql is available

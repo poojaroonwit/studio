@@ -48,7 +48,7 @@ const platformModuleIds = PLATFORM_MODULES.map(m => m.id) as [PlatformModuleId, 
 const addUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
   role: z.enum(userRoleOptions as [UserProfile['role'], ...UserProfile['role'][]], { required_error: "Role is required" }),
   authenticationMethod: z.enum(['basic', 'azure']).default('basic'),
   forcePasswordChange: z.boolean().default(false),
@@ -238,7 +238,7 @@ export function AddUserModal({ isOpen, onOpenChange, onAddUser }: AddUserModalPr
                               <FormItem>
                                 <FormLabel htmlFor="password-add" className="text-sm font-medium">Password *</FormLabel>
                                 <FormControl>
-                                  <Input id="password-add" type="password" {...field} className="h-10" placeholder="Minimum 6 characters" />
+                                  <Input id="password-add" type="password" {...field} className="h-10" placeholder="Minimum 8 characters" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

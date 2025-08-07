@@ -46,7 +46,7 @@ const editUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   role: z.enum(userRoleOptions as [UserProfile['role'], ...UserProfile['role'][]], { required_error: "Role is required" }),
-  newPassword: z.string().min(6, "New password must be at least 6 characters").optional().or(z.literal('')),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal('')),
   forcePasswordChange: z.boolean().optional().default(false),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   modulePermissions: z.array(z.enum(platformModuleIds)).optional().default([]),
@@ -336,7 +336,7 @@ export function EditUserModal({ isOpen, onOpenChange, onEditUser, user, isSelfEd
                                         id="password-edit"
                                         type="password" 
                                         {...field} 
-                                        placeholder="Enter new password (min 6 characters)" 
+                                        placeholder="Enter new password (min 8 characters)" 
                                         className="h-10" 
                                       />
                                     </FormControl>

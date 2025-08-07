@@ -23,8 +23,8 @@ import { toast } from 'react-hot-toast';
 
 const changePasswordFormSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
-  confirmNewPassword: z.string().min(6, "Please confirm your new password"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+  confirmNewPassword: z.string().min(8, "Please confirm your new password"),
 }).refine(data => data.newPassword === data.confirmNewPassword, {
   message: "New passwords do not match",
   path: ["confirmNewPassword"],

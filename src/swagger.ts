@@ -1913,7 +1913,7 @@ export function getSwaggerSpec() {
                     email: { type: 'string', format: 'email' },
                     role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
                     modulePermissions: { type: 'array', items: { type: 'string' } },
-                    password: { type: 'string', minLength: 6 }
+                    password: { type: 'string', minLength: 8 }
                   },
                   required: ['name', 'email', 'role', 'password']
                 },

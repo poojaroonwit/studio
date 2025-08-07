@@ -52,7 +52,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   // Password is only required for 'basic' users; for 'azure', it is optional
-  password: z.string().min(6, "Password must be at least 6 characters long").optional(),
+  password: z.string().min(8, "Password must be at least 8 characters long").optional(),
   role: userRoleEnum,
   modulePermissions: z.array(z.enum(platformModuleIds)).optional().default([]),
   groupIds: z.array(z.string().uuid()).optional().default([]),

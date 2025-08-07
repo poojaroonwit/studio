@@ -19,7 +19,7 @@ const createUserSchema = z.object({
   email: z.string().email(),
   role: z.enum(['Admin', 'Recruiter', 'User']),
   modulePermissions: z.array(z.string()).optional(),
-  password: z.string().min(6).optional(),
+  password: z.string().min(8).optional(),
 });
 
 export async function GET(req: NextRequest) {

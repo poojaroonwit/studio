@@ -1611,7 +1611,7 @@ export function CandidateFilters({
                                         htmlFor={`fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
                                       >
-                                        {grade.letter} ({grade.range})
+                                        {grade.label}
                                       </Label>
                                     </div>
                                     <Badge variant="secondary" className="text-xs">
@@ -1645,7 +1645,7 @@ export function CandidateFilters({
                                         htmlFor={`matching-fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
                                       >
-                                        {grade.letter} ({grade.range})
+                                        {grade.label}
                                       </Label>
                                     </div>
                                     <Badge variant="secondary" className="text-xs">

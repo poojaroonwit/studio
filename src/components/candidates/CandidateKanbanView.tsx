@@ -16,7 +16,7 @@ import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 
 // Helper function to extract parsed data properties (similar to FullCandidateDetail)
 const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {

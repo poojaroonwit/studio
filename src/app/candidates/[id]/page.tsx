@@ -1015,6 +1015,29 @@ export default function CandidateDetailPage() {
     setIsEditing(false);
   };
 
+  const copyJobAppliedToClipboard = async () => {
+    if (!candidate?.positionId) return;
+    
+    const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
+    const jobTitle = position?.title || 'Unknown Position';
+    const fitScore = candidate?.fitScore !== null && candidate?.fitScore !== undefined 
+      ? `${displayFitScore(candidate.fitScore)} (${getGradeFromScore(candidate.fitScore)})`
+      : 'Not set';
+    const justification = appliedJustification.length > 0 
+      ? appliedJustification.join('\n• ')
+      : 'No justification provided';
+    
+    const textToCopy = `Job Applied: ${jobTitle}\nFit Score: ${fitScore}\nJustification:\n• ${justification}`;
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedJobApplied(true);
+      setTimeout(() => setCopiedJobApplied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
 
   const [infoOpen, setInfoOpen] = useState(true);
@@ -3013,26 +3036,3 @@ export default function CandidateDetailPage() {
       </div>
     );
 }
-
-const copyJobAppliedToClipboard = async () => {
-  if (!candidate?.positionId) return;
-  
-  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
-  const jobTitle = position?.title || 'Unknown Position';
-  const fitScore = candidate?.fitScore !== null && candidate?.fitScore !== undefined 
-    ? `${displayFitScore(candidate.fitScore)} (${getGradeFromScore(candidate.fitScore)})`
-    : 'Not set';
-  const justification = appliedJustification.length > 0 
-    ? appliedJustification.join('\n• ')
-    : 'No justification provided';
-  
-  const textToCopy = `Job Applied: ${jobTitle}\nFit Score: ${fitScore}\nJustification:\n• ${justification}`;
-  
-  try {
-    await navigator.clipboard.writeText(textToCopy);
-    setCopiedJobApplied(true);
-    setTimeout(() => setCopiedJobApplied(false), 2000);
-  } catch (err) {
-    console.error('Failed to copy to clipboard:', err);
-  }
-};

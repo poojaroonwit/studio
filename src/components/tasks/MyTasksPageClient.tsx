@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Filter, RefreshCw, Kanban, List, Users } from 'lucide-react';
-import { HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
+import { TaskBoard, Task, TaskStage } from '@/components/tasks/TaskBoard';
+import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -30,7 +31,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [stages, setStages] = useState<any[]>([]);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
-  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
@@ -165,30 +166,65 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     });
   }, [filteredCandidates, filters]);
 
-  // Handle drag-and-drop move - Fixed to always update status field
-  const handleMoveCandidate = (candidate: any, newValue: string) => {
+  // Convert candidates to tasks for the task board
+  const convertCandidatesToTasks = (candidates: any[]): Task[] => {
+    return candidates.map(candidate => ({
+      id: candidate.id,
+      title: candidate.name,
+      description: candidate.parsedData?.summary || `Email: ${candidate.email}`,
+      status: candidate.status,
+      priority: candidate.fitScore > 80 ? 'high' : candidate.fitScore > 60 ? 'medium' : 'low',
+      assignee: candidate.recruiter ? {
+        id: candidate.recruiter.id,
+        name: candidate.recruiter.name,
+        avatarUrl: candidate.recruiter.avatarUrl
+      } : undefined,
+      dueDate: candidate.applicationDate,
+      tags: candidate.position?.title ? [candidate.position.title] : [],
+      createdAt: candidate.createdAt,
+      updatedAt: candidate.updatedAt,
+      // Keep original candidate data for backward compatibility
+      originalCandidate: candidate
+    }));
+  };
+
+  // Convert stages to task stages
+  const convertStagesToTaskStages = (stages: string[]): TaskStage[] => {
+    return stages.map((stage, index) => ({
+      id: stage,
+      name: stage,
+      color: getStatusColor(stage).includes('blue') ? '#3b82f6' : 
+             getStatusColor(stage).includes('green') ? '#10b981' : 
+             getStatusColor(stage).includes('yellow') ? '#f59e0b' : 
+             getStatusColor(stage).includes('red') ? '#ef4444' : '#6b7280',
+      description: `Candidates in ${stage} stage`,
+      sortOrder: index
+    }));
+  };
+
+  // Handle task movement
+  const handleMoveTask = (task: Task, newStatus: string) => {
+    const candidate = task.originalCandidate;
+    if (!candidate) return;
+
     // Validate the new value
-    if (!newValue || typeof newValue !== 'string' || newValue.trim() === '') {
+    if (!newStatus || typeof newStatus !== 'string' || newStatus.trim() === '') {
       toast.error('Invalid value: Value cannot be empty');
       return;
     }
 
-    // Since we're using the default configuration (rowField='status', columnField='recruiterId'),
-    // we need to determine what field to update based on the current board configuration
-    // For now, we'll assume it's always updating the status field since that's the most common use case
-    
     // Check if the status is the same (no change needed)
-    if (candidate.status === newValue) {
+    if (candidate.status === newStatus) {
       return;
     }
 
-    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newValue);
+    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newStatus);
 
     // Optimistically update UI
     setCandidates((prev) =>
       prev.map((c) =>
         c.id === candidate.id
-          ? { ...c, status: newValue }
+          ? { ...c, status: newStatus }
           : c
       )
     );
@@ -197,7 +233,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetch(`/api/candidates/${candidate.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newValue }),
+      body: JSON.stringify({ status: newStatus }),
     }).then(async response => {
       if (!response.ok) {
         // Get error details from response
@@ -222,8 +258,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         );
         toast.error(errorMessage);
       } else {
-        console.log('Successfully moved candidate:', candidate.id, 'to status:', newValue);
-        toast.success(`Moved ${candidate.name} to ${newValue}`);
+        console.log('Successfully moved candidate:', candidate.id, 'to status:', newStatus);
+        toast.success(`Moved ${candidate.name} to ${newStatus}`);
       }
     }).catch(error => {
       console.error('Network error updating candidate status:', error, 'for candidate:', candidate.id);
@@ -412,16 +448,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             {/* Board Views */}
             {viewMode === 'kanban' ? (
               <div className="min-w-max">
-                <HorizontalStageKanbanView
-                  candidates={displayedCandidates}
-                  statuses={stages}
-                  onMoveCandidate={handleMoveCandidate}
-                  onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                  rowField="status"
-                  columnField="recruiterId"
-                  visibleFields={['name', 'email', 'status', 'fitScore', 'positionId']}
-                  visibleRowValues={[]}
-                  visibleColumnValues={[]}
+                <TaskBoard
+                  tasks={convertCandidatesToTasks(displayedCandidates)}
+                  stages={convertStagesToTaskStages(stages)}
+                  onMoveTask={handleMoveTask}
+                  onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
+                  showAssignee={true}
+                  showPriority={true}
+                  showDueDate={true}
+                  showTags={true}
                 />
               </div>
             ) : (
@@ -488,15 +523,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       </div>
 
       {/* Modals */}
-      {selectedCandidate && (
+      {selectedTask && (
         <>
-   
           <CandidateDetailModal
-            candidateId={selectedCandidate.id}
-            open={!!selectedCandidate}
+            candidateId={selectedTask.id}
+            open={!!selectedTask}
             onClose={() => {
-      
-              setSelectedCandidate(null);
+              setSelectedTask(null);
             }}
           />
         </>

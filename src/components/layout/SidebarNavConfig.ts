@@ -12,7 +12,8 @@ import {
   Shield,
   Database,
   Zap,
-  Target
+  Target,
+  Kanban
 } from "lucide-react";
 
 export interface SidebarNavItem {
@@ -67,6 +68,12 @@ export const sidebarConfig: SidebarNavGroup[] = [
         icon: ListTodo, 
         href: "/my-tasks",
         description: "Personal task management"
+      },
+      { 
+        label: "Task Board", 
+        icon: Kanban, 
+        href: "/task-board",
+        description: "General task management with drag & drop"
       },
     ],
   },

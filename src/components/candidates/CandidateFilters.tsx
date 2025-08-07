@@ -149,7 +149,10 @@ interface CandidateFiltersProps {
   isAiSearching?: boolean;
   aiSearchResults?: any;
   advancedQuery?: string;
-  candidateScoreCounts?: { letter: string; count: number }[];
+  candidateScoreCounts?: {
+    applied: { letter: string; count: number }[];
+    matching: { letter: string; count: number }[];
+  };
 }
 
 export function CandidateFilters({
@@ -289,6 +292,9 @@ export function CandidateFilters({
         )
         .map(range => range.letter);
       setSelectedFitScoreGrades(new Set(selectedGrades));
+    } else {
+      // Clear applied fit score checkboxes when no filter is applied
+      setSelectedFitScoreGrades(new Set());
     }
     
     // Initialize matching candidates fit score checkboxes
@@ -303,6 +309,9 @@ export function CandidateFilters({
         )
         .map(range => range.letter);
       setSelectedMatchingFitScoreGrades(new Set(selectedGrades));
+    } else {
+      // Clear matching fit score checkboxes when no filter is applied
+      setSelectedMatchingFitScoreGrades(new Set());
     }
   }, [initialFilters.minFitScore, initialFilters.maxFitScore, initialFilters.matchingMinFitScore, initialFilters.matchingMaxFitScore]);
 
@@ -569,6 +578,10 @@ export function CandidateFilters({
     setAiSearchQueryInput('');
     setAdvancedQueryInput('');
     
+    // Clear fit score checkboxes
+    setSelectedFitScoreGrades(new Set());
+    setSelectedMatchingFitScoreGrades(new Set());
+    
     // Reset to filters tab
     setActiveTab('filters');
     
@@ -588,8 +601,8 @@ export function CandidateFilters({
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
-      minFitScore: 0,
-      maxFitScore: 100,
+      minFitScore: undefined,
+      maxFitScore: undefined,
       matchingMinFitScore: undefined,
       matchingMaxFitScore: undefined,
       applicationDateStart: undefined,
@@ -611,6 +624,7 @@ export function CandidateFilters({
     setLocationOperator(initialFilters.locationOperator || 'contains');
     setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
     setFitScoreRange([initialFilters.minFitScore || 0, initialFilters.maxFitScore || 100]);
+    setMatchingFitScoreRange([initialFilters.matchingMinFitScore || 0, initialFilters.matchingMaxFitScore || 100]);
     setApplicationDateRange(
       initialFilters.applicationDateStart && initialFilters.applicationDateEnd
         ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
@@ -670,38 +684,35 @@ export function CandidateFilters({
                         applicationDateRange?.to ||
                         selectedRecruiterIds.size > 0;
       
-      onFilterChange({
-        name: name || undefined,
-        nameOperator,
-        email: email || undefined,
-        emailOperator,
-        phone: phone || undefined,
-        phoneOperator,
-        selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-        selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-        location: location || undefined,
-        locationOperator,
-        minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-        maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: fitScoreRange[0],
-        maxFitScore: fitScoreRange[1],
-        matchingMinFitScore: matchingFitScoreRange[0],
-        matchingMaxFitScore: matchingFitScoreRange[1],
-        applicationDateStart: applicationDateRange?.from,
-        applicationDateEnd: applicationDateRange?.to,
-        selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-        aiSearchQuery: undefined,
-      });
+      if (hasFilters) {
+        onFilterChange({
+          name: name || undefined,
+          nameOperator,
+          email: email || undefined,
+          emailOperator,
+          phone: phone || undefined,
+          phoneOperator,
+          selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+          selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+          skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+          location: location || undefined,
+          locationOperator,
+          minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+          maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+          minFitScore: fitScoreRange[0] > 0 ? fitScoreRange[0] : undefined,
+          maxFitScore: fitScoreRange[1] < 100 ? fitScoreRange[1] : undefined,
+          matchingMinFitScore: matchingFitScoreRange[0] > 0 ? matchingFitScoreRange[0] : undefined,
+          matchingMaxFitScore: matchingFitScoreRange[1] < 100 ? matchingFitScoreRange[1] : undefined,
+          applicationDateStart: applicationDateRange?.from,
+          applicationDateEnd: applicationDateRange?.to,
+          selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+          aiSearchQuery: undefined,
+        });
+      }
     }, 150); // Reduced to 150ms for faster response
 
     return () => clearTimeout(timeoutId);
-  }, [
-    name, nameOperator, email, emailOperator, phone, phoneOperator,
-    selectedPositionIds, selectedStatuses, skills, location, locationOperator,
-    experienceYearsRange, fitScoreRange, matchingFitScoreRange, applicationDateRange, selectedRecruiterIds,
-    advancedQueryInput
-  ]);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, fitScoreRange, matchingFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
   const handleApplyStandardFilters = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -861,6 +872,7 @@ export function CandidateFilters({
       };
       onFilterChange(newFilters);
     } else {
+      // When no grades are selected, clear the fit score filter completely
       setFitScoreRange([0, 100]);
       const newFilters = {
         name: name || undefined,
@@ -876,8 +888,8 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: 0,
-        maxFitScore: 100,
+        minFitScore: undefined,
+        maxFitScore: undefined,
         matchingMinFitScore: matchingFitScoreRange[0],
         matchingMaxFitScore: matchingFitScoreRange[1],
         applicationDateStart: applicationDateRange?.from,
@@ -932,6 +944,7 @@ export function CandidateFilters({
       };
       onFilterChange(newFilters);
     } else {
+      // When no grades are selected, clear the matching fit score filter completely
       setMatchingFitScoreRange([0, 100]);
       const newFilters = {
         name: name || undefined,
@@ -949,8 +962,8 @@ export function CandidateFilters({
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
         minFitScore: fitScoreRange[0],
         maxFitScore: fitScoreRange[1],
-        matchingMinFitScore: 0,
-        matchingMaxFitScore: 100,
+        matchingMinFitScore: undefined,
+        matchingMaxFitScore: undefined,
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -1597,7 +1610,7 @@ export function CandidateFilters({
                             <Label className="text-xs font-medium">Applied Candidates</Label>
                             <div className="space-y-2">
                               {getScoreRangesForChart().map((grade) => {
-                                const count = candidateScoreCounts?.find(c => c.letter === grade.letter)?.count || 0;
+                                const count = candidateScoreCounts?.applied?.find(c => c.letter === grade.letter)?.count || 0;
                                 return (
                                   <div key={grade.letter} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
@@ -1631,7 +1644,7 @@ export function CandidateFilters({
                             <Label className="text-xs font-medium">Matching Candidates</Label>
                             <div className="space-y-2">
                               {getScoreRangesForChart().map((grade) => {
-                                const count = candidateScoreCounts?.find(c => c.letter === grade.letter)?.count || 0;
+                                const count = candidateScoreCounts?.matching?.find(c => c.letter === grade.letter)?.count || 0;
                                 return (
                                   <div key={`matching-${grade.letter}`} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">

@@ -186,14 +186,14 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
             <div className="space-y-2">
               <Label htmlFor="event_type">Event Type</Label>
               <Select
-                value={filters.event_type}
-                onValueChange={(value) => handleFilterChange('event_type', value)}
+                value={filters.event_type || 'all'}
+                onValueChange={(value) => handleFilterChange('event_type', value === 'all' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All events" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All events</SelectItem>
+                  <SelectItem value="all">All events</SelectItem>
                   <SelectItem value="candidate.created">Candidate Created</SelectItem>
                   <SelectItem value="candidate.updated">Candidate Updated</SelectItem>
                   <SelectItem value="candidate.deleted">Candidate Deleted</SelectItem>
@@ -217,14 +217,14 @@ export default function WebhookLogs({ webhookId, webhookName }: WebhookLogsProps
             <div className="space-y-2">
               <Label htmlFor="success">Status</Label>
               <Select
-                value={filters.success}
-                onValueChange={(value) => handleFilterChange('success', value)}
+                value={filters.success || 'all'}
+                onValueChange={(value) => handleFilterChange('success', value === 'all' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="true">Success</SelectItem>
                   <SelectItem value="false">Failed</SelectItem>
                 </SelectContent>

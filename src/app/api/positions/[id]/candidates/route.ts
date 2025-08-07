@@ -43,8 +43,8 @@ export async function GET(
 
     const client = await getPool().connect();
     try {
-             // Query to get all candidates related to this position (applied OR matched)
-       const candidatesQuery = `
+      // Query to get all candidates related to this position (applied OR matched)
+      const candidatesQuery = `
          WITH applied_candidates AS (
            -- Candidates who applied to this position
            SELECT 
@@ -137,12 +137,12 @@ export async function GET(
          SELECT *
          FROM all_candidates
          WHERE ($2 = '' OR name ILIKE $3 OR email ILIKE $3)
-         ORDER BY sort_order, ${sortColumn} ${sortDirection}
+         ORDER BY sort_order, ` + sortColumn + ` ` + sortDirection + `
          LIMIT $4 OFFSET $5;
        `;
 
-             // Count query for total
-       const countQuery = `
+      // Count query for total
+      const countQuery = `
          WITH applied_candidates AS (
            -- Candidates who applied to this position
            SELECT c.id

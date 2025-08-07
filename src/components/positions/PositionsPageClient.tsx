@@ -238,13 +238,10 @@ export default function PositionsPageClient() {
         setPositions(positionsData);
         setTotal(data.total || 0);
         
-        // Calculate recruiter statistics
-        calculateRecruiterStats(positionsData);
-      
-            // Update statistics if included in response
-      if (data.statistics) {
-        setStatistics(data.statistics);
-      }
+        // Update statistics if included in response
+        if (data.statistics) {
+          setStatistics(data.statistics);
+        }
     } catch (error) {
       toast.error('Failed to load positions');
       console.error('Error fetching positions:', error);
@@ -272,6 +269,38 @@ export default function PositionsPageClient() {
     setRecruiterStats(stats);
   }, []);
 
+  // Fetch recruiter statistics for all positions (regardless of current filter)
+  const fetchRecruiterStats = useCallback(async () => {
+    try {
+      const query = new URLSearchParams();
+      query.append('limit', '1000'); // Get all positions for stats
+      query.append('includeStats', 'false'); // Don't need position stats
+      query.append('includeCandidateStats', 'false'); // Don't need candidate stats
+      
+      const response = await fetch(`/api/positions?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch recruiter statistics');
+      }
+      
+      const data = await response.json();
+      const allPositions = data.data || [];
+      
+      // Calculate recruiter statistics from all positions
+      const stats: { [key: string]: number } = {};
+      allPositions.forEach((position: Position) => {
+        if (position.recruiterId) {
+          stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
+        } else {
+          stats.unassigned = (stats.unassigned || 0) + 1;
+        }
+      });
+      
+      setRecruiterStats(stats);
+    } catch (error) {
+      console.error('Error fetching recruiter statistics:', error);
+    }
+  }, []);
+
   // Remove the separate fetchStatistics function since it's now combined
   // const fetchStatistics = useCallback(async () => { ... }, [searchTerm, statusFilter, departmentFilter]);
 
@@ -279,6 +308,7 @@ export default function PositionsPageClient() {
   useEffect(() => {
     fetchPositions(false);
     fetchAllDepartments();
+    fetchRecruiterStats(); // Fetch recruiter stats independently
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -456,9 +486,10 @@ export default function PositionsPageClient() {
       setPositions(prev => [...prev, newPosition]);
       setIsAddModalOpen(false);
       toast.success('Position added successfully');
-      // Refresh departments in case a new department was added
+      // Refresh departments and recruiter stats in case a new department was added
       setTimeout(() => {
         fetchAllDepartments();
+        fetchRecruiterStats();
       }, 500);
     } catch (error) {
       toast.error('Failed to add position');
@@ -483,9 +514,10 @@ export default function PositionsPageClient() {
       setIsEditModalOpen(false);
       setSelectedPosition(null);
       toast.success('Position updated successfully');
-      // Refresh departments in case the department was changed
+      // Refresh departments and recruiter stats in case the department was changed
       setTimeout(() => {
         fetchAllDepartments();
+        fetchRecruiterStats();
       }, 500);
     } catch (error) {
       toast.error('Failed to update position');
@@ -508,6 +540,8 @@ export default function PositionsPageClient() {
       setPositions(prev => prev.filter(p => p.id !== positionToDelete.id));
       setPositionToDelete(null);
       toast.success('Position deleted successfully');
+      // Refresh recruiter stats after deletion
+      fetchRecruiterStats();
     } catch (error) {
       toast.error('Failed to delete position');
     }
@@ -535,6 +569,8 @@ export default function PositionsPageClient() {
       setPositions(prev => prev.filter(p => !selectedIds.includes(p.id)));
       setSelectedIds([]);
       toast.success('Selected positions deleted successfully');
+      // Refresh recruiter stats after bulk deletion
+      fetchRecruiterStats();
     } catch (error) {
       toast.error('Failed to delete some positions');
     }
@@ -1253,7 +1289,10 @@ export default function PositionsPageClient() {
         <ImportPositionsModal
           isOpen={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
-          onImportSuccess={fetchPositions}
+          onImportSuccess={() => {
+            fetchPositions();
+            fetchRecruiterStats();
+          }}
         />
       )}
       {canManagePositions && selectedPosition && (

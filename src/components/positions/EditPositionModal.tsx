@@ -364,15 +364,15 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                     <div className="space-y-2">
                       <Label htmlFor="recruiter-edit" className="font-medium">Assigned Recruiter</Label>
                       <Select
-                        value={form.watch('recruiterId') || ''}
-                        onValueChange={(value) => form.setValue('recruiterId', value || null)}
+                        value={form.watch('recruiterId') || 'none'}
+                        onValueChange={(value) => form.setValue('recruiterId', value === 'none' ? null : value)}
                         disabled={isSaving || isLoadingRecruiters}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder={isLoadingRecruiters ? "Loading recruiters..." : "Select a recruiter"} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No recruiter assigned</SelectItem>
+                          <SelectItem value="none">No recruiter assigned</SelectItem>
                           {recruiters.map((recruiter) => (
                             <SelectItem key={recruiter.id} value={recruiter.id}>
                               {recruiter.name}

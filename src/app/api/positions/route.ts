@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     const departmentFilter = searchParams.get('department'); // Expects comma-separated strings
     const isOpenFilter = searchParams.get('isOpen');
     const positionLevelFilter = searchParams.get('positionLevel');
+    const recruiterIdFilter = searchParams.get('recruiterId');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const includeStats = searchParams.get('includeStats') === 'true';
@@ -82,6 +83,12 @@ export async function GET(request: NextRequest) {
     if (positionLevelFilter) {
       conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
       queryParams.push(`%${positionLevelFilter}%`);
+    }
+    if (recruiterIdFilter === 'null') {
+      conditions.push(`p."recruiterId" IS NULL`);
+    } else if (recruiterIdFilter) {
+      conditions.push(`p."recruiterId" = $${paramIndex++}`);
+      queryParams.push(recruiterIdFilter);
     }
 
     if (conditions.length > 0) {

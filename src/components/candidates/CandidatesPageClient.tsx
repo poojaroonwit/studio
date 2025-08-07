@@ -163,22 +163,61 @@ export function CandidatesPageClient({
   // Calculate candidate score counts for fit score filter badges
   const candidateScoreCounts = useMemo(() => {
     const scoreRanges = getScoreRangesForChart();
-    const scoreRangeCounts: { [key: string]: number } = {};
+    const appliedScoreRangeCounts: { [key: string]: number } = {};
+    const matchingScoreRangeCounts: { [key: string]: number } = {};
     
     allCandidates.forEach((candidate: Candidate) => {
+      // Applied fit score (from top-level fitScore field)
       if (typeof candidate.fitScore === 'number') {
         scoreRanges.forEach(range => {
           if (candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
-            scoreRangeCounts[range.letter] = (scoreRangeCounts[range.letter] || 0) + 1;
+            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+          }
+        });
+      }
+      
+      // Matching fit score (from JobMatch table or parsedData.job_matches)
+      let matchingFitScore: number | undefined;
+      
+      // Check JobMatch table first
+      if (candidate.jobMatches && Array.isArray(candidate.jobMatches)) {
+        const maxMatchScore = Math.max(...candidate.jobMatches.map(match => match.fitScore || 0));
+        if (maxMatchScore > 0) {
+          matchingFitScore = maxMatchScore;
+        }
+      }
+      
+      // If no JobMatch, check parsedData.job_matches
+      if (!matchingFitScore && candidate.parsedData && typeof candidate.parsedData === 'object') {
+        const parsed = candidate.parsedData as any;
+        if (parsed.job_matches && Array.isArray(parsed.job_matches)) {
+          const maxMatchScore = Math.max(...parsed.job_matches.map((match: any) => match.fitScore || 0));
+          if (maxMatchScore > 0) {
+            matchingFitScore = maxMatchScore;
+          }
+        }
+      }
+      
+      // Count matching fit scores
+      if (typeof matchingFitScore === 'number') {
+        scoreRanges.forEach(range => {
+          if (matchingFitScore >= range.min && matchingFitScore <= range.max) {
+            matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
           }
         });
       }
     });
     
-    return scoreRanges.map(range => ({
-      letter: range.letter,
-      count: scoreRangeCounts[range.letter] || 0
-    }));
+    return {
+      applied: scoreRanges.map(range => ({
+        letter: range.letter,
+        count: appliedScoreRangeCounts[range.letter] || 0
+      })),
+      matching: scoreRanges.map(range => ({
+        letter: range.letter,
+        count: matchingScoreRangeCounts[range.letter] || 0
+      }))
+    };
   }, [allCandidates]);
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
@@ -814,6 +853,7 @@ export function CandidatesPageClient({
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
+      filterChangeTimeoutRef.current = null;
     }
     // Debounce the filter change to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
@@ -832,6 +872,9 @@ export function CandidatesPageClient({
       }
       setPage(1);
       setFilters(combinedFilters);
+      
+      // Don't update URL to prevent full page refresh
+      // The table will be updated through the useEffect that watches filters
     }, 150); // Reduced to 150ms for faster response
   };
 
@@ -979,7 +1022,7 @@ export function CandidatesPageClient({
         // Revert optimistic update on error
         revertOptimisticUpdate(candidateId, originalCandidate);
         
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
         const errorMessage = errorData.message || `Failed to update status: ${response.statusText}`;
         
         if (!suppressToast) {
@@ -1538,7 +1581,13 @@ export function CandidatesPageClient({
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Candidates</h2>
         <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
-        {isMissingTableError && ( <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> <p className="font-semibold">It looks like a required database table (e.g., &quot;Candidate&quot;, &quot;Position&quot;, &quot;User&quot;, &quot;RecruitmentStage&quot;) is missing or not accessible.</p> <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> </div> )}
+        {isMissingTableError && ( 
+          <div className="mb-6 p-4 border border-destructive bg-destructive/10 rounded-md text-sm"> 
+            <p className="font-semibold">It looks like a required database table (e.g., &quot;Candidate&quot;, &quot;Position&quot;, &quot;User&quot;, &quot;RecruitmentStage&quot;) is missing or not accessible.</p> 
+            <p className="mt-1">This usually means the database initialization script (`pg-init-scripts/init-db.sql`) did not run correctly when the PostgreSQL Docker container started.</p> 
+            <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> 
+          </div> 
+        )}
         <Button onClick={() => fetchPaginatedCandidates(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
       </div>
     );
@@ -1758,8 +1807,6 @@ export function CandidatesPageClient({
           );
         })()}
 
-
-
         <div className="flex flex-col sm:flex-row justify-between items-center gap-2 transition-all duration-300 ease-in-out">
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
@@ -1767,9 +1814,9 @@ export function CandidatesPageClient({
               {isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total) !== 1 ? 's' : ''}
             </span>
             {selectedCandidateIds.size > 0 && canManageCandidates && (
-                              <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
                     Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1781,42 +1828,50 @@ export function CandidatesPageClient({
                     <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
-                     <Users className="mr-2 h-4 w-4" /> Assign Recruiter
+                    <Users className="mr-2 h-4 w-4" /> Assign Recruiter
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
             <div className="flex gap-2 items-center ml-auto">
-              {/* Removed Clear All Filters button as per request */}
               {canManageCandidates && (
-                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105"> <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume) </Button>
+                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
+                  <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume)
+                </Button>
               )}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" /> </Button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {canManageCandidates && (
                     <DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}>
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
                     </DropdownMenuItem>
                   )}
-                  {canImportCandidates && (<DropdownMenuItem onSelect={handleDownloadTemplate}> <FileDown className="mr-2 h-4 w-4" /> Download Import Template </DropdownMenuItem>)}
-                                      {canExportCandidates && (
-                      <>
-                        <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}> 
-                          <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel) 
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}> 
-                          <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV) 
-                        </DropdownMenuItem>
-                      </>
-                    )}
-              
+                  {canImportCandidates && (
+                    <DropdownMenuItem onSelect={handleDownloadTemplate}>
+                      <FileDown className="mr-2 h-4 w-4" /> Download Import Template
+                    </DropdownMenuItem>
+                  )}
+                  {canExportCandidates && (
+                    <>
+                      <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
+                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}>
+                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV)
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
-          </div>
-{/* AI Search Results */}
+        </div>
+
+        {/* AI Search Results */}
         {aiSearchReasoning && (
           <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
             <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -1974,7 +2029,17 @@ export function CandidatesPageClient({
       </main>
 
       {canManageCandidates && <AddCandidateModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} onAddCandidate={handleAddCandidateSubmit} availableStages={availableStages} />}
-      {selectedPositionForEdit && ( <EditPositionModal isOpen={isEditPositionModalOpen} onOpenChange={(isOpen) => { setIsEditPositionModalOpen(isOpen); if (!isOpen) setSelectedPositionForEdit(null); }} position={selectedPositionForEdit} onEditPosition={handlePositionEdited} /> )}
+      {selectedPositionForEdit && (
+        <EditPositionModal 
+          isOpen={isEditPositionModalOpen} 
+          onOpenChange={(isOpen) => { 
+            setIsEditPositionModalOpen(isOpen); 
+            if (!isOpen) setSelectedPositionForEdit(null); 
+          }} 
+          position={selectedPositionForEdit} 
+          onEditPosition={handlePositionEdited} 
+        />
+      )}
       <AutomationUploadModal
         isOpen={isAutomationUploadModalOpen}
         onOpenChange={setIsAutomationUploadModalOpen}
@@ -2008,7 +2073,7 @@ export function CandidatesPageClient({
             </div>
           )}
           {bulkActionType === 'assign_recruiter' && (
-             <div className="my-4 space-y-2">
+            <div className="my-4 space-y-2">
               <Label htmlFor="bulk-new-recruiter">Assign to Recruiter</Label>
               <Select value={bulkNewRecruiterId || ''} onValueChange={(value) => setBulkNewRecruiterId(value === '___UNASSIGN___' ? null : value)}>
                 <SelectTrigger id="bulk-new-recruiter">
@@ -2017,8 +2082,8 @@ export function CandidatesPageClient({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="___UNASSIGN___">Unassign</SelectItem>
-                    {availableRecruiters.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  <SelectItem value="___UNASSIGN___">Unassign</SelectItem>
+                  {availableRecruiters.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -51,14 +51,14 @@ export function RecruiterFilterSidebar({
 
   if (isLoading) {
     return (
-      <Card className="h-fit">
-        <CardHeader>
+      <Card className="h-fit border-0 shadow-none">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
             Recruiters
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0 px-2">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
@@ -69,14 +69,14 @@ export function RecruiterFilterSidebar({
 
   if (error) {
     return (
-      <Card className="h-fit">
-        <CardHeader>
+      <Card className="h-fit border-0 shadow-none">
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
             Recruiters
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0 px-2">
           <div className="text-center py-4">
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
@@ -86,20 +86,20 @@ export function RecruiterFilterSidebar({
   }
 
   return (
-    <Card className="h-fit">
-      <CardHeader>
+    <Card className="h-fit border-0 shadow-none">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Users className="h-5 w-5" />
           Recruiters
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0 px-2">
         <ScrollArea className="h-[400px]">
-          <div className="space-y-2">
+          <div className="space-y-1">
             {/* All Recruiters Option */}
             <Button
               variant={selectedRecruiterId === null ? "default" : "ghost"}
-              className="w-full justify-start h-auto p-3"
+              className="w-full justify-start h-auto p-2"
               onClick={() => handleRecruiterClick(null)}
             >
               <div className="flex items-center justify-between w-full">
@@ -116,7 +116,7 @@ export function RecruiterFilterSidebar({
             {/* Unassigned Positions */}
             <Button
               variant={selectedRecruiterId === 'unassigned' ? "default" : "ghost"}
-              className="w-full justify-start h-auto p-3"
+              className="w-full justify-start h-auto p-2"
               onClick={() => handleRecruiterClick('unassigned')}
             >
               <div className="flex items-center justify-between w-full">
@@ -135,7 +135,7 @@ export function RecruiterFilterSidebar({
               <Button
                 key={recruiter.id}
                 variant={selectedRecruiterId === recruiter.id ? "default" : "ghost"}
-                className="w-full justify-start h-auto p-3"
+                className="w-full justify-start h-auto p-2"
                 onClick={() => handleRecruiterClick(recruiter.id)}
               >
                 <div className="flex items-center justify-between w-full">

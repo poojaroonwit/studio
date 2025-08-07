@@ -477,7 +477,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                     {displayedCandidates.map(candidate => (
                       <TableRow key={candidate.id} className="cursor-pointer hover:bg-muted/40" onClick={() => {
                        
-                        setSelectedCandidate(candidate);
+                        setSelectedTask(candidate);
                       }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -507,7 +507,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                           <Button size="sm" variant="outline" onClick={e => { 
                             e.stopPropagation(); 
                            
-                            setSelectedCandidate(candidate); 
+                            setSelectedTask(candidate); 
                           }}>
                             View
                           </Button>

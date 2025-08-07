@@ -17,10 +17,6 @@ const candidateFields = [
   { key: 'recruiterId', label: 'Recruiter', icon: '👤' },
   { key: 'positionId', label: 'Position', icon: '💼' },
   { key: 'fitScore', label: 'Fit Score', icon: '🎯' },
-  { key: 'applicationDate', label: 'Application Date', icon: '📅' },
-  { key: 'name', label: 'Name', icon: '👨‍💼' },
-  { key: 'email', label: 'Email', icon: '📧' },
-  { key: 'phone', label: 'Phone', icon: '📞' },
 ];
 
 interface CustomizeBoardModalProps {
@@ -343,63 +339,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
           }
         }
         return ['0-20', '21-40', '41-60', '61-80', '81-100'];
-      case 'applicationDate':
-        if (candidates.length > 0) {
-          const dates = candidates.map(c => c.applicationDate).filter(d => d);
-          if (dates.length > 0) {
-            const now = new Date();
-            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-            
-            return [
-              'This Week',
-              'Last Week', 
-              'This Month',
-              'Last Month',
-              'Older'
-            ];
-          }
-        }
-        return ['This Week', 'Last Week', 'This Month', 'Last Month', 'Older'];
-      case 'name':
-        if (candidates.length > 0) {
-          const names = candidates.map(c => c.name).filter(n => n);
-          if (names.length > 0) {
-            const firstLetters = [...new Set(names.map(n => n.charAt(0).toUpperCase()))].sort();
-            if (firstLetters.length > 1) {
-              const midPoint = Math.ceil(firstLetters.length / 2);
-              return [
-                `${firstLetters[0]}-${firstLetters[midPoint - 1]}`,
-                `${firstLetters[midPoint]}-${firstLetters[firstLetters.length - 1]}`
-              ];
-            }
-          }
-        }
-        return ['A-M', 'N-Z'];
-      case 'email':
-        if (candidates.length > 0) {
-          const emails = candidates.map(c => c.email).filter(e => e);
-          if (emails.length > 0) {
-            const domains = [...new Set(emails.map(e => e.split('@')[1]))].slice(0, 5);
-            return domains.length > 0 ? domains : ['Company A', 'Company B', 'Company C'];
-          }
-        }
-        return ['Company A', 'Company B', 'Company C'];
-      case 'phone':
-        if (candidates.length > 0) {
-          const phones = candidates.map(c => c.phone).filter(p => p);
-          if (phones.length > 0) {
-            const available = phones.filter(p => p && p.trim() !== '').length;
-            const unavailable = phones.length - available;
-            return [
-              `Available (${available})`,
-              `Not Available (${unavailable})`
-            ];
-          }
-        }
-        return ['Available', 'Not Available'];
+
       default:
         // For any other field, check both root and customAttributes
         if (candidates.length > 0) {

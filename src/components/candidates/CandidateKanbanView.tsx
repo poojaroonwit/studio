@@ -517,9 +517,20 @@ export function FlexibleKanbanView({
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   
+  // Helper function to get the proper value for a field
+  const getFieldValue = (candidate: Candidate, field: string) => {
+    if (field === 'recruiterId') {
+      return candidate.recruiter?.name || 'Unassigned';
+    }
+    if (field === 'positionId') {
+      return candidate.position?.title || candidate.positionId || 'No Position';
+    }
+    return candidate[field as keyof typeof candidate] ?? candidate.customAttributes?.[field];
+  };
+
   let rowValuesToShow = visibleRowValues.length > 0
     ? visibleRowValues
-    : Array.from(new Set(candidates.map(c => (c[rowField as keyof typeof c] ?? c.customAttributes?.[rowField])))).filter(Boolean);
+    : Array.from(new Set(candidates.map(c => getFieldValue(c, rowField)))).filter(Boolean);
   if (rowValuesToShow.length === 0) {
     rowValuesToShow = ['All Candidates'];
   }
@@ -528,7 +539,7 @@ export function FlexibleKanbanView({
   const showSingleRow = !isRowBased || rowField === 'none';
   const effectiveColumnValues = isColumnBased && visibleColumnValues.length > 0
     ? visibleColumnValues
-    : Array.from(new Set(candidates.map(c => (c[columnField as keyof typeof c] ?? c.customAttributes?.[columnField])))).filter(Boolean);
+    : Array.from(new Set(candidates.map(c => getFieldValue(c, columnField)))).filter(Boolean);
   const effectiveColumnField = isColumnBased ? columnField : null;
 
   const handleCardClick = (candidate: Candidate) => {
@@ -582,22 +593,22 @@ export function FlexibleKanbanView({
       if (isColumnBased && !isRowBased) {
         // Column-based layout: update column field
         const newValue = colValue;
-        if (draggedCandidate[columnField as keyof typeof draggedCandidate] !== newValue) {
+        if (getFieldValue(draggedCandidate, columnField) !== newValue) {
           onMoveCandidate?.(draggedCandidate, newValue);
         }
       } else if (isRowBased && !isColumnBased) {
         // Row-based layout: update row field
         const newValue = rowValue;
-        if (draggedCandidate[rowField as keyof typeof draggedCandidate] !== newValue) {
+        if (getFieldValue(draggedCandidate, rowField) !== newValue) {
           onMoveCandidate?.(draggedCandidate, newValue);
         }
       } else if (isRowBased && isColumnBased) {
         // Both row and column: update both fields
         const updateData: any = {};
-        if (draggedCandidate[rowField as keyof typeof draggedCandidate] !== rowValue) {
+        if (getFieldValue(draggedCandidate, rowField) !== rowValue) {
           updateData[rowField] = rowValue;
         }
-        if (draggedCandidate[columnField as keyof typeof draggedCandidate] !== colValue) {
+        if (getFieldValue(draggedCandidate, columnField) !== colValue) {
           updateData[columnField] = colValue;
         }
         
@@ -639,14 +650,14 @@ export function FlexibleKanbanView({
         : ['All'];
     // Find candidates that do not match any column value
     const uncategorizedCandidates = candidates.filter(candidate => {
-      const colValue = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+      const colValue = getFieldValue(candidate, columnField);
       return !columnsToShow.includes(colValue);
     });
     return (
       <div className="w-full h-[calc(100vh-200px)] bg-muted/30 rounded-lg p-4 flex gap-4">
         {columnsToShow.map((colValue) => {
           const colCandidates = candidates.filter(candidate =>
-            (candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField]) === colValue
+            getFieldValue(candidate, columnField) === colValue
           );
           return (
             <div key={colValue} className="flex flex-col h-full" style={{ flex: '1 1 0%' }}>
@@ -851,14 +862,14 @@ export function FlexibleKanbanView({
     const uncategorizedByCol: Record<string, any[]> = {};
     effectiveColumnValues.forEach(colValue => {
       uncategorizedByCol[colValue] = candidates.filter(candidate => {
-        const rowValue = candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField];
-        const colVal = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+        const rowValue = getFieldValue(candidate, rowField);
+        const colVal = getFieldValue(candidate, columnField);
         return colVal === colValue && !rowValuesToShow.includes(rowValue);
       });
     });
     // Find candidates that do not match any column value
     const uncategorizedColCandidates = candidates.filter(candidate => {
-      const colVal = candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField];
+      const colVal = getFieldValue(candidate, columnField);
       return !effectiveColumnValues.includes(colVal);
     });
     return (
@@ -882,8 +893,8 @@ export function FlexibleKanbanView({
               <div className="flex-1 min-h-0 p-4 space-y-4">
                 {rowValuesToShow.map(rowValue => {
                   const cellCandidates = candidates.filter(candidate =>
-                    (candidate[rowField as keyof typeof candidate] ?? candidate.customAttributes?.[rowField]) === rowValue &&
-                    (candidate[columnField as keyof typeof candidate] ?? candidate.customAttributes?.[columnField]) === colValue
+                    getFieldValue(candidate, rowField) === rowValue &&
+                    getFieldValue(candidate, columnField) === colValue
                   );
                   return (
                     <div key={rowValue} className="space-y-2">
@@ -1380,12 +1391,23 @@ export function SingleRowKanbanView({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCandidateSummary, setSelectedCandidateSummary] = useState<Partial<Candidate> & { id: string; name: string } | null>(null);
 
+  // Helper function to get the proper value for a field
+  const getFieldValue = (candidate: Candidate, field: string) => {
+    if (field === 'recruiterId') {
+      return candidate.recruiter?.name || 'Unassigned';
+    }
+    if (field === 'positionId') {
+      return candidate.position?.title || candidate.positionId || 'No Position';
+    }
+    return candidate[field as keyof typeof candidate] ?? candidate.customAttributes?.[field];
+  };
+
   // Filter candidates to only show those that match the current row/column configuration
   const filteredCandidates = useMemo(() => {
     return candidates.filter(candidate => {
-      const rowValue = (candidate[rowField as keyof Candidate] ?? candidate.customAttributes?.[rowField]);
+      const rowValue = getFieldValue(candidate, rowField);
       const colValue = columnField && columnField !== 'none' 
-        ? (candidate[columnField as keyof Candidate] ?? candidate.customAttributes?.[columnField])
+        ? getFieldValue(candidate, columnField)
         : null;
       
       // FIXED: More permissive filtering logic
@@ -1871,7 +1893,16 @@ export function HorizontalStageKanbanView({
   const getColumnValue = (candidate: Candidate) => {
     if (columnField === 'none') return 'All Candidates';
     if (columnField === 'status') return candidate.status;
-    if (columnField === 'recruiterId') return candidate.recruiter?.name || candidate.recruiterId || 'Unassigned';
+    if (columnField === 'recruiterId') {
+      // For recruiterId, we need to match against recruiter names, not IDs
+      // If the candidate has a recruiter object with a name, use that
+      if (candidate.recruiter?.name) {
+        return candidate.recruiter.name;
+      }
+      // If no recruiter name but has recruiterId, we need to find the recruiter name
+      // This should be handled by the API, but as a fallback, return 'Unassigned'
+      return 'Unassigned';
+    }
     if (columnField === 'positionId') return candidate.position?.title || candidate.positionId || 'No Position';
     if (columnField === 'fitScore') {
       if (candidate.fitScore === null || candidate.fitScore === undefined) return 'No Score';

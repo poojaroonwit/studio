@@ -435,6 +435,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         inputs,
         response_mode: responseMode, // Use configured response mode (blocking/streaming)
         user: job.id, // Use queue job id instead of hardcoded value
+        request_type: job.webhook_payload?.request_type || "create", // Use request_type from webhook_payload or default to "create"
       };
       let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
       if (!webhookToken) {

@@ -77,7 +77,13 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) {
-        return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    
+    // Check permissions
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+        await logAudit('WARN', `Forbidden attempt to move recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Move', actingUserId);
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
     let body;

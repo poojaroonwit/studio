@@ -1,8 +1,8 @@
-# CandiTrack - Modern Applicant Tracking System
+# FitScan - Modern Applicant Tracking System
 
 A comprehensive, enterprise-grade Applicant Tracking System (ATS) built with Next.js, featuring advanced candidate management, automated workflows, and seamless integrations.
 
-![CandiTrack](https://img.shields.io/badge/Next.js-14.2.3-black?style=for-the-badge&logo=next.js)
+![FitScan](https://img.shields.io/badge/Next.js-14.2.3-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-green?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-20.10-blue?style=for-the-badge&logo=docker)
@@ -191,7 +191,7 @@ GOOGLE_API_KEY=your-google-ai-key
 
 ## 🤖 N8N Workflow Automation
 
-CandiTrack includes N8N for powerful workflow automation capabilities. N8N allows you to create automated workflows that can integrate with your recruitment processes.
+FitScan includes N8N for powerful workflow automation capabilities. N8N allows you to create automated workflows that can integrate with your recruitment processes.
 
 ### Features
 - **Visual Workflow Builder**: Drag-and-drop interface for creating automation workflows
@@ -496,4 +496,4 @@ tail -f logs/app.log
 
 ---
 
-**CandiTrack** - Modern, scalable, and feature-rich Applicant Tracking System 
+**FitScan** - Modern, scalable, and feature-rich Applicant Tracking System 

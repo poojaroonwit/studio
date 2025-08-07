@@ -70,9 +70,9 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
           <img
             src={logoToUse}
             alt="App Logo"
-            width={32}
-            height={32}
-            className="h-8 w-8 object-contain"
+            width={100}
+            height={100}
+            className="h-12 w-12 object-contain"
             data-ai-hint="company logo"
           />
           {/* Fallback icon that shows if image fails to load */}

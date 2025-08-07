@@ -1,5 +1,5 @@
 # Software Requirements Specification (SRS)
-## CandiTrack - Applicant Tracking System
+## FitScan - Applicant Tracking System
 
 **Version:** 2.0
 **Date:** 2025-01-27
@@ -49,11 +49,11 @@
 
 ### 1.1. Purpose
 
-This Software Requirements Specification (SRS) document describes the functional and non-functional requirements for the CandiTrack Applicant Tracking System (ATS). It serves as a guide for the development, testing, and deployment of the system, reflecting its current enhanced capabilities and implementation status.
+This Software Requirements Specification (SRS) document describes the functional and non-functional requirements for the FitScan Applicant Tracking System (ATS). It serves as a guide for the development, testing, and deployment of the system, reflecting its current enhanced capabilities and implementation status.
 
 ### 1.2. Scope
 
-The CandiTrack ATS is a web-based application designed to manage the recruitment lifecycle. This includes:
+The FitScan ATS is a web-based application designed to manage the recruitment lifecycle. This includes:
 
 | Area                                      | Description                                                                                      | Status |
 | :---------------------------------------- | :----------------------------------------------------------------------------------------------- | :----- |
@@ -88,7 +88,7 @@ Features currently out of scope for the prototype include advanced AI matching, 
 
 ### 1.4. References
 
-*   Business Requirements Document (BRD) - CandiTrack ATS
+*   Business Requirements Document (BRD) - FitScan ATS
 *   Project README.md
 *   ShadCN UI Documentation
 *   Next.js Documentation
@@ -102,7 +102,7 @@ This document details the system's capabilities, constraints, and interfaces. Se
 
 ### 2.1. Product Perspective
 
-The CandiTrack ATS is a self-contained web application. It interacts with a PostgreSQL database for data persistence and a MinIO server for file storage (e.g., resumes, candidate avatars). It can optionally integrate with Azure AD for SSO and a workflow automation service via webhooks. It features server-side configuration for several aspects of its operation.
+The FitScan ATS is a self-contained web application. It interacts with a PostgreSQL database for data persistence and a MinIO server for file storage (e.g., resumes, candidate avatars). It can optionally integrate with Azure AD for SSO and a workflow automation service via webhooks. It features server-side configuration for several aspects of its operation.
 
 ### 2.2. Product Functions
 

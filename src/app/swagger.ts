@@ -1,9 +1,9 @@
 const swaggerSpec = {
   openapi: "3.0.0",
   info: {
-    title: "CandiTrack API",
+    title: "FitScan API",
     version: "1.0.0",
-    description: "API documentation for CandiTrack"
+    description: "API documentation for FitScan"
   },
   servers: [
     { url: "http://localhost:8012", description: "Local server" }

@@ -865,7 +865,7 @@ export default function SystemPreferencesPage() {
                           type="text"
                           value={appName}
                           onChange={(e) => setAppName(e.target.value)}
-                          placeholder="e.g., CandiTrack Pro"
+                          placeholder="e.g., FitScan Pro"
                           disabled={!canEdit}
                         />
                         <p className="text-xs text-muted-foreground">

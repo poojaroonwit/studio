@@ -22,7 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card imports
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users, BrainCircuit } from 'lucide-react';
-import type { Position, Candidate } from '@/lib/types';
+import type { Position, Candidate, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,6 +39,7 @@ const editPositionFormSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
+  recruiterId: z.string().uuid().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -59,6 +60,8 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [recruiters, setRecruiters] = useState<UserProfile[]>([]);
+  const [isLoadingRecruiters, setIsLoadingRecruiters] = useState(false);
   const { error: showError, success: showSuccess } = useToast();
 
   const form = useForm<EditPositionFormValues>({
@@ -70,6 +73,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
+      recruiterId: '',
     },
   });
 
@@ -92,6 +96,25 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         }
       };
       fetchDefaultMatchCriteria();
+
+      const fetchRecruiters = async () => {
+        setIsLoadingRecruiters(true);
+        try {
+          const response = await fetch('/api/users?role=Recruiter');
+          if (!response.ok) {
+            throw new Error('Failed to fetch recruiters');
+          }
+          const recruitersData = await response.json();
+          setRecruiters(recruitersData);
+        } catch (error) {
+          console.error('Error fetching recruiters:', error);
+          showError('Could not load recruiters.');
+          setRecruiters([]);
+        } finally {
+          setIsLoadingRecruiters(false);
+        }
+      };
+      fetchRecruiters();
 
       const fetchCandidates = async () => {
         if (!position.id) return;
@@ -116,7 +139,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       fetchCandidates();
 
     } else if (!isOpen) {
-        form.reset({ title: '', department: '', description: '', matchCriteria: '', isOpen: true, positionLevel: '' });
+        form.reset({ title: '', department: '', description: '', matchCriteria: '', isOpen: true, positionLevel: '', recruiterId: '' });
         setAssociatedCandidates([]);
         setIsModalReady(false);
     }
@@ -132,6 +155,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         matchCriteria: position.matchCriteria ?? '',
         isOpen: typeof position.isOpen === 'boolean' ? position.isOpen : true,
         positionLevel: position.positionLevel ?? '',
+        recruiterId: position.recruiterId ?? '',
       };
       
       console.log('Resetting form with values:', newValues);
@@ -334,6 +358,30 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                       />
                       {form.formState.errors.positionLevel && (
                         <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="recruiter-edit" className="font-medium">Assigned Recruiter</Label>
+                      <Select
+                        value={form.watch('recruiterId') || ''}
+                        onValueChange={(value) => form.setValue('recruiterId', value || null)}
+                        disabled={isSaving || isLoadingRecruiters}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingRecruiters ? "Loading recruiters..." : "Select a recruiter"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No recruiter assigned</SelectItem>
+                          {recruiters.map((recruiter) => (
+                            <SelectItem key={recruiter.id} value={recruiter.id}>
+                              {recruiter.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {form.formState.errors.recruiterId && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.recruiterId.message}</p>
                       )}
                     </div>
                     <div className="flex items-center space-x-2 pt-2">

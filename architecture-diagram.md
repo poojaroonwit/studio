@@ -1,13 +1,13 @@
-# CandiTrack - High-Level Architecture Diagram
+# FitScan - High-Level Architecture Diagram
 
 ## System Overview
-CandiTrack is a comprehensive recruitment management system built with Next.js 14, featuring AI-powered candidate matching, real-time collaboration, and workflow automation.
+FitScan is a comprehensive recruitment management system built with Next.js 14, featuring AI-powered candidate matching, real-time collaboration, and workflow automation.
 
 ## Architecture Components
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    CandiTrack Architecture                                        │
+│                                    FitScan Architecture                                        │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -259,4 +259,4 @@ CandiTrack is a comprehensive recruitment management system built with Next.js 1
 - **Load Balancing**: Support for multiple application instances
 - **Monitoring**: Comprehensive health checks and performance monitoring
 
-This architecture provides a robust, scalable, and maintainable foundation for the CandiTrack recruitment management system, supporting both current requirements and future growth. 
+This architecture provides a robust, scalable, and maintainable foundation for the FitScan recruitment management system, supporting both current requirements and future growth. 

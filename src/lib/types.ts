@@ -295,6 +295,8 @@ export interface Position {
   matchCriteria?: string | null;
   isOpen: boolean;
   positionLevel?: string | null;
+  recruiterId?: string | null;
+  recruiterName?: string | null;
   customAttributes?: Record<string, any> | null;
   createdAt?: string;
   updatedAt?: string;

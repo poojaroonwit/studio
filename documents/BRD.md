@@ -1,8 +1,8 @@
-# Business Requirements Document (BRD) - CandiTrack ATS
+# Business Requirements Document (BRD) - FitScan ATS
 
 ## 1. Executive Summary
 
-This document outlines the business requirements for the CandiTrack Applicant Tracking System (ATS). The project has successfully developed a modern, web-based platform to streamline the recruitment process by efficiently managing candidate information, job positions, user interactions, and system configurations. The ATS serves as a central hub for recruiters, hiring managers, and administrators to collaborate and track applicants from initial application to hiring, with enhanced control and customization.
+This document outlines the business requirements for the FitScan Applicant Tracking System (ATS). The project has successfully developed a modern, web-based platform to streamline the recruitment process by efficiently managing candidate information, job positions, user interactions, and system configurations. The ATS serves as a central hub for recruiters, hiring managers, and administrators to collaborate and track applicants from initial application to hiring, with enhanced control and customization.
 
 ## 2. Project Objectives
 

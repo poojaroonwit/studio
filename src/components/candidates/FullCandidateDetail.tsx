@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format, differenceInMonths } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target, Copy, Check, RefreshCw } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -46,12 +46,13 @@ import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
 import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
+import ReprocessModal from './ReprocessModal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
-const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "canditrack-resumes";
+const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "fitscan-resumes";
 
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
 const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
@@ -263,6 +264,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
   const { data: session } = useSession();
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+  const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
+  const [copiedJobApplied, setCopiedJobApplied] = useState(false);
 
   // Form setup
   const {
@@ -964,6 +967,40 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     );
   }
 
+  // Update getGradeFromScore to handle both 0-1 and 0-100 input
+  const getGradeFromScore = (score: number): string => {
+    let percent = score;
+    if (typeof percent === 'number' && percent >= 0 && percent <= 1) percent = percent * 100;
+    if (percent >= 80) return 'A';
+    if (percent >= 60) return 'B';
+    if (percent >= 40) return 'C';
+    if (percent >= 20) return 'D';
+    return 'E';
+  };
+
+  const copyJobAppliedToClipboard = async () => {
+    if (!appliedJobId) return;
+    
+    const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
+    const jobTitle = position?.title || 'Unknown Position';
+    const fitScore = appliedFitScore !== null && appliedFitScore !== undefined 
+      ? `${displayFitScore(appliedFitScore)} (${getGradeFromScore(appliedFitScore)})`
+      : 'Not set';
+    const justification = appliedJustification.length > 0 
+      ? appliedJustification.join('\n• ')
+      : 'No justification provided';
+    
+    const textToCopy = `Job Applied: ${jobTitle}\nFit Score: ${fitScore}\nJustification:\n• ${justification}`;
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedJobApplied(true);
+      setTimeout(() => setCopiedJobApplied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
   // After all hooks are declared, place the early returns:
   if (loading) {
     return (
@@ -1153,6 +1190,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       <Users className="h-4 w-4 mr-2" />
                       Manage Transitions
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
+                      onClick={() => setIsReprocessModalOpen(true)}
+                      disabled={!resumes || resumes.length === 0}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Re-process
+                    </Button>
                   </>
                 ) : (
                   <div className="flex gap-2">
@@ -1248,13 +1295,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         <div className="lg:col-span-5 space-y-8 border-r border-l border-border p-8 max-h-[calc(100vh-200px)] overflow-y-auto bg-muted/50">
           {/* Job Applied Section */}
           <section className="mb-4">
-            <button type="button" className="flex items-center mb-6 w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
-              <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
-                <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
-              {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
-            </button>
+            <div className="flex items-center justify-between mb-6">
+              <button type="button" className="flex items-center w-full group" onClick={() => setJobAppliedOpen(o => !o)}>
+                <div className="mr-3 p-2 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-lg">
+                  <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
+                {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
+              </button>
+              {appliedJobId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyJobAppliedToClipboard}
+                  className="h-8 w-8 p-0"
+                  title="Copy job applied information"
+                >
+                  {copiedJobApplied ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
             {jobAppliedOpen && (
               <div className="space-y-4 transition-all duration-200">
                 {isEditing ? (
@@ -2367,6 +2431,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         onClose={() => setIsAttachmentModalOpen(false)}
         onUploadSuccess={onRefresh}
       />
+
+      {/* Re-process Modal */}
+      {candidate && (
+        <ReprocessModal
+          isOpen={isReprocessModalOpen}
+          onOpenChange={setIsReprocessModalOpen}
+          candidateId={candidate.id}
+          candidateName={candidate.name || 'Unknown Candidate'}
+          candidatePositionId={candidate.positionId}
+          attachments={resumes}
+          positions={availablePositions}
+        />
+      )}
     </div>
   );
  };

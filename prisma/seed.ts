@@ -167,7 +167,7 @@ async function main() {
     // Seed default system settings
     console.log('Creating default system settings...');
     const systemSettings = [
-      { key: 'appName', value: 'CandiTrack' },
+      { key: 'appName', value: 'FitScan' },
       { key: 'appThemePreference', value: 'system' },
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },

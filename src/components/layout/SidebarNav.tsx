@@ -24,6 +24,8 @@ import { useSession } from "next-auth/react";
 import type { PlatformModuleId } from '@/lib/types';
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRecentUrls, formatRelativeTime } from "@/hooks/use-recent-urls";
+import { Clock, X } from "lucide-react";
 
 // Add this at the top for TypeScript global declaration
 declare global {
@@ -137,6 +139,7 @@ const SidebarNavComponent = function SidebarNav() {
   const { data: session, status: sessionStatus } = useSession();
   const userRole = session?.user?.role;
   const { open, toggleSidebar } = useSidebar();
+  const { recentUrls, clearRecentUrls } = useRecentUrls();
 
   const [isClient, setIsClient] = React.useState(false);
 
@@ -261,7 +264,7 @@ const SidebarNavComponent = function SidebarNav() {
               </SidebarMenuButton>
             </Link>
           </MenuItemWithTooltip>
-          {isClient && (userRole === 'Recruiter' || userRole === 'Admin') && (
+          {isClient && userRole && (
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
               <Link href={myTaskBoardNavItem.href} passHref legacyBehavior>
                 <SidebarMenuButton
@@ -331,6 +334,43 @@ const SidebarNavComponent = function SidebarNav() {
           </MenuItemWithTooltip>
         </div>
 
+        {/* Recently visited URLs in collapsed mode */}
+        {recentUrls.length > 0 && (
+          <div className="flex flex-col items-center gap-1 mb-4">
+            <div className="flex items-center gap-1 mb-2">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <button
+                onClick={clearRecentUrls}
+                className="p-1 hover:bg-accent rounded-sm"
+                title="Clear recent URLs"
+              >
+                <X className="h-2 w-2" />
+              </button>
+            </div>
+            {recentUrls.slice(0, 3).map((url) => (
+              <MenuItemWithTooltip key={url.path} label={`${url.label} - ${formatRelativeTime(url.timestamp)}`}>
+                <Link href={url.path} passHref legacyBehavior>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === url.path}
+                    className={cn(
+                      "rounded-full p-2 mx-auto flex items-center justify-center",
+                      pathname === url.path ? "shadow" : "hover:bg-accent"
+                    )}
+                    style={pathname === url.path ? getActiveButtonStyles(sidebarStyles) : {}}
+                    size="default"
+                    data-active={pathname === url.path}
+                  >
+                    <a>
+                      <Clock className="h-3 w-3" />
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </MenuItemWithTooltip>
+            ))}
+          </div>
+        )}
+        
         {/* Footer items at the bottom */}
         <div className="flex flex-col items-center gap-2 mt-auto">
           <MenuItemWithTooltip label={bulkUploadNavItem.label}>
@@ -422,7 +462,7 @@ const SidebarNavComponent = function SidebarNav() {
             </Link>
           </MenuItemWithTooltip>
         </SidebarMenuItem>
-        {isClient && (userRole === 'Recruiter' || userRole === 'Admin') && (
+        {isClient && userRole && (
           <SidebarMenuItem key={myTaskBoardNavItem.href}>
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
               <Link href={myTaskBoardNavItem.href} passHref legacyBehavior>
@@ -495,6 +535,52 @@ const SidebarNavComponent = function SidebarNav() {
           </MenuItemWithTooltip>
         </SidebarMenuItem>
       </SidebarMenu>
+      
+      {/* Recently Visited URLs */}
+      {recentUrls.length > 0 && (
+        <SidebarMenu style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}}>
+          <SidebarSeparator className="my-2" />
+          <div className="flex items-center justify-between px-3 py-2">
+            <SidebarGroupLabel className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Recently Visited
+            </SidebarGroupLabel>
+            <button
+              onClick={clearRecentUrls}
+              className="p-1 hover:bg-accent rounded-sm"
+              title="Clear recent URLs"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          {recentUrls.slice(0, 5).map((url) => (
+            <SidebarMenuItem key={url.path}>
+              <MenuItemWithTooltip label={url.label}>
+                <Link href={url.path} passHref legacyBehavior>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === url.path}
+                    className="w-full justify-start"
+                    style={pathname === url.path ? getActiveButtonStyles(sidebarStyles) : {}}
+                    size="default"
+                    data-active={pathname === url.path}
+                  >
+                    <a>
+                      <Clock className="h-4 w-4" />
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="truncate group-data-[collapsible=icon]:hidden">{url.label}</span>
+                        <span className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+                          {formatRelativeTime(url.timestamp)}
+                        </span>
+                      </div>
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </MenuItemWithTooltip>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      )}
       
       {/* Footer Group: Other (Bulk Actions, Settings, Manual, Power BI) */}
       <div className="mt-auto">

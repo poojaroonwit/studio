@@ -1,4 +1,4 @@
-# **App Name**: CandiTrack
+# **App Name**: FitScan
 
 ## Core Features:
 

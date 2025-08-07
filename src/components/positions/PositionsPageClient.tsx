@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
+import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -57,7 +58,8 @@ export default function PositionsPageClient() {
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
-  
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(null);
+  const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
@@ -115,6 +117,12 @@ export default function PositionsPageClient() {
     setDepartmentFilter(dept);
     setDepartmentPopoverOpen(false);
     setDepartmentSearch('');
+  };
+
+  // Handler for recruiter selection
+  const handleRecruiterSelect = (recruiterId: string | null) => {
+    setSelectedRecruiterId(recruiterId);
+    setPage(1); // Reset to first page when changing recruiter filter
   };
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
@@ -211,6 +219,11 @@ export default function PositionsPageClient() {
       if (filters.searchTerm) query.append('title', filters.searchTerm);
       if (filters.statusFilter !== 'all') query.append('isOpen', filters.statusFilter === 'open' ? 'true' : 'false');
       if (filters.departmentFilter !== 'all') query.append('department', filters.departmentFilter);
+      if (selectedRecruiterId === 'unassigned') {
+        query.append('recruiterId', 'null');
+      } else if (selectedRecruiterId) {
+        query.append('recruiterId', selectedRecruiterId);
+      }
       query.append('limit', String(filters.pageSize));
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
       query.append('includeStats', 'true'); // Include statistics in the same call
@@ -221,8 +234,12 @@ export default function PositionsPageClient() {
         throw new Error('Failed to fetch positions');
       }
               const data = await response.json();
-        setPositions(data.data || []);
+        const positionsData = data.data || [];
+        setPositions(positionsData);
         setTotal(data.total || 0);
+        
+        // Calculate recruiter statistics
+        calculateRecruiterStats(positionsData);
       
             // Update statistics if included in response
       if (data.statistics) {
@@ -238,7 +255,22 @@ export default function PositionsPageClient() {
         setIsLoading(false);
       }
     }
-  }, []); // Empty dependency array makes this function stable
+  }, [selectedRecruiterId]); // Include selectedRecruiterId in dependencies
+
+  // Calculate recruiter statistics from positions data
+  const calculateRecruiterStats = useCallback((positionsData: Position[]) => {
+    const stats: { [key: string]: number } = {};
+    
+    positionsData.forEach(position => {
+      if (position.recruiterId) {
+        stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
+      } else {
+        stats.unassigned = (stats.unassigned || 0) + 1;
+      }
+    });
+    
+    setRecruiterStats(stats);
+  }, []);
 
   // Remove the separate fetchStatistics function since it's now combined
   // const fetchStatistics = useCallback(async () => { ... }, [searchTerm, statusFilter, departmentFilter]);
@@ -288,7 +320,7 @@ export default function PositionsPageClient() {
         searchTimeoutRef.current = null;
       }
     };
-  }, [searchTerm, statusFilter, departmentFilter, fetchPositions]);
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, fetchPositions]);
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -389,6 +421,7 @@ export default function PositionsPageClient() {
       case 'department': return position.department?.toLowerCase() || '';
       case 'status': return position.isOpen ? 'open' : 'closed';
       case 'level': return position.positionLevel?.toLowerCase() || '';
+      case 'recruiter': return position.recruiterName?.toLowerCase() || '';
       case 'created': return position.createdAt || '';
       case 'updated': return position.updatedAt || '';
       default: return '';
@@ -516,9 +549,21 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Filters on top */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div className="p-6">
+      <div className="flex gap-6">
+        {/* Recruiter Filter Sidebar */}
+        <div className="w-80 flex-shrink-0">
+          <RecruiterFilterSidebar
+            selectedRecruiterId={selectedRecruiterId}
+            onRecruiterSelect={handleRecruiterSelect}
+            recruiterStats={recruiterStats}
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 space-y-6">
+          {/* Filters on top */}
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
           <div className="relative">
             {isSearching ? (
@@ -668,6 +713,11 @@ export default function PositionsPageClient() {
               Department: {departmentFilter}
             </Badge>
           )}
+          {selectedRecruiterId && (
+            <Badge variant="secondary" className="text-xs">
+              Recruiter: {selectedRecruiterId === 'unassigned' ? 'Unassigned' : 'Filtered'}
+            </Badge>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -676,6 +726,7 @@ export default function PositionsPageClient() {
               setSearchTerm('');
               setStatusFilter('all');
               setDepartmentFilter('all');
+              setSelectedRecruiterId(null);
               setIsSearching(false); // Force reset search state
             }}
           >
@@ -721,8 +772,17 @@ export default function PositionsPageClient() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Positions</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {selectedRecruiterId === null ? 'Total Positions' : 
+                   selectedRecruiterId === 'unassigned' ? 'Unassigned Positions' : 
+                   'Filtered Positions'}
+                </p>
                 <p className="text-2xl font-bold text-foreground">{totalPositions}</p>
+                {selectedRecruiterId && selectedRecruiterId !== 'unassigned' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Showing positions for selected recruiter
+                  </p>
+                )}
               </div>
               <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                 <Briefcase className="h-5 w-5 text-white" />
@@ -740,6 +800,11 @@ export default function PositionsPageClient() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Open Positions</p>
                 <p className="text-2xl font-bold text-foreground">{openPositions}</p>
+                {selectedRecruiterId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedRecruiterId === 'unassigned' ? 'Unassigned open positions' : 'Open positions for selected recruiter'}
+                  </p>
+                )}
               </div>
               <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                 <span className="text-white text-sm font-bold">O</span>
@@ -757,6 +822,11 @@ export default function PositionsPageClient() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Closed Positions</p>
                 <p className="text-2xl font-bold text-foreground">{closedPositions}</p>
+                {selectedRecruiterId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedRecruiterId === 'unassigned' ? 'Unassigned closed positions' : 'Closed positions for selected recruiter'}
+                  </p>
+                )}
               </div>
               <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
                 <span className="text-white text-sm font-bold">C</span>
@@ -771,11 +841,11 @@ export default function PositionsPageClient() {
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No positions found</h3>
           <p className="text-muted-foreground mb-4">
-            {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' 
+            {searchTerm || statusFilter !== 'all' || departmentFilter !== 'all' || selectedRecruiterId 
               ? 'Try adjusting your filters' 
               : 'Get started by adding your first position'}
           </p>
-          {canManagePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && (
+          {canManagePositions && !searchTerm && statusFilter === 'all' && departmentFilter === 'all' && !selectedRecruiterId && (
             <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add First Position
@@ -914,6 +984,30 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
+                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Recruiter
+                    <DropdownMenu open={openMenu === 'recruiter'} onOpenChange={open => setOpenMenu(open ? 'recruiter' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'recruiter' ? (
+                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('recruiter'); }} aria-label="Sort options">
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleSort('recruiter', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleSort('recruiter', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
                 <TableHead>Candidates Applied</TableHead>
                 <TableHead>Candidates Matching</TableHead>
                 <TableHead>Pending Candidate</TableHead>
@@ -998,6 +1092,19 @@ export default function PositionsPageClient() {
                       <Badge variant="success">Open</Badge>
                     ) : (
                       <Badge variant="destructive">Closed</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {position.recruiterName ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 rounded-md">
+                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                        {position.recruiterName}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400 rounded-md">
+                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                        Unassigned
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
@@ -1131,6 +1238,8 @@ export default function PositionsPageClient() {
           </div>
         </div>
       )}
+        </div> {/* Close main content div */}
+      </div> {/* Close flex container */}
       
       {/* Modals */}
       {canManagePositions && (

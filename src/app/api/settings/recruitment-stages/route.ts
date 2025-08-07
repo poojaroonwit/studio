@@ -88,10 +88,15 @@ const recruitmentStageSchema = z.object({
 export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+    
+    // Check permissions
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
+        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" ORDER BY sort_order ASC, name ASC');
         return NextResponse.json(result.rows);
     } catch (error: any) {
         console.error("Failed to fetch recruitment stages:", error);
@@ -106,6 +111,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+    
+    // Check permissions
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+        await logAudit('WARN', `Forbidden attempt to create recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Create', actingUserId);
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
     let body;
     try {
@@ -125,8 +136,8 @@ export async function POST(request: NextRequest) {
     const client = await getPool().connect();
     try {
         const result = await client.query(
-            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color_complete, color_badge) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, description, sort_order, color_complete, color_badge',
-            [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null]
+            'INSERT INTO "RecruitmentStage" (id, name, description, sort_order, color_complete, color_badge, is_system) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, name, description, sort_order, color_complete, color_badge, is_system',
+            [newId, name, description, sort_order ?? 0, color_complete || null, color_badge || null, false]
         );
         await logAudit('AUDIT', `Recruitment stage '${name}' created.`, 'API:RecruitmentStages:Create', actingUserId, { stageId: newId });
         

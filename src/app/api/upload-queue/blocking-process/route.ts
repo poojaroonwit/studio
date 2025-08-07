@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const actingUserId = validation.userId!;
   const actingUserName = validation.userName!;
   const data = await request.json();
-  const { file_name, file_size, status, source, upload_id, file_path, webhook_payload, position_id, applied_position_id } = data;
+  const { file_name, file_size, status, source, upload_id, file_path, webhook_payload, position_id, applied_position_id, request_type } = data;
   const finalPositionId = position_id || applied_position_id || null;
   if (!file_path) {
     console.warn(`Blocking upload queue entry attempted without file_path by ${actingUserName}`, { data });
@@ -34,12 +34,18 @@ export async function POST(request: NextRequest) {
   const id = uuidv4();
   const client = await getPool().connect();
   try {
+    // Prepare webhook payload with request_type
+    const enhancedWebhookPayload = {
+      ...(webhook_payload || {}),
+      request_type: request_type || 'create'
+    };
+
     // Insert job into upload_queue
     const res = await client.query(
       `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
+      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, JSON.stringify(enhancedWebhookPayload), finalPositionId]
     );
     const job = res.rows[0];
     console.log(`File '${file_name}' added to upload queue (blocking) by ${actingUserName}`, {

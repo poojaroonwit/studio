@@ -14,19 +14,19 @@ import { authOptions } from "@/lib/auth"
 
 export async function generateMetadata(): Promise<Metadata> {
   // Remove build-time database calls
-  const defaultTitle = "CandiTrack - Recruitment Management System";
+  const defaultTitle = "FitScan - Recruitment Management System";
   const defaultDescription = "Comprehensive recruitment management system for tracking candidates, positions, and hiring processes.";
   
   return {
     title: {
       default: defaultTitle,
-      template: '%s | CandiTrack'
+      template: '%s | FitScan'
     },
     description: defaultDescription,
     keywords: ['recruitment', 'hiring', 'candidates', 'positions', 'HR'],
-    authors: [{ name: 'CandiTrack Team' }],
-    creator: 'CandiTrack',
-    publisher: 'CandiTrack',
+    authors: [{ name: 'FitScan Team' }],
+    creator: 'FitScan',
+    publisher: 'FitScan',
     formatDetection: {
       email: false,
       address: false,
@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
       url: '/',
       title: defaultTitle,
       description: defaultDescription,
-      siteName: 'CandiTrack',
+      siteName: 'FitScan',
     },
     twitter: {
       card: 'summary_large_image',

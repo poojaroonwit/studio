@@ -15,7 +15,7 @@ export let mockAppUsers: UserProfile[] = [
   {
     id: 'user1', // This ID is for mock data, DB uses UUID
     name: 'Jane Recruiter',
-    email: 'jane.recruiter@canditrack.com',
+    email: 'jane.recruiter@fitscan.com',
     password: 'password', // Plaintext for mock - DO NOT DO THIS IN PRODUCTION
     avatarUrl: 'https://placehold.co/100x100.png',
     dataAiHint: 'profile woman',
@@ -24,7 +24,7 @@ export let mockAppUsers: UserProfile[] = [
   {
     id: 'user2',
     name: 'Admin User',
-    email: 'admin@canditrack.com',
+    email: 'admin@fitscan.com',
     password: 'password', // Plaintext for mock - DO NOT DO THIS IN PRODUCTION
     avatarUrl: 'https://placehold.co/100x100.png',
     dataAiHint: 'profile person',
@@ -33,7 +33,7 @@ export let mockAppUsers: UserProfile[] = [
   {
     id: 'user3',
     name: 'Mike Manager',
-    email: 'mike.manager@canditrack.com',
+    email: 'mike.manager@fitscan.com',
     password: 'password', // Plaintext for mock - DO NOT DO THIS IN PRODUCTION
     dataAiHint: 'profile man',
     role: 'Hiring Manager',

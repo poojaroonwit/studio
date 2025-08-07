@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     const client = await getPool().connect();
     try {
-        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge FROM "RecruitmentStage" WHERE id = $1', [id]);
+        const result = await client.query('SELECT id, name, description, sort_order, color_complete, color_badge, is_system FROM "RecruitmentStage" WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
@@ -107,6 +107,12 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+    
+    // Check permissions
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+        await logAudit('WARN', `Forbidden attempt to update recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Update', actingUserId);
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
 
     let body;
     try {
@@ -171,6 +177,12 @@ export async function DELETE(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const actingUserId = session?.user?.id;
     if (!actingUserId) return new NextResponse('Unauthorized', { status: 401 });
+    
+    // Check permissions
+    if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE')) {
+        await logAudit('WARN', `Forbidden attempt to delete recruitment stage by ${session.user.name || session.user.email}.`, 'API:RecruitmentStages:Delete', actingUserId);
+        return NextResponse.json({ message: "Forbidden: Insufficient permissions" }, { status: 403 });
+    }
     
     const client = await getPool().connect();
     try {

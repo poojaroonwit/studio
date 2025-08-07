@@ -165,9 +165,10 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                 {jobMatch.position?.description && (
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Description:</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {jobMatch.position.description}
-                    </p>
+                    <div 
+                      className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: jobMatch.position.description }}
+                    />
                   </div>
                 )}
 

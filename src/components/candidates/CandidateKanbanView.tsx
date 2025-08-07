@@ -16,6 +16,7 @@ import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 // Helper function to extract parsed data properties (similar to FullCandidateDetail)
 const getParsedDataProperty = (candidate: Candidate, propertyName: string) => {
@@ -118,13 +119,14 @@ function getFieldLabel(key: string) {
 }
 
 // Enhanced candidate card component
-const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'] }: {
+const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'], columnField = 'status' }: {
   candidate: Candidate;
   isDragged?: boolean;
   onClick: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
   visibleFields?: string[];
+  columnField?: string;
 }) => {
   const [isDragStarting, setIsDragStarting] = useState(false);
   
@@ -180,14 +182,15 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   return (
     <Card 
       className={cn(
-        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative cursor-grab active:cursor-grabbing",
+        "w-full p-4 hover:shadow-md transition-all duration-200 bg-card border border-border flex flex-col gap-3 relative",
+        columnField === 'status' ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
         isDragged && "opacity-60 scale-95 shadow-lg",
         isDragStarting && "scale-105 shadow-xl"
       )}
       onClick={onClick}
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
+      draggable={columnField === 'status'}
+      onDragStart={columnField === 'status' ? handleDragStart : undefined}
+      onDragEnd={columnField === 'status' ? handleDragEnd : undefined}
     >
       {/* Name and position always shown */}
       {visibleFields.includes('name') && (() => {
@@ -1953,14 +1956,20 @@ export function HorizontalStageKanbanView({
 
   // Enhanced drag and drop handlers
   const handleDragStart = (candidate: Candidate) => {
-    setDraggedCandidate(candidate);
-    setIsDragging(true);
-    // Add a small delay to prevent immediate drag end
-    setTimeout(() => {
-      if (isDragging) {
-        document.body.style.cursor = 'grabbing';
-      }
-    }, 50);
+    // Only allow dragging for status columns
+    if (columnField === 'status') {
+      setDraggedCandidate(candidate);
+      setIsDragging(true);
+      // Add a small delay to prevent immediate drag end
+      setTimeout(() => {
+        if (isDragging) {
+          document.body.style.cursor = 'grabbing';
+        }
+      }, 50);
+    } else {
+      // For non-status columns, prevent dragging
+      toast('Drag and drop is only supported for status columns');
+    }
   };
 
   const handleDragEnd = () => {
@@ -1974,10 +1983,13 @@ export function HorizontalStageKanbanView({
     e.preventDefault();
     e.stopPropagation();
     
-    // Only allow dropping if we're dragging a candidate and it's not the same column
-    if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
+    // Only allow dropping if we're dragging a candidate, it's not the same column, and it's a status column
+    if (draggedCandidate && getColumnValue(draggedCandidate) !== column && columnField === 'status') {
       setDragOverStage(column);
       e.dataTransfer.dropEffect = 'move';
+    } else if (draggedCandidate && columnField !== 'status') {
+      // For non-status columns, show that drag and drop is not supported
+      e.dataTransfer.dropEffect = 'none';
     }
   };
 
@@ -2000,13 +2012,13 @@ export function HorizontalStageKanbanView({
     e.stopPropagation();
     
     if (draggedCandidate && getColumnValue(draggedCandidate) !== column) {
-      // For status-based columns, update the status
+      // Only allow drag and drop for status-based columns
       if (columnField === 'status') {
         onMoveCandidate?.(draggedCandidate, column);
       } else {
-        // For other column types, we might need to update different fields
-        // For now, we'll just call the move function with the column value
-        onMoveCandidate?.(draggedCandidate, column);
+        // For non-status columns, show a warning that drag and drop is not supported
+        console.warn(`Drag and drop not supported for column field type: ${columnField}`);
+        toast?.('Drag and drop is only supported for status columns');
       }
     }
     setDraggedCandidate(null);
@@ -2205,6 +2217,7 @@ export function HorizontalStageKanbanView({
                               onDragStart={() => handleDragStart(candidate)}
                               onDragEnd={handleDragEnd}
                               visibleFields={visibleFields}
+                              columnField={columnField}
                             />
                           </div>
                         ))}

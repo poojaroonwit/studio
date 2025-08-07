@@ -1,4 +1,4 @@
-// CandiTrack Database Schema
+// FitScan Database Schema
 // Generated from Prisma schema
 
 Table User {

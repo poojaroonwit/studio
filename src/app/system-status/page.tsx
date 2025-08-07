@@ -57,7 +57,7 @@ export default function SystemStatusPage() {
     },
     {
       id: "minio_bucket_check",
-      name: "MinIO Bucket ('canditrack-resumes')",
+      name: "MinIO Bucket ('fitscan-resumes')",
       status: 'info', 
       message: "Expected: Created. Application attempts auto-creation. Click to verify.",
       details: "The application (src/lib/minio.ts) tries to create the bucket specified by MINIO_BUCKET_NAME. You can click the button to perform an on-demand check. Requires Admin role.",

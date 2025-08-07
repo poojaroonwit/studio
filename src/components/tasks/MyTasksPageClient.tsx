@@ -11,9 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, RefreshCw, Kanban, List, Users, Settings } from 'lucide-react';
+import { Search, Filter, RefreshCw, Kanban, List, Users } from 'lucide-react';
 import { HorizontalStageKanbanView } from '@/components/candidates/CandidateKanbanView';
-import { CustomizeBoardModal } from '@/components/tasks/CustomizeBoardModal';
+
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
@@ -35,15 +35,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const { data: session } = useSession();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
-  // Board customization state
-  const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
-  const [boardPreferences, setBoardPreferences] = useState({
-    rowField: 'status',
-    columnField: 'recruiterId',
-    visibleRowValues: [] as string[],
-    visibleColumnValues: [] as string[],
-    visibleFields: ['name', 'email', 'status', 'fitScore', 'positionId'] as string[]
-  });
+
   
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,71 +43,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Permission check: can view all recruiters?
   const canViewAllRecruiters = userSession?.role === 'Admin' || (session?.user?.modulePermissions?.includes('MANAGE_ALL_TASKS'));
 
-  // Load board preferences on mount
-  useEffect(() => {
-    const loadBoardPreferences = async () => {
-      try {
-        const res = await fetch('/api/settings/user-preferences');
-        const prefs = await res.json();
-        
-        const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
-        const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
-        const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
-        const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-        const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
-        
-        setBoardPreferences({
-          rowField: rowPref?.customNote || 'status',
-          columnField: colPref?.customNote || 'recruiterId',
-          visibleRowValues: visibleRowPref ? JSON.parse(visibleRowPref.customNote || '[]') : [],
-          visibleColumnValues: visibleColPref ? JSON.parse(visibleColPref.customNote || '[]') : [],
-          visibleFields: visibleFieldsPref ? JSON.parse(visibleFieldsPref.customNote || '["name", "email", "status", "fitScore", "positionId"]') : ['name', 'email', 'status', 'fitScore', 'positionId']
-        });
-      } catch (error) {
-        console.error('Error loading board preferences:', error);
-        // Use defaults if loading fails
-        setBoardPreferences({
-          rowField: 'status',
-          columnField: 'recruiterId',
-          visibleRowValues: [],
-          visibleColumnValues: [],
-          visibleFields: ['name', 'email', 'status', 'fitScore', 'positionId']
-        });
-      }
-    };
-    
-    loadBoardPreferences();
-  }, []);
 
-  // Reload board preferences when modal is closed (in case preferences were updated)
-  useEffect(() => {
-    if (!customizeModalOpen) {
-      const loadBoardPreferences = async () => {
-        try {
-          const res = await fetch('/api/settings/user-preferences');
-          const prefs = await res.json();
-          
-          const rowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_rowField');
-          const colPref = prefs.find((p: any) => p.attributeKey === 'mytasks_columnField');
-          const visibleRowPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleRowValues');
-          const visibleColPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleColumnValues');
-          const visibleFieldsPref = prefs.find((p: any) => p.attributeKey === 'mytasks_visibleFields');
-          
-          setBoardPreferences({
-            rowField: rowPref?.customNote || 'status',
-            columnField: colPref?.customNote || 'recruiterId',
-            visibleRowValues: visibleRowPref ? JSON.parse(visibleRowPref.customNote || '[]') : [],
-            visibleColumnValues: visibleColPref ? JSON.parse(visibleColPref.customNote || '[]') : [],
-            visibleFields: visibleFieldsPref ? JSON.parse(visibleFieldsPref.customNote || '["name", "email", "status", "fitScore", "positionId"]') : ['name', 'email', 'status', 'fitScore', 'positionId']
-          });
-        } catch (error) {
-          console.error('Error reloading board preferences:', error);
-        }
-      };
-      
-      loadBoardPreferences();
-    }
-  }, [customizeModalOpen]);
 
   // Fetch stages, recruiters, positions on mount
   useEffect(() => {
@@ -238,25 +166,29 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   }, [filteredCandidates, filters]);
 
   // Handle drag-and-drop move - Fixed to always update status field
-  const handleMoveCandidate = (candidate: any, newStatus: string) => {
-    // Validate the new status
-    if (!newStatus || typeof newStatus !== 'string' || newStatus.trim() === '') {
-      toast.error('Invalid status: Status cannot be empty');
+  const handleMoveCandidate = (candidate: any, newValue: string) => {
+    // Validate the new value
+    if (!newValue || typeof newValue !== 'string' || newValue.trim() === '') {
+      toast.error('Invalid value: Value cannot be empty');
       return;
     }
 
+    // Since we're using the default configuration (rowField='status', columnField='recruiterId'),
+    // we need to determine what field to update based on the current board configuration
+    // For now, we'll assume it's always updating the status field since that's the most common use case
+    
     // Check if the status is the same (no change needed)
-    if (candidate.status === newStatus) {
+    if (candidate.status === newValue) {
       return;
     }
 
-    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newStatus);
+    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newValue);
 
     // Optimistically update UI
     setCandidates((prev) =>
       prev.map((c) =>
         c.id === candidate.id
-          ? { ...c, status: newStatus }
+          ? { ...c, status: newValue }
           : c
       )
     );
@@ -265,7 +197,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     fetch(`/api/candidates/${candidate.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: newValue }),
     }).then(async response => {
       if (!response.ok) {
         // Get error details from response
@@ -290,8 +222,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         );
         toast.error(errorMessage);
       } else {
-        console.log('Successfully moved candidate:', candidate.id, 'to status:', newStatus);
-        toast.success(`Moved ${candidate.name} to ${newStatus}`);
+        console.log('Successfully moved candidate:', candidate.id, 'to status:', newValue);
+        toast.success(`Moved ${candidate.name} to ${newValue}`);
       }
     }).catch(error => {
       console.error('Network error updating candidate status:', error, 'for candidate:', candidate.id);
@@ -410,18 +342,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Right: Board Controls */}
             <div className="flex items-center gap-2">
-              {/* Customize Board Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 text-xs"
-                onClick={() => setCustomizeModalOpen(true)}
-                disabled={loading}
-              >
-                <Settings className="w-4 h-4 mr-1" />
-                Customize
-              </Button>
-
               {/* View Mode Toggle */}
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
                 <TabsList className="grid w-auto grid-cols-2 h-9">
@@ -497,11 +417,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   statuses={stages}
                   onMoveCandidate={handleMoveCandidate}
                   onCardClick={(candidate) => setSelectedCandidate(candidate)}
-                  rowField={boardPreferences.rowField}
-                  columnField={boardPreferences.columnField}
-                  visibleFields={boardPreferences.visibleFields}
-                  visibleRowValues={boardPreferences.visibleRowValues}
-                  visibleColumnValues={boardPreferences.visibleColumnValues}
+                  rowField="status"
+                  columnField="recruiterId"
+                  visibleFields={['name', 'email', 'status', 'fitScore', 'positionId']}
+                  visibleRowValues={[]}
+                  visibleColumnValues={[]}
                 />
               </div>
             ) : (
@@ -582,13 +502,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         </>
       )}
 
-      {/* Customize Board Modal */}
-      <CustomizeBoardModal
-        open={customizeModalOpen}
-        onOpenChange={setCustomizeModalOpen}
-        rowFieldValues={boardPreferences.visibleRowValues}
-        columnFieldValues={boardPreferences.visibleColumnValues}
-      />
+
     </div>
   );
 }

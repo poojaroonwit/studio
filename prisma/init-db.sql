@@ -1,4 +1,4 @@
--- Initialize CandiTrack database with default data
+-- Initialize FitScan database with default data
 -- This script works with the postgres user and studio_production database
 
 -- Create default admin user (password: nccadmin)

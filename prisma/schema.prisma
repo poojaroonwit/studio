@@ -27,6 +27,7 @@ model User {
   accounts             Account[]
   attachments          Attachment[]              @relation("UserAttachments")
   candidates           Candidate[]               @relation("RecruiterCandidates")
+  positions            Position[]                @relation("RecruiterPositions")
   candidateComments    CandidateComment[]        @relation("UserComments")
   Dashboard            Dashboard[]
   DashboardShare       DashboardShare[]
@@ -49,15 +50,18 @@ model Position {
   matchCriteria    String?
   isOpen           Boolean     @default(true)
   positionLevel    String?
+  recruiterId      String?     @db.Uuid
   customAttributes Json?       @default("{}")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   candidates       Candidate[]
   transitionRecords TransitionRecord[]
+  recruiter        User?       @relation("RecruiterPositions", fields: [recruiterId], references: [id])
 
   @@index([title])
   @@index([department])
   @@index([isOpen])
+  @@index([recruiterId])
 }
 
 model Candidate {

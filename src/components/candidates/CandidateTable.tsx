@@ -653,19 +653,6 @@ export function CandidateTable({
                   </TableCell>
                   <TableCell key={`${candidate.id}-actions`} className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUploadResumeClick(candidate);
-                        }}
-                        className="h-8 px-3 text-xs"
-                        title="Upload Resume"
-                      >
-                        <UploadCloud className="h-3 w-3 mr-1" />
-                        Upload
-                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -674,6 +661,9 @@ export function CandidateTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem key="upload-resume" onSelect={() => handleUploadResumeClick(candidate)}>
+                            <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
+                          </DropdownMenuItem>
                           <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
                             <Eye className="mr-2 h-4 w-4" /> View Details
                           </DropdownMenuItem>
@@ -835,19 +825,6 @@ export function CandidateTable({
                             </TableCell>
                             <TableCell key={`${candidate.id}-actions`} className="text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUploadResumeClick(candidate);
-                                  }}
-                                  className="h-8 px-3 text-xs"
-                                  title="Upload Resume"
-                                >
-                                  <UploadCloud className="h-3 w-3 mr-1" />
-                                  Upload
-                                </Button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -856,6 +833,9 @@ export function CandidateTable({
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    <DropdownMenuItem key="upload-resume" onSelect={() => handleUploadResumeClick(candidate)}>
+                                      <UploadCloud className="mr-2 h-4 w-4" /> Upload Resume
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem key="view-details" onSelect={() => { setSelectedCandidateSummary({ id: candidate.id, name: candidate.name }); setIsDetailModalOpen(true); }}>
                                       <Eye className="mr-2 h-4 w-4" /> View Details
                                     </DropdownMenuItem>

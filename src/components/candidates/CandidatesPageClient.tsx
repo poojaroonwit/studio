@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
 import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
+import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search } from 'lucide-react';
@@ -158,6 +159,27 @@ export function CandidatesPageClient({
     }
     return Math.max(1, Math.ceil(total / pageSize));
   }, [isAiSearchActive, aiMatchedCandidateIds, pageSize, total]);
+
+  // Calculate candidate score counts for fit score filter badges
+  const candidateScoreCounts = useMemo(() => {
+    const scoreRanges = getScoreRangesForChart();
+    const scoreRangeCounts: { [key: string]: number } = {};
+    
+    allCandidates.forEach((candidate: Candidate) => {
+      if (typeof candidate.fitScore === 'number') {
+        scoreRanges.forEach(range => {
+          if (candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
+            scoreRangeCounts[range.letter] = (scoreRangeCounts[range.letter] || 0) + 1;
+          }
+        });
+      }
+    });
+    
+    return scoreRanges.map(range => ({
+      letter: range.letter,
+      count: scoreRangeCounts[range.letter] || 0
+    }));
+  }, [allCandidates]);
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
@@ -1558,6 +1580,7 @@ export function CandidatesPageClient({
               isLoading={isLoading || isAiSearching}
               isAiSearching={isAiSearching}
               advancedQuery={advancedQueryFromUrl}
+              candidateScoreCounts={candidateScoreCounts}
             />
           </div>
         </aside>

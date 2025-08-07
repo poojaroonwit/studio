@@ -60,27 +60,27 @@ export async function GET(request: NextRequest) {
     const includeStats = searchParams.get('includeStats') === 'true';
     const includeCandidateStats = searchParams.get('includeCandidateStats') === 'true';
 
-    let query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
-    let countQuery = 'SELECT COUNT(*) FROM "Position"';
+    let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
+    let countQuery = 'SELECT COUNT(*) FROM "Position" p';
     const conditions = [];
     const queryParams = [];
     let paramIndex = 1;
 
     if (titleFilter) {
-      conditions.push(`title ILIKE $${paramIndex++}`);
+      conditions.push(`p.title ILIKE $${paramIndex++}`);
       queryParams.push(`%${titleFilter}%`);
     }
     if (departmentFilter) {
-      conditions.push(`department = ANY($${paramIndex++}::text[])`);
+      conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
       queryParams.push(departmentFilter.split(','));
     }
     if (isOpenFilter === "true") {
-      conditions.push(`"isOpen" = TRUE`);
+      conditions.push(`p."isOpen" = TRUE`);
     } else if (isOpenFilter === "false") {
-      conditions.push(`"isOpen" = FALSE`);
+      conditions.push(`p."isOpen" = FALSE`);
     }
     if (positionLevelFilter) {
-      conditions.push(`"positionLevel" ILIKE $${paramIndex++}`);
+      conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
       queryParams.push(`%${positionLevelFilter}%`);
     }
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       query += ' WHERE ' + conditions.join(' AND ');
       countQuery += ' WHERE ' + conditions.join(' AND ');
     }
-    query += ' ORDER BY "createdAt" DESC';
+    query += ' ORDER BY p."createdAt" DESC';
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     queryParams.push(limit, offset);
     
@@ -208,6 +208,7 @@ const createPositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean({ required_error: "isOpen status is required" }),
   positionLevel: z.string().optional().nullable(),
+  recruiterId: z.string().uuid().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
@@ -245,8 +246,8 @@ export async function POST(request: NextRequest) {
   try {
     const newPositionId = uuidv4();
     const insertQuery = `
-      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      INSERT INTO "Position" (id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "recruiterId", "customAttributes", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
       RETURNING *;
     `;
     const values = [
@@ -257,6 +258,7 @@ export async function POST(request: NextRequest) {
       (validatedData.matchCriteria && validatedData.matchCriteria.trim() !== '') ? validatedData.matchCriteria : defaultMatchCriteria,
       validatedData.isOpen,
       validatedData.positionLevel || null,
+      validatedData.recruiterId || null,
       validatedData.custom_attributes || {},
     ];
     const result = await getPool().query(insertQuery, values);

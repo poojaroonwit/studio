@@ -13,6 +13,7 @@ const updatePositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
+  recruiterId: z.string().uuid().optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
@@ -82,7 +83,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position" WHERE id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -131,7 +132,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, department, description, matchCriteria, isOpen, positionLevel, custom_attributes } = validationResult.data;
+  const { title, department, description, matchCriteria, isOpen, positionLevel, recruiterId, custom_attributes } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -150,12 +151,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updateQuery = `
       UPDATE "Position" 
       SET title = $1, department = $2, description = $3, "matchCriteria" = $4, "isOpen" = $5, 
-          "positionLevel" = $6, "customAttributes" = $7, "updatedAt" = NOW()
-      WHERE id = $8
+          "positionLevel" = $6, "recruiterId" = $7, "customAttributes" = $8, "updatedAt" = NOW()
+      WHERE id = $9
       RETURNING *;
     `;
     const updateResult = await client.query(updateQuery, [
-      title, department, description, matchCriteria, isOpen, positionLevel, custom_attributes || {}, id
+      title, department, description, matchCriteria, isOpen, positionLevel, recruiterId, custom_attributes || {}, id
     ]);
 
     await client.query('COMMIT');

@@ -816,9 +816,10 @@ export default function PositionDetailPage() {
             <div className="space-y-2 mt-4">
               <h4 className="font-medium text-sm">Description:</h4>
               {position.description ? (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {position.description}
-                </p>
+                <div 
+                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: position.description }}
+                />
               ) : (
                 <div className="text-muted-foreground italic">No job description provided.</div>
               )}

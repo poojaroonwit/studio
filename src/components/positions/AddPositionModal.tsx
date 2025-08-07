@@ -36,6 +36,7 @@ const addPositionFormSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
+  recruiterId: z.string().uuid().optional().nullable(),
 });
 
 export type AddPositionFormValues = z.infer<typeof addPositionFormSchema>;

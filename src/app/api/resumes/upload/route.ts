@@ -118,7 +118,8 @@ export async function POST(request: NextRequest) {
           mimetype: file.type
         },
         response_mode: 'blocking',
-        user: actingUserId
+        user: actingUserId,
+        request_type: "create" // Indicate this is a create request for CV processing
       };
 
       // Add to upload queue for webhook processing

@@ -75,6 +75,7 @@ const updateCandidateSchema = z.object({
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
   transitionNotes: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -196,7 +197,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl } = validationResult.data;
 
   // Extra validation to prevent DB errors - only validate status if it's being updated
   if (status !== undefined && (!status || typeof status !== 'string' || status.trim() === '')) {
@@ -241,11 +242,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     }
     if (recruiterId) {
-      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid', [recruiterId]);
+      const recCheck = await client.query('SELECT id FROM "User" WHERE id = $1::uuid AND role = $2', [recruiterId, 'Recruiter']);
       if (recCheck.rows.length === 0) {
         await client.query('ROLLBACK');
-        console.error('Recruiter not found:', recruiterId);
-        return NextResponse.json({ message: 'Recruiter not found.' }, { status: 400 });
+        console.error('Recruiter not found or user is not a recruiter:', recruiterId);
+        return NextResponse.json({ message: 'Recruiter not found or user is not a recruiter.' }, { status: 400 });
       }
     }
     
@@ -307,6 +308,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (resumePath !== undefined) {
       updateFields.push(`"resumePath" = $${paramIndex}`);
       updateValues.push(resumePath);
+      paramIndex++;
+    }
+    if (avatarUrl !== undefined) {
+      updateFields.push(`"avatarUrl" = $${paramIndex}`);
+      updateValues.push(avatarUrl);
       paramIndex++;
     }
 

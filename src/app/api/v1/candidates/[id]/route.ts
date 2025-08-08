@@ -29,6 +29,7 @@ const updateCandidateSchema = z.object({
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
   transitionNotes: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
   
   // New candidate_info format
   candidate_info: z.object({
@@ -222,6 +223,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (updateData.resumePath !== undefined) {
       updateFields.push(`"resumePath" = $${paramIndex++}`);
       updateValues.push(updateData.resumePath);
+    }
+    
+    if (updateData.avatarUrl !== undefined) {
+      updateFields.push(`"avatarUrl" = $${paramIndex++}`);
+      updateValues.push(updateData.avatarUrl);
     }
     
     // Handle new candidate_info format

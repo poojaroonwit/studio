@@ -102,13 +102,17 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         try {
           const response = await fetch('/api/users?role=Recruiter');
           if (!response.ok) {
-            throw new Error('Failed to fetch recruiters');
+            const errorData = await response.json().catch(() => ({ message: 'Failed to fetch recruiters' }));
+            throw new Error(errorData.message || `Failed to fetch recruiters: ${response.status} ${response.statusText}`);
           }
           const recruitersData = await response.json();
+          if (!Array.isArray(recruitersData)) {
+            throw new Error('Invalid recruiter data format received');
+          }
           setRecruiters(recruitersData);
         } catch (error) {
           console.error('Error fetching recruiters:', error);
-          showError('Could not load recruiters.');
+          showError(`Could not load recruiters: ${(error as Error).message}`);
           setRecruiters([]);
         } finally {
           setIsLoadingRecruiters(false);

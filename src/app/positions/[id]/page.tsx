@@ -223,11 +223,19 @@ export default function PositionDetailPage() {
   const fetchRecruiters = useCallback(async () => {
     try {
       const response = await fetch('/api/users?role=Recruiter');
-      if (!response.ok) throw new Error('Failed to fetch recruiters');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch recruiters' }));
+        throw new Error(errorData.message || `Failed to fetch recruiters: ${response.status} ${response.statusText}`);
+      }
       const data: UserProfile[] = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid recruiter data format received');
+      }
       setAvailableRecruiters(data.map(r => ({ id: r.id, name: r.name })));
     } catch (error) {
       console.error('Error fetching recruiters:', error);
+      toast.error((error as Error).message || 'Failed to fetch recruiters');
+      setAvailableRecruiters([]); // Set empty array to prevent UI issues
     }
   }, []);
 
@@ -277,13 +285,17 @@ export default function PositionDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recruiterId }),
       });
-      if (!response.ok) throw new Error('Failed to assign recruiter');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
+        throw new Error(errorData.message || `Failed to assign recruiter: ${response.status} ${response.statusText}`);
+      }
       
       // Re-fetch candidates to update the lists
       await Promise.all([fetchCandidatesApplied(), fetchCandidateMatches(), fetchAllCandidates()]);
       toast.success('Recruiter updated successfully');
     } catch (error) {
-      toast.error('Failed to assign recruiter');
+      console.error('Error assigning recruiter:', error);
+      toast.error((error as Error).message || 'Failed to assign recruiter');
     }
   };
 
@@ -482,7 +494,7 @@ export default function PositionDetailPage() {
                           '-'
                         )}
                       </TableCell>
-                      <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
+                      <TableCell className="border-r">{candidate.recruiter?.name || 'Unassigned'}</TableCell>
                       <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
                       <TableCell>
                         {candidate.applicationDate ? (
@@ -615,7 +627,7 @@ export default function PositionDetailPage() {
                               '-'
                             )}
                           </TableCell>
-                          <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
+                          <TableCell className="border-r">{candidate.recruiter?.name || 'Unassigned'}</TableCell>
                           <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
                           <TableCell>
                             {candidate.applicationDate ? (

@@ -73,8 +73,11 @@ export async function GET(request: NextRequest) {
   const filterRoleInput = searchParams.get('role');
 
   const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_MANAGE') ?? false);
+  const isRecruiter = userRole === 'Recruiter';
 
-  if (!canManageUsers && userRole !== 'Recruiter') {
+  // Allow recruiters to fetch other recruiters for assignment purposes
+  // but restrict other user management operations
+  if (!canManageUsers && !isRecruiter) {
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
     await logAudit('WARN', `Forbidden attempt to list users by ${userNameForLog} (Role: ${userRole}). Lacks USERS_MANAGE.`, 'API:Users:Get', session.user.id);
     return NextResponse.json({ message: "Forbidden: Insufficient permissions to list users." }, { status: 403 });
@@ -85,10 +88,12 @@ export async function GET(request: NextRequest) {
     const whereConditions: any = {};
     
     if (canManageUsers) {
+      // Admins and users with USERS_MANAGE can see all users with role filtering
       if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
         whereConditions.role = filterRoleInput;
       }
-    } else if (userRole === 'Recruiter') {
+    } else if (isRecruiter) {
+      // Recruiters can only see other recruiters for assignment purposes
       whereConditions.role = 'Recruiter';
       if (filterRoleInput && filterRoleInput !== "ALL_ROLES" && filterRoleInput !== "Recruiter") {
         // Return empty result for non-recruiter roles when user is recruiter

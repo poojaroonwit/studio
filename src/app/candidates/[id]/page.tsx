@@ -656,12 +656,19 @@ export default function CandidateDetailPage() {
   const fetchRecruiters = useCallback(async () => {
     try {
       const response = await fetch('/api/users?role=Recruiter');
-      if (!response.ok) throw new Error('Failed to fetch recruiters');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch recruiters' }));
+        throw new Error(errorData.message || `Failed to fetch recruiters: ${response.status} ${response.statusText}`);
+      }
       const data: UserProfile[] = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid recruiter data format received');
+      }
       setRecruiters(data.map(r => ({ id: r.id, name: r.name })));
     } catch (error) {
       console.error("Error fetching recruiters:", error);
-      toast("Could not load recruiters for assignment.");
+      toast.error((error as Error).message || "Could not load recruiters for assignment.");
+      setRecruiters([]); // Set empty array to prevent UI issues
     }
   }, []);
 
@@ -773,7 +780,8 @@ export default function CandidateDetailPage() {
         }),
       });
       if (!response.ok) {
-        throw new Error(`Failed to assign recruiter: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
+        throw new Error(errorData.message || `Failed to assign recruiter: ${response.status} ${response.statusText}`);
       }
       const updatedCandidate: Candidate = await response.json();
       setCandidate(updatedCandidate);
@@ -814,11 +822,12 @@ export default function CandidateDetailPage() {
           })),
         }
       });
-      toast(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
+      toast.success(`Candidate assigned to ${updatedCandidate.recruiter?.name || 'Unassigned'}.`);
       await fetchRecruiters(); // Ensure recruiter list is always up-to-date
-      await fetchCandidateDetails(); // Ensure candidate state is always up-to-date after recruiter assignment
+      await fetchCandidateDetails();
     } catch (error) {
-      toast((error as Error).message);
+      console.error('Error assigning recruiter:', error);
+      toast.error((error as Error).message || 'Failed to assign recruiter');
     } finally {
       setIsAssigningRecruiter(false);
     }

@@ -49,6 +49,15 @@ export async function GET(request: NextRequest) {
   //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   // }
 
+  // Check if DATABASE_URL is configured
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL environment variable is not set");
+    return NextResponse.json({ 
+      message: "Database configuration error", 
+      error: "DATABASE_URL environment variable is not set" 
+    }, { status: 500, headers: handleCors(request) });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const titleFilter = searchParams.get('title');
@@ -87,7 +96,15 @@ export async function GET(request: NextRequest) {
     if (recruiterIdFilter === 'null') {
       conditions.push(`p."recruiterId" IS NULL`);
     } else if (recruiterIdFilter) {
-      conditions.push(`p."recruiterId" = $${paramIndex++}`);
+      // Validate UUID format before adding to query
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(recruiterIdFilter)) {
+        return NextResponse.json({ 
+          message: "Invalid recruiter ID format", 
+          error: "Recruiter ID must be a valid UUID" 
+        }, { status: 400, headers: handleCors(request) });
+      }
+      conditions.push(`p."recruiterId" = $${paramIndex++}::uuid`);
       queryParams.push(recruiterIdFilter);
     }
 
@@ -99,8 +116,19 @@ export async function GET(request: NextRequest) {
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     queryParams.push(limit, offset);
     
-    const result = await getPool().query(query, queryParams);
-    const countResult = await getPool().query(countQuery, queryParams.slice(0, paramIndex - 1));
+    let result, countResult;
+    try {
+      result = await getPool().query(query, queryParams);
+      // For count query, we need to exclude the LIMIT and OFFSET parameters
+      const countQueryParams = queryParams.slice(0, paramIndex - 2);
+      countResult = await getPool().query(countQuery, countQueryParams);
+    } catch (dbError) {
+      console.error("Database connection error:", dbError);
+      return NextResponse.json({ 
+        message: "Database connection error", 
+        error: "Unable to connect to database. Please ensure the database is running and accessible." 
+      }, { status: 500, headers: handleCors(request) });
+    }
     const total = parseInt(countResult.rows[0].count, 10);
     
     let positions = result.rows.map(row => ({
@@ -149,7 +177,15 @@ export async function GET(request: NextRequest) {
         LEFT JOIN position_matching pm ON pa.position_id = pm.position_id
       `;
       
-      const statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
+      let statsResult;
+      try {
+        statsResult = await getPool().query(candidateStatsQuery, [positionIds]);
+      } catch (statsError) {
+        console.error("Error fetching candidate statistics:", statsError);
+        // Continue without statistics rather than failing the entire request
+        statsResult = { rows: [] };
+      }
+      
       const statsMap = new Map();
       statsResult.rows.forEach(row => {
         statsMap.set(row.position_id, {
@@ -185,14 +221,21 @@ export async function GET(request: NextRequest) {
         FROM "Position"${whereClause}
       `;
       
-      const statsResult = await getPool().query(statsQuery, statsParams);
-      const stats = statsResult.rows[0];
-      
-      statistics = { 
-        total: parseInt(stats.total, 10), 
-        open: parseInt(stats.open, 10), 
-        closed: parseInt(stats.closed, 10) 
-      };
+      let statsResult;
+      try {
+        statsResult = await getPool().query(statsQuery, statsParams);
+        const stats = statsResult.rows[0];
+        
+        statistics = { 
+          total: parseInt(stats.total, 10), 
+          open: parseInt(stats.open, 10), 
+          closed: parseInt(stats.closed, 10) 
+        };
+      } catch (statsError) {
+        console.error("Error fetching position statistics:", statsError);
+        // Continue without statistics rather than failing the entire request
+        statistics = { total: 0, open: 0, closed: 0 };
+      }
     }
     
     const response: { data: any[]; total: number; statistics?: any } = { data: positions, total };

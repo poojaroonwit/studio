@@ -183,6 +183,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       tags: candidate.position?.title ? [candidate.position.title] : [],
       createdAt: candidate.createdAt,
       updatedAt: candidate.updatedAt,
+      fitScore: candidate.fitScore,
+      avatarUrl: candidate.avatarUrl,
       // Keep original candidate data for backward compatibility
       originalCandidate: candidate
     }));
@@ -447,15 +449,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           <div className="p-6 overflow-x-auto scrollbar-custom scroll-smooth">
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <div className="min-w-max">
+              <div className="min-w-max h-full">
                 <TaskBoard
                   tasks={convertCandidatesToTasks(displayedCandidates)}
                   stages={convertStagesToTaskStages(stages)}
                   onMoveTask={handleMoveTask}
                   onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
                   showAssignee={true}
-                  showPriority={true}
-                  showDueDate={true}
+                  showPriority={false}
+                  showDueDate={false}
                   showTags={true}
                 />
               </div>

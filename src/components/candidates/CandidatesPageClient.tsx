@@ -296,7 +296,7 @@ export function CandidatesPageClient({
       const response = await fetch('/api/users?role=Recruiter');
       if (!response.ok) {
           const errorData = await response.json().catch(() => ({})); // Default to empty object on JSON parse fail
-          // console.error("API error fetching recruiters:", errorData); // Log the object we got
+          console.error("API error fetching recruiters:", errorData); // Log the object we got
           
           let detailedErrorMessage = (errorData as any)?.message || 'Failed to fetch recruiters';
           if (Object.keys(errorData).length === 0 && !(errorData as any)?.message) {
@@ -311,35 +311,35 @@ export function CandidatesPageClient({
           
           // Retry on server errors (5xx) but not on client errors (4xx)
           if (response.status >= 500 && retryCount < maxRetries) {
-            // console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
+            console.warn(`Recruiter fetch failed (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms:`, detailedErrorMessage);
             setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
             return;
           }
           
           // Don't throw error, just log it and continue with empty recruiters list
-          // console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
+          console.warn("Recruiter fetch failed, continuing with empty list:", detailedErrorMessage);
           setAvailableRecruiters([]);
           return;
       }
       const recruitersData: UserProfile[] | undefined = await response.json(); 
       if (!recruitersData || !Array.isArray(recruitersData)) {
-        // console.warn("Invalid data format received for recruiters, using empty list");
+        console.warn("Invalid data format received for recruiters, using empty list");
         setAvailableRecruiters([]);
         return;
       }
       setAvailableRecruiters(recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' })));
     } catch (error) {
-      // console.error("Error fetching recruiters:", error);
+      console.error("Error fetching recruiters:", error);
       
       // Retry on network errors
       if (retryCount < maxRetries) {
-        // console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
+        console.warn(`Recruiter fetch failed due to network error (attempt ${retryCount + 1}/${maxRetries}), retrying in ${retryDelay}ms`);
         setTimeout(() => fetchRecruiters(retryCount + 1), retryDelay);
         return;
       }
       
       // Don't show toast error, just log it and continue with empty recruiters list
-      // console.warn("Recruiter fetch failed due to network error, continuing with empty list");
+      console.warn("Recruiter fetch failed due to network error, continuing with empty list");
       setAvailableRecruiters([]);
     }
   }, [sessionStatus]);
@@ -1356,7 +1356,7 @@ export function CandidatesPageClient({
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
-        throw new Error(errorData.message || 'Failed to assign recruiter');
+        throw new Error(errorData.message || `Failed to assign recruiter: ${response.status} ${response.statusText}`);
       }
       await refreshCandidateInList(candidateId);
       toast.success('Recruiter updated.');
@@ -1369,7 +1369,8 @@ export function CandidatesPageClient({
             : c
         )
       );
-      toast.error((error as Error).message);
+      console.error('Error assigning recruiter:', error);
+      toast.error((error as Error).message || 'Failed to assign recruiter');
     }
   };
 

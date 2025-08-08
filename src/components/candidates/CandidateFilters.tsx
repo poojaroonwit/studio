@@ -182,7 +182,7 @@ export function CandidateFilters({
     initialFilters.maxExperienceYears || 50,
   ]);
   const [fitScoreRange, setFitScoreRange] = useState<[number, number]>([
-    initialFilters.minFitScore || 0,
+    initialFilters.minFitScore || 81,
     initialFilters.maxFitScore || 100,
   ]);
   const [matchingFitScoreRange, setMatchingFitScoreRange] = useState<[number, number]>([

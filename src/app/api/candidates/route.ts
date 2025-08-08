@@ -541,7 +541,12 @@ export async function GET(request: NextRequest) {
   if (filters.minFitScore || filters.maxFitScore) {
     if (filters.minFitScore && filters.maxFitScore) {
       // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
-      whereClauses.push(`((c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100) AND c."fitScore" <= $${paramIndex + 1})`);
+      whereClauses.push(`(
+        (c."fitScore" >= $${paramIndex} AND c."fitScore" <= $${paramIndex + 1}) OR 
+        (c."fitScore" >= $${paramIndex}/100 AND c."fitScore" <= $${paramIndex + 1}/100) OR 
+        ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}) OR 
+        ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100 AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}/100)
+      )`);
       const minFitScore = parseInt(filters.minFitScore);
       const maxFitScore = parseInt(filters.maxFitScore);
       if (isNaN(minFitScore) || isNaN(maxFitScore)) {
@@ -554,7 +559,12 @@ export async function GET(request: NextRequest) {
       }
       paramIndex += 2;
     } else if (filters.minFitScore) {
-      whereClauses.push(`(c."fitScore" >= $${paramIndex} OR c."fitScore" >= $${paramIndex}/100 OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100)`);
+      whereClauses.push(`(
+        c."fitScore" >= $${paramIndex} OR 
+        c."fitScore" >= $${paramIndex}/100 OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100
+      )`);
       const minFitScore = parseInt(filters.minFitScore);
       if (isNaN(minFitScore)) {
         console.error('Invalid min fit score value:', filters.minFitScore);
@@ -566,7 +576,12 @@ export async function GET(request: NextRequest) {
       }
       paramIndex++;
     } else if (filters.maxFitScore) {
-      whereClauses.push(`c."fitScore" <= $${paramIndex}`);
+      whereClauses.push(`(
+        c."fitScore" <= $${paramIndex} OR 
+        c."fitScore" <= $${paramIndex}/100 OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex} OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex}/100
+      )`);
       const maxFitScore = parseInt(filters.maxFitScore);
       if (isNaN(maxFitScore)) {
         console.error('Invalid max fit score value:', filters.maxFitScore);

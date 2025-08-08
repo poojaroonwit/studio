@@ -198,8 +198,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes } = validationResult.data;
 
-  // Extra validation to prevent DB errors
-  if (!status || typeof status !== 'string' || status.trim() === '') {
+  // Extra validation to prevent DB errors - only validate status if it's being updated
+  if (status !== undefined && (!status || typeof status !== 'string' || status.trim() === '')) {
     return NextResponse.json({ message: 'Status is required and must be a non-empty string.' }, { status: 400 });
   }
   // Helper to check UUID
@@ -345,7 +345,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Create transition record if status changed
-    if (oldStatus !== status) {
+    if (status !== undefined && oldStatus !== status) {
       let safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
       const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
       const newTransitionId = uuidv4();
@@ -423,7 +423,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       `;
       try {
         await client.query(insertTransitionQuery, [
-          newTransitionId, id, safePositionId, status, transitionMessage, actingUserId
+          newTransitionId, id, safePositionId, status ?? existingCandidate.status, transitionMessage, actingUserId
         ]);
         // Broadcast the new transition
         const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
@@ -443,7 +443,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status });
+    await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
     
     // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
     const candidateResult = await client.query(`
@@ -496,7 +496,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Broadcast update with safe candidate data
     broadcastCandidateUpdate({ ...candidate, customAttributes });
     
-    console.log('Successfully updated candidate:', id, 'new status:', status);
+    console.log('Successfully updated candidate:', id, 'new status:', status ?? existingCandidate.status);
     
     return NextResponse.json({
       ...candidate,

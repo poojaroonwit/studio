@@ -211,8 +211,7 @@ services:
 
 networks:
   default:
-    external:
-      name: docker_external
+    driver: bridge
   docker_internal:
     driver: bridge
     ipam:

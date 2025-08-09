@@ -8,6 +8,10 @@ import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { cn } from '@/lib/utils';
 import { TiptapToolbar } from './tiptap-toolbar';
 
@@ -20,6 +24,7 @@ export interface TiptapEditorProps {
   readOnly?: boolean;
   isOpen?: boolean;
   showToolbar?: boolean;
+  onExpand?: () => void;
 }
 
 // ===== MAIN COMPONENT =====
@@ -31,6 +36,7 @@ export function TiptapEditor({
   readOnly = false,
   isOpen,
   showToolbar = true,
+  onExpand,
 }: TiptapEditorProps) {
   // ===== REFS =====
   const lastValueRef = useRef<string>('');
@@ -77,6 +83,15 @@ export function TiptapEditor({
       Underline,
       TextStyle,
       Color,
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'tiptap-table',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: convertHtmlToTiptapContent(value),
     editable: !readOnly,
@@ -120,9 +135,14 @@ export function TiptapEditor({
       "border rounded-lg bg-background text-foreground overflow-hidden",
       className
     )}>
-      {showToolbar && !readOnly && <TiptapToolbar editor={editor} />}
+      {showToolbar && !readOnly && <TiptapToolbar editor={editor} onExpand={onExpand} />}
       
-      <div className="p-6 min-h-[200px] max-h-[400px] overflow-y-auto font-sans text-base text-foreground bg-background transition-colors">
+      <div className={cn(
+        "p-6 font-sans text-base text-foreground bg-background transition-colors overflow-y-auto",
+        className?.includes('fullscreen') 
+          ? "min-h-[60vh] max-h-[60vh]" 
+          : "min-h-[200px] max-h-[400px]"
+      )}>
         <EditorContent 
           editor={editor} 
           className="focus:outline-none"

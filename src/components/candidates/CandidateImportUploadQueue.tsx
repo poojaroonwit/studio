@@ -1171,15 +1171,11 @@ export const CandidateImportUploadQueue: React.FC<{
               </TableRow>
             ) : jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      <span>Loading upload queue...</span>
-                    </div>
-                  ) : (
-                    'No queue'
-                  )}
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <span>No queue</span>
+                    <span className="text-sm text-muted-foreground">Upload CVs to see them in the queue</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

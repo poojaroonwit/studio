@@ -527,9 +527,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       where: error.where
     });
     await logAudit('ERROR', `Failed to update candidate. Error: ${error.message}`, 'API:Candidates:Update', actingUserId, { candidateId: id, input: body });
-    if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
-      return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });
-    }
+    // Note: Currently no unique constraint on email exists in database schema
+    // if (error.code === '23505' && error.constraint === 'Candidate_email_key') {
+    //   return NextResponse.json({ message: `A candidate with the email "${email}" already exists.` }, { status: 409 });
+    // }
     if (error.code === '23503') {
       // Foreign key constraint violation
       if (error.constraint === 'TransitionRecord_positionId_fkey') {

@@ -29,8 +29,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 
-// Import Tiptap editor
-import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+// Import Tiptap editor with expand functionality
+import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 
 const editPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -73,7 +73,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
-      recruiterId: '',
+      recruiterId: null,
     },
   });
 
@@ -143,9 +143,11 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
       fetchCandidates();
 
     } else if (!isOpen) {
-        form.reset({ title: '', department: '', description: '', matchCriteria: '', isOpen: true, positionLevel: '', recruiterId: '' });
+        form.reset({ title: '', department: '', description: '', matchCriteria: '', isOpen: true, positionLevel: '', recruiterId: null });
         setAssociatedCandidates([]);
         setIsModalReady(false);
+        setIsSaving(false); // Reset saving state when modal closes
+        setApiError(null); // Clear any API errors
     }
   }, [position?.id, isOpen, form]);
 
@@ -159,20 +161,29 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
         matchCriteria: position.matchCriteria ?? '',
         isOpen: typeof position.isOpen === 'boolean' ? position.isOpen : true,
         positionLevel: position.positionLevel ?? '',
-        recruiterId: position.recruiterId ?? '',
+        recruiterId: position.recruiterId ?? null,
       };
       
-      console.log('Resetting form with values:', newValues);
+
       form.reset(newValues);
     }
   }, [position, isOpen, isModalReady, form]);
 
   const onSubmit = async (data: EditPositionFormValues) => {
     setApiError(null);
-    if (!position || form.formState.isSubmitting) return;
+    if (!position) {
+      return;
+    }
+    
+    // Use our own saving state instead of form.formState.isSubmitting
+    if (isSaving) {
+      return;
+    }
+    
     setIsSaving(true);
     // Always send custom_attributes for API compatibility
     const payload = { ...data, custom_attributes: {} };
+    
     try {
       await onEditPosition(position.id, payload);
     } catch (err: any) {
@@ -299,7 +310,7 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] flex flex-col p-0"> {/* Expanded to use 95% of viewport */}
           <DialogHeader className="px-8 pt-8 pb-6">
             <DialogTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5 text-primary" /> Edit Position
@@ -451,12 +462,13 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                       control={form.control}
                       render={({ field }) => (
                         <div className="flex-1 flex flex-col min-h-0">
-                          <TiptapEditor
+                          <TiptapEditorWithExpand
                             value={field.value || ''}
                             onChange={field.onChange}
                             placeholder="Enter job description"
                             className="flex-1 min-h-0"
                             isOpen={isModalReady}
+                            expandTitle="Edit Job Description"
                           />
                           {form.formState.errors.description && (
                             <p className="text-sm text-destructive mt-1">{form.formState.errors.description.message}</p>
@@ -494,12 +506,13 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                       control={form.control}
                       render={({ field }) => (
                         <div className="flex-1 flex flex-col min-h-0">
-                          <TiptapEditor
+                          <TiptapEditorWithExpand
                             value={field.value || ''}
                             onChange={field.onChange}
                             placeholder="Enter match criteria for this position..."
                             className="flex-1 min-h-0"
                             isOpen={isModalReady}
+                            expandTitle="Edit Match Criteria"
                           />
                           {form.formState.errors.matchCriteria && (
                             <p className="text-sm text-destructive mt-1">{form.formState.errors.matchCriteria.message}</p>
@@ -537,9 +550,13 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                       Cancel
                     </Button>
                   </DialogClose>
-                  <Button type="submit" disabled={form.formState.isSubmitting} variant="default">
-                    {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                  <Button 
+                    type="submit" 
+                    disabled={isSaving} 
+                    variant="default"
+                  >
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
               </div>

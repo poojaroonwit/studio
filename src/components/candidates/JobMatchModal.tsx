@@ -17,7 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { formatScoreWithGrade } from '@/lib/utils';
+import { formatScoreWithGrade } from '@/lib/scoreUtils';
 
 interface JobMatchModalProps {
   isOpen: boolean;
@@ -43,15 +43,7 @@ interface JobMatchModalProps {
 // Utility for displaying fitScore as a percentage and grade
 function displayFitScoreWithGrade(score: number | undefined | null) {
   if (typeof score !== 'number' || isNaN(score)) return '0% (E)';
-  let percent = score;
-  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
-  else percent = Math.round(score);
-  let grade = 'E';
-  if (percent >= 80) grade = 'A';
-  else if (percent >= 60) grade = 'B';
-  else if (percent >= 40) grade = 'C';
-  else if (percent >= 20) grade = 'D';
-  return `${percent}% (${grade})`;
+  return formatScoreWithGrade(score);
 }
 
 export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchModalProps) {
@@ -100,11 +92,11 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
         break;
       case 'matching':
         // Show candidates with good fit score for this position
-        advancedQuery = `positionId:${jobMatch.jobId} minFitScore:70`;
+        advancedQuery = `positionId:${jobMatch.jobId} minAppliedJobFitScore:70`;
         break;
       case 'matchingNotApplied':
         // Show candidates with high fit score who haven't applied yet
-        advancedQuery = `positionId:${jobMatch.jobId} minFitScore:80`;
+        advancedQuery = `positionId:${jobMatch.jobId} minAppliedJobFitScore:80`;
         break;
     }
     
@@ -166,7 +158,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Description:</h4>
                     <div 
-                      className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                      className="wysiwyg-content"
                       dangerouslySetInnerHTML={{ __html: jobMatch.position.description }}
                     />
                   </div>
@@ -175,7 +167,7 @@ export default function JobMatchModal({ isOpen, onClose, jobMatch }: JobMatchMod
                 {jobMatch.position?.requirements && (
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Requirements:</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <p className="text-base text-foreground whitespace-pre-wrap leading-relaxed">
                       {jobMatch.position.requirements}
                     </p>
                   </div>

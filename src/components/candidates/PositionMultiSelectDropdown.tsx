@@ -27,6 +27,7 @@ interface PositionMultiSelectDropdownProps {
   showOpenStatus?: boolean;
   filterOpenOnly?: boolean;
   singleSelect?: boolean;
+  showUnassignedOption?: boolean;
 }
 
 export function PositionMultiSelectDropdown({
@@ -37,7 +38,8 @@ export function PositionMultiSelectDropdown({
   className,
   showOpenStatus = true,
   filterOpenOnly = false,
-  singleSelect = false
+  singleSelect = false,
+  showUnassignedOption = false
 }: PositionMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -76,12 +78,15 @@ export function PositionMultiSelectDropdown({
 
   // Filter positions based on search term
   const filteredPositions = positions.filter(position => 
-    position.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    position.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (position.positionLevel && position.positionLevel.toLowerCase().includes(searchTerm.toLowerCase()))
+    position && (
+      position.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      position.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (position.positionLevel && position.positionLevel.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
   );
 
-  const selectedPositions = positions.filter(position => selectedIds.has(position.id));
+  const selectedPositions = positions.filter(position => position && selectedIds.has(position.id));
+  const hasNotApplied = selectedIds.has('not-applied');
 
   const handleTogglePosition = (positionId: string) => {
     if (singleSelect) {
@@ -117,6 +122,12 @@ export function PositionMultiSelectDropdown({
     
     if (selectedIds.size === 1) {
       const position = selectedPositions[0];
+      
+      // Handle case where position might not be found yet (still loading or not in filtered results)
+      if (!position) {
+        return <span className="text-muted-foreground">Loading selected position...</span>;
+      }
+      
       return (
         <div className="flex items-center gap-2">
           <span className="truncate text-foreground">{position.title}</span>
@@ -136,25 +147,45 @@ export function PositionMultiSelectDropdown({
       <div className="flex items-center gap-1">
         <span className="text-foreground">{selectedIds.size} selected</span>
         <div className="flex items-center gap-1 ml-2">
-          {selectedPositions.slice(0, 2).map((position) => (
+          {/* Show Not Applied badge first if selected */}
+          {hasNotApplied && (
             <Badge
-              key={position.id}
+              key="not-applied"
               variant="secondary"
               className="text-xs px-1 py-0 h-5"
             >
-              {position.title}
+              Not Applied
               <button
                 type="button"
-                onClick={(e) => handleRemovePosition(position.id, e)}
+                onClick={(e) => handleRemovePosition('not-applied', e)}
                 className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
               >
                 <X className="w-2 h-2" />
               </button>
             </Badge>
+          )}
+          {/* Show regular position badges */}
+          {selectedPositions.slice(0, hasNotApplied ? 1 : 2).map((position) => (
+            position ? (
+              <Badge
+                key={position.id}
+                variant="secondary"
+                className="text-xs px-1 py-0 h-5"
+              >
+                {position.title}
+                <button
+                  type="button"
+                  onClick={(e) => handleRemovePosition(position.id, e)}
+                  className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                >
+                  <X className="w-2 h-2" />
+                </button>
+              </Badge>
+            ) : null
           ))}
-          {selectedIds.size > 2 && (
+          {selectedIds.size > (hasNotApplied ? 2 : 2) && (
             <Badge variant="outline" className="text-xs">
-              +{selectedIds.size - 2} more
+              +{selectedIds.size - (hasNotApplied ? 2 : 2)} more
             </Badge>
           )}
         </div>
@@ -195,12 +226,33 @@ export function PositionMultiSelectDropdown({
           
           {/* Positions List */}
           <div className="max-h-[300px] overflow-y-auto">
-            {filteredPositions.length === 0 ? (
+            {filteredPositions.length === 0 && !showUnassignedOption ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No position found.
               </div>
             ) : (
               <div className="p-1">
+                {/* Not Applied Option */}
+                {showUnassignedOption && (
+                  <div
+                    key="not-applied"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                    onClick={() => handleTogglePosition('not-applied')}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedIds.has('not-applied') ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">Not Applied</span>
+                      <span className="text-sm text-muted-foreground">
+                        Candidates who haven't applied to any position
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {filteredPositions.map((position) => (
                   <div
                     key={position.id}

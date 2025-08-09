@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 import { FileText, Code, Palette, Zap } from 'lucide-react';
 
 export default function WYSIWYGDemoPage() {
   const [content1, setContent1] = useState('<p>This is a basic example of the Editor.js WYSIWYG editor.</p>');
-  const [content2, setContent2] = useState('<h2>Rich Content Example</h2><p>This editor supports:</p><ul><li>Headers (H1, H2, H3)</li><li>Lists (ordered and unordered)</li><li>Quotes with captions</li><li>Code blocks</li><li>Delimiters</li></ul><blockquote><p>This is a quote block with a caption.</p><cite>Author Name</cite></blockquote>');
+  const [content2, setContent2] = useState('<h2>Rich Content Example</h2><p>This editor supports:</p><ul><li>Headers (H1, H2, H3)</li><li>Lists (ordered and unordered)</li><li>Quotes with captions</li><li>Code blocks</li><li>Tables with resizable columns</li><li>Delimiters</li></ul><table><thead><tr><th>Feature</th><th>Supported</th><th>Notes</th></tr></thead><tbody><tr><td>Headers</td><td>✓</td><td>H1, H2, H3</td></tr><tr><td>Lists</td><td>✓</td><td>Ordered & Unordered</td></tr><tr><td>Tables</td><td>✓</td><td>Resizable columns</td></tr></tbody></table><blockquote><p>This is a quote block with a caption.</p><cite>Author Name</cite></blockquote>');
   const [content3, setContent3] = useState('');
 
   return (
@@ -54,11 +54,12 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TiptapEditor
+          <TiptapEditorWithExpand
             value={content1}
             onChange={setContent1}
             placeholder="Start typing your content..."
             className="min-h-[200px]"
+            expandTitle="Basic Editor Content"
           />
           <div className="mt-4 p-4 bg-muted rounded-lg">
             <h4 className="font-semibold mb-2">HTML Output:</h4>
@@ -79,11 +80,12 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TiptapEditor
+          <TiptapEditorWithExpand
             value={content2}
             onChange={setContent2}
             placeholder="Add headers, lists, quotes, and more..."
             className="min-h-[300px]"
+            expandTitle="Rich Content Editor"
           />
           <div className="mt-4 p-4 bg-muted rounded-lg">
             <h4 className="font-semibold mb-2">HTML Output:</h4>
@@ -104,11 +106,12 @@ export default function WYSIWYGDemoPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TiptapEditor
+          <TiptapEditorWithExpand
             value={content3}
             onChange={setContent3}
             placeholder="Click the + button to add new blocks, or start typing..."
             className="min-h-[250px]"
+            expandTitle="Empty Editor"
           />
           <div className="mt-4 p-4 bg-muted rounded-lg">
             <h4 className="font-semibold mb-2">HTML Output:</h4>
@@ -135,13 +138,15 @@ export default function WYSIWYGDemoPage() {
                 <li>• Ordered and unordered lists</li>
                 <li>• Quote blocks with captions</li>
                 <li>• Code blocks with syntax highlighting</li>
+                <li>• Tables with resizable columns</li>
                 <li>• Delimiters (horizontal rules)</li>
               </ul>
             </div>
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Technical Features</h3>
               <ul className="space-y-2 text-sm">
-                <li>• Clean JSON output format</li>
+                <li>• Clean HTML output format</li>
+                <li>• Fullscreen editing mode</li>
                 <li>• Debounced change detection</li>
                 <li>• Dark mode support</li>
                 <li>• Responsive design</li>
@@ -166,7 +171,9 @@ export default function WYSIWYGDemoPage() {
             <div>
               <h4 className="font-semibold mb-2">Adding Content:</h4>
               <ul className="text-sm space-y-1">
-                <li>• Click the <code className="bg-muted px-1 rounded">+</code> button to add new blocks</li>
+                <li>• Click the <code className="bg-muted px-1 rounded">Expand</code> button (⛶) for fullscreen editing</li>
+                <li>• Click the <code className="bg-muted px-1 rounded">Table</code> button in toolbar to insert tables</li>
+                <li>• Use toolbar buttons to add rows/columns when in a table</li>
                 <li>• Use <code className="bg-muted px-1 rounded">Tab</code> to indent list items</li>
                 <li>• Press <code className="bg-muted px-1 rounded">Enter</code> to create new blocks</li>
                 <li>• Use <code className="bg-muted px-1 rounded">Backspace</code> to delete empty blocks</li>

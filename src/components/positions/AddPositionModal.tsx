@@ -26,8 +26,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { Position } from '@/lib/types';
 
-// Import Tiptap editor
-import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+// Import Tiptap editor with expand functionality
+import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
 
 const addPositionFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -241,7 +241,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-7xl w-full max-h-[90vh] flex flex-col p-0"> {/* Increased width for 3-column layout */}
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] flex flex-col p-0"> {/* Expanded to use 95% of viewport */}
           <DialogHeader className="px-8 pt-8 pb-6">
             <DialogTitle className="flex items-center">
               <Briefcase className="mr-2 h-5 w-5 text-primary" /> Add New Position
@@ -354,12 +354,13 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   control={form.control}
                   render={({ field }) => (
                     <div className="flex-1 flex flex-col min-h-0">
-                      <TiptapEditor
+                      <TiptapEditorWithExpand
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter job description"
                         className="flex-1 min-h-0"
                         isOpen={isModalReady}
+                        expandTitle="Edit Job Description"
                       />
                     </div>
                   )}
@@ -394,12 +395,13 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   control={form.control}
                   render={({ field }) => (
                     <div className="flex-1 flex flex-col min-h-0">
-                      <TiptapEditor
+                      <TiptapEditorWithExpand
                         value={field.value || ''}
                         onChange={field.onChange}
                         placeholder="Enter match criteria for this position..."
                         className="flex-1 min-h-0"
                         isOpen={isModalReady}
+                        expandTitle="Edit Match Criteria"
                       />
                     </div>
                   )}

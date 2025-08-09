@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
 import { AddPositionModal, type AddPositionFormValues } from '@/components/positions/AddPositionModal';
 import { EditPositionModal, type EditPositionFormValues } from '@/components/positions/EditPositionModal';
+import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
@@ -32,12 +33,13 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
+import { RecruiterCell } from '@/components/positions/RecruiterCell';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronsUpDown, Check } from 'lucide-react';
+import { ChevronsUpDown, Check, UserX, User } from 'lucide-react';
 
 export default function PositionsPageClient() {
   // All useState hooks first
@@ -48,6 +50,8 @@ export default function PositionsPageClient() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
+  const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [positionToDelete, setPositionToDelete] = useState<Position | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -60,6 +64,8 @@ export default function PositionsPageClient() {
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
   const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(null);
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
+  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string}[]>([]);
+  const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
@@ -125,6 +131,97 @@ export default function PositionsPageClient() {
     setPage(1); // Reset to first page when changing recruiter filter
   };
 
+  // Handler for assigning/unassigning recruiter to position
+  const handleAssignRecruiterToPosition = async (positionId: string, recruiterId: string | null) => {
+    setAssigningRecruiter(positionId);
+    
+    // Optimistically update the UI
+    const prevPositions = positions;
+    let recruiterName = null;
+    
+    if (recruiterId) {
+      // Find the recruiter name from available recruiters
+      const foundRecruiter = availableRecruiters.find(r => r.id === recruiterId);
+      recruiterName = foundRecruiter?.name || null;
+      
+      // If not found in availableRecruiters, try to fetch it to ensure we have the latest data
+      if (!foundRecruiter) {
+        console.warn(`Recruiter ${recruiterId} not found in availableRecruiters, this might cause display issues`);
+      }
+    }
+    
+
+    
+    setPositions(prev => prev.map(p => 
+      p.id === positionId 
+        ? { 
+            ...p, 
+            recruiterId: recruiterId,
+            recruiterName: recruiterName
+          }
+        : p
+    ));
+
+    try {
+      const response = await fetch(`/api/positions/${positionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recruiterId }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Assignment API error:', response.status, errorData);
+        throw new Error('Failed to update recruiter assignment');
+      }
+
+      const responseData = await response.json();
+      
+      // Update the position with the actual API response data to ensure consistency
+      const updatedPosition = responseData.position;
+      
+      if (updatedPosition) {
+        // Verify that the updated position has recruiterName when recruiterId is set
+        if (updatedPosition.recruiterId && !updatedPosition.recruiterName) {
+          console.warn('Updated position missing recruiterName, refreshing all positions to ensure consistency');
+          fetchPositions(false);
+        } else {
+          // Ensure the updated position has all the necessary fields
+          setPositions(prev => prev.map(p => 
+            p.id === positionId 
+              ? { 
+                  ...p, 
+                  ...updatedPosition,
+                  // Ensure custom_attributes is properly handled
+                  custom_attributes: updatedPosition.custom_attributes || updatedPosition.customAttributes || {},
+                  // Ensure recruiterName is properly handled
+                  recruiterName: updatedPosition.recruiterName || null
+                }
+              : p
+          ));
+        }
+      } else {
+        // If no position data in response, refresh all positions to ensure consistency
+        console.warn('No position data in API response, refreshing all positions');
+        fetchPositions(false);
+      }
+      
+      toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+      
+      // Refresh recruiter stats (this also refreshes availableRecruiters)
+      fetchRecruiterStats();
+    } catch (error) {
+      console.error('Error assigning recruiter:', error);
+      toast.error('Failed to update recruiter assignment');
+      
+      // Revert optimistic update
+      setPositions(prevPositions);
+    } finally {
+      setAssigningRecruiter(null);
+    }
+  };
+
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
 
   // Calculate total pages for pagination
@@ -155,12 +252,12 @@ export default function PositionsPageClient() {
   }, [isSearching]);
 
   // Use refs to store current values to avoid dependency issues
-  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, page, pageSize });
+  const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
   
   // Update refs when values change
   useEffect(() => {
-    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, page, pageSize };
-  }, [searchTerm, statusFilter, departmentFilter, page, pageSize]);
+    currentFiltersRef.current = { searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize };
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize]);
 
   // Fetch all departments for the filter dropdown
   const fetchAllDepartments = useCallback(async () => {
@@ -219,24 +316,30 @@ export default function PositionsPageClient() {
       if (filters.searchTerm) query.append('title', filters.searchTerm);
       if (filters.statusFilter !== 'all') query.append('isOpen', filters.statusFilter === 'open' ? 'true' : 'false');
       if (filters.departmentFilter !== 'all') query.append('department', filters.departmentFilter);
-      if (selectedRecruiterId === 'unassigned') {
+      if (filters.selectedRecruiterId === 'unassigned') {
         query.append('recruiterId', 'null');
-      } else if (selectedRecruiterId) {
-        query.append('recruiterId', selectedRecruiterId);
+      } else if (filters.selectedRecruiterId) {
+        query.append('recruiterId', filters.selectedRecruiterId);
       }
       query.append('limit', String(filters.pageSize));
       query.append('offset', String(((customPage ?? filters.page) - 1) * filters.pageSize));
       query.append('includeStats', 'true'); // Include statistics in the same call
       query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
       
-      const response = await fetch(`/api/positions?${query.toString()}`);
+      const url = `/api/positions?${query.toString()}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch positions');
       }
-              const data = await response.json();
-        const positionsData = data.data || [];
-        setPositions(positionsData);
-        setTotal(data.total || 0);
+      
+      const data = await response.json();
+      const positionsData = data.data || [];
+      
+
+      
+      setPositions(positionsData);
+      setTotal(data.total || 0);
         
         // Update statistics if included in response
         if (data.statistics) {
@@ -272,26 +375,46 @@ export default function PositionsPageClient() {
   // Fetch recruiter statistics for all positions (regardless of current filter)
   const fetchRecruiterStats = useCallback(async () => {
     try {
+      // First, get all recruiters
+      const recruitersResponse = await fetch('/api/users?role=Recruiter');
+      if (!recruitersResponse.ok) {
+        throw new Error('Failed to fetch recruiters');
+      }
+      const recruitersData = await recruitersResponse.json();
+      
+      // Initialize stats with all recruiters set to 0 and set available recruiters
+      const stats: { [key: string]: number } = {};
+      recruitersData.forEach((recruiter: any) => {
+        stats[recruiter.id] = 0;
+      });
+      stats.unassigned = 0; // Initialize unassigned count
+      
+      // Set available recruiters for dropdown
+      setAvailableRecruiters(recruitersData.map((r: any) => ({ id: r.id, name: r.name })));
+      
+      // Then get all positions to count them
       const query = new URLSearchParams();
       query.append('limit', '1000'); // Get all positions for stats
       query.append('includeStats', 'false'); // Don't need position stats
       query.append('includeCandidateStats', 'false'); // Don't need candidate stats
       
-      const response = await fetch(`/api/positions?${query.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch recruiter statistics');
+      const positionsResponse = await fetch(`/api/positions?${query.toString()}`);
+      if (!positionsResponse.ok) {
+        throw new Error('Failed to fetch positions for statistics');
       }
       
-      const data = await response.json();
-      const allPositions = data.data || [];
+      const positionsData = await positionsResponse.json();
+      const allPositions = positionsData.data || [];
       
-      // Calculate recruiter statistics from all positions
-      const stats: { [key: string]: number } = {};
+      // Count OPEN positions only for each recruiter
       allPositions.forEach((position: Position) => {
-        if (position.recruiterId) {
-          stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
-        } else {
-          stats.unassigned = (stats.unassigned || 0) + 1;
+        // Only count positions that are open
+        if (position.isOpen) {
+          if (position.recruiterId) {
+            stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
+          } else {
+            stats.unassigned = (stats.unassigned || 0) + 1;
+          }
         }
       });
       
@@ -416,6 +539,13 @@ export default function PositionsPageClient() {
   const openPositions = useMemo(() => statistics.open, [statistics.open]);
   const closedPositions = useMemo(() => statistics.closed, [statistics.closed]);
   
+  // Get selected recruiter name
+  const selectedRecruiterName = useMemo(() => {
+    if (!selectedRecruiterId || selectedRecruiterId === 'unassigned') return null;
+    const recruiter = availableRecruiters.find(r => r.id === selectedRecruiterId);
+    return recruiter?.name || null;
+  }, [selectedRecruiterId, availableRecruiters]);
+  
   const allSelected = useMemo(() => 
     selectedIds.length > 0 && selectedIds.length === filteredPositions.length, 
     [selectedIds.length, filteredPositions.length]
@@ -450,10 +580,7 @@ export default function PositionsPageClient() {
       case 'title': return position.title?.toLowerCase() || '';
       case 'department': return position.department?.toLowerCase() || '';
       case 'status': return position.isOpen ? 'open' : 'closed';
-      case 'level': return position.positionLevel?.toLowerCase() || '';
       case 'recruiter': return position.recruiterName?.toLowerCase() || '';
-      case 'created': return position.createdAt || '';
-      case 'updated': return position.updatedAt || '';
       default: return '';
     }
   };
@@ -506,21 +633,27 @@ export default function PositionsPageClient() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update position');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || 'Failed to update position');
       }
       
       const updatedPosition = await response.json();
+      
       setPositions(prev => prev.map(p => p.id === positionId ? updatedPosition.position : p));
       setIsEditModalOpen(false);
       setSelectedPosition(null);
       toast.success('Position updated successfully');
+      
       // Refresh departments and recruiter stats in case the department was changed
       setTimeout(() => {
         fetchAllDepartments();
         fetchRecruiterStats();
       }, 500);
     } catch (error) {
-      toast.error('Failed to update position');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update position';
+      toast.error(errorMessage);
+      // Re-throw the error so the modal can handle it
+      throw error;
     }
   };
 
@@ -585,28 +718,27 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex gap-6">
+    <div className="w-full h-screen flex flex-col">
+      <div className="flex flex-1 overflow-hidden">
         {/* Recruiter Filter Sidebar */}
-        <div className="w-80 flex-shrink-0">
-          <RecruiterFilterSidebar
-            selectedRecruiterId={selectedRecruiterId}
-            onRecruiterSelect={handleRecruiterSelect}
-            recruiterStats={recruiterStats}
-          />
+        <div className="w-80 flex-shrink-0 border-r border-border bg-background">
+          <div className="h-full overflow-y-auto p-4">
+            <RecruiterFilterSidebar
+              selectedRecruiterId={selectedRecruiterId}
+              onRecruiterSelect={handleRecruiterSelect}
+              recruiterStats={recruiterStats}
+            />
+          </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
           {/* Filters on top */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
           <div className="relative">
-            {isSearching ? (
-              <Loader2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
-            ) : (
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            )}
             <Input
               placeholder="Search positions..."
               value={searchTerm}
@@ -614,7 +746,7 @@ export default function PositionsPageClient() {
               onFocus={handleSearchFocus}
               onKeyDown={handleSearchKeyDown}
               onBlur={handleSearchBlur}
-              className={`pl-10 pr-10 transition-all duration-200 ${isSearching ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+              className="pl-10 pr-10 transition-all duration-200"
               ref={searchInputRef}
               autoComplete="off"
               spellCheck="false"
@@ -635,7 +767,7 @@ export default function PositionsPageClient() {
             value={statusFilter || ''} 
             onValueChange={(value: 'all' | 'open' | 'closed') => setStatusFilter(value)}
           >
-            <SelectTrigger className={isSearching ? 'opacity-50' : ''}>
+            <SelectTrigger>
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -722,6 +854,22 @@ export default function PositionsPageClient() {
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Position
             </Button>
+            <Button 
+              onClick={() => {
+                // For demo purposes, select the first position if available
+                if (positions.length > 0) {
+                  setSelectedPositionId(positions[0].id);
+                  setIsNewDrawerOpen(true);
+                } else {
+                  toast.error('No positions available to display');
+                }
+              }} 
+              variant="outline" 
+              className="whitespace-nowrap"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New
+            </Button>
             <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="whitespace-nowrap">
               Import Positions
             </Button>
@@ -751,7 +899,10 @@ export default function PositionsPageClient() {
           )}
           {selectedRecruiterId && (
             <Badge variant="secondary" className="text-xs">
-              Recruiter: {selectedRecruiterId === 'unassigned' ? 'Unassigned' : 'Filtered'}
+              Recruiter: {selectedRecruiterId === 'unassigned' 
+                ? 'Unassigned' 
+                : selectedRecruiterName || 'Selected'
+              }
             </Badge>
           )}
           <Button
@@ -763,7 +914,6 @@ export default function PositionsPageClient() {
               setStatusFilter('all');
               setDepartmentFilter('all');
               setSelectedRecruiterId(null);
-              setIsSearching(false); // Force reset search state
             }}
           >
             Clear all
@@ -771,33 +921,7 @@ export default function PositionsPageClient() {
         </div>
       )}
 
-      {/* Search Stuck Indicator */}
-      {isSearching && (
-        <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 rounded-md border border-amber-200 dark:border-amber-800">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Searching...</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-6 px-2 text-xs text-amber-600 hover:text-amber-700"
-            onClick={() => {
-              setIsSearching(false);
-              // Clear stuck timeout
-              if (searchStuckTimeoutRef.current) {
-                clearTimeout(searchStuckTimeoutRef.current);
-                searchStuckTimeoutRef.current = null;
-              }
-              // Force a new search
-              if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-              }
-              fetchPositions(true);
-            }}
-          >
-            Reset
-          </Button>
-        </div>
-      )}
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -814,9 +938,9 @@ export default function PositionsPageClient() {
                    'Filtered Positions'}
                 </p>
                 <p className="text-2xl font-bold text-foreground">{totalPositions}</p>
-                {selectedRecruiterId && selectedRecruiterId !== 'unassigned' && (
+                {selectedRecruiterId && selectedRecruiterId !== 'unassigned' && selectedRecruiterName && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Showing positions for selected recruiter
+                    Showing positions for {selectedRecruiterName}
                   </p>
                 )}
               </div>
@@ -838,7 +962,12 @@ export default function PositionsPageClient() {
                 <p className="text-2xl font-bold text-foreground">{openPositions}</p>
                 {selectedRecruiterId && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selectedRecruiterId === 'unassigned' ? 'Unassigned open positions' : 'Open positions for selected recruiter'}
+                    {selectedRecruiterId === 'unassigned' 
+                      ? 'Unassigned open positions' 
+                      : selectedRecruiterName 
+                        ? `Open positions for ${selectedRecruiterName}`
+                        : 'Open positions for selected recruiter'
+                    }
                   </p>
                 )}
               </div>
@@ -860,7 +989,12 @@ export default function PositionsPageClient() {
                 <p className="text-2xl font-bold text-foreground">{closedPositions}</p>
                 {selectedRecruiterId && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selectedRecruiterId === 'unassigned' ? 'Unassigned closed positions' : 'Closed positions for selected recruiter'}
+                    {selectedRecruiterId === 'unassigned' 
+                      ? 'Unassigned closed positions' 
+                      : selectedRecruiterName 
+                        ? `Closed positions for ${selectedRecruiterName}`
+                        : 'Closed positions for selected recruiter'
+                    }
                   </p>
                 )}
               </div>
@@ -890,15 +1024,6 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-background">
-          {/* Loading Skeleton for Search */}
-          {isSearching && (
-            <div className="p-4 border-b border-border">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Searching positions...</span>
-              </div>
-            </div>
-          )}
           
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (
@@ -948,30 +1073,7 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('level'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Level
-                    <DropdownMenu open={openMenu === 'level'} onOpenChange={open => setOpenMenu(open ? 'level' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'level' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('level'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('level', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('level', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
+
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('department'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Department
@@ -1022,6 +1124,7 @@ export default function PositionsPageClient() {
                 </TableHead>
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
+                    <Users className="h-4 w-4 text-muted-foreground" />
                     Recruiter
                     <DropdownMenu open={openMenu === 'recruiter'} onOpenChange={open => setOpenMenu(open ? 'recruiter' : null)}>
                       <DropdownMenuTrigger asChild>
@@ -1044,57 +1147,8 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
-                <TableHead>Candidates Applied</TableHead>
-                <TableHead>Candidates Matching</TableHead>
-                <TableHead>Pending Candidate</TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('created'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Created
-                    <DropdownMenu open={openMenu === 'created'} onOpenChange={open => setOpenMenu(open ? 'created' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'created' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('created'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('created'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('created', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('created', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('updated'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Updated
-                    <DropdownMenu open={openMenu === 'updated'} onOpenChange={open => setOpenMenu(open ? 'updated' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'updated' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('updated'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('updated'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('updated', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('updated', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
+                <TableHead>Applied</TableHead>
+                <TableHead>Potential Matched</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1105,7 +1159,7 @@ export default function PositionsPageClient() {
                   className="hover:bg-muted/50 transition-all duration-200"
                   style={{
                     animationDelay: `${index * 50}ms`,
-                    animation: isSearching ? 'none' : 'fadeInUp 0.3s ease-out forwards'
+                    animation: 'fadeInUp 0.3s ease-out forwards'
                   }}
                 >
                   <TableCell>
@@ -1117,11 +1171,17 @@ export default function PositionsPageClient() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">
-                    <Link href={`/positions/${position.id}`} className="text-primary hover:underline">
+                    <div className="flex flex-col">
+                      <Link href={`/positions/${position.id}`} className="text-primary hover:underline font-medium">
                       {position.title}
                     </Link>
+                      {position.positionLevel && (
+                        <span className="text-xs text-muted-foreground mt-0.5">
+                          {position.positionLevel}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
-                  <TableCell>{position.positionLevel || '-'}</TableCell>
                   <TableCell>{position.department}</TableCell>
                   <TableCell>
                     {position.isOpen ? (
@@ -1131,22 +1191,18 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {position.recruiterName ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300 rounded-md">
-                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                        {position.recruiterName}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 text-sm font-medium bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400 rounded-md">
-                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                        Unassigned
-                      </span>
-                    )}
+                    <RecruiterCell
+                      position={position}
+                      availableRecruiters={availableRecruiters}
+                      canManagePositions={canManagePositions}
+                      isAssigning={assigningRecruiter === position.id}
+                      onAssignRecruiter={handleAssignRecruiterToPosition}
+                    />
                   </TableCell>
                   <TableCell className="text-center">
-                    {(position.candidateStats?.totalApplied ?? 0) > 0 ? (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 rounded-md">
-                        {position.candidateStats?.totalApplied}
+                    {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
+                        {position.candidateStats?.appliedStatusCount}
                       </span>
                     ) : (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-muted text-muted-foreground rounded-md">
@@ -1165,18 +1221,21 @@ export default function PositionsPageClient() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center">
-                    {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
-                      <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
-                        {position.candidateStats?.appliedStatusCount}
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{position.createdAt ? new Date(position.createdAt).toLocaleDateString() : '-'}</TableCell>
-                  <TableCell>{position.updatedAt ? new Date(position.updatedAt).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>
-                    {canManagePositions && (
                       <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPositionId(position.id);
+                          setIsNewDrawerOpen(true);
+                        }}
+                        title="View position details in drawer"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {canManagePositions && (
+                        <>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1200,8 +1259,9 @@ export default function PositionsPageClient() {
                             Details
                           </Button>
                         </Link>
-                      </div>
+                        </>
                     )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -1274,6 +1334,7 @@ export default function PositionsPageClient() {
           </div>
         </div>
       )}
+          </div> {/* Close space-y-6 div */}
         </div> {/* Close main content div */}
       </div> {/* Close flex container */}
       
@@ -1340,6 +1401,18 @@ export default function PositionsPageClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Position Detail Drawer */}
+      <PositionDetailDrawer
+        isOpen={isNewDrawerOpen}
+        onOpenChange={(open) => {
+          setIsNewDrawerOpen(open);
+          if (!open) {
+            setSelectedPositionId(null);
+          }
+        }}
+        positionId={selectedPositionId}
+      />
     </div>
   );
 } 

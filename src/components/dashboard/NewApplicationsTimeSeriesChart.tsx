@@ -238,7 +238,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
           gradient.addColorStop(1, 'rgba(59, 130, 246, 0.8)');
           return gradient;
         },
-        borderWidth: 0,
+        borderWidth: 3,
         fill: true,
         tension: 0.4,
         pointBackgroundColor: 'rgba(59, 130, 246, 1)',
@@ -267,7 +267,7 @@ export function NewApplicationsTimeSeriesChart({ candidates, isLoading = false }
         gradient.addColorStop(1, 'rgba(156, 163, 175, 0.6)');
         return gradient;
       },
-      borderWidth: 0,
+      borderWidth: 2,
       fill: true,
       tension: 0.4,
       pointBackgroundColor: 'rgba(156, 163, 175, 0.8)',

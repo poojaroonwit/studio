@@ -1,12 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, UserCheck, UserX } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Users, UserCheck, UserX, TrendingUp } from "lucide-react";
 import type { UserProfile } from "@/lib/types";
+import { RecruiterCard } from './RecruiterCard';
+
+interface RecruiterStats {
+  totalActivePositions: number;
+}
+
+interface RecruiterWithStats extends UserProfile {
+  stats: RecruiterStats;
+}
 
 interface RecruiterFilterSidebarProps {
   selectedRecruiterId: string | null;
@@ -19,31 +28,84 @@ export function RecruiterFilterSidebar({
   onRecruiterSelect, 
   recruiterStats 
 }: RecruiterFilterSidebarProps) {
-  const [recruiters, setRecruiters] = useState<UserProfile[]>([]);
+  const [recruitersWithStats, setRecruitersWithStats] = useState<RecruiterWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalStats, setTotalStats] = useState({
+    totalRecruiters: 0,
+    totalPositions: 0,
+    totalCandidates: 0,
+    unassignedPositions: 0
+  });
+
+  const fetchRecruiterStatistics = async (recruiterId: string): Promise<RecruiterStats> => {
+    try {
+      // Fetch positions for recruiter
+      const positionsResponse = await fetch(`/api/positions?recruiterId=${recruiterId}&includeStats=true`);
+      const positionsData = await positionsResponse.json();
+      const activePositions = positionsData.data?.filter((p: any) => p.isOpen) || [];
+      
+      // Calculate statistics
+      const totalActivePositions = activePositions.length;
+
+      return {
+        totalActivePositions,
+      };
+    } catch (error) {
+      console.error(`Error fetching statistics for recruiter ${recruiterId}:`, error);
+      return {
+        totalActivePositions: 0,
+      };
+    }
+  };
 
   useEffect(() => {
-    const fetchRecruiters = async () => {
+    const fetchRecruitersWithStats = async () => {
       setIsLoading(true);
       setError(null);
       try {
+        // Fetch all recruiters
         const response = await fetch('/api/users?role=Recruiter');
         if (!response.ok) {
           throw new Error('Failed to fetch recruiters');
         }
         const recruitersData = await response.json();
-        setRecruiters(recruitersData);
+        
+        // Fetch statistics for each recruiter
+        const recruitersWithStatsPromises = recruitersData.map(async (recruiter: UserProfile) => {
+          const stats = await fetchRecruiterStatistics(recruiter.id);
+          return {
+            ...recruiter,
+            stats
+          };
+        });
+        
+        const recruitersWithStats = await Promise.all(recruitersWithStatsPromises);
+        setRecruitersWithStats(recruitersWithStats);
+        
+        // Calculate total statistics
+        const totalRecruiters = recruitersWithStats.length;
+        const totalPositions = recruitersWithStats.reduce((sum, r) => sum + r.stats.totalActivePositions, 0);
+        const totalCandidates = recruitersWithStats.reduce((sum, r) => sum + r.stats.totalCandidates, 0);
+        const unassignedPositions = recruiterStats.unassigned || 0;
+        
+        setTotalStats({
+          totalRecruiters,
+          totalPositions,
+          totalCandidates,
+          unassignedPositions
+        });
+        
       } catch (error) {
-        console.error('Error fetching recruiters:', error);
+        console.error('Error fetching recruiters with stats:', error);
         setError('Failed to load recruiters');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRecruiters();
-  }, []);
+    fetchRecruitersWithStats();
+  }, [recruiterStats]);
 
   const handleRecruiterClick = (recruiterId: string | null) => {
     onRecruiterSelect(recruiterId);
@@ -51,107 +113,107 @@ export function RecruiterFilterSidebar({
 
   if (isLoading) {
     return (
-      <Card className="h-fit border-0 shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="h-5 w-5" />
-            Recruiters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 px-2">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full">
+        <div className="pb-2 mb-2 border-b">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Users className="h-4 w-4" />
+            Recruitments
+          </h2>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="h-fit border-0 shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="h-5 w-5" />
-            Recruiters
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0 px-2">
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">{error}</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full">
+        <div className="pb-2 mb-2 border-b">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Users className="h-4 w-4" />
+            Recruitments
+          </h2>
+        </div>
+        <div className="text-center py-4">
+          <p className="text-xs text-muted-foreground mb-2">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="h-fit border-0 shadow-none">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Users className="h-5 w-5" />
-          Recruiters
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 px-2">
-        <ScrollArea className="h-[400px]">
-          <div className="space-y-1">
+    <div className="h-full flex flex-col">
+      {/* Minimal Header */}
+      <div className="pb-2 mb-2 border-b">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold mb-2">
+          <Users className="h-4 w-4" />
+          Recruitments
+        </h2>
+        
+        {/* Ultra Minimal Stats - Single Row */}
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">{totalStats.totalRecruiters} recruiters</span>
+          <span className="text-muted-foreground">{totalStats.totalPositions} positions</span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="space-y-1 pr-2">
             {/* All Recruiters Option */}
-            <Button
-              variant={selectedRecruiterId === null ? "default" : "ghost"}
-              className="w-full justify-start h-auto p-2"
+            <div 
+              className={`cursor-pointer transition-all duration-200 p-1.5 rounded border text-xs ${
+                selectedRecruiterId === null ? 'bg-primary/10 border-primary' : 'hover:bg-accent border-transparent'
+              }`}
               onClick={() => handleRecruiterClick(null)}
             >
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" />
-                  <span className="font-medium">All Recruiters</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <UserCheck className="h-3 w-3 text-primary" />
+                  <span className="font-medium">All</span>
                 </div>
-                <Badge variant="secondary" className="ml-auto">
-                  {Object.values(recruiterStats).reduce((sum, count) => sum + count, 0)}
-                </Badge>
+                <span className="font-semibold text-primary">{totalStats.totalPositions}</span>
               </div>
-            </Button>
+            </div>
 
             {/* Unassigned Positions */}
-            <Button
-              variant={selectedRecruiterId === 'unassigned' ? "default" : "ghost"}
-              className="w-full justify-start h-auto p-2"
+            <div 
+              className={`cursor-pointer transition-all duration-200 p-1.5 rounded border text-xs ${
+                selectedRecruiterId === 'unassigned' ? 'bg-primary/10 border-primary' : 'hover:bg-accent border-transparent'
+              }`}
               onClick={() => handleRecruiterClick('unassigned')}
             >
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <UserX className="h-4 w-4" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <UserX className="h-3 w-3 text-orange-500" />
                   <span className="font-medium">Unassigned</span>
                 </div>
-                <Badge variant="secondary" className="ml-auto">
-                  {recruiterStats.unassigned || 0}
-                </Badge>
+                <span className="font-semibold text-orange-500">{totalStats.unassignedPositions}</span>
               </div>
-            </Button>
+            </div>
 
-            {/* Individual Recruiters */}
-            {recruiters.map((recruiter) => (
-              <Button
+            {/* Individual Recruiter Cards */}
+            {recruitersWithStats.map((recruiter) => (
+              <RecruiterCard
                 key={recruiter.id}
-                variant={selectedRecruiterId === recruiter.id ? "default" : "ghost"}
-                className="w-full justify-start h-auto p-2"
-                onClick={() => handleRecruiterClick(recruiter.id)}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="font-medium truncate">{recruiter.name}</span>
-                  </div>
-                  <Badge variant="secondary" className="ml-auto">
-                    {recruiterStats[recruiter.id] || 0}
-                  </Badge>
-                </div>
-              </Button>
+                recruiter={{
+                  id: recruiter.id,
+                  name: recruiter.name,
+                  avatar: recruiter.avatar
+                }}
+                stats={recruiter.stats}
+                isSelected={selectedRecruiterId === recruiter.id}
+                onSelect={handleRecruiterClick}
+              />
             ))}
           </div>
         </ScrollArea>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

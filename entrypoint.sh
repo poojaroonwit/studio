@@ -17,9 +17,9 @@ echo "📊 Using DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Run database migrations
+# Run database migrations conditionally
 echo "🔄 Running database migrations..."
-npx prisma migrate deploy
+node scripts/migrate-conditionally.cjs
 
 # Seed the database
 echo "🌱 Seeding database..."

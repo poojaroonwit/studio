@@ -17,19 +17,24 @@ import {
   AlignRight,
   AlignJustify,
   Minus,
+  Table,
+  Plus,
+  MoreHorizontal,
+  Maximize2,
 } from 'lucide-react';
 
 interface TiptapToolbarProps {
   editor: Editor | null;
+  onExpand?: () => void;
 }
 
-export function TiptapToolbar({ editor }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onExpand }: TiptapToolbarProps) {
   if (!editor) {
     return null;
   }
 
   return (
-    <div className="border-b border-gray-200 bg-gray-50 p-2 flex flex-wrap gap-1">
+    <div className="border-b border-border bg-muted p-2 flex flex-wrap gap-1">
       {/* Text Formatting */}
       <Button
         variant={editor.isActive('bold') ? 'default' : 'ghost'}
@@ -116,6 +121,43 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
       
       <Separator orientation="vertical" className="h-5" />
 
+      {/* Table Controls */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        className="h-7 w-7 p-0"
+        title="Insert Table"
+      >
+        <Table className="h-3 w-3" />
+      </Button>
+      
+      {editor.isActive('table') && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().addRowBefore().run()}
+            className="h-7 w-7 p-0"
+            title="Add Row Above"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().addColumnBefore().run()}
+            className="h-7 w-7 p-0"
+            title="Add Column Before"
+          >
+            <MoreHorizontal className="h-3 w-3" />
+          </Button>
+        </>
+      )}
+      
+      <Separator orientation="vertical" className="h-5" />
+
       {/* Text Alignment */}
       <Button
         variant={editor.isActive({ textAlign: 'left' }) ? 'default' : 'ghost'}
@@ -152,6 +194,22 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
       >
         <AlignJustify className="h-3 w-3" />
       </Button>
+
+      {/* Expand Button */}
+      {onExpand && (
+        <>
+          <Separator orientation="vertical" className="h-5" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onExpand}
+            className="h-7 w-7 p-0"
+            title="Expand to Fullscreen"
+          >
+            <Maximize2 className="h-3 w-3" />
+          </Button>
+        </>
+      )}
     </div>
   );
 } 

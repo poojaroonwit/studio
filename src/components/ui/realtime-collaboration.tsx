@@ -44,6 +44,36 @@ export function RealtimeCollaboration({
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Fetch notifications on mount
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/realtime/notifications');
+        if (response.ok) {
+          const notificationsData = await response.json();
+          // Ensure notifications have required properties
+          const validNotifications = notificationsData.filter((n: any) => 
+            n && typeof n === 'object' && n.id
+          ).map((n: any) => ({
+            id: n.id,
+            title: n.title || 'Untitled Notification',
+            message: n.message || 'No message',
+            timestamp: n.timestamp || n.createdAt || Date.now(),
+            read: n.read || false,
+            ...n
+          }));
+          setNotifications(validNotifications);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+  }, [session?.user?.id]);
+
   // Update user presence only on mount/unmount
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -139,17 +169,17 @@ export function RealtimeCollaboration({
 
   // Mark notification as read (still uses API)
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !notificationId) return;
     try {
       await fetch(`/api/realtime/notifications/${notificationId}/read`, {
         method: 'POST',
       });
       setNotifications(prev =>
         prev.map(notification =>
-          notification.id === notificationId
+          notification && notification.id === notificationId
             ? { ...notification, read: true }
             : notification
-        )
+        ).filter(Boolean) // Remove any null/undefined notifications
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -348,12 +378,12 @@ export function RealtimeCollaboration({
                 <Bell className="w-4 h-4" />
                 <span className="text-sm font-medium">Notifications</span>
                 <Badge variant="secondary" className="text-xs">
-                  {notifications.filter(n => !n.read).length}
+                  {notifications.filter(n => n && n.id && !n.read).length}
                 </Badge>
               </div>
               <ScrollArea className="h-24">
                 <div className="space-y-2">
-                  {notifications.map((notification) => (
+                  {notifications.filter(n => n && n.id).map((notification) => (
                     <div
                       key={notification.id}
                       className={cn(
@@ -368,13 +398,13 @@ export function RealtimeCollaboration({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium truncate">
-                          {notification.title}
+                          {notification?.title || 'Untitled Notification'}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
-                          {notification.message}
+                          {notification?.message || 'No message'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {formatTimestamp(notification.timestamp)}
+                          {notification?.timestamp ? formatTimestamp(notification.timestamp) : 'Unknown time'}
                         </div>
                       </div>
                       {!notification.read && (

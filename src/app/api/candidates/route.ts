@@ -233,10 +233,10 @@ export async function GET(request: NextRequest) {
     maxExperienceYears: searchParams.get('maxExperienceYears') || undefined,
     applicationDateStart: searchParams.get('applicationDateStart') || undefined,
     applicationDateEnd: searchParams.get('applicationDateEnd') || undefined,
-    minFitScore: searchParams.get('minFitScore') || undefined,
-    maxFitScore: searchParams.get('maxFitScore') || undefined,
-    matchingMinFitScore: searchParams.get('matchingMinFitScore') || undefined,
-    matchingMaxFitScore: searchParams.get('matchingMaxFitScore') || undefined,
+    minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') || undefined,
+    maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') || undefined,
+    minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') || undefined,
+    maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') || undefined,
   };
 
 
@@ -258,15 +258,15 @@ export async function GET(request: NextRequest) {
   if (filters.status) {
     const statuses = filters.status.split(',').map(s => s.trim());
     
-    // Check if "Off" is one of the selected statuses
-    const hasOffStatus = statuses.includes('Off');
-    const regularStatuses = statuses.filter(s => s !== 'Off');
+    // Check if "no-status" or "Off" is one of the selected statuses (supporting both for backwards compatibility)
+    const hasNoStatus = statuses.includes('no-status') || statuses.includes('Off');
+    const regularStatuses = statuses.filter(s => s !== 'no-status' && s !== 'Off');
     
-    if (hasOffStatus && regularStatuses.length === 0) {
-      // Only "Off" status selected - filter for candidates with no status
+    if (hasNoStatus && regularStatuses.length === 0) {
+      // Only "no-status" selected - filter for candidates with no status
       whereClauses.push(`(c.status IS NULL OR c.status = '' OR c.status = 'null')`);
-    } else if (hasOffStatus && regularStatuses.length > 0) {
-      // Mixed selection - include both "Off" and regular statuses
+    } else if (hasNoStatus && regularStatuses.length > 0) {
+      // Mixed selection - include both "no-status" and regular statuses
       if (regularStatuses.length === 1) {
         whereClauses.push(`(c.status = $${paramIndex++} OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
         queryParams.push(regularStatuses[0]);
@@ -286,15 +286,35 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Handle position filter (supports multiple positions)
+  // Handle position filter (supports multiple positions and 'not-applied')
   if (filters.positionId) {
     const positionIds = filters.positionId.split(',').map(id => id.trim());
-    if (positionIds.length === 1) {
-      whereClauses.push(`c."positionId" = $${paramIndex++}`);
-      queryParams.push(positionIds[0]);
+    
+    // Check if "not-applied" is one of the selected positions
+    const hasNotApplied = positionIds.includes('not-applied');
+    const regularPositions = positionIds.filter(id => id !== 'not-applied');
+    
+    if (hasNotApplied && regularPositions.length === 0) {
+      // Only "not-applied" selected - filter for candidates with no position
+      whereClauses.push(`(c."positionId" IS NULL OR c."positionId" = '')`);
+    } else if (hasNotApplied && regularPositions.length > 0) {
+      // Mixed selection - include both "not-applied" and regular positions
+      if (regularPositions.length === 1) {
+        whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL OR c."positionId" = '')`);
+        queryParams.push(regularPositions[0]);
+      } else {
+        whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL OR c."positionId" = '')`);
+        queryParams.push(regularPositions);
+      }
     } else {
-      whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
-      queryParams.push(positionIds);
+      // Only regular positions selected
+      if (regularPositions.length === 1) {
+        whereClauses.push(`c."positionId" = $${paramIndex++}`);
+        queryParams.push(regularPositions[0]);
+      } else {
+        whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
+        queryParams.push(regularPositions);
+      }
     }
   }
 
@@ -426,8 +446,10 @@ export async function GET(request: NextRequest) {
 
   // Handle skills filter (search in parsed data)
   if (filters.skills) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.skills}%`);
+    const skillsArray = filters.skills.split(',').map(s => s.trim());
+    const skillsConditions = skillsArray.map(() => `c."parsedData"::text ILIKE $${paramIndex++}`);
+    skillsArray.forEach(skill => queryParams.push(`%${skill}%`));
+    whereClauses.push(`(${skillsConditions.join(' OR ')})`);
   }
 
   // Handle CV language filter (search in parsed data)
@@ -456,70 +478,65 @@ export async function GET(request: NextRequest) {
 
   // Handle experience years filter (calculate from experienceData)
   if (filters.minExperienceYears || filters.maxExperienceYears) {
+    const minExp = parseInt(filters.minExperienceYears || '0');
+    const maxExp = parseInt(filters.maxExperienceYears || '50');
     
-    // Calculate total experience years from experienceData array
-    const experienceCalculation = `
-      COALESCE(
-        (
-          SELECT SUM(
-            CASE 
-              WHEN exp->>'startYear' IS NOT NULL AND exp->>'startMonth' IS NOT NULL THEN
-                CASE 
-                  WHEN (exp->>'isCurrent')::boolean = true OR exp->>'endYear' IS NULL OR exp->>'endMonth' IS NULL THEN
-                    EXTRACT(YEAR FROM AGE(CURRENT_DATE, 
-                      MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
-                    ))
-                  ELSE
-                    EXTRACT(YEAR FROM AGE(
-                      MAKE_DATE((exp->>'endYear')::int, (exp->>'endMonth')::int, 1),
-                      MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
-                    ))
-                END
-              ELSE 0
-            END
-          )::float
-          FROM jsonb_array_elements(COALESCE(c."experienceData", '[]'::jsonb)) AS exp
-        ), 0
-      )
-    `;
-    
-    if (filters.minExperienceYears && filters.maxExperienceYears) {
-      whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
-      const minExperienceYears = parseInt(filters.minExperienceYears);
-      const maxExperienceYears = parseInt(filters.maxExperienceYears);
-      if (isNaN(minExperienceYears) || isNaN(maxExperienceYears)) {
-        console.error('Invalid experience years values:', { minExperienceYears: filters.minExperienceYears, maxExperienceYears: filters.maxExperienceYears });
+    // Check for special "no experience" case (minExperienceYears = -1)
+    if (minExp === -1) {
+      // Filter for candidates with no experience data or empty experience data
+      whereClauses.push(`(c."experienceData" IS NULL OR c."experienceData" = '[]'::jsonb OR jsonb_array_length(c."experienceData") = 0)`);
+    } else {
+      // Calculate total experience years from experienceData array
+      const experienceCalculation = `
+        COALESCE(
+          (
+            SELECT SUM(
+              CASE 
+                WHEN exp->>'startYear' IS NOT NULL AND exp->>'startMonth' IS NOT NULL THEN
+                  CASE 
+                    WHEN (exp->>'isCurrent')::boolean = true OR exp->>'endYear' IS NULL OR exp->>'endMonth' IS NULL THEN
+                      EXTRACT(YEAR FROM AGE(CURRENT_DATE, 
+                        MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
+                      ))
+                    ELSE
+                      EXTRACT(YEAR FROM AGE(
+                        MAKE_DATE((exp->>'endYear')::int, (exp->>'endMonth')::int, 1),
+                        MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
+                      ))
+                  END
+                ELSE 0
+              END
+            )::float
+            FROM jsonb_array_elements(COALESCE(c."experienceData", '[]'::jsonb)) AS exp
+          ), 0
+        )
+      `;
+      
+      if (filters.minExperienceYears && filters.maxExperienceYears) {
+        whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
+        if (!isNaN(minExp) && !isNaN(maxExp)) {
+          queryParams.push(minExp, maxExp);
+        } else {
+          console.error('Skipping invalid experience years parameters');
+        }
+        paramIndex += 2;
+      } else if (filters.minExperienceYears) {
+        whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
+        if (!isNaN(minExp)) {
+          queryParams.push(minExp);
+        } else {
+          console.error('Skipping invalid min experience years parameter');
+        }
+        paramIndex++;
+      } else if (filters.maxExperienceYears) {
+        whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
+        if (!isNaN(maxExp)) {
+          queryParams.push(maxExp);
+        } else {
+          console.error('Skipping invalid max experience years parameter');
+        }
+        paramIndex++;
       }
-      if (!isNaN(minExperienceYears) && !isNaN(maxExperienceYears)) {
-        queryParams.push(minExperienceYears, maxExperienceYears);
-      } else {
-        console.error('Skipping invalid experience years parameters');
-      }
-      paramIndex += 2;
-    } else if (filters.minExperienceYears) {
-      whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
-      const minExperienceYears = parseInt(filters.minExperienceYears);
-      if (isNaN(minExperienceYears)) {
-        console.error('Invalid min experience years value:', filters.minExperienceYears);
-      }
-      if (!isNaN(minExperienceYears)) {
-        queryParams.push(minExperienceYears);
-      } else {
-        console.error('Skipping invalid min experience years parameter');
-      }
-      paramIndex++;
-    } else if (filters.maxExperienceYears) {
-      whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
-      const maxExperienceYears = parseInt(filters.maxExperienceYears);
-      if (isNaN(maxExperienceYears)) {
-        console.error('Invalid max experience years value:', filters.maxExperienceYears);
-      }
-      if (!isNaN(maxExperienceYears)) {
-        queryParams.push(maxExperienceYears);
-      } else {
-        console.error('Skipping invalid max experience years parameter');
-      }
-      paramIndex++;
     }
   }
 
@@ -538,105 +555,104 @@ export async function GET(request: NextRequest) {
   }
 
   // Handle fit score range filter
-  if (filters.minFitScore || filters.maxFitScore) {
-    if (filters.minFitScore && filters.maxFitScore) {
-      // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
+  if (filters.minAppliedJobFitScore || filters.maxAppliedJobFitScore) {
+    const minFit = parseInt(filters.minAppliedJobFitScore || '0');
+    const maxFit = parseInt(filters.maxAppliedJobFitScore || '100');
+    
+    // Check for special "no fit score" case (minAppliedJobFitScore = -1)
+    if (minFit === -1) {
+      // Filter for candidates with no fit score (NULL, 0, or missing from parsedData)
       whereClauses.push(`(
-        (c."fitScore" >= $${paramIndex} AND c."fitScore" <= $${paramIndex + 1}) OR 
-        (c."fitScore" >= $${paramIndex}/100 AND c."fitScore" <= $${paramIndex + 1}/100) OR 
-        ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}) OR 
-        ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100 AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}/100)
+        c."fitScore" IS NULL OR 
+        c."fitScore" = 0 OR 
+        (c."parsedData"->'job_applied'->>'fitScore') IS NULL OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float = 0 OR 
+        (c."parsedData"->'job_applied'->>'fitScore')::float IS NULL
       )`);
-      const minFitScore = parseInt(filters.minFitScore);
-      const maxFitScore = parseInt(filters.maxFitScore);
-      if (isNaN(minFitScore) || isNaN(maxFitScore)) {
-        console.error('Invalid fit score values:', { minFitScore: filters.minFitScore, maxFitScore: filters.maxFitScore });
+    } else {
+      // Regular fit score range filtering
+      if (filters.minAppliedJobFitScore && filters.maxAppliedJobFitScore) {
+        // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
+        whereClauses.push(`(
+          (c."fitScore" >= $${paramIndex} AND c."fitScore" <= $${paramIndex + 1}) OR 
+          (c."fitScore" >= $${paramIndex}/100 AND c."fitScore" <= $${paramIndex + 1}/100) OR 
+          ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}) OR 
+          ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100 AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}/100)
+        )`);
+        if (!isNaN(minFit) && !isNaN(maxFit)) {
+          queryParams.push(minFit, maxFit);
+        } else {
+          console.error('Skipping invalid fit score parameters');
+        }
+        paramIndex += 2;
+      } else if (filters.minAppliedJobFitScore) {
+        whereClauses.push(`(
+          c."fitScore" >= $${paramIndex} OR 
+          c."fitScore" >= $${paramIndex}/100 OR 
+          (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR 
+          (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100
+        )`);
+        if (!isNaN(minFit)) {
+          queryParams.push(minFit);
+        } else {
+          console.error('Skipping invalid min fit score parameter');
+        }
+        paramIndex++;
+      } else if (filters.maxAppliedJobFitScore) {
+        whereClauses.push(`(
+          c."fitScore" <= $${paramIndex} OR 
+          c."fitScore" <= $${paramIndex}/100 OR 
+          (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex} OR 
+          (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex}/100
+        )`);
+        if (!isNaN(maxFit)) {
+          queryParams.push(maxFit);
+        } else {
+          console.error('Skipping invalid max fit score parameter');
+        }
+        paramIndex++;
       }
-      if (!isNaN(minFitScore) && !isNaN(maxFitScore)) {
-        queryParams.push(minFitScore, maxFitScore);
-      } else {
-        console.error('Skipping invalid fit score parameters');
-      }
-      paramIndex += 2;
-    } else if (filters.minFitScore) {
-      whereClauses.push(`(
-        c."fitScore" >= $${paramIndex} OR 
-        c."fitScore" >= $${paramIndex}/100 OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100
-      )`);
-      const minFitScore = parseInt(filters.minFitScore);
-      if (isNaN(minFitScore)) {
-        console.error('Invalid min fit score value:', filters.minFitScore);
-      }
-      if (!isNaN(minFitScore)) {
-        queryParams.push(minFitScore);
-      } else {
-        console.error('Skipping invalid min fit score parameter');
-      }
-      paramIndex++;
-    } else if (filters.maxFitScore) {
-      whereClauses.push(`(
-        c."fitScore" <= $${paramIndex} OR 
-        c."fitScore" <= $${paramIndex}/100 OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex} OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex}/100
-      )`);
-      const maxFitScore = parseInt(filters.maxFitScore);
-      if (isNaN(maxFitScore)) {
-        console.error('Invalid max fit score value:', filters.maxFitScore);
-      }
-      if (!isNaN(maxFitScore)) {
-        queryParams.push(maxFitScore);
-      } else {
-        console.error('Skipping invalid max fit score parameter');
-      }
-      paramIndex++;
     }
   }
 
   // Handle matching fit score range filter (best job match)
-  if (filters.matchingMinFitScore || filters.matchingMaxFitScore) {
+  if (filters.minMatchingJobFitScore || filters.maxMatchingJobFitScore) {
+    const minMatchingFit = parseInt(filters.minMatchingJobFitScore || '0');
+    const maxMatchingFit = parseInt(filters.maxMatchingJobFitScore || '100');
     
-    // Add a lateral join to get the max fitScore from JobMatch for each candidate
-    // We'll add the filter to the WHERE clause using the alias jm_max
-    if (filters.matchingMinFitScore && filters.matchingMaxFitScore) {
-      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex} AND COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex + 1}`);
-      const matchingMinFitScore = parseInt(filters.matchingMinFitScore);
-      const matchingMaxFitScore = parseInt(filters.matchingMaxFitScore);
-      if (isNaN(matchingMinFitScore) || isNaN(matchingMaxFitScore)) {
-        console.error('Invalid matching fit score values:', { matchingMinFitScore: filters.matchingMinFitScore, matchingMaxFitScore: filters.matchingMaxFitScore });
+    // Check for special "no matching fit score" case (minMatchingJobFitScore = -1)
+    if (minMatchingFit === -1) {
+      // Filter for candidates with no matching fit score (NULL or 0)
+      whereClauses.push(`(jm_max.max_fit_score IS NULL OR jm_max.max_fit_score = 0)`);
+    } else {
+      // Regular matching fit score range filtering
+      // Add a lateral join to get the max fitScore from JobMatch for each candidate
+      // We'll add the filter to the WHERE clause using the alias jm_max
+      if (filters.minMatchingJobFitScore && filters.maxMatchingJobFitScore) {
+        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex} AND COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex + 1}`);
+        if (!isNaN(minMatchingFit) && !isNaN(maxMatchingFit)) {
+          queryParams.push(minMatchingFit, maxMatchingFit);
+        } else {
+          console.error('Skipping invalid matching fit score parameters');
+        }
+        paramIndex += 2;
+      } else if (filters.minMatchingJobFitScore) {
+        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex}`);
+        if (!isNaN(minMatchingFit)) {
+          queryParams.push(minMatchingFit);
+        } else {
+          console.error('Skipping invalid matching min fit score parameter');
+        }
+        paramIndex++;
+      } else if (filters.maxMatchingJobFitScore) {
+        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex}`);
+        if (!isNaN(maxMatchingFit)) {
+          queryParams.push(maxMatchingFit);
+        } else {
+          console.error('Skipping invalid matching max fit score parameter');
+        }
+        paramIndex++;
       }
-      if (!isNaN(matchingMinFitScore) && !isNaN(matchingMaxFitScore)) {
-        queryParams.push(matchingMinFitScore, matchingMaxFitScore);
-      } else {
-        console.error('Skipping invalid matching fit score parameters');
-      }
-      paramIndex += 2;
-    } else if (filters.matchingMinFitScore) {
-      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex}`);
-      const matchingMinFitScore = parseInt(filters.matchingMinFitScore);
-      if (isNaN(matchingMinFitScore)) {
-        console.error('Invalid matching min fit score value:', filters.matchingMinFitScore);
-      }
-      if (!isNaN(matchingMinFitScore)) {
-        queryParams.push(matchingMinFitScore);
-      } else {
-        console.error('Skipping invalid matching min fit score parameter');
-      }
-      paramIndex++;
-    } else if (filters.matchingMaxFitScore) {
-      whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex}`);
-      const matchingMaxFitScore = parseInt(filters.matchingMaxFitScore);
-      if (isNaN(matchingMaxFitScore)) {
-        console.error('Invalid matching max fit score value:', filters.matchingMaxFitScore);
-      }
-      if (!isNaN(matchingMaxFitScore)) {
-        queryParams.push(matchingMaxFitScore);
-      } else {
-        console.error('Skipping invalid matching max fit score parameter');
-      }
-      paramIndex++;
     }
   }
 

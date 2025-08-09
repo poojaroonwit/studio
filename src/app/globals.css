@@ -1350,4 +1350,75 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
 .ProseMirror ::-moz-selection {
   background: #b3d4fc;
 }
-    
+
+/* WYSIWYG Content Display - matches editor formatting */
+.wysiwyg-content {
+  @apply text-base text-foreground prose prose-base max-w-none leading-relaxed;
+  @apply prose-headings:text-foreground prose-headings:font-bold;
+  @apply prose-p:text-foreground prose-p:mb-4;
+  @apply prose-strong:text-foreground prose-strong:font-bold;
+  @apply prose-em:text-foreground prose-em:italic;
+  @apply prose-ul:text-foreground prose-ul:list-disc prose-ul:pl-6;
+  @apply prose-ol:text-foreground prose-ol:list-decimal prose-ol:pl-6;
+  @apply prose-li:text-foreground prose-li:mb-2;
+  @apply prose-blockquote:text-foreground prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic;
+  @apply prose-code:text-foreground prose-code:bg-muted prose-code:px-2 prose-code:py-1 prose-code:rounded;
+  @apply prose-a:text-primary prose-a:underline;
+}
+
+.wysiwyg-content h1 {
+  @apply text-2xl font-bold mb-4 mt-6;
+}
+
+.wysiwyg-content h2 {
+  @apply text-xl font-bold mb-3 mt-5;
+}
+
+.wysiwyg-content h3 {
+  @apply text-lg font-bold mb-2 mt-4;
+}
+
+.wysiwyg-content ul, .wysiwyg-content ol {
+  @apply mb-4 mt-2;
+}
+
+.wysiwyg-content li {
+  @apply mb-1;
+}
+
+.wysiwyg-content p {
+  @apply mb-3;
+}
+
+.wysiwyg-content blockquote {
+  @apply my-4;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(156 163 175) rgb(243 244 246);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(156 163 175);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: rgb(243 244 246);
+}

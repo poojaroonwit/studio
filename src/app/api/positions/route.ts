@@ -70,72 +70,85 @@ export async function GET(request: NextRequest) {
       }, { status: 500, headers: handleCors(request) });
     }
 
-    // TEMPORARY: Return mock data if database connection fails
+    // Build database query with proper filtering
     try {
-      let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
-      let countQuery = 'SELECT COUNT(*) FROM "Position" p';
-      const conditions = [];
-      const queryParams = [];
+      // Build WHERE conditions and parameters
+      const conditions: string[] = [];
+      const queryParams: any[] = [];
       let paramIndex = 1;
 
       if (titleFilter) {
         conditions.push(`p.title ILIKE $${paramIndex++}`);
         queryParams.push(`%${titleFilter}%`);
       }
+
       if (departmentFilter) {
-        conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
-        queryParams.push(departmentFilter.split(','));
+        conditions.push(`p.department = $${paramIndex++}`);
+        queryParams.push(departmentFilter);
       }
-      if (isOpenFilter === "true") {
+
+      if (isOpenFilter === 'true') {
         conditions.push(`p."isOpen" = TRUE`);
-      } else if (isOpenFilter === "false") {
+      } else if (isOpenFilter === 'false') {
         conditions.push(`p."isOpen" = FALSE`);
       }
+
       if (positionLevelFilter) {
         conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
         queryParams.push(`%${positionLevelFilter}%`);
       }
-      if (recruiterIdFilter === 'null') {
-        conditions.push(`p."recruiterId" IS NULL`);
-      } else if (recruiterIdFilter) {
-        // Validate UUID format before adding to query
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(recruiterIdFilter)) {
-          return NextResponse.json({ 
-            message: "Invalid recruiter ID format", 
-            error: "Recruiter ID must be a valid UUID" 
-          }, { status: 400, headers: handleCors(request) });
+
+      if (recruiterIdFilter) {
+        if (recruiterIdFilter === 'null' || recruiterIdFilter === 'unassigned') {
+          conditions.push(`p."recruiterId" IS NULL`);
+        } else {
+          conditions.push(`p."recruiterId" = $${paramIndex++}`);
+          queryParams.push(recruiterIdFilter);
         }
-        conditions.push(`p."recruiterId" = $${paramIndex++}::uuid`);
-        queryParams.push(recruiterIdFilter);
       }
 
-      if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
-        countQuery += ' WHERE ' + conditions.join(' AND ');
-      }
-      query += ' ORDER BY p."createdAt" DESC';
-      query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      const whereClause = conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : '';
+
+      // Build the main query with filtering
+      const mainQuery = `
+        SELECT 
+          p.id, 
+          p.title, 
+          p.department, 
+          p.description, 
+          p."matchCriteria", 
+          p."isOpen", 
+          p."positionLevel", 
+          p."recruiterId", 
+          p."customAttributes", 
+          p."createdAt", 
+          p."updatedAt",
+          u.name as "recruiterName"
+        FROM "Position" p 
+        LEFT JOIN "User" u ON p."recruiterId" = u.id
+        ${whereClause}
+        ORDER BY p."createdAt" DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+      `;
+      
+      // Add limit and offset to params
       queryParams.push(limit, offset);
       
-      let result, countResult;
-      try {
-        const pool = getPool();
-        result = await pool.query(query, queryParams);
-        // For count query, we need to exclude the LIMIT and OFFSET parameters
-        const countQueryParams = queryParams.slice(0, paramIndex - 2);
-        countResult = await pool.query(countQuery, countQueryParams);
-      } catch (dbError) {
-        console.error("Database connection error:", dbError);
-        // Instead of returning an error, we'll fall through to the mock data
-        throw dbError;
-      }
+      const countQuery = `SELECT COUNT(*) as count FROM "Position" p ${whereClause}`;
+      
+      const pool = getPool();
+      
+      // Execute queries with parameters
+      const result = await pool.query(mainQuery, queryParams);
+      const countResult = await pool.query(countQuery, queryParams.slice(0, -2)); // Remove limit and offset for count
       const total = parseInt(countResult.rows[0].count, 10);
       
       let positions = result.rows.map(row => ({
           ...row,
           custom_attributes: row.customAttributes || {},
       }));
+      
+
 
       // Include candidate statistics for each position if requested
       if (includeCandidateStats && positions.length > 0) {
@@ -156,16 +169,9 @@ export async function GET(request: NextRequest) {
           position_matching AS (
             SELECT 
               p.id as position_id,
-              COUNT(DISTINCT CASE 
-                WHEN jm."candidateId" IS NOT NULL THEN jm."candidateId"
-                WHEN c2."parsedData"::text LIKE '%"jobId":"' || p.id || '"%' THEN c2.id
-              END) as total_matching
+              COUNT(DISTINCT jm."candidateId") as total_matching
             FROM "Position" p
             LEFT JOIN "JobMatch" jm ON p.id = jm."jobId"
-            LEFT JOIN "Candidate" c2 ON (
-              c2."parsedData"::text LIKE '%"job_matches"%' 
-              AND c2."parsedData"::text LIKE '%"jobId":"' || p.id || '"%'
-            )
             WHERE p.id = ANY($1::uuid[])
             GROUP BY p.id
           )
@@ -210,20 +216,20 @@ export async function GET(request: NextRequest) {
       // Include statistics if requested
       let statistics = null;
       if (includeStats) {
-        const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
-        const statsParams = queryParams.slice(0, paramIndex - 1);
-
-        // Use a single query with conditional aggregation for better performance
+        // Statistics query with same filtering as main query
         const statsQuery = `
           SELECT 
             COUNT(*) as total,
-            COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
-            COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
-          FROM "Position"${whereClause}
+            COUNT(CASE WHEN p."isOpen" = TRUE THEN 1 END) as open,
+            COUNT(CASE WHEN p."isOpen" = FALSE THEN 1 END) as closed
+          FROM "Position" p
+          ${whereClause}
         `;
         
         let statsResult;
         try {
+          // Use the same filter parameters but exclude limit and offset
+          const statsParams = queryParams.slice(0, -2);
           statsResult = await getPool().query(statsQuery, statsParams);
           const stats = statsResult.rows[0];
           

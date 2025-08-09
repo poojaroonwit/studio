@@ -13,7 +13,10 @@ const updatePositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
-  recruiterId: z.string().uuid().optional().nullable(),
+  recruiterId: z.union([
+    z.string().uuid(),
+    z.null()
+  ]).optional(),
   custom_attributes: z.record(z.any()).optional().nullable(),
 });
 
@@ -132,14 +135,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { title, department, description, matchCriteria, isOpen, positionLevel, recruiterId, custom_attributes } = validationResult.data;
+  const updateData = validationResult.data;
 
   const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     
     // Check if position exists
-    const positionExistsQuery = 'SELECT id, "customAttributes" FROM "Position" WHERE id = $1';
+    const positionExistsQuery = 'SELECT id, title, "customAttributes" FROM "Position" WHERE id = $1';
     const existingResult = await client.query(positionExistsQuery, [id]);
     
     if (existingResult.rows.length === 0) {
@@ -147,25 +150,100 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
     }
 
-    // Update position
+    // If recruiterId is provided, validate that the user exists and is a recruiter
+    if (updateData.recruiterId) {
+      const recruiterCheckQuery = 'SELECT id, name, role FROM "User" WHERE id = $1::uuid';
+      const recruiterResult = await client.query(recruiterCheckQuery, [updateData.recruiterId]);
+      
+      if (recruiterResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'Recruiter not found' }, { status: 400 });
+      }
+      
+      const recruiter = recruiterResult.rows[0];
+      if (recruiter.role !== 'Recruiter' && recruiter.role !== 'Admin') {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ message: 'User is not a recruiter' }, { status: 400 });
+      }
+    }
+
+    // Build dynamic UPDATE query based on provided fields
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (updateData.title !== undefined) {
+      updateFields.push(`title = $${paramIndex++}`);
+      updateValues.push(updateData.title);
+    }
+    if (updateData.department !== undefined) {
+      updateFields.push(`department = $${paramIndex++}`);
+      updateValues.push(updateData.department);
+    }
+    if (updateData.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      updateValues.push(updateData.description);
+    }
+    if (updateData.matchCriteria !== undefined) {
+      updateFields.push(`"matchCriteria" = $${paramIndex++}`);
+      updateValues.push(updateData.matchCriteria);
+    }
+    if (updateData.isOpen !== undefined) {
+      updateFields.push(`"isOpen" = $${paramIndex++}`);
+      updateValues.push(updateData.isOpen);
+    }
+    if (updateData.positionLevel !== undefined) {
+      updateFields.push(`"positionLevel" = $${paramIndex++}`);
+      updateValues.push(updateData.positionLevel);
+    }
+    if (updateData.recruiterId !== undefined) {
+      updateFields.push(`"recruiterId" = $${paramIndex++}`);
+      updateValues.push(updateData.recruiterId);
+    }
+    if (updateData.custom_attributes !== undefined) {
+      updateFields.push(`"customAttributes" = $${paramIndex++}`);
+      updateValues.push(updateData.custom_attributes);
+    }
+
+    // Add updatedAt timestamp
+    updateFields.push(`"updatedAt" = NOW()`);
+
+    if (updateFields.length === 1) { // Only updatedAt was added
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'No fields to update' }, { status: 400 });
+    }
+
     const updateQuery = `
       UPDATE "Position" 
-      SET title = $1, department = $2, description = $3, "matchCriteria" = $4, "isOpen" = $5, 
-          "positionLevel" = $6, "recruiterId" = $7, "customAttributes" = $8, "updatedAt" = NOW()
-      WHERE id = $9
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
       RETURNING *;
     `;
-    const updateResult = await client.query(updateQuery, [
-      title, department, description, matchCriteria, isOpen, positionLevel, recruiterId, custom_attributes || {}, id
-    ]);
+    updateValues.push(id);
+
+    const updateResult = await client.query(updateQuery, updateValues);
+    
+    if (updateResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ message: 'Position not found or update failed' }, { status: 404 });
+    }
 
     await client.query('COMMIT');
-    await logAudit('AUDIT', `Position '${title}' updated by ${actingUserName}.`, 'API:Positions:Update', actingUserId, { positionId: id });
-    
     const updatedPosition = updateResult.rows[0];
+    
+    // Fetch the updated position with recruiter name
+    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
+    const enrichedResult = await client.query(enrichedPositionQuery, [id]);
+    const enrichedPosition = enrichedResult.rows[0];
+    
+
+    
+    await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${actingUserName}.`, 'API:Positions:Update', actingUserId, { positionId: id });
     const positionWithCustomAttrs = {
-      ...updatedPosition,
-      custom_attributes: updatedPosition.customAttributes || {},
+      ...enrichedPosition,
+      custom_attributes: enrichedPosition.customAttributes || {},
+      // Ensure recruiterName is properly included in the response
+      recruiterName: enrichedPosition.recruiterName || null,
     };
     
     // Dispatch webhook for position update
@@ -182,6 +260,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     });
   } catch (error: any) {
     await client.query('ROLLBACK');
+    
+    // Check for specific database constraint errors
+    if (error.code === '23503') { // Foreign key violation
+      await logAudit('ERROR', `Failed to update position - recruiter not found. Error: ${error.message}`, 'API:Positions:Update', actingUserId, { positionId: id, input: body });
+      return NextResponse.json({ message: 'Recruiter not found in database', error: error.message }, { status: 400 });
+    }
+    
     await logAudit('ERROR', `Failed to update position. Error: ${error.message}`, 'API:Positions:Update', actingUserId, { positionId: id, input: body });
     return NextResponse.json({ message: 'Error updating position', error: error.message }, { status: 500 });
   } finally {

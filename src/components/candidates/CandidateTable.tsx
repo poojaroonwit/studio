@@ -88,17 +88,7 @@ const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary"
 
 // Utility for displaying fitScore as a percentage and grade
 function displayFitScoreWithGrade(score: number | undefined | null) {
-  if (typeof score !== 'number' || isNaN(score)) return '';
-  let percent = score;
-  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
-  else percent = Math.round(score);
-  // Grade logic (A: 80+, B: 60+, C: 40+, D: 20+, E: <20)
-  let grade = 'E';
-  if (percent >= 80) grade = 'A';
-  else if (percent >= 60) grade = 'B';
-  else if (percent >= 40) grade = 'C';
-  else if (percent >= 20) grade = 'D';
-  return `${percent}% (${grade})`;
+  return formatScoreWithGrade(score);
 }
 
 // Helper to display applied date as 'xx ago' if within 7 days, else show date and time

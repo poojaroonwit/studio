@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ArrowLeft, Briefcase, Edit, Loader2, ServerCrash, ShieldAlert, Users, ChevronUp, ChevronDown, Search, X, Eye } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import parseISO from 'date-fns/parseISO'
@@ -22,6 +23,7 @@ import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { getScoreBgColor, getScoreColor, formatScoreWithGrade, getScoreGrade, normalizeFitScore } from '@/lib/scoreUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { Pagination } from '@/components/ui/pagination';
+import { getPositionStatusBadge } from '@/lib/positionUtils';
 
 function displayFitScore(score: number | undefined | null) {
   if (typeof score !== 'number' || isNaN(score)) return '';
@@ -769,30 +771,39 @@ export default function PositionDetailPage() {
               <div className="h-6 w-px bg-border" />
               <h1 className="text-2xl font-bold">Position Details</h1>
             </div>
+            <div className="flex flex-col items-end">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>
+                  Created: {position.createdAt ? format(parseISO(position.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                </span>
+                {position.updatedAt && (
+                  <span>
+                    Updated: {format(parseISO(position.updatedAt), 'MMM dd, yyyy')}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content - 2 Column Layout (30%/70%) */}
-      <div className="mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
-          {/* Left Column - 30% */}
-          <Card className="lg:col-span-3 space-y-6 bg-card text-foreground rounded-lg shadow-sm p-6 border border-border">
+      {/* Main Content - 2 Column Layout (40%/60%) */}
+      <div className="mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 h-[calc(100vh-200px)]">
+          {/* Left Column - Position Details - 40% */}
+          <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-4 border-r border-border custom-scrollbar pt-6 pb-6">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <CardTitle className="text-2xl flex items-center gap-3 font-bold">
+                <h2 className="text-2xl flex items-center gap-3 font-bold">
                   <Briefcase className="h-7 w-7 text-primary" />
                   {position.title}
-                </CardTitle>
-                <CardDescription className="mt-2 text-base">
+                </h2>
+                <p className="mt-2 text-base text-muted-foreground">
                   {position.department}
                   {position.positionLevel && ` • ${position.positionLevel}`}
-                </CardDescription>
+                </p>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={position.isOpen ? "default" : "destructive"}>
-                  {position.isOpen ? "Open" : "Closed"}
-                </Badge>
                 <Button onClick={() => setIsEditModalOpen(true)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
@@ -800,59 +811,74 @@ export default function PositionDetailPage() {
               </div>
             </div>
             {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <CardContent className="p-0">
-                <CardDescription className="text-sm font-medium">Department</CardDescription>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 ">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Department</p>
                 <div className="text-base">{position.department}</div>
-              </CardContent>
-              <CardContent className="p-0">
-                <CardDescription className="text-sm font-medium">Level</CardDescription>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Level</p>
                 <div className="text-base">{position.positionLevel || 'Not specified'}</div>
-              </CardContent>
-              <CardContent className="p-0">
-                <CardDescription className="text-sm font-medium">Status</CardDescription>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
                 <div className="text-base">
-                  <Badge variant={position.isOpen ? "default" : "destructive"}>
-                    {position.isOpen ? "Open" : "Closed"}
-                  </Badge>
+                  {(() => {
+                    const statusBadge = getPositionStatusBadge(position.isOpen, false);
+                    return (
+                      <Badge 
+                        variant={statusBadge.variant}
+                        className={statusBadge.className}
+                      >
+                        {statusBadge.text}
+                      </Badge>
+                    );
+                  })()}
                 </div>
-              </CardContent>
-              <CardContent className="p-0">
-                <CardDescription className="text-sm font-medium">Created</CardDescription>
-                <div className="text-base">
-                  {position.createdAt ? format(parseISO(position.createdAt), 'PPP') : 'N/A'}
-                </div>
-              </CardContent>
+              </div>
             </div>
-            {/* Job Description */}
-            <div className="space-y-2 mt-4">
-              <h4 className="font-medium text-sm">Description:</h4>
-              {position.description ? (
-                <div 
-                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: position.description }}
-                />
-              ) : (
-                <div className="text-muted-foreground italic">No job description provided.</div>
-              )}
-            </div>
-            
-            {/* Match Criteria */}
-            <div className="space-y-2 mt-6">
-              <h4 className="font-medium text-sm">Match Criteria:</h4>
-              {position.matchCriteria ? (
-                <div 
-                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: position.matchCriteria }}
-                />
-              ) : (
-                <div className="text-muted-foreground italic">No match criteria defined.</div>
-              )}
-            </div>
-          </Card>
+            {/* Job Description and Match Criteria - Accordion Layout */}
+            <div className="mt-6">
+              <Accordion type="multiple" defaultValue={["job-description", "match-criteria"]} className="w-full space-y-1">
+                {/* Job Description Accordion */}
+                <AccordionItem value="job-description" className="border-t border-b rounded-none">
+                  <AccordionTrigger className="text-left font-medium text-base hover:no-underline py-4">
+                    📄 Job Description
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    {position.description ? (
+                      <div 
+                        className="wysiwyg-content prose prose-sm max-w-none text-sm"
+                        dangerouslySetInnerHTML={{ __html: position.description }}
+                      />
+                    ) : (
+                      <div className="text-muted-foreground italic text-sm">No job description provided.</div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
 
-          {/* Right Column - 70% */}
-          <Card className="lg:col-span-7 space-y-6 bg-card text-foreground rounded-lg shadow-sm p-6 border border-border">
+                {/* Match Criteria Accordion */}
+                <AccordionItem value="match-criteria" className="border-t border-b rounded-none">
+                  <AccordionTrigger className="text-left font-medium text-base hover:no-underline py-4">
+                    🎯 Match Criteria
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    {position.matchCriteria ? (
+                      <div 
+                        className="wysiwyg-content prose prose-sm max-w-none text-sm"
+                        dangerouslySetInnerHTML={{ __html: position.matchCriteria }}
+                      />
+                    ) : (
+                      <div className="text-muted-foreground italic text-sm">No match criteria defined.</div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </div>
+
+          {/* Right Column - Candidates - 60% */}
+          <div className="lg:col-span-6 space-y-6 overflow-y-auto pl-4 custom-scrollbar pt-6 pb-6">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5" />
               <span className="text-lg font-semibold">Candidates</span>
@@ -930,7 +956,7 @@ export default function PositionDetailPage() {
                 />
               </TabsContent>
             </Tabs>
-          </Card>
+          </div>
         </div>
       </div>
 

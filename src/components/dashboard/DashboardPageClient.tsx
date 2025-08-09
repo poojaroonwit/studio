@@ -661,7 +661,7 @@ export default function DashboardPageClient({
               description: "Need attention",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minFitScore:80'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('minAppliedJobFitScore:80'))
               }
             },
             { 
@@ -739,7 +739,119 @@ export default function DashboardPageClient({
         />
       </div>
 
-      {/* Section 2: Recruiter Performance (if applicable) */}
+      {/* Section 2.5: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Candidate Scoring Analysis</h2>
+              <p className="text-sm text-muted-foreground mt-1">Distribution by fit score quality</p>
+            </div>
+          </div>
+        <div className="flex items-center space-x-2">
+            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-xs text-muted-foreground">Interactive</span>
+        </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
+        {/* Sort score ranges by count descending */}
+        {(() => {
+          // Sort by grade order: A, B, C, D, E
+          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
+          const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
+            const aGrade = a.label[0];
+            const bGrade = b.label[0];
+            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
+          });
+          return (
+            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="pt-6">
+                {isLoading ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                <Bar
+                  data={{
+                    labels: sortedScoreRanges.map(r => r.label),
+                    datasets: [
+                      {
+                        label: 'Candidates',
+                        data: sortedScoreRanges.map(r => r.count),
+                        backgroundColor: [
+                          'rgba(239, 68, 68, 0.8)',    // red-500
+                          'rgba(249, 115, 22, 0.8)',   // orange-500
+                          'rgba(234, 179, 8, 0.8)',    // yellow-500
+                          'rgba(59, 130, 246, 0.8)',   // blue-500
+                          'rgba(34, 197, 94, 0.8)',    // green-500
+                        ],
+                        borderRadius: 8,
+                        borderSkipped: false,
+                        barPercentage: 0.7,
+                      },
+                    ],
+                  }}
+                  options={{
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                      legend: { display: false },
+                      title: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            return ` ${context.parsed.x} candidates`;
+                          }
+                        }
+                      },
+                      datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#22223b',
+                        font: { weight: 'bold', size: 14 },
+                        formatter: function(value) {
+                          return value;
+                        }
+                      }
+                    },
+                    onClick: (event, elements) => {
+                      if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const range = sortedScoreRanges[index];
+                        if (range) {
+                          // Get the original score ranges to find min/max values
+                          const scoreRanges = getScoreRangesForChart();
+                          const originalRange = scoreRanges.find(r => r.label === range.label);
+                          if (originalRange) {
+                            const query = `minAppliedJobFitScore:${originalRange.min} maxAppliedJobFitScore:${originalRange.max}`;
+                            router.push('/candidates?query=' + encodeURIComponent(query));
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(100,116,139,0.1)' },
+                        ticks: { color: '#64748b', font: { size: 13 } },
+                      },
+                      y: {
+                        grid: { display: false },
+                        ticks: { color: '#64748b', font: { size: 13 } },
+                      },
+                    },
+                  }}
+                  height={100}
+                />
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+      </div>
+
+      {/* Section 3: Recruiter Performance (if applicable) */}
       {session?.user?.role === 'Recruiter' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -852,7 +964,7 @@ export default function DashboardPageClient({
         </div>
       )}
 
-      {/* Section 3: Pipeline Analytics - Charts */}
+      {/* Section 4: Pipeline Analytics - Charts */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -998,117 +1110,7 @@ export default function DashboardPageClient({
           </div>
         </div>
 
-      {/* Section 4: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Candidate Scoring Analysis</h2>
-              <p className="text-sm text-muted-foreground mt-1">Distribution by fit score quality</p>
-            </div>
-          </div>
-        <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-muted-foreground">Interactive</span>
-        </div>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
-        {/* Sort score ranges by count descending */}
-        {(() => {
-          // Sort by grade order: A, B, C, D, E
-          const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
-          const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
-            const aGrade = a.label[0];
-            const bGrade = b.label[0];
-            return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
-          });
-          return (
-            <Card className="shadow-sm hover:shadow-md transition-all duration-200">
-              <CardContent className="pt-6">
-                {isLoading ? (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                <Bar
-                  data={{
-                    labels: sortedScoreRanges.map(r => r.label),
-                    datasets: [
-                      {
-                        label: 'Candidates',
-                        data: sortedScoreRanges.map(r => r.count),
-                        backgroundColor: [
-                          'rgba(239, 68, 68, 0.8)',    // red-500
-                          'rgba(249, 115, 22, 0.8)',   // orange-500
-                          'rgba(234, 179, 8, 0.8)',    // yellow-500
-                          'rgba(59, 130, 246, 0.8)',   // blue-500
-                          'rgba(34, 197, 94, 0.8)',    // green-500
-                        ],
-                        borderRadius: 8,
-                        borderSkipped: false,
-                        barPercentage: 0.7,
-                      },
-                    ],
-                  }}
-                  options={{
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: {
-                      legend: { display: false },
-                      title: { display: false },
-                      tooltip: {
-                        callbacks: {
-                          label: function(context) {
-                            return ` ${context.parsed.x} candidates`;
-                          }
-                        }
-                      },
-                      datalabels: {
-                        anchor: 'end',
-                        align: 'end',
-                        color: '#22223b',
-                        font: { weight: 'bold', size: 14 },
-                        formatter: function(value) {
-                          return value;
-                        }
-                      }
-                    },
-                    onClick: (event, elements) => {
-                      if (elements.length > 0) {
-                        const index = elements[0].index;
-                        const range = sortedScoreRanges[index];
-                        if (range) {
-                          // Get the original score ranges to find min/max values
-                          const scoreRanges = getScoreRangesForChart();
-                          const originalRange = scoreRanges.find(r => r.label === range.label);
-                          if (originalRange) {
-                            const query = `minFitScore:${originalRange.min} maxFitScore:${originalRange.max}`;
-                            router.push('/candidates?query=' + encodeURIComponent(query));
-                          }
-                        }
-                      }
-                    },
-                    scales: {
-                      x: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(100,116,139,0.1)' },
-                        ticks: { color: '#64748b', font: { size: 13 } },
-                      },
-                      y: {
-                        grid: { display: false },
-                        ticks: { color: '#64748b', font: { size: 13 } },
-                      },
-                    },
-                  }}
-                  height={100}
-                />
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
-      </div>
+
 
 
       {/* Section 5: Unassigned Candidates and Positions Needing Applicants */}
@@ -1234,7 +1236,7 @@ export default function DashboardPageClient({
         </div>
       </div>
 
-      {/* Section 7: Recruiter Action Items (if applicable) */}
+      {/* Section 6: Recruiter Action Items (if applicable) */}
       {session?.user?.role === 'Recruiter' && (
         <div className="space-y-4">
           <div className="flex items-center space-x-2">

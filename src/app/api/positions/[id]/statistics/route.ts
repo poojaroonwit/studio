@@ -26,12 +26,13 @@ export async function GET(
       );
     }
 
-    // Get total candidates who applied to this position
+    // Get total candidates who applied to this position (with "Applied" status)
     let totalApplied = 0;
     try {
       totalApplied = await prisma.candidate.count({
         where: {
-          positionId: positionId
+          positionId: positionId,
+          status: 'Applied'
         }
       });
     } catch (error) {

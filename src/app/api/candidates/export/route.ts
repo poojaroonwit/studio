@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
     const positionId = url.searchParams.get('positionId');
     const status = url.searchParams.get('status');
     const education = url.searchParams.get('education');
-    const minFitScore = url.searchParams.get('minFitScore');
-    const maxFitScore = url.searchParams.get('maxFitScore');
+    const minAppliedJobFitScore = url.searchParams.get('minAppliedJobFitScore');
+    const maxAppliedJobFitScore = url.searchParams.get('maxAppliedJobFitScore');
     const applicationDateStart = url.searchParams.get('applicationDateStart');
     const applicationDateEnd = url.searchParams.get('applicationDateEnd');
     const recruiterId = url.searchParams.get('recruiterId');
@@ -193,15 +193,15 @@ export async function GET(request: NextRequest) {
       paramIndex++;
     }
     
-    if (minFitScore !== null && minFitScore !== undefined) {
+    if (minAppliedJobFitScore !== null && minAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" >= $${paramIndex}`);
-      queryParams.push(parseInt(minFitScore));
+      queryParams.push(parseInt(minAppliedJobFitScore));
       paramIndex++;
     }
     
-    if (maxFitScore !== null && maxFitScore !== undefined) {
+    if (maxAppliedJobFitScore !== null && maxAppliedJobFitScore !== undefined) {
       whereConditions.push(`c."fitScore" <= $${paramIndex}`);
-      queryParams.push(parseInt(maxFitScore));
+      queryParams.push(parseInt(maxAppliedJobFitScore));
       paramIndex++;
     }
     

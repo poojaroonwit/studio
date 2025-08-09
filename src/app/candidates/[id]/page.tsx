@@ -241,16 +241,7 @@ function displayFitScore(score: number | undefined | null) {
 
 // Utility for displaying fitScore as a percentage and grade
 function displayFitScoreWithGrade(score: number | undefined | null) {
-  if (typeof score !== 'number' || isNaN(score)) return 'N/A';
-  let percent = score;
-  if (score >= 0 && score <= 1) percent = Math.round(score * 100);
-  else percent = Math.round(score);
-  let grade = 'E';
-  if (percent >= 80) grade = 'A';
-  else if (percent >= 60) grade = 'B';
-  else if (percent >= 40) grade = 'C';
-  else if (percent >= 20) grade = 'D';
-  return `${percent}% (${grade})`;
+  return formatScoreWithGrade(score);
 }
 
 // Add this helper function near the top or utilities:

@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
-import { Slider } from '@/components/ui/slider';
+
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -115,10 +115,10 @@ export interface CandidateFilterValues {
   jobSuitablePosition?: string; // Job Suitable Position
   minExperienceYears?: number; // Minimum Experience Years
   maxExperienceYears?: number; // Maximum Experience Years
-  minFitScore?: number;
-  maxFitScore?: number;
-  matchingMinFitScore?: number;
-  matchingMaxFitScore?: number;
+  minAppliedJobFitScore?: number; // Min fit score for applied job
+  maxAppliedJobFitScore?: number; // Max fit score for applied job
+  minMatchingJobFitScore?: number; // Min fit score for matching jobs
+  maxMatchingJobFitScore?: number; // Max fit score for matching jobs
   applicationDateStart?: Date;
   applicationDateEnd?: Date;
   selectedRecruiterIds?: string[];
@@ -127,8 +127,8 @@ export interface CandidateFilterValues {
   aiSearchFilters?: {
     positionIds?: string[];
     statuses?: string[];
-    minFitScore?: number;
-    maxFitScore?: number;
+    minAppliedJobFitScore?: number;
+    maxAppliedJobFitScore?: number;
     dateRange?: {
       start: string;
       end: string;
@@ -178,21 +178,21 @@ export function CandidateFilters({
   const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills || []));
   const [location, setLocation] = useState(initialFilters.location || '');
   const [experienceYearsRange, setExperienceYearsRange] = useState<[number, number]>([
-    initialFilters.minExperienceYears || 0,
+    initialFilters.minExperienceYears ?? -1,
     initialFilters.maxExperienceYears || 50,
   ]);
-  const [fitScoreRange, setFitScoreRange] = useState<[number, number]>([
-    initialFilters.minFitScore || 81,
-    initialFilters.maxFitScore || 100,
+  const [appliedJobFitScoreRange, setAppliedJobFitScoreRange] = useState<[number, number]>([
+    initialFilters.minAppliedJobFitScore || 81,
+    initialFilters.maxAppliedJobFitScore || 100,
   ]);
-  const [matchingFitScoreRange, setMatchingFitScoreRange] = useState<[number, number]>([
-    initialFilters.matchingMinFitScore ?? 0,
-    initialFilters.matchingMaxFitScore ?? 100,
+  const [matchingJobFitScoreRange, setMatchingJobFitScoreRange] = useState<[number, number]>([
+    initialFilters.minMatchingJobFitScore ?? 0,
+    initialFilters.maxMatchingJobFitScore ?? 100,
   ]);
 
-  // Checkbox states for fit score grades
-  const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set());
-  const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
+  // Checkbox states for fit score grades - all selected by default
+  const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+  const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
   
   const [applicationDateRange, setApplicationDateRange] = useState<DateRange | undefined>(
     initialFilters.applicationDateStart && initialFilters.applicationDateEnd
@@ -281,9 +281,9 @@ export function CandidateFilters({
     const scoreRanges = getScoreRangesForChart();
     
     // Initialize applied candidates fit score checkboxes
-    if (initialFilters.minFitScore !== undefined || initialFilters.maxFitScore !== undefined) {
-      const minScore = initialFilters.minFitScore ?? 0;
-      const maxScore = initialFilters.maxFitScore ?? 100;
+    if (initialFilters.minAppliedJobFitScore !== undefined || initialFilters.maxAppliedJobFitScore !== undefined) {
+      const minScore = initialFilters.minAppliedJobFitScore ?? 0;
+      const maxScore = initialFilters.maxAppliedJobFitScore ?? 100;
       const selectedGrades = scoreRanges
         .filter(range => 
           (range.min >= minScore && range.min <= maxScore) ||
@@ -298,9 +298,9 @@ export function CandidateFilters({
     }
     
     // Initialize matching candidates fit score checkboxes
-    if (initialFilters.matchingMinFitScore !== undefined || initialFilters.matchingMaxFitScore !== undefined) {
-      const minScore = initialFilters.matchingMinFitScore ?? 0;
-      const maxScore = initialFilters.matchingMaxFitScore ?? 100;
+    if (initialFilters.minMatchingJobFitScore !== undefined || initialFilters.maxMatchingJobFitScore !== undefined) {
+      const minScore = initialFilters.minMatchingJobFitScore ?? 0;
+      const maxScore = initialFilters.maxMatchingJobFitScore ?? 100;
       const selectedGrades = scoreRanges
         .filter(range => 
           (range.min >= minScore && range.min <= maxScore) ||
@@ -313,7 +313,7 @@ export function CandidateFilters({
       // Clear matching fit score checkboxes when no filter is applied
       setSelectedMatchingFitScoreGrades(new Set());
     }
-  }, [initialFilters.minFitScore, initialFilters.maxFitScore, initialFilters.matchingMinFitScore, initialFilters.matchingMaxFitScore]);
+  }, [initialFilters.minAppliedJobFitScore, initialFilters.maxAppliedJobFitScore, initialFilters.minMatchingJobFitScore, initialFilters.maxMatchingJobFitScore]);
 
   // Define a list of common skills
   const skillOptions = [
@@ -440,15 +440,15 @@ export function CandidateFilters({
     if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
     if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
     if (parsedFilters.minFitScore !== undefined || parsedFilters.maxFitScore !== undefined) {
-      setFitScoreRange([
-        parsedFilters.minFitScore ?? fitScoreRange[0],
-        parsedFilters.maxFitScore ?? fitScoreRange[1]
+      setAppliedJobFitScoreRange([
+        parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
+        parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1]
       ]);
     }
     if (parsedFilters.matchingMinFitScore !== undefined || parsedFilters.matchingMaxFitScore !== undefined) {
-      setMatchingFitScoreRange([
-        parsedFilters.matchingMinFitScore ?? matchingFitScoreRange[0],
-        parsedFilters.matchingMaxFitScore ?? matchingFitScoreRange[1]
+      setMatchingJobFitScoreRange([
+        parsedFilters.matchingMinFitScore ?? matchingJobFitScoreRange[0],
+        parsedFilters.matchingMaxFitScore ?? matchingJobFitScoreRange[1]
       ]);
     }
     if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
@@ -463,10 +463,10 @@ export function CandidateFilters({
     // Apply the filters
     onFilterChange({
       ...parsedFilters,
-      minFitScore: parsedFilters.minFitScore ?? fitScoreRange[0],
-      maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
-      matchingMinFitScore: parsedFilters.matchingMinFitScore ?? matchingFitScoreRange[0],
-      matchingMaxFitScore: parsedFilters.matchingMaxFitScore ?? matchingFitScoreRange[1],
+      minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+      maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
+      minMatchingJobFitScore: parsedFilters.minMatchingJobFitScore ?? matchingJobFitScoreRange[0],
+      maxMatchingJobFitScore: parsedFilters.maxMatchingJobFitScore ?? matchingJobFitScoreRange[1],
       applicationDateStart: parsedFilters.applicationDateStart,
       applicationDateEnd: parsedFilters.applicationDateEnd,
       location: parsedFilters.location,
@@ -497,11 +497,11 @@ export function CandidateFilters({
     if (selectedPositionIds.size > 0) parts.push(`positionId:${Array.from(selectedPositionIds).join(',')}`);
     if (selectedStatuses.size > 0) parts.push(`status:${Array.from(selectedStatuses).join(',')}`);
     if (selectedRecruiterIds.size > 0) parts.push(`recruiterId:${Array.from(selectedRecruiterIds).join(',')}`);
-    if (fitScoreRange[0] > 0) parts.push(`minFitScore:${fitScoreRange[0]}`);
-    if (fitScoreRange[1] < 100) parts.push(`maxFitScore:${fitScoreRange[1]}`);
-    if (matchingFitScoreRange[0] > 70 || matchingFitScoreRange[1] < 100) {
-      parts.push(`matchingFitScoreMin:${matchingFitScoreRange[0]}`);
-      parts.push(`matchingFitScoreMax:${matchingFitScoreRange[1]}`);
+    if (appliedJobFitScoreRange[0] > 0) parts.push(`minFitScore:${appliedJobFitScoreRange[0]}`);
+    if (appliedJobFitScoreRange[1] < 100) parts.push(`maxFitScore:${appliedJobFitScoreRange[1]}`);
+    if (matchingJobFitScoreRange[0] > 70 || matchingJobFitScoreRange[1] < 100) {
+      parts.push(`matchingFitScoreMin:${matchingJobFitScoreRange[0]}`);
+      parts.push(`matchingFitScoreMax:${matchingJobFitScoreRange[1]}`);
     }
     if (applicationDateRange?.from) parts.push(`applicationDateStart:${applicationDateRange.from.toISOString().slice(0, 10)}`);
     if (applicationDateRange?.to) parts.push(`applicationDateEnd:${applicationDateRange.to.toISOString().slice(0, 10)}`);
@@ -526,15 +526,15 @@ export function CandidateFilters({
         if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
         if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
         if (parsedFilters.minFitScore !== undefined || parsedFilters.maxFitScore !== undefined) {
-          setFitScoreRange([
-            parsedFilters.minFitScore ?? fitScoreRange[0],
-            parsedFilters.maxFitScore ?? fitScoreRange[1]
+          setAppliedJobFitScoreRange([
+            parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
+            parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1]
           ]);
         }
         if (parsedFilters.matchingMinFitScore !== undefined || parsedFilters.matchingMaxFitScore !== undefined) {
-          setMatchingFitScoreRange([
-            parsedFilters.matchingMinFitScore ?? matchingFitScoreRange[0],
-            parsedFilters.matchingMaxFitScore ?? matchingFitScoreRange[1]
+          setMatchingJobFitScoreRange([
+            parsedFilters.matchingMinFitScore ?? matchingJobFitScoreRange[0],
+            parsedFilters.matchingMaxFitScore ?? matchingJobFitScoreRange[1]
           ]);
         }
         if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
@@ -549,8 +549,8 @@ export function CandidateFilters({
         // Apply the filters
         onFilterChange({
           ...parsedFilters,
-          minFitScore: parsedFilters.minFitScore ?? fitScoreRange[0],
-          maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
+          minFitScore: parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
+          maxFitScore: parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1],
           applicationDateStart: parsedFilters.applicationDateStart,
           applicationDateEnd: parsedFilters.applicationDateEnd,
           location: parsedFilters.location,
@@ -570,15 +570,19 @@ export function CandidateFilters({
     setSelectedPositionIds(new Set());
     setSelectedStatuses(new Set());
     setSelectedRecruiterIds(new Set());
-    setFitScoreRange([0, 100]);
-    setMatchingFitScoreRange([0, 100]);
+          setSkills(new Set()); // Clear skills selection
+    setAppliedJobFitScoreRange([0, 100]);
+    setMatchingJobFitScoreRange([0, 100]);
+    setExperienceYearsRange([0, 50]); // Added missing experience years clear (will reset no-experience checkbox)
     setApplicationDateRange(undefined);
     setLocation('');
     setLocationOperator('contains');
     setAiSearchQueryInput('');
+    setAiSearchType('hybrid'); // Added missing AI search type clear
+    setAiSearchFilters({}); // Added missing AI search filters clear
     setAdvancedQueryInput('');
     
-    // Clear fit score checkboxes
+    // Clear fit score checkboxes (including no-score options)
     setSelectedFitScoreGrades(new Set());
     setSelectedMatchingFitScoreGrades(new Set());
     
@@ -598,13 +602,21 @@ export function CandidateFilters({
       name: undefined,
       email: undefined,
       phone: undefined,
+      skills: undefined, // Added missing skills in filter change
+      education: undefined, // Added missing education
+      cvLanguage: undefined, // Added missing CV language
+      jobSuitableCareer: undefined, // Added missing job suitable fields
+      jobSuitableLevel: undefined,
+      jobSuitablePosition: undefined,
+      minExperienceYears: undefined, // Added missing experience years
+      maxExperienceYears: undefined,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
-      minFitScore: undefined,
-      maxFitScore: undefined,
-      matchingMinFitScore: undefined,
-      matchingMaxFitScore: undefined,
+      minAppliedJobFitScore: undefined,
+      maxAppliedJobFitScore: undefined,
+      minMatchingJobFitScore: undefined,
+      maxMatchingJobFitScore: undefined,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
       location: undefined,
@@ -623,8 +635,8 @@ export function CandidateFilters({
     setLocation(initialFilters.location || '');
     setLocationOperator(initialFilters.locationOperator || 'contains');
     setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
-    setFitScoreRange([initialFilters.minFitScore || 0, initialFilters.maxFitScore || 100]);
-    setMatchingFitScoreRange([initialFilters.matchingMinFitScore || 0, initialFilters.matchingMaxFitScore || 100]);
+    setAppliedJobFitScoreRange([initialFilters.minFitScore || 0, initialFilters.maxFitScore || 100]);
+    setMatchingJobFitScoreRange([initialFilters.matchingMinFitScore || 0, initialFilters.matchingMaxFitScore || 100]);
     setApplicationDateRange(
       initialFilters.applicationDateStart && initialFilters.applicationDateEnd
         ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
@@ -676,10 +688,10 @@ export function CandidateFilters({
                         location ||
                         experienceYearsRange[0] > 0 || 
                         experienceYearsRange[1] < 50 ||
-                        fitScoreRange[0] > 0 || 
-                        fitScoreRange[1] < 100 ||
-                        matchingFitScoreRange[0] > 0 || 
-                        matchingFitScoreRange[1] < 100 ||
+                        appliedJobFitScoreRange[0] > 0 || 
+                        appliedJobFitScoreRange[1] < 100 ||
+                        matchingJobFitScoreRange[0] > 0 || 
+                        matchingJobFitScoreRange[1] < 100 ||
                         applicationDateRange?.from ||
                         applicationDateRange?.to ||
                         selectedRecruiterIds.size > 0;
@@ -699,10 +711,10 @@ export function CandidateFilters({
           locationOperator,
           minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
           maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-          minFitScore: fitScoreRange[0] > 0 ? fitScoreRange[0] : undefined,
-          maxFitScore: fitScoreRange[1] < 100 ? fitScoreRange[1] : undefined,
-          matchingMinFitScore: matchingFitScoreRange[0] > 0 ? matchingFitScoreRange[0] : undefined,
-          matchingMaxFitScore: matchingFitScoreRange[1] < 100 ? matchingFitScoreRange[1] : undefined,
+          minAppliedJobFitScore: appliedJobFitScoreRange[0] > 0 ? appliedJobFitScoreRange[0] : undefined,
+          maxAppliedJobFitScore: appliedJobFitScoreRange[1] < 100 ? appliedJobFitScoreRange[1] : undefined,
+          minMatchingJobFitScore: matchingJobFitScoreRange[0] > 0 ? matchingJobFitScoreRange[0] : undefined,
+          maxMatchingJobFitScore: matchingJobFitScoreRange[1] < 100 ? matchingJobFitScoreRange[1] : undefined,
           applicationDateStart: applicationDateRange?.from,
           applicationDateEnd: applicationDateRange?.to,
           selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -712,7 +724,7 @@ export function CandidateFilters({
     }, 150); // Reduced to 150ms for faster response
 
     return () => clearTimeout(timeoutId);
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, fitScoreRange, matchingFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
   const handleApplyStandardFilters = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -721,8 +733,8 @@ export function CandidateFilters({
       const parsedFilters = parseAdvancedQuery(advancedQueryInput);
       onFilterChange({
         ...parsedFilters,
-        minFitScore: parsedFilters.minFitScore ?? fitScoreRange[0],
-        maxFitScore: parsedFilters.maxFitScore ?? fitScoreRange[1],
+        minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+        maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
         applicationDateStart: parsedFilters.applicationDateStart,
         applicationDateEnd: parsedFilters.applicationDateEnd,
         location: parsedFilters.location,
@@ -745,10 +757,10 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: fitScoreRange[0],
-        maxFitScore: fitScoreRange[1],
-        matchingMinFitScore: matchingFitScoreRange[0],
-        matchingMaxFitScore: matchingFitScoreRange[1],
+        minAppliedJobFitScore: appliedJobFitScoreRange[0],
+        maxAppliedJobFitScore: appliedJobFitScoreRange[1],
+        minMatchingJobFitScore: matchingJobFitScoreRange[0],
+        maxMatchingJobFitScore: matchingJobFitScoreRange[1],
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -768,8 +780,8 @@ export function CandidateFilters({
       const filters = {
         positionIds: aiSearchFilters.positionIds,
         statuses: aiSearchFilters.statuses,
-        minFitScore: aiSearchFilters.minFitScore,
-        maxFitScore: aiSearchFilters.maxFitScore,
+        minAppliedJobFitScore: aiSearchFilters.minAppliedJobFitScore,
+        maxAppliedJobFitScore: aiSearchFilters.maxAppliedJobFitScore,
         dateRange: aiSearchFilters.dateRange,
       };
       onAiSearch(aiSearchQueryInput.trim(), aiSearchType, filters);
@@ -814,7 +826,7 @@ export function CandidateFilters({
   };
 
   const handleFitScoreRangeChange = (newRange: [number, number]) => {
-    setFitScoreRange(newRange);
+    setAppliedJobFitScoreRange(newRange);
     // Apply filters immediately when fit score range changes
     if (!isLoading && !isAiSearching) {
       handleApplyStandardFilters();
@@ -822,7 +834,7 @@ export function CandidateFilters({
   };
 
   const handleMatchingFitScoreRangeChange = (newRange: [number, number]) => {
-    setMatchingFitScoreRange(newRange);
+    setMatchingJobFitScoreRange(newRange);
     // Apply filters immediately when matching fit score range changes
     if (!isLoading && !isAiSearching) {
       handleApplyStandardFilters();
@@ -841,12 +853,28 @@ export function CandidateFilters({
     // Convert selected grades to min/max fit score range
     const scoreRanges = getScoreRangesForChart();
     const selectedRanges = scoreRanges.filter(range => newSelected.has(range.letter));
+    const hasNoScore = newSelected.has('no-score');
+    
+    let minFitScore: number | undefined = undefined;
+    let maxFitScore: number | undefined = undefined;
     
     if (selectedRanges.length > 0) {
       const minScore = Math.min(...selectedRanges.map(r => r.min));
       const maxScore = Math.max(...selectedRanges.map(r => r.max));
-      setFitScoreRange([minScore, maxScore]);
-      
+      setAppliedJobFitScoreRange([minScore, maxScore]);
+      minFitScore = minScore;
+      maxFitScore = maxScore;
+    } else if (hasNoScore) {
+      // Only "no-score" is selected
+      setAppliedJobFitScoreRange([0, 100]); // Reset visual range
+      minFitScore = -1; // Special marker for no fit score
+      maxFitScore = undefined;
+    } else {
+      // No grades selected
+      setAppliedJobFitScoreRange([0, 100]);
+    }
+    
+    if (selectedRanges.length > 0 || hasNoScore) {
       const newFilters = {
         name: name || undefined,
         nameOperator,
@@ -861,10 +889,10 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: minScore,
-        maxFitScore: maxScore,
-        matchingMinFitScore: matchingFitScoreRange[0],
-        matchingMaxFitScore: matchingFitScoreRange[1],
+        minAppliedJobFitScore: minFitScore,
+        maxAppliedJobFitScore: maxFitScore,
+        minMatchingJobFitScore: matchingJobFitScoreRange[0],
+        maxMatchingJobFitScore: matchingJobFitScoreRange[1],
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -873,7 +901,7 @@ export function CandidateFilters({
       onFilterChange(newFilters);
     } else {
       // When no grades are selected, clear the fit score filter completely
-      setFitScoreRange([0, 100]);
+      setAppliedJobFitScoreRange([0, 100]);
       const newFilters = {
         name: name || undefined,
         nameOperator,
@@ -888,10 +916,10 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: undefined,
-        maxFitScore: undefined,
-        matchingMinFitScore: matchingFitScoreRange[0],
-        matchingMaxFitScore: matchingFitScoreRange[1],
+        minAppliedJobFitScore: undefined,
+        maxAppliedJobFitScore: undefined,
+        minMatchingJobFitScore: matchingJobFitScoreRange[0],
+        maxMatchingJobFitScore: matchingJobFitScoreRange[1],
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -913,12 +941,28 @@ export function CandidateFilters({
     // Convert selected grades to min/max matching fit score range
     const scoreRanges = getScoreRangesForChart();
     const selectedRanges = scoreRanges.filter(range => newSelected.has(range.letter));
+    const hasNoScore = newSelected.has('no-score');
+    
+    let minMatchingJobFitScore: number | undefined = undefined;
+    let maxMatchingJobFitScore: number | undefined = undefined;
     
     if (selectedRanges.length > 0) {
       const minScore = Math.min(...selectedRanges.map(r => r.min));
       const maxScore = Math.max(...selectedRanges.map(r => r.max));
-      setMatchingFitScoreRange([minScore, maxScore]);
-      
+      setMatchingJobFitScoreRange([minScore, maxScore]);
+      minMatchingJobFitScore = minScore;
+      maxMatchingJobFitScore = maxScore;
+    } else if (hasNoScore) {
+      // Only "no-score" is selected for matching
+      setMatchingJobFitScoreRange([0, 100]); // Reset visual range
+      minMatchingJobFitScore = -1; // Special marker for no matching fit score
+      maxMatchingJobFitScore = undefined;
+    } else {
+      // No grades selected
+      setMatchingJobFitScoreRange([0, 100]);
+    }
+    
+    if (selectedRanges.length > 0 || hasNoScore) {
       const newFilters = {
         name: name || undefined,
         nameOperator,
@@ -933,10 +977,10 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: fitScoreRange[0],
-        maxFitScore: fitScoreRange[1],
-        matchingMinFitScore: minScore,
-        matchingMaxFitScore: maxScore,
+        minAppliedJobFitScore: appliedJobFitScoreRange[0],
+        maxAppliedJobFitScore: appliedJobFitScoreRange[1],
+        minMatchingJobFitScore: minMatchingJobFitScore,
+        maxMatchingJobFitScore: maxMatchingJobFitScore,
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -945,7 +989,7 @@ export function CandidateFilters({
       onFilterChange(newFilters);
     } else {
       // When no grades are selected, clear the matching fit score filter completely
-      setMatchingFitScoreRange([0, 100]);
+      setMatchingJobFitScoreRange([0, 100]);
       const newFilters = {
         name: name || undefined,
         nameOperator,
@@ -960,10 +1004,10 @@ export function CandidateFilters({
         locationOperator,
         minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
         maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minFitScore: fitScoreRange[0],
-        maxFitScore: fitScoreRange[1],
-        matchingMinFitScore: undefined,
-        matchingMaxFitScore: undefined,
+        minAppliedJobFitScore: appliedJobFitScoreRange[0],
+        maxAppliedJobFitScore: appliedJobFitScoreRange[1],
+        minMatchingJobFitScore: undefined,
+        maxMatchingJobFitScore: undefined,
         applicationDateStart: applicationDateRange?.from,
         applicationDateEnd: applicationDateRange?.to,
         selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
@@ -990,8 +1034,8 @@ export function CandidateFilters({
     setLocation('');
     setLocationOperator('contains');
     setExperienceYearsRange([0, 50]);
-    setFitScoreRange([0, 100]);
-    setMatchingFitScoreRange([0, 100]);
+    setAppliedJobFitScoreRange([0, 100]);
+    setMatchingJobFitScoreRange([0, 100]);
     setSelectedFitScoreGrades(new Set());
     setSelectedMatchingFitScoreGrades(new Set());
     setApplicationDateRange(undefined);
@@ -1000,10 +1044,10 @@ export function CandidateFilters({
     setAiSearchType('hybrid');
     setAiSearchFilters({});
     onFilterChange({
-      minFitScore: 0,
-      maxFitScore: 100,
-      matchingMinFitScore: 0,
-      matchingMaxFitScore: 100,
+      minAppliedJobFitScore: 0,
+      maxAppliedJobFitScore: 100,
+      minMatchingJobFitScore: 0,
+      maxMatchingJobFitScore: 100,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
@@ -1452,6 +1496,7 @@ export function CandidateFilters({
                                 }}
                               />
                             </div>
+
                           </div>
                           <div>
                             <Label htmlFor="location-search" className="text-xs">Location</Label>
@@ -1483,6 +1528,7 @@ export function CandidateFilters({
                                 disabled={isLoading || isAiSearching}
                               />
                             </div>
+
                           </div>
                         </div>
                       </AccordionContent>
@@ -1507,6 +1553,7 @@ export function CandidateFilters({
                               disabled={isLoading || isAiSearching}
                               showOpenStatus={true}
                               filterOpenOnly={false}
+                              showUnassignedOption={true}
                             />
                           </div>
                           <div>
@@ -1527,6 +1574,30 @@ export function CandidateFilters({
                                 <Command>
                                   <Input placeholder="Search pipeline stages..." value={statusSearch} onChange={e => setStatusSearch(e.target.value)} className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
                                   <CommandList>
+                                    {/* No Status Option */}
+                                    <div
+                                      key="no-status"
+                                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                      onClick={() => {
+                                        const newSet = new Set(selectedStatuses);
+                                        if (newSet.has('no-status')) {
+                                          newSet.delete('no-status');
+                                        } else {
+                                          newSet.add('no-status');
+                                        }
+                                        handleStatusChange(newSet);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedStatuses.has('no-status') ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <span className="font-medium">No Status</span>
+                                      <span className="text-xs text-muted-foreground ml-2">Candidates not in any pipeline stage</span>
+                                    </div>
+                                    
                                     {filteredStages.length === 0 ? (
                                       <div className="py-6 text-center text-sm text-muted-foreground">
                                         No pipeline stages found.
@@ -1576,19 +1647,69 @@ export function CandidateFilters({
                       <AccordionContent>
                         <div className="space-y-4">
                           <div>
-                            <Label className="text-xs font-medium">Experience Years</Label>
+                            <Label className="text-xs font-medium pt-2">Experience Years</Label>
                             <div className="flex items-center gap-2">
-                              <Slider
-                                value={experienceYearsRange}
-                                onValueChange={val => handleExperienceYearsChange([val[0], val[1]])}
-                                max={50}
-                                step={1}
-                                className="flex-1"
-                                disabled={isLoading || isAiSearching}
-                              />
-                              <span className="text-xs w-16">
-                                {experienceYearsRange[0]}-{experienceYearsRange[1]} years
+                              <div className="flex items-center gap-2 flex-1">
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground">Min</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="50"
+                                    value={experienceYearsRange[0] === -1 ? '' : experienceYearsRange[0]}
+                                    onChange={(e) => {
+                                      const value = e.target.value === '' ? 0 : parseInt(e.target.value);
+                                      if (!isNaN(value) && value >= 0 && value <= 50) {
+                                        handleExperienceYearsChange([value, Math.max(value, experienceYearsRange[1])]);
+                                      }
+                                    }}
+                                    placeholder="Min"
+                                    className="h-8 text-xs"
+                                    disabled={isLoading || isAiSearching || experienceYearsRange[0] === -1}
+                                  />
+                                </div>
+                                <span className="text-xs text-muted-foreground">to</span>
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground">Max</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="50"
+                                    value={experienceYearsRange[1]}
+                                    onChange={(e) => {
+                                      const value = e.target.value === '' ? 50 : parseInt(e.target.value);
+                                      if (!isNaN(value) && value >= 0 && value <= 50) {
+                                        handleExperienceYearsChange([Math.min(experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0], value), value]);
+                                      }
+                                    }}
+                                    placeholder="Max"
+                                    className="h-8 text-xs"
+                                    disabled={isLoading || isAiSearching}
+                                  />
+                                </div>
+                              </div>
+                              <span className="text-xs w-20 text-muted-foreground">
+                                {experienceYearsRange[0] === -1 ? 'No exp' : experienceYearsRange[0]}-{experienceYearsRange[1]} years
                               </span>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <input
+                                type="checkbox"
+                                id="no-experience-checkbox"
+                                checked={experienceYearsRange[0] === -1}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setExperienceYearsRange([-1, 50]); // Use -1 as special marker for "no experience"
+                                  } else {
+                                    setExperienceYearsRange([0, 50]); // Reset to default
+                                  }
+                                }}
+                                disabled={isLoading || isAiSearching}
+                                className="rounded border-border text-primary focus:ring-primary"
+                              />
+                              <Label htmlFor="no-experience-checkbox" className="text-xs text-muted-foreground cursor-pointer">
+                                Include candidates with no experience listed
+                              </Label>
                             </div>
                           </div>
                         </div>
@@ -1607,7 +1728,7 @@ export function CandidateFilters({
                         <div className="space-y-4">
                           {/* Applied Candidates Fit Score */}
                           <div>
-                            <Label className="text-xs font-medium">Applied Candidates</Label>
+                            <Label className="text-xs font-medium pt-2">Applied Candidates</Label>
                             <div className="space-y-2">
                               {getScoreRangesForChart().map((grade) => {
                                 const count = candidateScoreCounts?.applied?.find(c => c.letter === grade.letter)?.count || 0;
@@ -1633,15 +1754,33 @@ export function CandidateFilters({
                                   </div>
                                 );
                               })}
+                              {/* No Fit Score Option for Applied Candidates */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="applied-no-fit-score"
+                                    checked={selectedFitScoreGrades.has('no-score')}
+                                    onCheckedChange={(checked) => handleFitScoreGradeChange('no-score', checked as boolean)}
+                                    disabled={isLoading || isAiSearching}
+                                  />
+                                  <Label 
+                                    htmlFor="applied-no-fit-score" 
+                                    className="text-xs font-normal cursor-pointer"
+                                  >
+                                    No Fit Score
+                                  </Label>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                  {candidateScoreCounts?.applied?.find(c => c.letter === 'no-score')?.count || 0}
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Select grade ranges to filter candidates
-                            </div>
+
                           </div>
 
                           {/* Matching Candidates Fit Score */}
                           <div>
-                            <Label className="text-xs font-medium">Matching Candidates</Label>
+                            <Label className="text-xs font-medium pt-2">Matching Candidates</Label>
                             <div className="space-y-2">
                               {getScoreRangesForChart().map((grade) => {
                                 const count = candidateScoreCounts?.matching?.find(c => c.letter === grade.letter)?.count || 0;
@@ -1667,6 +1806,26 @@ export function CandidateFilters({
                                   </div>
                                 );
                               })}
+                              {/* No Fit Score Option for Matching Candidates */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id="matching-no-fit-score"
+                                    checked={selectedMatchingFitScoreGrades.has('no-score')}
+                                    onCheckedChange={(checked) => handleMatchingFitScoreGradeChange('no-score', checked as boolean)}
+                                    disabled={isLoading || isAiSearching}
+                                  />
+                                  <Label 
+                                    htmlFor="matching-no-fit-score" 
+                                    className="text-xs font-normal cursor-pointer"
+                                  >
+                                    No Fit Score
+                                  </Label>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                  {candidateScoreCounts?.matching?.find(c => c.letter === 'no-score')?.count || 0}
+                                </Badge>
+                              </div>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
                               High potential candidates for this position

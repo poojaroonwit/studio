@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         const redisClient = await getPool().connect();
         if (redisClient) {
             await redisClient.query('DELETE FROM "Position" WHERE id = ANY($1::uuid[])', [positionIds]);
-            console.log('Positions cache invalidated due to bulk action.');
+        
         }
     }
 

@@ -27,31 +27,8 @@ async function main() {
     });
     console.log('✅ Admin user created/updated');
 
-    // Create default positions
-    console.log('Creating default positions...');
-    await prisma.position.upsert({
-      where: { id: '11111111-1111-1111-1111-111111111111' },
-      update: {},
-      create: {
-        id: '11111111-1111-1111-1111-111111111111',
-        title: 'Software Engineer',
-        department: 'Engineering',
-        description: 'Develops and maintains software.',
-        positionLevel: 'Senior',
-      }
-    });
-    await prisma.position.upsert({
-      where: { id: '22222222-2222-2222-2222-222222222222' },
-      update: {},
-      create: {
-        id: '22222222-2222-2222-2222-222222222222',
-        title: 'Product Manager',
-        department: 'Product',
-        description: 'Oversees product development.',
-        positionLevel: 'Manager',
-      }
-    });
-    console.log('✅ Default positions created/updated');
+    // Note: No default positions created - positions should be added through the UI
+    console.log('✅ No default positions created (add positions through UI)');
 
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
@@ -411,9 +388,9 @@ async function main() {
         event_type: 'upload_queue.failed', // matches supported event for this webhook
         payload: {
           position: {
-            id: '11111111-1111-1111-1111-111111111111',
-            title: 'Software Engineer',
-            department: 'Engineering',
+            id: '00000000-0000-0000-0000-000000000000',
+            title: 'Sample Position',
+            department: 'Sample Department',
             isOpen: true
           },
           timestamp: '2024-01-15T09:15:00Z'

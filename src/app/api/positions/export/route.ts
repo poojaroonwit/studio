@@ -4,8 +4,7 @@ import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-// For actual Excel generation, you would use a library like 'xlsx'
-// import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 
 /**
  * @openapi
@@ -30,31 +29,62 @@ import { authOptions } from '@/lib/auth';
  *                   ok: true
  */
 
-// Helper function to convert JSON object to CSV row
-function escapeCsvValue(value: any): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  const stringValue = String(value);
-  if (stringValue.includes(',')) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
-  }
-  return stringValue;
-}
-
-function convertToCsv(data: any[]): string {
+// Helper function to convert data to Excel format
+function convertToExcel(data: any[]): Buffer {
   if (!data || data.length === 0) {
-    return '';
+    // Create empty workbook with headers
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet([]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Positions');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
-  const headers = Object.keys(data[0]);
-  const csvRows = [];
-  csvRows.push(headers.map(escapeCsvValue).join(','));
 
-  for (const row of data) {
-    const values = headers.map(header => escapeCsvValue(row[header]));
-    csvRows.push(values.join(','));
-  }
-  return csvRows.join('\n');
+  // Clean and format the data for Excel
+  const cleanedData = data.map(row => {
+    const cleanedRow: any = {};
+    Object.keys(row).forEach(key => {
+      let value = row[key];
+      
+      // Handle null/undefined values
+      if (value === null || value === undefined) {
+        value = '';
+      }
+      
+      // Convert dates to readable format
+      if (value instanceof Date) {
+        value = value.toLocaleDateString();
+      }
+      
+      // Handle boolean values
+      if (typeof value === 'boolean') {
+        value = value ? 'Yes' : 'No';
+      }
+      
+      // Clean up HTML content if present
+      if (typeof value === 'string' && value.includes('<')) {
+        // Remove HTML tags for cleaner Excel output
+        value = value.replace(/<[^>]*>/g, '').trim();
+      }
+      
+      cleanedRow[key] = value;
+    });
+    return cleanedRow;
+  });
+
+  // Create workbook and worksheet
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(cleanedData);
+  
+  // Auto-size columns
+  const columnWidths = Object.keys(cleanedData[0] || {}).map(key => ({
+    wch: Math.max(key.length, 15) // Minimum width of 15 characters
+  }));
+  worksheet['!cols'] = columnWidths;
+  
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Positions');
+  
+  // Generate Excel file as buffer
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
 export async function GET() {
@@ -78,18 +108,18 @@ export async function GET() {
     const result = await client.query('SELECT * FROM "Position" ORDER BY "createdAt" DESC');
     client.release();
 
-    const csvData = convertToCsv(result.rows);
+    const excelBuffer = convertToExcel(result.rows);
     
     await logAudit('AUDIT', `Positions exported by ${actingUserName}. ${result.rows.length} positions exported.`, 'API:Positions:Export', actingUserId, { 
       exportCount: result.rows.length,
-      format: 'CSV' 
+      format: 'Excel' 
     });
 
-    return new NextResponse(csvData, {
+    return new NextResponse(excelBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': 'attachment; filename="positions-export.csv"',
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="positions-export.xlsx"',
       },
     });
   } catch (error) {

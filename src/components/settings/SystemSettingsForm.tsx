@@ -25,7 +25,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
   'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd',
-  'smtpHost', 'smtpPort', 'smtpUser', 'smtpSecure', 'smtpFromEmail',
+
   'generalPdfWebhookUrl', 'geminiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
   'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
@@ -130,7 +130,7 @@ const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({
                 id="key"
                 value={formData.key}
                 onChange={(e) => handleInputChange('key', e.target.value)}
-                placeholder="e.g., appName, smtpHost"
+                                        placeholder="e.g., appName, geminiApiKey"
                 disabled={!!setting} // Can't edit key for existing settings
                 required
               />

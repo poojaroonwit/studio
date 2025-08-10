@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { syncRecruitersForPosition } from '@/lib/recruiterSync';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -141,14 +142,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     await client.query('BEGIN');
     
-    // Check if position exists
-    const positionExistsQuery = 'SELECT id, title, "customAttributes" FROM "Position" WHERE id = $1';
+    // Check if position exists and get current recruiter
+    const positionExistsQuery = 'SELECT id, title, "customAttributes", "recruiterId" FROM "Position" WHERE id = $1';
     const existingResult = await client.query(positionExistsQuery, [id]);
     
     if (existingResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return NextResponse.json({ message: 'Position not found' }, { status: 404 });
     }
+
+    const existingPosition = existingResult.rows[0];
+    const oldRecruiterId = existingPosition.recruiterId;
 
     // If recruiterId is provided, validate that the user exists and is a recruiter
     if (updateData.recruiterId) {
@@ -236,7 +240,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
     
-
+    // Auto-assign recruiters to unassigned candidates if position recruiter changed
+    let syncResult = null;
+    if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
+      try {
+        syncResult = await syncRecruitersForPosition(id, actingUserId, actingUserName);
+    
+      } catch (syncError) {
+        console.error('Failed to assign recruiters after position update:', syncError);
+        // Don't fail the position update if sync fails
+      }
+    }
     
     await logAudit('AUDIT', `Position '${updatedPosition.title}' updated by ${actingUserName}.`, 'API:Positions:Update', actingUserId, { positionId: id });
     const positionWithCustomAttrs = {
@@ -256,7 +270,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     return NextResponse.json({ 
       message: 'Position updated successfully', 
-      position: positionWithCustomAttrs
+      position: positionWithCustomAttrs,
+      recruiterSync: syncResult
     });
   } catch (error: any) {
     await client.query('ROLLBACK');

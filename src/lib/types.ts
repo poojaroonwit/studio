@@ -45,7 +45,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { id: 'API_KEYS_MANAGE', label: 'Manage API Keys', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows generating and managing API keys for system integration." },
   
   // System Configuration
-  { id: 'SYSTEM_SETTINGS_MANAGE', label: 'Manage System Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing global system settings like App Name, Logo, SMTP." },
+  { id: 'SYSTEM_SETTINGS_MANAGE', label: 'Manage System Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing global system settings like App Name, Logo." },
   { id: 'USER_PREFERENCES_MANAGE', label: 'Manage Own UI Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows users to manage their own UI display preferences for data models." },
   { id: 'RECRUITMENT_STAGES_MANAGE', label: 'Manage Recruitment Stages', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing the stages in the recruitment pipeline." },
   { id: 'CUSTOM_FIELDS_MANAGE', label: 'Manage Custom Fields', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows defining custom data fields for candidates and positions." },
@@ -486,11 +486,6 @@ export type SystemSettingKey =
   | 'sidebarLogoExpandedDarkMode'
   | 'primaryGradientStart'
   | 'primaryGradientEnd'
-  | 'smtpHost'
-  | 'smtpPort'
-  | 'smtpUser'
-  | 'smtpSecure'
-  | 'smtpFromEmail'
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'

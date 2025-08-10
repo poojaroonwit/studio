@@ -22,7 +22,7 @@ import UploadResumeModal from '@/components/candidates/UploadResumeModal';
 import { ManageTransitionsModal } from '@/components/candidates/ManageTransitionsModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,7 +45,7 @@ import { PositionSelectDropdown } from './PositionSelectDropdown';
 
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
-import RecruiterAssignmentDropdown from './RecruiterAssignmentDropdown';
+import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import ReprocessModal from './ReprocessModal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
@@ -365,6 +365,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
           fitScore: data.fitScore || null,
           status: data.status || '',
+          assignmentJustification: data.assignmentJustification ? data.assignmentJustification.split('\n').filter(line => line.trim()) : [],
           parsedData: {
             ...data.parsedData,
             education: data.parsedData?.education || [],
@@ -512,14 +513,17 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       return;
     }
 
-    // v1 API expects this structure:
-    // {
-    //   candidate_info: { personal_info, contact_info, cv_language, skills, job_suitable, status, ... },
-    //   educationData: [...],
-    //   experienceData: [...],
-    //   ...
-    // }
-    const candidate_info = {
+    // Build the API payload with all form fields
+    const apiPayload = {
+      // Top-level fields from the form
+      positionId: data.positionId,
+      recruiterId: data.recruiterId,
+      fitScore: data.fitScore,
+      status: statusToSend,
+      assignmentJustification: data.assignmentJustification?.join('\n') || null,
+      
+      // Parsed data for candidate details
+      parsedData: {
       personal_info: data.parsedData?.personal_info,
       contact_info: data.parsedData?.contact_info,
       cv_language: data.parsedData?.cv_language,
@@ -530,20 +534,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           : (s.skill || [])
       })),
       job_suitable: data.parsedData?.job_suitable,
-      status: statusToSend,
-      fitScore: data.fitScore,
       job_matches: data.parsedData?.job_matches,
-      job_applied: undefined, // Add if you support job_applied in edit
-      applicationDate: undefined, // Add if you support applicationDate in edit
-    };
-    const apiPayload = {
-      candidate_info,
-      educationData: data.parsedData?.education || [],
-      experienceData: data.parsedData?.experience || [],
-      // v1 API may expect job_matches/job_applied at top level as well, but they're included in candidate_info above
+        education: data.parsedData?.education || [],
+        experience: data.parsedData?.experience || [],
+      }
     };
     try {
-      // Save main candidate data (including job_matches in candidate_info)
+      // Save candidate data with all form fields
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -560,6 +557,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       setCandidate(updatedCandidate);
       setIsEditing(false);
       toast.success('Candidate updated successfully');
+      
+      // Call onRefresh to update parent components
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Error updating candidate:', err);
       toast.error('Failed to update candidate');
@@ -621,7 +623,18 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
       const updatedCandidate = await response.json();
       setCandidate(updatedCandidate);
-      toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+      
+      // Check if recruiter sync happened
+      if (updatedCandidate.recruiterSync) {
+        const sync = updatedCandidate.recruiterSync;
+        if (sync.synced) {
+          toast.success(`Recruiter assigned successfully. ${sync.message}`);
+        } else {
+          toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+        }
+      } else {
+        toast.success(newRecruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+      }
     } catch (error) {
       console.error('Error assigning recruiter:', error);
       toast.error('Failed to assign recruiter');
@@ -1038,7 +1051,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 type="button"
                 className="absolute top-0 right-0 mt-2 mr-2 z-50 p-2 rounded-full hover:bg-muted transition"
                 title="Close"
-                onClick={onClose}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onClose();
+                }}
               >
                 <X className="w-6 h-6 text-muted-foreground" />
               </button>
@@ -1228,29 +1245,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 <h3 className="text-sm font-semibold text-foreground">Recruiter Assignment</h3>
               </div>
               <div className="space-y-3">
-                <Select
-                  value={candidate.recruiterId || 'unassign'}
-                  onValueChange={(value) => handleAssignRecruiter(value === 'unassign' ? null : value)}
-                  disabled={isAssigningRecruiter}
-                >
-                  <SelectTrigger className="w-full text-xs">
-                    <SelectValue placeholder="Select recruiter..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassign" className="text-destructive">Unassign</SelectItem>
-                    {recruiters.map((recruiter) => (
-                      <SelectItem key={recruiter.id} value={recruiter.id}>
-                        {recruiter.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {isAssigningRecruiter && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Assigning...
-                  </div>
-                )}
+                <CandidateRecruiterCell
+                  candidate={candidate}
+                  availableRecruiters={availableRecruiters}
+                  canManageCandidates={true}
+                  isAssigning={isAssigningRecruiter}
+                  onAssignRecruiter={(candidateId, recruiterId) => handleAssignRecruiter(recruiterId)}
+                  onResetAssigning={() => setIsAssigningRecruiter(false)}
+                />
               </div>
             </div>
           </div>

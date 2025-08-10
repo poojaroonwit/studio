@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 
 /**
  * @openapi
@@ -173,6 +174,24 @@ export async function POST(request: NextRequest) {
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
     broadcastCandidateUpdate(newCandidate); // Broadcast to SSE clients
+    
+    // Auto-assign recruiter if candidate has a position and no recruiter
+    if (positionId && !newCandidate.recruiterId) {
+      try {
+        const syncSuccess = await syncRecruiterForCandidate(
+          newCandidateId,
+          positionId,
+          actingUserId,
+          actingUserName
+        );
+        if (syncSuccess) {
+          console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+        }
+      } catch (syncError) {
+        console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
+        // Don't fail the candidate creation if sync fails
+      }
+    }
     
     // Dispatch webhook for candidate creation
     try {
@@ -572,12 +591,16 @@ export async function GET(request: NextRequest) {
     } else {
       // Regular fit score range filtering
       if (filters.minAppliedJobFitScore && filters.maxAppliedJobFitScore) {
-        // Accept fitScore as either 0-1 or 0-100, and also check job_applied.fitScore if present
+        // Normalize fit scores to 0-100 range for consistent filtering
         whereClauses.push(`(
-          (c."fitScore" >= $${paramIndex} AND c."fitScore" <= $${paramIndex + 1}) OR 
-          (c."fitScore" >= $${paramIndex}/100 AND c."fitScore" <= $${paramIndex + 1}/100) OR 
-          ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}) OR 
-          ((c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100 AND (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex + 1}/100)
+          CASE 
+            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
+            ELSE c."fitScore"
+          END >= $${paramIndex} AND 
+          CASE 
+            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
+            ELSE c."fitScore"
+          END <= $${paramIndex + 1}
         )`);
         if (!isNaN(minFit) && !isNaN(maxFit)) {
           queryParams.push(minFit, maxFit);
@@ -587,10 +610,10 @@ export async function GET(request: NextRequest) {
         paramIndex += 2;
       } else if (filters.minAppliedJobFitScore) {
         whereClauses.push(`(
-          c."fitScore" >= $${paramIndex} OR 
-          c."fitScore" >= $${paramIndex}/100 OR 
-          (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex} OR 
-          (c."parsedData"->'job_applied'->>'fitScore')::float >= $${paramIndex}/100
+          CASE 
+            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
+            ELSE c."fitScore"
+          END >= $${paramIndex}
         )`);
         if (!isNaN(minFit)) {
           queryParams.push(minFit);
@@ -600,10 +623,10 @@ export async function GET(request: NextRequest) {
         paramIndex++;
       } else if (filters.maxAppliedJobFitScore) {
         whereClauses.push(`(
-          c."fitScore" <= $${paramIndex} OR 
-          c."fitScore" <= $${paramIndex}/100 OR 
-          (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex} OR 
-          (c."parsedData"->'job_applied'->>'fitScore')::float <= $${paramIndex}/100
+          CASE 
+            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
+            ELSE c."fitScore"
+          END <= $${paramIndex}
         )`);
         if (!isNaN(maxFit)) {
           queryParams.push(maxFit);
@@ -686,7 +709,7 @@ export async function GET(request: NextRequest) {
         SELECT json_agg(
           json_build_object(
             'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
-            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
+                            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
             'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
           ) ORDER BY jm."fitScore" DESC
         ) AS jobMatches
@@ -756,6 +779,7 @@ export async function GET(request: NextRequest) {
         fitScore: normalizeFitScore(fitScore), // Use the normalized fit score
         status: row.status,
         applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
+        recruiterId: row.recruiterId || null,
         recruiter: row.recruiterId ? {
           id: row.recruiterId,
           name: row.recruiterName,

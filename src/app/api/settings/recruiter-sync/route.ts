@@ -1,0 +1,111 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { syncAllRecruiters, syncRecruitersForPosition } from '@/lib/recruiterSync';
+import { z } from 'zod';
+
+const syncRequestSchema = z.object({
+  positionId: z.string().uuid().optional(),
+  syncAll: z.boolean().optional().default(false)
+});
+
+/**
+ * @openapi
+ * /api/settings/recruiter-sync:
+ *   post:
+ *     summary: Sync recruiter assignments between positions and candidates
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               positionId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Position ID to sync (optional if syncAll is true)
+ *               syncAll:
+ *                 type: boolean
+ *                 default: false
+ *                 description: Whether to sync all positions
+ *     responses:
+ *       200:
+ *         description: Sync completed successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ */
+export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  const actingUserId = session?.user?.id;
+  const actingUserName = session?.user?.name || session?.user?.email || 'System';
+
+  if (!actingUserId) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if user has admin permissions
+  if (session?.user?.role !== 'Admin') {
+    return NextResponse.json({ message: 'Insufficient permissions. Admin access required.' }, { status: 403 });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (error) {
+    return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const validationResult = syncRequestSchema.safeParse(body);
+  if (!validationResult.success) {
+    return NextResponse.json({ 
+      message: 'Invalid input', 
+      errors: validationResult.error.flatten().fieldErrors 
+    }, { status: 400 });
+  }
+
+  const { positionId, syncAll } = validationResult.data;
+
+  try {
+    if (syncAll) {
+      // Sync all positions
+      const results = await syncAllRecruiters(actingUserId, actingUserName);
+      
+      const summary = {
+        totalPositions: results.length,
+        totalCandidatesUpdated: results.reduce((sum, r) => sum + r.candidatesUpdated, 0),
+        totalCandidatesSkipped: results.reduce((sum, r) => sum + r.candidatesSkipped, 0),
+        totalErrors: results.reduce((sum, r) => sum + r.errors.length, 0),
+        results
+      };
+
+      return NextResponse.json({
+        message: 'Bulk recruiter sync completed',
+        summary,
+        details: results
+      });
+    } else if (positionId) {
+      // Sync specific position
+      const result = await syncRecruitersForPosition(positionId, actingUserId, actingUserName);
+      
+      return NextResponse.json({
+        message: 'Position recruiter sync completed',
+        result
+      });
+    } else {
+      return NextResponse.json({ 
+        message: 'Either positionId or syncAll must be provided' 
+      }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('Recruiter sync error:', error);
+    return NextResponse.json({ 
+      message: 'Failed to sync recruiters', 
+      error: error.message 
+    }, { status: 500 });
+  }
+}

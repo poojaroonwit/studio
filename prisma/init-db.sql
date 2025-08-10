@@ -16,12 +16,7 @@ VALUES (
   NOW()
 ) ON CONFLICT (email) DO NOTHING;
 
--- Create default positions
-INSERT INTO "Position" (id, title, department, description, "isOpen", "createdAt", "updatedAt")
-VALUES 
-  ('11111111-1111-1111-1111-111111111111', 'Software Engineer', 'Engineering', 'Develops and maintains software.', true, NOW(), NOW()),
-  ('22222222-2222-2222-2222-222222222222', 'Product Manager', 'Product', 'Oversees product development.', true, NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+-- Note: No default positions created - positions should be added through the UI
 
 -- Create default recruitment stages
 INSERT INTO "RecruitmentStage" (id, name, description, "isSystem", "sortOrder")

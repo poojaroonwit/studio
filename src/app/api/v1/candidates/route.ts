@@ -18,6 +18,7 @@ import {
 import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 import { logAudit } from '@/lib/auditLog';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 
 // These schemas are now imported from ./schemas.ts
 
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
   const email = contactInfo.email || 'no-email@example.com';
   const status = candidateInfo.status || 'new';
 
-  console.log('Processed data:', {
+  console.log('Creating candidate with data:', {
     name,
     email,
     status,
@@ -199,6 +200,36 @@ export async function POST(request: NextRequest) {
       },
     });
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
+    
+    // Auto-assign recruiter if candidate has a position and no recruiter
+    // Extract positionId from candidate_info.job_applied or job_matches
+    let positionId = null;
+    if (candidateInfo.job_applied?.jobId) {
+      positionId = candidateInfo.job_applied.jobId;
+    } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
+      const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
+      if (matchWithJobId) {
+        positionId = matchWithJobId.jobId;
+      }
+    }
+    
+    if (positionId && !newCandidate.recruiterId) {
+      try {
+        const syncSuccess = await syncRecruiterForCandidate(
+          newCandidateId,
+          positionId,
+          user.id,
+          user.name || user.email || 'System'
+        );
+        if (syncSuccess) {
+          console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+        }
+      } catch (syncError) {
+        console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
+        // Don't fail the candidate creation if sync fails
+      }
+    }
+    
     return createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {

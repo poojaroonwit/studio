@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye } from "lucide-react";
+import { PlusCircle, Briefcase, Edit, Trash2, Search, Filter, Loader2, ChevronLeft, ChevronRight, X, MoreVertical, ChevronUp, ChevronDown, Users, Eye, Download, Upload } from "lucide-react";
 import type { Position } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -133,6 +133,17 @@ export default function PositionsPageClient() {
 
   // Handler for assigning/unassigning recruiter to position
   const handleAssignRecruiterToPosition = async (positionId: string, recruiterId: string | null) => {
+    console.log('handleAssignRecruiterToPosition called:', {
+      positionId,
+      recruiterId,
+      currentAssigningRecruiter: assigningRecruiter
+    });
+    
+    if (assigningRecruiter === positionId) {
+      console.log('Assignment blocked - already assigning for this position');
+      return;
+    }
+    
     setAssigningRecruiter(positionId);
     
     // Optimistically update the UI
@@ -149,8 +160,6 @@ export default function PositionsPageClient() {
         console.warn(`Recruiter ${recruiterId} not found in availableRecruiters, this might cause display issues`);
       }
     }
-    
-
     
     setPositions(prev => prev.map(p => 
       p.id === positionId 
@@ -207,7 +216,19 @@ export default function PositionsPageClient() {
         fetchPositions(false);
       }
       
-      toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+                   // Check if recruiter sync happened
+             if (responseData.recruiterSync) {
+               const sync = responseData.recruiterSync;
+               if (sync.candidatesUpdated > 0) {
+                 toast.success(
+                   `Recruiter assigned successfully. ${sync.candidatesUpdated} candidate${sync.candidatesUpdated > 1 ? 's' : ''} automatically assigned.`
+                 );
+               } else {
+                 toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+               }
+             } else {
+               toast.success(recruiterId ? 'Recruiter assigned successfully' : 'Recruiter unassigned successfully');
+             }
       
       // Refresh recruiter stats (this also refreshes availableRecruiters)
       fetchRecruiterStats();
@@ -218,11 +239,15 @@ export default function PositionsPageClient() {
       // Revert optimistic update
       setPositions(prevPositions);
     } finally {
+      // Ensure the assigning state is always reset
+      console.log('Finally block executed, resetting assigningRecruiter from:', assigningRecruiter, 'to null');
       setAssigningRecruiter(null);
     }
   };
 
   const canManagePositions = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('POSITIONS_MANAGE');
+  
+
 
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
@@ -250,6 +275,24 @@ export default function PositionsPageClient() {
       }
     };
   }, [isSearching]);
+
+  // Auto-reset assigningRecruiter state if stuck for too long
+  useEffect(() => {
+    if (assigningRecruiter) {
+      const timeout = setTimeout(() => {
+        console.warn('Assigning recruiter state stuck for 3 seconds, auto-resetting');
+        setAssigningRecruiter(null);
+      }, 3000); // Reduced from 5 seconds to 3 seconds
+
+      return () => clearTimeout(timeout);
+    }
+  }, [assigningRecruiter]);
+
+  // Manual reset function for debugging
+  const resetAssigningRecruiter = useCallback(() => {
+    console.log('Manual reset of assigningRecruiter state');
+    setAssigningRecruiter(null);
+  }, []);
 
   // Use refs to store current values to avoid dependency issues
   const currentFiltersRef = useRef({ searchTerm, statusFilter, departmentFilter, selectedRecruiterId, page, pageSize });
@@ -709,6 +752,37 @@ export default function PositionsPageClient() {
     }
   };
 
+  const handleExportPositions = async () => {
+    try {
+      const response = await fetch('/api/positions/export', {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export positions');
+      }
+      
+      // Create a blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'positions-export.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Positions exported successfully as Excel file');
+    } catch (error) {
+      toast.error('Failed to export positions');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -789,7 +863,7 @@ export default function PositionsPageClient() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[280px] p-0" align="start">
+                    <PopoverContent className="w-[280px] p-0 shadow-none" align="start">
                       <Command>
                         <div className="flex items-center border-b px-3">
                           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
@@ -848,31 +922,29 @@ export default function PositionsPageClient() {
                   </div>
                 )}
         </div>
-        {canManagePositions && (
+        {true && (
           <div className="flex gap-2">
             <Button onClick={() => setIsAddModalOpen(true)} className="btn-primary-gradient whitespace-nowrap">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Position
             </Button>
-            <Button 
-              onClick={() => {
-                // For demo purposes, select the first position if available
-                if (positions.length > 0) {
-                  setSelectedPositionId(positions[0].id);
-                  setIsNewDrawerOpen(true);
-                } else {
-                  toast.error('No positions available to display');
-                }
-              }} 
-              variant="outline" 
-              className="whitespace-nowrap"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New
-            </Button>
-            <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="whitespace-nowrap">
-              Import Positions
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsImportModalOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import Positions
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPositions}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export to Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
@@ -1197,6 +1269,7 @@ export default function PositionsPageClient() {
                       canManagePositions={canManagePositions}
                       isAssigning={assigningRecruiter === position.id}
                       onAssignRecruiter={handleAssignRecruiterToPosition}
+                      onResetAssigning={resetAssigningRecruiter}
                     />
                   </TableCell>
                   <TableCell className="text-center">
@@ -1234,18 +1307,8 @@ export default function PositionsPageClient() {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {canManagePositions && (
+                      {true && (
                         <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPosition(position);
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1254,11 +1317,6 @@ export default function PositionsPageClient() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        <Link href={`/positions/${position.id}`} passHref legacyBehavior>
-                          <Button variant="outline" size="sm">
-                            Details
-                          </Button>
-                        </Link>
                         </>
                     )}
                     </div>
@@ -1339,14 +1397,14 @@ export default function PositionsPageClient() {
       </div> {/* Close flex container */}
       
       {/* Modals */}
-      {canManagePositions && (
+      {true && (
         <AddPositionModal 
           isOpen={isAddModalOpen} 
           onOpenChange={setIsAddModalOpen} 
-          onAddPosition={handleAddPosition} 
+          onAddPosition={handleAddPosition}
         />
       )}
-      {canManagePositions && (
+      {true && (
         <ImportPositionsModal
           isOpen={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
@@ -1356,7 +1414,7 @@ export default function PositionsPageClient() {
           }}
         />
       )}
-      {canManagePositions && selectedPosition && (
+      {true && selectedPosition && (
         <EditPositionModal
           isOpen={isEditModalOpen}
           onOpenChange={(open) => {

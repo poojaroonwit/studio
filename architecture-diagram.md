@@ -78,7 +78,7 @@ FitScan is a comprehensive recruitment management system built with Next.js 14, 
 │  │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐ │ │
 │  │  │                              Workflow Automation                                         │ │ │
 │  │  │  • N8N Integration  • Webhook Triggers  • Automated Candidate Processing                │ │ │
-│  │  │  • Email Notifications  • Status Transitions  • Bulk Operations                         │ │ │
+│  │  │  • Status Transitions  • Bulk Operations                         │ │ │
 │  │  └─────────────────────────────────────────────────────────────────────────────────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -119,7 +119,7 @@ FitScan is a comprehensive recruitment management system built with Next.js 14, 
 │  │                                                                                             │ │
 │  │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐ │ │
 │  │  │                              External Integrations                                       │ │ │
-│  │  │  • Azure Active Directory (SSO)  • Google AI (Gemini)  • Email Services (SMTP)          │ │ │
+│  │  │  • Azure Active Directory (SSO)  • Google AI (Gemini)          │ │ │
 │  │  │  • Webhook Endpoints  • Third-party APIs  • File Processing Services                    │ │ │
 │  │  └─────────────────────────────────────────────────────────────────────────────────────────┘ │ │
 │  │                                                                                             │ │
@@ -233,7 +233,7 @@ FitScan is a comprehensive recruitment management system built with Next.js 14, 
 │  │                                                                                             │ │
 │  │  ┌─────────────────────────────────────────────────────────────────────────────────────────┐ │ │
 │  │  │                              External Services                                           │ │ │
-│  │  │  • Azure Active Directory  • Google AI APIs  • Email Services  • Webhook Endpoints      │ │ │
+│  │  │  • Azure Active Directory  • Google AI APIs  • Webhook Endpoints      │ │ │
 │  │  └─────────────────────────────────────────────────────────────────────────────────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘

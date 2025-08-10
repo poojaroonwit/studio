@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 import { normalizeFitScore } from '@/lib/scoreUtils';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 
 /**
  * @openapi
@@ -189,7 +190,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }
 
-  console.log('Updating candidate:', id, 'with body:', body);
+
 
   const validationResult = updateCandidateSchema.safeParse(body);
   if (!validationResult.success) {
@@ -229,8 +230,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const existingCandidate = existingResult.rows[0];
     const oldStatus = existingCandidate.status;
     const oldRecruiterId = existingCandidate.recruiterId;
+    const oldPositionId = existingCandidate.positionId;
 
-    console.log('Existing candidate:', existingCandidate.name, 'current status:', oldStatus, 'new status:', status);
+
 
     // Existence checks for foreign keys
     if (positionId) {
@@ -366,8 +368,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
       
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW());
+        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
         console.log('Creating transition record:', {
@@ -424,8 +426,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
       const newTransitionId = uuidv4();
       const insertTransitionQuery = `
-        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW());
+        INSERT INTO "TransitionRecord" (id, "candidateId", "positionId", stage, notes, "actingUserId", date, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW(), NOW());
       `;
       try {
         await client.query(insertTransitionQuery, [
@@ -445,6 +447,25 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       } catch (transitionError) {
         console.error('Error creating recruiter change transition record:', transitionError);
         throw transitionError;
+      }
+    }
+
+    // Auto-assign recruiter if position changed and candidate has no recruiter
+    let syncResult = null;
+    if (positionId !== undefined && positionId !== oldPositionId && recruiterId === undefined) {
+      try {
+        const syncSuccess = await syncRecruiterForCandidate(
+          id, 
+          positionId, 
+          actingUserId, 
+          actingUserName
+        );
+        if (syncSuccess) {
+          syncResult = { synced: true, message: 'Recruiter auto-assigned from position' };
+        }
+      } catch (syncError) {
+        console.error('Failed to assign recruiter after position assignment:', syncError);
+        // Don't fail the candidate update if sync fails
       }
     }
 
@@ -515,6 +536,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
       jobMatches: jobMatchesResult.rows || [],
       attachmentHistory: attachmentsResult.rows || [],
+      recruiterSync: syncResult
     });
   } catch (error: any) {
     await client.query('ROLLBACK');

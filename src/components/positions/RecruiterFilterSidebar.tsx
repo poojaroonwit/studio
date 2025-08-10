@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Users, UserCheck, UserX, TrendingUp } from "lucide-react";
 import type { UserProfile } from "@/lib/types";
 import { RecruiterCard } from './RecruiterCard';
+import { cn } from '@/lib/utils';
 
 interface RecruiterStats {
   totalActivePositions: number;
@@ -21,6 +22,138 @@ interface RecruiterFilterSidebarProps {
   selectedRecruiterId: string | null;
   onRecruiterSelect: (recruiterId: string | null) => void;
   recruiterStats: { [key: string]: number };
+}
+
+// All Recruiters Card Component
+function AllRecruitersCard({ 
+  totalPositions, 
+  isSelected, 
+  onSelect 
+}: { 
+  totalPositions: number; 
+  isSelected: boolean; 
+  onSelect: () => void; 
+}) {
+  return (
+    <div 
+      className={cn(
+        "group cursor-pointer transition-all duration-300 ease-out",
+        "relative overflow-hidden rounded-xl border-2",
+        "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
+        "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
+        isSelected ? [
+          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
+          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
+        ] : [
+          "border-gray-300 dark:border-gray-600",
+          "hover:border-gray-400 dark:hover:border-gray-500"
+        ]
+      )}
+      onClick={onSelect}
+    >
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative p-3">
+        {/* Modern Header */}
+        <div className="flex items-center gap-3 mb-3">
+          {/* Enhanced Icon with Background */}
+          <div className="relative">
+            <div className={cn(
+              "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
+              "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500",
+              "flex items-center justify-center",
+              "group-hover:shadow-xl group-hover:ring-blue-500/20 transition-all duration-300"
+            )}>
+              <UserCheck className="h-4 w-4 text-white" />
+            </div>
+
+          </div>
+          
+          {/* Name and Selection */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+              All Recruiters
+            </h3>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {totalPositions} total position{totalPositions !== 1 ? 's' : ''}
+            </div>
+          </div>
+          
+          {/* Selection Indicator */}
+          {isSelected && (
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Unassigned Positions Card Component
+function UnassignedPositionsCard({ 
+  unassignedPositions, 
+  isSelected, 
+  onSelect 
+}: { 
+  unassignedPositions: number; 
+  isSelected: boolean; 
+  onSelect: () => void; 
+}) {
+  return (
+    <div 
+      className={cn(
+        "group cursor-pointer transition-all duration-300 ease-out",
+        "relative overflow-hidden rounded-xl border-2",
+        "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
+        "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
+        isSelected ? [
+          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
+          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
+        ] : [
+          "border-gray-300 dark:border-gray-600",
+          "hover:border-gray-400 dark:hover:border-gray-500"
+        ]
+      )}
+      onClick={onSelect}
+    >
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="relative p-3">
+        {/* Modern Header */}
+        <div className="flex items-center gap-3 mb-3">
+          {/* Enhanced Icon with Background */}
+          <div className="relative">
+            <div className={cn(
+              "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
+              "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500",
+              "flex items-center justify-center",
+              "group-hover:shadow-xl group-hover:ring-blue-500/20 transition-all duration-300"
+            )}>
+              <UserX className="h-4 w-4 text-white" />
+            </div>
+
+          </div>
+          
+          {/* Name and Selection */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+              Unassigned
+            </h3>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {unassignedPositions} unassigned position{unassignedPositions !== 1 ? 's' : ''}
+            </div>
+          </div>
+          
+          {/* Selection Indicator */}
+          {isSelected && (
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function RecruiterFilterSidebar({ 
@@ -158,44 +291,25 @@ export function RecruiterFilterSidebar({
         {/* Ultra Minimal Stats - Single Row */}
         <div className="flex justify-between text-xs">
           <span className="text-muted-foreground">{totalStats.totalRecruiters} recruiters</span>
-          <span className="text-muted-foreground">{totalStats.totalPositions} positions</span>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="space-y-1 pr-2">
+          <div className="space-y-3 pr-2">
             {/* All Recruiters Option */}
-            <div 
-              className={`cursor-pointer transition-all duration-200 p-1.5 rounded border text-xs ${
-                selectedRecruiterId === null ? 'bg-primary/10 border-primary' : 'hover:bg-accent border-transparent'
-              }`}
-              onClick={() => handleRecruiterClick(null)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <UserCheck className="h-3 w-3 text-primary" />
-                  <span className="font-medium">All</span>
-                </div>
-                <span className="font-semibold text-primary">{totalStats.totalPositions}</span>
-              </div>
-            </div>
+            <AllRecruitersCard
+              totalPositions={totalStats.totalPositions}
+              isSelected={selectedRecruiterId === null}
+              onSelect={() => handleRecruiterClick(null)}
+            />
 
             {/* Unassigned Positions */}
-            <div 
-              className={`cursor-pointer transition-all duration-200 p-1.5 rounded border text-xs ${
-                selectedRecruiterId === 'unassigned' ? 'bg-primary/10 border-primary' : 'hover:bg-accent border-transparent'
-              }`}
-              onClick={() => handleRecruiterClick('unassigned')}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <UserX className="h-3 w-3 text-orange-500" />
-                  <span className="font-medium">Unassigned</span>
-                </div>
-                <span className="font-semibold text-orange-500">{totalStats.unassignedPositions}</span>
-              </div>
-            </div>
+            <UnassignedPositionsCard
+              unassignedPositions={totalStats.unassignedPositions}
+              isSelected={selectedRecruiterId === 'unassigned'}
+              onSelect={() => handleRecruiterClick('unassigned')}
+            />
 
             {/* Individual Recruiter Cards */}
             {recruitersWithStats.map((recruiter) => (

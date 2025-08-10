@@ -45,7 +45,7 @@ import { RecruitmentPipelineCard } from '@/components/candidates/RecruitmentPipe
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { differenceInMonths, parse, isValid } from 'date-fns';
 import JobMatchModal from '@/components/candidates/JobMatchModal';
-import RecruiterAssignmentDropdown from '@/components/candidates/RecruiterAssignmentDropdown';
+import { CandidateRecruiterCell } from '@/components/candidates/CandidateRecruiterCell';
 import ReprocessModal from '@/components/candidates/ReprocessModal';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import CandidateAttachmentUploadModal from '@/components/candidates/CandidateAttachmentUploadModal';
@@ -618,6 +618,8 @@ export default function CandidateDetailPage() {
       setAttachments(Array.isArray(data) ? data : (data.data || []));
     });
   };
+
+
 
   const fetchCandidateDetails = useCallback(async () => {
     if (!candidateId) return;

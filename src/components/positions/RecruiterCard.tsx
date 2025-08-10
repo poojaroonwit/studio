@@ -30,8 +30,8 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
         "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
         "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
         isSelected ? [
-          "border-primary bg-gradient-to-br from-primary/5 to-primary/10",
-          "shadow-lg shadow-primary/10 ring-2 ring-primary/20"
+          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
+          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
         ] : [
           "border-gray-300 dark:border-gray-600",
           "hover:border-gray-400 dark:hover:border-gray-500"
@@ -64,8 +64,7 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
                 {recruiter.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {/* Online indicator */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white dark:border-gray-900 shadow-sm" />
+
           </div>
           
           {/* Name and Selection */}
@@ -80,7 +79,7 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
           
           {/* Selection Indicator */}
           {isSelected && (
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
           )}
         </div>
 

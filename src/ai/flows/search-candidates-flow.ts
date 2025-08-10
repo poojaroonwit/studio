@@ -186,7 +186,6 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     if (allCandidates.length === 0) {
       return { matchedCandidateIds: [], aiReasoning: "No candidates found in the database to search." };
     }
-    console.log(`AI Search: Preparing to process ${allCandidates.length} candidate profiles.`);
   } catch (dbError) {
     console.error("AI Search: Error fetching candidates from DB:", dbError);
     return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching." };
@@ -266,8 +265,6 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     const data = await fetchRes.json();
     // Gemini API returns candidates[0].content.parts[0].text
     const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    console.log('AI Search: Raw model response:', modelText);
 
     let result;
     try {

@@ -2,46 +2,51 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Check, ChevronDown, Loader2, User, UserPlus, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface RecruiterCellProps {
-  position: {
+interface CandidateRecruiterCellProps {
+  candidate: {
     id: string;
     recruiterId?: string | null;
-    recruiterName?: string | null;
+    recruiter?: {
+      id: string;
+      name: string;
+      avatar?: string;
+    } | null;
   };
   availableRecruiters: Array<{
     id: string;
     name: string;
     avatar?: string;
   }>;
-  canManagePositions: boolean;
+  canManageCandidates: boolean;
   isAssigning: boolean;
-  onAssignRecruiter: (positionId: string, recruiterId: string | null) => Promise<void>;
+  onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
   onResetAssigning?: () => void;
 }
 
-export function RecruiterCell({
-  position,
+export function CandidateRecruiterCell({
+  candidate,
   availableRecruiters,
-  canManagePositions,
+  canManageCandidates,
   isAssigning,
   onAssignRecruiter,
   onResetAssigning
-}: RecruiterCellProps) {
+}: CandidateRecruiterCellProps) {
   const [open, setOpen] = useState(false);
 
-  const currentRecruiter = availableRecruiters.find(r => r.id === position.recruiterId);
+  const currentRecruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
+
+
 
   // Auto-reset if stuck in assigning state for too long
   React.useEffect(() => {
     if (isAssigning) {
       const timeout = setTimeout(() => {
-        console.log('Auto-resetting stuck assigning state for position:', position.id);
+        console.log('Auto-resetting stuck assigning state for candidate:', candidate.id);
         if (onResetAssigning) {
           onResetAssigning();
         }
@@ -49,16 +54,14 @@ export function RecruiterCell({
 
       return () => clearTimeout(timeout);
     }
-  }, [isAssigning, position.id, onResetAssigning]);
-
-
+  }, [isAssigning, candidate.id, onResetAssigning]);
 
   const handleSelect = async (recruiterId: string | null) => {
-    console.log('RecruiterCell handleSelect called:', {
-      positionId: position.id,
+    console.log('CandidateRecruiterCell handleSelect called:', {
+      candidateId: candidate.id,
       recruiterId,
       isAssigning,
-      canManagePositions
+      canManageCandidates
     });
     
     if (isAssigning) {
@@ -67,23 +70,23 @@ export function RecruiterCell({
     }
     
     setOpen(false);
-    await onAssignRecruiter(position.id, recruiterId);
+    onAssignRecruiter(candidate.id, recruiterId);
   };
 
   // Read-only view for users without manage permissions
-  if (!canManagePositions) {
+  if (!canManageCandidates) {
     return (
       <div className="flex items-center gap-2">
-        {position.recruiterName ? (
+        {candidate.recruiter?.name ? (
           <>
             <Avatar className="h-6 w-6">
               <AvatarImage src={currentRecruiter?.avatar} />
               <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                {position.recruiterName.charAt(0).toUpperCase()}
+                {candidate.recruiter.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium text-foreground truncate">
-              {position.recruiterName}
+              {candidate.recruiter.name}
             </span>
           </>
         ) : (
@@ -124,16 +127,16 @@ export function RecruiterCell({
               </div>
               <span className="text-xs text-muted-foreground">Updating... (auto-reset in 2s)</span>
             </div>
-          ) : position.recruiterName ? (
+          ) : candidate.recruiter?.name ? (
             <div className="flex items-center gap-2 min-w-0">
               <Avatar className="h-6 w-6 flex-shrink-0">
                 <AvatarImage src={currentRecruiter?.avatar} />
                 <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {position.recruiterName.charAt(0).toUpperCase()}
+                  {candidate.recruiter.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium text-foreground truncate flex-1">
-                {position.recruiterName}
+                {candidate.recruiter.name}
               </span>
               <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             </div>
@@ -142,7 +145,7 @@ export function RecruiterCell({
               <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                 <UserPlus className="h-3 w-3 text-gray-500" />
               </div>
-              <span className="text-sm text-muted-foreground">Unassign recruiter</span>
+              <span className="text-sm text-muted-foreground">Assign recruiter</span>
               <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
             </div>
           )}
@@ -164,7 +167,7 @@ export function RecruiterCell({
               <span className="text-sm">Unassigned</span>
               <span className="text-xs text-muted-foreground">Remove recruiter assignment</span>
             </div>
-            {!position.recruiterId && (
+            {!candidate.recruiterId && (
               <Check className="h-4 w-4 text-primary" />
             )}
           </button>
@@ -186,7 +189,7 @@ export function RecruiterCell({
                 <span className="text-sm font-medium">{recruiter.name}</span>
                 <span className="text-xs text-muted-foreground">Recruiter</span>
               </div>
-              {position.recruiterId === recruiter.id && (
+              {candidate.recruiterId === recruiter.id && (
                 <Check className="h-4 w-4 text-primary" />
               )}
             </button>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Mail, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText, Database, Webhook } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText, Database, Webhook } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,6 @@ export default function SystemSettingsPage() {
 
   // System/Integration settings state
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState(5);
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState('');
-  const [smtpUser, setSmtpUser] = useState('');
-  const [smtpPassword, setSmtpPassword] = useState('');
-  const [smtpSecure, setSmtpSecure] = useState(true);
-  const [smtpFromEmail, setSmtpFromEmail] = useState('');
   const [resumeProcessingWebhookUrl, setResumeProcessingWebhookUrl] = useState('');
   const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
   const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
@@ -69,11 +63,6 @@ export default function SystemSettingsPage() {
       }
       
       setMaxConcurrentProcessors(parseInt(settings.maxConcurrentProcessors || '5', 10));
-      setSmtpHost(settings.smtpHost || '');
-      setSmtpPort(settings.smtpPort || '');
-      setSmtpUser(settings.smtpUser || '');
-      setSmtpSecure(settings.smtpSecure === 'true');
-      setSmtpFromEmail(settings.smtpFromEmail || '');
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
@@ -116,12 +105,6 @@ export default function SystemSettingsPage() {
     setIsSaving(true);
     const settingsToSave = [
       { key: 'maxConcurrentProcessors', value: maxConcurrentProcessors.toString() },
-      { key: 'smtpHost', value: smtpHost },
-      { key: 'smtpPort', value: smtpPort },
-      { key: 'smtpUser', value: smtpUser },
-      { key: 'smtpPassword', value: smtpPassword },
-      { key: 'smtpSecure', value: smtpSecure.toString() },
-      { key: 'smtpFromEmail', value: smtpFromEmail },
       { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl },
       { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
       { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode },
@@ -246,7 +229,7 @@ export default function SystemSettingsPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="ai" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="ai" className="flex items-center gap-2">
               <BrainCircuit className="h-4 w-4" />
               AI Services
@@ -254,10 +237,6 @@ export default function SystemSettingsPage() {
             <TabsTrigger value="automation" className="flex items-center gap-2">
               <Webhook className="h-4 w-4" />
               Automation
-            </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
@@ -499,100 +478,7 @@ export default function SystemSettingsPage() {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="email" className="h-full">
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  {/* SMTP Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Mail className="h-5 w-5 text-primary" />
-                        SMTP Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Configure email server settings for sending notifications and communications
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp-host">SMTP Host</Label>
-                          <Input 
-                            id="smtp-host" 
-                            type="text" 
-                            placeholder="smtp.example.com" 
-                            value={smtpHost} 
-                            onChange={(e) => setSmtpHost(e.target.value)} 
-                            disabled={isSaving}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="smtp-port">SMTP Port</Label>
-                          <Input 
-                            id="smtp-port" 
-                            type="text" 
-                            placeholder="587" 
-                            value={smtpPort} 
-                            onChange={(e) => setSmtpPort(e.target.value)} 
-                            disabled={isSaving}
-                          />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="smtp-user">SMTP User</Label>
-                        <Input 
-                          id="smtp-user" 
-                          type="text" 
-                          placeholder="user@example.com" 
-                          value={smtpUser} 
-                          onChange={(e) => setSmtpUser(e.target.value)} 
-                          disabled={isSaving}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="smtp-password">SMTP Password</Label>
-                        <Input 
-                          id="smtp-password" 
-                          type="password" 
-                          placeholder="Set via environment variable" 
-                          value={smtpPassword} 
-                          onChange={(e) => setSmtpPassword(e.target.value)} 
-                          disabled 
-                          readOnly
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Password must be set as an environment variable on the server.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="smtp-secure"
-                          checked={smtpSecure}
-                          onCheckedChange={setSmtpSecure}
-                          disabled={isSaving}
-                        />
-                        <Label htmlFor="smtp-secure">Use TLS/SSL</Label>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="smtp-from-email">From Email</Label>
-                        <Input 
-                          id="smtp-from-email" 
-                          type="email" 
-                          placeholder="noreply@example.com" 
-                          value={smtpFromEmail} 
-                          onChange={(e) => setSmtpFromEmail(e.target.value)} 
-                          disabled={isSaving}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
-            </TabsContent>
 
             <TabsContent value="system" className="h-full">
               <ScrollArea className="h-full pr-4">

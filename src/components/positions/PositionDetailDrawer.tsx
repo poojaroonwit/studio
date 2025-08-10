@@ -489,10 +489,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>Candidate</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Experience</TableHead>
-            <TableHead>Applied Date</TableHead>
-            <TableHead>Match Score</TableHead>
+            <TableHead>Fit Score</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -500,25 +498,33 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           {allCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
               <TableCell>{rowNumber++}</TableCell>
-              <TableCell className="cursor-pointer" onClick={() => handleCandidateClick(candidate.id)}>
+              <TableCell>
                 <div>
-                  <div className="font-medium">{candidate.firstName} {candidate.lastName}</div>
-                  <div className="text-sm text-muted-foreground">{candidate.title || 'No title'}</div>
+                  <div className="font-medium">{candidate.name}</div>
+                  <div className="text-xs text-muted-foreground">{candidate.email}</div>
                 </div>
               </TableCell>
-              <TableCell>{candidate.email}</TableCell>
-              <TableCell>{candidate.experience || 'N/A'}</TableCell>
-              <TableCell>{candidate.appliedAt ? format(parseISO(candidate.appliedAt), 'MMM dd, yyyy') : 'N/A'}</TableCell>
               <TableCell>
-                {candidate.matchScore ? (
-                  <ScoreBadge score={candidate.matchScore} />
+                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                  <ScoreBadge score={candidate.fitScore}>
+                    {formatScoreWithGrade(candidate.fitScore)}
+                  </ScoreBadge>
                 ) : (
                   <Badge variant="outline">No Score</Badge>
                 )}
               </TableCell>
               <TableCell>
-                <Button variant="ghost" size="sm" onClick={() => handleCandidateClick(candidate.id)}>
+                <Badge variant="outline">{candidate.status || 'New'}</Badge>
+              </TableCell>
+              <TableCell>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleCandidateClick(candidate.id)}
+                  className="hover:bg-primary/10"
+                >
                   <Eye className="h-4 w-4" />
+                  <span className="ml-1 text-xs">View</span>
                 </Button>
               </TableCell>
             </TableRow>
@@ -547,9 +553,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>Candidate</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Experience</TableHead>
-            <TableHead>Job Match Score</TableHead>
+            <TableHead>Fit Score</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -557,24 +562,33 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           {potentialCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
               <TableCell>{rowNumber++}</TableCell>
-              <TableCell className="cursor-pointer" onClick={() => handleCandidateClick(candidate.id)}>
+              <TableCell>
                 <div>
-                  <div className="font-medium">{candidate.firstName} {candidate.lastName}</div>
-                  <div className="text-sm text-muted-foreground">{candidate.title || 'No title'}</div>
+                  <div className="font-medium">{candidate.name}</div>
+                  <div className="text-xs text-muted-foreground">{candidate.email}</div>
                 </div>
               </TableCell>
-              <TableCell>{candidate.email}</TableCell>
-              <TableCell>{candidate.experience || 'N/A'}</TableCell>
               <TableCell>
-                {candidate.matchScore ? (
-                  <ScoreBadge score={candidate.matchScore} />
+                {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                  <ScoreBadge score={candidate.fitScore}>
+                    {formatScoreWithGrade(candidate.fitScore)}
+                  </ScoreBadge>
                 ) : (
                   <Badge variant="outline">No Score</Badge>
                 )}
               </TableCell>
               <TableCell>
-                <Button variant="ghost" size="sm" onClick={() => handleCandidateClick(candidate.id)}>
+                <Badge variant="outline">{candidate.status || 'New'}</Badge>
+              </TableCell>
+              <TableCell>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleCandidateClick(candidate.id)}
+                  className="hover:bg-primary/10"
+                >
                   <Eye className="h-4 w-4" />
+                  <span className="ml-1 text-xs">View</span>
                 </Button>
               </TableCell>
             </TableRow>
@@ -618,12 +632,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8 text-center">#</TableHead>
-                <TableHead>Name / Email</TableHead>
+                <TableHead>Candidate</TableHead>
                 <TableHead>Fit Score</TableHead>
-                <TableHead>Recruiter</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Applied Date</TableHead>
-                <TableHead>Association</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -637,13 +648,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                   return (
                     <TableRow 
                       key={candidate.id} 
-                      className="hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleCandidateClick(candidate.id)}
+                      className="hover:bg-muted/50"
                     >
                       <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                       <TableCell>
                         <div>
-                          {candidate.name}
+                          <div className="font-medium">{candidate.name}</div>
                           <div className="text-xs text-muted-foreground">{candidate.email}</div>
                         </div>
                       </TableCell>
@@ -653,47 +663,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                             {formatScoreWithGrade(candidate.fitScore)}
                           </ScoreBadge>
                         ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
-                      <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
-                      <TableCell>
-                        {candidate.applicationDate ? (
-                          <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
-                            {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
-                          </span>
-                        ) : (
-                          '-'
+                          <Badge variant="outline">No Score</Badge>
                         )}
                       </TableCell>
                       <TableCell>
-                        {(() => {
-                          if (candidate.associationType) {
-                            switch (candidate.associationType) {
-                              case 'applied_and_matched':
-                                return <Badge variant="default">Applied & Matched</Badge>;
-                              case 'applied':
-                                return <Badge variant="default">Applied</Badge>;
-                              case 'matched':
-                                return <Badge variant="secondary">Matched</Badge>;
-                              default:
-                                return <Badge variant="outline">Unknown</Badge>;
-                            }
-                          }
-                          return <Badge variant="outline">Unknown</Badge>;
-                        })()}
+                        <Badge variant="outline">{candidate.status || 'New'}</Badge>
                       </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCandidateClick(candidate.id);
-                          }}
+                          onClick={() => handleCandidateClick(candidate.id)}
+                          className="hover:bg-primary/10"
                         >
                           <Eye className="h-4 w-4" />
+                          <span className="ml-1 text-xs">View</span>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -722,13 +706,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                       {isExpanded && group.map((candidate) => (
                         <TableRow 
                           key={candidate.id} 
-                          className="hover:bg-muted/50 cursor-pointer"
-                          onClick={() => handleCandidateClick(candidate.id)}
+                          className="hover:bg-muted/50"
                         >
                           <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
                           <TableCell>
                             <div>
-                              {candidate.name}
+                              <div className="font-medium">{candidate.name}</div>
                               <div className="text-xs text-muted-foreground">{candidate.email}</div>
                             </div>
                           </TableCell>
@@ -738,47 +721,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 {formatScoreWithGrade(candidate.fitScore)}
                               </ScoreBadge>
                             ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                          <TableCell>{candidate.recruiter?.name || 'Unassigned'}</TableCell>
-                          <TableCell><Badge variant="outline">{candidate.status || 'New'}</Badge></TableCell>
-                          <TableCell>
-                            {candidate.applicationDate ? (
-                              <span title={format(parseISO(candidate.applicationDate), 'PPP')}>
-                                {format(parseISO(candidate.applicationDate), 'MMM dd, yyyy')}
-                              </span>
-                            ) : (
-                              '-'
+                              <Badge variant="outline">No Score</Badge>
                             )}
                           </TableCell>
                           <TableCell>
-                            {(() => {
-                              if (candidate.associationType) {
-                                switch (candidate.associationType) {
-                                  case 'applied_and_matched':
-                                    return <Badge variant="default">Applied & Matched</Badge>;
-                                  case 'applied':
-                                    return <Badge variant="default">Applied</Badge>;
-                                  case 'matched':
-                                    return <Badge variant="secondary">Matched</Badge>;
-                                  default:
-                                    return <Badge variant="outline">Unknown</Badge>;
-                                }
-                              }
-                              return <Badge variant="outline">Unknown</Badge>;
-                            })()}
+                            <Badge variant="outline">{candidate.status || 'New'}</Badge>
                           </TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCandidateClick(candidate.id);
-                              }}
+                              onClick={() => handleCandidateClick(candidate.id)}
+                              className="hover:bg-primary/10"
                             >
                               <Eye className="h-4 w-4" />
+                              <span className="ml-1 text-xs">View</span>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -806,7 +763,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <Sheet 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          // Prevent closing the drawer when the candidate modal is open
+          if (!open && isCandidateModalOpen) {
+            return;
+          }
+          onOpenChange(open);
+        }}
+        modal={false}
+      >
         <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0">
           <div className="h-full flex flex-col">
             <SheetHeader className="p-6 border-b">

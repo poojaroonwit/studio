@@ -33,12 +33,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
 import CandidateDetailModal from './CandidateDetailModal';
 import UploadResumeModal from './UploadResumeModal';
+import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 
 
 interface CandidateTableProps {
@@ -63,6 +64,7 @@ interface CandidateTableProps {
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
   onSort?: (column: string | null, direction?: 'asc' | 'desc' | null) => void;
+  canManageCandidates?: boolean;
 }
 
 const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -157,6 +159,7 @@ export function CandidateTable({
   sortColumn,
   sortDirection,
   onSort,
+  canManageCandidates = false,
 }: CandidateTableProps) {
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
@@ -171,6 +174,7 @@ export function CandidateTable({
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
   const [isUploadResumeModalOpen, setIsUploadResumeModalOpen] = useState(false);
   const [selectedCandidateForUpload, setSelectedCandidateForUpload] = useState<Candidate | null>(null);
+  const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
 
   // Group candidates by email
   const candidatesByEmail = candidates.reduce((acc, candidate) => {
@@ -249,6 +253,24 @@ export function CandidateTable({
     onRefreshCandidateData(updatedCandidate.id);
     setIsUploadResumeModalOpen(false);
     setSelectedCandidateForUpload(null);
+  };
+
+  const handleAssignRecruiter = async (candidateId: string, recruiterId: string | null) => {
+    setAssigningRecruiter(candidateId);
+    try {
+      onAssignRecruiter(candidateId, recruiterId);
+    } catch (error) {
+      console.error('Error assigning recruiter:', error);
+    } finally {
+      // Reset after a short delay to allow for UI updates
+      setTimeout(() => {
+        setAssigningRecruiter(null);
+      }, 1000);
+    }
+  };
+
+  const handleResetAssigning = () => {
+    setAssigningRecruiter(null);
   };
 
 
@@ -609,19 +631,14 @@ export function CandidateTable({
                     </div>
                   </TableCell>
                   <TableCell key={`${candidate.id}-recruiter`}>
-                    <Select value={candidate.recruiter?.id || ''} onValueChange={value => onAssignRecruiter(candidate.id, value === '___UNASSIGN___' ? null : value)}>
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Unassigned">
-                          {candidate.recruiter?.name || 'Unassigned'}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                        {availableRecruiters.map(r => (
-                          <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CandidateRecruiterCell
+                      candidate={candidate}
+                      availableRecruiters={availableRecruiters}
+                      canManageCandidates={canManageCandidates}
+                      isAssigning={assigningRecruiter === candidate.id}
+                      onAssignRecruiter={handleAssignRecruiter}
+                      onResetAssigning={handleResetAssigning}
+                    />
                   </TableCell>
                   <TableCell key={`${candidate.id}-status`}>
                     {(() => {
@@ -781,19 +798,14 @@ export function CandidateTable({
                               </div>
                             </TableCell>
                             <TableCell key={`${candidate.id}-recruiter`}>
-                              <Select value={candidate.recruiter?.id || ''} onValueChange={value => onAssignRecruiter(candidate.id, value === '___UNASSIGN___' ? null : value)}>
-                                <SelectTrigger className="w-36">
-                                  <SelectValue placeholder="Unassigned">
-                                    {candidate.recruiter?.name || 'Unassigned'}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="___UNASSIGN___">Unassigned</SelectItem>
-                                  {availableRecruiters.map(r => (
-                                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <CandidateRecruiterCell
+                                candidate={candidate}
+                                availableRecruiters={availableRecruiters}
+                                canManageCandidates={canManageCandidates}
+                                isAssigning={assigningRecruiter === candidate.id}
+                                onAssignRecruiter={handleAssignRecruiter}
+                                onResetAssigning={handleResetAssigning}
+                              />
                             </TableCell>
                             <TableCell key={`${candidate.id}-status`}>
                               {(() => {

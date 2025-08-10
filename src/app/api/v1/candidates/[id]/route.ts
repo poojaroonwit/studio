@@ -15,6 +15,7 @@ import {
 } from '@/lib/apiErrorHandler';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { logAudit } from '@/lib/auditLog';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 
 const updateCandidateSchema = z.object({
   // Legacy fields for backward compatibility
@@ -331,6 +332,30 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     await client.query('COMMIT');
     const updatedCandidate = updateResult.rows[0];
+    
+    // Auto-assign recruiter if position changed and candidate has no recruiter
+    const oldPositionId = existingCandidate.positionId;
+    const newPositionId = updateData.positionId !== undefined ? updateData.positionId : oldPositionId;
+    const hasPositionChanged = updateData.positionId !== undefined && updateData.positionId !== oldPositionId;
+    const hasNoRecruiter = !updatedCandidate.recruiterId;
+    
+    if (hasPositionChanged && hasNoRecruiter && newPositionId) {
+      try {
+        const syncSuccess = await syncRecruiterForCandidate(
+          id,
+          newPositionId,
+          user.id,
+          user.name || user.email || 'System'
+        );
+        if (syncSuccess) {
+          console.log(`Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
+        }
+      } catch (syncError) {
+        console.error('Failed to auto-assign recruiter after position update:', syncError);
+        // Don't fail the candidate update if sync fails
+      }
+    }
+    
     await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${user.name}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
     return createSuccessResponse(req, {
       message: 'Candidate updated successfully',

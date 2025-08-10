@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: handleCors(req) });
     }
 
-    console.log('User permissions check:', {
+    console.log('Bulk upload CV request from user:', {
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       // Automatically trigger processing of the queue (fire-and-forget)
       try {
         const processUrl = process.env.PROCESSOR_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}/api/upload-queue/process`;
-        console.log('Auto-triggering upload queue processing at:', processUrl);
+    
         // Fire-and-forget: don't await the fetch to return response immediately
         fetch(processUrl, {
           method: 'POST',

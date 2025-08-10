@@ -47,7 +47,6 @@ const systemSettingKeyEnum = z.enum([
     'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
     'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
     'primaryGradientStart', 'primaryGradientEnd',
-    'smtpHost', 'smtpPort', 'smtpUser', 'smtpPassword', 'smtpSecure', 'smtpFromEmail',
     'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
     'generalPdfWebhookUrl', 'generalPdfWebhookToken',
     'geminiApiKey',
@@ -124,11 +123,6 @@ export async function GET(request: NextRequest) {
     // Define environment variable mappings
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
-      { key: 'smtpHost', envVar: 'SMTP_HOST' },
-      { key: 'smtpPort', envVar: 'SMTP_PORT' },
-      { key: 'smtpUser', envVar: 'SMTP_USER' },
-      { key: 'smtpPassword', envVar: 'SMTP_PASSWORD' },
-      { key: 'smtpFromEmail', envVar: 'SMTP_FROM_EMAIL' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },
@@ -322,11 +316,6 @@ export async function POST(request: NextRequest) {
     // Apply the same environment variable mappings as in GET handler for consistency
     const envMappings = [
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
-      { key: 'smtpHost', envVar: 'SMTP_HOST' },
-      { key: 'smtpPort', envVar: 'SMTP_PORT' },
-      { key: 'smtpUser', envVar: 'SMTP_USER' },
-      { key: 'smtpPassword', envVar: 'SMTP_PASSWORD' },
-      { key: 'smtpFromEmail', envVar: 'SMTP_FROM_EMAIL' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
       { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },

@@ -86,7 +86,6 @@ Return ONLY the HTML-formatted job description without any additional text or ex
     }
 
     const data = await fetchRes.json();
-    console.log('Gemini API response:', JSON.stringify(data, null, 2));
     
     // Check for API errors
     if (data.error) {
@@ -95,7 +94,6 @@ Return ONLY the HTML-formatted job description without any additional text or ex
     }
     
     let generatedDescription = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log('Generated description:', generatedDescription);
 
     if (!generatedDescription.trim()) {
       console.error('Empty response from Gemini API');
@@ -107,8 +105,6 @@ Return ONLY the HTML-formatted job description without any additional text or ex
       .replace(/```html\s*/gi, '')  // Remove opening ```html
       .replace(/```\s*$/gi, '')     // Remove closing ```
       .trim();
-
-    console.log('Cleaned description:', generatedDescription);
 
     // Log the AI generation activity
     await logAudit(

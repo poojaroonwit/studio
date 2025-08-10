@@ -213,7 +213,7 @@ export default function TaskBoardPage() {
       </div>
 
       {/* Task Board */}
-      <div className="flex-1 overflow-hidden p-6">
+      <div className="flex-1 overflow-hidden">
         <TaskBoard
           tasks={filteredTasks}
           stages={stages}
@@ -224,6 +224,7 @@ export default function TaskBoardPage() {
           showPriority={true}
           showDueDate={true}
           showTags={true}
+          className="h-full"
         />
       </div>
 

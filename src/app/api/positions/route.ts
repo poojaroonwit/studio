@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
             SELECT 
               p.id as position_id,
               COUNT(c.id) as total_applied,
-              COUNT(CASE WHEN c.status = 'Applied' THEN 1 END) as applied_status_count
+              COUNT(c.id) as applied_status_count
             FROM "Position" p
             LEFT JOIN "Candidate" c ON p.id = c."positionId"
             WHERE p.id = ANY($1::uuid[])
@@ -251,72 +251,13 @@ export async function GET(request: NextRequest) {
       }
       
       return NextResponse.json(response, { status: 200, headers: handleCors(request) });
-    } catch (dbError) {
-      console.error("Database error, returning mock data:", dbError);
-      
-      // Return mock data for testing purposes
-      const mockPositions = [
-        {
-          id: "11111111-1111-1111-1111-111111111111",
-          title: "Software Engineer",
-          department: "Engineering",
-          description: "Develops and maintains software applications.",
-          matchCriteria: "Experience with JavaScript, React, Node.js",
-          isOpen: true,
-          positionLevel: "Senior",
-          recruiterId: null,
-          recruiterName: null,
-          customAttributes: {},
-          createdAt: "2024-01-15T10:00:00Z",
-          updatedAt: "2024-01-15T10:00:00Z",
-          custom_attributes: {},
-          ...(includeCandidateStats && {
-            candidateStats: {
-              totalApplied: 5,
-              appliedStatusCount: 3,
-              totalMatching: 2
-            }
-          })
-        },
-        {
-          id: "22222222-2222-2222-2222-222222222222",
-          title: "Product Manager",
-          department: "Product",
-          description: "Oversees product development and strategy.",
-          matchCriteria: "Experience with product management, agile methodologies",
-          isOpen: true,
-          positionLevel: "Manager",
-          recruiterId: null,
-          recruiterName: null,
-          customAttributes: {},
-          createdAt: "2024-01-14T15:30:00Z",
-          updatedAt: "2024-01-14T15:30:00Z",
-          custom_attributes: {},
-          ...(includeCandidateStats && {
-            candidateStats: {
-              totalApplied: 3,
-              appliedStatusCount: 2,
-              totalMatching: 1
-            }
-          })
-        }
-      ];
-
-      const response: { data: any[]; total: number; statistics?: any } = { 
-        data: mockPositions, 
-        total: mockPositions.length 
-      };
-      
-      if (includeStats) {
-        response.statistics = { 
-          total: mockPositions.length, 
-          open: mockPositions.filter(p => p.isOpen).length, 
-          closed: mockPositions.filter(p => !p.isOpen).length 
-        };
-      }
-      
-      return NextResponse.json(response, { status: 200, headers: handleCors(request) });
-    }
+         } catch (dbError) {
+       console.error("Database error:", dbError);
+       return NextResponse.json({ 
+         message: "Database error", 
+         error: (dbError as Error).message 
+       }, { status: 500, headers: handleCors(request) });
+     }
   } catch (error) {
     console.error("Failed to fetch positions:", error);
     await logAudit('ERROR', `Failed to fetch positions. Error: ${(error as Error).message}`, 'API:Positions:GetAll', session?.user?.id);

@@ -13,7 +13,7 @@ export interface PositionStatusBadgeProps {
  */
 export function getPositionStatusBadge(isOpen: boolean, showIcon: boolean = true) {
   return {
-    variant: isOpen ? "default" : "secondary" as const,
+    variant: (isOpen ? "default" : "secondary") as "default" | "secondary",
     className: isOpen 
       ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" 
       : "bg-red-100 text-red-800 border-red-200 hover:bg-red-200",

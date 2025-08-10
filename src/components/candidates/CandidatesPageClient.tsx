@@ -1624,7 +1624,7 @@ export function CandidatesPageClient({
               availablePositions={availablePositions}
               availableStages={availableStages}
               availableRecruiters={availableRecruiters}
-              isLoading={isLoading || isAiSearching}
+              isLoading={false}
               isAiSearching={isAiSearching}
               advancedQuery={advancedQueryFromUrl}
               candidateScoreCounts={candidateScoreCounts}
@@ -1955,6 +1955,7 @@ export function CandidatesPageClient({
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
+            canManageCandidates={canManageCandidates}
           />
         )}
 

@@ -1,79 +1,57 @@
-# Task Board Feature
+# Task Board Documentation
 
 ## Overview
 
-The Task Board is a modern kanban-style task management interface that allows users to visualize and manage tasks across different stages. It features drag-and-drop functionality, task details, and comprehensive filtering options.
+The Task Board is a Kanban-style interface for managing tasks and candidates in different stages. It provides drag-and-drop functionality, filtering capabilities, and real-time updates.
 
 ## Features
 
-### 🎯 Core Features
-- **Drag & Drop**: Move tasks between stages by dragging and dropping
-- **Stage-based Organization**: Tasks are organized into customizable stages (columns)
-- **Task Details**: Click on any task to view and edit detailed information
-- **Real-time Updates**: Changes are reflected immediately with optimistic updates
+### Multi-Select Stage Filtering
 
-### 📋 Task Information
-Each task displays:
-- **Title**: The main task name
-- **Description**: Detailed task description
-- **Priority**: Visual priority indicators (Low, Medium, High, Urgent)
-- **Assignee**: Person responsible for the task with avatar
-- **Due Date**: Task deadline with overdue highlighting
-- **Tags**: Categorization tags
-- **Status**: Current stage/status
+The Task Board includes a built-in multi-select stage filter that allows you to:
 
-### 🔍 Filtering & Search
-- **Search**: Find tasks by title or description
-- **Priority Filter**: Filter by task priority level
-- **Assignee Filter**: Filter by task assignee
-- **Real-time Filtering**: Results update as you type
+1. **Filter by Multiple Stages**: Select multiple stages to show only those columns
+2. **Show All Stages**: When no stages are selected, all stages are displayed
+3. **Visual Indicators**: The filter button shows the number of selected stages
+4. **Quick Actions**: Use "All" to select all stages or "Clear" to deselect all
 
-### 🎨 Visual Features
-- **Color-coded Stages**: Each stage has a distinct color
-- **Priority Colors**: Different colors for priority levels
-- **Overdue Indicators**: Visual warnings for overdue tasks
-- **Responsive Design**: Works on desktop and mobile devices
+#### How to Use Stage Filtering
 
-## Usage
+1. **Access the Filter**: Click the "Filter Stages" button in the top-right corner of the board
+2. **Select Stages**: Click on stage names to select/deselect them
+3. **Visual Feedback**: Selected stages are highlighted in blue
+4. **Apply Filter**: The board immediately updates to show only selected stage columns
+5. **Clear Filter**: Click "Clear" to show all stages again
 
-### Accessing the Task Board
+#### Filter Button States
 
-1. Navigate to **Task Board** in the sidebar (under Recruitment section)
-2. The board will load with sample data for demonstration
+- **No Selection**: Shows "All Stages (X)" where X is the total number of stages
+- **Selected Stages**: Shows "X Stage(s)" where X is the number of selected stages
+- **Filter Active**: A blue badge appears next to the candidate count showing "X stage(s) selected"
 
-### Moving Tasks
+### Task Management
 
-1. **Drag and Drop**: Click and hold on any task card
-2. **Drop Zone**: Drag to the desired stage column
-3. **Visual Feedback**: Drop zones are highlighted when hovering
-4. **Confirmation**: A success message confirms the move
+1. **Drag and Drop**: Drag tasks between stages to update their status
+2. **Click to View**: Click any task card to open detailed view
+3. **Add Tasks**: Use the "+" button in each stage header to add new tasks
+4. **Visual Feedback**: Drag indicators show where tasks can be dropped
 
-### Viewing Task Details
+### Task Information Display
 
-1. **Click on Task**: Click any task card to open details
-2. **Edit Mode**: Click "Edit" to modify task information
-3. **Save Changes**: Click "Save" to apply changes
-4. **Cancel**: Click "Cancel" to discard changes
-
-### Adding New Tasks
-
-1. **Add Button**: Click "Add Task" in the header
-2. **Fill Form**: Complete the task creation form
-3. **Required Fields**: Title is required, others are optional
-4. **Create**: Click "Create Task" to add to the board
-
-### Filtering Tasks
-
-1. **Search Box**: Type to search task titles and descriptions
-2. **Priority Filter**: Select priority level from dropdown
-3. **Assignee Filter**: Select specific assignee from dropdown
-4. **Clear Filters**: Reset all filters to show all tasks
+Each task card shows:
+- **Avatar**: User avatar or initials
+- **Title**: Task name
+- **Description**: Task details (if available)
+- **Email**: Contact information (if available)
+- **Fit Score**: Performance indicator with color coding
+- **Tags**: Associated labels
+- **Assignee**: Assigned team member (if enabled)
 
 ## Technical Implementation
 
 ### Components
 
-- **TaskBoard**: Main kanban board component
+- **TaskBoard**: Main kanban board component with built-in stage filtering
 - **TaskDetailModal**: Task details and editing modal
 - **AddTaskModal**: New task creation modal
 
@@ -95,6 +73,9 @@ interface Task {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
+  fitScore?: number;
+  avatarUrl?: string;
+  email?: string;
 }
 
 interface TaskStage {
@@ -105,6 +86,15 @@ interface TaskStage {
   sortOrder?: number;
 }
 ```
+
+### Stage Filtering Logic
+
+The stage filtering works as follows:
+
+1. **Default State**: When `selectedStages` is empty, all stages are shown
+2. **Filtered State**: When stages are selected, only those stages appear as columns
+3. **Task Grouping**: Tasks are grouped by their status and only shown in matching stage columns
+4. **Real-time Updates**: Filter changes are applied immediately without page refresh
 
 ### Integration with Existing System
 
@@ -121,83 +111,50 @@ The Task Board can be integrated with the existing candidate management system:
 
 1. Modify the `sampleStages` array in the task board page
 2. Add new stage objects with unique IDs
-3. Set appropriate colors and descriptions
-4. Update sort order as needed
+3. Update the stage conversion logic if needed
 
-### Custom Task Fields
+### Styling Customization
 
-1. Extend the `Task` interface with new properties
-2. Update the task card display to show new fields
-3. Modify the task detail modal to include new fields
-4. Update the add task form for new fields
+The TaskBoard component accepts various props for customization:
+- `showAssignee`: Toggle assignee display
+- `showPriority`: Toggle priority display  
+- `showDueDate`: Toggle due date display
+- `showTags`: Toggle tags display
+- `className`: Custom CSS classes
 
-### Styling
+## Usage Examples
 
-The Task Board uses Tailwind CSS classes and can be customized by:
-- Modifying color schemes in the component
-- Adjusting spacing and layout classes
-- Customizing card designs and animations
-- Updating responsive breakpoints
+### Basic Task Board
+```tsx
+<TaskBoard
+  tasks={tasks}
+  stages={stages}
+  onMoveTask={handleMoveTask}
+  onTaskClick={handleTaskClick}
+  showAssignee={true}
+  showTags={true}
+/>
+```
 
-## Future Enhancements
+### Customized Task Board
+```tsx
+<TaskBoard
+  tasks={tasks}
+  stages={stages}
+  onMoveTask={handleMoveTask}
+  onTaskClick={handleTaskClick}
+  showAssignee={false}
+  showPriority={true}
+  showDueDate={true}
+  showTags={false}
+  className="custom-task-board"
+/>
+```
 
-### Planned Features
-- **Bulk Operations**: Select multiple tasks for batch actions
-- **Task Templates**: Predefined task templates for common workflows
-- **Time Tracking**: Built-in time tracking for tasks
-- **Attachments**: File attachments for tasks
-- **Comments**: Task-specific comments and discussions
-- **Automation**: Automated task transitions based on rules
-- **Reporting**: Task analytics and reporting features
+## Best Practices
 
-### Integration Opportunities
-- **Calendar Integration**: Sync with external calendars
-- **Email Notifications**: Automated email notifications for task updates
-- **API Integration**: Connect with external task management systems
-- **Mobile App**: Native mobile application for task management
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Drag and Drop Not Working**
-   - Ensure JavaScript is enabled
-   - Check for browser compatibility
-   - Verify no conflicting event handlers
-
-2. **Tasks Not Updating**
-   - Check network connectivity
-   - Verify API endpoints are accessible
-   - Review browser console for errors
-
-3. **Performance Issues**
-   - Reduce number of tasks displayed
-   - Implement pagination for large datasets
-   - Optimize database queries
-
-### Browser Support
-
-- **Chrome**: Full support
-- **Firefox**: Full support
-- **Safari**: Full support
-- **Edge**: Full support
-- **Mobile Browsers**: Responsive design supported
-
-## API Endpoints
-
-The Task Board uses the following API endpoints:
-
-- `GET /api/candidates` - Fetch candidate data
-- `PUT /api/candidates/{id}` - Update candidate status
-- `GET /api/settings/recruitment-stages` - Fetch stage configuration
-
-## Contributing
-
-To contribute to the Task Board feature:
-
-1. Follow the existing code style and patterns
-2. Add appropriate TypeScript types
-3. Include error handling and loading states
-4. Test drag and drop functionality
-5. Ensure responsive design works
-6. Update documentation for new features
+1. **Stage Naming**: Use clear, descriptive stage names
+2. **Task Descriptions**: Provide meaningful descriptions for better context
+3. **Assignee Assignment**: Assign tasks to appropriate team members
+4. **Regular Updates**: Keep task status current for accurate filtering
+5. **Filter Usage**: Use stage filtering to focus on specific workflows

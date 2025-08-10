@@ -33,13 +33,33 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const [positions, setPositions] = useState<any[]>([]);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+  const [isStageFilterOpen, setIsStageFilterOpen] = useState(false);
   const { data: session } = useSession();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
+  const stageFilterRef = useRef<HTMLDivElement>(null);
   
 
   
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close stage filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stageFilterRef.current && !stageFilterRef.current.contains(event.target as Node)) {
+        setIsStageFilterOpen(false);
+      }
+    };
+
+    if (isStageFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isStageFilterOpen]);
 
   // Permission check: can view all recruiters?
   const canViewAllRecruiters = userSession?.role === 'Admin' || (session?.user?.modulePermissions?.includes('MANAGE_ALL_TASKS'));
@@ -57,7 +77,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           fetch('/api/positions'),
         ]);
         const stagesData = await stagesRes.json();
-        setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);
+        const stageNames = Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : [];
+        setStages(stageNames);
         const recruitersData = await recruitersRes.json();
         setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
         const positionsData = await positionsRes.json();
@@ -171,7 +192,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     return candidates.map(candidate => ({
       id: candidate.id,
       title: candidate.name,
-      description: candidate.parsedData?.summary || `Email: ${candidate.email}`,
+      description: candidate.parsedData?.summary || candidate.email,
       status: candidate.status,
       priority: candidate.fitScore > 80 ? 'high' : candidate.fitScore > 60 ? 'medium' : 'low',
       assignee: candidate.recruiter ? {
@@ -207,7 +228,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
     const candidate = task.originalCandidate;
-    if (!candidate) return;
+    if (!candidate) {
+      console.error('No original candidate found for task:', task);
+      return;
+    }
 
     // Validate the new value
     if (!newStatus || typeof newStatus !== 'string' || newStatus.trim() === '') {
@@ -215,12 +239,42 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
 
+    // Validate status is one of the expected values
+    const validStatuses = [
+      'Applied', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewing', 
+      'Offer Sent', 'Offer Accepted', 'Hired', 'Rejected', 'Withdrawn'
+    ];
+    
+    if (!validStatuses.includes(newStatus)) {
+      console.error('Invalid status value:', newStatus);
+      toast.error(`Invalid status: ${newStatus}. Must be one of: ${validStatuses.join(', ')}`);
+      return;
+    }
+
+    // Validate candidate ID is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(candidate.id)) {
+      console.error('Invalid candidate ID format:', candidate.id);
+      toast.error('Invalid candidate ID format');
+      return;
+    }
+
+    // Validate required fields are present
+    if (!candidate.name || !candidate.email) {
+      console.error('Missing required fields:', { name: candidate.name, email: candidate.email });
+      toast.error('Candidate is missing required fields (name or email)');
+      return;
+    }
+
     // Check if the status is the same (no change needed)
     if (candidate.status === newStatus) {
+      console.log('Status unchanged, no update needed');
       return;
     }
 
     console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newStatus);
+    console.log('Candidate data:', candidate);
+    console.log('Request payload:', { status: newStatus });
 
     // Optimistically update UI
     setCandidates((prev) =>
@@ -230,25 +284,59 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           : c
       )
     );
-    
-    // Send update to API
+
+    // Test API endpoint accessibility first
     fetch(`/api/candidates/${candidate.id}`, {
-      method: 'PUT',
+      method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
+    }).then(response => {
+      console.log('GET API Response status:', response.status);
+      if (!response.ok) {
+        console.error('Candidate not found or API endpoint not accessible');
+        // Revert optimistic update
+        setCandidates((prev) =>
+          prev.map((c) =>
+            c.id === candidate.id
+              ? { ...c, status: candidate.status }
+              : c
+          )
+        );
+        toast.error('Candidate not found or API endpoint not accessible');
+        return;
+      }
+      
+      // If GET succeeds, proceed with PUT
+      return fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
     }).then(async response => {
+      if (!response) return; // GET failed, don't proceed
+      
+      console.log('API Response status:', response.status);
+      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
         // Get error details from response
         let errorMessage = 'Failed to update candidate status';
+        let errorDetails = '';
+        
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          errorDetails = errorData.error || errorData.details || '';
+          console.error('API Error Response:', errorData);
         } catch (e) {
           // If we can't parse the error response, use the status text
           errorMessage = `${errorMessage}: ${response.statusText}`;
+          console.error('Could not parse error response:', e);
         }
         
         console.error('API Error:', response.status, errorMessage, 'for candidate:', candidate.id);
+        if (errorDetails) {
+          console.error('Error details:', errorDetails);
+        }
         
         // Revert optimistic update on error
         setCandidates((prev) =>
@@ -258,7 +346,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               : c
           )
         );
-        toast.error(errorMessage);
+        
+        // Show more specific error messages based on status code
+        if (response.status === 500) {
+          toast.error('Server error: Please try again or contact support');
+        } else if (response.status === 404) {
+          toast.error('Candidate not found');
+        } else if (response.status === 400) {
+          toast.error(errorMessage || 'Invalid request data');
+        } else {
+          toast.error(errorMessage);
+        }
       } else {
         console.log('Successfully moved candidate:', candidate.id, 'to status:', newStatus);
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
@@ -282,6 +380,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const statusColors: Record<string, string> = {
       'Applied': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800',
       'Screening': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800',
+      'Shortlisted': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300 dark:border-indigo-800',
       'Interview Scheduled': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
       'Interviewing': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800',
       'Offer Sent': 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800',
@@ -299,6 +398,33 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     setFilters({});
     setTimeout(() => setFilters(currentFilters), 100);
   };
+
+  // Stage filter functions
+  const handleSelectAllStages = () => {
+    setSelectedStages(stages);
+  };
+
+  const handleClearAllStages = () => {
+    setSelectedStages([]);
+  };
+
+  const toggleStageSelection = (stageId: string) => {
+    setSelectedStages(prev => {
+      if (prev.includes(stageId)) {
+        return prev.filter(id => id !== stageId);
+      } else {
+        return [...prev, stageId];
+      }
+    });
+  };
+
+  // Filter stages based on selection
+  const filteredStages = useMemo(() => {
+    if (selectedStages.length === 0) {
+      return stages; // Show all stages if none selected
+    }
+    return stages.filter(stage => selectedStages.includes(stage));
+  }, [stages, selectedStages]);
 
   if (!metadataLoaded) {
     return (
@@ -351,17 +477,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 />
               </div>
 
-              <Select value={filters.stage || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, stage: v === 'all' ? '' : v }))}>
-                <SelectTrigger className="h-9 w-40 text-sm">
-                  <SelectValue placeholder="All Stages" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stages</SelectItem>
-                  {stages.map((s: any) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
               {canViewAllRecruiters && (
                 <Select value={filters.recruiterId || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, recruiterId: v === 'all' ? '' : v }))}>
@@ -380,6 +496,89 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
             {/* Right: Board Controls */}
             <div className="flex items-center gap-2">
+              {/* Stage Filter */}
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 text-xs gap-2"
+                  onClick={() => setIsStageFilterOpen(!isStageFilterOpen)}
+                >
+                  <Filter className="h-3 w-3" />
+                  {selectedStages.length === 0 
+                    ? `All Stages (${stages.length})` 
+                    : `${selectedStages.length} Stage${selectedStages.length !== 1 ? 's' : ''}`
+                  }
+                </Button>
+                
+                {/* Stage Filter Dropdown */}
+                {isStageFilterOpen && (
+                  <div 
+                    ref={stageFilterRef}
+                    className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50"
+                  >
+                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium">Filter Stages</h4>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSelectAllStages}
+                            className="h-6 px-2 text-xs"
+                          >
+                            All
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearAllStages}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-48 overflow-y-auto">
+                      {stages.map((stage) => {
+                        const isSelected = selectedStages.includes(stage);
+                        return (
+                          <div
+                            key={stage}
+                            className={cn(
+                              "flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors",
+                              isSelected && "bg-blue-50 dark:bg-blue-900/20"
+                            )}
+                            onClick={() => toggleStageSelection(stage)}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
+                              isSelected 
+                                ? "bg-blue-600 border-blue-600" 
+                                : "border-gray-300 dark:border-gray-600"
+                            )}>
+                              {isSelected && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={cn(
+                              "text-sm font-medium",
+                              isSelected && "text-blue-600 dark:text-blue-400"
+                            )}>
+                              {stage}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* View Mode Toggle */}
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
                 <TabsList className="grid w-auto grid-cols-2 h-9">
@@ -446,13 +645,14 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             </div>
           </div>
         ) : (
-          <div className="p-6 overflow-x-auto scrollbar-custom scroll-smooth">
+          <div className="overflow-x-auto scrollbar-custom scroll-smooth">
             {/* Board Views */}
             {viewMode === 'kanban' ? (
               <div className="min-w-max h-full">
+
                 <TaskBoard
                   tasks={convertCandidatesToTasks(displayedCandidates)}
-                  stages={convertStagesToTaskStages(stages)}
+                  stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
                   onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
                   showAssignee={true}

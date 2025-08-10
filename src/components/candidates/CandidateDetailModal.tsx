@@ -43,12 +43,19 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
   if (!open || !candidateId) return null;
   return (
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Prevent event from bubbling up to parent components
+        e.stopPropagation();
+        onClose();
+      }}
     >
       <div
         className="w-full max-w-7xl h-full max-h-[95vh] flex flex-col bg-background rounded-lg shadow-2xl border border-border overflow-hidden"
-        onClick={e => e.stopPropagation()}
+        onClick={e => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
       >
         <CandidateDetailView 
           candidateId={candidateId} 

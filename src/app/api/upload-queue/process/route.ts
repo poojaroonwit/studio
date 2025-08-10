@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('Upload queue processing started');
+  
   
   const client = await getSafeDbClient();
   let job;
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     const currentInProgress = countRes.rowCount;
     if (currentInProgress >= maxConcurrent) {
       await client.query('ROLLBACK');
-      console.log(`Max concurrent upload jobs running (${currentInProgress}/${maxConcurrent})`);
+  
       return NextResponse.json({ message: `Max concurrent jobs running (${currentInProgress}/${maxConcurrent})` }, { status: 200 });
     }
     // Atomically pick and mark the oldest queued job as 'inprocess'
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     );
     if (res.rows.length === 0) {
       await client.query('COMMIT');
-      console.log('Upload queue processing completed - no queued jobs');
+  
       return NextResponse.json({ message: 'No queued jobs' }, { status: 200 });
     }
     job = res.rows[0];

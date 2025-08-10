@@ -239,7 +239,7 @@ The FitScan ATS is a self-contained web application. It interacts with a Postgre
 | FR-SET-003       | ✅ Users (with permission) shall be able to view data model attributes and set server-side UI display preferences (per user).        | ✅ Complete |
 | FR-SET-004       | ✅ Administrators shall be able to define custom data fields for Candidate and Position models.                                        | ✅ Complete |
 | FR-SET-005       | ✅ Administrators shall be able to configure mappings for incoming webhook payloads.                                                     | ✅ Complete |
-| FR-SET-006       | ✅ The system shall provide a UI to display information about server-configured webhook URLs and conceptual SMTP settings.             | ✅ Complete |
+| FR-SET-006       | ✅ The system shall provide a UI to display information about server-configured webhook URLs.             | ✅ Complete |
 | FR-SET-007       | ✅ Administrators shall be able to configure notification settings, enabling/disabling specific events and channels (email, webhook), and setting webhook URLs. | ✅ Complete |
 
 #### 3.1.8. Logging

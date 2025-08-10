@@ -16,7 +16,8 @@ import {
   UsersRound,
   Code2,
   ListOrdered,
-  ArrowRight
+  ArrowRight,
+  Users
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
@@ -29,6 +30,7 @@ const settingsItems = [
   { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/user-groups", label: "Roles & Permissions", icon: ShieldCheck, description: "Manage user roles and permissions.", permissionId: 'USER_GROUPS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/users", label: "Manage Users", icon: UsersRound, description: "Add, edit, or remove users.", permissionId: 'USERS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/recruiter-sync", label: "Recruiter Sync", icon: Users, description: "Sync recruiter assignments between positions and candidates." },
   { href: "/settings/api-key", label: "API Key Management", icon: Code2, description: "Generate and manage your personal API key.", permissionId: 'API_KEYS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference." },
   { href: "/settings/logs", label: "Application Logs", icon: ListOrdered, description: "View system and audit logs.", permissionId: 'LOGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
@@ -75,6 +77,15 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">
           Manage your application settings and configurations.
         </p>
+        {session?.user && (
+          <div className="mt-2 p-3 bg-muted rounded-lg">
+            <p className="text-sm">
+              <strong>Current User:</strong> {session.user.name || session.user.email}
+              <br />
+              <strong>Role:</strong> {session.user.role || 'No role assigned'}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

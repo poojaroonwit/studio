@@ -21,7 +21,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
   'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
   'primaryGradientStart', 'primaryGradientEnd',
-  'smtpHost', 'smtpPort', 'smtpUser', 'smtpSecure', 'smtpFromEmail',
+
   'generalPdfWebhookUrl', 'geminiApiKey',
   'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
   'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
@@ -94,7 +94,6 @@ const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isL
   // Helper function to get setting category
   const getSettingCategory = (key: string): string => {
     if (key.startsWith('app')) return 'Application';
-    if (key.startsWith('smtp')) return 'Email';
     if (key.startsWith('login')) return 'Login Page';
     if (key.startsWith('sidebar')) return 'Sidebar';
     if (key.includes('Webhook') || key.includes('Url')) return 'Webhooks';

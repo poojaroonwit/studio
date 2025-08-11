@@ -3,17 +3,6 @@ import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Command,
-  CommandEmpty,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 
 interface RecruiterMultiSelectDropdownProps {
@@ -126,44 +115,37 @@ export function RecruiterMultiSelectDropdown({
 
   console.log('RecruiterMultiSelectDropdown render - open state:', open);
   return (
-    <Popover open={open} onOpenChange={(newOpen) => {
-      console.log('Popover onOpenChange called with:', newOpen);
-      console.log('Popover open state after change:', newOpen);
-      setOpen(newOpen);
-    }}>
-      <PopoverTrigger>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground pointer-events-auto cursor-pointer", className)}
-          onClick={() => {
-            console.log('Button clicked! open was:', open);
-            console.log('Setting open to:', !open);
-            setOpen(!open);
-          }}
-        >
-          {renderTrigger()}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[9999] opacity-100" align="start">
-        <Command className="opacity-100">
-          <div className="flex items-center border-b px-3 py-2">
+    <div className="relative">
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={open}
+        className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground pointer-events-auto cursor-pointer", className)}
+        onClick={() => {
+          console.log('Button clicked! open was:', open);
+          console.log('Setting open to:', !open);
+          setOpen(!open);
+        }}
+      >
+        {renderTrigger()}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
+      </Button>
+      
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-[9999] max-h-[300px] overflow-hidden">
+          <div className="p-2 border-b border-border">
             <Input
               placeholder="Search recruiters..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground text-foreground focus-visible:ring-0 cursor-text"
+              className="w-full border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground text-foreground focus-visible:ring-0 cursor-text"
             />
           </div>
-          <CommandList className="max-h-[200px]">
-            <CommandEmpty>No recruiters found.</CommandEmpty>
+          <div className="max-h-[250px] overflow-y-auto">
             {/* Unassigned option */}
-            <CommandItem
-              key="unassigned"
-              onSelect={() => handleToggleRecruiter('unassigned')}
-              className="cursor-pointer hover:bg-accent hover:text-accent-foreground pointer-events-auto opacity-100"
+            <div
+              className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              onClick={() => handleToggleRecruiter('unassigned')}
             >
               <Check
                 className={cn(
@@ -173,7 +155,8 @@ export function RecruiterMultiSelectDropdown({
               />
               <span className="font-medium">Unassigned</span>
               <span className="text-xs text-muted-foreground ml-2">Candidates not assigned to any recruiter</span>
-            </CommandItem>
+            </div>
+            
             {/* Regular recruiters */}
             {filteredRecruiters.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
@@ -188,10 +171,10 @@ export function RecruiterMultiSelectDropdown({
               </div>
             ) : (
               filteredRecruiters.map((recruiter) => (
-                <CommandItem
+                <div
                   key={recruiter.id}
-                  onSelect={() => handleToggleRecruiter(recruiter.id)}
-                  className="cursor-pointer hover:bg-accent hover:text-accent-foreground pointer-events-auto opacity-100"
+                  className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => handleToggleRecruiter(recruiter.id)}
                 >
                   <Check
                     className={cn(
@@ -200,12 +183,12 @@ export function RecruiterMultiSelectDropdown({
                     )}
                   />
                   <span className="font-medium text-foreground">{recruiter.name}</span>
-                </CommandItem>
+                </div>
               ))
             )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

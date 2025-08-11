@@ -654,20 +654,19 @@ export function CandidatesPageClient({
       return;
     }
     
-    // Check for URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const recruiterIdParam = urlParams.get('recruiterId');
-    const positionIdParam = urlParams.get('positionId');
-    const statusParam = urlParams.get('status');
-    const applicationDateStartParam = urlParams.get('applicationDateStart');
-    const applicationDateEndParam = urlParams.get('applicationDateEnd');
-    const nameParam = urlParams.get('name');
-    const emailParam = urlParams.get('email');
-    const phoneParam = urlParams.get('phone');
-    const educationParam = urlParams.get('education');
-    const minAppliedJobFitScoreParam = urlParams.get('minAppliedJobFitScore');
-    const maxAppliedJobFitScoreParam = urlParams.get('maxAppliedJobFitScore');
-    const advancedQueryParam = urlParams.get('query');
+    // Check for URL parameters using searchParams hook
+    const recruiterIdParam = searchParams.get('recruiterId');
+    const positionIdParam = searchParams.get('positionId');
+    const statusParam = searchParams.get('status');
+    const applicationDateStartParam = searchParams.get('applicationDateStart');
+    const applicationDateEndParam = searchParams.get('applicationDateEnd');
+    const nameParam = searchParams.get('name');
+    const emailParam = searchParams.get('email');
+    const phoneParam = searchParams.get('phone');
+    const educationParam = searchParams.get('education');
+    const minAppliedJobFitScoreParam = searchParams.get('minAppliedJobFitScore');
+    const maxAppliedJobFitScoreParam = searchParams.get('maxAppliedJobFitScore');
+    const advancedQueryParam = searchParams.get('query');
 
     // Build new filters from URL params
     let newFilters = { ...filters };
@@ -763,7 +762,7 @@ export function CandidatesPageClient({
         setAdvancedQueryFromUrl(advancedQuery);
       }
     }
-  }, [window.location.search, isClearingFilters]); // Added isClearingFilters dependency
+  }, [searchParams, isClearingFilters, filters]); // Use searchParams instead of window.location.search
 
   // Separate useEffect to handle filter changes and fetch candidates
   useEffect(() => {
@@ -1549,6 +1548,18 @@ export function CandidatesPageClient({
     return (safePage - 1) * safePageSize;
   }, [page, pageSize]);
 
+  // Calculate candidate counts by stage for the pipeline stage filter
+  const candidateCountsByStage = useMemo(() => {
+    const stageCounts: { [stageName: string]: number } = {};
+    
+    allCandidates.forEach((candidate: Candidate) => {
+      const status = candidate.status;
+      stageCounts[status] = (stageCounts[status] || 0) + 1;
+    });
+    
+    return stageCounts;
+  }, [allCandidates]);
+
   // Sort state variables have been moved to the top with other state declarations to prevent temporal dead zone issues
 
   const handleSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
@@ -1575,7 +1586,7 @@ export function CandidatesPageClient({
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
         <h2 className="text-2xl font-semibold text-foreground mb-2">Authentication Error</h2>
         <p className="text-muted-foreground mb-4 max-w-md">You need to be signed in to view candidates.</p>
-        <Button onClick={() => signIn(undefined, { callbackUrl: window.location.href })}>Sign In</Button>
+        <Button onClick={() => signIn(undefined, { callbackUrl: pathname })}>Sign In</Button>
       </div>
     );
   }
@@ -1618,18 +1629,6 @@ export function CandidatesPageClient({
       </div>
     );
   }
-
-  // Calculate candidate counts by stage for the pipeline stage filter
-  const candidateCountsByStage = useMemo(() => {
-    const stageCounts: { [stageName: string]: number } = {};
-    
-    allCandidates.forEach((candidate: Candidate) => {
-      const status = candidate.status;
-      stageCounts[status] = (stageCounts[status] || 0) + 1;
-    });
-    
-    return stageCounts;
-  }, [allCandidates]);
 
   return (
     <div className="flex h-full relative">

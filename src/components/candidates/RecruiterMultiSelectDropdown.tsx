@@ -125,15 +125,20 @@ export function RecruiterMultiSelectDropdown({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      console.log('Popover onOpenChange called with:', newOpen);
+      setOpen(newOpen);
+    }}>
+      <PopoverTrigger>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
-          disabled={false}
-          onClick={() => setOpen(!open)}
+          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground pointer-events-auto cursor-pointer", className)}
+          onClick={() => {
+            console.log('Button clicked! open was:', open);
+            setOpen(!open);
+          }}
         >
           {renderTrigger()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />

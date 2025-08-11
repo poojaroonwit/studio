@@ -25,7 +25,7 @@ export function PipelineStageOverview({
   showProgress = true,
   className
 }: PipelineStageOverviewProps) {
-  const sortedStages = [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  const sortedStages = [...stages].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   
   const getStageStatus = (stage: RecruitmentStage) => {
     const name = stage.name.toLowerCase();

@@ -124,9 +124,11 @@ export function RecruiterMultiSelectDropdown({
     );
   };
 
+  console.log('RecruiterMultiSelectDropdown render - open state:', open);
   return (
     <Popover open={open} onOpenChange={(newOpen) => {
       console.log('Popover onOpenChange called with:', newOpen);
+      console.log('Popover open state after change:', newOpen);
       setOpen(newOpen);
     }}>
       <PopoverTrigger>
@@ -137,6 +139,7 @@ export function RecruiterMultiSelectDropdown({
           className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground pointer-events-auto cursor-pointer", className)}
           onClick={() => {
             console.log('Button clicked! open was:', open);
+            console.log('Setting open to:', !open);
             setOpen(!open);
           }}
         >
@@ -144,15 +147,14 @@ export function RecruiterMultiSelectDropdown({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[500]" align="start">
-        <Command>
+      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[9999] opacity-100" align="start">
+        <Command className="opacity-100">
           <div className="flex items-center border-b px-3 py-2">
             <Input
               placeholder="Search recruiters..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-              disabled={false}
+              className="border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground text-foreground focus-visible:ring-0 cursor-text"
             />
           </div>
           <CommandList className="max-h-[200px]">
@@ -161,8 +163,7 @@ export function RecruiterMultiSelectDropdown({
             <CommandItem
               key="unassigned"
               onSelect={() => handleToggleRecruiter('unassigned')}
-              className="cursor-pointer"
-              disabled={false}
+              className="cursor-pointer hover:bg-accent hover:text-accent-foreground pointer-events-auto opacity-100"
             >
               <Check
                 className={cn(
@@ -190,8 +191,7 @@ export function RecruiterMultiSelectDropdown({
                 <CommandItem
                   key={recruiter.id}
                   onSelect={() => handleToggleRecruiter(recruiter.id)}
-                  className="cursor-pointer"
-                  disabled={false}
+                  className="cursor-pointer hover:bg-accent hover:text-accent-foreground pointer-events-auto opacity-100"
                 >
                   <Check
                     className={cn(

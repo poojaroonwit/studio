@@ -667,6 +667,46 @@ export function CandidateFilters({
     }
   }, [initialFilters]);
 
+  // Handle initialFilters changes after initial load (e.g., when clear all is clicked)
+  useEffect(() => {
+    if (!isInitialLoadRef.current) {
+      console.log('CandidateFilters: initialFilters changed, updating component state');
+      console.log('CandidateFilters: new initialFilters.selectedPositionIds:', initialFilters.selectedPositionIds);
+      
+      // Update component state to match the new initialFilters
+      setName(initialFilters.name || '');
+      setEmail(initialFilters.email || '');
+      setPhone(initialFilters.phone || '');
+      setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
+      setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
+      setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
+      setLocation(initialFilters.location || '');
+      setLocationOperator(initialFilters.locationOperator || 'contains');
+      setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
+      setAppliedJobFitScoreRange([initialFilters.minAppliedJobFitScore ?? 0, initialFilters.maxAppliedJobFitScore ?? 100]);
+      setMatchingJobFitScoreRange([initialFilters.minMatchingJobFitScore ?? 0, initialFilters.maxMatchingJobFitScore ?? 100]);
+      setApplicationDateRange(
+        initialFilters.applicationDateStart && initialFilters.applicationDateEnd
+          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
+          : initialFilters.applicationDateStart
+          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
+          : undefined
+      );
+      setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
+      setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
+      setAiSearchType(initialFilters.aiSearchType || 'hybrid');
+      setAiSearchFilters(initialFilters.aiSearchFilters || {});
+      
+      // Clear fit score checkboxes when filters are cleared
+      if (!initialFilters.minAppliedJobFitScore && !initialFilters.maxAppliedJobFitScore) {
+        setSelectedFitScoreGrades(new Set());
+      }
+      if (!initialFilters.minMatchingJobFitScore && !initialFilters.maxMatchingJobFitScore) {
+        setSelectedMatchingFitScoreGrades(new Set());
+      }
+    }
+  }, [initialFilters]);
+
   // Auto-apply filters when they are set from URL parameters
   useEffect(() => {
     // Check if we have any filters set from URL parameters
@@ -692,12 +732,13 @@ export function CandidateFilters({
   }, [initialFilters]); // Removed onFilterChange from dependencies to prevent infinite loop
 
   // Auto-apply filters when input values change (debounced)
+  // Note: Fit score ranges are now handled separately through debounced handlers
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       // Skip if there's an advanced query active
       if (advancedQueryInput.trim()) return;
       
-      // Only apply filters if we have meaningful changes
+      // Only apply filters if we have meaningful changes (excluding fit score ranges)
       const hasFilters = name || email || phone || 
                         selectedPositionIds.size > 0 || 
                         selectedStatuses.size > 0 || 
@@ -705,43 +746,18 @@ export function CandidateFilters({
                         location ||
                         experienceYearsRange[0] > 0 || 
                         experienceYearsRange[1] < 50 ||
-                        appliedJobFitScoreRange[0] > 0 || 
-                        appliedJobFitScoreRange[1] < 100 ||
-                        matchingJobFitScoreRange[0] > 0 || 
-                        matchingJobFitScoreRange[1] < 100 ||
                         applicationDateRange?.from ||
                         applicationDateRange?.to ||
                         selectedRecruiterIds.size > 0;
       
       if (hasFilters) {
-        onFilterChange({
-          name: name || undefined,
-          nameOperator,
-          email: email || undefined,
-          emailOperator,
-          phone: phone || undefined,
-          phoneOperator,
-          selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-          selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-          skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-          location: location || undefined,
-          locationOperator,
-          minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-          maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-          minAppliedJobFitScore: appliedJobFitScoreRange[0] > 0 ? appliedJobFitScoreRange[0] : undefined,
-          maxAppliedJobFitScore: appliedJobFitScoreRange[1] < 100 ? appliedJobFitScoreRange[1] : undefined,
-          minMatchingJobFitScore: matchingJobFitScoreRange[0] > 0 ? matchingJobFitScoreRange[0] : undefined,
-          maxMatchingJobFitScore: matchingJobFitScoreRange[1] < 100 ? matchingJobFitScoreRange[1] : undefined,
-          applicationDateStart: applicationDateRange?.from,
-          applicationDateEnd: applicationDateRange?.to,
-          selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-          aiSearchQuery: undefined,
-        });
+        // Use the debounced function to apply all filters including fit score ranges
+        handleApplyStandardFiltersDebounced();
       }
     }, 150); // Reduced to 150ms for faster response
 
     return () => clearTimeout(timeoutId);
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -753,10 +769,60 @@ export function CandidateFilters({
   }, []);
 
   const handleApplyStandardFilters = () => {
+    console.log('handleApplyStandardFilters called');
+    
     // Clear any pending multiselect timeout
     if (multiselectTimeoutRef.current) {
       clearTimeout(multiselectTimeoutRef.current);
       multiselectTimeoutRef.current = null;
+    }
+
+    // Calculate fit score filters based on selected grades
+    let minAppliedJobFitScore: number | undefined = undefined;
+    let maxAppliedJobFitScore: number | undefined = undefined;
+    let minMatchingJobFitScore: number | undefined = undefined;
+    let maxMatchingJobFitScore: number | undefined = undefined;
+
+    // Handle applied job fit score grades
+    if (selectedFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minAppliedJobFitScore = minScore;
+        maxAppliedJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minAppliedJobFitScore = -1; // Special marker for no fit score
+        maxAppliedJobFitScore = undefined;
+      }
+    } else {
+      // Use range slider values if no grades are selected
+      minAppliedJobFitScore = appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0];
+      maxAppliedJobFitScore = appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1];
+    }
+
+    // Handle matching job fit score grades
+    if (selectedMatchingFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedMatchingFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedMatchingFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minMatchingJobFitScore = minScore;
+        maxMatchingJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minMatchingJobFitScore = -1; // Special marker for no matching fit score
+        maxMatchingJobFitScore = undefined;
+      }
+    } else {
+      // Use range slider values if no grades are selected
+      minMatchingJobFitScore = matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0];
+      maxMatchingJobFitScore = matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1];
     }
 
     const newFilters: CandidateFilterValues = {
@@ -772,26 +838,36 @@ export function CandidateFilters({
       skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
       location: location || undefined,
       locationOperator,
-      minExperienceYears: experienceYearsRange[0] === -1 ? undefined : experienceYearsRange[0],
-      maxExperienceYears: experienceYearsRange[1] === 50 ? undefined : experienceYearsRange[1],
-      minAppliedJobFitScore: appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0],
-      maxAppliedJobFitScore: appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1],
-      minMatchingJobFitScore: matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0],
-      maxMatchingJobFitScore: matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1],
+      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+      minAppliedJobFitScore,
+      maxAppliedJobFitScore,
+      minMatchingJobFitScore,
+      maxMatchingJobFitScore,
       applicationDateStart: applicationDateRange?.from,
       applicationDateEnd: applicationDateRange?.to,
       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      aiSearchQuery: undefined,
     };
 
+    console.log('handleApplyStandardFilters - selectedPositionIds state:', Array.from(selectedPositionIds));
+    console.log('handleApplyStandardFilters - newFilters.selectedPositionIds:', newFilters.selectedPositionIds);
     console.log('handleApplyStandardFilters - newFilters:', newFilters);
     onFilterChange(newFilters);
     
     // Clear loading state
     setIsApplyingFilters(false);
+    console.log('handleApplyStandardFilters - setting isApplyingFilters to false');
   };
 
   // Debounced version for multiselect changes to improve UX
   const handleApplyStandardFiltersDebounced = () => {
+    console.log('handleApplyStandardFiltersDebounced called - current state:', {
+      isLoading,
+      isAiSearching,
+      isApplyingFilters
+    });
+    
     // Clear any existing timeout
     if (multiselectTimeoutRef.current) {
       clearTimeout(multiselectTimeoutRef.current);
@@ -799,11 +875,14 @@ export function CandidateFilters({
     
     // Show loading state immediately for better UX
     setIsApplyingFilters(true);
+    console.log('Setting isApplyingFilters to true');
     
     // Set a new timeout for debounced filter application
     multiselectTimeoutRef.current = setTimeout(() => {
+      console.log('Debounced timeout fired - applying filters');
       handleApplyStandardFilters();
       setIsApplyingFilters(false);
+      console.log('Setting isApplyingFilters to false');
     }, 300); // 300ms delay for smooth multiselect experience
   };
 
@@ -825,10 +904,109 @@ export function CandidateFilters({
   };
 
   // Wrapper functions to apply filters when dropdown values change
+  // DEBUGGING: Enhanced with logging to help identify issues with position selection
   const handlePositionChange = (newSelectedIds: Set<string>) => {
+    console.log('handlePositionChange called with:', Array.from(newSelectedIds));
+    console.log('handlePositionChange - current selectedPositionIds state:', Array.from(selectedPositionIds));
+    console.log('handlePositionChange - newSelectedIds contains not-applied:', newSelectedIds.has('not-applied'));
+    
     setSelectedPositionIds(newSelectedIds);
-    // Apply filters with debouncing for smooth multiselect experience
-    handleApplyStandardFiltersDebounced();
+    
+    // Apply filters immediately with the new selection to ensure state is updated
+    // Use the helper function that takes the new selection directly to avoid race conditions
+    handleApplyStandardFiltersWithPositions(newSelectedIds);
+  };
+
+  // Helper function to apply filters with specific position IDs
+  const handleApplyStandardFiltersWithPositions = (positionIds: Set<string>) => {
+    console.log('handleApplyStandardFiltersWithPositions called with:', Array.from(positionIds));
+    
+    // Clear any pending multiselect timeout
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
+
+    // Calculate fit score filters based on selected grades
+    let minAppliedJobFitScore: number | undefined = undefined;
+    let maxAppliedJobFitScore: number | undefined = undefined;
+    let minMatchingJobFitScore: number | undefined = undefined;
+    let maxMatchingJobFitScore: number | undefined = undefined;
+
+    // Handle applied job fit score grades
+    if (selectedFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minAppliedJobFitScore = minScore;
+        maxAppliedJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minAppliedJobFitScore = -1; // Special marker for no fit score
+        maxAppliedJobFitScore = undefined;
+      }
+    } else {
+      // Use range slider values if no grades are selected
+      minAppliedJobFitScore = appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0];
+      maxAppliedJobFitScore = appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1];
+    }
+
+    // Handle matching job fit score grades
+    if (selectedMatchingFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedMatchingFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedMatchingFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minMatchingJobFitScore = minScore;
+        maxMatchingJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minMatchingJobFitScore = -1; // Special marker for no matching fit score
+        maxMatchingJobFitScore = undefined;
+      }
+    } else {
+      // Use range slider values if no grades are selected
+      minMatchingJobFitScore = matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0];
+      maxMatchingJobFitScore = matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1];
+    }
+
+    const newFilters: CandidateFilterValues = {
+      name: name || undefined,
+      nameOperator,
+      email: email || undefined,
+      emailOperator,
+      phone: phone || undefined,
+      phoneOperator,
+      selectedPositionIds: positionIds.size > 0 ? Array.from(positionIds) : undefined,
+      // If no stages are selected, it means all stages (don't send status filter)
+      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+      location: location || undefined,
+      locationOperator,
+      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+      minAppliedJobFitScore,
+      maxAppliedJobFitScore,
+      minMatchingJobFitScore,
+      maxMatchingJobFitScore,
+      applicationDateStart: applicationDateRange?.from,
+      applicationDateEnd: applicationDateRange?.to,
+      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      aiSearchQuery: undefined,
+    };
+
+    console.log('handleApplyStandardFiltersWithPositions - newFilters.selectedPositionIds:', newFilters.selectedPositionIds);
+    console.log('handleApplyStandardFiltersWithPositions - newFilters:', newFilters);
+    onFilterChange(newFilters);
+    
+    // Clear loading state
+    setIsApplyingFilters(false);
+    console.log('handleApplyStandardFiltersWithPositions - setting isApplyingFilters to false');
   };
 
   const handleStatusChange = (newSelectedStatuses: Set<string>) => {
@@ -851,14 +1029,14 @@ export function CandidateFilters({
 
   const handleFitScoreRangeChange = (newRange: [number, number]) => {
     setAppliedJobFitScoreRange(newRange);
-    // Apply filters immediately when fit score range changes
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth experience
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleMatchingFitScoreRangeChange = (newRange: [number, number]) => {
     setMatchingJobFitScoreRange(newRange);
-    // Apply filters immediately when matching fit score range changes
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth experience
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleFitScoreGradeChange = (grade: string, checked: boolean) => {
@@ -897,32 +1075,8 @@ export function CandidateFilters({
       maxFitScore = undefined;
     }
     
-    // Always apply filters when grades change
-    const newFilters = {
-      name: name || undefined,
-      nameOperator,
-      email: email || undefined,
-      emailOperator,
-      phone: phone || undefined,
-      phoneOperator,
-      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-      location: location || undefined,
-      locationOperator,
-      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-      minAppliedJobFitScore: minFitScore,
-      maxAppliedJobFitScore: maxFitScore,
-      // Don't include matching fit score filters when only applied fit score is being changed
-      minMatchingJobFitScore: initialFilters.minMatchingJobFitScore,
-      maxMatchingJobFitScore: initialFilters.maxMatchingJobFitScore,
-      applicationDateStart: applicationDateRange?.from,
-      applicationDateEnd: applicationDateRange?.to,
-      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      aiSearchQuery: undefined,
-    };
-    onFilterChange(newFilters);
+    // Apply filters with debouncing for smooth experience (same as other filters)
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
@@ -961,32 +1115,8 @@ export function CandidateFilters({
       maxMatchingJobFitScore = undefined;
     }
     
-    // Always apply filters when grades change
-    const newFilters = {
-      name: name || undefined,
-      nameOperator,
-      email: email || undefined,
-      emailOperator,
-      phone: phone || undefined,
-      phoneOperator,
-      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-      location: location || undefined,
-      locationOperator,
-      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-      // Don't include applied fit score filters when only matching fit score is being changed
-      minAppliedJobFitScore: initialFilters.minAppliedJobFitScore,
-      maxAppliedJobFitScore: initialFilters.maxAppliedJobFitScore,
-      minMatchingJobFitScore: minMatchingJobFitScore,
-      maxMatchingJobFitScore: maxMatchingJobFitScore,
-      applicationDateStart: applicationDateRange?.from,
-      applicationDateEnd: applicationDateRange?.to,
-      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      aiSearchQuery: undefined,
-    };
-    onFilterChange(newFilters);
+    // Apply filters with debouncing for smooth experience (same as other filters)
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleResetFilters = () => {

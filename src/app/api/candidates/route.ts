@@ -211,8 +211,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
-  if (error) return error;
+  try {
+    console.log('Candidates API: Starting GET request');
+    const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
+    if (error) return error;
 
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -261,11 +263,14 @@ export async function GET(request: NextRequest) {
 
 
   // Filter out undefined values to prevent PostgreSQL errors
+  console.log('Candidates API: Filters before cleanup:', filters);
   Object.keys(filters).forEach(key => {
     if (filters[key] === undefined || filters[key] === '') {
+      console.log(`Candidates API: Removing empty filter: ${key} = "${filters[key]}"`);
       delete filters[key];
     }
   });
+  console.log('Candidates API: Filters after cleanup:', filters);
   
 
 
@@ -287,14 +292,14 @@ export async function GET(request: NextRequest) {
       
       if (hasNoStatus && regularStatuses.length === 0) {
         // Only "no-status" selected - filter for candidates with no status
-        whereClauses.push(`(c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+        whereClauses.push(`(c.status = '' OR c.status = 'null')`);
       } else if (hasNoStatus && regularStatuses.length > 0) {
         // Mixed selection - include both "no-status" and regular statuses
         if (regularStatuses.length === 1) {
-          whereClauses.push(`(c.status = $${paramIndex++} OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+          whereClauses.push(`(c.status = $${paramIndex++} OR c.status = '' OR c.status = 'null')`);
           queryParams.push(regularStatuses[0]);
         } else {
-          whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+          whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status = '' OR c.status = 'null')`);
           queryParams.push(regularStatuses);
         }
       } else {
@@ -312,32 +317,44 @@ export async function GET(request: NextRequest) {
 
   // Handle position filter (supports multiple positions and 'not-applied')
   if (filters.positionId) {
-    const positionIds = filters.positionId.split(',').map(id => id.trim());
+    const positionIds = filters.positionId.split(',').map(id => id.trim()).filter(id => id !== '');
     
     // Check if "not-applied" is one of the selected positions
     const hasNotApplied = positionIds.includes('not-applied');
     const regularPositions = positionIds.filter(id => id !== 'not-applied');
     
+    console.log('Candidates API: Position filter processing:', {
+      originalPositionId: filters.positionId,
+      positionIds,
+      hasNotApplied,
+      regularPositions
+    });
+    
     if (hasNotApplied && regularPositions.length === 0) {
       // Only "not-applied" selected - filter for candidates with no position
-      whereClauses.push(`(c."positionId" IS NULL OR c."positionId" = '')`);
+      whereClauses.push(`c."positionId" IS NULL`);
+      console.log('Candidates API: Added "not-applied" filter without parameters');
     } else if (hasNotApplied && regularPositions.length > 0) {
       // Mixed selection - include both "not-applied" and regular positions
       if (regularPositions.length === 1) {
-        whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL OR c."positionId" = '')`);
+        whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL)`);
         queryParams.push(regularPositions[0]);
+        console.log('Candidates API: Added mixed filter with 1 regular position:', regularPositions[0]);
       } else {
-        whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL OR c."positionId" = '')`);
+        whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL)`);
         queryParams.push(regularPositions);
+        console.log('Candidates API: Added mixed filter with multiple regular positions:', regularPositions);
       }
     } else {
       // Only regular positions selected
       if (regularPositions.length === 1) {
         whereClauses.push(`c."positionId" = $${paramIndex++}`);
         queryParams.push(regularPositions[0]);
-      } else {
+        console.log('Candidates API: Added single position filter:', regularPositions[0]);
+      } else if (regularPositions.length > 1) {
         whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
         queryParams.push(regularPositions);
+        console.log('Candidates API: Added multiple positions filter:', regularPositions);
       }
     }
   }
@@ -691,6 +708,20 @@ export async function GET(request: NextRequest) {
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  
+  // Ensure we have a valid WHERE clause
+  if (whereClauses.length === 0) {
+    console.log('Candidates API: No WHERE clauses, using empty WHERE string');
+  } else {
+    console.log('Candidates API: WHERE clauses:', whereClauses);
+  }
+  
+  console.log('Candidates API: Final query construction:', {
+    whereClauses,
+    whereString,
+    queryParams,
+    paramIndex
+  });
 
 
 
@@ -733,14 +764,18 @@ export async function GET(request: NextRequest) {
     `;
     
 
-    // Validate that all query parameters are valid (not undefined, null, NaN, empty arrays, or empty strings)
-    const finalQueryParams = [...queryParams, limit, offset].map((param, index) => {
-      if (param === undefined || param === null || (typeof param === 'number' && isNaN(param)) || (Array.isArray(param) && param.length === 0) || (typeof param === 'string' && param === '')) {
-        return 0; // Default fallback
-      }
-      return param;
-    });
+    // Debug: Log query parameters
+    console.log('Candidates API: queryParams:', queryParams);
+    console.log('Candidates API: limit, offset:', limit, offset);
+    
+    // Use query parameters directly without validation that might cause issues
+    const finalQueryParams = [...queryParams, limit, offset];
+    
+    console.log('Candidates API: finalQueryParams:', finalQueryParams);
+    console.log('Candidates API: Query to execute:', candidatesQuery);
+    console.log('Candidates API: Executing query with params:', finalQueryParams);
     const candidatesResult = await client.query(candidatesQuery, finalQueryParams);
+    console.log('Candidates API: Query executed successfully, rows returned:', candidatesResult.rows.length);
     const totalQuery = `
       SELECT COUNT(*) 
       FROM "Candidate" c
@@ -749,7 +784,9 @@ export async function GET(request: NextRequest) {
       ) AS jm_max ON true
       ${whereString};
     `;
+    console.log('Candidates API: Executing total query with params:', finalQueryParams.slice(0, -2));
     const totalResult = await client.query(totalQuery, finalQueryParams.slice(0, -2)); // Remove limit and offset for count query
+    console.log('Candidates API: Total query executed successfully, count:', totalResult.rows[0].count);
     const total = parseInt(totalResult.rows[0].count, 10);
     const candidates = candidatesResult.rows.map(row => {
       let customAttributes = row.customAttributes || {};
@@ -820,6 +857,14 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching candidates:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint,
+      position: error.position,
+      where: error.where
+    });
     return NextResponse.json({ 
       message: 'Error fetching candidates', 
       error: error.message,
@@ -827,5 +872,12 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   } finally {
     client.release();
+  }
+  } catch (outerError: any) {
+    console.error('Candidates API: Outer error:', outerError);
+    return NextResponse.json({ 
+      message: 'Error in candidates API', 
+      error: outerError.message
+    }, { status: 500 });
   }
 }

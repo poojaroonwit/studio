@@ -1770,6 +1770,7 @@ export function CandidatesPageClient({
               {filters.selectedPositionIds && filters.selectedPositionIds.length > 0 && (
                 <Badge variant="secondary" className="text-xs">
                   Position{filters.selectedPositionIds.length > 1 ? 's' : ''}: {filters.selectedPositionIds.map(id => {
+                    if (id === 'not-applied') return 'Not Applied';
                     const position = availablePositions.find(p => p.id === id);
                     return position ? position.title : id;
                   }).join(', ')}

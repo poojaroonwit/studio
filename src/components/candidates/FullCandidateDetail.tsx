@@ -1212,14 +1212,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                             parsedData: {
                               ...(candidate.parsedData as any),
-                              education: ((candidate.parsedData as any)?.education || []).map(edu => ({
+                              education: ((candidate.parsedData as any)?.education || []).map((edu: EducationEntry) => ({
                                 ...edu,
                                 startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
                                 startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
                                 endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
                                 endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
                               })),
-                              experience: ((candidate.parsedData as any)?.experience || []).map(exp => ({
+                              experience: ((candidate.parsedData as any)?.experience || []).map((exp: ExperienceEntry) => ({
                                 ...exp,
                                 startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
                                 startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,

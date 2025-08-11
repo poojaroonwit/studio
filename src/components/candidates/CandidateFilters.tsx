@@ -1482,7 +1482,6 @@ export function CandidateFilters({
                               selectedIds={selectedStatuses}
                               onSelectionChange={handleStatusChange}
                               placeholder="Select pipeline stages..."
-                              disabled={false}
                               stages={safeAvailableStages}
                             />
                           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,24 @@ export function RecruiterMultiSelectDropdown({
 }: RecruiterMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
   
 
   
@@ -36,12 +54,14 @@ export function RecruiterMultiSelectDropdown({
   const hasUnassigned = selectedIds.has('unassigned');
 
   const handleToggleRecruiter = (recruiterId: string) => {
+    console.log('handleToggleRecruiter called with:', recruiterId);
     const newSelected = new Set(selectedIds);
     if (newSelected.has(recruiterId)) {
       newSelected.delete(recruiterId);
     } else {
       newSelected.add(recruiterId);
     }
+    console.log('New selected recruiters:', Array.from(newSelected));
     onSelectionChange(newSelected);
   };
 
@@ -115,7 +135,7 @@ export function RecruiterMultiSelectDropdown({
 
   console.log('RecruiterMultiSelectDropdown render - open state:', open);
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <Button
         variant="outline"
         role="combobox"
@@ -132,7 +152,23 @@ export function RecruiterMultiSelectDropdown({
       </Button>
       
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-[9999] max-h-[300px] overflow-hidden">
+        <div 
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-[9999] max-h-[300px] overflow-hidden" 
+          style={{
+            display: 'block', 
+            minHeight: '100px',
+            position: 'absolute',
+            top: '100%',
+            left: '0',
+            right: '0',
+            marginTop: '4px',
+            backgroundColor: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            zIndex: 9999
+          }}
+        >
           <div className="p-2 border-b border-border">
             <Input
               placeholder="Search recruiters..."
@@ -142,9 +178,12 @@ export function RecruiterMultiSelectDropdown({
             />
           </div>
           <div className="max-h-[250px] overflow-y-auto">
+            <div className="p-2 text-sm text-gray-600 bg-yellow-100 border border-yellow-300">
+              🎉 DROPDOWN IS OPEN! Click items below:
+            </div>
             {/* Unassigned option */}
             <div
-              className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
               onClick={() => handleToggleRecruiter('unassigned')}
             >
               <Check

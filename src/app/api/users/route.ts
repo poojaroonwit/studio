@@ -75,13 +75,8 @@ export async function GET(request: NextRequest) {
   const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_MANAGE') ?? false);
   const isRecruiter = userRole === 'Recruiter';
 
-  // Allow recruiters to fetch other recruiters for assignment purposes
-  // but restrict other user management operations
-  if (!canManageUsers && !isRecruiter) {
-    const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
-    await logAudit('WARN', `Forbidden attempt to list users by ${userNameForLog} (Role: ${userRole}). Lacks USERS_MANAGE.`, 'API:Users:Get', session.user.id);
-    return NextResponse.json({ message: "Forbidden: Insufficient permissions to list users." }, { status: 403 });
-  }
+  // Allow all authenticated users to fetch recruiters for filtering purposes
+  // Only restrict user management operations, not viewing recruiters
 
   try {
     // Build where conditions
@@ -98,6 +93,15 @@ export async function GET(request: NextRequest) {
       if (filterRoleInput && filterRoleInput !== "ALL_ROLES" && filterRoleInput !== "Recruiter") {
         // Return empty result for non-recruiter roles when user is recruiter
         return NextResponse.json([], { status: 200 });
+      }
+    } else {
+      // For other users (like Hiring Managers), allow them to see recruiters for filtering purposes
+      // but restrict to only recruiters when role filter is not specified
+      if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
+        whereConditions.role = filterRoleInput;
+      } else {
+        // Default to showing only recruiters for non-admin users
+        whereConditions.role = 'Recruiter';
       }
     }
 

@@ -847,10 +847,8 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
-    console.log('handleFilterChange called with:', newFilters);
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      console.log('Skipping filter change because isClearingFilters is true');
       return;
     }
     // Clear any existing timeout

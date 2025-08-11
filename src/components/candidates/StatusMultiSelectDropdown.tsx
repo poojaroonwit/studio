@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Check, ChevronsUpDown, X, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { RecruitmentStage } from "@/lib/types";
 
 interface StatusMultiSelectDropdownProps {
@@ -23,41 +28,21 @@ export function StatusMultiSelectDropdown({
 }: StatusMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  // Click outside handler
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
 
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [open]);
-
-  // Show all stages, but filter based on search term if provided
-  const filteredStages = searchTerm 
-    ? stages.filter(stage => stage.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : stages;
+  // Filter stages based on search term
+  const filteredStages = stages.filter(stage => 
+    stage.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const selectedStages = stages.filter(stage => selectedIds.has(stage.name));
 
   const handleToggleStage = (stageName: string) => {
-    console.log('handleToggleStage called with:', stageName);
     const newSelected = new Set(selectedIds);
     if (newSelected.has(stageName)) {
       newSelected.delete(stageName);
     } else {
       newSelected.add(stageName);
     }
-    console.log('New selected stages:', Array.from(newSelected));
     onSelectionChange(newSelected);
   };
 
@@ -66,15 +51,6 @@ export function StatusMultiSelectDropdown({
     const newSelected = new Set(selectedIds);
     newSelected.delete(stageName);
     onSelectionChange(newSelected);
-  };
-
-  const handleSelectAllStages = () => {
-    const allStageNames = new Set(stages.map(stage => stage.name));
-    onSelectionChange(allStageNames);
-  };
-
-  const handleClearAllStages = () => {
-    onSelectionChange(new Set());
   };
 
   const renderTrigger = () => {
@@ -87,148 +63,115 @@ export function StatusMultiSelectDropdown({
       const stage = stages.find(s => s.name === stageName);
       if (stage) {
         return (
-          <div className="flex items-center gap-1">
-            <span className="text-foreground font-medium">{stage.name}</span>
-            <X
-              className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-              onClick={(e: React.MouseEvent) => handleRemoveStage(stageName, e)}
-            />
+          <div className="flex items-center gap-2">
+            <span className="truncate text-foreground">{stage.name}</span>
+            <Badge 
+              variant="secondary"
+              className="text-xs"
+            >
+              {stage.sort_order || 'N/A'}
+            </Badge>
           </div>
         );
       }
     }
 
-    if (selectedIds.size === stages.length) {
-      return (
-        <div className="flex items-center gap-1">
-          <span className="text-foreground font-medium">All Stages ({stages.length})</span>
-          <X
-            className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-            onClick={(e: React.MouseEvent) => handleClearAllStages()}
-          />
-        </div>
-      );
-    }
-
     return (
-      <div className="flex items-center gap-1 flex-wrap">
-        {selectedStages.slice(0, 2).map((stage) => (
-          <Badge key={stage.name} variant="secondary" className="text-xs">
-            {stage.name}
-            <X
-              className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-              onClick={(e: React.MouseEvent) => handleRemoveStage(stage.name, e)}
-            />
-          </Badge>
-        ))}
-        {selectedIds.size > 2 && (
-          <Badge variant="secondary" className="text-xs">
-            +{selectedIds.size - 2} more
-          </Badge>
-        )}
+      <div className="flex items-center gap-1">
+        <span className="text-foreground">{selectedIds.size} selected</span>
+        <div className="flex items-center gap-1 ml-2">
+          {selectedStages.slice(0, 2).map((stage) => (
+            <Badge
+              key={stage.name}
+              variant="secondary"
+              className="text-xs px-1 py-0 h-5"
+            >
+              {stage.name}
+              <button
+                type="button"
+                onClick={(e) => handleRemoveStage(stage.name, e)}
+                className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+              >
+                <X className="w-2 h-2" />
+              </button>
+            </Badge>
+          ))}
+          {selectedIds.size > 2 && (
+            <Badge variant="outline" className="text-xs">
+              +{selectedIds.size - 2} more
+            </Badge>
+          )}
+        </div>
       </div>
     );
   };
 
-  console.log('StatusMultiSelectDropdown render - open state:', open);
-  
   return (
-    <div className="relative" ref={dropdownRef}>
-      <Button
-        variant="outline"
-        role="combobox"
-        aria-expanded={open}
-        className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground pointer-events-auto cursor-pointer", className)}
-        onClick={() => {
-          console.log('Status button clicked! open was:', open);
-          console.log('Setting open to:', !open);
-          setOpen(!open);
-        }}
-      >
-        {renderTrigger()}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
-      </Button>
-      
-      {open && (
-        <div 
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[300px] overflow-hidden" 
-          style={{
-            zIndex: 999999999,
-            position: 'absolute',
-            top: '100%',
-            left: '0',
-            right: '0',
-            marginTop: '4px',
-            backgroundColor: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            isolation: 'isolate',
-            transform: 'translateZ(0)'
-          }}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
         >
-          <div className="p-2 border-b border-border">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground">Pipeline Stages</span>
-              <div className="flex gap-1">
-                <button
-                  onClick={handleSelectAllStages}
-                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded"
-                >
-                  Select All
-                </button>
-                <button
-                  onClick={handleClearAllStages}
-                  className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 rounded"
-                >
-                  Clear All
-                </button>
-              </div>
-            </div>
+          {renderTrigger()}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[500]" align="start">
+        <div className="bg-popover text-popover-foreground">
+          {/* Search Input */}
+          <div className="flex items-center border-b border-border px-3 bg-popover">
+            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-muted-foreground" />
             <Input
               placeholder="Search pipeline stages..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground text-foreground focus-visible:ring-0 cursor-text"
+              className="border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
             />
           </div>
-          <div className="max-h-[250px] overflow-y-auto">
+          
+          {/* Stages List */}
+          <div className="max-h-[300px] overflow-y-auto">
             {filteredStages.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No pipeline stages found.
               </div>
             ) : (
-              <div className="py-1">
+              <div className="p-1">
                 {filteredStages.map((stage) => (
                   <div
                     key={stage.name}
-                    className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
                     onClick={() => handleToggleStage(stage.name)}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedIds.has(stage.name) ? "opacity-100 text-primary" : "opacity-0"
+                        selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <span className={cn(
-                      "font-medium",
-                      selectedIds.has(stage.name) ? "text-primary" : "text-foreground"
-                    )}>
-                      {stage.name}
-                    </span>
-                    {stage.description && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {stage.description}
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">{stage.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Stage {stage.sort_order || 'N/A'}
+                        {stage.description && ` • ${stage.description}`}
                       </span>
-                    )}
+                    </div>
+                    <Badge 
+                      variant="outline"
+                      className="ml-auto text-xs"
+                    >
+                      {stage.sort_order || 'N/A'}
+                    </Badge>
                   </div>
                 ))}
               </div>
             )}
           </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

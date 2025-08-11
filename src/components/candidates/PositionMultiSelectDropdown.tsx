@@ -251,6 +251,12 @@ export function PositionMultiSelectDropdown({
                         Candidates who haven't applied to any position
                       </span>
                     </div>
+                    <Badge 
+                      variant="secondary"
+                      className="ml-auto text-xs"
+                    >
+                      No Application
+                    </Badge>
                   </div>
                 )}
                 {filteredPositions.map((position) => (

@@ -73,7 +73,7 @@ function MultiSelect({
   };
 
   return (
-    <div className="relative z-[9999]">
+    <div className="relative z-[500]">
       {/* Trigger */}
       <div
         className={cn(
@@ -124,7 +124,7 @@ function MultiSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-[9999] mt-1 w-full bg-popover border rounded-lg shadow-lg">
+        <div className="absolute z-[500] mt-1 w-full bg-popover border rounded-lg shadow-lg">
           {/* Search */}
           <div className="p-2 border-b">
             <input
@@ -192,7 +192,7 @@ function MultiSelect({
       {/* Click outside to close */}
       {open && (
         <div 
-          className="fixed inset-0 z-[9998]" 
+          className="fixed inset-0 z-[499]" 
           onClick={() => setOpen(false)}
         />
       )}

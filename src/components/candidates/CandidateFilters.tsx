@@ -93,8 +93,6 @@ import { DateRange } from 'react-day-picker';
 import { PositionMultiSelectDropdown } from './PositionMultiSelectDropdown';
 import { RecruiterMultiSelectDropdown } from './RecruiterMultiSelectDropdown';
 import { StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
-import { PipelineStageFilter } from './PipelineStageFilter';
-import { PipelineStageOverview } from './PipelineStageOverview';
 import type { Position, RecruitmentStage, UserProfile } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -1480,34 +1478,13 @@ export function CandidateFilters({
                           </div>
                           <div>
                             <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
-                            <PipelineStageFilter
+                            <StatusMultiSelectDropdown
                               selectedIds={selectedStatuses}
                               onSelectionChange={handleStatusChange}
                               placeholder="Select pipeline stages..."
                               stages={safeAvailableStages}
-                              showCounts={true}
                             />
                           </div>
-                          
-                          {/* Pipeline Overview */}
-                          {safeAvailableStages.length > 0 && (
-                            <div className="mt-4">
-                              <PipelineStageOverview
-                                stages={safeAvailableStages}
-                                onStageClick={(stageName) => {
-                                  const newSelected = new Set(selectedStatuses);
-                                  if (newSelected.has(stageName)) {
-                                    newSelected.delete(stageName);
-                                  } else {
-                                    newSelected.add(stageName);
-                                  }
-                                  handleStatusChange(newSelected);
-                                }}
-                                showProgress={false}
-                                className="border-0 shadow-none bg-muted/20"
-                              />
-                            </div>
-                          )}
                           <div>
                             <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
                             <RecruiterMultiSelectDropdown

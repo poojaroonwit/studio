@@ -109,12 +109,7 @@ export function CandidatesPageClient({
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
 
-  // Debug: Log when availableRecruiters changes
-  useEffect(() => {
-    console.log('availableRecruiters changed:', availableRecruiters);
-    console.log('availableRecruiters length:', availableRecruiters.length);
-    console.log('availableRecruiters is array:', Array.isArray(availableRecruiters));
-  }, [availableRecruiters]);
+
 
   const [isLoading, setIsLoading] = useState(false); // Changed to false initially
   const [isAiSearching, setIsAiSearching] = useState(false);

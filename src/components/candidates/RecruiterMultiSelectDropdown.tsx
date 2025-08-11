@@ -20,7 +20,6 @@ interface RecruiterMultiSelectDropdownProps {
   selectedIds: Set<string>;
   onSelectionChange: (selectedIds: Set<string>) => void;
   placeholder?: string;
-  disabled?: boolean;
   className?: string;
   recruiters: { id: string; name: string }[];
 }
@@ -29,18 +28,15 @@ export function RecruiterMultiSelectDropdown({
   selectedIds,
   onSelectionChange,
   placeholder = "Select recruiters...",
-  disabled = false,
   className,
   recruiters
 }: RecruiterMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Debug logging
-  console.log('RecruiterMultiSelectDropdown - disabled:', disabled);
-  console.log('RecruiterMultiSelectDropdown - recruiters:', recruiters);
-  console.log('RecruiterMultiSelectDropdown - selectedIds:', selectedIds);
-  console.log('RecruiterMultiSelectDropdown - placeholder:', placeholder);
+
+  
+
 
   // Filter recruiters based on search term
   const filteredRecruiters = recruiters.filter(recruiter => 
@@ -51,20 +47,17 @@ export function RecruiterMultiSelectDropdown({
   const hasUnassigned = selectedIds.has('unassigned');
 
   const handleToggleRecruiter = (recruiterId: string) => {
-    console.log('handleToggleRecruiter called with:', recruiterId);
     const newSelected = new Set(selectedIds);
     if (newSelected.has(recruiterId)) {
       newSelected.delete(recruiterId);
     } else {
       newSelected.add(recruiterId);
     }
-    console.log('handleToggleRecruiter - newSelected:', newSelected);
     onSelectionChange(newSelected);
   };
 
   const handleRemoveRecruiter = (recruiterId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (disabled) return;
     const newSelected = new Set(selectedIds);
     newSelected.delete(recruiterId);
     onSelectionChange(newSelected);
@@ -81,12 +74,10 @@ export function RecruiterMultiSelectDropdown({
         return (
           <div className="flex items-center gap-1">
             <span className="text-foreground">Unassigned</span>
-            {!disabled && (
-              <X
-                className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
-              />
-            )}
+            <X
+              className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
+            />
           </div>
         );
       }
@@ -95,12 +86,10 @@ export function RecruiterMultiSelectDropdown({
         return (
           <div className="flex items-center gap-1">
             <span className="text-foreground">{recruiter.name}</span>
-            {!disabled && (
-              <X
-                className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiterId, e)}
-              />
-            )}
+            <X
+              className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiterId, e)}
+            />
           </div>
         );
       }
@@ -111,23 +100,19 @@ export function RecruiterMultiSelectDropdown({
         {hasUnassigned && (
           <Badge variant="secondary" className="text-xs">
             Unassigned
-            {!disabled && (
-              <X
-                className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
-              />
-            )}
+            <X
+              className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
+            />
           </Badge>
         )}
         {selectedRecruiters.slice(0, 2).map((recruiter) => (
           <Badge key={recruiter.id} variant="secondary" className="text-xs">
             {recruiter.name}
-            {!disabled && (
-              <X
-                className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiter.id, e)}
-              />
-            )}
+            <X
+              className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
+              onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiter.id, e)}
+            />
           </Badge>
         ))}
         {selectedIds.size > 3 && (
@@ -148,10 +133,7 @@ export function RecruiterMultiSelectDropdown({
           aria-expanded={open}
           className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
           disabled={false}
-          onClick={() => {
-            console.log('Button clicked!');
-            setOpen(!open);
-          }}
+          onClick={() => setOpen(!open)}
         >
           {renderTrigger()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />

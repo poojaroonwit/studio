@@ -1266,7 +1266,7 @@ export default function PositionsPageClient() {
                     <RecruiterCell
                       position={position}
                       availableRecruiters={availableRecruiters}
-                      canManagePositions={canManagePositions}
+                      canManagePositions={canManagePositions ?? false}
                       isAssigning={assigningRecruiter === position.id}
                       onAssignRecruiter={handleAssignRecruiterToPosition}
                       onResetAssigning={resetAssigningRecruiter}

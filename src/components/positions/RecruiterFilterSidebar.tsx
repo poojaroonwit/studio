@@ -318,7 +318,7 @@ export function RecruiterFilterSidebar({
                 recruiter={{
                   id: recruiter.id,
                   name: recruiter.name,
-                  avatar: recruiter.avatar
+                  avatar: recruiter.avatarUrl
                 }}
                 stats={recruiter.stats}
                 isSelected={selectedRecruiterId === recruiter.id}

@@ -77,7 +77,7 @@ export function RecruiterMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveRecruiter('unassigned', e)}
+                onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
               />
             )}
           </div>
@@ -91,7 +91,7 @@ export function RecruiterMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveRecruiter(recruiterId, e)}
+                onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiterId, e)}
               />
             )}
           </div>
@@ -107,7 +107,7 @@ export function RecruiterMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveRecruiter('unassigned', e)}
+                onClick={(e: React.MouseEvent) => handleRemoveRecruiter('unassigned', e)}
               />
             )}
           </Badge>
@@ -118,7 +118,7 @@ export function RecruiterMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveRecruiter(recruiter.id, e)}
+                onClick={(e: React.MouseEvent) => handleRemoveRecruiter(recruiter.id, e)}
               />
             )}
           </Badge>

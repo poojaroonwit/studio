@@ -78,7 +78,7 @@ export function StatusMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveStage(stageName, e)}
+                onClick={(e: React.MouseEvent) => handleRemoveStage(stageName, e)}
               />
             )}
           </div>
@@ -94,7 +94,7 @@ export function StatusMultiSelectDropdown({
             {!disabled && (
               <X
                 className="h-3 w-3 ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={(e) => handleRemoveStage(stage.name, e)}
+                onClick={(e: React.MouseEvent) => handleRemoveStage(stage.name, e)}
               />
             )}
           </Badge>

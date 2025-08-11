@@ -365,7 +365,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
           fitScore: data.fitScore || null,
           status: data.status || '',
-          assignmentJustification: data.assignmentJustification ? data.assignmentJustification.split('\n').filter(line => line.trim()) : [],
+          assignmentJustification: data.assignmentJustification ? data.assignmentJustification.split('\n').filter((line: string) => line.trim()) : [],
           parsedData: {
             ...data.parsedData,
             education: data.parsedData?.education || [],

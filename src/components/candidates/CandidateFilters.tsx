@@ -384,20 +384,20 @@ export function CandidateFilters({
           const matchingScore = parseInt(value, 10);
           if (!isNaN(matchingScore)) {
             // Set matching fit score range
-            filters.matchingMinFitScore = matchingScore;
-            filters.matchingMaxFitScore = 100;
+            filters.minMatchingJobFitScore = matchingScore;
+            filters.maxMatchingJobFitScore = 100;
           }
           break;
         case 'matchingfitscoremin':
           const matchingMinScore = parseInt(value, 10);
           if (!isNaN(matchingMinScore)) {
-            filters.matchingMinFitScore = matchingMinScore;
+            filters.minMatchingJobFitScore = matchingMinScore;
           }
           break;
         case 'matchingfitscoremax':
           const matchingMaxScore = parseInt(value, 10);
           if (!isNaN(matchingMaxScore)) {
-            filters.matchingMaxFitScore = matchingMaxScore;
+            filters.maxMatchingJobFitScore = matchingMaxScore;
           }
           break;
         case 'applicationdatestart':
@@ -441,16 +441,16 @@ export function CandidateFilters({
     if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
     if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
     if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
-    if (parsedFilters.minFitScore !== undefined || parsedFilters.maxFitScore !== undefined) {
+    if (parsedFilters.minAppliedJobFitScore !== undefined || parsedFilters.maxAppliedJobFitScore !== undefined) {
       setAppliedJobFitScoreRange([
-        parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
-        parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1]
+        parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+        parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1]
       ]);
     }
-    if (parsedFilters.matchingMinFitScore !== undefined || parsedFilters.matchingMaxFitScore !== undefined) {
+    if (parsedFilters.minMatchingJobFitScore !== undefined || parsedFilters.maxMatchingJobFitScore !== undefined) {
       setMatchingJobFitScoreRange([
-        parsedFilters.matchingMinFitScore ?? matchingJobFitScoreRange[0],
-        parsedFilters.matchingMaxFitScore ?? matchingJobFitScoreRange[1]
+        parsedFilters.minMatchingJobFitScore ?? matchingJobFitScoreRange[0],
+        parsedFilters.maxMatchingJobFitScore ?? matchingJobFitScoreRange[1]
       ]);
     }
     if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
@@ -527,18 +527,18 @@ export function CandidateFilters({
         if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
         if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
         if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
-        if (parsedFilters.minFitScore !== undefined || parsedFilters.maxFitScore !== undefined) {
+        if (parsedFilters.minAppliedJobFitScore !== undefined || parsedFilters.maxAppliedJobFitScore !== undefined) {
           setAppliedJobFitScoreRange([
-            parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
-            parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1]
+            parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+            parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1]
           ]);
         }
-        if (parsedFilters.matchingMinFitScore !== undefined || parsedFilters.matchingMaxFitScore !== undefined) {
-          setMatchingJobFitScoreRange([
-            parsedFilters.matchingMinFitScore ?? matchingJobFitScoreRange[0],
-            parsedFilters.matchingMaxFitScore ?? matchingJobFitScoreRange[1]
-          ]);
-        }
+            if (parsedFilters.minMatchingJobFitScore !== undefined || parsedFilters.maxMatchingJobFitScore !== undefined) {
+      setMatchingJobFitScoreRange([
+        parsedFilters.minMatchingJobFitScore ?? matchingJobFitScoreRange[0],
+        parsedFilters.maxMatchingJobFitScore ?? matchingJobFitScoreRange[1]
+      ]);
+    }
         if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
           setApplicationDateRange({
             from: parsedFilters.applicationDateStart,
@@ -551,8 +551,8 @@ export function CandidateFilters({
         // Apply the filters
         onFilterChange({
           ...parsedFilters,
-          minFitScore: parsedFilters.minFitScore ?? appliedJobFitScoreRange[0],
-          maxFitScore: parsedFilters.maxFitScore ?? appliedJobFitScoreRange[1],
+          minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+          maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
           applicationDateStart: parsedFilters.applicationDateStart,
           applicationDateEnd: parsedFilters.applicationDateEnd,
           location: parsedFilters.location,
@@ -633,9 +633,9 @@ export function CandidateFilters({
     setSkills(new Set(initialFilters.skills || []));
     setLocation(initialFilters.location || '');
     setLocationOperator(initialFilters.locationOperator || 'contains');
-    setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
-    setAppliedJobFitScoreRange([initialFilters.minFitScore || 0, initialFilters.maxFitScore || 100]);
-    setMatchingJobFitScoreRange([initialFilters.matchingMinFitScore || 0, initialFilters.matchingMaxFitScore || 100]);
+                    setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
+                setAppliedJobFitScoreRange([initialFilters.minAppliedJobFitScore || 0, initialFilters.maxAppliedJobFitScore || 100]);
+                setMatchingJobFitScoreRange([initialFilters.minMatchingJobFitScore || 0, initialFilters.maxMatchingJobFitScore || 100]);
     setApplicationDateRange(
       initialFilters.applicationDateStart && initialFilters.applicationDateEnd
         ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }

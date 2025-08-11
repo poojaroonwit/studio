@@ -1162,7 +1162,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 <Pagination
                                   currentPage={allCandidatesPage}
                                   totalPages={allCandidatesTotalPages}
+                                  pageSize={allCandidatesPageSize}
+                                  total={allCandidatesTotal}
                                   onPageChange={setAllCandidatesPage}
+                                  onPageSizeChange={setAllCandidatesPageSize}
                                 />
                               )}
                             </div>
@@ -1195,7 +1198,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 <Pagination
                                   currentPage={potentialCandidatesPage}
                                   totalPages={potentialCandidatesTotalPages}
+                                  pageSize={potentialCandidatesPageSize}
+                                  total={potentialCandidatesTotal}
                                   onPageChange={setPotentialCandidatesPage}
+                                  onPageSizeChange={setPotentialCandidatesPageSize}
                                 />
                               )}
                             </div>

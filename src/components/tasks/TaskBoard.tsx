@@ -74,6 +74,8 @@ export function TaskBoard({
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -173,8 +175,56 @@ export function TaskBoard({
 
   const getFitScoreColor = (score: number) => {
     const colorInfo = getScoreColorInfo(score);
-    return colorInfo.bg.replace('bg-', 'border-l-');
+    // Map background colors to corresponding border colors
+    const borderColorMap: Record<string, string> = {
+      'bg-red-400': 'border-l-red-400',
+      'bg-orange-400': 'border-l-orange-400',
+      'bg-yellow-200': 'border-l-yellow-200',
+      'bg-yellow-400': 'border-l-yellow-400',
+      'bg-lime-400': 'border-l-lime-400',
+    };
+    return borderColorMap[colorInfo.bg] || 'border-l-gray-300 dark:border-l-gray-600';
   };
+
+  // Scroll handlers
+  const handleScrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
+
+  // Update scroll state
+  const updateScrollState = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  // Add scroll event listener and resize observer
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      updateScrollState();
+      scrollContainer.addEventListener('scroll', updateScrollState);
+      
+      // Add resize observer to handle container size changes
+      const resizeObserver = new ResizeObserver(updateScrollState);
+      resizeObserver.observe(scrollContainer);
+      
+      return () => {
+        scrollContainer.removeEventListener('scroll', updateScrollState);
+        resizeObserver.disconnect();
+      };
+    }
+  }, [tasks, stages]);
 
 
 
@@ -209,6 +259,28 @@ export function TaskBoard({
       {/* Board Container with Fixed Navigation Buttons */}
       <div className="relative flex-1" style={{ height: 'calc(100vh - 80px)' }}>
 
+        {/* Scroll Navigation Buttons */}
+        {canScrollLeft && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-gray-300 dark:border-gray-600 shadow-lg hover:bg-white dark:hover:bg-gray-900"
+            onClick={handleScrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
+
+        {canScrollRight && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-gray-300 dark:border-gray-600 shadow-lg hover:bg-white dark:hover:bg-gray-900"
+            onClick={handleScrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
 
         {/* Scrollable Board Container */}
         <div 
@@ -364,23 +436,8 @@ export function TaskBoard({
                               </div>
                             )}
 
-                            {/* Assignee */}
-                            {showAssignee && task.assignee && (
-                              <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarImage
-                                    src={task.assignee.avatarUrl}
-                                    alt={task.assignee.name}
-                                  />
-                                  <AvatarFallback className="text-xs font-medium">
-                                    {task.assignee.name.charAt(0).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-xs text-gray-700 dark:text-gray-300">
-                                  {task.assignee.name}
-                                </span>
-                              </div>
-                            )}
+                     
+                           
                           </div>
                         </div>
                       ))}

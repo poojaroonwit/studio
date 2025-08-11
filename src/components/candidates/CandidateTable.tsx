@@ -617,7 +617,7 @@ export function CandidateTable({
                   </TableCell>
                   {/* Job Matches Count Cell */}
                   <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
-                    {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : ''}
+                    {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
                   </TableCell>
                   <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                     <div className="flex items-center gap-2">
@@ -784,7 +784,7 @@ export function CandidateTable({
                             </TableCell>
                             {/* Job Matches Count Cell */}
                             <TableCell key={`${candidate.id}-job-matches-count`} className="text-center">
-                              {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : ''}
+                              {Array.isArray(candidate.jobMatches) && candidate.jobMatches.length > 0 ? candidate.jobMatches.length : '-'}
                             </TableCell>
                             <TableCell key={`${candidate.id}-fit-score`} className="hidden sm:table-cell">
                               <div className="flex items-center gap-2">

@@ -802,7 +802,7 @@ export function CandidatesPageClient({
         try {
           const [posResponse, stagesResponse] = await Promise.all([
             fetch('/api/positions/all'),
-            fetch('/api/settings/recruitment-stages')
+            fetch('/api/recruitment-stages')
           ]);
 
           if (posResponse.ok) {
@@ -1433,17 +1433,7 @@ export function CandidatesPageClient({
     };
   }, [sessionStatus, isLoading, isAiSearchActive, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
 
-  // Ensure recruiter filter is set on client if user is a Recruiter
-  useEffect(() => {
-    if (sessionStatus === 'authenticated' && session?.user?.role === 'Recruiter') {
-      if (!filters.selectedRecruiterIds || filters.selectedRecruiterIds.length === 0) {
-        setFilters(prev => ({
-          ...prev,
-          selectedRecruiterIds: [session.user.id],
-        }));
-      }
-    }
-  }, [sessionStatus, session?.user?.role, session?.user?.id, filters.selectedRecruiterIds]);
+  // Note: Removed automatic recruiter filter setting to allow recruiters to freely select any recruiter filter
 
   // Ensure ALL useMemo hooks are called before any return
   const mappedCandidates = useMemo(() => {

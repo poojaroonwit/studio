@@ -669,7 +669,7 @@ export default function CandidateDetailPage() {
     try {
       const [posResponse, stagesResponse] = await Promise.all([
         fetch('/api/positions/all'),
-        fetch('/api/settings/recruitment-stages')
+        fetch('/api/recruitment-stages')
       ]);
 
       if (posResponse.ok) {

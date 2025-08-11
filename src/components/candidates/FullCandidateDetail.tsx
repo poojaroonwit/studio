@@ -491,7 +491,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   useEffect(() => {
     const fetchStages = async () => {
       try {
-        const res = await fetch('/api/settings/recruitment-stages');
+        const res = await fetch('/api/recruitment-stages');
         if (res.ok) {
           const stagesData = await res.json();
           setAvailableStages(Array.isArray(stagesData) ? stagesData : []);

@@ -72,7 +72,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       setLoading(true);
       try {
         const [stagesRes, recruitersRes, positionsRes] = await Promise.all([
-          fetch('/api/settings/recruitment-stages'),
+          fetch('/api/recruitment-stages'),
           fetch('/api/users?role=Recruiter'),
           fetch('/api/positions'),
         ]);

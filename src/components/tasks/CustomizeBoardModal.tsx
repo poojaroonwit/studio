@@ -268,7 +268,7 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         const positionsData = await positionsRes.json();
         setPositions(positionsData.data || []);
         // Fetch stages
-        const stagesRes = await fetch('/api/settings/recruitment-stages');
+        const stagesRes = await fetch('/api/recruitment-stages');
         if (!stagesRes.ok) throw new Error('Failed to fetch stages');
         const stagesData = await stagesRes.json();
         setStages(Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : []);

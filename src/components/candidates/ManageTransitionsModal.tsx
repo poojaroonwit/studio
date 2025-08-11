@@ -83,7 +83,7 @@ export function ManageTransitionsModal({
   useEffect(() => {
     if (isOpen) {
       setLoadingStages(true);
-      fetch('/api/settings/recruitment-stages')
+      fetch('/api/recruitment-stages')
         .then(res => res.json())
         .then(data => {
           setStages(Array.isArray(data) ? data : []);

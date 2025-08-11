@@ -142,7 +142,7 @@ export async function PUT(request: NextRequest) {
         
         const updateQuery = `
             UPDATE "RecruitmentStage"
-            SET ${setClauses.join(', ')}, "updatedAt" = NOW()
+            SET ${setClauses.join(', ')}
             WHERE id = $${queryParams.length + 1}
             RETURNING *;
         `;

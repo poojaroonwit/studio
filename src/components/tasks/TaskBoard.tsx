@@ -35,6 +35,7 @@ export interface Task {
   fitScore?: number;
   avatarUrl?: string;
   email?: string;
+  skills?: any[];
   [key: string]: any; // Allow additional properties
 }
 
@@ -420,6 +421,27 @@ export function TaskBoard({
 
                           {/* Meta Information Row */}
                           <div className="space-y-2">
+                            {/* Skills */}
+                            {task.skills && task.skills.length > 0 && (
+                              <div className="space-y-1">
+                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <span className="font-medium">Skills:</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {task.skills.slice(0, 5).map((skill: any, idx: number) => (
+                                    <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                                      {skill.skill_string || skill.segment_skill || 'Skill'}
+                                    </span>
+                                  ))}
+                                  {task.skills.length > 5 && (
+                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                                      +{task.skills.length - 5} other
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
                             {/* Tags */}
                             {showTags && task.tags && task.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1">

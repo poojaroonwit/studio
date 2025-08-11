@@ -57,12 +57,25 @@ export default function DashboardPageClient({
   authError: serverAuthError = false,
   permissionError: serverPermissionError = false,
 }: DashboardPageClientProps) {
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
+  const router = useRouter();
+  
+  const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
+  const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
+  const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(initialUsers || []);
+  const [myBacklogCandidates, setMyBacklogCandidates] = useState<Candidate[]>([]);
+  const [isLoading, setIsLoading] = useState(false); // Client-side loading for subsequent actions if any
+  const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
+  const [authError, setAuthError] = useState(serverAuthError);
+  const [permissionError, setPermissionError] = useState(serverPermissionError);
 
   // Check permissions
   const canViewDashboard = session?.user?.role === 'Admin' || 
     session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
   
+  // EARLY RETURNS MOVED TO AFTER ALL HOOKS
   if (status === 'loading') {
     return <div>Loading...</div>;
   }
@@ -83,17 +96,6 @@ export default function DashboardPageClient({
       </div>
     );
   }
-  const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
-  const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones
-  const [allPositions, setAllPositions] = useState<Position[]>(initialPositions || []);
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(initialUsers || []);
-  const [myBacklogCandidates, setMyBacklogCandidates] = useState<Candidate[]>([]);
-
-  const [isLoading, setIsLoading] = useState(false); // Client-side loading for subsequent actions if any
-  const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
-  const [authError, setAuthError] = useState(serverAuthError);
-  const [permissionError, setPermissionError] = useState(serverPermissionError);
-  const router = useRouter();
 
   // Function to re-fetch data on client if needed (e.g., after an action or for a refresh button)
   const fetchDataClientSide = useCallback(async () => {
@@ -780,11 +782,11 @@ export default function DashboardPageClient({
                         label: 'Candidates',
                         data: sortedScoreRanges.map(r => r.count),
                         backgroundColor: [
-                          'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
-                          'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
-                          'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
-                          'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
                           'rgba(163, 230, 53, 0.8)',   // lime-400 (A grade)
+                          'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
+                          'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
+                          'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
+                          'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
                         ],
                         borderRadius: 8,
                         borderSkipped: false,

@@ -206,6 +206,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       updatedAt: candidate.updatedAt,
       fitScore: candidate.fitScore,
       avatarUrl: candidate.avatarUrl,
+      skills: candidate.parsedData?.skills || [],
       // Keep original candidate data for backward compatibility
       originalCandidate: candidate
     }));
@@ -445,57 +446,74 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       {/* Enhanced Board Header - Always Sticky within main content */}
       <div className="bg-card border-b border-border shadow-sm sticky top-0 z-40 backdrop-blur-sm bg-card/95">
         <div className="px-6 py-4 space-y-4">
-          {/* Main Controls Row */}
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            {/* Left: Search and Quick Filters */}
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              {/* Search */}
-              <div className="relative">
-                {loading ? (
-                  <RefreshCw className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
-                ) : (
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                )}
-                <Input
-                  className="pl-10 h-9 w-64 text-sm"
-                  placeholder="Search candidates..."
-                  value={filters.name || ''}
-                  onChange={e => setFilters((f: any) => ({ ...f, name: e.target.value }))}
-                  disabled={loading}
-                />
-              </div>
+                     {/* Main Controls Row */}
+           <div className="flex flex-wrap items-center gap-3 justify-between">
+             {/* Left: Search and Quick Filters */}
+             <div className="flex flex-wrap items-center gap-3 flex-1">
+               {/* Search */}
+               <div className="relative">
+                 {loading ? (
+                   <RefreshCw className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                 ) : (
+                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                 )}
+                 <Input
+                   className="pl-10 h-9 w-64 text-sm"
+                   placeholder="Search candidates..."
+                   value={filters.name || ''}
+                   onChange={e => setFilters((f: any) => ({ ...f, name: e.target.value }))}
+                   disabled={loading}
+                 />
+               </div>
 
-              {/* Quick Filters */}
-              <div className="w-48">
-                <PositionSelectDropdown
-                  value={filters.positionId || ""}
-                  onValueChange={v => setFilters((f: any) => ({ ...f, positionId: v || "" }))}
-                  placeholder="All Positions"
-                  showOpenStatus={true}
-                  filterOpenOnly={false}
-                  showNoneOption={true}
-                />
-              </div>
+               {/* Quick Filters */}
+               <div className="w-48">
+                 <PositionSelectDropdown
+                   value={filters.positionId || ""}
+                   onValueChange={v => setFilters((f: any) => ({ ...f, positionId: v || "" }))}
+                   placeholder="All Positions"
+                   showOpenStatus={true}
+                   filterOpenOnly={false}
+                   showNoneOption={true}
+                 />
+               </div>
 
-              {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
+               {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
-              {canViewAllRecruiters && (
-                <Select value={filters.recruiterId || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, recruiterId: v === 'all' ? '' : v }))}>
-                  <SelectTrigger className="h-9 w-48 text-sm">
-                    <SelectValue placeholder="All Recruiters" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Recruiters</SelectItem>
-                    {recruiters.map((r: any) => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+               {canViewAllRecruiters && (
+                 <Select value={filters.recruiterId || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, recruiterId: v === 'all' ? '' : v }))}>
+                   <SelectTrigger className="h-9 w-48 text-sm">
+                     <SelectValue placeholder="All Recruiters" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">All Recruiters</SelectItem>
+                     {recruiters.map((r: any) => (
+                       <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               )}
 
-            {/* Right: Board Controls */}
-            <div className="flex items-center gap-2">
+               {/* Candidate Count Badge */}
+               <div className="flex items-center gap-2">
+                 <Badge variant="secondary" className="h-9 px-3 text-sm font-medium">
+                   {loading ? (
+                     <div className="flex items-center gap-2">
+                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                       Loading...
+                     </div>
+                   ) : (
+                     <div className="flex items-center gap-2">
+                       <Users className="w-3 h-3" />
+                       {displayedCandidates.length} candidate{displayedCandidates.length !== 1 ? 's' : ''}
+                     </div>
+                   )}
+                 </Badge>
+               </div>
+             </div>
+
+             {/* Right: Board Controls */}
+             <div className="flex items-center gap-2">
               {/* Stage Filter */}
               <div className="relative">
                 <Button

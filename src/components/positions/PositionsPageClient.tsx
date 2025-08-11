@@ -11,7 +11,6 @@ import { toast } from "react-hot-toast";
 import { AddPositionModal, type AddPositionFormValues } from '@/components/positions/AddPositionModal';
 import { EditPositionModal, type EditPositionFormValues } from '@/components/positions/EditPositionModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   AlertDialog,
@@ -1244,9 +1243,17 @@ export default function PositionsPageClient() {
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <Link href={`/positions/${position.id}`} className="text-primary hover:underline font-medium">
-                      {position.title}
-                    </Link>
+                      <button
+                        onClick={() => {
+                          setSelectedPositionId(position.id);
+                          setIsNewDrawerOpen(true);
+                        }}
+                        className="text-primary hover:underline font-medium text-left cursor-pointer hover:text-primary/80 transition-colors flex items-center gap-1 group"
+                        title="Click to view position details"
+                      >
+                        {position.title}
+                        <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
+                      </button>
                       {position.positionLevel && (
                         <span className="text-xs text-muted-foreground mt-0.5">
                           {position.positionLevel}

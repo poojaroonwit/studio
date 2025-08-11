@@ -85,7 +85,8 @@ export function CandidatesPageClient({
       minExperienceYears: 0,
       maxExperienceYears: 50,
       selectedPositionIds: [],
-      selectedStatuses: []
+      selectedStatuses: [],
+      selectedRecruiterIds: []
     };
     
     // console.log('Initial filters set:', baseFilters);
@@ -846,8 +847,10 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
+    console.log('handleFilterChange called with:', newFilters);
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
+      console.log('Skipping filter change because isClearingFilters is true');
       return;
     }
     // Clear any existing timeout
@@ -927,7 +930,7 @@ export function CandidatesPageClient({
     // Reset the clearing flag after a short delay to allow filter update to complete
     setTimeout(() => {
       setIsClearingFilters(false);
-    }, 200);
+    }, 500);
   };
 
   // Cleanup timeout on unmount

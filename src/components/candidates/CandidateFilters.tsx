@@ -805,6 +805,7 @@ export function CandidateFilters({
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
+    console.log('handleRecruiterChange called with:', Array.from(newSelectedRecruiterIds));
     setSelectedRecruiterIds(newSelectedRecruiterIds);
     // Apply filters immediately when recruiters change
     handleApplyStandardFilters();

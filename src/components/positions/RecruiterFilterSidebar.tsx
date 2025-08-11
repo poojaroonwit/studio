@@ -127,9 +127,9 @@ function UnassignedPositionsCard({
           <div className="relative">
             <div className={cn(
               "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
-              "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500",
+              "bg-gradient-to-br from-gray-500 to-gray-600 dark:from-gray-400 dark:to-gray-500",
               "flex items-center justify-center",
-              "group-hover:shadow-xl group-hover:ring-blue-500/20 transition-all duration-300"
+              "group-hover:shadow-xl group-hover:ring-gray-500/20 transition-all duration-300"
             )}>
               <UserX className="h-4 w-4 text-white" />
             </div>

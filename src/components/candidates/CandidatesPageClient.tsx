@@ -109,6 +109,11 @@ export function CandidatesPageClient({
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
 
+  // Debug: Log when availableRecruiters changes
+  useEffect(() => {
+    console.log('availableRecruiters changed:', availableRecruiters);
+  }, [availableRecruiters]);
+
   const [isLoading, setIsLoading] = useState(false); // Changed to false initially
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
@@ -288,6 +293,7 @@ export function CandidatesPageClient({
   }, [urlPositionId, urlRecruiterId, urlStatus, isClearingFilters]);
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
+    console.log('fetchRecruiters called, sessionStatus:', sessionStatus, 'retryCount:', retryCount);
     if (sessionStatus !== 'authenticated') return;
     
     const maxRetries = 3;
@@ -323,12 +329,15 @@ export function CandidatesPageClient({
           return;
       }
       const recruitersData: UserProfile[] | undefined = await response.json(); 
+      console.log('Recruiters API response:', recruitersData);
       if (!recruitersData || !Array.isArray(recruitersData)) {
         console.warn("Invalid data format received for recruiters, using empty list");
         setAvailableRecruiters([]);
         return;
       }
-      setAvailableRecruiters(recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' })));
+      const mappedRecruiters = recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' }));
+      console.log('Mapped recruiters:', mappedRecruiters);
+      setAvailableRecruiters(mappedRecruiters);
     } catch (error) {
       console.error("Error fetching recruiters:", error);
       
@@ -847,11 +856,14 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
+    console.log('handleFilterChange called with:', newFilters, 'isClearingFilters:', isClearingFilters);
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
+      console.log('Skipping filter change because isClearingFilters is true');
       // Safety mechanism: if isClearingFilters is stuck for more than 1 second, reset it
       setTimeout(() => {
         if (isClearingFilters) {
+          console.log('Safety timeout: resetting isClearingFilters');
           setIsClearingFilters(false);
         }
       }, 1000);

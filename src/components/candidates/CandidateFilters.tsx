@@ -1491,8 +1491,8 @@ export function CandidateFilters({
                             <RecruiterMultiSelectDropdown
                               selectedIds={selectedRecruiterIds}
                               onSelectionChange={handleRecruiterChange}
-                              placeholder={`Select recruiters... (${safeAvailableRecruiters.length} available)`}
-                              disabled={false}
+                              placeholder={safeAvailableRecruiters.length === 0 ? "No recruiters available - can filter unassigned" : `Select recruiters... (${safeAvailableRecruiters.length} available)`}
+                              disabled={isLoading || isAiSearching}
                               recruiters={safeAvailableRecruiters}
                             />
                           </div>

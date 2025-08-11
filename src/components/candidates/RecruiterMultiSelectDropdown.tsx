@@ -179,7 +179,14 @@ export function RecruiterMultiSelectDropdown({
             {/* Regular recruiters */}
             {filteredRecruiters.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                No recruiters found.
+                {recruiters.length === 0 ? (
+                  <div>
+                    <p>No recruiters available in the system.</p>
+                    <p className="text-xs mt-1">You can still filter by unassigned candidates above.</p>
+                  </div>
+                ) : (
+                  "No recruiters found matching your search."
+                )}
               </div>
             ) : (
               filteredRecruiters.map((recruiter) => (

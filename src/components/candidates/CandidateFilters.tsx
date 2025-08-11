@@ -1492,7 +1492,7 @@ export function CandidateFilters({
                               selectedIds={selectedRecruiterIds}
                               onSelectionChange={handleRecruiterChange}
                               placeholder={safeAvailableRecruiters.length === 0 ? "No recruiters available - can filter unassigned" : `Select recruiters... (${safeAvailableRecruiters.length} available)`}
-                              disabled={isLoading || isAiSearching}
+                              disabled={false}
                               recruiters={safeAvailableRecruiters}
                             />
                           </div>

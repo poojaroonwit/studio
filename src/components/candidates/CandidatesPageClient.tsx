@@ -112,6 +112,8 @@ export function CandidatesPageClient({
   // Debug: Log when availableRecruiters changes
   useEffect(() => {
     console.log('availableRecruiters changed:', availableRecruiters);
+    console.log('availableRecruiters length:', availableRecruiters.length);
+    console.log('availableRecruiters is array:', Array.isArray(availableRecruiters));
   }, [availableRecruiters]);
 
   const [isLoading, setIsLoading] = useState(false); // Changed to false initially

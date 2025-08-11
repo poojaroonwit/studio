@@ -82,28 +82,15 @@ export async function GET(request: NextRequest) {
     // Build where conditions
     const whereConditions: any = {};
     
-    if (canManageUsers) {
-      // Admins and users with USERS_MANAGE can see all users with role filtering
-      if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
-        whereConditions.role = filterRoleInput;
-      }
-    } else if (isRecruiter) {
-      // Recruiters can only see other recruiters for assignment purposes
+    // Always allow fetching recruiters for filtering purposes, regardless of user role
+    if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
+      whereConditions.role = filterRoleInput;
+    } else if (!canManageUsers) {
+      // For non-admin users without USERS_MANAGE, default to showing only recruiters
+      // This allows them to use recruiter filters while maintaining security
       whereConditions.role = 'Recruiter';
-      if (filterRoleInput && filterRoleInput !== "ALL_ROLES" && filterRoleInput !== "Recruiter") {
-        // Return empty result for non-recruiter roles when user is recruiter
-        return NextResponse.json([], { status: 200 });
-      }
-    } else {
-      // For other users (like Hiring Managers), allow them to see recruiters for filtering purposes
-      // but restrict to only recruiters when role filter is not specified
-      if (filterRoleInput && filterRoleInput !== "ALL_ROLES") {
-        whereConditions.role = filterRoleInput;
-      } else {
-        // Default to showing only recruiters for non-admin users
-        whereConditions.role = 'Recruiter';
-      }
     }
+    // If canManageUsers and no specific role filter, show all users
 
     if (filterNameInput) {
       whereConditions.name = { contains: filterNameInput, mode: 'insensitive' };

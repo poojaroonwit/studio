@@ -30,6 +30,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
   },
+  // Disable static export to prevent timeout issues
+  trailingSlash: false,
+  skipTrailingSlashRedirect: true,
+  // Disable static generation to prevent timeout issues
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
+
   async headers() {
     return [
       {

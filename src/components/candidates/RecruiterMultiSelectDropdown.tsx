@@ -35,6 +35,12 @@ export function RecruiterMultiSelectDropdown({
 }: RecruiterMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Debug logging
+  console.log('RecruiterMultiSelectDropdown - disabled:', disabled);
+  console.log('RecruiterMultiSelectDropdown - recruiters:', recruiters);
+  console.log('RecruiterMultiSelectDropdown - selectedIds:', selectedIds);
+  console.log('RecruiterMultiSelectDropdown - placeholder:', placeholder);
 
   // Filter recruiters based on search term
   const filteredRecruiters = recruiters.filter(recruiter => 
@@ -45,13 +51,14 @@ export function RecruiterMultiSelectDropdown({
   const hasUnassigned = selectedIds.has('unassigned');
 
   const handleToggleRecruiter = (recruiterId: string) => {
-    if (disabled) return;
+    console.log('handleToggleRecruiter called with:', recruiterId);
     const newSelected = new Set(selectedIds);
     if (newSelected.has(recruiterId)) {
       newSelected.delete(recruiterId);
     } else {
       newSelected.add(recruiterId);
     }
+    console.log('handleToggleRecruiter - newSelected:', newSelected);
     onSelectionChange(newSelected);
   };
 
@@ -140,8 +147,11 @@ export function RecruiterMultiSelectDropdown({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
-          disabled={disabled}
-          onClick={() => !disabled && setOpen(!open)}
+          disabled={false}
+          onClick={() => {
+            console.log('Button clicked!');
+            setOpen(!open);
+          }}
         >
           {renderTrigger()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
@@ -155,7 +165,7 @@ export function RecruiterMultiSelectDropdown({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border-0 bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0"
-              disabled={disabled}
+              disabled={false}
             />
           </div>
           <CommandList className="max-h-[200px]">
@@ -164,8 +174,8 @@ export function RecruiterMultiSelectDropdown({
             <CommandItem
               key="unassigned"
               onSelect={() => handleToggleRecruiter('unassigned')}
-              className={cn("cursor-pointer", disabled && "opacity-50 cursor-not-allowed")}
-              disabled={disabled}
+              className="cursor-pointer"
+              disabled={false}
             >
               <Check
                 className={cn(
@@ -193,8 +203,8 @@ export function RecruiterMultiSelectDropdown({
                 <CommandItem
                   key={recruiter.id}
                   onSelect={() => handleToggleRecruiter(recruiter.id)}
-                  className={cn("cursor-pointer", disabled && "opacity-50 cursor-not-allowed")}
-                  disabled={disabled}
+                  className="cursor-pointer"
+                  disabled={false}
                 >
                   <Check
                     className={cn(

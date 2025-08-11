@@ -1034,6 +1034,13 @@ export function CandidateFilters({
   const safeAvailableStages = Array.isArray(availableStages) ? availableStages : [];
   const safeAvailableRecruiters = Array.isArray(availableRecruiters) ? availableRecruiters : [];
   
+  // Debug logging for recruiter filter
+  console.log('CandidateFilters - availableRecruiters:', availableRecruiters);
+  console.log('CandidateFilters - safeAvailableRecruiters:', safeAvailableRecruiters);
+  console.log('CandidateFilters - safeAvailableRecruiters.length:', safeAvailableRecruiters.length);
+  console.log('CandidateFilters - isLoading:', isLoading);
+  console.log('CandidateFilters - isAiSearching:', isAiSearching);
+  
 
 
 

@@ -42,10 +42,10 @@ export function StatusMultiSelectDropdown({
     };
   }, [open]);
 
-  // Filter stages based on search term
-  const filteredStages = stages.filter(stage => 
-    stage.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Show all stages, but filter based on search term if provided
+  const filteredStages = searchTerm 
+    ? stages.filter(stage => stage.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : stages;
 
   const selectedStages = stages.filter(stage => selectedIds.has(stage.name));
 
@@ -68,6 +68,15 @@ export function StatusMultiSelectDropdown({
     onSelectionChange(newSelected);
   };
 
+  const handleSelectAllStages = () => {
+    const allStageNames = new Set(stages.map(stage => stage.name));
+    onSelectionChange(allStageNames);
+  };
+
+  const handleClearAllStages = () => {
+    onSelectionChange(new Set());
+  };
+
   const renderTrigger = () => {
     if (selectedIds.size === 0) {
       return <span className="text-muted-foreground">{placeholder}</span>;
@@ -79,7 +88,7 @@ export function StatusMultiSelectDropdown({
       if (stage) {
         return (
           <div className="flex items-center gap-1">
-            <span className="text-foreground">{stage.name}</span>
+            <span className="text-foreground font-medium">{stage.name}</span>
             <X
               className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
               onClick={(e: React.MouseEvent) => handleRemoveStage(stageName, e)}
@@ -87,6 +96,18 @@ export function StatusMultiSelectDropdown({
           </div>
         );
       }
+    }
+
+    if (selectedIds.size === stages.length) {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="text-foreground font-medium">All Stages ({stages.length})</span>
+          <X
+            className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer"
+            onClick={(e: React.MouseEvent) => handleClearAllStages()}
+          />
+        </div>
+      );
     }
 
     return (
@@ -147,6 +168,23 @@ export function StatusMultiSelectDropdown({
           }}
         >
           <div className="p-2 border-b border-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Pipeline Stages</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={handleSelectAllStages}
+                  className="text-xs px-2 py-1 text-blue-600 hover:bg-blue-50 rounded"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={handleClearAllStages}
+                  className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-50 rounded"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
             <Input
               placeholder="Search pipeline stages..."
               value={searchTerm}
@@ -155,30 +193,38 @@ export function StatusMultiSelectDropdown({
             />
           </div>
           <div className="max-h-[250px] overflow-y-auto">
-            <div className="p-2 text-sm text-gray-600 bg-blue-100 border border-blue-300">
-              🎯 PIPELINE DROPDOWN IS OPEN! Click stages below:
-            </div>
-            
             {filteredStages.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 No pipeline stages found.
               </div>
             ) : (
-              filteredStages.map((stage) => (
-                <div
-                  key={stage.name}
-                  className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => handleToggleStage(stage.name)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+              <div className="py-1">
+                {filteredStages.map((stage) => (
+                  <div
+                    key={stage.name}
+                    className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => handleToggleStage(stage.name)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedIds.has(stage.name) ? "opacity-100 text-primary" : "opacity-0"
+                      )}
+                    />
+                    <span className={cn(
+                      "font-medium",
+                      selectedIds.has(stage.name) ? "text-primary" : "text-foreground"
+                    )}>
+                      {stage.name}
+                    </span>
+                    {stage.description && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {stage.description}
+                      </span>
                     )}
-                  />
-                  <span className="font-medium text-foreground">{stage.name}</span>
-                </div>
-              ))
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

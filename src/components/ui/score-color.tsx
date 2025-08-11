@@ -32,7 +32,7 @@ export function getScoreColorInfo(score: number | null | undefined): ScoreColorI
 export function ScoreBadge({ score, className = '', children }: { score: number | null | undefined, className?: string, children?: React.ReactNode }) {
   const info = getScoreColorInfo(score);
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${info.bg} ${info.text} ${className}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${info.bg} ${info.text} ${className}`}>
       {children ?? info.label}
     </span>
   );

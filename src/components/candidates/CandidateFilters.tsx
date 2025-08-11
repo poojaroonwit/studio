@@ -155,6 +155,7 @@ interface CandidateFiltersProps {
     applied: { letter: string; count: number }[];
     matching: { letter: string; count: number }[];
   };
+  candidateCounts?: { [stageName: string]: number };
 }
 
 export function CandidateFilters({
@@ -169,13 +170,21 @@ export function CandidateFilters({
     isAiSearching,
     aiSearchResults,
     advancedQuery,
-    candidateScoreCounts
+    candidateScoreCounts,
+    candidateCounts = {}
 }: CandidateFiltersProps) {
   const [name, setName] = useState(initialFilters.name || '');
   const [email, setEmail] = useState(initialFilters.email || '');
   const [phone, setPhone] = useState(initialFilters.phone || '');
   const [selectedPositionIds, setSelectedPositionIds] = useState<Set<string>>(new Set(initialFilters.selectedPositionIds || []));
-  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set(initialFilters.selectedStatuses || []));
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(() => {
+    // If initial filters have specific statuses, use those
+    if (initialFilters.selectedStatuses && initialFilters.selectedStatuses.length > 0) {
+      return new Set(initialFilters.selectedStatuses);
+    }
+    // Otherwise, select all stages by default (empty set means all stages)
+    return new Set();
+  });
   // Replace skills state with a Set for multi-select
   const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills || []));
   const [location, setLocation] = useState(initialFilters.location || '');
@@ -726,53 +735,35 @@ export function CandidateFilters({
   }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
   const handleApplyStandardFilters = (e?: React.FormEvent) => {
-    console.log('handleApplyStandardFilters called');
-    if (e) e.preventDefault();
-    // If there's an advanced query, parse and apply it
-    if (advancedQueryInput.trim()) {
-      const parsedFilters = parseAdvancedQuery(advancedQueryInput);
-      onFilterChange({
-        ...parsedFilters,
-        minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
-        maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
-        applicationDateStart: parsedFilters.applicationDateStart,
-        applicationDateEnd: parsedFilters.applicationDateEnd,
-        location: parsedFilters.location,
-        locationOperator: parsedFilters.locationOperator,
-        aiSearchQuery: undefined,
-      });
-    } else {
-      // Apply standard filters
-      const filterValues = {
-        name: name || undefined,
-        nameOperator,
-        email: email || undefined,
-        emailOperator,
-        phone: phone || undefined,
-        phoneOperator,
-        selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-        selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-        skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-        location: location || undefined,
-        locationOperator,
-        minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-        maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-        minAppliedJobFitScore: appliedJobFitScoreRange[0],
-        maxAppliedJobFitScore: appliedJobFitScoreRange[1],
-        minMatchingJobFitScore: matchingJobFitScoreRange[0],
-        maxMatchingJobFitScore: matchingJobFitScoreRange[1],
-        applicationDateStart: applicationDateRange?.from,
-        applicationDateEnd: applicationDateRange?.to,
-        selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-        aiSearchQuery: undefined,
-      };
-      
-
-      
-
-      
-      onFilterChange(filterValues);
+    if (e) {
+      e.preventDefault();
     }
+
+    const newFilters: CandidateFilterValues = {
+      name: name || undefined,
+      nameOperator,
+      email: email || undefined,
+      emailOperator,
+      phone: phone || undefined,
+      phoneOperator,
+      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+      // If no stages are selected, it means all stages (don't send status filter)
+      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+      location: location || undefined,
+      locationOperator,
+      minExperienceYears: experienceYearsRange[0] === -1 ? undefined : experienceYearsRange[0],
+      maxExperienceYears: experienceYearsRange[1] === 50 ? undefined : experienceYearsRange[1],
+      minAppliedJobFitScore: appliedJobFitScoreRange[0] === 81 ? undefined : appliedJobFitScoreRange[0],
+      maxAppliedJobFitScore: appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1],
+      minMatchingJobFitScore: matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0],
+      maxMatchingJobFitScore: matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1],
+      applicationDateStart: applicationDateRange?.from,
+      applicationDateEnd: applicationDateRange?.to,
+      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+    };
+
+    onFilterChange(newFilters);
   };
 
   const handleAiSearchClick = () => {
@@ -1483,6 +1474,7 @@ export function CandidateFilters({
                               onSelectionChange={handleStatusChange}
                               placeholder="Select pipeline stages..."
                               stages={safeAvailableStages}
+                              candidateCounts={candidateCounts}
                             />
                           </div>
                           <div>

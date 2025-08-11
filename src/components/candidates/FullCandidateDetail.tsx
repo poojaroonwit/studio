@@ -258,9 +258,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [experienceOpen, setExperienceOpen] = useState(true);
   const [skillsOpen, setSkillsOpen] = useState(true);
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
-  const [recruiters, setRecruiters] = useState<{ id: string; name: string }[]>([]);
-  const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
-  const [filteredRecruiters, setFilteredRecruiters] = useState<{ id: string; name: string }[]>([]);
+
   const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
   const { data: session } = useSession();
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
@@ -428,11 +426,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   useEffect(() => {
     const fetchRecruiters = async () => {
       try {
-        const res = await fetch('/api/users');
+        const res = await fetch('/api/users?role=Recruiter');
         if (res.ok) {
           const data = await res.json();
-          setAvailableRecruiters(data.data || []);
-          setRecruiters(data.data?.map((user: any) => ({ id: user.id, name: user.name })) || []);
+          setAvailableRecruiters(data || []);
         } else {
           console.error('Failed to fetch recruiters');
         }
@@ -513,6 +510,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       return;
     }
 
+    // Process education data to handle optional month/year fields
+    const processedEducation = Array.isArray(data.parsedData?.education)
+      ? data.parsedData.education.map(edu => ({
+          ...edu,
+          startMonth: edu.startMonth && edu.startMonth.trim() !== '' ? String(edu.startMonth) : null,
+          startYear: edu.startYear && edu.startYear.trim() !== '' ? String(edu.startYear) : null,
+          endMonth: edu.endMonth && edu.endMonth.trim() !== '' ? String(edu.endMonth) : null,
+          endYear: edu.endYear && edu.endYear.trim() !== '' ? String(edu.endYear) : null,
+          isCurrent: typeof edu.isCurrent === 'boolean' ? edu.isCurrent : false,
+        }))
+      : [];
+    
+    // Process experience data to handle optional month/year fields
+    const processedExperience = Array.isArray(data.parsedData?.experience)
+      ? data.parsedData.experience.map(exp => ({
+          ...exp,
+          startMonth: exp.startMonth && exp.startMonth.trim() !== '' ? String(exp.startMonth) : null,
+          startYear: exp.startYear && exp.startYear.trim() !== '' ? String(exp.startYear) : null,
+          endMonth: exp.endMonth && exp.endMonth.trim() !== '' ? String(exp.endMonth) : null,
+          endYear: exp.endYear && exp.endYear.trim() !== '' ? String(exp.endYear) : null,
+          isCurrent: typeof exp.isCurrent === 'boolean' ? exp.isCurrent : false,
+        }))
+      : [];
+
     // Build the API payload with all form fields
     const apiPayload = {
       // Top-level fields from the form
@@ -535,8 +556,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       })),
       job_suitable: data.parsedData?.job_suitable,
       job_matches: data.parsedData?.job_matches,
-        education: data.parsedData?.education || [],
-        experience: data.parsedData?.experience || [],
+        education: processedEducation,
+        experience: processedExperience,
       }
     };
     try {
@@ -1189,7 +1210,23 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
                             status: candidate.status || '',
                             recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                            parsedData: (candidate.parsedData as any) || {}
+                            parsedData: {
+                              ...(candidate.parsedData as any),
+                              education: ((candidate.parsedData as any)?.education || []).map(edu => ({
+                                ...edu,
+                                startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+                                startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+                                endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+                                endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+                              })),
+                              experience: ((candidate.parsedData as any)?.experience || []).map(exp => ({
+                                ...exp,
+                                startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+                                startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+                                endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+                                endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                              })),
+                            }
                           });
                         }
                       }}

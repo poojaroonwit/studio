@@ -1619,6 +1619,18 @@ export function CandidatesPageClient({
     );
   }
 
+  // Calculate candidate counts by stage for the pipeline stage filter
+  const candidateCountsByStage = useMemo(() => {
+    const stageCounts: { [stageName: string]: number } = {};
+    
+    allCandidates.forEach((candidate: Candidate) => {
+      const status = candidate.status;
+      stageCounts[status] = (stageCounts[status] || 0) + 1;
+    });
+    
+    return stageCounts;
+  }, [allCandidates]);
+
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
@@ -1647,6 +1659,7 @@ export function CandidatesPageClient({
               isAiSearching={isAiSearching}
               advancedQuery={advancedQueryFromUrl}
               candidateScoreCounts={candidateScoreCounts}
+              candidateCounts={candidateCountsByStage}
             />
           </div>
         </aside>

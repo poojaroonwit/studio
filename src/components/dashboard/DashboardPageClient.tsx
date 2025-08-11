@@ -780,11 +780,11 @@ export default function DashboardPageClient({
                         label: 'Candidates',
                         data: sortedScoreRanges.map(r => r.count),
                         backgroundColor: [
-                          'rgba(239, 68, 68, 0.8)',    // red-500
-                          'rgba(249, 115, 22, 0.8)',   // orange-500
-                          'rgba(234, 179, 8, 0.8)',    // yellow-500
-                          'rgba(59, 130, 246, 0.8)',   // blue-500
-                          'rgba(34, 197, 94, 0.8)',    // green-500
+                          'rgba(248, 113, 113, 0.8)',  // red-400 (E grade)
+                          'rgba(251, 146, 60, 0.8)',   // orange-400 (D grade)
+                          'rgba(254, 240, 138, 0.8)',  // yellow-200 (C grade)
+                          'rgba(250, 204, 21, 0.8)',   // yellow-400 (B grade)
+                          'rgba(163, 230, 53, 0.8)',   // lime-400 (A grade)
                         ],
                         borderRadius: 8,
                         borderSkipped: false,

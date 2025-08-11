@@ -17,6 +17,7 @@ interface StatusMultiSelectDropdownProps {
   placeholder?: string;
   className?: string;
   stages: RecruitmentStage[];
+  candidateCounts?: { [stageName: string]: number };
 }
 
 export function StatusMultiSelectDropdown({
@@ -24,7 +25,8 @@ export function StatusMultiSelectDropdown({
   onSelectionChange,
   placeholder = "Select pipeline stages...",
   className,
-  stages
+  stages,
+  candidateCounts = {}
 }: StatusMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,11 +40,20 @@ export function StatusMultiSelectDropdown({
 
   const handleToggleStage = (stageName: string) => {
     const newSelected = new Set(selectedIds);
+    
     if (newSelected.has(stageName)) {
+      // Remove this stage
       newSelected.delete(stageName);
+      
+      // If no stages are selected, it means show all stages
+      if (newSelected.size === 0) {
+        // Keep empty set to indicate "all stages"
+      }
     } else {
+      // Add this stage
       newSelected.add(stageName);
     }
+    
     onSelectionChange(newSelected);
   };
 
@@ -54,8 +65,9 @@ export function StatusMultiSelectDropdown({
   };
 
   const renderTrigger = () => {
+    // If no stages are selected, it means all stages are selected by default
     if (selectedIds.size === 0) {
-      return <span className="text-muted-foreground">{placeholder}</span>;
+      return <span className="text-muted-foreground">All pipeline stages</span>;
     }
 
     if (selectedIds.size === 1) {
@@ -65,12 +77,6 @@ export function StatusMultiSelectDropdown({
         return (
           <div className="flex items-center gap-2">
             <span className="truncate text-foreground">{stage.name}</span>
-            <Badge 
-              variant="secondary"
-              className="text-xs"
-            >
-              {stage.sort_order || 'N/A'}
-            </Badge>
           </div>
         );
       }
@@ -149,21 +155,20 @@ export function StatusMultiSelectDropdown({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+                        selectedIds.size === 0 || selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <div className="flex flex-col">
+                    <div className="flex flex-col flex-1">
                       <span className="font-medium text-foreground">{stage.name}</span>
                       <span className="text-sm text-muted-foreground">
-                        Stage {stage.sort_order || 'N/A'}
-                        {stage.description && ` • ${stage.description}`}
+                        {stage.description && stage.description}
                       </span>
                     </div>
                     <Badge 
                       variant="outline"
                       className="ml-auto text-xs"
                     >
-                      {stage.sort_order || 'N/A'}
+                      {candidateCounts[stage.name] || 0}
                     </Badge>
                   </div>
                 ))}

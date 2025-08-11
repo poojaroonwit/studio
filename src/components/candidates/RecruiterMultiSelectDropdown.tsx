@@ -38,11 +38,27 @@ export function RecruiterMultiSelectDropdown({
 
   const handleToggleRecruiter = (recruiterId: string) => {
     const newSelected = new Set(selectedIds);
-    if (newSelected.has(recruiterId)) {
-      newSelected.delete(recruiterId);
+    
+    if (recruiterId === 'unassigned') {
+      // If unassigned is being selected, clear all other selections
+      if (newSelected.has('unassigned')) {
+        newSelected.delete('unassigned');
+      } else {
+        newSelected.clear();
+        newSelected.add('unassigned');
+      }
     } else {
-      newSelected.add(recruiterId);
+      // If a specific recruiter is being selected
+      if (newSelected.has(recruiterId)) {
+        // Remove this recruiter
+        newSelected.delete(recruiterId);
+      } else {
+        // Add this recruiter and remove unassigned if it was selected
+        newSelected.delete('unassigned');
+        newSelected.add(recruiterId);
+      }
     }
+    
     onSelectionChange(newSelected);
   };
 
@@ -214,12 +230,6 @@ export function RecruiterMultiSelectDropdown({
                         Recruiter
                       </span>
                     </div>
-                    <Badge 
-                      variant="default"
-                      className="ml-auto text-xs"
-                    >
-                      Active
-                    </Badge>
                   </div>
                 ))}
               </div>

@@ -922,6 +922,31 @@ export default function CandidateDetailPage() {
                 : []),
         }))
       : [];
+    
+    // Process education data to handle optional month/year fields
+    const processedEducation = Array.isArray(data.parsedData?.education)
+      ? data.parsedData.education.map(edu => ({
+          ...edu,
+          startMonth: edu.startMonth && edu.startMonth.trim() !== '' ? String(edu.startMonth) : null,
+          startYear: edu.startYear && edu.startYear.trim() !== '' ? String(edu.startYear) : null,
+          endMonth: edu.endMonth && edu.endMonth.trim() !== '' ? String(edu.endMonth) : null,
+          endYear: edu.endYear && edu.endYear.trim() !== '' ? String(edu.endYear) : null,
+          isCurrent: typeof edu.isCurrent === 'boolean' ? edu.isCurrent : false,
+        }))
+      : [];
+    
+    // Process experience data to handle optional month/year fields
+    const processedExperience = Array.isArray(data.parsedData?.experience)
+      ? data.parsedData.experience.map(exp => ({
+          ...exp,
+          startMonth: exp.startMonth && exp.startMonth.trim() !== '' ? String(exp.startMonth) : null,
+          startYear: exp.startYear && exp.startYear.trim() !== '' ? String(exp.startYear) : null,
+          endMonth: exp.endMonth && exp.endMonth.trim() !== '' ? String(exp.endMonth) : null,
+          endYear: exp.endYear && exp.endYear.trim() !== '' ? String(exp.endYear) : null,
+          isCurrent: typeof exp.isCurrent === 'boolean' ? exp.isCurrent : false,
+        }))
+      : [];
+    
     const processedData = {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
@@ -931,6 +956,8 @@ export default function CandidateDetailPage() {
         : data.assignmentJustification,
       parsedData: {
         ...data.parsedData,
+        education: processedEducation,
+        experience: processedExperience,
         job_applied: newJobApplied,
         // Do NOT save job_matches in parsedData
       },
@@ -983,15 +1010,11 @@ export default function CandidateDetailPage() {
                     is_current_position: typeof exp.is_current_position === 'string'
                         ? exp.is_current_position === 'true'
                         : !!exp.is_current_position,
-                })) as {
-                    period?: string | null;
-                    duration?: string | null;
-                    company?: string | null;
-                    position?: string | null;
-                    description?: string | null;
-                    is_current_position?: boolean;
-                    postition_level?: string | null;
-                }[],
+                    startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+                    startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+                    endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+                    endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                })),
                 education: ((candidate.parsedData as CandidateDetails)?.education || []).map(edu => ({
                     ...edu,
                     startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
@@ -2476,19 +2499,80 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                                         <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
                                         {/* Education Edit Fields */}
-                                        <select {...register(`parsedData.education.${index}.startMonth`)}>
-                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                        <select {...register(`parsedData.education.${index}.startYear`)}>
-                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
-                                        </select>
-                                        <span>-</span>
-                                        <select {...register(`parsedData.education.${index}.endMonth`)} disabled={!!watch(`parsedData.education.${index}.isCurrent`)}>
-                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                        <select {...register(`parsedData.education.${index}.endYear`)} disabled={!!watch(`parsedData.education.${index}.isCurrent`)}>
-                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
-                                        </select>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <Label className="text-xs">Start Month</Label>
+                                            <Select
+                                              value={watch(`parsedData.education.${index}.startMonth`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.education.${index}.startMonth`, value)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Month" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                                  <SelectItem key={month} value={month.toString()}>
+                                                    {months[month - 1]}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs">Start Year</Label>
+                                            <Select
+                                              value={watch(`parsedData.education.${index}.startYear`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.education.${index}.startYear`, value)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Year" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {yearRange.map((y: string) => (
+                                                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <Label className="text-xs">End Month</Label>
+                                            <Select
+                                              value={watch(`parsedData.education.${index}.endMonth`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.education.${index}.endMonth`, value)}
+                                              disabled={!!watch(`parsedData.education.${index}.isCurrent`)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Month" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                                  <SelectItem key={month} value={month.toString()}>
+                                                    {months[month - 1]}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs">End Year</Label>
+                                            <Select
+                                              value={watch(`parsedData.education.${index}.endYear`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.education.${index}.endYear`, value)}
+                                              disabled={!!watch(`parsedData.education.${index}.isCurrent`)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Year" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {yearRange.map((y: string) => (
+                                                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
                                         <label>
                                           <input type="checkbox" {...register(`parsedData.education.${index}.isCurrent`)} /> Present
                                         </label>
@@ -2586,20 +2670,80 @@ export default function CandidateDetailPage() {
                                         <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                                         <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
                                         <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
-                                        {/* Experience Edit Fields: same as above, but for experience */}
-                                        <select {...register(`parsedData.experience.${index}.startMonth`)}>
-                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                        <select {...register(`parsedData.experience.${index}.startYear`)}>
-                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
-                                        </select>
-                                        <span>-</span>
-                                        <select {...register(`parsedData.experience.${index}.endMonth`)} disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
-                                          {months.map((m: string) => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                        <select {...register(`parsedData.experience.${index}.endYear`)} disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
-                                          {yearRange.map((y: string) => <option key={y} value={y}>{y}</option>)}
-                                        </select>
+                                        {/* Experience Edit Fields */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <Label className="text-xs">Start Month</Label>
+                                            <Select
+                                              value={watch(`parsedData.experience.${index}.startMonth`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.experience.${index}.startMonth`, value)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Month" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                                  <SelectItem key={month} value={month.toString()}>
+                                                    {months[month - 1]}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs">Start Year</Label>
+                                            <Select
+                                              value={watch(`parsedData.experience.${index}.startYear`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.experience.${index}.startYear`, value)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Year" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {yearRange.map((y: string) => (
+                                                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>
+                                            <Label className="text-xs">End Month</Label>
+                                            <Select
+                                              value={watch(`parsedData.experience.${index}.endMonth`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.experience.${index}.endMonth`, value)}
+                                              disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Month" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                                  <SelectItem key={month} value={month.toString()}>
+                                                    {months[month - 1]}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div>
+                                            <Label className="text-xs">End Year</Label>
+                                            <Select
+                                              value={watch(`parsedData.experience.${index}.endYear`)?.toString() || ''}
+                                              onValueChange={(value) => setValue(`parsedData.experience.${index}.endYear`, value)}
+                                              disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Year" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {yearRange.map((y: string) => (
+                                                  <SelectItem key={y} value={y}>{y}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
                                         <label>
                                           <input type="checkbox" {...register(`parsedData.experience.${index}.isCurrent`)} /> Present
                                         </label>

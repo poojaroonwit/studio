@@ -15,6 +15,7 @@ interface RecruiterMultiSelectDropdownProps {
   onSelectionChange: (selectedIds: Set<string>) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
   recruiters: { id: string; name: string }[];
 }
 
@@ -23,6 +24,7 @@ export function RecruiterMultiSelectDropdown({
   onSelectionChange,
   placeholder = "Select recruiters...",
   className,
+  disabled = false,
   recruiters
 }: RecruiterMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -69,6 +71,7 @@ export function RecruiterMultiSelectDropdown({
       }
     }
     
+    // Use a callback to ensure we're working with the latest state
     onSelectionChange(newSelected);
   };
 
@@ -186,6 +189,7 @@ export function RecruiterMultiSelectDropdown({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
+          disabled={disabled}
         >
           {renderTrigger()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
@@ -215,12 +219,12 @@ export function RecruiterMultiSelectDropdown({
                 {/* Select All Option */}
                 <div
                   key="select-all"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
                   onClick={() => handleToggleRecruiter('select-all')}
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 transition-opacity duration-150",
                       hasSelectAll ? "opacity-100" : "opacity-0"
                     )}
                   />
@@ -240,12 +244,12 @@ export function RecruiterMultiSelectDropdown({
                 {/* Unassigned Option */}
                 <div
                   key="unassigned"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
                   onClick={() => handleToggleRecruiter('unassigned')}
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 transition-opacity duration-150",
                       hasUnassigned ? "opacity-100" : "opacity-0"
                     )}
                   />
@@ -265,12 +269,12 @@ export function RecruiterMultiSelectDropdown({
                 {filteredRecruiters.map((recruiter) => (
                   <div
                     key={recruiter.id}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => handleToggleRecruiter(recruiter.id)}
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-4 w-4 transition-opacity duration-150",
                         selectedIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
                       )}
                     />

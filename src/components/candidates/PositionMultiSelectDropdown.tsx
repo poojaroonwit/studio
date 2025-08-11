@@ -104,6 +104,7 @@ export function PositionMultiSelectDropdown({
       } else {
         newSelected.add(positionId);
       }
+      // Use a callback to ensure we're working with the latest state
       onSelectionChange(newSelected);
     }
   };
@@ -236,12 +237,12 @@ export function PositionMultiSelectDropdown({
                 {showUnassignedOption && (
                   <div
                     key="not-applied"
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => handleTogglePosition('not-applied')}
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-4 w-4 transition-opacity duration-150",
                         selectedIds.has('not-applied') ? "opacity-100" : "opacity-0"
                       )}
                     />
@@ -262,12 +263,12 @@ export function PositionMultiSelectDropdown({
                 {filteredPositions.map((position) => (
                   <div
                     key={position.id}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => handleTogglePosition(position.id)}
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-4 w-4 transition-opacity duration-150",
                         selectedIds.has(position.id) ? "opacity-100" : "opacity-0"
                       )}
                     />

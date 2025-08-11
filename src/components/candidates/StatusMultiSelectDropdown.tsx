@@ -16,6 +16,7 @@ interface StatusMultiSelectDropdownProps {
   onSelectionChange: (selectedIds: Set<string>) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
   stages: RecruitmentStage[];
   candidateCounts?: { [stageName: string]: number };
 }
@@ -25,6 +26,7 @@ export function StatusMultiSelectDropdown({
   onSelectionChange,
   placeholder = "Select pipeline stages...",
   className,
+  disabled = false,
   stages,
   candidateCounts = {}
 }: StatusMultiSelectDropdownProps) {
@@ -62,6 +64,7 @@ export function StatusMultiSelectDropdown({
       }
     }
     
+    // Use a callback to ensure we're working with the latest state
     onSelectionChange(newSelected);
   };
 
@@ -143,6 +146,7 @@ export function StatusMultiSelectDropdown({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between bg-background text-foreground border-border hover:bg-accent hover:text-accent-foreground [&>*]:!text-foreground", className)}
+          disabled={disabled}
         >
           {renderTrigger()}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
@@ -172,12 +176,12 @@ export function StatusMultiSelectDropdown({
                 {/* Select All Option */}
                 <div
                   key="select-all"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border transition-colors duration-150"
                   onClick={() => handleToggleStage('select-all')}
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 transition-opacity duration-150",
                       hasSelectAll ? "opacity-100" : "opacity-0"
                     )}
                   />
@@ -197,12 +201,12 @@ export function StatusMultiSelectDropdown({
                 {filteredStages.map((stage) => (
                   <div
                     key={stage.name}
-                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => handleToggleStage(stage.name)}
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-4 w-4 transition-opacity duration-150",
                         selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
                       )}
                     />

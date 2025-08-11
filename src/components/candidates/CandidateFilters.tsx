@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -186,7 +186,7 @@ export function CandidateFilters({
     return new Set();
   });
   // Replace skills state with a Set for multi-select
-  const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills || []));
+  const [skills, setSkills] = useState<Set<string>>(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
   const [location, setLocation] = useState(initialFilters.location || '');
   const [experienceYearsRange, setExperienceYearsRange] = useState<[number, number]>([
     initialFilters.minExperienceYears ?? -1,
@@ -205,6 +205,11 @@ export function CandidateFilters({
   const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
   const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
   
+  // Add refs for debouncing multiselect changes
+  const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const isInitialLoadRef = useRef(true);
+
   const [applicationDateRange, setApplicationDateRange] = useState<DateRange | undefined>(
     initialFilters.applicationDateStart && initialFilters.applicationDateEnd
       ? { from: initialFilters.applicationDateStart, to: initialFilters.applicationDateEnd }
@@ -633,29 +638,33 @@ export function CandidateFilters({
     });
   };
 
+  // Only reset state on initial load or when initialFilters actually change
   useEffect(() => {
-    setName(initialFilters.name || '');
-    setEmail(initialFilters.email || '');
-    setPhone(initialFilters.phone || '');
-    setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
-    setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
-    setSkills(new Set(initialFilters.skills || []));
-    setLocation(initialFilters.location || '');
-    setLocationOperator(initialFilters.locationOperator || 'contains');
-                    setExperienceYearsRange([initialFilters.minExperienceYears || 0, initialFilters.maxExperienceYears || 50]);
-                setAppliedJobFitScoreRange([initialFilters.minAppliedJobFitScore || 0, initialFilters.maxAppliedJobFitScore || 100]);
-                setMatchingJobFitScoreRange([initialFilters.minMatchingJobFitScore || 0, initialFilters.maxMatchingJobFitScore || 100]);
-    setApplicationDateRange(
-      initialFilters.applicationDateStart && initialFilters.applicationDateEnd
-        ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
-        : initialFilters.applicationDateStart
-        ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
-        : undefined
-    );
-    setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
-    setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
-    setAiSearchType(initialFilters.aiSearchType || 'hybrid');
-    setAiSearchFilters(initialFilters.aiSearchFilters || {});
+    if (isInitialLoadRef.current) {
+      setName(initialFilters.name || '');
+      setEmail(initialFilters.email || '');
+      setPhone(initialFilters.phone || '');
+      setSelectedPositionIds(new Set(initialFilters.selectedPositionIds || []));
+      setSelectedStatuses(new Set(initialFilters.selectedStatuses || []));
+      setSkills(new Set(initialFilters.skills ? initialFilters.skills.split(',').filter(Boolean) : []));
+      setLocation(initialFilters.location || '');
+      setLocationOperator(initialFilters.locationOperator || 'contains');
+      setExperienceYearsRange([initialFilters.minExperienceYears ?? 0, initialFilters.maxExperienceYears || 50]);
+      setAppliedJobFitScoreRange([initialFilters.minAppliedJobFitScore ?? 0, initialFilters.maxAppliedJobFitScore ?? 100]);
+      setMatchingJobFitScoreRange([initialFilters.minMatchingJobFitScore ?? 0, initialFilters.maxMatchingJobFitScore ?? 100]);
+      setApplicationDateRange(
+        initialFilters.applicationDateStart && initialFilters.applicationDateEnd
+          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: parseISO(String(initialFilters.applicationDateEnd)) }
+          : initialFilters.applicationDateStart
+          ? { from: parseISO(String(initialFilters.applicationDateStart)), to: undefined }
+          : undefined
+      );
+      setSelectedRecruiterIds(new Set(initialFilters.selectedRecruiterIds || []));
+      setAiSearchQueryInput(initialFilters.aiSearchQuery || '');
+      setAiSearchType(initialFilters.aiSearchType || 'hybrid');
+      setAiSearchFilters(initialFilters.aiSearchFilters || {});
+      isInitialLoadRef.current = false;
+    }
   }, [initialFilters]);
 
   // Auto-apply filters when they are set from URL parameters
@@ -734,7 +743,21 @@ export function CandidateFilters({
     return () => clearTimeout(timeoutId);
   }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (multiselectTimeoutRef.current) {
+        clearTimeout(multiselectTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleApplyStandardFilters = () => {
+    // Clear any pending multiselect timeout
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
 
     const newFilters: CandidateFilterValues = {
       name: name || undefined,
@@ -762,6 +785,26 @@ export function CandidateFilters({
 
     console.log('handleApplyStandardFilters - newFilters:', newFilters);
     onFilterChange(newFilters);
+    
+    // Clear loading state
+    setIsApplyingFilters(false);
+  };
+
+  // Debounced version for multiselect changes to improve UX
+  const handleApplyStandardFiltersDebounced = () => {
+    // Clear any existing timeout
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+    }
+    
+    // Show loading state immediately for better UX
+    setIsApplyingFilters(true);
+    
+    // Set a new timeout for debounced filter application
+    multiselectTimeoutRef.current = setTimeout(() => {
+      handleApplyStandardFilters();
+      setIsApplyingFilters(false);
+    }, 300); // 300ms delay for smooth multiselect experience
   };
 
   const handleAiSearchClick = () => {
@@ -784,28 +827,28 @@ export function CandidateFilters({
   // Wrapper functions to apply filters when dropdown values change
   const handlePositionChange = (newSelectedIds: Set<string>) => {
     setSelectedPositionIds(newSelectedIds);
-    // Apply filters immediately when positions change
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth multiselect experience
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleStatusChange = (newSelectedStatuses: Set<string>) => {
     setSelectedStatuses(newSelectedStatuses);
-    // Apply filters immediately when statuses change
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth multiselect experience
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
     console.log('handleRecruiterChange called with:', Array.from(newSelectedRecruiterIds));
     setSelectedRecruiterIds(newSelectedRecruiterIds);
-    // Apply filters immediately when recruiters change
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth multiselect experience
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
     console.log('handleExperienceYearsChange called with:', newRange);
     setExperienceYearsRange(newRange);
-    // Apply filters immediately when experience years change
-    handleApplyStandardFilters();
+    // Apply filters with debouncing for smooth experience years change
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleFitScoreRangeChange = (newRange: [number, number]) => {
@@ -1346,6 +1389,8 @@ export function CandidateFilters({
                                       const newSkills = new Set(skills);
                                       newSkills.delete(skill);
                                       setSkills(newSkills);
+                                      // Apply filters after removing skill
+                                      setTimeout(() => handleApplyStandardFilters(), 100);
                                     }}
                                     aria-label={`Remove ${skill}`}
                                     tabIndex={-1}
@@ -1362,13 +1407,21 @@ export function CandidateFilters({
                                 disabled={isLoading || isAiSearching}
                                 onKeyDown={e => {
                                   if (isLoading || isAiSearching) return;
+                                  
+                                  // Always prevent default for Enter key to avoid form submission
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                  
                                   const value = (e.target as HTMLInputElement).value.trim();
                                   if ((e.key === 'Enter' || e.key === ',' || e.key === 'Tab') && value) {
-                                    e.preventDefault();
                                     if (!skills.has(value)) {
                                       const newSkills = new Set(skills);
                                       newSkills.add(value);
                                       setSkills(newSkills);
+                                      // Apply filters after adding skill
+                                      setTimeout(() => handleApplyStandardFilters(), 100);
                                     }
                                     (e.target as HTMLInputElement).value = '';
                                     // Apply filters after adding skill
@@ -1377,7 +1430,6 @@ export function CandidateFilters({
                                     }
                                   } else if (e.key === 'Enter' && !value) {
                                     // If Enter is pressed with empty input, apply filters
-                                    e.preventDefault();
                                     handleApplyStandardFilters();
                                   } else if (e.key === 'Backspace' && !value && skills.size > 0) {
                                     // Remove last skill if input is empty and backspace is pressed
@@ -1386,20 +1438,32 @@ export function CandidateFilters({
                                     const newSkills = new Set(skills);
                                     newSkills.delete(last);
                                     setSkills(newSkills);
+                                    // Apply filters after removing skill
+                                    setTimeout(() => handleApplyStandardFilters(), 100);
                                   }
+                                }}
+                                onChange={e => {
+                                  // Handle input change without preventing default
+                                  // The input value is managed by the onKeyDown handler
                                 }}
                                 onPaste={e => {
                                   if (isLoading || isAiSearching) return;
                                   const paste = e.clipboardData.getData('text');
                                   if (paste) {
                                     e.preventDefault();
+                                    let hasChanges = false;
                                     paste.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
                                       if (!skills.has(skill)) {
                                         const newSkills = new Set(skills);
                                         newSkills.add(skill);
                                         setSkills(newSkills);
+                                        hasChanges = true;
                                       }
                                     });
+                                    // Apply filters after pasting skills
+                                    if (hasChanges) {
+                                      setTimeout(() => handleApplyStandardFilters(), 100);
+                                    }
                                   }
                                 }}
                               />
@@ -1458,11 +1522,17 @@ export function CandidateFilters({
                               selectedIds={selectedPositionIds}
                               onSelectionChange={handlePositionChange}
                               placeholder="Select positions..."
-                              disabled={isLoading || isAiSearching}
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
                               showOpenStatus={true}
                               filterOpenOnly={false}
                               showUnassignedOption={true}
                             />
+                            {isApplyingFilters && (
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                Applying filters...
+                              </div>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
@@ -1472,7 +1542,14 @@ export function CandidateFilters({
                               placeholder="Select pipeline stages..."
                               stages={safeAvailableStages}
                               candidateCounts={candidateCounts}
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
                             />
+                            {isApplyingFilters && (
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                Applying filters...
+                              </div>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
@@ -1481,7 +1558,14 @@ export function CandidateFilters({
                               onSelectionChange={handleRecruiterChange}
                               placeholder={safeAvailableRecruiters.length === 0 ? "No recruiters available - can filter unassigned" : `Select recruiters... (${safeAvailableRecruiters.length} available)`}
                               recruiters={safeAvailableRecruiters}
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
                             />
+                            {isApplyingFilters && (
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                Applying filters...
+                              </div>
+                            )}
                           </div>
                         </div>
                       </AccordionContent>
@@ -1511,7 +1595,9 @@ export function CandidateFilters({
                                     onChange={(e) => {
                                       const value = e.target.value === '' ? 0 : parseInt(e.target.value);
                                       if (!isNaN(value) && value >= 0 && value <= 50) {
-                                        handleExperienceYearsChange([value, Math.max(value, experienceYearsRange[1])]);
+                                        const currentMax = experienceYearsRange[1];
+                                        const newMax = Math.max(value, currentMax);
+                                        handleExperienceYearsChange([value, newMax]);
                                       }
                                     }}
                                     placeholder="Min"
@@ -1530,7 +1616,9 @@ export function CandidateFilters({
                                     onChange={(e) => {
                                       const value = e.target.value === '' ? 50 : parseInt(e.target.value);
                                       if (!isNaN(value) && value >= 0 && value <= 50) {
-                                        handleExperienceYearsChange([Math.min(experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0], value), value]);
+                                        const currentMin = experienceYearsRange[0] === -1 ? 0 : experienceYearsRange[0];
+                                        const newMin = Math.min(currentMin, value);
+                                        handleExperienceYearsChange([newMin, value]);
                                       }
                                     }}
                                     placeholder="Max"
@@ -1555,6 +1643,8 @@ export function CandidateFilters({
                                   } else {
                                     setExperienceYearsRange([0, 50]); // Reset to default
                                   }
+                                  // Apply filters when checkbox changes
+                                  setTimeout(() => handleApplyStandardFilters(), 100);
                                 }}
                                 disabled={isLoading || isAiSearching}
                                 className="rounded border-border text-primary focus:ring-primary"
@@ -1813,4 +1903,3 @@ export function CandidateFilters({
     </div>
   );
 }
-

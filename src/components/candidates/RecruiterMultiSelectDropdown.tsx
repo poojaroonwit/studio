@@ -35,11 +35,20 @@ export function RecruiterMultiSelectDropdown({
 
   const selectedRecruiters = recruiters.filter(recruiter => selectedIds.has(recruiter.id));
   const hasUnassigned = selectedIds.has('unassigned');
+  const hasSelectAll = selectedIds.has('select-all');
 
   const handleToggleRecruiter = (recruiterId: string) => {
     const newSelected = new Set(selectedIds);
     
-    if (recruiterId === 'unassigned') {
+    if (recruiterId === 'select-all') {
+      // If "Select All" is being selected, clear all other selections
+      if (newSelected.has('select-all')) {
+        newSelected.delete('select-all');
+      } else {
+        newSelected.clear();
+        newSelected.add('select-all');
+      }
+    } else if (recruiterId === 'unassigned') {
       // If unassigned is being selected, clear all other selections
       if (newSelected.has('unassigned')) {
         newSelected.delete('unassigned');
@@ -53,7 +62,8 @@ export function RecruiterMultiSelectDropdown({
         // Remove this recruiter
         newSelected.delete(recruiterId);
       } else {
-        // Add this recruiter and remove unassigned if it was selected
+        // Add this recruiter and remove "Select All" and "unassigned" if they were selected
+        newSelected.delete('select-all');
         newSelected.delete('unassigned');
         newSelected.add(recruiterId);
       }
@@ -70,6 +80,21 @@ export function RecruiterMultiSelectDropdown({
   };
 
   const renderTrigger = () => {
+    // If "Select All" is selected
+    if (hasSelectAll) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="truncate text-foreground">All recruiters</span>
+          <Badge 
+            variant="default"
+            className="text-xs"
+          >
+            Select All
+          </Badge>
+        </div>
+      );
+    }
+
     if (selectedIds.size === 0) {
       return <span className="text-muted-foreground">{placeholder}</span>;
     }
@@ -187,16 +212,41 @@ export function RecruiterMultiSelectDropdown({
               </div>
             ) : (
               <div className="p-1">
+                {/* Select All Option */}
+                <div
+                  key="select-all"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
+                  onClick={() => handleToggleRecruiter('select-all')}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      hasSelectAll ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">Select All</span>
+                    <span className="text-sm text-muted-foreground">
+                      All recruiters
+                    </span>
+                  </div>
+                  <Badge 
+                    variant="default"
+                    className="ml-auto text-xs"
+                  >
+                    All
+                  </Badge>
+                </div>
                 {/* Unassigned Option */}
                 <div
                   key="unassigned"
-                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
                   onClick={() => handleToggleRecruiter('unassigned')}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selectedIds.has('unassigned') ? "opacity-100" : "opacity-0"
+                      hasUnassigned ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <div className="flex flex-col">

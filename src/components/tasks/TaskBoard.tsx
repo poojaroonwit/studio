@@ -428,33 +428,24 @@ export function TaskBoard({
                                   <span className="font-medium">Skills:</span>
                                 </div>
                                 <div className="flex flex-wrap gap-1">
-                                  {task.skills.slice(0, 5).map((skill: any, idx: number) => (
-                                    <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                                  {task.skills.slice(0, 3).map((skill: any, idx: number) => (
+                                    <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
                                       {skill.skill_string || skill.segment_skill || 'Skill'}
                                     </span>
                                   ))}
-                                  {task.skills.length > 5 && (
+                                  {task.skills.length > 3 && (
                                     <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                      +{task.skills.length - 5} other
+                                      +{task.skills.length - 3} other
                                     </span>
                                   )}
                                 </div>
                               </div>
                             )}
 
-                            {/* Tags */}
-                            {showTags && task.tags && task.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {task.tags.slice(0, 2).map((tag, index) => (
-                                  <span key={index} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                    {tag}
-                                  </span>
-                                ))}
-                                {task.tags.length > 2 && (
-                                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                    +{task.tags.length - 2}
-                                  </span>
-                                )}
+                            {/* Position Applied (non-badge) */}
+                            {task.tags && task.tags.length > 0 && (
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                <span className="font-medium">Position:</span> {task.tags[0]}
                               </div>
                             )}
 

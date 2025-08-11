@@ -193,8 +193,8 @@ export function CandidateFilters({
     initialFilters.maxExperienceYears || 50,
   ]);
   const [appliedJobFitScoreRange, setAppliedJobFitScoreRange] = useState<[number, number]>([
-    initialFilters.minAppliedJobFitScore || 81,
-    initialFilters.maxAppliedJobFitScore || 100,
+    initialFilters.minAppliedJobFitScore ?? 0,
+    initialFilters.maxAppliedJobFitScore ?? 100,
   ]);
   const [matchingJobFitScoreRange, setMatchingJobFitScoreRange] = useState<[number, number]>([
     initialFilters.minMatchingJobFitScore ?? 0,
@@ -734,10 +734,7 @@ export function CandidateFilters({
     return () => clearTimeout(timeoutId);
   }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
-  const handleApplyStandardFilters = (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+  const handleApplyStandardFilters = () => {
 
     const newFilters: CandidateFilterValues = {
       name: name || undefined,
@@ -754,7 +751,7 @@ export function CandidateFilters({
       locationOperator,
       minExperienceYears: experienceYearsRange[0] === -1 ? undefined : experienceYearsRange[0],
       maxExperienceYears: experienceYearsRange[1] === 50 ? undefined : experienceYearsRange[1],
-      minAppliedJobFitScore: appliedJobFitScoreRange[0] === 81 ? undefined : appliedJobFitScoreRange[0],
+      minAppliedJobFitScore: appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0],
       maxAppliedJobFitScore: appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1],
       minMatchingJobFitScore: matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0],
       maxMatchingJobFitScore: matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1],
@@ -763,6 +760,7 @@ export function CandidateFilters({
       selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
     };
 
+    console.log('handleApplyStandardFilters - newFilters:', newFilters);
     onFilterChange(newFilters);
   };
 
@@ -804,6 +802,7 @@ export function CandidateFilters({
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
+    console.log('handleExperienceYearsChange called with:', newRange);
     setExperienceYearsRange(newRange);
     // Apply filters immediately when experience years change
     handleApplyStandardFilters();
@@ -1222,9 +1221,7 @@ export function CandidateFilters({
                 
                 {/* Filters Tab */}
                 <TabsContent value="filters" className="space-y-4 mt-3">
-                  <form
-                    onSubmit={handleApplyStandardFilters}
-                  >
+                  <div>
                     <Accordion type="multiple" className="w-full" defaultValue={["application-status"]}>
                       {/* Candidate Information Section */}
                     <AccordionItem value="candidate-info">
@@ -1552,6 +1549,7 @@ export function CandidateFilters({
                                 id="no-experience-checkbox"
                                 checked={experienceYearsRange[0] === -1}
                                 onChange={(e) => {
+                                  console.log('No experience checkbox changed:', e.target.checked);
                                   if (e.target.checked) {
                                     setExperienceYearsRange([-1, 50]); // Use -1 as special marker for "no experience"
                                   } else {
@@ -1695,7 +1693,7 @@ export function CandidateFilters({
                     {/* Action Buttons */}
                     <div className="flex gap-2 mt-4">
                       <Button
-                        type="submit"
+                        onClick={handleApplyStandardFilters}
                         disabled={false}
                         size="sm"
                         className="flex-1 transition-all duration-200 ease-in-out hover:scale-105"
@@ -1714,7 +1712,7 @@ export function CandidateFilters({
                         Clear All
                       </Button>
                     </div>
-                  </form>
+                  </div>
                 </TabsContent>
 
                 {/* Advanced Query Tab */}

@@ -37,21 +37,29 @@ export function StatusMultiSelectDropdown({
   );
 
   const selectedStages = stages.filter(stage => selectedIds.has(stage.name));
+  const hasSelectAll = selectedIds.has('select-all');
 
   const handleToggleStage = (stageName: string) => {
     const newSelected = new Set(selectedIds);
     
-    if (newSelected.has(stageName)) {
-      // Remove this stage
-      newSelected.delete(stageName);
-      
-      // If no stages are selected, it means show all stages
-      if (newSelected.size === 0) {
-        // Keep empty set to indicate "all stages"
+    if (stageName === 'select-all') {
+      // If "Select All" is being selected, clear all other selections
+      if (newSelected.has('select-all')) {
+        newSelected.delete('select-all');
+      } else {
+        newSelected.clear();
+        newSelected.add('select-all');
       }
     } else {
-      // Add this stage
-      newSelected.add(stageName);
+      // If a specific stage is being selected
+      if (newSelected.has(stageName)) {
+        // Remove this stage
+        newSelected.delete(stageName);
+      } else {
+        // Add this stage and remove "Select All" if it was selected
+        newSelected.delete('select-all');
+        newSelected.add(stageName);
+      }
     }
     
     onSelectionChange(newSelected);
@@ -65,6 +73,21 @@ export function StatusMultiSelectDropdown({
   };
 
   const renderTrigger = () => {
+    // If "Select All" is selected
+    if (hasSelectAll) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="truncate text-foreground">All pipeline stages</span>
+          <Badge 
+            variant="default"
+            className="text-xs"
+          >
+            Select All
+          </Badge>
+        </div>
+      );
+    }
+
     // If no stages are selected, it means all stages are selected by default
     if (selectedIds.size === 0) {
       return <span className="text-muted-foreground">All pipeline stages</span>;
@@ -146,6 +169,31 @@ export function StatusMultiSelectDropdown({
               </div>
             ) : (
               <div className="p-1">
+                {/* Select All Option */}
+                <div
+                  key="select-all"
+                  className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground border-b border-border"
+                  onClick={() => handleToggleStage('select-all')}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      hasSelectAll ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">Select All</span>
+                    <span className="text-sm text-muted-foreground">
+                      All pipeline stages
+                    </span>
+                  </div>
+                  <Badge 
+                    variant="default"
+                    className="ml-auto text-xs"
+                  >
+                    All
+                  </Badge>
+                </div>
                 {filteredStages.map((stage) => (
                   <div
                     key={stage.name}
@@ -155,7 +203,7 @@ export function StatusMultiSelectDropdown({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedIds.size === 0 || selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
+                        selectedIds.has(stage.name) ? "opacity-100" : "opacity-0"
                       )}
                     />
                     <div className="flex flex-col flex-1">

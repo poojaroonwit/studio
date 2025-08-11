@@ -273,34 +273,39 @@ export async function GET(request: NextRequest) {
   let queryParams: any[] = [];
   let paramIndex = 1;
 
-  // Handle status filter (supports multiple statuses)
+  // Handle status filter (supports multiple statuses and 'select-all')
   if (filters.status) {
     const statuses = filters.status.split(',').map(s => s.trim());
     
-    // Check if "no-status" or "Off" is one of the selected statuses (supporting both for backwards compatibility)
-    const hasNoStatus = statuses.includes('no-status') || statuses.includes('Off');
-    const regularStatuses = statuses.filter(s => s !== 'no-status' && s !== 'Off');
-    
-    if (hasNoStatus && regularStatuses.length === 0) {
-      // Only "no-status" selected - filter for candidates with no status
-      whereClauses.push(`(c.status IS NULL OR c.status = '' OR c.status = 'null')`);
-    } else if (hasNoStatus && regularStatuses.length > 0) {
-      // Mixed selection - include both "no-status" and regular statuses
-      if (regularStatuses.length === 1) {
-        whereClauses.push(`(c.status = $${paramIndex++} OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
-        queryParams.push(regularStatuses[0]);
-      } else {
-        whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
-        queryParams.push(regularStatuses);
-      }
+    // Check if "select-all" is selected - if so, don't filter by status (show all)
+    if (statuses.includes('select-all')) {
+      // Don't add any status filter - show all stages
     } else {
-      // Only regular statuses selected
-      if (regularStatuses.length === 1) {
-        whereClauses.push(`c.status = $${paramIndex++}`);
-        queryParams.push(regularStatuses[0]);
+      // Check if "no-status" or "Off" is one of the selected statuses (supporting both for backwards compatibility)
+      const hasNoStatus = statuses.includes('no-status') || statuses.includes('Off');
+      const regularStatuses = statuses.filter(s => s !== 'no-status' && s !== 'Off');
+      
+      if (hasNoStatus && regularStatuses.length === 0) {
+        // Only "no-status" selected - filter for candidates with no status
+        whereClauses.push(`(c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+      } else if (hasNoStatus && regularStatuses.length > 0) {
+        // Mixed selection - include both "no-status" and regular statuses
+        if (regularStatuses.length === 1) {
+          whereClauses.push(`(c.status = $${paramIndex++} OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+          queryParams.push(regularStatuses[0]);
+        } else {
+          whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status IS NULL OR c.status = '' OR c.status = 'null')`);
+          queryParams.push(regularStatuses);
+        }
       } else {
-        whereClauses.push(`c.status = ANY($${paramIndex++})`);
-        queryParams.push(regularStatuses);
+        // Only regular statuses selected
+        if (regularStatuses.length === 1) {
+          whereClauses.push(`c.status = $${paramIndex++}`);
+          queryParams.push(regularStatuses[0]);
+        } else {
+          whereClauses.push(`c.status = ANY($${paramIndex++})`);
+          queryParams.push(regularStatuses);
+        }
       }
     }
   }
@@ -337,27 +342,33 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Handle recruiter filter (supports multiple recruiters and 'unassigned')
+  // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
   if (filters.recruiterId) {
     const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
-    if (recruiterIds.length === 1 && recruiterIds[0] === 'unassigned') {
-      whereClauses.push(`c."recruiterId" IS NULL`);
-    } else if (recruiterIds.length === 1) {
-      whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-      queryParams.push(recruiterIds[0]);
+    
+    // Check if "select-all" is selected - if so, don't filter by recruiter (show all)
+    if (recruiterIds.includes('select-all')) {
+      // Don't add any recruiter filter - show all recruiters
     } else {
-      // Handle mixed case: some unassigned, some assigned
-      const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
-      const hasUnassigned = recruiterIds.includes('unassigned');
-      
-      if (assignedIds.length > 0 && hasUnassigned) {
-        whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
-        queryParams.push(assignedIds);
-      } else if (assignedIds.length > 0) {
-        whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
-        queryParams.push(assignedIds);
-      } else if (hasUnassigned) {
+      if (recruiterIds.length === 1 && recruiterIds[0] === 'unassigned') {
         whereClauses.push(`c."recruiterId" IS NULL`);
+      } else if (recruiterIds.length === 1) {
+        whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
+        queryParams.push(recruiterIds[0]);
+      } else {
+        // Handle mixed case: some unassigned, some assigned
+        const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
+        const hasUnassigned = recruiterIds.includes('unassigned');
+        
+        if (assignedIds.length > 0 && hasUnassigned) {
+          whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+          queryParams.push(assignedIds);
+        } else if (assignedIds.length > 0) {
+          whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+          queryParams.push(assignedIds);
+        } else if (hasUnassigned) {
+          whereClauses.push(`c."recruiterId" IS NULL`);
+        }
       }
     }
   }
@@ -496,7 +507,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Handle experience years filter (calculate from experienceData)
-  if (filters.minExperienceYears || filters.maxExperienceYears) {
+  if (filters.minExperienceYears !== undefined || filters.maxExperienceYears !== undefined) {
     const minExp = parseInt(filters.minExperienceYears || '0');
     const maxExp = parseInt(filters.maxExperienceYears || '50');
     
@@ -531,7 +542,7 @@ export async function GET(request: NextRequest) {
         )
       `;
       
-      if (filters.minExperienceYears && filters.maxExperienceYears) {
+      if (filters.minExperienceYears !== undefined && filters.maxExperienceYears !== undefined) {
         whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
         if (!isNaN(minExp) && !isNaN(maxExp)) {
           queryParams.push(minExp, maxExp);
@@ -539,7 +550,7 @@ export async function GET(request: NextRequest) {
           console.error('Skipping invalid experience years parameters');
         }
         paramIndex += 2;
-      } else if (filters.minExperienceYears) {
+      } else if (filters.minExperienceYears !== undefined) {
         whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
         if (!isNaN(minExp)) {
           queryParams.push(minExp);
@@ -547,7 +558,7 @@ export async function GET(request: NextRequest) {
           console.error('Skipping invalid min experience years parameter');
         }
         paramIndex++;
-      } else if (filters.maxExperienceYears) {
+      } else if (filters.maxExperienceYears !== undefined) {
         whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
         if (!isNaN(maxExp)) {
           queryParams.push(maxExp);

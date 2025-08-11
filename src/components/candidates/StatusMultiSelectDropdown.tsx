@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,17 @@ export function StatusMultiSelectDropdown({
   };
 
   console.log('StatusMultiSelectDropdown render - open state:', open);
+  
+  // Get button position for portal positioning
+  const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+  
+  useEffect(() => {
+    if (open && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setButtonRect(rect);
+    }
+  }, [open]);
+  
   return (
     <div className="relative" ref={dropdownRef}>
       <Button
@@ -127,17 +139,14 @@ export function StatusMultiSelectDropdown({
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
       </Button>
       
-      {open && (
+      {open && buttonRect && createPortal(
         <div 
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-[300px] overflow-hidden" 
+          className="fixed bg-white border border-gray-300 rounded-md shadow-lg max-h-[300px] overflow-hidden" 
           style={{
-            display: 'block', 
-            minHeight: '100px',
-            position: 'absolute',
-            top: '100%',
-            left: '0',
-            right: '0',
-            marginTop: '4px',
+            position: 'fixed',
+            top: buttonRect.bottom + 4,
+            left: buttonRect.left,
+            width: buttonRect.width,
             backgroundColor: 'white',
             border: '1px solid #d1d5db',
             borderRadius: '6px',
@@ -180,7 +189,8 @@ export function StatusMultiSelectDropdown({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

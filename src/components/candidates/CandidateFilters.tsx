@@ -838,14 +838,12 @@ export function CandidateFilters({
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
-    console.log('handleRecruiterChange called with:', Array.from(newSelectedRecruiterIds));
     setSelectedRecruiterIds(newSelectedRecruiterIds);
     // Apply filters with debouncing for smooth multiselect experience
     handleApplyStandardFiltersDebounced();
   };
 
   const handleExperienceYearsChange = (newRange: [number, number]) => {
-    console.log('handleExperienceYearsChange called with:', newRange);
     setExperienceYearsRange(newRange);
     // Apply filters with debouncing for smooth experience years change
     handleApplyStandardFiltersDebounced();
@@ -864,6 +862,7 @@ export function CandidateFilters({
   };
 
   const handleFitScoreGradeChange = (grade: string, checked: boolean) => {
+    // Prevent any potential form submission
     const newSelected = new Set(selectedFitScoreGrades);
     if (checked) {
       newSelected.add(grade);
@@ -927,6 +926,7 @@ export function CandidateFilters({
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
+    // Prevent any potential form submission
     const newSelected = new Set(selectedMatchingFitScoreGrades);
     if (checked) {
       newSelected.add(grade);
@@ -1384,6 +1384,7 @@ export function CandidateFilters({
                                     role="button"
                                     className="ml-1 text-muted-foreground hover:text-destructive focus:outline-none cursor-pointer"
                                     onClick={e => {
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       if (isLoading || isAiSearching) return;
                                       const newSkills = new Set(skills);
@@ -1391,6 +1392,10 @@ export function CandidateFilters({
                                       setSkills(newSkills);
                                       // Apply filters after removing skill
                                       setTimeout(() => handleApplyStandardFilters(), 100);
+                                    }}
+                                    onMouseDown={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
                                     }}
                                     aria-label={`Remove ${skill}`}
                                     tabIndex={-1}
@@ -1637,7 +1642,8 @@ export function CandidateFilters({
                                 id="no-experience-checkbox"
                                 checked={experienceYearsRange[0] === -1}
                                 onChange={(e) => {
-                                  console.log('No experience checkbox changed:', e.target.checked);
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   if (e.target.checked) {
                                     setExperienceYearsRange([-1, 50]); // Use -1 as special marker for "no experience"
                                   } else {
@@ -1646,10 +1652,21 @@ export function CandidateFilters({
                                   // Apply filters when checkbox changes
                                   setTimeout(() => handleApplyStandardFilters(), 100);
                                 }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
                                 disabled={isLoading || isAiSearching}
                                 className="rounded border-border text-primary focus:ring-primary"
                               />
-                              <Label htmlFor="no-experience-checkbox" className="text-xs text-muted-foreground cursor-pointer">
+                              <Label 
+                                htmlFor="no-experience-checkbox" 
+                                className="text-xs text-muted-foreground cursor-pointer"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                              >
                                 Include candidates with no experience listed
                               </Label>
                             </div>
@@ -1682,10 +1699,18 @@ export function CandidateFilters({
                                         checked={selectedFitScoreGrades.has(grade.letter)}
                                         onCheckedChange={(checked) => handleFitScoreGradeChange(grade.letter, checked as boolean)}
                                         disabled={isLoading || isAiSearching}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
                                       />
                                       <Label 
                                         htmlFor={`fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
                                       >
                                         {grade.label}
                                       </Label>
@@ -1704,10 +1729,18 @@ export function CandidateFilters({
                                     checked={selectedFitScoreGrades.has('no-score')}
                                     onCheckedChange={(checked) => handleFitScoreGradeChange('no-score', checked as boolean)}
                                     disabled={isLoading || isAiSearching}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
                                   />
                                   <Label 
                                     htmlFor="applied-no-fit-score" 
                                     className="text-xs font-normal cursor-pointer"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
                                   >
                                     No Fit Score
                                   </Label>
@@ -1734,10 +1767,18 @@ export function CandidateFilters({
                                         checked={selectedMatchingFitScoreGrades.has(grade.letter)}
                                         onCheckedChange={(checked) => handleMatchingFitScoreGradeChange(grade.letter, checked as boolean)}
                                         disabled={isLoading || isAiSearching}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
                                       />
                                       <Label 
                                         htmlFor={`matching-fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                        }}
                                       >
                                         {grade.label}
                                       </Label>
@@ -1756,10 +1797,18 @@ export function CandidateFilters({
                                     checked={selectedMatchingFitScoreGrades.has('no-score')}
                                     onCheckedChange={(checked) => handleMatchingFitScoreGradeChange('no-score', checked as boolean)}
                                     disabled={isLoading || isAiSearching}
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
                                   />
                                   <Label 
                                     htmlFor="matching-no-fit-score" 
                                     className="text-xs font-normal cursor-pointer"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
                                   >
                                     No Fit Score
                                   </Label>

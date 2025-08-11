@@ -448,8 +448,25 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         <div className="px-6 py-4 space-y-4">
                      {/* Main Controls Row */}
            <div className="flex flex-wrap items-center gap-3 justify-between">
-             {/* Left: Search and Quick Filters */}
+             {/* Left: Candidate Count and Search */}
              <div className="flex flex-wrap items-center gap-3 flex-1">
+               {/* Candidate Count Badge */}
+               <div className="flex items-center gap-2">
+                 <Badge variant="secondary" className="h-9 px-3 text-sm font-medium">
+                   {loading ? (
+                     <div className="flex items-center gap-2">
+                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                       Loading...
+                     </div>
+                   ) : (
+                     <div className="flex items-center gap-2">
+                       <Users className="w-3 h-3" />
+                       {displayedCandidates.length} candidate{displayedCandidates.length !== 1 ? 's' : ''}
+                     </div>
+                   )}
+                 </Badge>
+               </div>
+
                {/* Search */}
                <div className="relative">
                  {loading ? (
@@ -493,23 +510,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                    </SelectContent>
                  </Select>
                )}
-
-               {/* Candidate Count Badge */}
-               <div className="flex items-center gap-2">
-                 <Badge variant="secondary" className="h-9 px-3 text-sm font-medium">
-                   {loading ? (
-                     <div className="flex items-center gap-2">
-                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                       Loading...
-                     </div>
-                   ) : (
-                     <div className="flex items-center gap-2">
-                       <Users className="w-3 h-3" />
-                       {displayedCandidates.length} candidate{displayedCandidates.length !== 1 ? 's' : ''}
-                     </div>
-                   )}
-                 </Badge>
-               </div>
              </div>
 
              {/* Right: Board Controls */}

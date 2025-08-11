@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
     }
     // If canManageUsers and no specific role filter, show all users
 
+    
     if (filterNameInput) {
       whereConditions.name = { contains: filterNameInput, mode: 'insensitive' };
     }

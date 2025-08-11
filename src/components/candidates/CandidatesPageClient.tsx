@@ -849,6 +849,12 @@ export function CandidatesPageClient({
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
+      // Safety mechanism: if isClearingFilters is stuck for more than 1 second, reset it
+      setTimeout(() => {
+        if (isClearingFilters) {
+          setIsClearingFilters(false);
+        }
+      }, 1000);
       return;
     }
     // Clear any existing timeout
@@ -939,6 +945,19 @@ export function CandidatesPageClient({
       }
     };
   }, []);
+
+  // Safety mechanism: reset isClearingFilters if it gets stuck for too long
+  useEffect(() => {
+    console.log('isClearingFilters changed to:', isClearingFilters);
+    if (isClearingFilters) {
+      const safetyTimeout = setTimeout(() => {
+        console.log('Safety timeout: resetting isClearingFilters');
+        setIsClearingFilters(false);
+      }, 2000); // Reset after 2 seconds if still stuck
+      
+      return () => clearTimeout(safetyTimeout);
+    }
+  }, [isClearingFilters]);
 
   const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
     try {

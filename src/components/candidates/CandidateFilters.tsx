@@ -726,6 +726,7 @@ export function CandidateFilters({
   }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, appliedJobFitScoreRange, matchingJobFitScoreRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
 
   const handleApplyStandardFilters = (e?: React.FormEvent) => {
+    console.log('handleApplyStandardFilters called');
     if (e) e.preventDefault();
     // If there's an advanced query, parse and apply it
     if (advancedQueryInput.trim()) {
@@ -805,6 +806,7 @@ export function CandidateFilters({
   };
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
+    console.log('handleRecruiterChange called with:', Array.from(newSelectedRecruiterIds));
     setSelectedRecruiterIds(newSelectedRecruiterIds);
     // Apply filters immediately when recruiters change
     handleApplyStandardFilters();
@@ -1489,7 +1491,7 @@ export function CandidateFilters({
                             <RecruiterMultiSelectDropdown
                               selectedIds={selectedRecruiterIds}
                               onSelectionChange={handleRecruiterChange}
-                              placeholder="Select recruiters..."
+                              placeholder={`Select recruiters... (${safeAvailableRecruiters.length} available)`}
                               disabled={false}
                               recruiters={safeAvailableRecruiters}
                             />

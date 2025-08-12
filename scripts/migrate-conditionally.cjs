@@ -142,16 +142,22 @@ function checkDatabaseSchema() {
         logInfo('Checking if database schema exists...');
         
         // Try to run a simple query to check if tables exist
-        execSync('npx prisma db execute --stdin', { 
+        const result = execSync('npx prisma db execute --stdin', { 
             stdio: ['pipe', 'pipe', 'pipe'],
             input: 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = \'public\';',
             env: { ...process.env }
-        });
+        }).toString().trim();
         
-        logSuccess('Database schema exists');
-        return true;
+        const tableCount = parseInt(result);
+        if (tableCount > 0) {
+            logSuccess(`Database schema exists with ${tableCount} tables`);
+            return true;
+        } else {
+            logWarning('Database schema exists but has no tables');
+            return false;
+        }
     } catch (error) {
-        logWarning('Database schema does not exist or is empty');
+        logWarning('Could not check database schema, assuming it does not exist');
         return false;
     }
 }
@@ -226,35 +232,24 @@ function main() {
         // Step 2: Check for migration files
         const migrationCheck = checkMigrationFiles();
         
-        // Step 3: Check if database schema exists
-        const schemaExists = checkDatabaseSchema();
-        
         if (!migrationCheck.hasFiles) {
-            // No local migration files - try to create initial migration if needed
-            if (!schemaExists) {
-                // No schema exists - try to create initial migration
-                logInfo('No migrations found and no database schema exists, creating and applying initial migration...');
-                const migrationResult = createInitialMigration();
-                if (migrationResult === true) {
-                    logSuccess('Initial migration created, now running migrations...');
-                } else if (migrationResult === 'migration_mismatch') {
-                    // Database has migrations but no local files - skip gracefully
-                    logWarning('Skipping migrations due to database/local migration mismatch');
-                    logInfo('This is expected if the database was set up elsewhere or migrations are managed externally');
-                    process.exit(0);
-                } else {
-                    logError('Failed to create initial migration');
-                    process.exit(1);
-                }
-            } else {
-                // Schema exists but no local migrations - skip migrations
-                logWarning('No migration files found but database schema exists - skipping migrations');
-                logInfo('This is expected if the database was set up manually or migrations are managed externally');
+            // No local migration files - try to create initial migration
+            logInfo('No local migration files found, attempting to create initial migration...');
+            const migrationResult = createInitialMigration();
+            if (migrationResult === true) {
+                logSuccess('Initial migration created, now running migrations...');
+            } else if (migrationResult === 'migration_mismatch') {
+                // Database has migrations but no local files - skip gracefully
+                logWarning('Skipping migrations due to database/local migration mismatch');
+                logInfo('This is expected if the database was set up elsewhere or migrations are managed externally');
                 process.exit(0);
+            } else {
+                logError('Failed to create initial migration');
+                process.exit(1);
             }
         }
         
-        // Step 4: Run migrations if files exist
+        // Step 3: Run migrations if files exist
         const success = runMigrations(forceMode);
         
         if (!success && !forceMode) {

@@ -101,20 +101,24 @@ function runMigrations(force = false) {
 function createInitialMigration() {
     try {
         logInfo('Creating initial migration...');
-        execSync('npx prisma migrate dev --name initial --create-only', { 
-            stdio: 'inherit',
+        const result = execSync('npx prisma migrate dev --name initial --create-only', { 
+            stdio: 'pipe',
             env: { ...process.env }
         });
         logSuccess('Initial migration created successfully');
         return true;
     } catch (error) {
+        // Get the full error output including stderr
+        const errorOutput = error.stderr ? error.stderr.toString() : error.message;
+        
         // Check if the error is due to existing migrations in database
-        if (error.message.includes('migration(s) are applied to the database but missing from the local migrations directory')) {
+        if (errorOutput.includes('migration(s) are applied to the database but missing from the local migrations directory')) {
             logWarning('Database has existing migrations that are not in local migration files');
             logInfo('This indicates the database was set up elsewhere or migrations are managed externally');
             return 'migration_mismatch';
         }
-        logError(`Failed to create initial migration: ${error.message}`);
+        
+        logError(`Failed to create initial migration: ${errorOutput}`);
         return false;
     }
 }
@@ -233,20 +237,10 @@ function main() {
         const migrationCheck = checkMigrationFiles();
         
         if (!migrationCheck.hasFiles) {
-            // No local migration files - try to create initial migration
-            logInfo('No local migration files found, attempting to create initial migration...');
-            const migrationResult = createInitialMigration();
-            if (migrationResult === true) {
-                logSuccess('Initial migration created, now running migrations...');
-            } else if (migrationResult === 'migration_mismatch') {
-                // Database has migrations but no local files - skip gracefully
-                logWarning('Skipping migrations due to database/local migration mismatch');
-                logInfo('This is expected if the database was set up elsewhere or migrations are managed externally');
-                process.exit(0);
-            } else {
-                logError('Failed to create initial migration');
-                process.exit(1);
-            }
+            // No local migration files - skip migrations entirely
+            logWarning('No local migration files found - skipping migrations');
+            logInfo('This is expected if migrations are managed externally or database was set up elsewhere');
+            process.exit(0);
         }
         
         // Step 3: Run migrations if files exist

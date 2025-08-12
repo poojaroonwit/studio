@@ -108,6 +108,12 @@ function createInitialMigration() {
         logSuccess('Initial migration created successfully');
         return true;
     } catch (error) {
+        // Check if the error is due to existing migrations in database
+        if (error.message.includes('migration(s) are applied to the database but missing from the local migrations directory')) {
+            logWarning('Database has existing migrations that are not in local migration files');
+            logInfo('This indicates the database was set up elsewhere or migrations are managed externally');
+            return 'migration_mismatch';
+        }
         logError(`Failed to create initial migration: ${error.message}`);
         return false;
     }
@@ -213,8 +219,14 @@ function main() {
             if (!schemaExists) {
                 // No migrations and no schema - create initial migration and apply it
                 logInfo('No migrations found and no database schema exists, creating and applying initial migration...');
-                if (createInitialMigration()) {
+                const migrationResult = createInitialMigration();
+                if (migrationResult === true) {
                     logSuccess('Initial migration created, now running migrations...');
+                } else if (migrationResult === 'migration_mismatch') {
+                    // Database has migrations but no local files - skip gracefully
+                    logWarning('Skipping migrations due to database/local migration mismatch');
+                    logInfo('This is expected if the database was set up elsewhere or migrations are managed externally');
+                    process.exit(0);
                 } else {
                     logError('Failed to create initial migration');
                     process.exit(1);

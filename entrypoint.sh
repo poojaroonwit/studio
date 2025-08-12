@@ -21,12 +21,12 @@ npx prisma generate
 echo "🔄 Checking for database migrations..."
 node scripts/migrate-conditionally.cjs
 
-# Seed the database
+# Seed the database (only if needed)
 echo "🌱 Seeding database..."
-npx prisma db seed
+npx prisma db seed || echo "⚠️  Database seeding failed or already completed"
 
 echo "✅ Database setup complete!"
 
 # Start the main application
 echo "🚀 Starting main application..."
-npm run start 
+exec npm run start 

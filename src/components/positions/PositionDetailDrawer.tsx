@@ -107,6 +107,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
     [potentialCandidatesTotal, potentialCandidatesPageSize]
   );
 
+  // Calculate applied candidates count
+  const appliedCandidatesCount = useMemo(() => 
+    allCandidates.filter((candidate: Candidate) => 
+      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
+    ).length,
+    [allCandidates]
+  );
+
   // Department and level options
   const departmentOptions = [
     'Engineering',
@@ -472,7 +480,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   // Render applied candidates table
   const renderAppliedCandidatesTable = () => {
-    if (allCandidates.length === 0) {
+    // Filter to only show applied candidates (not matched candidates)
+    const appliedCandidates = allCandidates.filter((candidate: Candidate) => 
+      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
+    );
+
+    if (appliedCandidates.length === 0) {
       return (
         <div className="text-center py-8">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -495,7 +508,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           </TableRow>
         </TableHeader>
         <TableBody>
-          {allCandidates.map((candidate) => (
+          {appliedCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
@@ -1131,7 +1144,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                       <div className="flex-1 overflow-hidden">
                         <Tabs defaultValue="applied" className="h-full flex flex-col">
                           <TabsList className="grid w-full grid-cols-2 mb-4">
-                            <TabsTrigger value="applied">Applied Candidates ({allCandidatesTotal})</TabsTrigger>
+                            <TabsTrigger value="applied">Applied Candidates ({appliedCandidatesCount})</TabsTrigger>
                             <TabsTrigger value="potential">Job Matches ({potentialCandidatesTotal})</TabsTrigger>
                           </TabsList>
                           

@@ -41,6 +41,14 @@ export default function ReprocessModal({
   const [selectedPositionId, setSelectedPositionId] = useState<string>(candidatePositionId || '');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Filter valid attachments (must have required fields)
+  const validAttachments = attachments.filter(att => 
+    att.id && 
+    att.fileName && 
+    att.filePath && 
+    att.fileSize > 0
+  );
+
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -66,7 +74,7 @@ export default function ReprocessModal({
       return;
     }
 
-    const attachment = attachments.find(att => att.id === selectedAttachment);
+    const attachment = validAttachments.find(att => att.id === selectedAttachment);
     if (!attachment) {
       toast.error('Selected attachment not found');
       return;
@@ -143,85 +151,83 @@ export default function ReprocessModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Candidate Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Candidate Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{candidateName}</span>
-                <Badge variant="outline" className="text-xs">ID: {candidateId}</Badge>
-              </div>
-            </CardContent>
-          </Card>
+         
 
           {/* Attachment Selection */}
           <div className="space-y-3">
             <Label htmlFor="attachment-select">Select Attachment</Label>
-            <Select value={selectedAttachment} onValueChange={setSelectedAttachment}>
-              <SelectTrigger id="attachment-select">
-                <SelectValue placeholder="Choose an attachment to re-process..." />
-              </SelectTrigger>
-              <SelectContent>
-                {attachments.map((attachment) => (
-                  <SelectItem key={attachment.id} value={attachment.id}>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span>{attachment.fileName}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {formatFileSize(attachment.fileSize)}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {selectedAttachment && (
-              <Card className="mt-3">
-                <CardContent className="pt-4">
-                  {(() => {
-                    const attachment = attachments.find(att => att.id === selectedAttachment);
-                    if (!attachment) return null;
-                    
-                    return (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium">{attachment.fileName}</div>
-                            <div className="text-sm text-muted-foreground flex items-center gap-4">
-                              <span>{formatFileSize(attachment.fileSize)}</span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDate(attachment.uploadedAt)}
-                              </span>
-                            </div>
-                          </div>
+            
+            {validAttachments.length === 0 ? (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-sm text-amber-800 dark:text-amber-200">
+                  No valid attachments found. Please upload attachments first.
+                </span>
+              </div>
+            ) : (
+              <>
+                <Select value={selectedAttachment} onValueChange={setSelectedAttachment}>
+                  <SelectTrigger id="attachment-select">
+                    <SelectValue placeholder="Choose an attachment to re-process..." />
+                  </SelectTrigger>
+                  <SelectContent className="z-[210]">
+                    {validAttachments.map((attachment) => (
+                      <SelectItem key={attachment.id} value={attachment.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span>{attachment.fileName}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {formatFileSize(attachment.fileSize)}
+                          </Badge>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Download the file
-                            const link = document.createElement('a');
-                            link.href = attachment.filePath;
-                            link.download = attachment.fileName;
-                            link.click();
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {selectedAttachment && (
+                  <Card className="mt-3">
+                    <CardContent className="pt-4">
+                      {(() => {
+                        const attachment = validAttachments.find(att => att.id === selectedAttachment);
+                        if (!attachment) return null;
+                        
+                        return (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                              <div>
+                                <div className="font-medium">{attachment.fileName}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-4">
+                                  <span>{formatFileSize(attachment.fileSize)}</span>
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {formatDate(attachment.uploadedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Download the file
+                                const link = document.createElement('a');
+                                link.href = attachment.filePath;
+                                link.download = attachment.fileName;
+                                link.click();
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
 
@@ -241,7 +247,7 @@ export default function ReprocessModal({
               <SelectTrigger id="position-select">
                 <SelectValue placeholder="Select position to apply for..." />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[210]">
                 {positions.map((position) => (
                   <SelectItem key={position.id} value={position.id}>
                     <div className="flex items-center gap-2">
@@ -257,28 +263,7 @@ export default function ReprocessModal({
               </SelectContent>
             </Select>
 
-            {selectedPositionId && (
-              <Card className="mt-3">
-                <CardContent className="pt-4">
-                  {(() => {
-                    const position = positions.find(pos => pos.id === selectedPositionId);
-                    if (!position) return null;
-                    
-                    return (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{position.title}</div>
-                          {position.department && (
-                            <div className="text-sm text-muted-foreground">{position.department}</div>
-                          )}
-                        </div>
-                        <Badge variant="secondary">Selected</Badge>
-                      </div>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            )}
+
           </div>
 
           {/* Warning */}
@@ -301,7 +286,7 @@ export default function ReprocessModal({
           </Button>
           <Button 
             onClick={handleReprocess} 
-            disabled={!selectedAttachment || !selectedPositionId || isProcessing}
+            disabled={!selectedAttachment || !selectedPositionId || isProcessing || validAttachments.length === 0}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
           >
             {isProcessing ? (

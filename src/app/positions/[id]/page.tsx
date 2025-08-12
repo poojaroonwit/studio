@@ -110,7 +110,6 @@ export default function PositionDetailPage() {
     
     try {
       const query = new URLSearchParams();
-      query.append('positionId', positionId);
       query.append('page', String(appliedPage));
       query.append('limit', String(appliedPageSize));
       if (appliedSearchTerm) {
@@ -123,14 +122,19 @@ export default function PositionDetailPage() {
         query.append('sortDirection', appliedSortDirection);
       }
       
-      const response = await fetch(`/api/candidates?${query.toString()}`);
+      const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch candidates');
       
       const data = await response.json();
       let candidates = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
       
-      setCandidatesApplied(candidates);
-      setAppliedTotal(data.pagination?.total || data.total || candidates.length);
+      // Filter to only show applied candidates (not matched candidates)
+      const appliedCandidates = candidates.filter((candidate: Candidate) => 
+        candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
+      );
+      
+      setCandidatesApplied(appliedCandidates);
+      setAppliedTotal(appliedCandidates.length);
     } catch (error) {
       console.error('Error fetching candidates applied:', error);
       setCandidatesApplied([]);
@@ -142,7 +146,6 @@ export default function PositionDetailPage() {
     if (!positionId) return;
     
     try {
-      // Fetch all candidates and filter those with job matches for this position
       const query = new URLSearchParams();
       query.append('page', String(matchesPage));
       query.append('limit', String(matchesPageSize));
@@ -156,29 +159,16 @@ export default function PositionDetailPage() {
         query.append('sortDirection', matchesSortDirection);
       }
       
-      const response = await fetch(`/api/candidates?${query.toString()}`);
+      const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch candidate matches');
       
       const data = await response.json();
       let candidates = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
       
-      // Filter candidates that have job matches for this position
-      const matchedCandidates = candidates.filter((candidate: Candidate) => {
-        // Check if candidate has job matches for this position from JobMatch table
-        if (candidate.jobMatches && candidate.jobMatches.some((match: any) => match.jobId === positionId)) {
-          return true;
-        }
-        
-        // Fallback: Check job matches in parsedData for legacy data
-        if (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData) {
-          const jobMatches = (candidate.parsedData as any).job_matches;
-          if (Array.isArray(jobMatches) && jobMatches.some((match: any) => match.jobId === positionId)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
+      // Filter to only show matched candidates (not applied candidates)
+      const matchedCandidates = candidates.filter((candidate: Candidate) => 
+        candidate.associationType === 'matched' || candidate.associationType === 'applied_and_matched'
+      );
       
       setCandidateMatches(matchedCandidates);
       setMatchesTotal(matchedCandidates.length);

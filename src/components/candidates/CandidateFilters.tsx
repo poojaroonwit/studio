@@ -383,12 +383,14 @@ export function CandidateFilters({
           filters.selectedRecruiterIds = value.split(',');
           break;
         case 'minfitscore':
+        case 'minappliedjobfitscore':
           const minScore = parseInt(value, 10);
           if (!isNaN(minScore)) {
             filters.minAppliedJobFitScore = minScore;
           }
           break;
         case 'maxfitscore':
+        case 'maxappliedjobfitscore':
           const maxScore = parseInt(value, 10);
           if (!isNaN(maxScore)) {
             filters.maxAppliedJobFitScore = maxScore;
@@ -403,12 +405,14 @@ export function CandidateFilters({
           }
           break;
         case 'matchingfitscoremin':
+        case 'minmatchingjobfitscore':
           const matchingMinScore = parseInt(value, 10);
           if (!isNaN(matchingMinScore)) {
             filters.minMatchingJobFitScore = matchingMinScore;
           }
           break;
         case 'matchingfitscoremax':
+        case 'maxmatchingjobfitscore':
           const matchingMaxScore = parseInt(value, 10);
           if (!isNaN(matchingMaxScore)) {
             filters.maxMatchingJobFitScore = matchingMaxScore;

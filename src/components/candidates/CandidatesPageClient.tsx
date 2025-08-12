@@ -71,11 +71,6 @@ export function CandidatesPageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Read URL parameters for initial filtering
-  const urlPositionId = searchParams.get('positionId');
-  const urlRecruiterId = searchParams.get('recruiterId');
-  const urlStatus = searchParams.get('status');
-  
   const [filters, setFilters] = useState<CandidateFilterValues>(() => {
     const baseFilters = initialFilters || {
       minAppliedJobFitScore: undefined,
@@ -263,6 +258,11 @@ export function CandidatesPageClient({
       return;
     }
     
+    // Read URL parameters for initial filtering
+    const urlPositionId = searchParams.get('positionId');
+    const urlRecruiterId = searchParams.get('recruiterId');
+    const urlStatus = searchParams.get('status');
+    
     // Apply URL parameters if they exist and haven't been applied yet
     let hasChanges = false;
     const newFilters = { ...filters };
@@ -287,7 +287,7 @@ export function CandidatesPageClient({
       setFilters(newFilters);
     }
     hasInitializedFilters.current = true;
-  }, [urlPositionId, urlRecruiterId, urlStatus, isClearingFilters]);
+  }, [searchParams, isClearingFilters, filters]);
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
     console.log('fetchRecruiters called, sessionStatus:', sessionStatus, 'retryCount:', retryCount);
@@ -420,7 +420,7 @@ export function CandidatesPageClient({
       if (currentFilters.maxAppliedJobFitScore !== undefined && currentFilters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
       if (currentFilters.minMatchingJobFitScore !== undefined && currentFilters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
       if (currentFilters.maxMatchingJobFitScore !== undefined && currentFilters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
-      if (currentFilters.minExperienceYears !== undefined) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
       if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
       if (currentFilters.applicationDateStart) query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       if (currentFilters.applicationDateEnd) query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
@@ -1688,7 +1688,7 @@ export function CandidatesPageClient({
             filters.jobSuitableCareer ||
             filters.jobSuitableLevel ||
             filters.jobSuitablePosition ||
-            (filters.minExperienceYears !== undefined) ||
+            (filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1)) ||
             (filters.maxExperienceYears !== undefined && filters.maxExperienceYears < 50) ||
             (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) ||
             (filters.selectedStatuses && filters.selectedStatuses.length > 0) ||
@@ -1757,7 +1757,7 @@ export function CandidatesPageClient({
                   Position: "{filters.jobSuitablePosition}"
                 </Badge>
               )}
-              {filters.minExperienceYears !== undefined && (
+              {filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1) && (
                 <Badge variant="secondary" className="text-xs">
                   {filters.minExperienceYears === -1 ? 'No Experience' : `Min Experience: ${filters.minExperienceYears} years`}
                 </Badge>

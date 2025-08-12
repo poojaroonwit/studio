@@ -42,6 +42,8 @@ import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
 import { MonthYearPicker } from '@/components/ui/MonthYearPicker';
 import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
@@ -57,6 +59,14 @@ const MINIO_BUCKET = process.env.NEXT_PUBLIC_MINIO_BUCKET_NAME || "fitscan-resum
 const PLACEHOLDER_VALUE_NONE = "___NOT_SPECIFIED___";
 const positionLevelOptions: positionLevel[] = ['entry level', 'mid level', 'senior level', 'lead', 'manager', 'executive', 'officer', 'leader'];
 
+const months = [
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+  'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+];
+
+const currentYear = new Date().getFullYear();
+const yearRange = Array.from({ length: 50 }, (_, i) => String(currentYear - i));
+
 const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
     case 'Hired': case 'Offer Accepted': return 'default';
@@ -70,8 +80,8 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
 // Form schemas
 const personalInfoEditSchema = z.object({
   title_honorific: z.string().optional().nullable(),
-  firstname: z.string().min(1, "First name is required"),
-  lastname: z.string().min(1, "Last name is required"),
+  firstname: z.string().optional().nullable(),
+  lastname: z.string().optional().nullable(),
   nickname: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
   introduction_aboutme: z.string().optional().nullable(),
@@ -79,7 +89,7 @@ const personalInfoEditSchema = z.object({
 }).deepPartial();
 
 const contactInfoEditSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.union([z.string().email("Invalid email address"), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
 }).deepPartial();
 
@@ -126,7 +136,7 @@ const jobSuitableEntryEditSchema = z.object({
 const jobMatchEntryEditSchema = z.object({
     jobId: z.string().uuid().optional().nullable(),
     jobTitle: z.string().optional().nullable(),
-    fitScore: z.number().min(0).max(100).optional().nullable(),
+    fitScore: z.number().min(0).max(1).optional().nullable(),
     matchReasons: z.array(z.string()).optional(),
     matchReasons_string: z.string().optional().nullable(),
     is_applied_job: z.boolean().optional(),
@@ -144,15 +154,15 @@ const candidateDetailsEditSchema = z.object({
 }).deepPartial();
 
 const editCandidateDetailSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  email: z.string().email("Invalid email address").optional(),
+  name: z.string().optional().nullable(),
+  email: z.union([z.string().email("Invalid email address"), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(100).nullable().optional(),
-  status: z.string().min(1, "Status is required").optional(),
+  fitScore: z.number().min(0).max(1).nullable().optional(),
+  status: z.string().optional().nullable(),
   assignmentJustification: z.array(z.string()).optional(),
-  parsedData: candidateDetailsEditSchema.optional(),
+  parsedData: z.any().optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
@@ -236,6 +246,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
+  const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
   const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
@@ -264,6 +275,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Unified function to open ManageTransitionsModal (same as candidate ID page)
+  const openManageTransitionsModal = (stageName?: string) => {
+    setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
+    setIsTransitionsModalOpen(true);
+  };
 
   // Form setup
   const {
@@ -285,7 +303,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       fitScore: null,
       status: '',
       assignmentJustification: [],
-      parsedData: {},
+      parsedData: {
+        personal_info: {},
+        contact_info: {},
+        education: [],
+        experience: [],
+        skills: [],
+        job_suitable: [],
+        job_matches: [],
+      },
     },
   });
 
@@ -363,14 +389,50 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
           fitScore: data.fitScore || null,
           status: data.status || '',
-          assignmentJustification: data.assignmentJustification ? data.assignmentJustification.split('\n').filter((line: string) => line.trim()) : [],
+                      assignmentJustification: (() => {
+              const result = data.assignmentJustification
+                ? (Array.isArray(data.assignmentJustification)
+                    ? data.assignmentJustification
+                    : typeof data.assignmentJustification === 'string'
+                      ? data.assignmentJustification.split(/[\n,]+/).filter((item: any) => item.trim() !== '')
+                      : [])
+                : [];
+              console.log('Loading assignmentJustification:', {
+                original: data.assignmentJustification,
+                split: result,
+                length: result.length
+              });
+              return result;
+            })(),
           parsedData: {
             ...data.parsedData,
-            education: data.parsedData?.education || [],
-            experience: data.parsedData?.experience || [],
-            skills: data.parsedData?.skills || [],
+            education: (data.parsedData?.education || []).map((edu: any) => ({
+              ...edu,
+              startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+              startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+              endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+              endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+            })),
+            experience: (data.parsedData?.experience || []).map((exp: any) => ({
+              ...exp,
+              startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+              startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+              endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+              endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+            })),
+            skills: (data.parsedData?.skills || []).map((s: any) => ({
+              ...s,
+              skill_string: Array.isArray(s.skill)
+                ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+                : (typeof s.skill_string === 'string' ? s.skill_string : '')
+            })),
             job_suitable: data.parsedData?.job_suitable || [],
-            job_matches: data.parsedData?.job_matches || [],
+            job_matches: (data.parsedData?.job_matches || []).map((match: any) => ({
+              ...match,
+              matchReasons_string: Array.isArray(match.matchReasons) 
+                ? match.matchReasons.join('\n')
+                : ''
+            })),
           },
         });
       } catch (err) {
@@ -407,13 +469,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   useEffect(() => {
     const fetchPositions = async () => {
       try {
+        console.log('Fetching positions from /api/positions/all...');
         const res = await fetch('/api/positions/all');
+        console.log('Response status:', res.status);
         if (res.ok) {
           const data = await res.json();
+          console.log('Raw response data:', data);
           setAllDbPositions(data.data || []);
           console.log('Fetched allDbPositions:', data.data);
+          console.log('allDbPositions length:', (data.data || []).length);
         } else {
-          console.error('Failed to fetch positions');
+          console.error('Failed to fetch positions, status:', res.status);
+          const errorText = await res.text();
+          console.error('Error response:', errorText);
         }
       } catch (e) {
         console.error('Error fetching positions:', e);
@@ -503,10 +571,38 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
     if (!candidate) return;
 
+    console.log('Form data received:', data);
+    console.log('Form validation errors:', errors);
+    console.log('Form is valid:', Object.keys(errors).length === 0);
+
+    // Manual validation check
+    try {
+      const validationResult = editCandidateDetailSchema.safeParse(data);
+      if (!validationResult.success) {
+        console.error('Manual validation failed:', validationResult.error.flatten());
+      } else {
+        console.log('Manual validation passed');
+      }
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+    }
+
+    // Check if form has validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('Form validation failed:', errors);
+      toast.error('Please fix form validation errors before saving');
+      return;
+    }
+
+    // Prevent multiple submissions
+    if (isSaving) return;
+    setIsSaving(true);
+
     // Ensure status is present and valid
     const statusToSend = data.status && data.status.trim() !== '' ? data.status : 'Applied';
     if (!statusToSend) {
       toast.error('Status is required. Please select a status before saving.');
+      setIsSaving(false);
       return;
     }
 
@@ -533,6 +629,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           isCurrent: typeof exp.isCurrent === 'boolean' ? exp.isCurrent : false,
         }))
       : [];
+    
+    console.log('Processed experience:', processedExperience);
 
     // Build the API payload with all form fields
     const apiPayload = {
@@ -541,7 +639,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       recruiterId: data.recruiterId,
       fitScore: data.fitScore,
       status: statusToSend,
-      assignmentJustification: data.assignmentJustification?.join('\n') || null,
+      assignmentJustification: data.assignmentJustification || [],
       
       // Parsed data for candidate details
       parsedData: {
@@ -560,7 +658,26 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         experience: processedExperience,
       }
     };
+    
+    console.log('Raw parsedData from form:', data.parsedData);
+    
+    // Validate parsedData structure
+    if (data.parsedData && typeof data.parsedData === 'object') {
+      console.log('parsedData validation:');
+      console.log('- personal_info:', typeof data.parsedData.personal_info, data.parsedData.personal_info);
+      console.log('- contact_info:', typeof data.parsedData.contact_info, data.parsedData.contact_info);
+      console.log('- skills array:', Array.isArray(data.parsedData.skills), data.parsedData.skills?.length);
+      console.log('- job_suitable array:', Array.isArray(data.parsedData.job_suitable), data.parsedData.job_suitable?.length);
+      console.log('- job_matches array:', Array.isArray(data.parsedData.job_matches), data.parsedData.job_matches?.length);
+      console.log('- education array:', Array.isArray(data.parsedData.education), data.parsedData.education?.length);
+      console.log('- experience array:', Array.isArray(data.parsedData.experience), data.parsedData.experience?.length);
+    }
+    
+    console.log('Final apiPayload structure:', JSON.stringify(apiPayload, null, 2));
+    
     try {
+      console.log('Saving candidate with payload:', apiPayload);
+      
       // Save candidate data with all form fields
       const res = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
@@ -570,7 +687,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update candidate');
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('API Error Response:', errorData);
+        console.error('Response status:', res.status);
+        console.error('Response headers:', Object.fromEntries(res.headers.entries()));
+        throw new Error(`Failed to update candidate: ${errorData.message || res.statusText}`);
       }
 
       // Refresh candidate after request succeeds
@@ -585,7 +706,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       }
     } catch (err) {
       console.error('Error updating candidate:', err);
-      toast.error('Failed to update candidate');
+      toast.error(err instanceof Error ? err.message : 'Failed to update candidate');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -984,7 +1107,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const appliedFitScore = candidate?.fitScore;
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
-        ? candidate.assignmentJustification
+        ? candidate.assignmentJustification.filter(Boolean)
         : typeof candidate.assignmentJustification === 'string'
           ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
           : [])
@@ -1207,7 +1330,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             phone: candidate.phone || '',
                             positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
                             fitScore: candidate.fitScore || null,
-                            assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                            assignmentJustification: candidate.assignmentJustification
+                              ? (Array.isArray(candidate.assignmentJustification)
+                                  ? candidate.assignmentJustification
+                                  : typeof candidate.assignmentJustification === 'string'
+                                    ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                                    : [])
+                              : [],
                             status: candidate.status || '',
                             recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
                             parsedData: {
@@ -1221,10 +1350,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               })),
                               experience: ((candidate.parsedData as any)?.experience || []).map((exp: ExperienceEntry) => ({
                                 ...exp,
+                                is_current_position: typeof exp.is_current_position === 'string'
+                                  ? exp.is_current_position === 'true'
+                                  : !!exp.is_current_position,
                                 startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
                                 startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
                                 endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
                                 endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                              })),
+                              skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
+                                ...s,
+                                skill_string: Array.isArray(s.skill)
+                                  ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+                                  : (typeof s.skill_string === 'string' ? s.skill_string : '')
+                              })),
+                              job_matches: ((candidate.parsedData as any)?.job_matches || []).map((match: any) => ({
+                                ...match,
+                                matchReasons_string: Array.isArray(match.matchReasons) 
+                                  ? match.matchReasons.join('\n')
+                                  : ''
                               })),
                             }
                           });
@@ -1238,7 +1382,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       variant="outline"
                       size="default"
                       className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={() => setIsTransitionsModalOpen(true)}
+                      onClick={() => openManageTransitionsModal()}
                       disabled={availableStages.length === 0}
                     >
                       <Users className="h-4 w-4 mr-2" />
@@ -1248,8 +1392,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       variant="outline"
                       size="default"
                       className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={() => setIsReprocessModalOpen(true)}
-                      disabled={!resumes || resumes.length === 0}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Re-process button clicked (FullCandidateDetail), setting modal to open');
+                        console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
+                        setIsReprocessModalOpen(true);
+                        console.log('Modal state should now be true');
+                      }}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Re-process
@@ -1306,9 +1456,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   stages={availableStages}
                   transitionHistory={transitionHistory}
                   currentStatus={candidate.status}
-                  onStageClick={(stageName) => {
-                    setIsTransitionsModalOpen(true);
-                  }}
+                  onStageClick={openManageTransitionsModal}
                   editableNotes={true}
                   onNoteEdit={async (transitionId, newNote) => {
                     await fetch(`/api/transitions/${transitionId}`, {
@@ -1384,19 +1532,23 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       
                       <div>
                         <Label className="text-sm font-medium mb-2">Match Score</Label>
-                        <Input 
-                          type="number" 
-                          min="0"
-                          max="100"
-                          placeholder="0-100" 
-                          {...register('fitScore', { 
-                            valueAsNumber: true,
-                            min: { value: 0, message: "Score must be at least 0" },
-                            max: { value: 100, message: "Score must be at most 100" }
-                          })} 
-                        />
+                        <div className="space-y-2">
+                          <Slider
+                            value={[Math.round((watch('fitScore') || 0) * 100)]}
+                            onValueChange={(value) => setValue('fitScore', value[0] / 100)}
+                            max={100}
+                            min={0}
+                            step={1}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>0%</span>
+                            <span className="font-medium">{Math.round((watch('fitScore') || 0) * 100)}%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Rate how well this candidate fits the applied position (0-100).
+                          Rate how well this candidate fits the applied position (0-100%).
                         </p>
                       </div>
                       
@@ -1817,74 +1969,84 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                    <Input placeholder="Major" {...register(`parsedData.education.${index}.major`)} />
                    <Input placeholder="Field" {...register(`parsedData.education.${index}.field`)} />
                    <Input placeholder="Campus" {...register(`parsedData.education.${index}.campus`)} />
-                   <Controller
-                     name={`parsedData.education.${index}.startMonth`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Start Month"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.education.${index}.startYear`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Start Year"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.education.${index}.endMonth`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="End Month"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.education.${index}.endYear`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="End Year"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.education.${index}.isCurrent`}
-                     control={control}
-                     render={({ field }) => (
-                       <Checkbox
-                         checked={field.value}
-                         onCheckedChange={field.onChange}
-                         id={`parsedData.education.${index}.isCurrent`}
+                   {/* Education Edit Fields */}
+                   <div className="grid grid-cols-2 gap-2">
+                     <div>
+                       <Label className="text-xs">Start Month</Label>
+                       <Select
+                         value={watch(`parsedData.education.${index}.startMonth`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.education.${index}.startMonth`, value)}
                        >
-                         Current
-                       </Checkbox>
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.education.${index}.duration`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Duration"
-                       />
-                     )}
-                   />
+                         <SelectTrigger>
+                           <SelectValue placeholder="Month" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                             <SelectItem key={month} value={month.toString()}>
+                               {months[month - 1]}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label className="text-xs">Start Year</Label>
+                       <Select
+                         value={watch(`parsedData.education.${index}.startYear`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.education.${index}.startYear`, value)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Year" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {yearRange.map((y: string) => (
+                             <SelectItem key={y} value={y}>{y}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     <div>
+                       <Label className="text-xs">End Month</Label>
+                       <Select
+                         value={watch(`parsedData.education.${index}.endMonth`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.education.${index}.endMonth`, value)}
+                         disabled={!!watch(`parsedData.education.${index}.isCurrent`)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Month" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                             <SelectItem key={month} value={month.toString()}>
+                               {months[month - 1]}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label className="text-xs">End Year</Label>
+                       <Select
+                         value={watch(`parsedData.education.${index}.endYear`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.education.${index}.endYear`, value)}
+                         disabled={!!watch(`parsedData.education.${index}.isCurrent`)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Year" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {yearRange.map((y: string) => (
+                             <SelectItem key={y} value={y}>{y}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
+                   <label>
+                     <input type="checkbox" {...register(`parsedData.education.${index}.isCurrent`)} /> Present
+                   </label>
                    <Input placeholder="GPA" {...register(`parsedData.education.${index}.GPA`)} />
                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeEducation(index)}>
                      <Trash2 className="h-4 w-4 text-destructive" />
@@ -1980,82 +2142,84 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                  <div key={field.id} className="p-3 border rounded-md space-y-2 bg-muted/30 relative">
                    <Input placeholder="Company" {...register(`parsedData.experience.${index}.company`)} />
                    <Input placeholder="Position" {...register(`parsedData.experience.${index}.position`)} />
+                   <Textarea placeholder="Description" {...register(`parsedData.experience.${index}.description`)} />
+                   {/* Experience Edit Fields */}
+                   <div className="grid grid-cols-2 gap-2">
                    <div>
-                    <Label className="text-xs">Description</Label>
-                    <Textarea
-                      {...register(`parsedData.experience.${index}.description`)}
-                      placeholder="Describe your role and responsibilities..."
-                      className="mt-1 min-h-[80px]"
-                    />
-                  </div>
-                   <Controller
-                     name={`parsedData.experience.${index}.startMonth`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Start Month"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.experience.${index}.startYear`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Start Year"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.experience.${index}.endMonth`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="End Month"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.experience.${index}.endYear`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="End Year"
-                       />
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.experience.${index}.isCurrent`}
-                     control={control}
-                     render={({ field }) => (
-                       <Checkbox
-                         checked={field.value}
-                         onCheckedChange={field.onChange}
-                         id={`parsedData.experience.${index}.isCurrent`}
+                       <Label className="text-xs">Start Month</Label>
+                       <Select
+                         value={watch(`parsedData.experience.${index}.startMonth`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.experience.${index}.startMonth`, value)}
                        >
-                         Current
-                       </Checkbox>
-                     )}
-                   />
-                   <Controller
-                     name={`parsedData.experience.${index}.duration`}
-                     control={control}
-                     render={({ field }) => (
-                       <MonthYearPicker
-                         value={field.value || ''}
-                         onChange={field.onChange}
-                         label="Duration"
-                       />
-                     )}
-                   />
+                         <SelectTrigger>
+                           <SelectValue placeholder="Month" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                             <SelectItem key={month} value={month.toString()}>
+                               {months[month - 1]}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                  </div>
+                     <div>
+                       <Label className="text-xs">Start Year</Label>
+                       <Select
+                         value={watch(`parsedData.experience.${index}.startYear`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.experience.${index}.startYear`, value)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Year" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {yearRange.map((y: string) => (
+                             <SelectItem key={y} value={y}>{y}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-2 gap-2">
+                     <div>
+                       <Label className="text-xs">End Month</Label>
+                       <Select
+                         value={watch(`parsedData.experience.${index}.endMonth`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.experience.${index}.endMonth`, value)}
+                         disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue placeholder="Month" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                             <SelectItem key={month} value={month.toString()}>
+                               {months[month - 1]}
+                             </SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div>
+                       <Label className="text-xs">End Year</Label>
+                       <Select
+                         value={watch(`parsedData.experience.${index}.endYear`)?.toString() || ''}
+                         onValueChange={(value) => setValue(`parsedData.experience.${index}.endYear`, value)}
+                         disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
+                         <SelectTrigger>
+                           <SelectValue placeholder="Year" />
+                         </SelectTrigger>
+                         <SelectContent>
+                           {yearRange.map((y: string) => (
+                             <SelectItem key={y} value={y}>{y}</SelectItem>
+                           ))}
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
+                   <label>
+                     <input type="checkbox" {...register(`parsedData.experience.${index}.isCurrent`)} /> Present
+                   </label>
                    <Input placeholder="Position Level" {...register(`parsedData.experience.${index}.positionLevel`)} />
                    <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7" onClick={() => removeExperience(index)}>
                      <Trash2 className="h-4 w-4 text-destructive" />
@@ -2391,7 +2555,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
  
       <ManageTransitionsModal
         isOpen={isTransitionsModalOpen}
-        onOpenChange={setIsTransitionsModalOpen}
+        onOpenChange={(open) => {
+          setIsTransitionsModalOpen(open);
+          if (!open) setPreselectedStage(null);
+        }}
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
@@ -2402,7 +2569,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           const updatedCandidate = await response.json();
           setCandidate(updatedCandidate);
         }}
-        preselectedStage={null}
+        preselectedStage={preselectedStage}
         comments={comments}
         onCommentsChange={() => {
           // Refresh comments
@@ -2431,13 +2598,38 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
  
       {/* Floating Save/Cancel buttons when editing */}
       {isEditing && (
-        <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+          {/* Form validation errors */}
+          {Object.keys(errors).length > 0 && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive max-w-md">
+              <div className="font-semibold mb-2">Form validation errors:</div>
+              <ul className="space-y-1">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field}>
+                    <strong>{field}:</strong> {error?.message || 'Invalid field'}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          <div className="flex gap-2">
           <Button
             onClick={handleSubmit(handleSaveDetails)}
+            disabled={isSaving}
             className="shadow-lg"
           >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
             <Save className="h-4 w-4 mr-2" />
             Save Changes
+              </>
+            )}
           </Button>
           <Button
             variant="outline"
@@ -2450,10 +2642,47 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                   phone: candidate.phone || '',
                   positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
                   fitScore: candidate.fitScore || null,
-                  assignmentJustification: Array.isArray(candidate.assignmentJustification) ? candidate.assignmentJustification : (candidate.assignmentJustification ? [candidate.assignmentJustification] : []),
+                                assignmentJustification: candidate.assignmentJustification
+              ? (Array.isArray(candidate.assignmentJustification)
+                  ? candidate.assignmentJustification
+                  : typeof candidate.assignmentJustification === 'string'
+                    ? candidate.assignmentJustification.split(/[\n,]+/).filter(item => item.trim() !== '')
+                    : [])
+              : [],
                   status: candidate.status || '',
                   recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                  parsedData: (candidate.parsedData as any) || {}
+                    parsedData: {
+                      ...(candidate.parsedData as any),
+                      education: ((candidate.parsedData as any)?.education || []).map((edu: any) => ({
+                        ...edu,
+                        startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+                        startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+                        endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+                        endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+                      })),
+                      experience: ((candidate.parsedData as any)?.experience || []).map((exp: any) => ({
+                        ...exp,
+                        is_current_position: typeof exp.is_current_position === 'string'
+                          ? exp.is_current_position === 'true'
+                          : !!exp.is_current_position,
+                        startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+                        startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+                        endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+                        endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                      })),
+                      skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
+                        ...s,
+                        skill_string: Array.isArray(s.skill)
+                          ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+                          : (typeof s.skill_string === 'string' ? s.skill_string : '')
+                      })),
+                      job_matches: ((candidate.parsedData as any)?.job_matches || []).map((match: any) => ({
+                        ...match,
+                        matchReasons_string: Array.isArray(match.matchReasons) 
+                          ? match.matchReasons.join('\n')
+                          : ''
+                      })),
+                    }
                 });
               }
             }}
@@ -2462,6 +2691,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
+          </div>
         </div>
       )}
       <CandidateAttachmentUploadModal
@@ -2473,6 +2703,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
 
       {/* Re-process Modal */}
       {candidate && (
+        <>
+          {console.log('Rendering ReprocessModal with allDbPositions:', allDbPositions.length, allDbPositions)}
         <ReprocessModal
           isOpen={isReprocessModalOpen}
           onOpenChange={setIsReprocessModalOpen}
@@ -2480,8 +2712,9 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           candidateName={candidate.name || 'Unknown Candidate'}
           candidatePositionId={candidate.positionId}
           attachments={resumes}
-          positions={availablePositions}
+            positions={allDbPositions}
         />
+        </>
       )}
     </div>
   );

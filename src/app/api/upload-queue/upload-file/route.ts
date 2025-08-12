@@ -8,6 +8,7 @@ import { getPool } from '@/lib/db';
 // import { dispatchWebhooks } from '@/lib/webhookDispatcher'; // Disabled for simplicity
 import { broadcastUploadQueueUpdate } from '../sse/broadcastUploadQueueUpdate';
 import { retryMinIOUpload, retryDatabaseOperation } from '@/lib/uploadRetry';
+import { generateUniqueFilename } from '@/lib/fileUtils';
 
 // Configuration constants
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -162,8 +163,10 @@ async function processFileUpload(
   }
 ): Promise<UploadResult> {
   const jobId = uuidv4();
-  const ext = file.name.split('.').pop() || 'pdf';
-  const objectName = `uploads/${jobId}.${ext}`;
+  
+  // Generate filename that preserves the original name
+  const fileName = generateUniqueFilename(file.name);
+  const objectName = `uploads/${fileName}`;
 
   // Step 1: Validate file
   const validation = validateFile(file);

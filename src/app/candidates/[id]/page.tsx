@@ -23,6 +23,7 @@ import { ManageTransitionsModal } from '@/components/candidates/ManageTransition
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -79,8 +80,8 @@ const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destr
 
 const personalInfoEditSchema = z.object({
   title_honorific: z.string().optional().nullable(),
-  firstname: z.string().min(1, "First name is required"),
-  lastname: z.string().min(1, "Last name is required"),
+  firstname: z.string().optional().nullable(),
+  lastname: z.string().optional().nullable(),
   nickname: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
   introduction_aboutme: z.string().optional().nullable(),
@@ -88,7 +89,7 @@ const personalInfoEditSchema = z.object({
 }).deepPartial();
 
 const contactInfoEditSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.union([z.string().email("Invalid email address"), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
 }).deepPartial();
 
@@ -135,7 +136,7 @@ const jobSuitableEntryEditSchema = z.object({
 const jobMatchEntryEditSchema = z.object({
     jobId: z.string().uuid().optional().nullable(),
     jobTitle: z.string().optional().nullable(),
-    fitScore: z.number().min(0).max(100).optional().nullable(),
+    fitScore: z.number().min(0).max(1).optional().nullable(),
     matchReasons: z.array(z.string()).optional(),
     matchReasons_string: z.string().optional().nullable(),
     is_applied_job: z.boolean().optional(),
@@ -153,15 +154,15 @@ const candidateDetailsEditSchema = z.object({
 }).deepPartial();
 
 const editCandidateDetailSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  email: z.string().email("Invalid email address").optional(),
+  name: z.string().optional().nullable(),
+  email: z.union([z.string().email("Invalid email address"), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(100).nullable().optional(),
-  status: z.string().min(1, "Status is required").optional(),
+  fitScore: z.number().min(0).max(1).nullable().optional(),
+  status: z.string().optional().nullable(),
   assignmentJustification: z.array(z.string()).optional(),
-  parsedData: candidateDetailsEditSchema.optional(),
+  parsedData: z.any().optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
@@ -385,11 +386,7 @@ export default function CandidateDetailPage() {
       phone: candidate && candidate.phone ? candidate.phone : '',
       positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
       fitScore: candidate?.fitScore || null,
-      assignmentJustification: candidate?.assignmentJustification
-        ? Array.isArray(candidate.assignmentJustification)
-          ? candidate.assignmentJustification
-          : [candidate.assignmentJustification]
-        : [],
+      assignmentJustification: [],
       status: candidate?.status || '',
       recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
       parsedData: (candidate?.parsedData as any) || {}
@@ -397,6 +394,47 @@ export default function CandidateDetailPage() {
   });
 
   const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register, watch } = form;
+
+  // Form submission handler
+  const onSubmit = (data: EditCandidateFormValues) => {
+    console.log('Form submitted with data:', data);
+    console.log('Form errors:', errors);
+    console.log('Form isSubmitting:', isSubmitting);
+    
+    // Log detailed validation errors
+    if (Object.keys(errors).length > 0) {
+      console.error('Validation errors details:', JSON.stringify(errors, null, 2));
+    }
+    
+    // Log parsedData specifically
+    console.log('parsedData being submitted:', data.parsedData);
+    
+    // Try to validate the data manually to see what's wrong
+    try {
+      const validationResult = editCandidateDetailSchema.safeParse(data);
+      if (!validationResult.success) {
+        console.error('Manual validation failed:', validationResult.error.flatten());
+      } else {
+        console.log('Manual validation passed');
+      }
+    } catch (validationError) {
+      console.error('Validation error:', validationError);
+    }
+    
+    handleSaveDetails(data);
+  };
+
+  // Watch assignmentJustification for debugging
+  const assignmentJustification = watch('assignmentJustification');
+  useEffect(() => {
+    console.log('Candidate ID Page - assignmentJustification changed:', assignmentJustification);
+  }, [assignmentJustification]);
+
+
+
+  // Job Applied variables (matching FullCandidateDetail)
+  const appliedJobId = candidate?.positionId;
+  const appliedFitScore = candidate?.fitScore;
 
   // Field arrays for form sections
   const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({ control, name: "parsedData.education" });
@@ -407,18 +445,31 @@ export default function CandidateDetailPage() {
 
   // Update form when candidate data changes
   useEffect(() => {
+    console.log('Candidate ID Page - useEffect triggered, candidate:', candidate);
     if (candidate) {
+      console.log('Candidate parsedData:', candidate.parsedData);
+      console.log('Candidate jobMatches:', candidate.jobMatches);
       reset({
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
         positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
         fitScore: candidate?.fitScore || null,
-        assignmentJustification: candidate?.assignmentJustification
-          ? Array.isArray(candidate.assignmentJustification)
-            ? candidate.assignmentJustification
-            : [candidate.assignmentJustification]
-          : [],
+        assignmentJustification: (() => {
+          const result = candidate?.assignmentJustification
+            ? (Array.isArray(candidate.assignmentJustification)
+                ? candidate.assignmentJustification
+                : typeof candidate.assignmentJustification === 'string'
+                  ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                  : [])
+            : [];
+          console.log('Candidate ID Page - Loading assignmentJustification:', {
+            original: candidate?.assignmentJustification,
+            split: result,
+            length: result.length
+          });
+          return result;
+        })(),
         status: candidate.status || '',
         recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
@@ -433,6 +484,18 @@ export default function CandidateDetailPage() {
               : ''
           }))
         }
+      });
+      console.log('Form reset with parsedData:', {
+        ...(candidate.parsedData as any) || {},
+        job_matches: (candidate.jobMatches || []).map((match: any) => ({
+          jobId: match.jobId,
+          jobTitle: match.positionTitle,
+          fitScore: match.fitScore,
+          matchReasons: match.matchReasons || [],
+          matchReasons_string: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.join('\n')
+            : ''
+        }))
       });
     }
   }, [candidate, reset]);
@@ -636,6 +699,11 @@ export default function CandidateDetailPage() {
         return;
       }
             const data: Candidate = await response.json();
+      console.log('Candidate ID Page - Fetched candidate data:', {
+        assignmentJustification: data.assignmentJustification,
+        type: typeof data.assignmentJustification,
+        isArray: Array.isArray(data.assignmentJustification)
+      });
       setCandidate(data);
     } catch (error) {
       console.error("Error fetching candidate details:", error);
@@ -901,7 +969,11 @@ export default function CandidateDetailPage() {
   };
 
   const handleSaveDetails = async (data: EditCandidateFormValues) => {
-    if (!candidate) return;
+    console.log('handleSaveDetails called with data:', data);
+    if (!candidate) {
+      console.log('No candidate found, returning');
+      return;
+    }
     // Patch: update parsedData.job_applied as well as top-level fields
     const newJobApplied = {
       jobId: data.positionId,
@@ -951,9 +1023,7 @@ export default function CandidateDetailPage() {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      assignmentJustification: Array.isArray(data.assignmentJustification)
-        ? data.assignmentJustification.join('\n')
-        : data.assignmentJustification,
+      assignmentJustification: data.assignmentJustification || [],
       parsedData: {
         ...data.parsedData,
         education: processedEducation,
@@ -963,21 +1033,35 @@ export default function CandidateDetailPage() {
       },
     };
     try {
+      console.log('Sending API request to:', `/api/candidates/${candidate.id}`);
+      console.log('Request data:', processedData);
+      
       // Save main candidate data
       const response = await fetch(`/api/candidates/${candidate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(processedData),
       });
+      
+      console.log('API response status:', response.status);
+      console.log('API response ok:', response.ok);
+      
       if (!response.ok) {
-        throw new Error(`Failed to update candidate: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('API error response:', errorData);
+        throw new Error(`Failed to update candidate: ${errorData.message || response.statusText}`);
       }
+      
+      const responseData = await response.json();
+      console.log('API success response:', responseData);
+      
       // Show toast only after successful save
       toast.success('Candidate details updated successfully.');
       // No PATCH to v1 API for job matches
       await fetchCandidateDetails();
       setIsEditing(false);
     } catch (error) {
+      console.error('Error in handleSaveDetails:', error);
       toast.error((error as Error).message);
     }
   };
@@ -991,9 +1075,11 @@ export default function CandidateDetailPage() {
             positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
             fitScore: candidate?.fitScore || null,
             assignmentJustification: candidate?.assignmentJustification
-              ? Array.isArray(candidate.assignmentJustification)
-                ? candidate.assignmentJustification
-                : [candidate.assignmentJustification]
+              ? (Array.isArray(candidate.assignmentJustification)
+                  ? candidate.assignmentJustification
+                  : typeof candidate.assignmentJustification === 'string'
+                    ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                    : [])
               : [],
             status: candidate.status,
             recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
@@ -1611,7 +1697,7 @@ export default function CandidateDetailPage() {
   return (
     <div>
     
-      <form onSubmit={handleSubmit(handleSaveDetails)}>
+      <form id="candidate-edit-form" onSubmit={handleSubmit(onSubmit)}>
           {/* Header - 2 Columns */}
           {candidate && (
             <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/20 dark:from-slate-900 dark:via-slate-800/50 dark:to-slate-700/30 border-b border-border/50 p-6 sticky top-0 z-50 shadow-lg backdrop-blur-sm">
@@ -1795,8 +1881,14 @@ export default function CandidateDetailPage() {
                           variant="outline"
                           size="default"
                           className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                          onClick={() => setIsReprocessModalOpen(true)}
-                          disabled={!attachments || attachments.length === 0}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Re-process button clicked, setting modal to open');
+                            console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
+                            setIsReprocessModalOpen(true);
+                            console.log('Modal state should now be true');
+                          }}
                         >
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Re-process
@@ -1904,7 +1996,7 @@ export default function CandidateDetailPage() {
                         <h2 className="text-xl font-bold tracking-tight flex-1 text-left">Job Applied</h2>
                         {jobAppliedOpen ? <ChevronDown className="transition-transform group-hover:rotate-180" /> : <ChevronRight className="transition-transform" />}
                       </button>
-                      {candidate?.positionId && (
+                      {appliedJobId && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1933,7 +2025,7 @@ export default function CandidateDetailPage() {
                                   render={({ field }) => (
                                     <PositionSelectDropdown
                                       value={field.value || ''}
-                                      onValueChange={field.onChange}
+                                      onValueChange={val => field.onChange(!val || val === '' ? null : val)}
                                       placeholder="Select the position this candidate applied for..."
                                       filterOpenOnly={false}
                                     />
@@ -1944,48 +2036,43 @@ export default function CandidateDetailPage() {
                                 </p>
                               </div>
                               
-                              <div>
-                                <Label className="text-sm font-medium mb-2">Match Score (0-1)</Label>
-                                <Controller
-                                  name="fitScore"
-                                  control={control}
-                                  render={({ field }) => (
-                                    <div className="space-y-2">
-                                      <input
-                                        type="range"
-                                        min={0}
-                                        max={1}
-                                        step={0.01}
-                                        value={field.value ?? 0}
-                                        onChange={e => field.onChange(Number(e.target.value))}
-                                        className="w-full"
-                                      />
-                                      <div className="flex justify-between text-xs">
-                                        <span>0</span>
-                                        <span>1</span>
-                                      </div>
-                                      <div className="mt-1 text-sm">
-                                        <span className="font-bold">{displayFitScoreWithGrade(field.value)}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                />
+                                                            <div>
+                                <Label className="text-sm font-medium mb-2">Match Score</Label>
+                                <div className="space-y-2">
+                                  <Slider
+                                    value={[Math.round((form.watch('fitScore') || 0) * 100)]}
+                                    onValueChange={(value) => form.setValue('fitScore', value[0] / 100)}
+                                    max={100}
+                                    min={0}
+                                    step={1}
+                                    className="w-full"
+                                  />
+                                  <div className="flex justify-between text-xs text-muted-foreground">
+                                    <span>0%</span>
+                                    <span className="font-medium">{Math.round((form.watch('fitScore') || 0) * 100)}%</span>
+                                    <span>100%</span>
+                                  </div>
+                                </div>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  Use the slider to set the fit score (0 = poor fit, 1 = perfect fit).
+                                  Rate how well this candidate fits the applied position (0-100%).
                                 </p>
                               </div>
                               
                               <div>
                                 <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
                                 <div className="space-y-3">
-                                  {(!form.watch('assignmentJustification') || form.watch('assignmentJustification')?.length === 0) && (
+                                  {(() => {
+                                    const justification = form.watch('assignmentJustification');
+                                    console.log('Candidate ID Page - Form rendering check:', justification);
+                                    return (!justification || justification.length === 0);
+                                  })() && (
                                     <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
                                       <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
                                       <p className="text-sm">No justification items added yet.</p>
                                       <p className="text-xs">Click "Add Justification" to get started.</p>
                                     </div>
                                   )}
-                                  {form.watch('assignmentJustification')?.map((item: string, index: number) => (
+                                                                                                      {form.watch('assignmentJustification')?.map((item: string, index: number) => (
                                     <div key={index} className="flex items-start gap-2 group">
                                       <div className="flex-1">
                                         <Input
@@ -2021,6 +2108,7 @@ export default function CandidateDetailPage() {
                                   >
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Justification
                                   </Button>
+
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-2">
                                   Add detailed reasons for assigning this candidate to the applied position.
@@ -2030,7 +2118,7 @@ export default function CandidateDetailPage() {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {candidate.positionId ? (
+                            {appliedJobId ? (
                               <div 
                                 className="relative rounded-lg cursor-pointer hover:shadow-xl transition-all duration-200 text-foreground"
                                 style={{
@@ -2045,14 +2133,14 @@ export default function CandidateDetailPage() {
                                   e.currentTarget.style.filter = 'brightness(1)';
                                 }}
                                 onClick={() => {
-                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId) : null;
+                                  const position = Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId) : null;
                                   
                                   if (position) {
                                     const appliedJobData = {
-                                      jobId: candidate.positionId,
+                                      jobId: appliedJobId,
                                       jobTitle: position.title,
-                                      fitScore: displayFitScore(candidate?.fitScore),
-                                      matchReasons: candidate?.assignmentJustification || [],
+                                      fitScore: displayFitScore(appliedFitScore),
+                                      matchReasons: appliedJustification || [],
                                       position: {
                                         id: position.id,
                                         title: position.title,
@@ -2070,33 +2158,16 @@ export default function CandidateDetailPage() {
                                 }}
                               >
                                 <div 
-                                  className="rounded-lg p-6 h-full border shadow-lg bg-card"
+                                  className="rounded-lg p-4 h-full border shadow-lg bg-card"
                                 >
                                   <div className="flex items-center justify-between mb-3">
                                     <h4 className="font-semibold text-foreground text-lg">
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div className="flex items-start gap-2">
-                                            <Building2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                                          <span
-                                              className="overflow-hidden text-ellipsis whitespace-pre-line line-clamp-2 cursor-pointer"
-                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
-                                          >
-                                            {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
-                                          </span>
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                          {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === candidate.positionId)?.title || 'Unknown Position' : 'Unknown Position'}
-                                        </TooltipContent>
-                                      </Tooltip>
+                                      {Array.isArray(allDbPositions) ? allDbPositions.find(p => p.id === appliedJobId)?.title || 'Unknown Position' : 'Unknown Position'}
                                     </h4>
-                                    {candidate?.fitScore !== null && candidate?.fitScore !== undefined && (
-                                      <div className="flex items-center gap-2">
-                                        <ScoreBadge score={candidate?.fitScore} className="text-3xl font-extrabold px-5 py-3">
-                                          {displayFitScore(candidate?.fitScore)} ({getGradeFromScore(candidate?.fitScore || 0)})
-                                        </ScoreBadge>
-                                      </div>
+                                    {appliedFitScore !== null && appliedFitScore !== undefined && (
+                                      <ScoreBadge score={appliedFitScore}>
+                                        {displayFitScore(appliedFitScore)} ({getGradeFromScore(appliedFitScore || 0)})
+                                      </ScoreBadge>
                                     )}
                                    </div>
                                    
@@ -2732,7 +2803,8 @@ export default function CandidateDetailPage() {
                                             <Select
                                               value={watch(`parsedData.experience.${index}.endYear`)?.toString() || ''}
                                               onValueChange={(value) => setValue(`parsedData.experience.${index}.endYear`, value)}
-                                              disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}>
+                                              disabled={!!watch(`parsedData.experience.${index}.isCurrent`)}
+                                            >
                                               <SelectTrigger>
                                                 <SelectValue placeholder="Year" />
                                               </SelectTrigger>
@@ -3144,39 +3216,79 @@ export default function CandidateDetailPage() {
 
         {/* Re-process Modal */}
         {candidate && (
-          <ReprocessModal
-            isOpen={isReprocessModalOpen}
-            onOpenChange={setIsReprocessModalOpen}
-            candidateId={candidate.id}
-            candidateName={candidate.name || 'Unknown Candidate'}
-            candidatePositionId={candidate.positionId}
-            attachments={attachments}
-            positions={allDbPositions}
-          />
+          <>
+            {console.log('Rendering ReprocessModal - candidate exists:', !!candidate, 'isReprocessModalOpen:', isReprocessModalOpen)}
+            <ReprocessModal
+              isOpen={isReprocessModalOpen}
+              onOpenChange={setIsReprocessModalOpen}
+              candidateId={candidate.id}
+              candidateName={candidate.name || 'Unknown Candidate'}
+              candidatePositionId={candidate.positionId}
+              attachments={resumes}
+              positions={allDbPositions}
+            />
+          </>
         )}
 
         {/* Floating Save/Cancel Buttons for Edit Mode */}
         {isEditing && (
-          <div className="fixed bottom-6 right-6 z-50 flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={handleCancelEdit}
-              className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="lg"
-              onClick={handleSubmit(handleSaveDetails)}
-              className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+            {/* Form validation errors */}
+            {Object.keys(errors).length > 0 && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive">
+                <div className="font-semibold mb-2">Form validation errors:</div>
+                <ul className="space-y-1">
+                  {Object.entries(errors).map(([field, error]) => (
+                    <li key={field}>
+                      <strong>{field}:</strong> {error?.message || 'Invalid field'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+
+            
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={handleCancelEdit}
+                className="shadow-lg hover:shadow-xl transition-all duration-200 bg-background/95 backdrop-blur-sm border-border"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                disabled={isSubmitting}
+                onClick={() => {
+                  console.log('Save button clicked');
+                  const form = document.getElementById('candidate-edit-form') as HTMLFormElement;
+                  if (form) {
+                    form.requestSubmit();
+                  } else {
+                    handleSubmit(onSubmit)();
+                  }
+                }}
+                className="shadow-lg hover:shadow-xl transition-all duration-200 btn-primary-gradient"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+
+            </div>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { logAudit } from '@/lib/auditLog';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { generateUniqueFilename } from '@/lib/fileUtils';
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +77,11 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const originalName = file.name;
-    const ext = originalName.split('.').pop();
-    const objectName = `resumes/${candidateId}/${randomUUID()}.${ext}`;
+    
+    // Generate filename that preserves the original name
+    const jobId = randomUUID();
+    const fileName = generateUniqueFilename(originalName);
+    const objectName = `resumes/${candidateId}/${fileName}`;
 
     // Upload to MinIO
     await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {

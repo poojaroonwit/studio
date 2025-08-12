@@ -637,7 +637,7 @@ export default function DashboardPageClient({
               description: "On process candidates",
               button: {
                 label: "View All",
-                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Active'))
+                onClick: () => router.push('/candidates?query=' + encodeURIComponent('status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold'))
               }
             },
             { 
@@ -882,7 +882,7 @@ export default function DashboardPageClient({
                 description: "In my pipeline",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Active`)}`)
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Applied,Screening,Shortlisted,Interview Scheduled,Interviewing,Offer Extended,On Hold`)}`)
                 }
               },
               { 
@@ -895,7 +895,7 @@ export default function DashboardPageClient({
                 description: "Currently interviewing",
                 button: {
                   label: "View All",
-                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Interview`)}`)
+                  onClick: () => router.push(`/candidates?query=${encodeURIComponent(`recruiterId:${session?.user?.id} status:Interview Scheduled,Interviewing`)}`)
                 }
               },
               { 

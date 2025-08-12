@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Calendar, User, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { FileText, Download, Calendar, User, Loader2, RefreshCw, AlertCircle, Search, Eye, X, Maximize2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import type { Position } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ReprocessModalProps {
   isOpen: boolean;
@@ -22,8 +24,9 @@ interface ReprocessModalProps {
     fileName: string;
     filePath: string;
     uploadedAt: string;
-    fileSize: number;
-    type: string;
+    label?: string;
+    isPrimary?: boolean;
+    url: string;
   }>;
   positions: Position[];
 }
@@ -40,22 +43,46 @@ export default function ReprocessModal({
   const [selectedAttachment, setSelectedAttachment] = useState<string>('');
   const [selectedPositionId, setSelectedPositionId] = useState<string>(candidatePositionId || '');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [positionSearchTerm, setPositionSearchTerm] = useState('');
+  const [previewMode, setPreviewMode] = useState<'thumbnail' | 'fullscreen'>('thumbnail');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to check if file is PDF
+  const isPDFFile = (fileName: string) => {
+    return fileName.toLowerCase().endsWith('.pdf');
+  };
 
   // Filter valid attachments (must have required fields)
-  const validAttachments = attachments.filter(att => 
-    att.id && 
-    att.fileName && 
-    att.filePath && 
-    att.fileSize > 0
-  );
+  const validAttachments = attachments.filter(att => {
+    // Check if attachment has the required fields
+    const hasRequiredFields = att.id && att.fileName && att.filePath;
+    
+    // Debug logging
+    if (!hasRequiredFields) {
+      console.log('Invalid attachment:', att);
+    }
+    
+    return hasRequiredFields;
+  });
+
+  // Debug logging for state changes
+  console.log('ReprocessModal render - isProcessing:', isProcessing, 'positions.length:', positions.length, 'validAttachments.length:', validAttachments.length);
+  console.log('validAttachments:', validAttachments);
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedAttachment('');
       setSelectedPositionId(candidatePositionId || '');
+      setIsProcessing(false); // Reset processing state when modal opens
+      setPositionSearchTerm(''); // Reset search term when modal opens
+      setPreviewMode('thumbnail'); // Reset preview mode when modal opens
+      console.log('ReprocessModal opened with positions:', positions.length, positions);
+      console.log('isProcessing:', isProcessing);
+      console.log('positions.length === 0:', positions.length === 0);
+      console.log('Button disabled condition:', isProcessing || positions.length === 0);
     }
-  }, [isOpen, candidatePositionId]);
+  }, [isOpen, candidatePositionId, positions, isProcessing]);
 
   const handleReprocess = async () => {
     if (!selectedAttachment) {
@@ -80,9 +107,11 @@ export default function ReprocessModal({
       return;
     }
 
+    console.log('Setting isProcessing to true');
     setIsProcessing(true);
     try {
-      const response = await fetch('/api/upload-queue/blocking-process', {
+      // Add file to upload queue instead of processing immediately
+      const response = await fetch('/api/upload-queue', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,171 +119,112 @@ export default function ReprocessModal({
         body: JSON.stringify({
           file_path: attachment.filePath,
           file_name: attachment.fileName,
-          file_size: attachment.fileSize,
+          file_size: "0", // Send as string for BigInt compatibility
+          status: 'queued',
+          source: 'reprocess',
+          upload_id: uuidv4(), // Generate a unique upload ID
           position_id: selectedPositionId,
-          candidate_id: candidateId,
-          request_type: 'update',
-          source: 'reprocess'
+          webhook_payload: {
+            candidate_id: candidateId,
+            request_type: 'update',
+            source: 'reprocess',
+            attachment_id: attachment.id
+          }
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to re-process attachment');
+        let errorMessage = 'Failed to add file to processing queue';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (jsonError) {
+          // If JSON parsing fails, try to get text response
+          try {
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            // If both JSON and text parsing fail, use status text
+            errorMessage = `${errorMessage} (Status: ${response.status} ${response.statusText})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json();
-      
-      if (result.job?.status === 'success') {
-        toast.success('Attachment re-processed successfully');
-        onOpenChange(false);
-      } else {
-        toast.error(`Re-processing failed: ${result.job?.error || 'Unknown error'}`);
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        console.warn('Response is not JSON, treating as success:', jsonError);
+        result = { success: true };
       }
+      
+      toast.success('File added to processing queue successfully');
+      console.log('File added to queue:', result);
+      onOpenChange(false);
     } catch (error) {
       console.error('Re-process error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to re-process attachment');
+      toast.error(error instanceof Error ? error.message : 'Failed to add file to processing queue');
     } finally {
+      console.log('Setting isProcessing to false');
       setIsProcessing(false);
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <RefreshCw className="h-5 w-5" />
-            Re-process Attachment
-          </DialogTitle>
+          <DialogTitle>Re-process Attachment</DialogTitle>
           <DialogDescription>
-            Select an attachment to re-process with updated data. This will send the file to the webhook with request_type "update".
+            Re-process an attachment for candidate: <strong>{candidateName}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-         
-
           {/* Attachment Selection */}
           <div className="space-y-3">
             <Label htmlFor="attachment-select">Select Attachment</Label>
-            
-            {validAttachments.length === 0 ? (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-sm text-amber-800 dark:text-amber-200">
-                  No valid attachments found. Please upload attachments first.
-                </span>
-              </div>
-            ) : (
-              <>
-                <Select value={selectedAttachment} onValueChange={setSelectedAttachment}>
-                  <SelectTrigger id="attachment-select">
-                    <SelectValue placeholder="Choose an attachment to re-process..." />
-                  </SelectTrigger>
-                  <SelectContent className="z-[210]">
-                    {validAttachments.map((attachment) => (
-                      <SelectItem key={attachment.id} value={attachment.id}>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span>{attachment.fileName}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {formatFileSize(attachment.fileSize)}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {selectedAttachment && (
-                  <Card className="mt-3">
-                    <CardContent className="pt-4">
-                      {(() => {
-                        const attachment = validAttachments.find(att => att.id === selectedAttachment);
-                        if (!attachment) return null;
-                        
-                        return (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-5 w-5 text-muted-foreground" />
-                              <div>
-                                <div className="font-medium">{attachment.fileName}</div>
-                                <div className="text-sm text-muted-foreground flex items-center gap-4">
-                                  <span>{formatFileSize(attachment.fileSize)}</span>
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {formatDate(attachment.uploadedAt)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                // Download the file
-                                const link = document.createElement('a');
-                                link.href = attachment.filePath;
-                                link.download = attachment.fileName;
-                                link.click();
-                              }}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Download
-                            </Button>
-                          </div>
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Position Selection */}
-          <div className="space-y-3">
-            <Label htmlFor="position-select">Applied Position</Label>
-            {!candidatePositionId && (
-              <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-amber-800 dark:text-amber-200">
-                  <p className="font-medium">No Applied Position</p>
-                  <p>This candidate currently has no applied position. Please select a position to apply for.</p>
-                </div>
-              </div>
-            )}
-            <Select value={selectedPositionId} onValueChange={setSelectedPositionId}>
-              <SelectTrigger id="position-select">
-                <SelectValue placeholder="Select position to apply for..." />
+            <Select 
+              value={selectedAttachment} 
+              onValueChange={(value) => {
+                console.log('Attachment selected:', value);
+                setSelectedAttachment(value);
+                // Automatically show preview for PDF files
+                if (value) {
+                  const attachment = validAttachments.find(att => att.id === value);
+                  if (attachment && isPDFFile(attachment.fileName)) {
+                    setPreviewMode('thumbnail');
+                  }
+                }
+              }}
+              disabled={false}
+            >
+              <SelectTrigger 
+                className="w-full"
+                onClick={() => {
+                  console.log('SelectTrigger clicked, validAttachments:', validAttachments.length);
+                }}
+              >
+                <SelectValue placeholder="Select an attachment to re-process..." />
               </SelectTrigger>
               <SelectContent className="z-[210]">
-                {positions.map((position) => (
-                  <SelectItem key={position.id} value={position.id}>
+                {validAttachments.map((attachment) => (
+                  <SelectItem key={attachment.id} value={attachment.id}>
                     <div className="flex items-center gap-2">
-                      <span>{position.title}</span>
-                      {position.department && (
-                        <Badge variant="outline" className="text-xs">
-                          {position.department}
+                      <FileText className="h-4 w-4" />
+                      <span>{attachment.fileName}</span>
+                      {attachment.isPrimary && (
+                        <Badge variant="secondary" className="text-xs">
+                          Primary
                         </Badge>
                       )}
                     </div>
@@ -263,21 +233,143 @@ export default function ReprocessModal({
               </SelectContent>
             </Select>
 
-
+            {selectedAttachment && (
+              <Card className="mt-3">
+                <CardContent className="pt-4">
+                  {(() => {
+                    const attachment = validAttachments.find(att => att.id === selectedAttachment);
+                    if (!attachment) return null;
+                    
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{attachment.fileName}</div>
+                              <div className="text-sm text-muted-foreground flex items-center gap-4">
+                                {attachment.label && (
+                                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                                    {attachment.label}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatDate(attachment.uploadedAt)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Download the file
+                              const link = document.createElement('a');
+                              link.href = attachment.url;
+                              link.download = attachment.fileName;
+                              link.click();
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                        
+                        {/* PDF Preview */}
+                        {isPDFFile(attachment.fileName) && (
+                          <div className="border rounded-lg overflow-hidden bg-white">
+                            <div className="h-96">
+                              <iframe
+                                src={attachment.url}
+                                className="w-full h-full"
+                                title="PDF Preview"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Warning */}
-          <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-amber-800 dark:text-amber-200">
-              <p className="font-medium">Re-processing will:</p>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Send the selected attachment to the webhook with request_type "update"</li>
-                <li>Update the candidate's information based on the new processing</li>
-                <li>This may overwrite existing parsed data</li>
-              </ul>
-            </div>
+          {/* Position Selection */}
+          <div className="space-y-3">
+            <Label htmlFor="position-select">Applied Position</Label>
+            
+            <Select 
+              value={selectedPositionId} 
+              onValueChange={(value) => {
+                console.log('Position selected:', value);
+                setSelectedPositionId(value);
+              }}
+              disabled={false}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select position to apply for..." />
+              </SelectTrigger>
+              <SelectContent className="z-[210]">
+                <div className="flex items-center px-3 pb-2 border-b">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search positions..."
+                    value={positionSearchTerm}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setPositionSearchTerm(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                      // Prevent the Select from closing when search input loses focus
+                      setTimeout(() => {
+                        if (searchInputRef.current) {
+                          searchInputRef.current.focus();
+                        }
+                      }, 0);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+                <div className="max-h-[200px] overflow-y-auto">
+                  {positions
+                    .filter(position => {
+                      if (!positionSearchTerm) return true;
+                      const searchTerm = positionSearchTerm.toLowerCase();
+                      return position.title.toLowerCase().includes(searchTerm) ||
+                             (position.department && position.department.toLowerCase().includes(searchTerm));
+                    })
+                    .map((position) => (
+                      <SelectItem key={position.id} value={position.id}>
+                        <div className="flex items-center gap-2">
+                          <span>{position.title}</span>
+                          {position.department && (
+                            <Badge variant="outline" className="text-xs">
+                              {position.department}
+                            </Badge>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </div>
+              </SelectContent>
+            </Select>
           </div>
+
+
         </div>
 
         <DialogFooter>
@@ -292,17 +384,65 @@ export default function ReprocessModal({
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                Adding to Queue...
               </>
             ) : (
               <>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Re-process Attachment
+                Add to Processing Queue
               </>
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* PDF Preview Fullscreen Modal */}
+      {selectedAttachment && previewMode === 'fullscreen' && (() => {
+        const attachment = validAttachments.find(att => att.id === selectedAttachment);
+        if (!attachment || !isPDFFile(attachment.fileName)) return null;
+        
+        return (
+          <Dialog open={previewMode === 'fullscreen'} onOpenChange={() => setPreviewMode('thumbnail')}>
+            <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+              <div className="flex items-center justify-between p-4 border-b">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-red-500" />
+                  <div>
+                    <h3 className="font-medium">{attachment.fileName}</h3>
+                    <p className="text-sm text-muted-foreground">PDF Preview</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(attachment.url, '_blank');
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Open in Browser
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPreviewMode('thumbnail')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                <iframe
+                  src={attachment.url}
+                  className="w-full h-[calc(90vh-80px)]"
+                  title="PDF Preview"
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </Dialog>
   );
 }

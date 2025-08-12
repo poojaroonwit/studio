@@ -64,14 +64,14 @@ import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 
 // Define Zod schemas for validation...
 const updateCandidateSchema = z.object({
-  name: z.string().min(1).optional(),
-  email: z.string().email().optional(),
+  name: z.string().optional().nullable(),
+  email: z.union([z.string().email(), z.literal(''), z.literal(null)]).optional(),
   phone: z.string().optional().nullable(),
   positionId: z.string().uuid().nullable().optional(),
   recruiterId: z.string().uuid().nullable().optional(),
-  fitScore: z.number().min(0).max(1).optional(),
-  status: z.string().min(1).optional(),
-  assignmentJustification: z.string().optional().nullable(),
+  fitScore: z.number().min(0).max(1).nullable().optional(),
+  status: z.string().optional().nullable(),
+  assignmentJustification: z.array(z.string()).optional(),
   parsedData: z.record(z.any()).optional().nullable(),
   custom_attributes: z.record(z.any()).optional().nullable(),
   resumePath: z.string().optional().nullable(),
@@ -200,9 +200,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl } = validationResult.data;
 
-  // Extra validation to prevent DB errors - only validate status if it's being updated
-  if (status !== undefined && (!status || typeof status !== 'string' || status.trim() === '')) {
-    return NextResponse.json({ message: 'Status is required and must be a non-empty string.' }, { status: 400 });
+  // Extra validation to prevent DB errors - only validate status if it's being updated and not null
+  if (status !== undefined && status !== null && (!status || typeof status !== 'string' || status.trim() === '')) {
+    return NextResponse.json({ message: 'Status must be a non-empty string if provided.' }, { status: 400 });
+  }
+  
+  // Validate required fields to prevent DB constraint violations
+  if (name !== undefined && (!name || typeof name !== 'string' || name.trim() === '')) {
+    return NextResponse.json({ message: 'Name is required and must be a non-empty string.' }, { status: 400 });
+  }
+  if (email !== undefined && (!email || typeof email !== 'string' || email.trim() === '')) {
+    return NextResponse.json({ message: 'Email is required and must be a non-empty string.' }, { status: 400 });
   }
   // Helper to check UUID
   function isValidUUID(val: string) {
@@ -294,7 +302,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     if (assignmentJustification !== undefined) {
       updateFields.push(`"assignmentJustification" = $${paramIndex}`);
-      updateValues.push(assignmentJustification);
+      // Convert array to string if it's an array, otherwise use as is
+      const assignmentJustificationStr = Array.isArray(assignmentJustification) 
+        ? assignmentJustification.join('\n') 
+        : assignmentJustification;
+      updateValues.push(assignmentJustificationStr);
       paramIndex++;
     }
     if (parsedData !== undefined) {

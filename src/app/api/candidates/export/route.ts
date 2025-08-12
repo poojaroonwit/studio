@@ -126,17 +126,65 @@ export async function GET(request: NextRequest) {
     
     // Parse query parameters for filtering
     const url = new URL(request.url);
-    const name = url.searchParams.get('name');
-    const email = url.searchParams.get('email');
-    const phone = url.searchParams.get('phone');
-    const positionId = url.searchParams.get('positionId');
-    const status = url.searchParams.get('status');
+    
+    // Parse advanced query parameter if present
+    const advancedQuery = url.searchParams.get('query');
+    let advancedFilters: { [key: string]: string | null } = {};
+    
+    if (advancedQuery) {
+      console.log('Candidates Export API: Processing advanced query:', advancedQuery);
+      const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
+      
+      parts.forEach(part => {
+        const colonIndex = part.indexOf(':');
+        if (colonIndex === -1) return;
+        
+        const key = part.substring(0, colonIndex);
+        const value = part.substring(colonIndex + 1);
+        if (!key || !value) return;
+        
+        switch (key.toLowerCase()) {
+          case 'name':
+            advancedFilters.name = value;
+            break;
+          case 'email':
+            advancedFilters.email = value;
+            break;
+          case 'phone':
+            advancedFilters.phone = value;
+            break;
+          case 'positionid':
+            advancedFilters.positionId = value;
+            break;
+          case 'status':
+            advancedFilters.status = value;
+            break;
+          case 'recruiterid':
+            advancedFilters.recruiterId = value;
+            break;
+          case 'applicationdatestart':
+            advancedFilters.applicationDateStart = value;
+            break;
+          case 'applicationdateend':
+            advancedFilters.applicationDateEnd = value;
+            break;
+        }
+      });
+      console.log('Candidates Export API: Advanced filters parsed:', advancedFilters);
+    }
+    
+    // Get individual parameters, giving priority to explicit parameters over advanced query
+    const name = url.searchParams.get('name') || advancedFilters.name;
+    const email = url.searchParams.get('email') || advancedFilters.email;
+    const phone = url.searchParams.get('phone') || advancedFilters.phone;
+    const positionId = url.searchParams.get('positionId') || advancedFilters.positionId;
+    const status = url.searchParams.get('status') || advancedFilters.status;
     const education = url.searchParams.get('education');
     const minAppliedJobFitScore = url.searchParams.get('minAppliedJobFitScore');
     const maxAppliedJobFitScore = url.searchParams.get('maxAppliedJobFitScore');
-    const applicationDateStart = url.searchParams.get('applicationDateStart');
-    const applicationDateEnd = url.searchParams.get('applicationDateEnd');
-    const recruiterId = url.searchParams.get('recruiterId');
+    const applicationDateStart = url.searchParams.get('applicationDateStart') || advancedFilters.applicationDateStart;
+    const applicationDateEnd = url.searchParams.get('applicationDateEnd') || advancedFilters.applicationDateEnd;
+    const recruiterId = url.searchParams.get('recruiterId') || advancedFilters.recruiterId;
     
     // Build WHERE clause based on filters
     let whereConditions = [];

@@ -21,76 +21,11 @@ const sampleStages: TaskStage[] = [
   { id: 'done', name: 'Done', color: '#10b981', description: 'Completed tasks', sortOrder: 3 },
 ];
 
-// Sample tasks data
-const sampleTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Design new landing page',
-    description: 'Create a modern and responsive landing page for the new product launch',
-    status: 'todo',
-    priority: 'high',
-    assignee: { id: '1', name: 'John Doe', avatarUrl: 'https://placehold.co/32x32.png?text=JD' },
-    dueDate: '2024-02-15',
-    tags: ['design', 'frontend'],
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    title: 'Implement user authentication',
-    description: 'Add OAuth2 authentication with Google and GitHub providers',
-    status: 'in-progress',
-    priority: 'urgent',
-    assignee: { id: '2', name: 'Jane Smith', avatarUrl: 'https://placehold.co/32x32.png?text=JS' },
-    dueDate: '2024-01-20',
-    tags: ['backend', 'security'],
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-12',
-  },
-  {
-    id: '3',
-    title: 'Write API documentation',
-    description: 'Create comprehensive API documentation using OpenAPI/Swagger',
-    status: 'review',
-    priority: 'medium',
-    assignee: { id: '3', name: 'Mike Johnson', avatarUrl: 'https://placehold.co/32x32.png?text=MJ' },
-    dueDate: '2024-01-25',
-    tags: ['documentation', 'api'],
-    createdAt: '2024-01-08',
-    updatedAt: '2024-01-14',
-  },
-  {
-    id: '4',
-    title: 'Setup CI/CD pipeline',
-    description: 'Configure GitHub Actions for automated testing and deployment',
-    status: 'done',
-    priority: 'high',
-    assignee: { id: '1', name: 'John Doe', avatarUrl: 'https://placehold.co/32x32.png?text=JD' },
-    dueDate: '2024-01-10',
-    tags: ['devops', 'automation'],
-    createdAt: '2024-01-05',
-    updatedAt: '2024-01-10',
-  },
-  {
-    id: '5',
-    title: 'Optimize database queries',
-    description: 'Review and optimize slow database queries for better performance',
-    status: 'todo',
-    priority: 'medium',
-    assignee: { id: '2', name: 'Jane Smith', avatarUrl: 'https://placehold.co/32x32.png?text=JS' },
-    dueDate: '2024-02-01',
-    tags: ['database', 'performance'],
-    createdAt: '2024-01-16',
-    updatedAt: '2024-01-16',
-  },
-];
+// Empty tasks data - will be populated from real data source
+const sampleTasks: Task[] = [];
 
-// Sample assignees
-const sampleAssignees = [
-  { id: '1', name: 'John Doe', avatarUrl: 'https://placehold.co/32x32.png?text=JD' },
-  { id: '2', name: 'Jane Smith', avatarUrl: 'https://placehold.co/32x32.png?text=JS' },
-  { id: '3', name: 'Mike Johnson', avatarUrl: 'https://placehold.co/32x32.png?text=MJ' },
-];
+// Empty assignees - will be populated from real data source
+const sampleAssignees: { id: string; name: string; avatarUrl: string }[] = [];
 
 export default function TaskBoardPage() {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks);
@@ -201,11 +136,17 @@ export default function TaskBoardPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assignees</SelectItem>
-                {sampleAssignees.map(assignee => (
-                  <SelectItem key={assignee.id} value={assignee.id}>
-                    {assignee.name}
+                {sampleAssignees.length > 0 ? (
+                  sampleAssignees.map(assignee => (
+                    <SelectItem key={assignee.id} value={assignee.id}>
+                      {assignee.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-assignees" disabled>
+                    No assignees available
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>

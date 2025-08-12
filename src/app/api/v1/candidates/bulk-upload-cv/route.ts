@@ -7,6 +7,7 @@ import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from '@/app/api/upload-queue/sse/broadcastUploadQueueUpdate';
+import { generateUniqueFilename } from '@/lib/fileUtils';
 
 export const runtime = 'nodejs';
 
@@ -52,9 +53,11 @@ export async function POST(req: NextRequest) {
 
   // Store file in MinIO
   const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split('.').pop() || 'pdf';
+  
+  // Generate filename that preserves the original name
   const uploadId = uuidv4();
-  const objectName = `resumes/upload-queue/${uploadId}.${ext}`;
+  const fileName = generateUniqueFilename(file.name);
+  const objectName = `resumes/upload-queue/${fileName}`;
   
   try {
     await ensureBucketExists();

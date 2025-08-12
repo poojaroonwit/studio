@@ -401,6 +401,13 @@ export function CandidatesPageClient({
     }, 30000);
     try {
       const query = new URLSearchParams();
+      
+      // Check if we have an advanced query from URL and pass it to the API
+      const advancedQueryParam = searchParams.get('query');
+      if (advancedQueryParam) {
+        query.append('query', advancedQueryParam);
+      }
+      
       if (currentFilters.name) {
         query.append('name', currentFilters.name);
         if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
@@ -422,8 +429,14 @@ export function CandidatesPageClient({
       if (currentFilters.maxMatchingJobFitScore !== undefined && currentFilters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
       if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
       if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
-      if (currentFilters.applicationDateStart) query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
-      if (currentFilters.applicationDateEnd) query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      if (currentFilters.applicationDateStart) {
+        console.log('Sending applicationDateStart:', currentFilters.applicationDateStart.toISOString());
+        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
+      }
+      if (currentFilters.applicationDateEnd) {
+        console.log('Sending applicationDateEnd:', currentFilters.applicationDateEnd.toISOString());
+        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      }
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
       query.append('page', String(page));
       query.append('limit', String(pageSize));
@@ -677,6 +690,8 @@ export function CandidatesPageClient({
     if (advancedQueryParam) {
       advancedQuery = decodeURIComponent(advancedQueryParam);
       hasChanges = true;
+      // Don't process individual parameters when we have an advanced query
+      // The advanced query will be parsed by the CandidateFilters component
     } else {
       // Handle individual parameters
       // Handle recruiter filter
@@ -754,8 +769,11 @@ export function CandidatesPageClient({
 
     // Only update if there are actual changes
     if (hasChanges) {
-      setFilters(newFilters);
-      // Don't reset hasInitialDataFetch here - let the filter change useEffect handle fetching
+      // If we have an advanced query, don't update filters state directly
+      // Let the CandidateFilters component handle the parsing
+      if (!advancedQuery) {
+        setFilters(newFilters);
+      }
       
       // If we have an advanced query, store it for the filter component
       if (advancedQuery) {
@@ -938,6 +956,17 @@ export function CandidatesPageClient({
     setIsAiSearchActive(false);
     setAdvancedQueryFromUrl(''); // Clear advanced query from URL
     setPage(1);
+    
+    // Clear URL parameters to match the cleared filters
+    const newSearchParams = new URLSearchParams();
+    // Keep only pagination parameters if they exist
+    const currentPage = searchParams.get('page');
+    const currentPageSize = searchParams.get('pageSize');
+    if (currentPage) newSearchParams.set('page', currentPage);
+    if (currentPageSize) newSearchParams.set('pageSize', currentPageSize);
+    
+    const newURL = newSearchParams.toString() ? `?${newSearchParams.toString()}` : '';
+    router.replace(`${pathname}${newURL}`, { scroll: false });
     
     // Reset the clearing flag after a short delay to allow filter update to complete
     setTimeout(() => {

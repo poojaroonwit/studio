@@ -342,7 +342,11 @@ export function CandidateFilters({
     const parts = query.split(' ').filter(part => part.includes(':'));
     
     parts.forEach(part => {
-      const [key, value] = part.split(':');
+      const colonIndex = part.indexOf(':');
+      if (colonIndex === -1) return;
+      
+      const key = part.substring(0, colonIndex);
+      const value = part.substring(colonIndex + 1);
       if (!key || !value) return;
       
       switch (key.toLowerCase()) {
@@ -420,19 +424,35 @@ export function CandidateFilters({
           break;
         case 'applicationdatestart':
           try {
-            const startDate = parseISO(value);
+            // Handle URL-encoded dates and various date formats
+            const decodedValue = decodeURIComponent(value);
+            console.log('Parsing applicationDateStart:', { original: value, decoded: decodedValue });
+            const startDate = parseISO(decodedValue);
             if (!isNaN(startDate.getTime())) {
               filters.applicationDateStart = startDate;
+              console.log('Successfully parsed start date:', startDate);
+            } else {
+              console.warn('Invalid start date format:', decodedValue);
             }
-          } catch {}
+          } catch (error) {
+            console.error('Error parsing start date:', value, error);
+          }
           break;
         case 'applicationdateend':
           try {
-            const endDate = parseISO(value);
+            // Handle URL-encoded dates and various date formats
+            const decodedValue = decodeURIComponent(value);
+            console.log('Parsing applicationDateEnd:', { original: value, decoded: decodedValue });
+            const endDate = parseISO(decodedValue);
             if (!isNaN(endDate.getTime())) {
               filters.applicationDateEnd = endDate;
+              console.log('Successfully parsed end date:', endDate);
+            } else {
+              console.warn('Invalid end date format:', decodedValue);
             }
-          } catch {}
+          } catch (error) {
+            console.error('Error parsing end date:', value, error);
+          }
           break;
         case 'location':
           filters.location = value;
@@ -530,56 +550,68 @@ export function CandidateFilters({
   };
 
   // Handle advanced query from URL
+  const processedAdvancedQueryRef = useRef<string>('');
+  
   useEffect(() => {
-    if (advancedQuery && advancedQuery.trim()) {
-      setAdvancedQueryInput(advancedQuery);
-      // Switch to advanced tab when query comes from URL
-      setActiveTab('advanced');
-      // Automatically apply the query if it's from URL
-      const parsedFilters = parseAdvancedQuery(advancedQuery);
-      if (Object.keys(parsedFilters).length > 0) {
-        // Update local state to reflect the parsed filters
-        if (parsedFilters.name) setName(parsedFilters.name);
-        if (parsedFilters.email) setEmail(parsedFilters.email);
-        if (parsedFilters.phone) setPhone(parsedFilters.phone);
-        if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
-        if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
-        if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
-        if (parsedFilters.minAppliedJobFitScore !== undefined || parsedFilters.maxAppliedJobFitScore !== undefined) {
-          setAppliedJobFitScoreRange([
-            parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
-            parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1]
-          ]);
-        }
-            if (parsedFilters.minMatchingJobFitScore !== undefined || parsedFilters.maxMatchingJobFitScore !== undefined) {
-      setMatchingJobFitScoreRange([
-        parsedFilters.minMatchingJobFitScore ?? matchingJobFitScoreRange[0],
-        parsedFilters.maxMatchingJobFitScore ?? matchingJobFitScoreRange[1]
-      ]);
-    }
-        if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
-          setApplicationDateRange({
-            from: parsedFilters.applicationDateStart,
-            to: parsedFilters.applicationDateEnd
+    if (advancedQuery && advancedQuery.trim() && processedAdvancedQueryRef.current !== advancedQuery) {
+      try {
+        console.log('Processing advanced query from URL:', advancedQuery);
+        processedAdvancedQueryRef.current = advancedQuery;
+        setAdvancedQueryInput(advancedQuery);
+        // Switch to advanced tab when query comes from URL
+        setActiveTab('advanced');
+        // Automatically apply the query if it's from URL
+        const parsedFilters = parseAdvancedQuery(advancedQuery);
+        console.log('Parsed filters from advanced query:', parsedFilters);
+        if (Object.keys(parsedFilters).length > 0) {
+          // Apply the filters first to avoid state update conflicts
+          onFilterChange({
+            ...parsedFilters,
+            minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+            maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
+            applicationDateStart: parsedFilters.applicationDateStart,
+            applicationDateEnd: parsedFilters.applicationDateEnd,
+            location: parsedFilters.location,
+            locationOperator: parsedFilters.locationOperator,
+            aiSearchQuery: undefined,
           });
+          
+          // Update local state to reflect the parsed filters
+          if (parsedFilters.name) setName(parsedFilters.name);
+          if (parsedFilters.email) setEmail(parsedFilters.email);
+          if (parsedFilters.phone) setPhone(parsedFilters.phone);
+          if (parsedFilters.selectedPositionIds) setSelectedPositionIds(new Set(parsedFilters.selectedPositionIds));
+          if (parsedFilters.selectedStatuses) setSelectedStatuses(new Set(parsedFilters.selectedStatuses));
+          if (parsedFilters.selectedRecruiterIds) setSelectedRecruiterIds(new Set(parsedFilters.selectedRecruiterIds));
+          if (parsedFilters.minAppliedJobFitScore !== undefined || parsedFilters.maxAppliedJobFitScore !== undefined) {
+            setAppliedJobFitScoreRange([
+              parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
+              parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1]
+            ]);
+          }
+          if (parsedFilters.minMatchingJobFitScore !== undefined || parsedFilters.maxMatchingJobFitScore !== undefined) {
+            setMatchingJobFitScoreRange([
+              parsedFilters.minMatchingJobFitScore ?? matchingJobFitScoreRange[0],
+              parsedFilters.maxMatchingJobFitScore ?? matchingJobFitScoreRange[1]
+            ]);
+          }
+          if (parsedFilters.applicationDateStart || parsedFilters.applicationDateEnd) {
+            setApplicationDateRange({
+              from: parsedFilters.applicationDateStart,
+              to: parsedFilters.applicationDateEnd
+            });
+          }
+          if (parsedFilters.location) setLocation(parsedFilters.location);
+          if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
         }
-        if (parsedFilters.location) setLocation(parsedFilters.location);
-        if (parsedFilters.locationOperator) setLocationOperator(parsedFilters.locationOperator);
-        
-        // Apply the filters
-        onFilterChange({
-          ...parsedFilters,
-          minAppliedJobFitScore: parsedFilters.minAppliedJobFitScore ?? appliedJobFitScoreRange[0],
-          maxAppliedJobFitScore: parsedFilters.maxAppliedJobFitScore ?? appliedJobFitScoreRange[1],
-          applicationDateStart: parsedFilters.applicationDateStart,
-          applicationDateEnd: parsedFilters.applicationDateEnd,
-          location: parsedFilters.location,
-          locationOperator: parsedFilters.locationOperator,
-          aiSearchQuery: undefined,
-        });
+      } catch (error) {
+        console.error('Error parsing advanced query:', error);
+        // Fallback: just set the input without applying
+        setAdvancedQueryInput(advancedQuery);
+        setActiveTab('advanced');
       }
     }
-  }, [advancedQuery]);
+  }, [advancedQuery, appliedJobFitScoreRange, matchingJobFitScoreRange]); // Removed onFilterChange from dependencies
 
   // Clear all filters function
   const handleClearAll = () => {
@@ -733,7 +765,7 @@ export function CandidateFilters({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [initialFilters]); // Removed onFilterChange from dependencies to prevent infinite loop
+  }, [initialFilters, onFilterChange]); // Added onFilterChange back to dependencies
 
   // Auto-apply filters when input values change (debounced)
   // Note: Fit score ranges are now handled separately through debounced handlers
@@ -1201,10 +1233,44 @@ export function CandidateFilters({
   const safeAvailableStages = Array.isArray(availableStages) ? availableStages : [];
   const safeAvailableRecruiters = Array.isArray(availableRecruiters) ? availableRecruiters : [];
   
+  // Debug logging to help identify data loading issues
+  useEffect(() => {
+    console.log('CandidateFilters: Data received:', {
+      availablePositions: availablePositions?.length || 0,
+      availableStages: availableStages?.length || 0,
+      availableRecruiters: availableRecruiters?.length || 0,
+      isLoading,
+      isAiSearching
+    });
+  }, [availablePositions, availableStages, availableRecruiters, isLoading, isAiSearching]);
+  
+  // Add loading states for better UX
+  const [isStagesLoading, setIsStagesLoading] = useState(false);
+  const [isRecruitersLoading, setIsRecruitersLoading] = useState(false);
+  const [stagesError, setStagesError] = useState<string | null>(null);
+  const [recruitersError, setRecruitersError] = useState<string | null>(null);
+
+  // Retry loading data if it's empty
+  useEffect(() => {
+    if (safeAvailableStages.length === 0 && !isStagesLoading && !stagesError) {
+      setIsStagesLoading(true);
+      // You can add a retry mechanism here if needed
+      setTimeout(() => setIsStagesLoading(false), 1000);
+    }
+  }, [safeAvailableStages.length, isStagesLoading, stagesError]);
+
+  useEffect(() => {
+    if (safeAvailableRecruiters.length === 0 && !isRecruitersLoading && !recruitersError) {
+      setIsRecruitersLoading(true);
+      // You can add a retry mechanism here if needed
+      setTimeout(() => setIsRecruitersLoading(false), 1000);
+    }
+  }, [safeAvailableRecruiters.length, isRecruitersLoading, recruitersError]);
 
 
 
   
+
 
 
   return (
@@ -1675,14 +1741,29 @@ export function CandidateFilters({
                           </div>
                           <div>
                             <Label htmlFor="status-select" className="text-xs">Recruitment Pipeline</Label>
-                            <StatusMultiSelectDropdown
-                              selectedIds={selectedStatuses}
-                              onSelectionChange={handleStatusChange}
-                              placeholder="Select pipeline stages..."
-                              stages={safeAvailableStages}
-                              candidateCounts={candidateCounts}
-                              disabled={isLoading || isAiSearching || isApplyingFilters}
-                            />
+                            {isStagesLoading ? (
+                              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/20">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-xs text-muted-foreground">Loading pipeline stages...</span>
+                              </div>
+                            ) : stagesError ? (
+                              <div className="p-2 border rounded-md bg-destructive/10 border-destructive/20">
+                                <span className="text-xs text-destructive">Error loading stages: {stagesError}</span>
+                              </div>
+                            ) : safeAvailableStages.length === 0 ? (
+                              <div className="p-2 border rounded-md bg-muted/20">
+                                <span className="text-xs text-muted-foreground">No pipeline stages available</span>
+                              </div>
+                            ) : (
+                              <StatusMultiSelectDropdown
+                                selectedIds={selectedStatuses}
+                                onSelectionChange={handleStatusChange}
+                                placeholder="Select pipeline stages..."
+                                stages={safeAvailableStages}
+                                candidateCounts={candidateCounts}
+                                disabled={isLoading || isAiSearching || isApplyingFilters}
+                              />
+                            )}
                             {isApplyingFilters && (
                               <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                 <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
@@ -1692,13 +1773,28 @@ export function CandidateFilters({
                           </div>
                           <div>
                             <Label htmlFor="recruiter-select" className="text-xs">Assigned Recruiter(s)</Label>
-                            <RecruiterMultiSelectDropdown
-                              selectedIds={selectedRecruiterIds}
-                              onSelectionChange={handleRecruiterChange}
-                              placeholder={safeAvailableRecruiters.length === 0 ? "No recruiters available - can filter unassigned" : `Select recruiters... (${safeAvailableRecruiters.length} available)`}
-                              recruiters={safeAvailableRecruiters}
-                              disabled={isLoading || isAiSearching || isApplyingFilters}
-                            />
+                            {isRecruitersLoading ? (
+                              <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/20">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-xs text-muted-foreground">Loading recruiters...</span>
+                              </div>
+                            ) : recruitersError ? (
+                              <div className="p-2 border rounded-md bg-destructive/10 border-destructive/20">
+                                <span className="text-xs text-destructive">Error loading recruiters: {recruitersError}</span>
+                              </div>
+                            ) : safeAvailableRecruiters.length === 0 ? (
+                              <div className="p-2 border rounded-md bg-muted/20">
+                                <span className="text-xs text-muted-foreground">No recruiters available - can filter unassigned</span>
+                              </div>
+                            ) : (
+                              <RecruiterMultiSelectDropdown
+                                selectedIds={selectedRecruiterIds}
+                                onSelectionChange={handleRecruiterChange}
+                                placeholder={`Select recruiters... (${safeAvailableRecruiters.length} available)`}
+                                recruiters={safeAvailableRecruiters}
+                                disabled={isLoading || isAiSearching || isApplyingFilters}
+                              />
+                            )}
                             {isApplyingFilters && (
                               <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                 <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
@@ -1952,9 +2048,7 @@ export function CandidateFilters({
                                 </Badge>
                               </div>
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              High potential candidates for this position
-                            </div>
+                           
                           </div>
                         </div>
                       </AccordionContent>

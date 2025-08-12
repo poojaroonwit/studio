@@ -101,10 +101,15 @@ export async function POST(request: NextRequest) {
          AND id NOT IN (
            SELECT id FROM upload_queue WHERE status = 'inprocess'
          )
-         AND file_path NOT IN (
-           SELECT file_path FROM upload_queue 
-           WHERE status IN ('success', 'fail', 'error')
-           AND file_path IS NOT NULL
+         AND (
+           -- Allow reprocess jobs to be processed even if file_path was processed before
+           source = 'reprocess' 
+           OR webhook_payload->>'source' = 'reprocess'
+           OR file_path NOT IN (
+             SELECT file_path FROM upload_queue 
+             WHERE status IN ('success', 'fail', 'error')
+             AND file_path IS NOT NULL
+           )
          )
          ORDER BY upload_date ASC LIMIT 1
          FOR UPDATE SKIP LOCKED
@@ -189,7 +194,26 @@ export async function POST(request: NextRequest) {
     let payload = null;
     
     // Check if this job has already been processed by external webhooks
-    const jobAlreadyProcessed = job.webhook_payload?.processed_by_external_webhook === true;
+    let jobAlreadyProcessed = job.webhook_payload?.processed_by_external_webhook === true;
+    
+    // For reprocess jobs, clear the processed_by_external_webhook flag to allow reprocessing
+    if (job.source === 'reprocess' || job.webhook_payload?.source === 'reprocess') {
+      if (jobAlreadyProcessed) {
+        console.log(`[Webhook] Clearing processed_by_external_webhook flag for reprocess job ${job.id}`);
+        await client.query(
+          `UPDATE upload_queue SET webhook_payload = jsonb_set(
+            COALESCE(webhook_payload, '{}'::jsonb), 
+            '{processed_by_external_webhook}', 
+            'false'::jsonb
+          ) WHERE id = $1`,
+          [job.id]
+        );
+        // Update the job object to reflect the change
+        job.webhook_payload = job.webhook_payload || {};
+        job.webhook_payload.processed_by_external_webhook = false;
+        jobAlreadyProcessed = false; // Update the flag since we cleared it
+      }
+    }
     
     // Check if duplicate processing prevention is enabled
     let preventDuplicateProcessing = true; // Default to true
@@ -210,15 +234,21 @@ export async function POST(request: NextRequest) {
     });
     
     // Check if this file has already been processed successfully
-    const alreadyProcessedCheck = await client.query(
-      `SELECT COUNT(*) as count FROM upload_queue 
-       WHERE file_path = $1 
-       AND status IN ('success', 'fail', 'error')
-       AND id != $2`,
-      [job.file_path, job.id]
-    );
+    // For reprocess jobs, we allow processing even if the file was processed before
+    const isReprocessJob = job.source === 'reprocess' || job.webhook_payload?.source === 'reprocess';
     
-    const alreadyProcessed = parseInt(alreadyProcessedCheck.rows[0].count, 10) > 0;
+    let alreadyProcessed = false;
+    if (!isReprocessJob) {
+      const alreadyProcessedCheck = await client.query(
+        `SELECT COUNT(*) as count FROM upload_queue 
+         WHERE file_path = $1 
+         AND status IN ('success', 'fail', 'error')
+         AND id != $2`,
+        [job.file_path, job.id]
+      );
+      
+      alreadyProcessed = parseInt(alreadyProcessedCheck.rows[0].count, 10) > 0;
+    }
     
     if (alreadyProcessed) {
       console.log(`[Webhook] File ${job.file_path} already processed by another job, skipping to prevent duplicate candidates`);
@@ -504,9 +534,18 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         // --- Store webhook details in payload for UI ---
         payload = {
           ...(job.webhook_payload || {}),
+          // Webhook send information
+          webhookUrl: resumeWebhookUrl,
+          method: 'POST',
+          headers: headers,
+          timeoutMs: timeoutMs,
+          responseMode: responseMode,
+          // Webhook response information
           webhookResStatus,
           webhookResponseText,
           webhookError: status === 'fail' ? error : undefined,
+          // Original payload information
+          originalPayload: payloadWithIdempotency,
         };
       } catch (err) {
         status = 'fail';
@@ -514,6 +553,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         error_details = err instanceof Error ? err.message : String(err);
         payload = {
           ...(job.webhook_payload || {}),
+          // Webhook send information (even for errors)
+          webhookUrl: resumeWebhookUrl,
+          method: 'POST',
+          headers: headers,
+          timeoutMs: timeoutMs,
+          responseMode: responseMode,
+          // Webhook error information
           webhookError: error,
         };
         console.error('[Webhook] Call failed:', error_details);

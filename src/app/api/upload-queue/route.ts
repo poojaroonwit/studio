@@ -310,12 +310,50 @@ export async function POST(request: NextRequest) {
   const id = uuidv4();
   const client = await getPool().connect();
   try {
-    const res = await client.query(
-      `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
-    );
+    // For reprocess jobs, we need to handle the unique constraint differently
+    // Check if this is a reprocess job
+    const isReprocessJob = source === 'reprocess' || (webhook_payload && webhook_payload.source === 'reprocess');
+    
+    let res;
+    if (isReprocessJob) {
+      // For reprocess jobs, we need to handle potential unique constraint violations
+      try {
+        res = await client.query(
+          `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING *`,
+          [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
+        );
+      } catch (insertError) {
+        // If unique constraint violation, try to update the existing job instead
+        if (insertError.code === '23505' && insertError.constraint === 'upload_queue_file_path_status_key') {
+          console.log(`[Reprocess] Unique constraint violation for file_path: ${file_path}, updating existing job`);
+          
+          // Update the existing job to be a reprocess job
+          res = await client.query(
+            `UPDATE upload_queue 
+             SET source = $1, webhook_payload = $2, updated_at = now()
+             WHERE file_path = $3 AND status = $4
+             RETURNING *`,
+            [source, webhook_payload ? JSON.stringify(webhook_payload) : null, file_path, status]
+          );
+          
+          if (res.rows.length === 0) {
+            throw new Error('Failed to update existing job for reprocess');
+          }
+        } else {
+          throw insertError;
+        }
+      }
+    } else {
+      // For regular jobs, use normal insert
+      res = await client.query(
+        `INSERT INTO upload_queue (id, file_name, file_size, status, source, upload_id, created_by, file_path, webhook_payload, position_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         RETURNING *`,
+        [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
+      );
+    }
     
     console.log(`File '${file_name}' added to upload queue by ${actingUserName}`, { 
       queueId: id,
@@ -366,7 +404,10 @@ export async function POST(request: NextRequest) {
       error: (error as Error).message 
     });
     console.error('Upload queue POST error:', error);
-    throw error;
+    return NextResponse.json({ 
+      error: (error as Error).message || 'Internal server error',
+      details: 'Failed to add file to upload queue'
+    }, { status: 500 });
   } finally {
     client.release();
   }

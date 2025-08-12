@@ -235,29 +235,97 @@ export async function GET(request: NextRequest) {
   const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
   const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
 
-  // Filters
+  // Parse advanced query parameter if present
+  const advancedQuery = searchParams.get('query');
+  let advancedFilters: { [key: string]: string | undefined } = {};
+  
+  if (advancedQuery) {
+    console.log('Candidates API: Processing advanced query:', advancedQuery);
+    const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
+    
+    parts.forEach(part => {
+      const colonIndex = part.indexOf(':');
+      if (colonIndex === -1) return;
+      
+      const key = part.substring(0, colonIndex);
+      const value = part.substring(colonIndex + 1);
+      if (!key || !value) return;
+      
+      switch (key.toLowerCase()) {
+        case 'name':
+          advancedFilters.searchTerm = value;
+          break;
+        case 'email':
+          advancedFilters.email = value;
+          break;
+        case 'phone':
+          advancedFilters.phone = value;
+          break;
+        case 'skills':
+          advancedFilters.skills = value;
+          break;
+        case 'location':
+          advancedFilters.location = value;
+          break;
+        case 'minfitscore':
+        case 'minappliedjobfitscore':
+          advancedFilters.minAppliedJobFitScore = value;
+          break;
+        case 'maxfitscore':
+        case 'maxappliedjobfitscore':
+          advancedFilters.maxAppliedJobFitScore = value;
+          break;
+        case 'matchingfitscoremin':
+        case 'minmatchingjobfitscore':
+          advancedFilters.minMatchingJobFitScore = value;
+          break;
+        case 'matchingfitscoremax':
+        case 'maxmatchingjobfitscore':
+          advancedFilters.maxMatchingJobFitScore = value;
+          break;
+        case 'applicationdatestart':
+          advancedFilters.applicationDateStart = value;
+          break;
+        case 'applicationdateend':
+          advancedFilters.applicationDateEnd = value;
+          break;
+        case 'positionid':
+          advancedFilters.positionId = value;
+          break;
+        case 'status':
+          advancedFilters.status = value;
+          break;
+        case 'recruiterid':
+          advancedFilters.recruiterId = value;
+          break;
+      }
+    });
+    console.log('Candidates API: Advanced filters parsed:', advancedFilters);
+  }
+
+  // Filters - merge with advanced query filters, giving priority to individual parameters
   const filters: { [key: string]: string | undefined } = {
-    status: searchParams.get('status') || undefined,
-    positionId: searchParams.get('positionId') || undefined,
-    recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || undefined,
-    searchTerm: searchParams.get('searchTerm') || searchParams.get('name') || undefined,
-    email: searchParams.get('email') || undefined,
-    phone: searchParams.get('phone') || undefined,
+    status: searchParams.get('status') || advancedFilters.status || undefined,
+    positionId: searchParams.get('positionId') || advancedFilters.positionId || undefined,
+    recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || advancedFilters.recruiterId || undefined,
+    searchTerm: searchParams.get('searchTerm') || searchParams.get('name') || advancedFilters.searchTerm || undefined,
+    email: searchParams.get('email') || advancedFilters.email || undefined,
+    phone: searchParams.get('phone') || advancedFilters.phone || undefined,
     education: searchParams.get('education') || undefined,
-    skills: searchParams.get('skills') || undefined,
-    location: searchParams.get('location') || undefined,
+    skills: searchParams.get('skills') || advancedFilters.skills || undefined,
+    location: searchParams.get('location') || advancedFilters.location || undefined,
     cvLanguage: searchParams.get('cvLanguage') || undefined,
     jobSuitableCareer: searchParams.get('jobSuitableCareer') || undefined,
     jobSuitableLevel: searchParams.get('jobSuitableLevel') || undefined,
     jobSuitablePosition: searchParams.get('jobSuitablePosition') || undefined,
     minExperienceYears: searchParams.get('minExperienceYears') || undefined,
     maxExperienceYears: searchParams.get('maxExperienceYears') || undefined,
-    applicationDateStart: searchParams.get('applicationDateStart') || undefined,
-    applicationDateEnd: searchParams.get('applicationDateEnd') || undefined,
-    minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') || undefined,
-    maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') || undefined,
-    minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') || undefined,
-    maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') || undefined,
+    applicationDateStart: searchParams.get('applicationDateStart') || advancedFilters.applicationDateStart || undefined,
+    applicationDateEnd: searchParams.get('applicationDateEnd') || advancedFilters.applicationDateEnd || undefined,
+    minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') || advancedFilters.minAppliedJobFitScore || undefined,
+    maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') || advancedFilters.maxAppliedJobFitScore || undefined,
+    minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') || advancedFilters.minMatchingJobFitScore || undefined,
+    maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') || advancedFilters.maxMatchingJobFitScore || undefined,
   };
 
 

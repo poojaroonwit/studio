@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-import process from 'process';
+const process = require('process');
 
 function getMinioRemotePattern() {
   // Try to get MinIO public URL and bucket from env
@@ -109,4 +109,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig; 
+module.exports = nextConfig; 

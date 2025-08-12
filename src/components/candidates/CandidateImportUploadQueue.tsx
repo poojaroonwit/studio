@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -138,6 +138,33 @@ export const CandidateImportUploadQueue: React.FC<{
     updatedAt?: string;
     fileSize?: number;
   } | null>(null);
+
+  // Function to generate curl command from webhook payload
+  const generateCurlCommand = (webhookPayload: any): string => {
+    if (!webhookPayload) return '';
+    
+    const url = webhookPayload.webhookUrl || '';
+    const method = webhookPayload.method || 'POST';
+    const headers = webhookPayload.headers || {};
+    const payload = webhookPayload.originalPayload || webhookPayload;
+    
+    let curlCommand = `curl -X ${method.toUpperCase()} "${url}"`;
+    
+    // Add headers
+    Object.entries(headers).forEach(([key, value]) => {
+      curlCommand += ` \\\n  -H "${key}: ${value}"`;
+    });
+    
+    // Add payload for non-GET requests
+    if (method.toUpperCase() !== 'GET' && payload) {
+      const jsonPayload = JSON.stringify(payload, null, 2);
+      // Escape quotes and newlines for curl
+      const escapedPayload = jsonPayload.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      curlCommand += ` \\\n  -d "${escapedPayload}"`;
+    }
+    
+    return curlCommand;
+  };
 
   // Helper function to check if date is in range - moved before usage
   const isInRange = (dateString?: string) => {
@@ -1230,7 +1257,7 @@ export const CandidateImportUploadQueue: React.FC<{
                     <TableCell>{item.process_date ? format(new Date(item.process_date), 'yyyy-MM-dd HH:mm:ss') : '-'}</TableCell>
                     <TableCell>{item.completed_date ? new Date(item.completed_date).toLocaleString() : '-'}</TableCell>
                     <TableCell>
-                      {item.process_date ? 
+                      {item.process_date && (item.status === 'success' || item.status === 'error' || item.status === 'fail') ? 
                         formatDuration(item.process_date, item.completed_date || undefined) : 
                         '-'
                       }
@@ -1542,7 +1569,7 @@ export const CandidateImportUploadQueue: React.FC<{
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium text-muted-foreground">Duration:</span>
-                        <span>{selectedCombinedJob.upload_date ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
+                        <span>{selectedCombinedJob.upload_date && (selectedCombinedJob.status === 'success' || selectedCombinedJob.status === 'error' || selectedCombinedJob.status === 'fail') ? formatDuration(selectedCombinedJob.upload_date, selectedCombinedJob.completed_date) : '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="font-medium text-muted-foreground">Process Date:</span>
@@ -1616,6 +1643,8 @@ export const CandidateImportUploadQueue: React.FC<{
                     </AccordionItem>
                   )}
 
+
+
                   {/* Webhook Log Accordion */}
                   <AccordionItem value="webhook-log" className="border rounded-lg">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-blue-50 dark:hover:bg-blue-950/20">
@@ -1639,9 +1668,9 @@ export const CandidateImportUploadQueue: React.FC<{
                             </div>
                           )}
 
-                          {/* Webhook Payload */}
+                          {/* Full Request Details */}
                           <div>
-                            <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Payload Sent to Webhook:</div>
+                            <div className="font-medium text-sm mb-2 text-blue-600 dark:text-blue-400">Full Request Details:</div>
                             <pre className="whitespace-pre-wrap break-all max-h-48 overflow-auto bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-900 dark:text-blue-100">
                               {JSON.stringify(selectedCombinedJob.webhook_payload, null, 2)}
                             </pre>

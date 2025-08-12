@@ -3,6 +3,7 @@ import { minioClient, MINIO_BUCKET } from '@/lib/minio';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { generateUniqueFilename } from '@/lib/fileUtils';
 
 /**
  * @openapi
@@ -47,8 +48,10 @@ export async function POST(request: NextRequest) {
   if (!file || typeof file === 'string') {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
-  const ext = (file as File).name.split('.').pop();
-  const objectName = `uploads/${uuidv4()}.${ext}`;
+  // Generate filename that preserves the original name
+  const jobId = uuidv4();
+  const fileName = generateUniqueFilename((file as File).name);
+  const objectName = `uploads/${fileName}`;
   const buffer = Buffer.from(await (file as File).arrayBuffer());
   await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
     'Content-Type': (file as File).type,

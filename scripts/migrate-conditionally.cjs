@@ -98,6 +98,21 @@ function runMigrations(force = false) {
     }
 }
 
+function createInitialMigration() {
+    try {
+        logInfo('Creating initial migration...');
+        execSync('npx prisma migrate dev --name initial --create-only', { 
+            stdio: 'inherit',
+            env: { ...process.env }
+        });
+        logSuccess('Initial migration created successfully');
+        return true;
+    } catch (error) {
+        logError(`Failed to create initial migration: ${error.message}`);
+        return false;
+    }
+}
+
 function checkDatabaseConnection() {
     try {
         logInfo('Testing database connection...');
@@ -145,26 +160,20 @@ function main() {
         const migrationCheck = checkMigrationFiles();
         
         if (!migrationCheck.hasFiles) {
-            switch (migrationCheck.reason) {
-                case 'directory_missing':
-                    logWarning('Prisma migrations directory not found - skipping migrations');
-                    logInfo('This is expected if this is a fresh installation or if migrations are managed externally');
-                    break;
-                    
-                case 'no_migrations':
-                    logWarning('No migration files found - skipping migrations');
-                    logInfo('This might be expected if the database schema is managed differently');
-                    break;
+            // Create initial migration if none exist
+            if (migrationCheck.reason === 'directory_missing' || migrationCheck.reason === 'no_migrations') {
+                logInfo('No migrations found, creating initial migration...');
+                if (createInitialMigration()) {
+                    logSuccess('Initial migration created, now running migrations...');
+                } else {
+                    logError('Failed to create initial migration');
+                    process.exit(1);
+                }
+            } else {
+                logWarning('Prisma migrations directory not found - skipping migrations');
+                logInfo('This is expected if this is a fresh installation or if migrations are managed externally');
+                process.exit(0);
             }
-            
-            logSuccess('Migration process skipped gracefully');
-            console.log('');
-            log('💡 Tips:', 'cyan');
-            log('  • If you need to create an initial migration: npx prisma migrate dev --name initial', 'white');
-            log('  • If the database is already set up: This is normal', 'white');
-            log('  • To force migration attempt: use --force flag', 'white');
-            
-            process.exit(0);
         }
         
         // Step 3: Run migrations if files exist

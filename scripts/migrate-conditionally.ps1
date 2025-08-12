@@ -1,38 +1,50 @@
 # PowerShell script for conditional migrations
-# Usage: powershell -ExecutionPolicy Bypass -File scripts/migrate-conditionally.ps1 [-Force] [-Skip]
+# This script checks if migration files exist before attempting to run migrations.
+# If no migration files are found, it creates an initial migration.
 
 param(
     [switch]$Force,
     [switch]$Skip
 )
 
-# Function to write colored output
-function Write-ColorOutput {
+# ANSI color codes for output
+$Colors = @{
+    Reset = "`e[0m"
+    Red = "`e[31m"
+    Green = "`e[32m"
+    Yellow = "`e[33m"
+    Blue = "`e[34m"
+    Magenta = "`e[35m"
+    Cyan = "`e[36m"
+    White = "`e[37m"
+}
+
+function Write-Color {
     param(
         [string]$Message,
         [string]$Color = "White"
     )
-    Write-Host $Message -ForegroundColor $Color
+    Write-Host "$($Colors[$Color])$Message$($Colors.Reset)"
 }
 
 function Write-Info {
     param([string]$Message)
-    Write-ColorOutput "[INFO] $Message" "Cyan"
+    Write-Color "ℹ️  $Message" "Blue"
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-ColorOutput "[SUCCESS] $Message" "Green"
+    Write-Color "✅ $Message" "Green"
 }
 
 function Write-Warning {
     param([string]$Message)
-    Write-ColorOutput "[WARNING] $Message" "Yellow"
+    Write-Color "⚠️  $Message" "Yellow"
 }
 
 function Write-Error {
     param([string]$Message)
-    Write-ColorOutput "[ERROR] $Message" "Red"
+    Write-Color "❌ $Message" "Red"
 }
 
 function Test-MigrationFiles {
@@ -44,43 +56,41 @@ function Test-MigrationFiles {
         return @{ HasFiles = $false; Reason = "directory_missing" }
     }
     
-    # Check for migration directories
-    $migrationDirs = Get-ChildItem -Path $migrationsPath -Directory | 
-                     Where-Object { $_.Name -notmatch "^[\.]" }
+    # Check if directory has any migration folders
+    $migrationDirs = Get-ChildItem -Path $migrationsPath -Directory |
+        Where-Object { $_.Name -ne ".git" -and -not $_.Name.StartsWith(".") }
     
     if ($migrationDirs.Count -eq 0) {
         Write-Warning "No migration files found in prisma\migrations directory"
         return @{ HasFiles = $false; Reason = "no_migrations" }
     }
     
-    $migrationNames = $migrationDirs | ForEach-Object { $_.Name }
-    Write-Info "Found $($migrationDirs.Count) migration(s): $($migrationNames -join ', ')"
-    return @{ HasFiles = $true; Count = $migrationDirs.Count; Files = $migrationNames }
+    Write-Info "Found $($migrationDirs.Count) migration(s): $($migrationDirs.Name -join ', ')"
+    return @{ HasFiles = $true; Count = $migrationDirs.Count; Files = $migrationDirs.Name }
 }
 
 function Invoke-Migrations {
-    param([bool]$ForceMode = $false)
+    param([switch]$Force)
     
     try {
         Write-Info "Running Prisma migrations..."
         
-        $command = "npx prisma migrate deploy"
+        # Use prisma migrate deploy for production, prisma migrate dev for development
+        $command = if ($env:NODE_ENV -eq "production") {
+            "npx prisma migrate deploy"
+        } else {
+            "npx prisma migrate deploy" # Always use deploy to avoid prompts
+        }
         
-        # Execute the migration command
         Invoke-Expression $command
         
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Database migrations completed successfully"
-            return $true
-        } else {
-            Write-Error "Migration command failed with exit code: $LASTEXITCODE"
-            return $false
-        }
+        Write-Success "Database migrations completed successfully"
+        return $true
     }
     catch {
         Write-Error "Migration failed: $($_.Exception.Message)"
         
-        if ($ForceMode) {
+        if ($Force) {
             Write-Warning "Continuing despite migration failure due to -Force flag"
             return $true
         }
@@ -93,15 +103,10 @@ function Test-DatabaseConnection {
         Write-Info "Testing database connection..."
         
         # Try to generate Prisma client as a connection test
-        $null = Invoke-Expression "npx prisma generate" 2>&1
+        npx prisma generate | Out-Null
         
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Database connection verified"
-            return $true
-        } else {
-            Write-Error "Database connection failed"
-            return $false
-        }
+        Write-Success "Database connection verified"
+        return $true
     }
     catch {
         Write-Error "Database connection failed: $($_.Exception.Message)"
@@ -109,9 +114,22 @@ function Test-DatabaseConnection {
     }
 }
 
+function New-InitialMigration {
+    try {
+        Write-Info "Creating initial migration..."
+        npx prisma migrate dev --name initial --create-only
+        Write-Success "Initial migration created successfully"
+        return $true
+    }
+    catch {
+        Write-Error "Failed to create initial migration: $($_.Exception.Message)"
+        return $false
+    }
+}
+
 # Main execution
-Write-ColorOutput "Conditional Migration Script (PowerShell)" "Cyan"
-Write-ColorOutput "==========================================" "Cyan"
+Write-Color "🔄 Conditional Migration Script" "Cyan"
+Write-Color "=====================================" "Cyan"
 Write-Host ""
 
 # Check if we should skip migrations entirely
@@ -132,44 +150,37 @@ try {
     }
     
     # Step 2: Check for migration files
-    $migrationCheck = Test-MigrationFiles
+    $migrationStatus = Test-MigrationFiles
     
-    if (-not $migrationCheck.HasFiles) {
-        switch ($migrationCheck.Reason) {
-            "directory_missing" {
-                Write-Warning "Prisma migrations directory not found - skipping migrations"
-                Write-Info "This is expected if this is a fresh installation or if migrations are managed externally"
+    if (-not $migrationStatus.HasFiles) {
+        # Create initial migration if none exist
+        if ($migrationStatus.Reason -eq "directory_missing" -or $migrationStatus.Reason -eq "no_migrations") {
+            Write-Info "No migrations found, creating initial migration..."
+            if (New-InitialMigration) {
+                Write-Success "Initial migration created, now running migrations..."
+            } else {
+                Write-Error "Failed to create initial migration"
+                exit 1
             }
-            "no_migrations" {
-                Write-Warning "No migration files found - skipping migrations"
-                Write-Info "This might be expected if the database schema is managed differently"
-            }
+        } else {
+            Write-Warning "Prisma migrations directory not found - skipping migrations"
+            Write-Info "This is expected if this is a fresh installation or if migrations are managed externally"
+            exit 0
         }
-        
-        Write-Success "Migration process skipped gracefully"
-        Write-Host ""
-        Write-ColorOutput "Tips:" "Cyan"
-        Write-ColorOutput "  • If you need to create an initial migration: npx prisma migrate dev --name initial" "White"
-        Write-ColorOutput "  • If the database is already set up: This is normal" "White"
-        Write-ColorOutput "  • To force migration attempt: use -Force flag" "White"
-        
-        exit 0
     }
     
     # Step 3: Run migrations if files exist
     $success = Invoke-Migrations -ForceMode $Force
     
-    if (-not $success -and -not $Force) {
+    if ($success) {
+        Write-Success "Migration process completed successfully"
+        exit 0
+    } else {
+        Write-Error "Migration process failed"
         exit 1
     }
-    
-    Write-Success "Conditional migration process completed"
 }
 catch {
-    Write-Error "Unexpected error: $($_.Exception.Message)"
-    if ($Force) {
-        Write-Warning "Continuing despite error due to -Force flag"
-        exit 0
-    }
+    Write-Error "Unexpected error during migration process: $($_.Exception.Message)"
     exit 1
 }

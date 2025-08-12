@@ -17,6 +17,13 @@ echo "📊 Using DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
+# Check if migrations directory exists, if not create initial migration
+if [ ! -d "prisma/migrations" ]; then
+    echo "🔄 No migrations found, creating initial migration..."
+    npx prisma migrate dev --name initial --create-only
+    echo "✅ Initial migration created"
+fi
+
 # Run database migrations conditionally
 echo "🔄 Running database migrations..."
 node scripts/migrate-conditionally.cjs

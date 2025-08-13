@@ -427,7 +427,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 : (typeof s.skill_string === 'string' ? s.skill_string : '')
             })),
             job_suitable: data.parsedData?.job_suitable || [],
-            job_matches: (data.parsedData?.job_matches || []).map((match: any) => ({
+            job_matches: (data.jobMatches || []).map((match: any) => ({
               ...match,
               matchReasons_string: Array.isArray(match.matchReasons) 
                 ? match.matchReasons.join('\n')

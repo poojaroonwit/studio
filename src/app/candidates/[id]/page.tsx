@@ -338,6 +338,22 @@ export default function CandidateDetailPage() {
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
 
+  // Initialize form early to avoid temporal dead zone - with safe default values
+  const form = useForm<EditCandidateFormValues>({
+    resolver: zodResolver(editCandidateDetailSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      positionId: null,
+      fitScore: null,
+      assignmentJustification: [],
+      status: '',
+      recruiterId: null,
+      parsedData: {}
+    }
+  });
+
   // NOW WE CAN HAVE CONDITIONAL RETURNS
   if (!isValidCandidateId) {
     return (
@@ -375,23 +391,56 @@ export default function CandidateDetailPage() {
     }
   }, [candidateId]);
 
-  // Initialize form early to avoid temporal dead zone
-  const form = useForm<EditCandidateFormValues>({
-    resolver: zodResolver(editCandidateDetailSchema),
-    defaultValues: {
-      name: candidate?.name || '',
-      email: candidate?.email || '',
-      phone: candidate && candidate.phone ? candidate.phone : '',
-      positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
-      fitScore: candidate?.fitScore || null,
-      assignmentJustification: [],
-      status: candidate?.status || '',
-      recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
-      parsedData: (candidate?.parsedData as any) || {}
-    }
-  });
-
   const { handleSubmit, reset, setValue, formState: { isSubmitting, errors }, control, register, watch } = form;
+
+  // Fetch candidate data
+  useEffect(() => {
+    const fetchCandidate = async () => {
+      if (!candidateId || !isValidCandidateId) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/candidates/${candidateId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch candidate: ${response.status}`);
+        }
+        const data = await response.json();
+        setCandidate(data);
+      } catch (error) {
+        console.error('Error fetching candidate:', error);
+        setFetchError(error instanceof Error ? error.message : 'Failed to fetch candidate');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCandidate();
+  }, [candidateId, isValidCandidateId]);
+
+  // Update form values when candidate data is loaded
+  useEffect(() => {
+    if (candidate) {
+      reset({
+        name: candidate.name || '',
+        email: candidate.email || '',
+        phone: candidate.phone || '',
+        positionId: candidate.positionId || null,
+        fitScore: candidate.fitScore || null,
+        assignmentJustification: [],
+        status: candidate.status || '',
+        recruiterId: candidate.recruiterId || null,
+        parsedData: {
+          ...(candidate.parsedData as any) || {},
+          job_matches: (candidate.jobMatches || []).map((match: any) => ({
+            ...match,
+            matchReasons_string: Array.isArray(match.matchReasons) 
+              ? match.matchReasons.join('\n')
+              : ''
+          }))
+        }
+      });
+    }
+  }, [candidate, reset]);
 
   // Form submission handler
   const onSubmit = (data: EditCandidateFormValues) => {
@@ -485,7 +534,7 @@ export default function CandidateDetailPage() {
         recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          job_matches: candidateJobMatches.map((match: any) => {
+          job_matches: (candidate.jobMatches || []).map((match: any) => {
             // Use the enriched job matches that were processed in the useEffect
             return {
               jobId: match.jobId,

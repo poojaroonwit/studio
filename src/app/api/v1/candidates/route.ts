@@ -166,8 +166,8 @@ export async function POST(request: NextRequest) {
     ...candidate_info,
     education: educationData || [],
     experience: experienceData || [],
-    job_applied: job_applied || candidate_info.job_applied,
-    job_matches: job_matches || candidate_info.job_matches || []
+    job_applied: job_applied || candidateInfo.job_applied,
+    job_matches: job_matches || candidateInfo.job_matches || []
   };
   const newCandidateId = uuidv4();
 

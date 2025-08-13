@@ -435,10 +435,12 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       isFullUrl: job.file_path && job.file_path.startsWith('http')
     });
     
-    // Get targetPositionId from webhook_payload if available
+    // Get targetPositionId and candidate_id from webhook_payload if available
     let targetPositionId = null;
+    let candidateId = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
+      candidateId = job.webhook_payload.candidate_id || null;
     }
     
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
@@ -450,6 +452,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       meta: job.meta,
       filename: job.filename,
       mimetype: job.mimetype,
+      candidate_id: candidateId, // Include candidate ID in webhook payload
     };
     
     let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');

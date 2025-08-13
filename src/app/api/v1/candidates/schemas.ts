@@ -38,6 +38,8 @@ export const candidateInfoSchema = z.union([
     skills: z.array(skillsEntrySchema).optional(),
     job_suitable: z.array(jobSuitableEntrySchema).optional(),
     status: z.string().optional(),
+    job_applied: z.any().optional(),
+    job_matches: z.array(z.any()).optional(),
   }).strict(),
   z.string().transform(() => ({})),
   z.number().transform(() => ({})),
@@ -51,6 +53,8 @@ export const candidateInfoSchema = z.union([
     skills: (data as any).skills || [],
     job_suitable: (data as any).job_suitable || [],
     status: (data as any).status || '',
+    job_applied: (data as any).job_applied,
+    job_matches: (data as any).job_matches || [],
   };
 });
 

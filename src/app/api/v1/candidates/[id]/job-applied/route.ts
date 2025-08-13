@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       ? (Array.isArray(candidate.assignmentJustification)
           ? candidate.assignmentJustification
           : typeof candidate.assignmentJustification === 'string'
-            ? candidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            ? candidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
 
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Ensure justification is always an array for consistency
     const justificationArray = Array.isArray(justification) ? justification : 
-                              (justification ? String(justification).split(/[\n\r,]+/).filter(item => item.trim() !== '') : []);
+                              (justification ? String(justification).split(/[\n\r,]+/).filter((item: string) => item.trim() !== '') : []);
 
     // Update candidate with new parsedData and top-level fields
     const updateQuery = `
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ? (Array.isArray(updatedCandidate.assignmentJustification)
           ? updatedCandidate.assignmentJustification
           : typeof updatedCandidate.assignmentJustification === 'string'
-            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
     
@@ -222,7 +222,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     // Ensure justification is always an array for consistency
     const justificationArray = Array.isArray(justification) ? justification : 
-                              (justification ? String(justification).split(/[\n\r,]+/).filter(item => item.trim() !== '') : []);
+                              (justification ? String(justification).split(/[\n\r,]+/).filter((item: string) => item.trim() !== '') : []);
 
     // Update candidate with new parsedData and top-level fields
     const updateQuery = `
@@ -245,7 +245,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       ? (Array.isArray(updatedCandidate.assignmentJustification)
           ? updatedCandidate.assignmentJustification
           : typeof updatedCandidate.assignmentJustification === 'string'
-            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
             : [])
       : [];
     

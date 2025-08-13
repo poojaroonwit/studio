@@ -49,7 +49,7 @@ function logError(message) {
 function checkDatabaseConnection() {
     try {
         logInfo('Testing database connection...');
-        execSync('echo "SELECT 1;" | npx prisma db execute --stdin', { 
+        execSync('echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma', { 
             stdio: 'pipe'
         });
         logSuccess('Database connection verified');

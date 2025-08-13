@@ -17,13 +17,27 @@ echo "📊 Using DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Check database connection first
-echo "🔍 Testing database connection..."
-if ! echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1; then
-    echo "❌ ERROR: Cannot connect to database"
-    exit 1
+# Check database connection first (with retry)
+echo "🔍 Waiting for database to be ready..."
+DB_MAX_WAIT_SECONDS=${DB_MAX_WAIT_SECONDS:-60}
+DB_WAIT_INTERVAL=${DB_WAIT_INTERVAL:-5}
+ELAPSED=0
+DB_READY=0
+while [ "$ELAPSED" -lt "$DB_MAX_WAIT_SECONDS" ]; do
+	if echo "SELECT 1;" | npx prisma db execute --stdin --schema=prisma/schema.prisma > /dev/null 2>&1; then
+		DB_READY=1
+		break
+	fi
+	sleep "$DB_WAIT_INTERVAL"
+	ELAPSED=$((ELAPSED + DB_WAIT_INTERVAL))
+	echo "⏳ Waiting for database... ${ELAPSED}/${DB_MAX_WAIT_SECONDS}s"
+done
+if [ "$DB_READY" -eq 1 ]; then
+	echo "✅ Database connection verified"
+else
+	echo "⚠️  WARNING: Database not ready after ${DB_MAX_WAIT_SECONDS}s"
+	echo "💡 Continuing startup; migrations will be skipped until DB is available"
 fi
-echo "✅ Database connection verified"
 
 # Check for failed migrations and handle them
 echo "🔄 Checking migration status..."
@@ -53,17 +67,21 @@ if echo "$MIGRATION_STATUS" | grep -q "failed"; then
 fi
 
 # Run database migrations conditionally (only if migration files exist)
-echo "🔄 Running database migrations..."
-if ! node scripts/migrate-conditionally.cjs; then
-    echo "❌ Migration failed"
-    
-    # If FORCE_CONTINUE is set, continue anyway
-    if [ "$FORCE_CONTINUE" = "true" ]; then
-        echo "⚠️  Continuing despite migration failure (FORCE_CONTINUE=true)"
-    else
-        echo "💡 To continue despite migration failure, set FORCE_CONTINUE=true"
-        exit 1
-    fi
+if [ "$DB_READY" -ne 1 ]; then
+	echo "⚠️  Skipping migrations because database is not reachable"
+else
+	echo "🔄 Running database migrations..."
+	if ! node scripts/migrate-conditionally.cjs; then
+		echo "❌ Migration failed"
+
+		# If FORCE_CONTINUE is set, continue anyway
+		if [ "$FORCE_CONTINUE" = "true" ]; then
+			echo "⚠️  Continuing despite migration failure (FORCE_CONTINUE=true)"
+		else
+			echo "💡 To continue despite migration failure, set FORCE_CONTINUE=true"
+			exit 1
+		fi
+	fi
 fi
 
 # Seed the database (only if needed)

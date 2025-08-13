@@ -801,7 +801,7 @@ export default function CandidateDetailPage() {
     setIsLoading(true);
     try {
       // Use unified bulk update logic
-      await updateCandidateStatusWithNotes(id, newStatus, notes);
+      await updateCandidateStatusWithNotes(id, newStatus, notes, suppressToast);
       await fetchCandidateDetails();
       await fetchTransitionHistory();
       if (!suppressToast) {

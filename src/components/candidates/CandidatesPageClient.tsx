@@ -1063,12 +1063,15 @@ export function CandidatesPageClient({
     }
 
     try {
-      const response = await fetch(`/api/candidates/${candidateId}`, {
-        method: 'PUT',
+      // Use the utility function instead of direct API call
+      const response = await fetch(`/api/candidates/bulk-action`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          status: newStatus, 
-          transitionNotes: notes 
+        body: JSON.stringify({
+          action: 'change_status',
+          candidateIds: [candidateId],
+          newStatus: newStatus,
+          transitionNotes: notes
         }),
       });
 
@@ -1076,7 +1079,7 @@ export function CandidatesPageClient({
         // Revert optimistic update on error
         revertOptimisticUpdate(candidateId, originalCandidate);
         
-        const errorData = await response.json().catch(() => ({ message: 'Failed to assign recruiter' }));
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update status' }));
         const errorMessage = errorData.message || `Failed to update status: ${response.statusText}`;
         
         if (!suppressToast) {
@@ -1085,7 +1088,12 @@ export function CandidatesPageClient({
         throw new Error(errorMessage);
       }
 
-      const updatedCandidate = await response.json();
+      // Fetch the updated candidate to ensure we have the latest data
+      const candidateResponse = await fetch(`/api/candidates/${candidateId}`);
+      if (!candidateResponse.ok) {
+        throw new Error('Failed to fetch updated candidate data');
+      }
+      const updatedCandidate = await candidateResponse.json();
       
       // Update with server response (this confirms the optimistic update)
       setAllCandidates(prev => prev.map(c => 

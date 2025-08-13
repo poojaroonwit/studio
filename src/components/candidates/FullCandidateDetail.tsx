@@ -2564,7 +2564,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
           try {
             // Use unified bulk update logic
-            await updateCandidateStatusWithNotes(candidateId, status, notes);
+            await updateCandidateStatusWithNotes(candidateId, status, notes, suppressToast);
             // Refresh candidate data
             const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
             const updatedCandidate = await response.json();

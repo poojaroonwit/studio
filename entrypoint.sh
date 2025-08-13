@@ -5,8 +5,9 @@ set -e
 export NODE_ENV=${NODE_ENV:-production}
 export PORT=${PORT:-8021}
 export FORCE_CONTINUE=${FORCE_CONTINUE:-true}
-
-
+# Migration control variables
+export RUN_MIGRATIONS=${RUN_MIGRATIONS:-false}
+export REMOVE_MIGRATION_FILES=${REMOVE_MIGRATION_FILES:-false}
 
 # Check if DATABASE_URL is set
 if [ -z "$DATABASE_URL" ]; then
@@ -44,22 +45,28 @@ else
     echo "💡 Continuing startup; migrations will be skipped"
 fi
 
-# Run migrations if database is ready
-if [ "$DB_READY" -eq 1 ]; then
-    echo "🔄 Running database migrations..."
+# Step 1: Run migrations if RUN_MIGRATIONS is set to true
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+    echo "🔄 RUN_MIGRATIONS=true - running migrations..."
     if node scripts/migrate-and-cleanup.cjs; then
         echo "✅ Migrations completed successfully"
     else
-        echo "❌ Migration failed"
-        if [ "$FORCE_CONTINUE" = "true" ]; then
-            echo "⚠️  Continuing despite migration failure (FORCE_CONTINUE=true)"
-        else
-            echo "💡 To continue despite migration failure, set FORCE_CONTINUE=true"
-            exit 1
-        fi
+        echo "⚠️  Migration failed, continuing..."
     fi
 else
-    echo "⚠️  Skipping migrations because database is not reachable"
+    echo "⏭️  Skipping migrations (RUN_MIGRATIONS=false)"
+fi
+
+# Step 2: Remove migration files if REMOVE_MIGRATION_FILES is set to true
+if [ "$REMOVE_MIGRATION_FILES" = "true" ]; then
+    echo "🗑️  REMOVE_MIGRATION_FILES=true - removing migration files..."
+    if node scripts/remove-migration-files.cjs; then
+        echo "✅ Migration files removed successfully"
+    else
+        echo "⚠️  Failed to remove migration files, continuing..."
+    fi
+else
+    echo "📁 Migration files will be preserved (REMOVE_MIGRATION_FILES=false)"
 fi
 
 # Seed the database

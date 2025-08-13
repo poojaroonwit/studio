@@ -140,7 +140,9 @@ function cleanupMigrationFiles() {
 function main() {
     const args = process.argv.slice(2);
     const forceMode = args.includes('--force');
-    const skipCleanup = args.includes('--skip-cleanup') || process.env.SKIP_MIGRATION_CLEANUP === 'true';
+    const skipCleanup = args.includes('--skip-cleanup') || 
+                       process.env.SKIP_MIGRATION_CLEANUP === 'true' || 
+                       process.env.REMOVE_MIGRATION_FILES === 'false';
     
     log('🔄 Migration and Cleanup Script', 'cyan');
     log('=====================================', 'cyan');
@@ -174,7 +176,13 @@ function main() {
                 logWarning('Migration cleanup failed, but migration was successful');
             }
         } else if (skipCleanup) {
-            logInfo('Skipping migration cleanup (--skip-cleanup flag or SKIP_MIGRATION_CLEANUP env var)');
+            if (process.env.REMOVE_MIGRATION_FILES === 'false') {
+                logInfo('Skipping migration cleanup (REMOVE_MIGRATION_FILES=false)');
+            } else if (process.env.SKIP_MIGRATION_CLEANUP === 'true') {
+                logInfo('Skipping migration cleanup (SKIP_MIGRATION_CLEANUP=true)');
+            } else {
+                logInfo('Skipping migration cleanup (--skip-cleanup flag)');
+            }
         }
         
         logSuccess('Migration and cleanup process completed');

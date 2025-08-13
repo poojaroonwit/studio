@@ -295,6 +295,50 @@ export default function CandidateDetailPage() {
   const uuidSchema = z.string().uuid();
   const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const [recruiters, setRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+  const [isAssigningRecruiter, setIsAssigningRecruiter] = useState(false);
+
+  const { data: session, status: sessionStatus } = useSession();
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
+  const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
+  const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
+  const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
+
+  const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
+  const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
+  const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
+  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  const [comments, setComments] = useState<any[]>([]);
+  const [resumes, setResumes] = useState<any[]>([]);
+  // Add state for attachments
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
+  const [showAllJobMatches, setShowAllJobMatches] = useState(false);
+  const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
+  const [filteredRecruiters, setFilteredRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  // Note: Removed eventSourceRef - no real-time polling for candidate details
+  // Comments and resumes are fetched on initial load and updated optimistically on user actions
+
+  // Find the state for jobAppliedOpen and set its default to true
+  const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
+  const [copiedJobApplied, setCopiedJobApplied] = useState(false);
+
+  // NOW WE CAN HAVE CONDITIONAL RETURNS
   if (!isValidCandidateId) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center p-6">
@@ -330,52 +374,6 @@ export default function CandidateDetailPage() {
       setTransitionHistory([]);
     }
   }, [candidateId]);
-
-  const [candidate, setCandidate] = useState<Candidate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const [recruiters, setRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
-  const [isAssigningRecruiter, setIsAssigningRecruiter] = useState(false);
-
-  const { data: session, status: sessionStatus } = useSession();
-
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
-  const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
-  const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
-  const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
-
-  const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
-  const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
-  const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
-  const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
-
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
-
-
-
-
-
-  const [comments, setComments] = useState<any[]>([]);
-  const [resumes, setResumes] = useState<any[]>([]);
-  // Add state for attachments
-  const [attachments, setAttachments] = useState<any[]>([]);
-  const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
-  const [showAllJobMatches, setShowAllJobMatches] = useState(false);
-  const [recruiterSearchTerm, setRecruiterSearchTerm] = useState('');
-  const [filteredRecruiters, setFilteredRecruiters] = useState<Pick<UserProfile, 'id' | 'name'>[]>([]);
-
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  // Note: Removed eventSourceRef - no real-time polling for candidate details
-  // Comments and resumes are fetched on initial load and updated optimistically on user actions
-
-  // Find the state for jobAppliedOpen and set its default to true
-  const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
-  const [copiedJobApplied, setCopiedJobApplied] = useState(false);
 
   // Initialize form early to avoid temporal dead zone
   const form = useForm<EditCandidateFormValues>({

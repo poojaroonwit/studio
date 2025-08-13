@@ -2420,7 +2420,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
          </section>
        </div>
        {/* RIGHT SIDEBAR: Quick Stats, Comments & Activity, Attachments */}
-       <div className="lg:col-span-3 bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50">
+       <div className="lg:col-span-3 bg-muted  shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto ">
          <div className="sticky top-0 z-10 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-md border-b border-border/30 px-6 py-4">
            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
              <BarChart3 className="h-5 w-5 text-primary" />
@@ -2562,7 +2562,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
-          setCandidate(prev => prev ? { ...prev, status } : null);
+          try {
+            // Use unified bulk update logic
+            await updateCandidateStatusWithNotes(candidateId, status, notes);
+            // Refresh candidate data
+            const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });
+            const updatedCandidate = await response.json();
+            setCandidate(updatedCandidate);
+            if (!suppressToast) {
+              toast.success(`Candidate status updated to "${status}".`);
+            }
+          } catch (error: any) {
+            console.error('Error updating candidate status:', error);
+            if (!suppressToast) {
+              toast.error(error?.message || 'Failed to update status.');
+            }
+          }
         }}
         onRefreshCandidateData={async (candidateId: string) => {
           const response = await fetch(`/api/candidates/${candidateId}`, { credentials: 'include' });

@@ -26,12 +26,16 @@ const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema.optional(),
   educationData: z.array(structuredEducationSchema).optional(),
   experienceData: z.array(structuredExperienceSchema).optional(),
+  job_applied: z.any().optional(),
+  job_matches: z.array(z.any()).optional(),
 }).strict().transform((data) => {
   // Ensure candidate_info is always an object
   return {
     candidate_info: data.candidate_info || {},
     educationData: data.educationData || [],
     experienceData: data.experienceData || [],
+    job_applied: data.job_applied,
+    job_matches: data.job_matches || [],
   };
 });
 
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
     return handleApiError(request, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
-  const { candidate_info, educationData, experienceData } = validationResult.data;
+  const { candidate_info, educationData, experienceData, job_applied, job_matches } = validationResult.data;
   
   // Handle optional fields with defaults - use validated data structure
   const candidateInfo = candidate_info as any;
@@ -161,16 +165,38 @@ export async function POST(request: NextRequest) {
   const parsedData = {
     ...candidate_info,
     education: educationData || [],
-    experience: experienceData || []
+    experience: experienceData || [],
+    job_applied: job_applied || candidate_info.job_applied,
+    job_matches: job_matches || candidate_info.job_matches || []
   };
   const newCandidateId = uuidv4();
 
-  // Extract fitScore from candidate_info or candidate_info.job_applied
+  // Extract fitScore from candidate_info, candidate_info.job_applied, or top-level job_applied
   let fitScore = undefined;
   if (typeof candidateInfo.fitScore === 'number') {
     fitScore = Math.round(candidateInfo.fitScore);
   } else if (candidateInfo.job_applied && typeof candidateInfo.job_applied.fitScore === 'number') {
     fitScore = Math.round(candidateInfo.job_applied.fitScore);
+  } else if (job_applied && typeof job_applied.fitScore === 'number') {
+    fitScore = Math.round(job_applied.fitScore);
+  }
+
+  // Extract positionId from candidate_info.job_applied or job_matches, or from top-level job_applied/job_matches
+  let positionId = null;
+  if (candidateInfo.job_applied?.jobId) {
+    positionId = candidateInfo.job_applied.jobId;
+  } else if (job_applied?.jobId) {
+    positionId = job_applied.jobId;
+  } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
+    const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
+    if (matchWithJobId) {
+      positionId = matchWithJobId.jobId;
+    }
+  } else if (job_matches && Array.isArray(job_matches) && job_matches.length > 0) {
+    const matchWithJobId = job_matches.find((m: any) => m && m.jobId);
+    if (matchWithJobId) {
+      positionId = matchWithJobId.jobId;
+    }
   }
 
   try {
@@ -180,6 +206,7 @@ export async function POST(request: NextRequest) {
         name: name,
         email: email.toLowerCase(),
         phone: contactInfo.phone || null,
+        positionId: positionId, // Store positionId in database
         status: appliedStage,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
@@ -202,17 +229,6 @@ export async function POST(request: NextRequest) {
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
     
     // Auto-assign recruiter if candidate has a position and no recruiter
-    // Extract positionId from candidate_info.job_applied or job_matches
-    let positionId = null;
-    if (candidateInfo.job_applied?.jobId) {
-      positionId = candidateInfo.job_applied.jobId;
-    } else if (candidateInfo.job_matches && Array.isArray(candidateInfo.job_matches) && candidateInfo.job_matches.length > 0) {
-      const matchWithJobId = candidateInfo.job_matches.find((m: any) => m && m.jobId);
-      if (matchWithJobId) {
-        positionId = matchWithJobId.jobId;
-      }
-    }
-    
     if (positionId && !newCandidate.recruiterId) {
       try {
         const syncSuccess = await syncRecruiterForCandidate(

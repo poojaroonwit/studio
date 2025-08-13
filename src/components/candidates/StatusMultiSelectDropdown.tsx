@@ -216,12 +216,14 @@ export function StatusMultiSelectDropdown({
                         {stage.description && stage.description}
                       </span>
                     </div>
-                    <Badge 
-                      variant="outline"
-                      className="ml-auto text-xs"
-                    >
-                      {candidateCounts[stage.name] || 0}
-                    </Badge>
+                    {(candidateCounts[stage.name] && candidateCounts[stage.name] > 0) && (
+                      <Badge 
+                        variant="outline"
+                        className="ml-auto text-xs"
+                      >
+                        {candidateCounts[stage.name]}
+                      </Badge>
+                    )}
                   </div>
                 ))}
               </div>

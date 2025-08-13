@@ -1136,6 +1136,13 @@ export function CandidatesPageClient({
       //   experienceData: [...],
       //   ...
       // }
+      // Create job_applied object if positionId is provided
+      const job_applied = formData.positionId ? {
+        jobId: formData.positionId,
+        fitScore: formData.fitScore || 0,
+        justification: []
+      } : formData.job_applied;
+
       const candidate_info = {
         personal_info: formData.personal_info,
         contact_info: formData.contact_info,
@@ -1148,17 +1155,17 @@ export function CandidatesPageClient({
         status: formData.status,
         fitScore: formData.fitScore,
         job_matches: formData.job_matches,
-        job_applied: formData.job_applied,
+        job_applied: job_applied,
         applicationDate: formData.applicationDate,
       };
       const apiPayload = {
         candidate_info,
+        job_applied: job_applied, // Also include at top level for the API
         educationData: formData.education || [],
         experienceData: formData.experience?.map(exp => ({
           ...exp,
           positionLevel: exp.positionLevel === "___NOT_SPECIFIED___" || exp.positionLevel === null ? undefined : exp.positionLevel
         })) || [],
-        // v1 API may expect job_matches/job_applied at top level as well, but they're included in candidate_info above
       };
       const response = await fetch('/api/candidates', {
         method: 'POST',

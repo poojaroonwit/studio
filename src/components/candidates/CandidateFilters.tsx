@@ -1726,7 +1726,7 @@ export function CandidateFilters({
                             <PositionMultiSelectDropdown
                               selectedIds={selectedPositionIds}
                               onSelectionChange={handlePositionChange}
-                              placeholder="Select positions..."
+                              placeholder="All positions..."
                               disabled={isLoading || isAiSearching || isApplyingFilters}
                               showOpenStatus={true}
                               filterOpenOnly={false}
@@ -1790,7 +1790,7 @@ export function CandidateFilters({
                               <RecruiterMultiSelectDropdown
                                 selectedIds={selectedRecruiterIds}
                                 onSelectionChange={handleRecruiterChange}
-                                placeholder={`Select recruiters... (${safeAvailableRecruiters.length} available)`}
+                                placeholder={`All recruiters`}
                                 recruiters={safeAvailableRecruiters}
                                 disabled={isLoading || isAiSearching || isApplyingFilters}
                               />

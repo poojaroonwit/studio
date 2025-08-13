@@ -2061,11 +2061,7 @@ export default function CandidateDetailPage() {
                               <div>
                                 <Label className="text-sm font-medium mb-2">Assignment Justification</Label>
                                 <div className="space-y-3">
-                                  {(() => {
-                                    const justification = form.watch('assignmentJustification');
-                                    console.log('Candidate ID Page - Form rendering check:', justification);
-                                    return (!justification || justification.length === 0);
-                                  })() && (
+                                  {(!watch('assignmentJustification') || watch('assignmentJustification')?.length === 0) && (
                                     <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
                                       <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
                                       <p className="text-sm">No justification items added yet.</p>
@@ -2087,9 +2083,9 @@ export default function CandidateDetailPage() {
                                         size="icon"
                                         className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
-                                          const current = form.watch('assignmentJustification') || [];
+                                          const current = watch('assignmentJustification') || [];
                                           const updated = current.filter((_: string, i: number) => i !== index);
-                                          form.setValue('assignmentJustification', updated);
+                                          setValue('assignmentJustification', updated);
                                         }}
                                         title="Remove justification"
                                       >
@@ -2102,8 +2098,8 @@ export default function CandidateDetailPage() {
                                     variant="outline"
                                     className="w-full"
                                     onClick={() => {
-                                      const current = form.watch('assignmentJustification') || [];
-                                      form.setValue('assignmentJustification', [...current, '']);
+                                      const current = watch('assignmentJustification') || [];
+                                      setValue('assignmentJustification', [...current, '']);
                                     }}
                                   >
                                     <PlusCircle className="mr-2 h-4 w-4" /> Add Justification
@@ -3046,7 +3042,7 @@ export default function CandidateDetailPage() {
 
                 </div>
             {/* RIGHT SIDEBAR: Quick Actions & Summary (30%) */}
-                          <div className="lg:col-span-3 bg-muted rounded-xl shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto border border-border/50">
+                          <div className="lg:col-span-3 bg-muted  shadow-lg backdrop-blur-sm max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="sticky top-0 z-10 bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-md border-b border-border/30 px-6 py-4">
                 <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-primary" />

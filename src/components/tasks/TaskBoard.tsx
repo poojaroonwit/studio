@@ -245,7 +245,7 @@ export function TaskBoard({
 
   return (
     <div className={cn("flex flex-col h-screen bg-muted/50", className)}>
-      {/* Header */}
+      {/* Header
       <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -255,7 +255,7 @@ export function TaskBoard({
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Board Container with Fixed Navigation Buttons */}
       <div className="relative flex-1" style={{ height: 'calc(100vh - 80px)' }}>

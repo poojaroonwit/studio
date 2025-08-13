@@ -19,7 +19,7 @@ npx prisma generate
 
 # Check database connection first
 echo "🔍 Testing database connection..."
-if ! npx prisma db execute --stdin <<< "SELECT 1;" > /dev/null 2>&1; then
+if ! echo "SELECT 1;" | npx prisma db execute --stdin > /dev/null 2>&1; then
     echo "❌ ERROR: Cannot connect to database"
     exit 1
 fi

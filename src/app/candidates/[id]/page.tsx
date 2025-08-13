@@ -984,7 +984,7 @@ export default function CandidateDetailPage() {
     // Fix: assignmentJustification should be a string for backend
     // Extract job matches from form (from parsedData.job_matches)
     const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
-      ? data.parsedData.job_matches.map(jm => ({
+      ? data.parsedData.job_matches.map((jm: AutomationJobMatch) => ({
           jobId: jm.jobId,
           fitScore: normalizeScoreForApi(jm.fitScore),
           matchReasons: Array.isArray(jm.matchReasons)
@@ -997,24 +997,24 @@ export default function CandidateDetailPage() {
     
     // Process education data to handle optional month/year fields
     const processedEducation = Array.isArray(data.parsedData?.education)
-      ? data.parsedData.education.map(edu => ({
+      ? data.parsedData.education.map((edu: EducationEntry) => ({
           ...edu,
-          startMonth: edu.startMonth && edu.startMonth.trim() !== '' ? String(edu.startMonth) : null,
-          startYear: edu.startYear && edu.startYear.trim() !== '' ? String(edu.startYear) : null,
-          endMonth: edu.endMonth && edu.endMonth.trim() !== '' ? String(edu.endMonth) : null,
-          endYear: edu.endYear && edu.endYear.trim() !== '' ? String(edu.endYear) : null,
+          startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : null,
+          startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : null,
+          endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : null,
+          endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : null,
           isCurrent: typeof edu.isCurrent === 'boolean' ? edu.isCurrent : false,
         }))
       : [];
     
     // Process experience data to handle optional month/year fields
     const processedExperience = Array.isArray(data.parsedData?.experience)
-      ? data.parsedData.experience.map(exp => ({
+      ? data.parsedData.experience.map((exp: ExperienceEntry) => ({
           ...exp,
-          startMonth: exp.startMonth && exp.startMonth.trim() !== '' ? String(exp.startMonth) : null,
-          startYear: exp.startYear && exp.startYear.trim() !== '' ? String(exp.startYear) : null,
-          endMonth: exp.endMonth && exp.endMonth.trim() !== '' ? String(exp.endMonth) : null,
-          endYear: exp.endYear && exp.endYear.trim() !== '' ? String(exp.endYear) : null,
+          startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : null,
+          startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : null,
+          endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : null,
+          endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : null,
           isCurrent: typeof exp.isCurrent === 'boolean' ? exp.isCurrent : false,
         }))
       : [];
@@ -2281,9 +2281,9 @@ export default function CandidateDetailPage() {
                                                     />
                                                 )}
                                             />
-                                            {errors.parsedData?.job_matches?.[index]?.jobId && (
+                                            {(errors.parsedData as any)?.job_matches?.[index]?.jobId && (
                                                 <p className="text-xs text-destructive">
-                                                    {errors.parsedData.job_matches[index]?.jobId?.message}
+                                                    {(errors.parsedData as any).job_matches[index]?.jobId?.message}
                                                 </p>
                                             )}
                                         </div>
@@ -2301,9 +2301,9 @@ export default function CandidateDetailPage() {
                                                     max: { value: 100, message: "Score must be at most 100" }
                                                 })} 
                                             />
-                                            {errors.parsedData?.job_matches?.[index]?.fitScore && (
+                                            {(errors.parsedData as any)?.job_matches?.[index]?.fitScore && (
                                                 <p className="text-xs text-destructive">
-                                                    {errors.parsedData.job_matches[index]?.fitScore?.message}
+                                                    {(errors.parsedData as any).job_matches[index]?.fitScore?.message}
                                                 </p>
                                             )}
                                         </div>
@@ -2492,10 +2492,10 @@ export default function CandidateDetailPage() {
                             <Input id="parsedData.personal_info.title_honorific" {...register('parsedData.personal_info.title_honorific')} className="mb-4" />
                             <Label htmlFor="parsedData.personal_info.firstname" className="mb-2">First Name *</Label>
                             <Input id="parsedData.personal_info.firstname" {...register('parsedData.personal_info.firstname')} className="mb-4" />
-                            {errors.parsedData?.personal_info?.firstname && <p className="text-sm text-destructive mb-4">{errors.parsedData.personal_info.firstname.message}</p>}
+                            {(errors.parsedData as any)?.personal_info?.firstname && <p className="text-sm text-destructive mb-4">{(errors.parsedData as any).personal_info.firstname.message}</p>}
                             <Label htmlFor="parsedData.personal_info.lastname" className="mb-2">Last Name *</Label>
                             <Input id="parsedData.personal_info.lastname" {...register('parsedData.personal_info.lastname')} className="mb-4" />
-                            {errors.parsedData?.personal_info?.lastname && <p className="text-sm text-destructive mb-4">{errors.parsedData.personal_info.lastname.message}</p>}
+                            {(errors.parsedData as any)?.personal_info?.lastname && <p className="text-sm text-destructive mb-4">{(errors.parsedData as any).personal_info.lastname.message}</p>}
                             <Label htmlFor="parsedData.personal_info.nickname" className="mb-2">Nickname</Label>
                             <Input id="parsedData.personal_info.nickname" {...register('parsedData.personal_info.nickname')} className="mb-4" />
                             <Label htmlFor="parsedData.personal_info.introduction_aboutme" className="mb-2">About Me</Label>
@@ -3240,7 +3240,7 @@ export default function CandidateDetailPage() {
                 <ul className="space-y-1">
                   {Object.entries(errors).map(([field, error]) => (
                     <li key={field}>
-                      <strong>{field}:</strong> {error?.message || 'Invalid field'}
+                      <strong>{field}:</strong> {(error as any)?.message || 'Invalid field'}
                     </li>
                   ))}
                 </ul>

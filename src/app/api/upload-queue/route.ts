@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
            RETURNING *`,
           [id, file_name, file_size, status, source, upload_id, actingUserId, file_path, webhook_payload ? JSON.stringify(webhook_payload) : null, finalPositionId]
         );
-      } catch (insertError) {
+      } catch (insertError: any) {
         // If unique constraint violation, try to update the existing job instead
         if (insertError.code === '23505' && insertError.constraint === 'upload_queue_file_path_status_key') {
           console.log(`[Reprocess] Unique constraint violation for file_path: ${file_path}, updating existing job`);

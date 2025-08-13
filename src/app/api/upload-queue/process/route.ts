@@ -386,6 +386,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
   let error = null;
   let error_details = null;
   let appliedJob = undefined;
+  
   try {
     // Validate file_path before proceeding
     if (!job.file_path) {
@@ -401,6 +402,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       });
       return { error: 'Invalid file_path for job', job };
     }
+    
     // 2. Download file from MinIO
     const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
     const chunks = [];
@@ -408,12 +410,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       chunks.push(chunk);
     }
     let fileBuffer: Buffer = Buffer.concat(chunks);
+    
     // 3. POST to the configured webhook endpoint (any compatible service)
     // Priority: Database setting first, then environment variable as fallback
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
     }
+    
     // Build JSON payload as required
     // Handle both cases: file_path might be just the object name or a full URL
     let publicUrl;
@@ -430,11 +434,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       constructedUrl: publicUrl,
       isFullUrl: job.file_path && job.file_path.startsWith('http')
     });
+    
     // Get targetPositionId from webhook_payload if available
     let targetPositionId = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
     }
+    
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
     const finalPositionId = targetPositionId || job.position_id;
     const inputs = {
@@ -445,6 +451,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       filename: job.filename,
       mimetype: job.mimetype,
     };
+    
     let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');
     if (!responseMode) {
       responseMode = 'blocking'; // Default to blocking mode
@@ -459,20 +466,24 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
       }
     }
+    
     const jsonPayload = {
       inputs,
       response_mode: responseMode, // Use configured response mode (blocking/streaming)
       user: job.id, // Use queue job id instead of hardcoded value
       request_type: job.webhook_payload?.request_type || "create", // Use request_type from webhook_payload or default to "create"
     };
+    
     let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
     if (!webhookToken) {
       webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
     }
+    
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (webhookToken) {
       headers['Authorization'] = `Bearer ${webhookToken}`;
     }
+    
     // Generate idempotency key to prevent duplicate webhook processing
     const idempotencyKey = `${job.id}-single`;
     
@@ -484,144 +495,160 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       let webhookResStatus = null;
+      let webhookResponseText = null;
       
       try {
         console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
+        
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithIdempotency),
           signal: AbortSignal.timeout(timeoutMs),
         });
+        
         webhookResStatus = webhookRes.status;
-      } catch (err) {
-        // No retry - just fail immediately
-        throw err;
-      }
-      let webhookResponseText = null;
-      if (webhookResStatus === 200) {
-        status = 'success';
-        error = null;
-        error_details = null;
-      } else {
-        status = 'fail';
-        if (webhookResStatus === 504) {
-          error = `Gateway timeout (504) - External service overloaded`;
-          error_details = `The external resume processing service is returning 504 Gateway Timeout. This indicates the service is overloaded or experiencing high load. Consider:
+        
+        if (webhookResStatus === 200) {
+          status = 'success';
+          error = null;
+          error_details = null;
+        } else {
+          status = 'fail';
+          if (webhookResStatus === 504) {
+            error = `Gateway timeout (504) - External service overloaded`;
+            error_details = `The external resume processing service is returning 504 Gateway Timeout. This indicates the service is overloaded or experiencing high load. Consider:
 1. Checking the external service status
 2. Reducing concurrent requests
 3. Implementing exponential backoff
 4. Contacting the service provider`;
-        } else {
-          error = `Webhook responded with status ${webhookResStatus}`;
-        }
-        try {
-          if (webhookRes) {
-            webhookResponseText = await webhookRes.text();
-            if (!error_details) {
-              error_details = webhookResponseText;
+          } else {
+            error = `Webhook responded with status ${webhookResStatus}`;
+          }
+          
+          try {
+            if (webhookRes) {
+              webhookResponseText = await webhookRes.text();
+              if (!error_details) {
+                error_details = webhookResponseText;
+              }
+              console.error('[Webhook] Non-200 response body:', error_details);
             }
-            console.error('[Webhook] Non-200 response body:', error_details);
-          }
-        } catch {
-          if (!error_details) {
-            error_details = error;
+          } catch {
+            if (!error_details) {
+              error_details = error;
+            }
           }
         }
+        
+        // --- Store webhook details in payload for UI ---
+        payload = {
+          ...(job.webhook_payload || {}),
+          // Webhook send information
+          webhookUrl: resumeWebhookUrl,
+          method: 'POST',
+          headers: headers,
+          timeoutMs: timeoutMs,
+          responseMode: responseMode,
+          // Webhook response information
+          webhookResStatus,
+          webhookResponseText,
+          webhookError: status === 'fail' ? error : undefined,
+          // Original payload information
+          originalPayload: payloadWithIdempotency,
+        };
+      } catch (err) {
+        status = 'fail';
+        error = 'Webhook call failed';
+        error_details = err instanceof Error ? err.message : String(err);
+        
+        payload = {
+          ...(job.webhook_payload || {}),
+          // Webhook send information (even for errors)
+          webhookUrl: resumeWebhookUrl,
+          method: 'POST',
+          headers: headers,
+          timeoutMs: timeoutMs,
+          responseMode: responseMode,
+          // Webhook error information
+          webhookError: error,
+        };
+        
+        console.error('[Webhook] Call failed:', error_details);
       }
-      // --- Store webhook details in payload for UI ---
-      payload = {
-        ...(job.webhook_payload || {}),
-        // Webhook send information
-        webhookUrl: resumeWebhookUrl,
-        method: 'POST',
-        headers: headers,
-        timeoutMs: timeoutMs,
-        responseMode: responseMode,
-        // Webhook response information
-        webhookResStatus,
-        webhookResponseText,
-        webhookError: status === 'fail' ? error : undefined,
-        // Original payload information
-        originalPayload: payloadWithIdempotency,
-      };
-    } catch (err) {
-      status = 'fail';
-      error = 'Webhook call failed';
-      error_details = err instanceof Error ? err.message : String(err);
-      payload = {
-        ...(job.webhook_payload || {}),
-        // Webhook send information (even for errors)
-        webhookUrl: resumeWebhookUrl,
-        method: 'POST',
-        headers: headers,
-        timeoutMs: timeoutMs,
-        responseMode: responseMode,
-        // Webhook error information
-        webhookError: error,
-      };
-      console.error('[Webhook] Call failed:', error_details);
+    } else {
+      // Webhook not set, set status to error
+      status = 'error';
+      webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
+      error = webhookError;
+      error_details = webhookError;
+      payload = { error: webhookError };
+      console.warn('[Webhook Skipped]', webhookError);
     }
-  } else {
-    // Webhook not set, set status to error
-    status = 'error';
-    webhookError = 'Webhook URL not set or invalid, skipping webhook file send.';
-    error = webhookError;
-    error_details = webhookError;
-    payload = { error: webhookError };
-    console.warn('[Webhook Skipped]', webhookError);
-  }
-  // 4. Update job status
-  await client.query(
-    `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
-    [status, error, error_details, payload, job.id]
-  );
-  // Publish queue update event
-  console.log(`Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, { 
-    jobId: job.id,
-    fileName: job.file_name,
-    status: status,
-    error: error,
-    errorDetails: error_details
-  });
-  if (typeof global !== 'undefined' && typeof global.gc === 'function') {
-    global.gc();
-  }
-  if (status === 'success') {
-    console.log(`Upload queue job '${job.file_name}' processed successfully`, {
+    
+    // 4. Update job status
+    await client.query(
+      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
+      [status, error, error_details, payload, job.id]
+    );
+    
+    // Publish queue update event
+    console.log(`Upload queue job '${job.file_name}' status updated (ID: ${job.id})`, { 
       jobId: job.id,
       fileName: job.file_name,
-      webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
-      hasAppliedJob: !!appliedJob
-    });
-  } else {
-    console.error(`Upload queue job '${job.file_name}' failed with webhook error`, {
-      jobId: job.id,
-      fileName: job.file_name,
-      webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
-      error,
+      status: status,
+      error: error,
       errorDetails: error_details
     });
-  }
-  return { job: { ...job, status, error, error_details }, webhook_response: { status: webhookRes && 'status' in webhookRes ? webhookRes.status : null, response: error || 'Success' } };
-} catch (err) {
-  if (job) {
-    // Ensure error variables are properly set for exception cases
-    const errorMessage = (err as Error).message;
-    const errorStack = (err as Error).stack || errorMessage;
     
-    await client.query(
-      `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
-      [errorMessage, errorStack, payload, job.id]
-    );
-    console.error(`Upload queue job '${job.file_name}' failed with exception`, {
-      jobId: job.id,
-      fileName: job.file_name,
-      error: errorMessage,
-      stack: errorStack
-    });
+    if (typeof global !== 'undefined' && typeof global.gc === 'function') {
+      global.gc();
+    }
+    
+    if (status === 'success') {
+      console.log(`Upload queue job '${job.file_name}' processed successfully`, {
+        jobId: job.id,
+        fileName: job.file_name,
+        webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
+        hasAppliedJob: !!appliedJob
+      });
+    } else {
+      console.error(`Upload queue job '${job.file_name}' failed with webhook error`, {
+        jobId: job.id,
+        fileName: job.file_name,
+        webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
+        error,
+        errorDetails: error_details
+      });
+    }
+    
+    return { 
+      job: { ...job, status, error, error_details }, 
+      webhook_response: { 
+        status: webhookRes && 'status' in webhookRes ? webhookRes.status : null, 
+        response: error || 'Success' 
+      } 
+    };
+  } catch (err) {
+    if (job) {
+      // Ensure error variables are properly set for exception cases
+      const errorMessage = (err as Error).message;
+      const errorStack = (err as Error).stack || errorMessage;
+      
+      await client.query(
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now(), webhook_payload = $3 WHERE id = $4`,
+        [errorMessage, errorStack, payload, job.id]
+      );
+      
+      console.error(`Upload queue job '${job.file_name}' failed with exception`, {
+        jobId: job.id,
+        fileName: job.file_name,
+        error: errorMessage,
+        stack: errorStack
+      });
+    }
+    
+    return { error: (err as Error).message, stack: (err as Error).stack };
   }
-  return { error: (err as Error).message, stack: (err as Error).stack };
-}
 }

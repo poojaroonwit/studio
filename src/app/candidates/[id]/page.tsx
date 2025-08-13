@@ -468,11 +468,12 @@ export default function CandidateDetailPage() {
           console.log('DEBUG - Type of assignmentJustification:', typeof candidate?.assignmentJustification);
           console.log('DEBUG - Is Array?', Array.isArray(candidate?.assignmentJustification));
           
+          // Using the same processing logic as FullCandidateDetail component
           const result = candidate?.assignmentJustification
             ? (Array.isArray(candidate.assignmentJustification)
-                ? candidate.assignmentJustification
+                ? candidate.assignmentJustification.filter(Boolean)
                 : typeof candidate.assignmentJustification === 'string'
-                  ? candidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
+                  ? candidate.assignmentJustification.split('\n').map((sentence) => sentence.trim()).filter(Boolean)
                   : [])
             : [];
           console.log('Candidate ID Page - Loading assignmentJustification:', {
@@ -486,29 +487,22 @@ export default function CandidateDetailPage() {
         recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          job_matches: (candidate.jobMatches || []).map((match: any) => ({
-            jobId: match.jobId,
-            jobTitle: match.positionTitle,
-            fitScore: match.fitScore,
-            matchReasons: match.matchReasons || [],
-            matchReasons_string: Array.isArray(match.matchReasons) 
-              ? match.matchReasons.join('\n')
-              : ''
-          }))
+          job_matches: candidateJobMatches.map((match: any) => {
+            // Use the enriched job matches that were processed in the useEffect
+            return {
+              jobId: match.jobId,
+              jobTitle: match.jobTitle || match.positionTitle || '',
+              fitScore: match.fitScore || 0,
+              matchReasons: match.matchReasons || [],
+              matchReasons_string: Array.isArray(match.matchReasons) 
+                ? match.matchReasons.join('\n')
+                : '',
+              is_applied_job: match.jobId === candidate.positionId
+            };
+          })
         }
       });
-      console.log('Form reset with parsedData:', {
-        ...(candidate.parsedData as any) || {},
-        job_matches: (candidate.jobMatches || []).map((match: any) => ({
-          jobId: match.jobId,
-          jobTitle: match.positionTitle,
-          fitScore: match.fitScore,
-          matchReasons: match.matchReasons || [],
-          matchReasons_string: Array.isArray(match.matchReasons) 
-            ? match.matchReasons.join('\n')
-            : ''
-        }))
-      });
+      // Form reset with parsedData and job matches complete
     }
   }, [candidate, reset]);
 
@@ -987,10 +981,15 @@ export default function CandidateDetailPage() {
       return;
     }
     // Patch: update parsedData.job_applied as well as top-level fields
-    const newJobApplied = {
+    // Ensure assignmentJustification is properly formatted as an array of strings
+  const justificationArray = Array.isArray(data.assignmentJustification) 
+      ? data.assignmentJustification.filter(Boolean) 
+      : [];
+      
+  const newJobApplied = {
       jobId: data.positionId,
       fitScore: normalizeScoreForApi(data.fitScore),
-      justification: data.assignmentJustification || [],
+      justification: justificationArray,
     };
     // Fix: Ensure positionId and recruiterId are null if empty string
     // Fix: assignmentJustification should be a string for backend (joined with newlines)
@@ -1035,9 +1034,8 @@ export default function CandidateDetailPage() {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      assignmentJustification: Array.isArray(data.assignmentJustification) 
-        ? data.assignmentJustification.join('\n') 
-        : (data.assignmentJustification || ''),
+      // Use the same justificationArray to ensure consistency
+      assignmentJustification: justificationArray.join('\n'),
       parsedData: {
         ...data.parsedData,
         education: processedEducation,
@@ -1122,18 +1120,16 @@ export default function CandidateDetailPage() {
                     endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
                     endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
                 })),
-                job_matches: ((candidate.parsedData as CandidateDetails)?.job_matches?.map(match => ({
-                    ...match,
+                job_matches: candidateJobMatches.map((match: any) => ({
+                    jobId: match.jobId,
+                    jobTitle: match.jobTitle || match.positionTitle || '',
+                    fitScore: match.fitScore || 0,
+                    matchReasons: match.matchReasons || [],
                     matchReasons_string: Array.isArray(match.matchReasons) 
                         ? match.matchReasons.join('\n')
-                        : ''
-                })) || []) as {
-                    jobTitle?: string | null;
-                    fitScore?: number | null;
-                    matchReasons?: string[];
-                    matchReasons_string?: string | null;
-                    is_applied_job?: boolean;
-                }[],
+                        : '',
+                    is_applied_job: match.jobId === candidate.positionId
+                })) || [],
             }
         });
     }
@@ -1383,8 +1379,49 @@ export default function CandidateDetailPage() {
   const experience = getExperience(candidate);
   const skills = getParsedDataProperty('skills');
   const jobSuitable = getParsedDataProperty('job_suitable');
-  // Use jobMatches from the API response instead of parsedData.job_matches
-  const candidateJobMatches = candidate.jobMatches || [];
+  // Use and enrich job matches from candidate data
+  const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
+  
+  // Ensure candidateJobMatches is always in sync with candidate data - matching FullCandidateDetail implementation
+  useEffect(() => {
+    let jobMatches: any[] = [];
+    if (candidate && Array.isArray(candidate.jobMatches)) {
+      jobMatches = candidate.jobMatches;
+    } else if (
+      candidate &&
+      candidate.parsedData &&
+      typeof candidate.parsedData === 'object' &&
+      Array.isArray((candidate.parsedData as any).job_matches)
+    ) {
+      jobMatches = (candidate.parsedData as any).job_matches;
+    }
+    if (jobMatches.length > 0) {
+      // Enrich each job match with jobTitle and position details
+      const enrichedJobMatches = jobMatches.map((jm: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === jm.jobId) || allDbPositions.find(p => p.title === jm.jobTitle))
+          : null;
+        return {
+          ...jm,
+          jobId: position ? position.id : jm.jobId,
+          jobTitle: position ? position.title : jm.jobTitle,
+          position: position
+            ? {
+                id: position.id,
+                title: position.title,
+                description: position.description,
+                department: position.department,
+                requirements: (position as any).requirements,
+                isOpen: position.isOpen,
+              }
+            : jm.position,
+        };
+      });
+      setCandidateJobMatches(enrichedJobMatches);
+    } else {
+      setCandidateJobMatches([]);
+    }
+  }, [candidate, allDbPositions]);
   
   // Calculate applied job data from parsedData.job_applied or fallback to top-level fields
   // const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
@@ -1394,11 +1431,12 @@ export default function CandidateDetailPage() {
   // const appliedJobId = jobApplied?.jobId || candidate.positionId;
   // const appliedFitScore = jobApplied?.fitScore ?? candidate.fitScore;
   // --- Job Applied logic: match FullCandidateDetail 100% ---
+  // Using the processing method from FullCandidateDetail component which works correctly
   const appliedJustification = candidate?.assignmentJustification
     ? (Array.isArray(candidate.assignmentJustification)
-        ? candidate.assignmentJustification
+        ? candidate.assignmentJustification.filter(Boolean)
         : typeof candidate.assignmentJustification === 'string'
-          ? candidate.assignmentJustification.split(/[\n\r,]+/).map((sentence: string) => sentence.trim()).filter(Boolean)
+          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
           : [])
     : [];
   // --- End Job Applied logic ---
@@ -2242,6 +2280,7 @@ export default function CandidateDetailPage() {
                               Edit Job Matches
                             </h3>
                         <div className="space-y-4">
+                            {/* Debug logging for job matches fields */}
                             {jobMatchesFields.length === 0 && (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <ListChecks className="mx-auto h-12 w-12 mb-4 opacity-50" />

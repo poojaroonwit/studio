@@ -34,8 +34,8 @@ function createCandidateSummary(candidate: Candidate): string {
   if (email) summaryParts.push(`Email: ${email}`);
   if (phone) summaryParts.push(`Phone: ${phone}`);
   
-  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore}%, Status: ${status})`);
-  else summaryParts.push(`General Application (Status: ${status}, Overall Fit Score: ${fitScore}%)`);
+  if (position?.title) summaryParts.push(`Applied for Position: ${position.title} (Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%, Status: ${status})`);
+  else summaryParts.push(`General Application (Status: ${status}, Overall Fit Score: ${fitScore < 1 ? Math.round(fitScore * 100) : fitScore}%)`);
   
   if (applicationDate) summaryParts.push(`Application Date: ${new Date(applicationDate).toLocaleDateString()}`);
   if (recruiter?.name) summaryParts.push(`Assigned Recruiter: ${recruiter.name}`);
@@ -112,7 +112,8 @@ function createCandidateSummary(candidate: Candidate): string {
     if (details.job_matches && Array.isArray(details.job_matches) && details.job_matches.length > 0) {
       summaryParts.push("Automated Job Matches (from automation):");
       details.job_matches.forEach(match => {
-        summaryParts.push(`  - Job: ${match.jobTitle || match.jobId || 'N/A'}, Fit: ${match.fitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
+        const displayFitScore = match.fitScore < 1 ? Math.round(match.fitScore * 100) : match.fitScore;
+        summaryParts.push(`  - Job: ${match.jobTitle || match.jobId || 'N/A'}, Fit: ${displayFitScore}%, Reasons: ${(match.matchReasons || []).join(', ')}`);
       });
     }
   }
@@ -195,6 +196,19 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     .map(c => `CANDIDATE_START\n${createCandidateSummary(c)}\nCANDIDATE_END`)
     .join('\n\n---\n\n');
   
+  // Debug logging for fit scores
+  console.log('AI Search Debug - Fit Scores:', {
+    query: input.query,
+    totalCandidates: allCandidates.length,
+    fitScores: allCandidates.map(c => ({
+      id: c.id,
+      name: c.name,
+      originalFitScore: c.fitScore,
+      displayFitScore: c.fitScore < 1 ? Math.round(c.fitScore * 100) : c.fitScore,
+      hasJobMatches: (c.parsedData as any)?.job_matches?.length > 0
+    }))
+  });
+  
   if (!candidateSummariesText.trim() && allCandidates.length > 0) {
       console.warn("AI Search: Candidate summaries text is empty even though candidates were fetched. This might indicate an issue with createCandidateSummary or empty candidate details.");
   }
@@ -219,7 +233,7 @@ When matching candidates to the user's query, you must consider ALL available ca
 - Education history (university, major, GPA, etc.)
 - Work experience (companies, positions, durations, descriptions)
 - Skills
-- Fit score
+- Fit score (expressed as a percentage, e.g., 85% = 85, 0.89% = 0.89)
 - Position applied for
 - Application date
 - Recruiter
@@ -228,6 +242,21 @@ When matching candidates to the user's query, you must consider ALL available ca
 - Automated job matches
 - Custom fields/attributes
 - Any other data provided in the summary
+
+IMPORTANT FIT SCORE GUIDELINES:
+- Fit scores are displayed as percentages (0-100%)
+- Decimal values (0-1) are automatically converted to percentages (e.g., 0.89 becomes 89%)
+- When the query mentions "fit score less than X" or "fit score below X", only include candidates with fit scores < X%
+- When the query mentions "fit score greater than X" or "fit score above X", only include candidates with fit scores > X%
+- When the query mentions "fit score between X and Y", only include candidates with fit scores between X% and Y%
+- Pay attention to the percentage values in the candidate data
+- If a candidate has multiple fit scores (applied job fit score and matching job fit scores), consider the most relevant one based on the query
+- For percentage comparisons, treat the values as percentages (89% is greater than 30%, 25% is less than 30%, etc.)
+
+EXAMPLE: If the query is "fit score less than 30", then:
+- A candidate with fit score 0.89 (displayed as 89%) should NOT be included (because 89% > 30%)
+- A candidate with fit score 0.25 (displayed as 25%) should be included (because 25% < 30%)
+- A candidate with fit score 85 (displayed as 85%) should NOT be included (because 85% > 30%)
 
 Base your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.
 If no candidates seem to match, return an empty list for matchedCandidateIds.

@@ -190,13 +190,18 @@ export function TaskBoard({
   // Scroll handlers
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -320, behavior: 'smooth' });
+      const container = scrollContainerRef.current;
+      const scrollAmount = Math.min(320, container.scrollLeft);
+      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     }
   };
 
   const handleScrollRight = () => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 320, behavior: 'smooth' });
+      const container = scrollContainerRef.current;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const scrollAmount = Math.min(320, maxScroll - container.scrollLeft);
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
@@ -204,8 +209,11 @@ export function TaskBoard({
   const updateScrollState = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+      const newCanScrollLeft = scrollLeft > 0;
+      const newCanScrollRight = scrollLeft < scrollWidth - clientWidth - 1;
+      
+      setCanScrollLeft(newCanScrollLeft);
+      setCanScrollRight(newCanScrollRight);
     }
   };
 
@@ -227,6 +235,24 @@ export function TaskBoard({
     }
   }, [tasks, stages]);
 
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target === scrollContainerRef.current || scrollContainerRef.current?.contains(e.target as Node)) {
+        if (e.key === 'ArrowLeft' && canScrollLeft) {
+          e.preventDefault();
+          handleScrollLeft();
+        } else if (e.key === 'ArrowRight' && canScrollRight) {
+          e.preventDefault();
+          handleScrollRight();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [canScrollLeft, canScrollRight]);
+
 
 
   if (!stages || stages.length === 0) {
@@ -244,7 +270,7 @@ export function TaskBoard({
   }
 
   return (
-    <div className={cn("flex flex-col h-screen bg-muted/50", className)}>
+    <div className={cn("flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/50", className)}>
       {/* Header
       <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -258,35 +284,43 @@ export function TaskBoard({
       </div> */}
 
       {/* Board Container with Fixed Navigation Buttons */}
-      <div className="relative flex-1" style={{ height: 'calc(100vh - 80px)' }}>
+      <div className="relative flex-1">
 
         {/* Scroll Navigation Buttons */}
         {canScrollLeft && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-gray-300 dark:border-gray-600 shadow-lg hover:bg-white dark:hover:bg-gray-900"
+          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-blue-500/10 to-transparent dark:from-blue-500/20 pointer-events-none z-20" />
+        )}
+        
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-blue-500/10 to-transparent dark:from-blue-500/20 pointer-events-none z-20" />
+        )}
+
+        {canScrollLeft && (
+          <div
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-16 w-16 bg-blue-500/20 backdrop-blur-md shadow-2xl hover:bg-blue-500/30 hover:shadow-blue-500/25 transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer"
+            style={{ borderRadius: '50%' }}
             onClick={handleScrollLeft}
+            title="Scroll to previous columns (←)"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+            <ChevronLeft className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          </div>
         )}
 
         {canScrollRight && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 h-8 w-8 p-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-gray-300 dark:border-gray-600 shadow-lg hover:bg-white dark:hover:bg-gray-900"
+          <div
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-16 w-16 bg-blue-500/20 backdrop-blur-md shadow-2xl hover:bg-blue-500/30 hover:shadow-blue-500/25 transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer"
+            style={{ borderRadius: '50%' }}
             onClick={handleScrollRight}
+            title="Scroll to next columns (→)"
           >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+            <ChevronRight className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          </div>
         )}
 
         {/* Scrollable Board Container */}
         <div 
           ref={scrollContainerRef}
-          className="flex gap-0 h-full overflow-x-auto scroll-smooth"
+          className="flex gap-0 h-full overflow-x-auto scroll-smooth scrollbar-hide"
         >
         {sortedStages.map((stage, index) => {
           const stageTasks = tasksByStage[stage.id] || [];
@@ -330,7 +364,7 @@ export function TaskBoard({
                 {/* Table Body - Full Height Drop Zone */}
                 <div 
                   className={cn(
-                    "flex-1 bg-white dark:bg-gray-950 transition-all duration-200 relative min-h-0",
+                    "flex-1 bg-gray-50 dark:bg-gray-900 transition-all duration-200 relative min-h-0",
                     isDragOver && !isCurrentStage && "bg-blue-50/50 dark:bg-blue-900/20"
                   )}
                   onDragOver={(e) => handleDragOver(stage.id, e)}
@@ -371,7 +405,7 @@ export function TaskBoard({
                           onClick={() => onTaskClick?.(task)}
                         >
                           {/* Table Row Content */}
-                          <div className="flex items-start gap-3 mb-3">
+                          <div className="flex items-start gap-3 mb-1">
                             {/* Avatar Cell */}
                             <Avatar className="w-8 h-8 text-xs relative ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-800">
                               {task.avatarUrl ? (
@@ -394,7 +428,7 @@ export function TaskBoard({
                               
                                 {/* Description Row */}
                                 {task.description && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-3 leading-relaxed">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1 leading-relaxed">
                                     {task.description}
                                   </p>
                                 )}
@@ -421,12 +455,22 @@ export function TaskBoard({
 
                           {/* Meta Information Row */}
                           <div className="space-y-2">
+                            {/* Position Applied (non-badge) */}
+                            {task.tags && task.tags.length > 0 && (
+                              <>
+                                <div className="border-t border-gray-200 dark:border-gray-700 pt-1"></div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Applied for: </span> {task.tags[0]}
+                                </div>
+                              </>
+                            )}
+
                             {/* Skills */}
                             {task.skills && task.skills.length > 0 && (
                               <div className="space-y-1">
-                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                {/* <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                                   <span className="font-medium">Skills:</span>
-                                </div>
+                                </div> */}
                                 <div className="flex flex-wrap gap-1">
                                   {task.skills.slice(0, 3).map((skill: any, idx: number) => (
                                     <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
@@ -439,13 +483,6 @@ export function TaskBoard({
                                     </span>
                                   )}
                                 </div>
-                              </div>
-                            )}
-
-                            {/* Position Applied (non-badge) */}
-                            {task.tags && task.tags.length > 0 && (
-                              <div className="text-xs text-gray-600 dark:text-gray-400">
-                                <span className="font-medium">Position:</span> {task.tags[0]}
                               </div>
                             )}
 

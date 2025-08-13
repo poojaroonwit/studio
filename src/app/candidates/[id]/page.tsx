@@ -433,6 +433,11 @@ export default function CandidateDetailPage() {
           ...(candidate.parsedData as any) || {},
           job_matches: (candidate.jobMatches || []).map((match: any) => ({
             ...match,
+            matchReasons: Array.isArray(match.matchReasons) 
+              ? match.matchReasons.filter(Boolean)
+              : typeof match.matchReasons === 'string'
+                ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                : [],
             matchReasons_string: Array.isArray(match.matchReasons) 
               ? match.matchReasons.join('\n')
               : ''
@@ -1081,8 +1086,8 @@ export default function CandidateDetailPage() {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      // Use the same justificationArray to ensure consistency
-      assignmentJustification: justificationArray.join('\n'),
+      // Keep assignmentJustification as an array to match the API schema
+      assignmentJustification: justificationArray,
       parsedData: {
         ...data.parsedData,
         education: processedEducation,
@@ -1216,11 +1221,53 @@ export default function CandidateDetailPage() {
   const [jobSuitableOpen, setJobSuitableOpen] = useState(true);
   const [jobMatchesOpen, setJobMatchesOpen] = useState(true);
   const [jobMatchesScrollPosition, setJobMatchesScrollPosition] = useState(0);
+  const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
 
   
   useEffect(() => {
     fetchTransitionHistory();
   }, [candidateId, fetchTransitionHistory]);
+
+  // Ensure candidateJobMatches is always in sync with candidate data - matching FullCandidateDetail implementation
+  useEffect(() => {
+    let jobMatches: any[] = [];
+    if (candidate && Array.isArray(candidate.jobMatches)) {
+      jobMatches = candidate.jobMatches;
+    } else if (
+      candidate &&
+      candidate.parsedData &&
+      typeof candidate.parsedData === 'object' &&
+      Array.isArray((candidate.parsedData as any).job_matches)
+    ) {
+      jobMatches = (candidate.parsedData as any).job_matches;
+    }
+    if (jobMatches.length > 0) {
+      // Enrich each job match with jobTitle and position details
+      const enrichedJobMatches = jobMatches.map((jm: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === jm.jobId) || allDbPositions.find(p => p.title === jm.jobTitle))
+          : null;
+        return {
+          ...jm,
+          jobId: position ? position.id : jm.jobId,
+          jobTitle: position ? position.title : jm.jobTitle,
+          position: position
+            ? {
+                id: position.id,
+                title: position.title,
+                description: position.description,
+                department: position.department,
+                requirements: (position as any).requirements,
+                isOpen: position.isOpen,
+              }
+            : jm.position,
+        };
+      });
+      setCandidateJobMatches(enrichedJobMatches);
+    } else {
+      setCandidateJobMatches([]);
+    }
+  }, [candidate, allDbPositions]);
 
   // Unified function to open ManageTransitionsModal
   const openManageTransitionsModal = (stageName?: string) => {
@@ -1426,49 +1473,6 @@ export default function CandidateDetailPage() {
   const experience = getExperience(candidate);
   const skills = getParsedDataProperty('skills');
   const jobSuitable = getParsedDataProperty('job_suitable');
-  // Use and enrich job matches from candidate data
-  const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
-  
-  // Ensure candidateJobMatches is always in sync with candidate data - matching FullCandidateDetail implementation
-  useEffect(() => {
-    let jobMatches: any[] = [];
-    if (candidate && Array.isArray(candidate.jobMatches)) {
-      jobMatches = candidate.jobMatches;
-    } else if (
-      candidate &&
-      candidate.parsedData &&
-      typeof candidate.parsedData === 'object' &&
-      Array.isArray((candidate.parsedData as any).job_matches)
-    ) {
-      jobMatches = (candidate.parsedData as any).job_matches;
-    }
-    if (jobMatches.length > 0) {
-      // Enrich each job match with jobTitle and position details
-      const enrichedJobMatches = jobMatches.map((jm: any) => {
-        const position = Array.isArray(allDbPositions)
-          ? (allDbPositions.find(p => p.id === jm.jobId) || allDbPositions.find(p => p.title === jm.jobTitle))
-          : null;
-        return {
-          ...jm,
-          jobId: position ? position.id : jm.jobId,
-          jobTitle: position ? position.title : jm.jobTitle,
-          position: position
-            ? {
-                id: position.id,
-                title: position.title,
-                description: position.description,
-                department: position.department,
-                requirements: (position as any).requirements,
-                isOpen: position.isOpen,
-              }
-            : jm.position,
-        };
-      });
-      setCandidateJobMatches(enrichedJobMatches);
-    } else {
-      setCandidateJobMatches([]);
-    }
-  }, [candidate, allDbPositions]);
   
   // Calculate applied job data from parsedData.job_applied or fallback to top-level fields
   // const jobApplied = (candidate.parsedData && 'job_applied' in candidate.parsedData)
@@ -1952,9 +1956,11 @@ export default function CandidateDetailPage() {
                                 positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
                                 fitScore: candidate?.fitScore || null,
                                 assignmentJustification: candidate?.assignmentJustification
-                                  ? Array.isArray(candidate.assignmentJustification)
+                                  ? (Array.isArray(candidate.assignmentJustification)
                                     ? candidate.assignmentJustification
-                                    : [candidate.assignmentJustification]
+                                      : typeof candidate.assignmentJustification === 'string'
+                                        ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                                        : [])
                                   : [],
                                 status: candidate.status || '',
                                 recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
@@ -2138,22 +2144,26 @@ export default function CandidateDetailPage() {
                                                             <div>
                                 <Label className="text-sm font-medium mb-2">Match Score</Label>
                                 <div className="space-y-2">
-                                  <Slider
-                                    value={[Math.round((form.watch('fitScore') || 0) * 100)]}
-                                    onValueChange={(value) => form.setValue('fitScore', value[0] / 100)}
-                                    max={100}
-                                    min={0}
-                                    step={1}
-                                    className="w-full"
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    placeholder="0.00-1.00"
+                                    {...register('fitScore', {
+                                      valueAsNumber: true,
+                                      min: { value: 0, message: "Score must be at least 0" },
+                                      max: { value: 1, message: "Score must be at most 1" }
+                                    })}
                                   />
-                                  <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>0%</span>
-                                    <span className="font-medium">{Math.round((form.watch('fitScore') || 0) * 100)}%</span>
-                                    <span>100%</span>
-                                  </div>
+                                  {(errors.fitScore) && (
+                                    <p className="text-xs text-destructive">
+                                      {errors.fitScore.message}
+                                    </p>
+                                  )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-2">
-                                  Rate how well this candidate fits the applied position (0-100%).
+                                  Rate how well this candidate fits the applied position (0.00-1.00).
                                 </p>
                               </div>
                               
@@ -2389,12 +2399,13 @@ export default function CandidateDetailPage() {
                                             <Input 
                                                 type="number" 
                                                 min="0"
-                                                max="100"
-                                                placeholder="0-100" 
+                                                max="1"
+                                                step="0.01"
+                                                placeholder="0.00-1.00" 
                                                 {...register(`parsedData.job_matches.${index}.fitScore`, { 
                                                     valueAsNumber: true,
                                                     min: { value: 0, message: "Score must be at least 0" },
-                                                    max: { value: 100, message: "Score must be at most 100" }
+                                                    max: { value: 1, message: "Score must be at most 1" }
                                                 })} 
                                             />
                                             {(errors.parsedData as any)?.job_matches?.[index]?.fitScore && (
@@ -2407,14 +2418,53 @@ export default function CandidateDetailPage() {
                                     
                                     <div className="space-y-2">
                                         <Label className="text-sm font-medium">Match Reasons</Label>
-                                        <Textarea 
-                                            placeholder="Enter match reasons, one per line&#10;e.g.,&#10;• Strong technical skills&#10;• Relevant experience&#10;• Good cultural fit"
-                                            {...register(`parsedData.job_matches.${index}.matchReasons_string`)}
-                                            rows={4}
+                                        <div className="space-y-3">
+                                            {(!watch(`parsedData.job_matches.${index}.matchReasons`) || watch(`parsedData.job_matches.${index}.matchReasons`)?.length === 0) && (
+                                                <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
+                                                    <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                                    <p className="text-sm">No match reasons added yet.</p>
+                                                    <p className="text-xs">Click "Add Match Reason" to get started.</p>
+                                                </div>
+                                            )}
+                                            {watch(`parsedData.job_matches.${index}.matchReasons`)?.map((item: string, reasonIndex: number) => (
+                                                <div key={reasonIndex} className="flex items-start gap-2 group">
+                                                    <div className="flex-1">
+                                                        <Input
+                                                            placeholder={`Match reason ${reasonIndex + 1}...`}
+                                                            {...register(`parsedData.job_matches.${index}.matchReasons.${reasonIndex}`)}
                                             className="resize-none"
                                         />
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={() => {
+                                                            const current = watch(`parsedData.job_matches.${index}.matchReasons`) || [];
+                                                            const updated = current.filter((_: string, i: number) => i !== reasonIndex);
+                                                            setValue(`parsedData.job_matches.${index}.matchReasons`, updated);
+                                                        }}
+                                                        title="Remove match reason"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => {
+                                                    const current = watch(`parsedData.job_matches.${index}.matchReasons`) || [];
+                                                    setValue(`parsedData.job_matches.${index}.matchReasons`, [...current, '']);
+                                                }}
+                                            >
+                                                <PlusCircle className="mr-2 h-4 w-4" /> Add Match Reason
+                                            </Button>
+                                        </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Each line will become a separate reason. Use bullet points (•) for better formatting.
+                                            Add detailed reasons for this job match.
                                         </p>
                                     </div>
                                 </div>
@@ -2429,7 +2479,7 @@ export default function CandidateDetailPage() {
                                         onClick={() => appendJobMatch({ 
                                             jobId: '',
                                             jobTitle: '', 
-                                            fitScore: 0, 
+                                            fitScore: 0.0, 
                                             matchReasons: [], 
                                             is_applied_job: false,
                                             matchReasons_string: ''

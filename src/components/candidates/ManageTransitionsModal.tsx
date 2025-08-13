@@ -321,23 +321,11 @@ export function ManageTransitionsModal({
           </div>
 
           <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">
-            <div className="flex gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button 
-                type="button" 
-                variant="secondary"
-                onClick={() => {
-                  console.log('Force Close button clicked');
-                  onOpenChange(false);
-                }}
-              >
-                Force Close
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
               </Button>
-            </div>
+            </DialogClose>
             <Button 
               type="button" 
               variant="default" 

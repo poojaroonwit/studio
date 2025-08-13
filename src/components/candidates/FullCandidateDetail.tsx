@@ -243,6 +243,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Validate candidateId is a UUID (same as candidate ID page)
+  const uuidSchema = z.string().uuid();
+  const isValidCandidateId = candidateId && uuidSchema.safeParse(candidateId).success;
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isTransitionsModalOpen, setIsTransitionsModalOpen] = useState(false);
@@ -360,10 +364,22 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     name: 'parsedData.job_matches',
   });
 
+  // Early return for invalid candidate ID (same as candidate ID page)
+  if (!isValidCandidateId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center p-6">
+        <ServerCrash className="w-16 h-16 text-destructive mb-4" />
+        <h2 className="text-2xl font-semibold text-foreground mb-2">Invalid Candidate ID</h2>
+        <p className="text-muted-foreground mb-6">The candidate ID is not valid.</p>
+        {onClose && <Button onClick={onClose}>Close</Button>}
+      </div>
+    );
+  }
+
   // Fetch candidate data
   useEffect(() => {
     const fetchCandidate = async () => {
-      if (!candidateId) return;
+      if (!candidateId || !isValidCandidateId) return;
       
       setLoading(true);
       setError(null);
@@ -429,6 +445,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             job_suitable: data.parsedData?.job_suitable || [],
             job_matches: (data.jobMatches || []).map((match: any) => ({
               ...match,
+              matchReasons: Array.isArray(match.matchReasons) 
+                ? match.matchReasons.filter(Boolean)
+                : typeof match.matchReasons === 'string'
+                  ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                  : [],
               matchReasons_string: Array.isArray(match.matchReasons) 
                 ? match.matchReasons.join('\n')
                 : ''
@@ -637,7 +658,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       // Top-level fields from the form
       positionId: data.positionId,
       recruiterId: data.recruiterId,
-      fitScore: data.fitScore,
+      fitScore: data.fitScore ? (data.fitScore) : null,
       status: statusToSend,
       assignmentJustification: data.assignmentJustification || [],
       
@@ -653,7 +674,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           : (s.skill || [])
       })),
       job_suitable: data.parsedData?.job_suitable,
-      job_matches: data.parsedData?.job_matches,
+      job_matches: data.parsedData?.job_matches?.map((match: any) => ({
+        ...match,
+        fitScore: match.fitScore || null
+      })),
         education: processedEducation,
         experience: processedExperience,
       }
@@ -1364,8 +1388,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                                   ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
                                   : (typeof s.skill_string === 'string' ? s.skill_string : '')
                               })),
-                              job_matches: ((candidate.parsedData as any)?.job_matches || []).map((match: any) => ({
+                              job_matches: (candidate.jobMatches || []).map((match: any) => ({
                                 ...match,
+                                matchReasons: Array.isArray(match.matchReasons)
+                                  ? match.matchReasons.filter(Boolean)
+                                  : typeof match.matchReasons === 'string'
+                                    ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                                    : [],
                                 matchReasons_string: Array.isArray(match.matchReasons) 
                                   ? match.matchReasons.join('\n')
                                   : ''
@@ -1533,22 +1562,26 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                       <div>
                         <Label className="text-sm font-medium mb-2">Match Score</Label>
                         <div className="space-y-2">
-                          <Slider
-                            value={[Math.round((watch('fitScore') || 0) * 100)]}
-                            onValueChange={(value) => setValue('fitScore', value[0] / 100)}
-                            max={100}
-                            min={0}
-                            step={1}
-                            className="w-full"
+                          <Input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            placeholder="0.00-1.00"
+                            {...register('fitScore', {
+                              valueAsNumber: true,
+                              min: { value: 0, message: "Score must be at least 0" },
+                              max: { value: 1, message: "Score must be at most 1" }
+                            })}
                           />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>0%</span>
-                            <span className="font-medium">{Math.round((watch('fitScore') || 0) * 100)}%</span>
-                            <span>100%</span>
-                          </div>
+                          {(errors.fitScore) && (
+                            <p className="text-xs text-destructive">
+                              {errors.fitScore.message}
+                            </p>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Rate how well this candidate fits the applied position (0-100%).
+                          Rate how well this candidate fits the applied position (0.00-1.00).
                         </p>
                       </div>
                       
@@ -1786,12 +1819,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                               <Input 
                                 type="number" 
                                 min="0"
-                                max="100"
-                                placeholder="0-100" 
+                                max="1"
+                                step="0.01"
+                                placeholder="0.00-1.00" 
                                 {...register(`parsedData.job_matches.${index}.fitScore`, { 
                                   valueAsNumber: true,
                                   min: { value: 0, message: "Score must be at least 0" },
-                                  max: { value: 100, message: "Score must be at most 100" }
+                                  max: { value: 1, message: "Score must be at most 1" }
                                 })} 
                               />
                               {(errors.parsedData as any)?.job_matches?.[index]?.fitScore && (
@@ -1804,19 +1838,58 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           
                           <div className="space-y-1">
                             <Label className="text-sm font-medium">Match Reasons</Label>
-                            <Textarea 
-                              placeholder="Explain why this candidate is a good match for this position...&#10;e.g.,&#10;• Relevant experience in similar role&#10;• Strong technical skills&#10;• Good cultural fit&#10;• Meets key requirements"
-                              {...register(`parsedData.job_matches.${index}.matchReasons`)}
-                              rows={3}
+                            <div className="space-y-3">
+                                {(!watch(`parsedData.job_matches.${index}.matchReasons`) || watch(`parsedData.job_matches.${index}.matchReasons`)?.length === 0) && (
+                                    <div className="text-center py-4 text-muted-foreground border-2 border-dashed border-muted rounded-lg">
+                                        <Info className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                        <p className="text-sm">No match reasons added yet.</p>
+                                        <p className="text-xs">Click "Add Match Reason" to get started.</p>
+                                    </div>
+                                )}
+                                {watch(`parsedData.job_matches.${index}.matchReasons`)?.map((item: string, reasonIndex: number) => (
+                                    <div key={reasonIndex} className="flex items-start gap-2 group">
+                                        <div className="flex-1">
+                                            <Input
+                                                placeholder={`Match reason ${reasonIndex + 1}...`}
+                                                {...register(`parsedData.job_matches.${index}.matchReasons.${reasonIndex}`)}
                               className="resize-none"
                             />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                const current = watch(`parsedData.job_matches.${index}.matchReasons`) || [];
+                                                const updated = current.filter((_: string, i: number) => i !== reasonIndex);
+                                                setValue(`parsedData.job_matches.${index}.matchReasons`, updated);
+                                            }}
+                                            title="Remove match reason"
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => {
+                                        const current = watch(`parsedData.job_matches.${index}.matchReasons`) || [];
+                                        setValue(`parsedData.job_matches.${index}.matchReasons`, [...current, '']);
+                                    }}
+                                >
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Add Match Reason
+                                </Button>
+                            </div>
                             <p className="text-xs text-muted-foreground">
-                              Provide detailed reasons for this job match.
+                                Add detailed reasons for this job match.
                             </p>
                           </div>
                         </div>
                       ))}
-                      <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobMatch({ jobId: '', jobTitle: '', fitScore: 0, matchReasons: [] })}>
+                      <Button type="button" variant="outline" className="mt-2" onClick={() => appendJobMatch({ jobId: '', jobTitle: '', fitScore: 0.0, matchReasons: [] })}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Job Match
                       </Button>
                     </div>
@@ -2691,8 +2764,13 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
                           : (typeof s.skill_string === 'string' ? s.skill_string : '')
                       })),
-                      job_matches: ((candidate.parsedData as any)?.job_matches || []).map((match: any) => ({
+                      job_matches: (candidate.jobMatches || []).map((match: any) => ({
                         ...match,
+                        matchReasons: Array.isArray(match.matchReasons)
+                          ? match.matchReasons.filter(Boolean)
+                          : typeof match.matchReasons === 'string'
+                            ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                            : [],
                         matchReasons_string: Array.isArray(match.matchReasons) 
                           ? match.matchReasons.join('\n')
                           : ''

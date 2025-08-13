@@ -663,10 +663,10 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto scrollbar-custom scroll-smooth">
+          <div className="h-full">
             {/* Board Views */}
             {viewMode === 'kanban' ? (
-              <div className="min-w-max h-full">
+              <div className="h-full">
 
                 <TaskBoard
                   tasks={convertCandidatesToTasks(displayedCandidates)}

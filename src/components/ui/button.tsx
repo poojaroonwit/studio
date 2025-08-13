@@ -11,11 +11,11 @@ const buttonVariants = cva(
       variant: {
         default: "btn-primary-gradient text-primary-foreground hover:scale-105", // Remove shadow utilities
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md hover:shadow-lg",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90  ",
         outline:
-          "btn-secondary-gradient text-secondary-foreground hover:scale-105 shadow-md hover:shadow-lg",
+          "btn-secondary-gradient text-secondary-foreground hover:scale-105 ",
         secondary:
-          "btn-secondary-gradient text-secondary-foreground hover:scale-105 shadow-md hover:shadow-lg",
+          "btn-secondary-gradient text-secondary-foreground hover:scale-105 ",
         ghost: "hover:bg-accent hover:text-accent-foreground shadow-sm hover:shadow-md",
         link: "text-primary underline-offset-4 hover:underline shadow-none",
       },

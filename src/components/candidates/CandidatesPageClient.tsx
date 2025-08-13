@@ -12,7 +12,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
-import { ImportCandidatesModal } from '@/components/candidates/ImportCandidatesModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
@@ -122,7 +121,6 @@ export function CandidatesPageClient({
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCreateViaAutomationModalOpen, setIsCreateViaAutomationModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(initialFetchError || null);
   const [authError, setAuthError] = useState(serverAuthError);
   const [permissionError, setPermissionError] = useState(serverPermissionError);
@@ -146,7 +144,6 @@ export function CandidatesPageClient({
   const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const canImportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_IMPORT');
   const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT');
   const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE');
 
@@ -586,11 +583,81 @@ export function CandidatesPageClient({
       if (!response.ok) {
         throw new Error(result.message || `AI search failed with status: ${response.status}`);
       }
-      setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-      setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+      
+      // Debug logging
+      console.log('AI Search Result:', {
+        matchedCandidateIds: result.matchedCandidateIds,
+        aiReasoning: result.aiReasoning,
+        allCandidatesCount: allCandidates.length,
+        availableCandidateIds: allCandidates.map(c => c.id)
+      });
+      
+      // If AI search returned results, fetch all candidates to ensure we have them available
+      // But do it silently without affecting the page state
       if (result.matchedCandidateIds?.length > 0) {
-        toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+        // Check if we already have all the matched candidates in our current list
+        const existingIds = new Set(allCandidates.map(c => c.id));
+        const missingCandidates = result.matchedCandidateIds.filter((id: string) => !existingIds.has(id));
+        
+        if (missingCandidates.length > 0) {
+          // Only fetch if we're missing some candidates
+          console.log('Missing candidates for AI search, fetching all candidates:', {
+            missingCount: missingCandidates.length,
+            existingCount: allCandidates.length
+          });
+          
+          // Fetch all candidates without filters to ensure AI search results are available
+          // Use a separate state update to avoid triggering page refresh
+          const allCandidatesResponse = await fetch('/api/candidates?limit=1000');
+          if (allCandidatesResponse.ok) {
+            const allCandidatesData = await allCandidatesResponse.json();
+            if (allCandidatesData.data && Array.isArray(allCandidatesData.data)) {
+              // Update candidates silently without affecting other state
+              setAllCandidates(prevCandidates => {
+                // Merge new candidates with existing ones, avoiding duplicates
+                const existingIds = new Set(prevCandidates.map((c: Candidate) => c.id));
+                const newCandidates = (allCandidatesData.data as Candidate[]).filter((c: Candidate) => !existingIds.has(c.id));
+                const mergedCandidates = [...prevCandidates, ...newCandidates];
+                
+                console.log('Silently updated candidates for AI search:', {
+                  previousCount: prevCandidates.length,
+                  newCount: allCandidatesData.data.length,
+                  mergedCount: mergedCandidates.length,
+                  aiMatchedIds: result.matchedCandidateIds
+                });
+                
+                return mergedCandidates;
+              });
+              
+              // Wait a bit for the state to update before setting AI results
+              setTimeout(() => {
+                setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+                setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+                toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+              }, 100);
+            } else {
+              // If we couldn't fetch candidates, still show AI results but warn user
+              setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+              setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+              toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+              toast.error("Some candidates may not be visible due to current filters.");
+            }
+          } else {
+            // If fetch failed, still show AI results but warn user
+            setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+            setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+            toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+            toast.error("Could not load all candidates. Some results may not be visible.");
+          }
+        } else {
+          console.log('All AI search candidates already available in current list');
+          setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+          setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+          toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+        }
       } else {
+        setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+        setAiSearchReasoning(result.aiReasoning || "AI search complete.");
         toast.success(result.aiReasoning || "No strong matches found by AI for your query.");
       }
     } catch (error) {
@@ -911,68 +978,55 @@ export function CandidatesPageClient({
     }, 150); // Reduced to 150ms for faster response
   };
 
-  const handleClearAllFilters = () => {
-    // console.log('handleClearAllFilters called');
-    
-    // Clear any existing filter change timeout to prevent interference
-    if (filterChangeTimeoutRef.current) {
-      clearTimeout(filterChangeTimeoutRef.current);
-      filterChangeTimeoutRef.current = null;
-    }
-    
-    // Set flag to prevent URL parameter re-application
+  const handleClearAllFilters = useCallback(() => {
+    console.log('handleClearAllFilters called');
     setIsClearingFilters(true);
     
-    // Clear all filters without updating URL to prevent page refresh
-    const clearedFilters = {
-      name: undefined,
-      email: undefined,
-      phone: undefined,
-      education: undefined,
-      skills: undefined,
-      location: undefined,
-      cvLanguage: undefined,
-      jobSuitableCareer: undefined,
-      jobSuitableLevel: undefined,
-      jobSuitablePosition: undefined,
+    // Clear AI search state
+    setAiMatchedCandidateIds(null);
+    setAiSearchReasoning(null);
+    setIsAiSearchActive(false);
+    
+    // Reset filters to default
+    const defaultFilters: CandidateFilterValues = {
+      name: '',
+      email: '',
+      phone: '',
+      education: '',
+      skills: '',
+      location: '',
+      cvLanguage: '',
+      jobSuitableCareer: '',
+      jobSuitableLevel: '',
+      jobSuitablePosition: '',
       minExperienceYears: undefined,
       maxExperienceYears: undefined,
-      selectedPositionIds: undefined,
-      selectedStatuses: undefined,
-      selectedRecruiterIds: undefined,
-      minAppliedJobFitScore: undefined, // Changed from 0 to undefined to hide badge
-      maxAppliedJobFitScore: undefined, // Changed from 100 to undefined to hide badge
+      selectedPositionIds: [],
+      selectedStatuses: [],
+      selectedRecruiterIds: [],
+      minAppliedJobFitScore: undefined,
+      maxAppliedJobFitScore: undefined,
       minMatchingJobFitScore: undefined,
       maxMatchingJobFitScore: undefined,
       applicationDateStart: undefined,
       applicationDateEnd: undefined,
+      nameOperator: 'contains',
+      emailOperator: 'contains',
+      phoneOperator: 'contains',
+      locationOperator: 'contains',
       aiSearchQuery: undefined,
     };
     
-    // Update filters state immediately - this will trigger fetchPaginatedCandidates
-    setFilters(clearedFilters);
-    setAiMatchedCandidateIds(null); // Only clear AI search here
-    setAiSearchReasoning(null);
-    setIsAiSearchActive(false);
-    setAdvancedQueryFromUrl(''); // Clear advanced query from URL
+    setFilters(defaultFilters);
     setPage(1);
     
-    // Clear URL parameters to match the cleared filters
-    const newSearchParams = new URLSearchParams();
-    // Keep only pagination parameters if they exist
-    const currentPage = searchParams.get('page');
-    const currentPageSize = searchParams.get('pageSize');
-    if (currentPage) newSearchParams.set('page', currentPage);
-    if (currentPageSize) newSearchParams.set('pageSize', currentPageSize);
-    
-    const newURL = newSearchParams.toString() ? `?${newSearchParams.toString()}` : '';
-    router.replace(`${pathname}${newURL}`, { scroll: false });
-    
-    // Reset the clearing flag after a short delay to allow filter update to complete
+    // Fetch candidates with default filters to restore original state
+    // Use a small delay to ensure state updates are processed
     setTimeout(() => {
+      fetchPaginatedCandidates(defaultFilters, 1, pageSize);
       setIsClearingFilters(false);
-    }, 500);
-  };
+    }, 100);
+  }, [fetchPaginatedCandidates, pageSize]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1204,29 +1258,6 @@ export function CandidatesPageClient({
     setTimeout(() => { fetchPaginatedCandidates(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
   };
 
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await fetch('/api/candidates/import/template');
-      if (!response.ok) {
-        throw new Error('Failed to download template');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'candidate_import_template.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Import template downloaded successfully!');
-    } catch (error: any) {
-      toast.error(`Failed to download template: ${error.message}`);
-    }
-  };
-
   const handleExportToExcel = async () => {
     setIsLoading(true);
     try {
@@ -1259,37 +1290,7 @@ export function CandidatesPageClient({
     } finally { setIsLoading(false); }
   };
 
-  const handleExportToCsv = async () => {
-    setIsLoading(true);
-    try {
-      const query = new URLSearchParams();
-      query.append('format', 'csv');
-      if (filters.name) query.append('name', filters.name);
-      if (filters.email) query.append('email', filters.email);
-      if (filters.phone) query.append('phone', filters.phone);
-      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) query.append('positionId', filters.selectedPositionIds.join(','));
-      if (filters.selectedStatuses && filters.selectedStatuses.length > 0) query.append('status', filters.selectedStatuses.join(','));
-      if (filters.education) query.append('education', filters.education);
-      if (filters.minAppliedJobFitScore !== undefined) query.append('minAppliedJobFitScore', String(filters.minAppliedJobFitScore));
-      if (filters.maxAppliedJobFitScore !== undefined) query.append('maxAppliedJobFitScore', String(filters.maxAppliedJobFitScore));
-      if (filters.applicationDateStart) query.append('applicationDateStart', filters.applicationDateStart.toISOString());
-      if (filters.applicationDateEnd) query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
-      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
 
-      const response = await fetch(`/api/candidates/export?${query.toString()}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Error exporting candidate data." }));
-        throw new Error(errorData.message);
-      }
-      const blob = await response.blob();
-      const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'candidates_export.csv';
-      downloadFile(blob, filename);
-
-      toast.success('Candidates exported as CSV.');
-    } catch (error) {
-      toast.error((error as Error).message);
-    } finally { setIsLoading(false); }
-  };
 
   const handleOpenEditPositionModal = (position: Position) => {
     setSelectedPositionForEdit(position);
@@ -1534,11 +1535,26 @@ export function CandidatesPageClient({
     
     // Filter by AI search if active - with safer checks
     if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
+      console.log('AI Search Filtering:', {
+        isAiSearchActive,
+        aiMatchedCandidateIdsLength: aiMatchedCandidateIds.length,
+        aiMatchedCandidateIds,
+        candidatesBeforeFilter: candidates.length,
+        availableCandidateIds: candidates.map(c => c.id)
+      });
+      
       if (aiMatchedCandidateIds.length > 0) {
-        candidates = candidates.filter(c => c && c.id && aiMatchedCandidateIds.includes(c.id));
+        // Create a Set for faster lookup
+        const aiMatchedIdsSet = new Set(aiMatchedCandidateIds);
+        candidates = candidates.filter(c => c && c.id && aiMatchedIdsSet.has(c.id));
+        console.log('Candidates after AI filter:', {
+          candidatesAfterFilter: candidates.length,
+          filteredCandidateIds: candidates.map(c => c.id)
+        });
       } else {
         // If AI search is active and there are no matches, show empty list
         candidates = [];
+        console.log('AI search active but no matches, setting candidates to empty array');
       }
     }
     
@@ -1567,7 +1583,15 @@ export function CandidatesPageClient({
       const safePage = page > 0 ? page : 1;
       const start = (safePage - 1) * safePageSize;
       const end = start + safePageSize;
-      return mappedCandidates.slice(start, end);
+      const paginated = mappedCandidates.slice(start, end);
+      console.log('AI Search Pagination:', {
+        start,
+        end,
+        mappedCandidatesLength: mappedCandidates.length,
+        paginatedLength: paginated.length,
+        aiMatchedIds: aiMatchedCandidateIds
+      });
+      return paginated;
     }
     
     // For regular searches, the API already returns paginated data, so just return the mapped candidates
@@ -1924,20 +1948,10 @@ export function CandidatesPageClient({
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
                     </DropdownMenuItem>
                   )}
-                  {canImportCandidates && (
-                    <DropdownMenuItem onSelect={handleDownloadTemplate}>
-                      <FileDown className="mr-2 h-4 w-4" /> Download Import Template
-                    </DropdownMenuItem>
-                  )}
                   {canExportCandidates && (
-                    <>
-                      <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
-                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleExportToCsv} disabled={isLoading}>
-                        <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (CSV)
-                      </DropdownMenuItem>
-                    </>
+                    <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
+                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1966,8 +1980,24 @@ export function CandidatesPageClient({
 
         {/* Empty State - Single conditional to prevent duplicates */}
         {!isLoading && !isAiSearching && (() => {
+          // Debug logging for empty state
+          console.log('Empty State Check:', {
+            isAiSearchActive,
+            aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
+            allCandidatesLength: allCandidates.length,
+            mappedCandidatesLength: mappedCandidates.length,
+            hasAiResults: isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0
+          });
+          
+          // AI search is active and has results - don't show empty state
+          if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
+            console.log('AI search has results, not showing empty state');
+            return null; // Don't show empty state when AI search has results
+          }
+          
           // No candidates in database at all
           if (allCandidates.length === 0) {
+            console.log('No candidates in database, showing empty state');
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -1988,6 +2018,7 @@ export function CandidatesPageClient({
           
           // Has candidates but no results for current filters
           if (mappedCandidates.length === 0) {
+            console.log('Has candidates but no mapped candidates, showing no matching state');
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -2005,35 +2036,71 @@ export function CandidatesPageClient({
           }
           
           // Has candidates and results - show nothing
+          console.log('Has candidates and results, not showing empty state');
           return null;
         })()}
 
         {/* Only render table when there are candidates to show */}
-        {sortedCandidates.length > 0 && (
-          <CandidateTable
-            candidates={sortedCandidates}
-            availablePositions={availablePositions}
-            availableStages={availableStages}
-            availableRecruiters={availableRecruiters}
-            onAssignRecruiter={handleAssignRecruiter}
-            onUpdateCandidate={updateCandidateStatus}
-            onDeleteCandidate={handleDeleteCandidate}
-            onEditPosition={handleOpenEditPositionModal}
-            isLoading={isLoading}
-            onRefreshCandidateData={refreshCandidateInList}
-            selectedCandidateIds={selectedCandidateIds}
-            onToggleSelectCandidate={handleToggleSelectCandidate}
-            onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
-            isAllCandidatesSelected={isAllCandidatesSelected}
-            page={page}
-            pageSize={pageSize}
-            baseIndex={baseIndex}
-            sortColumn={sortColumn}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-            canManageCandidates={canManageCandidates}
-          />
-        )}
+        {(() => {
+          console.log('Table Rendering Check:', {
+            sortedCandidatesLength: sortedCandidates.length,
+            mappedCandidatesLength: mappedCandidates.length,
+            isAiSearchActive,
+            aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
+            shouldRenderTable: sortedCandidates.length > 0
+          });
+          
+          if (sortedCandidates.length > 0) {
+            return (
+              <CandidateTable
+                candidates={sortedCandidates}
+                availablePositions={availablePositions}
+                availableStages={availableStages}
+                availableRecruiters={availableRecruiters}
+                onAssignRecruiter={handleAssignRecruiter}
+                onUpdateCandidate={updateCandidateStatus}
+                onDeleteCandidate={handleDeleteCandidate}
+                onEditPosition={handleOpenEditPositionModal}
+                isLoading={isLoading}
+                onRefreshCandidateData={refreshCandidateInList}
+                selectedCandidateIds={selectedCandidateIds}
+                onToggleSelectCandidate={handleToggleSelectCandidate}
+                onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
+                isAllCandidatesSelected={isAllCandidatesSelected}
+                page={page}
+                pageSize={pageSize}
+                baseIndex={baseIndex}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
+                canManageCandidates={canManageCandidates}
+              />
+            );
+          }
+          
+          // If AI search is active and has results but no candidates are showing, 
+          // there might be an issue with the filtering
+          if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0 && sortedCandidates.length === 0) {
+            console.log('AI search has results but no candidates are showing - this indicates a filtering issue');
+            return (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Brain className="w-8 h-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">AI Search Results Found</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  AI found {aiMatchedCandidateIds.length} matching candidates, but they are not currently visible. 
+                  This might be due to filtering issues.
+                </p>
+                <Button onClick={handleClearAllFilters} variant="outline">
+                  Clear Filters to View Results
+                </Button>
+              </div>
+            );
+          }
+          
+          return null;
+        })()}
 
         {/* Pagination Controls */}
         <div className="flex items-center justify-between mt-4 transition-all duration-300 ease-in-out">

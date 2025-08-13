@@ -36,7 +36,7 @@ import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
-import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
+
 import CandidateCommentsSection from './CandidateCommentsSection';
 import { StageSelect } from './StageSelect';
 
@@ -125,7 +125,8 @@ export function ManageTransitionsModal({
     }
     setIsSaving(true);
     try {
-        await updateCandidateStatusWithNotes(candidate.id, data.newStatus, trimmedNotes);
+        // Use the onUpdateCandidate prop instead of calling updateCandidateStatusWithNotes directly
+        await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true); // suppressToast=true to avoid duplicate toast
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
         setIsSaving(false);
@@ -135,7 +136,9 @@ export function ManageTransitionsModal({
         toast.success("Candidate details updated successfully.");
     } catch (error) {
         setIsSaving(false);
-        toast("Failed to save transition. Please try again.");
+        console.error('Transition save error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save transition. Please try again.';
+        toast.error(errorMessage);
     }
   };
 

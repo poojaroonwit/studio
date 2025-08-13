@@ -119,7 +119,7 @@ export default function ReprocessModal({
         body: JSON.stringify({
           file_path: attachment.filePath,
           file_name: attachment.fileName,
-          file_size: "0", // Send as string for BigInt compatibility
+          file_size: 0, // Send as number for proper display
           status: 'queued',
           source: 'reprocess',
           upload_id: uuidv4(), // Generate a unique upload ID

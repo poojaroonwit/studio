@@ -552,7 +552,15 @@ export const CandidateImportUploadQueue: React.FC<{
     fetchMaxConcurrent();
   }, []);
 
-  function formatBytes(bytes: number) {
+  function formatBytes(bytes: number | string | undefined) {
+    // Handle string or undefined values
+    if (typeof bytes === 'string') {
+      bytes = parseInt(bytes, 10) || 0;
+    }
+    if (bytes === undefined || bytes === null) {
+      bytes = 0;
+    }
+    
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];

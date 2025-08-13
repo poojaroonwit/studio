@@ -295,6 +295,12 @@ export async function POST(request: NextRequest) {
   
   const data = await request.json();
   let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;
+  
+  // Ensure file_size is a number (handle string "0" from reprocess jobs)
+  if (typeof file_size === 'string') {
+    file_size = parseInt(file_size, 10) || 0;
+  }
+  
   // If position_id and applied_position_id are not set, try to get from webhook_payload.targetPositionId
   let finalPositionId = position_id || applied_position_id || null;
   if (!finalPositionId && webhook_payload && typeof webhook_payload === 'object' && webhook_payload.targetPositionId) {

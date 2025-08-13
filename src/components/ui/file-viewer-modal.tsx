@@ -13,7 +13,7 @@ interface FileViewerModalProps {
     url: string;
     label?: string;
     updatedAt?: string;
-    fileSize?: number;
+    fileSize?: number | string;
   } | null;
 }
 
@@ -60,8 +60,13 @@ function getFileType(fileName: string): string {
 }
 
 // Helper to format file size
-function formatFileSize(bytes?: number): string {
-  if (!bytes) return 'Unknown size';
+function formatFileSize(bytes?: number | string): string {
+  // Handle string values (from reprocess jobs)
+  if (typeof bytes === 'string') {
+    bytes = parseInt(bytes, 10) || 0;
+  }
+  
+  if (bytes === undefined || bytes === null || bytes === 0) return 'Unknown size';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

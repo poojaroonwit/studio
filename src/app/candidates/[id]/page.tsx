@@ -2068,7 +2068,7 @@ export default function CandidateDetailPage() {
                                       <p className="text-xs">Click "Add Justification" to get started.</p>
                                     </div>
                                   )}
-                                                                                                      {form.watch('assignmentJustification')?.map((item: string, index: number) => (
+                                  {watch('assignmentJustification')?.map((item: string, index: number) => (
                                     <div key={index} className="flex items-start gap-2 group">
                                       <div className="flex-1">
                                         <Input

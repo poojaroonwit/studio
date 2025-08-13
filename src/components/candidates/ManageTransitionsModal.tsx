@@ -123,17 +123,42 @@ export function ManageTransitionsModal({
         toast("Please select a new status or add notes to create a transition.");
         return;
     }
+    
+    console.log('Form submitted with data:', data);
+    console.log('Candidate:', candidate);
+    console.log('onUpdateCandidate function:', onUpdateCandidate);
+    
     setIsSaving(true);
     try {
-        // Use the onUpdateCandidate prop instead of calling updateCandidateStatusWithNotes directly
-        await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true); // suppressToast=true to avoid duplicate toast
+        console.log('Starting transition update:', { candidateId: candidate.id, newStatus: data.newStatus, notes: trimmedNotes });
+        
+        // Call the onUpdateCandidate function
+        if (onUpdateCandidate) {
+            await onUpdateCandidate(candidate.id, data.newStatus, trimmedNotes, true);
+            console.log('Transition update completed successfully');
+        } else {
+            console.error('onUpdateCandidate function is not provided');
+            throw new Error('Update function not available');
+        }
+        
+        // Reset form and state
         form.reset({ newStatus: data.newStatus, notes: '' }); 
         setStatusSearchQuery(''); 
         setIsSaving(false);
-        onOpenChange(false); // Close modal on success
-        await onRefreshCandidateData(candidate.id); // Refresh data after update
-        onCommentsChange(); // Refresh comments after transition
+        
+        // Refresh data and comments
+        console.log('Refreshing candidate data...');
+        if (onRefreshCandidateData) {
+            await onRefreshCandidateData(candidate.id);
+        }
+        console.log('Refreshing comments...');
+        if (onCommentsChange) {
+            onCommentsChange();
+        }
+        
+        // Show success message and close modal
         toast.success("Candidate details updated successfully.");
+        onOpenChange(false); // Close modal on success
     } catch (error) {
         setIsSaving(false);
         console.error('Transition save error:', error);
@@ -258,7 +283,12 @@ export function ManageTransitionsModal({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" form="transition-form" variant="default" disabled={isSaving}>
+            <Button 
+              type="submit" 
+              form="transition-form" 
+              variant="default" 
+              disabled={isSaving}
+            >
               {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {isSaving ? 'Saving...' : 'Save Transition'}
             </Button>

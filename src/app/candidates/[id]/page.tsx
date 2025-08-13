@@ -428,6 +428,14 @@ export default function CandidateDetailPage() {
   const assignmentJustification = watch('assignmentJustification');
   useEffect(() => {
     console.log('Candidate ID Page - assignmentJustification changed:', assignmentJustification);
+    console.log('Candidate ID Page - assignmentJustification type:', typeof assignmentJustification);
+    console.log('Candidate ID Page - assignmentJustification is array:', Array.isArray(assignmentJustification));
+    if (Array.isArray(assignmentJustification)) {
+      console.log('Candidate ID Page - assignmentJustification length:', assignmentJustification.length);
+      assignmentJustification.forEach((item, index) => {
+        console.log(`Candidate ID Page - assignmentJustification[${index}]:`, item);
+      });
+    }
   }, [assignmentJustification]);
 
 
@@ -456,11 +464,15 @@ export default function CandidateDetailPage() {
         positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
         fitScore: candidate?.fitScore || null,
         assignmentJustification: (() => {
+          console.log('DEBUG - Raw assignmentJustification from candidate:', candidate?.assignmentJustification);
+          console.log('DEBUG - Type of assignmentJustification:', typeof candidate?.assignmentJustification);
+          console.log('DEBUG - Is Array?', Array.isArray(candidate?.assignmentJustification));
+          
           const result = candidate?.assignmentJustification
             ? (Array.isArray(candidate.assignmentJustification)
                 ? candidate.assignmentJustification
                 : typeof candidate.assignmentJustification === 'string'
-                  ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                  ? candidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
                   : [])
             : [];
           console.log('Candidate ID Page - Loading assignmentJustification:', {
@@ -981,7 +993,7 @@ export default function CandidateDetailPage() {
       justification: data.assignmentJustification || [],
     };
     // Fix: Ensure positionId and recruiterId are null if empty string
-    // Fix: assignmentJustification should be a string for backend
+    // Fix: assignmentJustification should be a string for backend (joined with newlines)
     // Extract job matches from form (from parsedData.job_matches)
     const jobMatchesToSave = Array.isArray(data.parsedData?.job_matches)
       ? data.parsedData.job_matches.map((jm: AutomationJobMatch) => ({
@@ -1023,7 +1035,9 @@ export default function CandidateDetailPage() {
       ...data,
       positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
       recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-      assignmentJustification: data.assignmentJustification || [],
+      assignmentJustification: Array.isArray(data.assignmentJustification) 
+        ? data.assignmentJustification.join('\n') 
+        : (data.assignmentJustification || ''),
       parsedData: {
         ...data.parsedData,
         education: processedEducation,
@@ -1078,7 +1092,7 @@ export default function CandidateDetailPage() {
               ? (Array.isArray(candidate.assignmentJustification)
                   ? candidate.assignmentJustification
                   : typeof candidate.assignmentJustification === 'string'
-                    ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                    ? candidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
                     : [])
               : [],
             status: candidate.status,
@@ -1384,7 +1398,7 @@ export default function CandidateDetailPage() {
     ? (Array.isArray(candidate.assignmentJustification)
         ? candidate.assignmentJustification
         : typeof candidate.assignmentJustification === 'string'
-          ? candidate.assignmentJustification.split('\n').map((sentence: string) => sentence.trim()).filter(Boolean)
+          ? candidate.assignmentJustification.split(/[\n\r,]+/).map((sentence: string) => sentence.trim()).filter(Boolean)
           : [])
     : [];
   // --- End Job Applied logic ---

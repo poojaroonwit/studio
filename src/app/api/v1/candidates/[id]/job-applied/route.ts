@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   
   try {
     // Check if candidate exists
-    const candidateQuery = 'SELECT id, "parsedData" FROM "Candidate" WHERE id = $1';
+    const candidateQuery = 'SELECT id, "parsedData", "assignmentJustification" FROM "Candidate" WHERE id = $1';
     const candidateResult = await client.query(candidateQuery, [id]);
     
     if (candidateResult.rows.length === 0) {
@@ -34,8 +34,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const candidate = candidateResult.rows[0];
     const parsedData = candidate.parsedData || {};
     const jobApplied = parsedData.job_applied || null;
+    
+    // Ensure assignmentJustification is properly formatted as an array
+    const assignmentJustification = candidate.assignmentJustification
+      ? (Array.isArray(candidate.assignmentJustification)
+          ? candidate.assignmentJustification
+          : typeof candidate.assignmentJustification === 'string'
+            ? candidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            : [])
+      : [];
 
-    return new Response(JSON.stringify({ job_applied: jobApplied }), { status: 200, headers: handleCors(req) });
+    return new Response(JSON.stringify({ 
+      job_applied: jobApplied,
+      assignmentJustification: assignmentJustification
+    }), { status: 200, headers: handleCors(req) });
   } catch (error) {
     return new Response(JSON.stringify({ error: 'Error fetching job_applied data', details: (error as Error).message }), { status: 500, headers: handleCors(req) });
   } finally {
@@ -104,6 +116,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       justification: justification || [],
     };
 
+    // Ensure justification is always an array for consistency
+    const justificationArray = Array.isArray(justification) ? justification : 
+                              (justification ? String(justification).split(/[\n\r,]+/).filter(item => item.trim() !== '') : []);
+
     // Update candidate with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
@@ -111,7 +127,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       WHERE id = $5
       RETURNING *;
     `;
-    const assignmentJustificationStr = Array.isArray(justification) ? justification.join('\n') : justification;
+    const assignmentJustificationStr = justificationArray.join('\n');
     const updateResult = await client.query(updateQuery, [parsedData, fitScore, jobId, assignmentJustificationStr, id]);
 
     await client.query('COMMIT');
@@ -119,10 +135,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const updatedCandidate = updateResult.rows[0];
     const updatedParsedData = updatedCandidate.parsedData || {};
     const jobApplied = updatedParsedData.job_applied || null;
-
+    
+    // Ensure assignmentJustification is properly formatted as an array
+    const assignmentJustification = updatedCandidate.assignmentJustification
+      ? (Array.isArray(updatedCandidate.assignmentJustification)
+          ? updatedCandidate.assignmentJustification
+          : typeof updatedCandidate.assignmentJustification === 'string'
+            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            : [])
+      : [];
+    
+    // Include both the job_applied and the formatted assignmentJustification in the response
     return new Response(JSON.stringify({ 
       message: 'Job applied data updated successfully', 
-      job_applied: jobApplied 
+      job_applied: jobApplied,
+      assignmentJustification: assignmentJustification
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {
@@ -193,6 +220,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       justification: justification || [],
     };
 
+    // Ensure justification is always an array for consistency
+    const justificationArray = Array.isArray(justification) ? justification : 
+                              (justification ? String(justification).split(/[\n\r,]+/).filter(item => item.trim() !== '') : []);
+
     // Update candidate with new parsedData and top-level fields
     const updateQuery = `
       UPDATE "Candidate" 
@@ -200,7 +231,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       WHERE id = $5
       RETURNING *;
     `;
-    const assignmentJustificationStr = Array.isArray(justification) ? justification.join('\n') : justification;
+    const assignmentJustificationStr = justificationArray.join('\n');
     const updateResult = await client.query(updateQuery, [parsedData, fitScore, jobId, assignmentJustificationStr, id]);
 
     await client.query('COMMIT');
@@ -208,10 +239,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updatedCandidate = updateResult.rows[0];
     const updatedParsedData = updatedCandidate.parsedData || {};
     const jobApplied = updatedParsedData.job_applied || null;
-
+    
+    // Ensure assignmentJustification is properly formatted as an array
+    const assignmentJustification = updatedCandidate.assignmentJustification
+      ? (Array.isArray(updatedCandidate.assignmentJustification)
+          ? updatedCandidate.assignmentJustification
+          : typeof updatedCandidate.assignmentJustification === 'string'
+            ? updatedCandidate.assignmentJustification.split(/[\n\r,]+/).filter(item => item.trim() !== '')
+            : [])
+      : [];
+    
+    // Include both the job_applied and the formatted assignmentJustification in the response
     return new Response(JSON.stringify({ 
       message: 'Job applied data updated successfully', 
-      job_applied: jobApplied 
+      job_applied: jobApplied,
+      assignmentJustification: assignmentJustification
     }), { status: 200, headers: handleCors(req) });
     
   } catch (error) {

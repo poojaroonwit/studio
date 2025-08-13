@@ -126,7 +126,8 @@ export function ManageTransitionsModal({
     
     console.log('Form submitted with data:', data);
     console.log('Candidate:', candidate);
-    console.log('onUpdateCandidate function:', onUpdateCandidate);
+    console.log('onUpdateCandidate function exists:', !!onUpdateCandidate);
+    console.log('onOpenChange function exists:', !!onOpenChange);
     
     setIsSaving(true);
     try {
@@ -150,15 +151,52 @@ export function ManageTransitionsModal({
         console.log('Refreshing candidate data...');
         if (onRefreshCandidateData) {
             await onRefreshCandidateData(candidate.id);
+            console.log('Candidate data refreshed successfully');
+        } else {
+            console.warn('onRefreshCandidateData function is not provided');
         }
+        
         console.log('Refreshing comments...');
         if (onCommentsChange) {
             onCommentsChange();
+            console.log('Comments refreshed successfully');
+        } else {
+            console.warn('onCommentsChange function is not provided');
         }
         
         // Show success message and close modal
         toast.success("Candidate details updated successfully.");
-        onOpenChange(false); // Close modal on success
+        console.log('Attempting to close modal with onOpenChange...');
+        
+        try {
+            // Try multiple approaches to close the modal
+            console.log('Calling onOpenChange(false) to close modal');
+            onOpenChange(false); // Close modal on success
+            console.log('onOpenChange called');
+            
+            // Force a small delay and try again
+            setTimeout(() => {
+                try {
+                    console.log('Trying to close modal again after timeout');
+                    if (onOpenChange) {
+                        onOpenChange(false);
+                        console.log('onOpenChange called again');
+                    }
+                    
+                    // Force the modal closed by manipulating DOM (last resort)
+                    const closeButtons = document.querySelectorAll('[aria-label="Close"]');
+                    console.log('Found close buttons:', closeButtons.length);
+                    if (closeButtons.length > 0) {
+                        console.log('Clicking close button');
+                        (closeButtons[0] as HTMLElement).click();
+                    }
+                } catch (closeError) {
+                    console.error('Error in delayed modal close:', closeError);
+                }
+            }, 300);
+        } catch (closeError) {
+            console.error('Error closing modal:', closeError);
+        }
     } catch (error) {
         setIsSaving(false);
         console.error('Transition save error:', error);
@@ -234,13 +272,18 @@ export function ManageTransitionsModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => {
-        onOpenChange(open);
-        if (!open) {
-          setEditingTransitionId(null);
-          setStatusSearchQuery('');
-        }
-      }}>
+      <Dialog 
+        open={isOpen} 
+        onOpenChange={(open) => {
+          console.log('Dialog onOpenChange called with:', open);
+          onOpenChange(open);
+          if (!open) {
+            console.log('Dialog closing, resetting state');
+            setEditingTransitionId(null);
+            setStatusSearchQuery('');
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Manage Transitions for {candidate.name}</DialogTitle>
@@ -254,7 +297,7 @@ export function ManageTransitionsModal({
               <p className="text-xs text-muted-foreground mb-3">
                 Select a new stage and add notes. This will update the candidate&#39;s current status and record the change.
               </p>
-              <form id="transition-form" onSubmit={form.handleSubmit(handleAddTransitionSubmit)} className="space-y-4">
+              <form id="transition-form" className="space-y-4">
                 <div>
                   <StageSelect
                     value={form.watch('newStatus')}
@@ -278,16 +321,44 @@ export function ManageTransitionsModal({
           </div>
 
           <DialogFooter className="border-t pt-4 flex flex-row gap-2 justify-end">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+            <div className="flex gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button 
+                type="button" 
+                variant="secondary"
+                onClick={() => {
+                  console.log('Force Close button clicked');
+                  onOpenChange(false);
+                }}
+              >
+                Force Close
               </Button>
-            </DialogClose>
+            </div>
             <Button 
-              type="submit" 
-              form="transition-form" 
+              type="button" 
               variant="default" 
               disabled={isSaving}
+              onClick={async () => {
+                console.log('Save button clicked directly');
+                const formValues = form.getValues();
+                console.log('Form values:', formValues);
+                
+                // Manually trigger validation
+                const isValid = await form.trigger();
+                console.log('Form validation result:', isValid);
+                
+                if (isValid) {
+                  // Manually call the submit handler
+                  await handleAddTransitionSubmit(formValues);
+                } else {
+                  console.error('Form validation failed:', form.formState.errors);
+                  toast.error('Please fix the form errors before submitting');
+                }
+              }}
             >
               {isSaving ? <Save className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               {isSaving ? 'Saving...' : 'Save Transition'}

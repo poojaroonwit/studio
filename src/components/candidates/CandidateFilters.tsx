@@ -201,7 +201,7 @@ export function CandidateFilters({
     initialFilters.maxMatchingJobFitScore ?? 100,
   ]);
 
-  // Checkbox states for fit score grades - will be initialized by useEffect based on initialFilters
+  // Checkbox states for fit score grades - start with no grades selected for better UX
   const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set());
   const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
   
@@ -315,9 +315,9 @@ export function CandidateFilters({
         setSelectedFitScoreGrades(new Set(selectedGrades));
       }
     } else {
-      // Keep all grades selected by default when no filter is applied
-      // This prevents the race condition where checkboxes get cleared
-      setSelectedFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+      // Start with no grades selected when no filter is applied
+      // This provides better UX for multi-select behavior
+      setSelectedFitScoreGrades(new Set());
     }
     
     // Initialize matching candidates fit score checkboxes
@@ -339,9 +339,9 @@ export function CandidateFilters({
         setSelectedMatchingFitScoreGrades(new Set(selectedGrades));
       }
     } else {
-      // Keep all grades selected by default when no filter is applied
-      // This prevents the race condition where checkboxes get cleared
-      setSelectedMatchingFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+      // Start with no grades selected when no filter is applied
+      // This provides better UX for multi-select behavior
+      setSelectedMatchingFitScoreGrades(new Set());
     }
   }, [initialFilters.minAppliedJobFitScore, initialFilters.maxAppliedJobFitScore, initialFilters.minMatchingJobFitScore, initialFilters.maxMatchingJobFitScore]);
 
@@ -1188,8 +1188,8 @@ export function CandidateFilters({
     setExperienceYearsRange([0, 50]);
     setAppliedJobFitScoreRange([0, 100]);
     setMatchingJobFitScoreRange([0, 100]);
-    setSelectedFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
-    setSelectedMatchingFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+    setSelectedFitScoreGrades(new Set());
+    setSelectedMatchingFitScoreGrades(new Set());
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
     setAiSearchQueryInput('');

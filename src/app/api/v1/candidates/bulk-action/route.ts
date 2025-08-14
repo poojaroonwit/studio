@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
-import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import { v4 as uuidv4 } from 'uuid';
+import prisma from '@/lib/prisma';
 // Import the schemas from the main candidate route
 import { updateCandidateSchema } from '../[id]/route';
 
@@ -95,25 +96,59 @@ export async function POST(req: NextRequest) {
     
     // Auto-assign recruiters for assign_position action
     if (action === 'assign_position' && data?.positionId) {
-      let syncCount = 0;
-      for (const candidateId of candidateIds) {
-        try {
-          const syncSuccess = await syncRecruiterForCandidate(
-            candidateId,
-            data.positionId,
-            user.id,
-            user.name || user.email || 'System'
-          );
-          if (syncSuccess) {
-            syncCount++;
+      try {
+        // Get position with recruiter
+        const position = await prisma.position.findUnique({
+          where: { id: data.positionId },
+          include: { recruiter: true }
+        });
+
+        if (position && position.recruiterId) {
+          let syncCount = 0;
+          for (const candidateId of candidateIds) {
+            try {
+              // Check if candidate already has a recruiter
+              const candidate = await prisma.candidate.findUnique({
+                where: { id: candidateId },
+                select: { recruiterId: true }
+              });
+
+              if (candidate && !candidate.recruiterId) {
+                // Update candidate with recruiter
+                await prisma.candidate.update({
+                  where: { id: candidateId },
+                  data: { 
+                    recruiterId: position.recruiterId,
+                    updatedAt: new Date()
+                  }
+                });
+
+                // Create transition record for recruiter assignment
+                await prisma.transitionRecord.create({
+                  data: {
+                    id: uuidv4(),
+                    candidateId: candidateId,
+                    positionId: data.positionId,
+                    stage: 'Applied',
+                    notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+                    actingUserId: user.id,
+                    date: new Date(),
+                  },
+                });
+
+                syncCount++;
+              }
+            } catch (syncError) {
+              console.error(`Failed to auto-assign recruiter for candidate ${candidateId}:`, syncError);
+              // Don't fail the bulk action if sync fails
+            }
           }
-        } catch (syncError) {
-          console.error(`Failed to auto-assign recruiter for candidate ${candidateId}:`, syncError);
-          // Don't fail the bulk action if sync fails
+          if (syncCount > 0) {
+            console.log(`Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
+          }
         }
-      }
-      if (syncCount > 0) {
-        console.log(`Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
+      } catch (error) {
+        console.error('Failed to get position for recruiter assignment:', error);
       }
     }
     

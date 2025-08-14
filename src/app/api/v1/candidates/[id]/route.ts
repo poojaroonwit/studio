@@ -15,7 +15,7 @@ import {
 } from '@/lib/apiErrorHandler';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { logAudit } from '@/lib/auditLog';
-import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import prisma from '@/lib/prisma';
 
 const updateCandidateSchema = z.object({
   // Legacy fields for backward compatibility
@@ -346,13 +346,35 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     if (hasPositionChanged && newPositionId) {
       try {
-        const syncSuccess = await syncRecruiterForCandidate(
-          id,
-          newPositionId,
-          user.id,
-          user.name || user.email || 'System'
-        );
-        if (syncSuccess) {
+        // Get position with recruiter
+        const position = await prisma.position.findUnique({
+          where: { id: newPositionId },
+          include: { recruiter: true }
+        });
+
+        if (position && position.recruiterId && !updatedCandidate.recruiterId) {
+          // Update candidate with recruiter
+          await prisma.candidate.update({
+            where: { id },
+            data: { 
+              recruiterId: position.recruiterId,
+              updatedAt: new Date()
+            }
+          });
+
+          // Create transition record for recruiter assignment
+          await prisma.transitionRecord.create({
+            data: {
+              id: uuidv4(),
+              candidateId: id,
+              positionId: newPositionId,
+              stage: updatedCandidate.status || 'Applied',
+              notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+              actingUserId: user.id,
+              date: new Date(),
+            },
+          });
+
           console.log(`Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
         }
       } catch (syncError) {

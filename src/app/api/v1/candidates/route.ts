@@ -231,13 +231,35 @@ export async function POST(request: NextRequest) {
     // Auto-assign recruiter if candidate has a position
     if (positionId) {
       try {
-        const syncSuccess = await syncRecruiterForCandidate(
-          newCandidateId,
-          positionId,
-          user.id,
-          user.name || user.email || 'System'
-        );
-        if (syncSuccess) {
+        // Get position with recruiter
+        const position = await prisma.position.findUnique({
+          where: { id: positionId },
+          include: { recruiter: true }
+        });
+
+        if (position && position.recruiterId && !newCandidate.recruiterId) {
+          // Update candidate with recruiter
+          await prisma.candidate.update({
+            where: { id: newCandidateId },
+            data: { 
+              recruiterId: position.recruiterId,
+              updatedAt: new Date()
+            }
+          });
+
+          // Create transition record for recruiter assignment
+          await prisma.transitionRecord.create({
+            data: {
+              id: uuidv4(),
+              candidateId: newCandidateId,
+              positionId: positionId,
+              stage: appliedStage,
+              notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+              actingUserId: user.id,
+              date: new Date(),
+            },
+          });
+
           console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
         }
       } catch (syncError) {

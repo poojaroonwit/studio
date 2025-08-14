@@ -6,7 +6,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
-import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import prisma from '@/lib/prisma';
 // Import the schemas from the main candidate route
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
 
@@ -170,13 +170,35 @@ export async function POST(req: NextRequest) {
         // Auto-assign recruiter if candidate has a position but no recruiter
         if (candidate.positionId && !candidate.recruiterId) {
           try {
-            const syncSuccess = await syncRecruiterForCandidate(
-              candidateId,
-              candidate.positionId,
-              user.id,
-              user.name || user.email || 'System'
-            );
-            if (syncSuccess) {
+            // Get position with recruiter
+            const position = await prisma.position.findUnique({
+              where: { id: candidate.positionId },
+              include: { recruiter: true }
+            });
+
+            if (position && position.recruiterId) {
+              // Update candidate with recruiter
+              await prisma.candidate.update({
+                where: { id: candidateId },
+                data: { 
+                  recruiterId: position.recruiterId,
+                  updatedAt: new Date()
+                }
+              });
+
+              // Create transition record for recruiter assignment
+              await prisma.transitionRecord.create({
+                data: {
+                  id: uuidv4(),
+                  candidateId: candidateId,
+                  positionId: candidate.positionId,
+                  stage: candidate.status || 'Applied',
+                  notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+                  actingUserId: user.id,
+                  date: new Date(),
+                },
+              });
+
               console.log(`Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
             }
           } catch (syncError) {

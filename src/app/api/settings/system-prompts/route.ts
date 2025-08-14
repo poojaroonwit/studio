@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         is_active as "isActive",
         created_at as "createdAt",
         updated_at as "updatedAt"
-      FROM system_prompts 
+      FROM "SystemPrompt" 
       ORDER BY created_at DESC
     `);
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await client.query(`
-      INSERT INTO system_prompts (name, description, content, category, is_active, created_at, updated_at)
+      INSERT INTO "SystemPrompt" (name, description, content, category, is_active, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING 
         id,

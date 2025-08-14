@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'react-hot-toast';
 import { 
   BrainCircuit, 
   Zap, 
   Loader2, 
   Copy, 
-  Save, 
   X,
   FileText,
   Sparkles,
@@ -132,22 +132,7 @@ export function GenerativeAIModal({
     }
   };
 
-  const handleSave = async () => {
-    if (!generatedContent.trim()) {
-      toast.error('No content to save');
-      return;
-    }
 
-    try {
-      // Here you can implement saving logic based on your requirements
-      // For example, save to candidate notes, create a new document, etc.
-      toast.success('Content saved successfully');
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error('Failed to save content');
-    }
-  };
 
   const handleCopy = async () => {
     try {
@@ -293,15 +278,41 @@ export function GenerativeAIModal({
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BrainCircuit className="h-5 w-5" />
-            Generative AI Assistant
-          </DialogTitle>
-          <DialogDescription>
-            Select a system prompt and generate AI-powered content for {candidateName || 'the candidate'}.
-          </DialogDescription>
-        </DialogHeader>
+                 <DialogHeader className="flex items-start justify-between">
+           <div>
+             <DialogTitle className="flex items-center gap-2">
+               <BrainCircuit className="h-5 w-5" />
+               Generative AI Assistant
+             </DialogTitle>
+             <DialogDescription>
+               Select a system prompt and generate AI-powered content for {candidateName || 'the candidate'}.
+             </DialogDescription>
+           </div>
+           <div className="flex items-center gap-2">
+             <Button 
+               onClick={handleGenerate} 
+               disabled={!selectedPrompt || isGenerating}
+               size="sm"
+               className="flex items-center gap-2"
+             >
+               {isGenerating ? (
+                 <Loader2 className="h-4 w-4 animate-spin" />
+               ) : (
+                 <Zap className="h-4 w-4" />
+               )}
+               {isGenerating ? 'Generating...' : 'Generate Content'}
+             </Button>
+             <Button
+               variant="ghost"
+               size="sm"
+               onClick={handleClose}
+               className="h-8 w-8 p-0"
+             >
+               <X className="h-4 w-4" />
+               <span className="sr-only">Close</span>
+             </Button>
+           </div>
+         </DialogHeader>
 
         <div className="flex h-[70vh] gap-6">
           {/* Left Panel - System Prompts */}
@@ -375,77 +386,61 @@ export function GenerativeAIModal({
             </div>
           </div>
 
-          {/* Right Panel - Generated Content */}
-          <div className="flex-1 flex flex-col">
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-medium">Generated Content</h3>
-                <div className="flex items-center gap-2">
-                  {selectedPrompt && (
-                    <Badge variant="secondary" className="text-xs">
-                      Using: {selectedPrompt.name}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                 <Button 
-                   onClick={handleGenerate} 
-                   disabled={!selectedPrompt || isGenerating}
-                   size="sm"
-                   className="flex items-center gap-2"
-                 >
-                   {isGenerating ? (
-                     <Loader2 className="h-4 w-4 animate-spin" />
-                   ) : (
-                     <Zap className="h-4 w-4" />
+                     {/* Right Panel - Generated Content */}
+           <div className="flex-1 flex flex-col">
+             <div className="mb-4">
+               <div className="flex items-center justify-between mb-2">
+                 <h3 className="text-sm font-medium">Generated Content</h3>
+                 <div className="flex items-center gap-2">
+                   {selectedPrompt && (
+                     <Badge variant="secondary" className="text-xs">
+                       Using: {selectedPrompt.name}
+                     </Badge>
                    )}
-                   {isGenerating ? 'Generating...' : 'Generate Content'}
-                 </Button>
-                 
-                 {generatedContent && (
-                   <>
-                     <Button 
-                       onClick={handleCopy} 
-                       variant="outline" 
-                       size="sm"
-                       className="flex items-center gap-2"
-                     >
-                       <Copy className="h-4 w-4" />
-                       Copy
-                     </Button>
-                     <Button 
-                       onClick={handleDownloadPDF} 
-                       variant="outline" 
-                       size="sm"
-                       className="flex items-center gap-2"
-                     >
-                       <Download className="h-4 w-4" />
-                       PDF
-                     </Button>
-                     <Button 
-                       onClick={handleDownloadWord} 
-                       variant="outline" 
-                       size="sm"
-                       className="flex items-center gap-2"
-                     >
-                       <FileDown className="h-4 w-4" />
-                       Word
-                     </Button>
-                     <Button 
-                       onClick={() => setGeneratedContent('')} 
-                       variant="outline" 
-                       size="sm"
-                       className="flex items-center gap-2"
-                     >
-                       <RefreshCw className="h-4 w-4" />
-                       Clear
-                     </Button>
-                   </>
-                 )}
+                 </div>
                </div>
-            </div>
+               
+                               {generatedContent && (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleCopy} 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          <Download className="h-4 w-4" />
+                          Download
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleDownloadPDF}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download as PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDownloadWord}>
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Download as Word
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button 
+                      onClick={() => setGeneratedContent('')} 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Clear
+                    </Button>
+                  </div>
+                )}
+             </div>
 
             <div className="flex-1 border rounded-lg overflow-hidden">
               <TiptapEditor
@@ -459,18 +454,11 @@ export function GenerativeAIModal({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            <X className="h-4 w-4 mr-2" />
-            Close
-          </Button>
-          {generatedContent && (
-            <Button onClick={handleSave} className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              Save Content
-            </Button>
-          )}
-        </DialogFooter>
+                 <DialogFooter>
+           <Button variant="outline" onClick={handleClose}>
+             Close
+           </Button>
+         </DialogFooter>
       </DialogContent>
     </Dialog>
   );

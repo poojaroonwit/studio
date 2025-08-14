@@ -1921,13 +1921,13 @@ export default function CandidateDetailPage() {
                   <div className="flex justify-end gap-3">
                     {!isEditing ? (
                       <>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-10 w-10">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
+                                             <DropdownMenu>
+                       <DropdownMenuTrigger asChild>
+                         <Button variant="outline" className="h-10 px-3">
+                           <MoreHorizontal className="h-4 w-4 mr-2" />
+                           Action
+                         </Button>
+                       </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => {
                               setIsEditing(true);

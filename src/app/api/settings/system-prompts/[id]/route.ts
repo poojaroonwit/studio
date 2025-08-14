@@ -43,7 +43,7 @@ export async function GET(
         is_active as "isActive",
         created_at as "createdAt",
         updated_at as "updatedAt"
-      FROM system_prompts 
+      FROM "SystemPrompt" 
       WHERE id = $1
     `, [id]);
 
@@ -99,7 +99,7 @@ export async function PUT(
 
   try {
     const result = await client.query(`
-      UPDATE system_prompts 
+      UPDATE "SystemPrompt" 
       SET name = $1, description = $2, content = $3, category = $4, is_active = $5, updated_at = NOW()
       WHERE id = $6
       RETURNING 
@@ -148,7 +148,7 @@ export async function DELETE(
 
   try {
     const result = await client.query(`
-      DELETE FROM system_prompts 
+      DELETE FROM "SystemPrompt" 
       WHERE id = $1
       RETURNING id
     `, [id]);

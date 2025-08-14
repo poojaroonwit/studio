@@ -1090,7 +1090,7 @@ export function CandidateFilters({
   };
 
   const handleFitScoreGradeChange = (grade: string, checked: boolean) => {
-    // Prevent any potential form submission
+    // Multi-select behavior: toggle only the clicked grade, keep others unchanged
     const newSelected = new Set(selectedFitScoreGrades);
     if (checked) {
       newSelected.add(grade);
@@ -1130,7 +1130,7 @@ export function CandidateFilters({
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
-    // Prevent any potential form submission
+    // Multi-select behavior: toggle only the clicked grade, keep others unchanged
     const newSelected = new Set(selectedMatchingFitScoreGrades);
     if (checked) {
       newSelected.add(grade);

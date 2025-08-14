@@ -1349,7 +1349,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             
             {/* Column 2: Action Buttons (3 cols) */}
             <div className={isModal ? "lg:col-span-3" : "lg:col-span-3"}>
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-3 mt-8">
                 {!isEditing ? (
                   <>
                                          <DropdownMenu>

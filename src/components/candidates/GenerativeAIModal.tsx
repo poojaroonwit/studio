@@ -19,7 +19,8 @@ import {
   Sparkles,
   RefreshCw,
   Download,
-  FileDown
+  FileDown,
+  ChevronDown
 } from 'lucide-react';
 
 interface SystemPrompt {
@@ -277,8 +278,8 @@ export function GenerativeAIModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
-                 <DialogHeader className="flex items-start justify-between">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-visible">
+                 <div className="flex items-start justify-between mb-4">
            <div>
              <DialogTitle className="flex items-center gap-2">
                <BrainCircuit className="h-5 w-5" />
@@ -289,19 +290,6 @@ export function GenerativeAIModal({
              </DialogDescription>
            </div>
            <div className="flex items-center gap-2">
-             <Button 
-               onClick={handleGenerate} 
-               disabled={!selectedPrompt || isGenerating}
-               size="sm"
-               className="flex items-center gap-2"
-             >
-               {isGenerating ? (
-                 <Loader2 className="h-4 w-4 animate-spin" />
-               ) : (
-                 <Zap className="h-4 w-4" />
-               )}
-               {isGenerating ? 'Generating...' : 'Generate Content'}
-             </Button>
              <Button
                variant="ghost"
                size="sm"
@@ -312,7 +300,7 @@ export function GenerativeAIModal({
                <span className="sr-only">Close</span>
              </Button>
            </div>
-         </DialogHeader>
+         </div>
 
         <div className="flex h-[70vh] gap-6">
           {/* Left Panel - System Prompts */}
@@ -400,46 +388,62 @@ export function GenerativeAIModal({
                  </div>
                </div>
                
-                               {generatedContent && (
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleCopy} 
-                      variant="outline" 
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
-                          <Download className="h-4 w-4" />
-                          Download
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleDownloadPDF}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download as PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleDownloadWord}>
-                          <FileDown className="h-4 w-4 mr-2" />
-                          Download as Word
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button 
-                      onClick={() => setGeneratedContent('')} 
-                      variant="outline" 
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      Clear
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleGenerate} 
+                    disabled={!selectedPrompt || isGenerating}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Zap className="h-4 w-4" />
+                    )}
+                    {isGenerating ? 'Generating...' : 'Generate Content'}
+                  </Button>
+                  {generatedContent && (
+                    <>
+                      <Button 
+                        onClick={handleCopy} 
+                        variant="outline" 
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy to clipboard
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Download className="h-4 w-4" />
+                            Download
+                            <ChevronDown className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-50">
+                          <DropdownMenuItem onClick={handleDownloadPDF}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download as PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleDownloadWord}>
+                            <FileDown className="h-4 w-4 mr-2" />
+                            Download as Word
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button 
+                        onClick={() => setGeneratedContent('')} 
+                        variant="outline" 
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Clear
+                      </Button>
+                    </>
+                  )}
+                </div>
              </div>
 
             <div className="flex-1 border rounded-lg overflow-hidden">

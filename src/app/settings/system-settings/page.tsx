@@ -393,7 +393,11 @@ export default function SystemSettingsPage() {
                           max="36000"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Note: System now waits indefinitely (24 hours) for webhook responses to prevent 504 Gateway Timeout errors. The external service will complete processing when ready.
+                          <strong>Note:</strong> Timeout setting is no longer used. The system now waits indefinitely for webhook responses without any timeout limit.
+                          <br />
+                          <strong>Recent Change:</strong> Removed all timeout restrictions to prevent premature job failures.
+                          <br />
+                          <strong>Recommendation:</strong> The external service should handle its own timeout limits if needed.
                         </p>
                       </div>
                     </CardContent>

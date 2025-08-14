@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  
+  const startTime = Date.now();
   
   const client = await getSafeDbClient();
   let job;
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
     // Also check for duplicate file processing to prevent multiple candidates
-    // Reset jobs that have been stuck in 'inprocess' for more than 2 hours
-    const stuckTimeoutHours = 2;
+    // Reset jobs that have been stuck in 'inprocess' for more than 4 hours (increased from 2)
+    const stuckTimeoutHours = 4;
     await client.query(
       `UPDATE upload_queue 
        SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to timeout'
@@ -293,7 +293,8 @@ export async function POST(request: NextRequest) {
       [status, error, error_details, payload, job.id]
     );
     
-    console.log(`[Database] Job ${job.id} status updated successfully to: ${status}`);
+    const totalProcessingTime = Date.now() - startTime;
+    console.log(`[Database] Job ${job.id} status updated successfully to: ${status} (Total processing time: ${totalProcessingTime}ms / ${(totalProcessingTime / 1000).toFixed(1)}s)`);
 
     // Dispatch webhook for upload queue completion/failure event
     // DISABLED: This was causing duplicate webhook calls
@@ -336,14 +337,18 @@ export async function POST(request: NextRequest) {
       console.log(`Upload queue job '${job.file_name}' processed successfully`, { 
         jobId: job.id,
         fileName: job.file_name,
-        webhookResults
+        webhookResults,
+        processingTimeMs: totalProcessingTime,
+        processingTimeSeconds: (totalProcessingTime / 1000).toFixed(1)
       });
     } else {
       console.error(`Upload queue job '${job.file_name}' failed with webhook error`, { 
         jobId: job.id,
         fileName: job.file_name,
         error,
-        errorDetails: error_details 
+        errorDetails: error_details,
+        processingTimeMs: totalProcessingTime,
+        processingTimeSeconds: (totalProcessingTime / 1000).toFixed(1)
       });
     }
     
@@ -392,6 +397,7 @@ export async function POST(request: NextRequest) {
 
 // Refactored: process a single upload queue job (for reuse in blocking endpoint)
 export async function processSingleUploadQueueJob(job: any, client: any) {
+  const startTime = Date.now();
   let payload = null;
   let webhookRes = null;
   let webhookError: string | null = null;
@@ -473,18 +479,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       responseMode = 'blocking'; // Default to blocking mode
     }
     
-    // Get timeout setting (default 2 hours)
-    let timeoutMs = 7200000; // 2 hours default
-    const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
-    if (timeoutSetting) {
-      const parsedTimeout = parseInt(timeoutSetting, 10);
-      if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
-        timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
-      }
-    }
-    
-    // Remove timeout to prevent 504 Gateway Timeout errors
-    // The external service will handle its own timeout if needed
+    console.log(`[Webhook] Using response mode: ${responseMode} (no timeout)`);
     
     const jsonPayload = {
       inputs,
@@ -515,80 +510,114 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       let webhookResStatus = null;
       let webhookResponseText = null;
+      let retryCount = 0;
+      const maxRetries = 10; // Maximum number of retries
+      const baseDelay = 5000; // Base delay of 5 seconds
       
-      try {
-        console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
-        console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
-        console.log(`[Webhook] Timeout: 24 hours (effectively waiting indefinitely for webhook response)`);
-        console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
-        
-        // Use a custom fetch with no timeout to wait indefinitely for webhook response
-        const controller = new AbortController();
-        
-        // Set a very long timeout (24 hours) to effectively wait indefinitely
-        const veryLongTimeout = setTimeout(() => {
-          controller.abort();
-        }, 24 * 60 * 60 * 1000); // 24 hours
-        
+      // Set initial status as processing
+      status = 'processing';
+      error = null;
+      error_details = null;
+      
+      console.log(`[Webhook] Starting webhook call with retry mechanism to: ${resumeWebhookUrl}`);
+      console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
+      console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
+      
+      // Retry loop with exponential backoff
+      while (retryCount <= maxRetries) {
         try {
+          console.log(`[Webhook] Attempt ${retryCount + 1}/${maxRetries + 1} (no timeout)`);
+          
+          // No timeout - let the webhook call run indefinitely
           webhookRes = await fetch(resumeWebhookUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify(payloadWithIdempotency),
-            signal: controller.signal,
           });
-        } finally {
-          clearTimeout(veryLongTimeout);
-        }
-        
-        webhookResStatus = webhookRes.status;
-        
-        console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
-        console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
-        console.log(`[Webhook] Response ok:`, webhookRes.ok);
-        console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
-        
-        if (webhookResStatus === 200) {
-          status = 'success';
-          error = null;
-          error_details = null;
-          console.log(`[Webhook] Success - Status 200 received`);
-        } else {
-          status = 'fail';
-          if (webhookResStatus === 504) {
-            error = `Gateway timeout (504) - External service still processing`;
-            error_details = `The external resume processing service is still processing the request and returned 504 Gateway Timeout. This indicates:
-1. The external service is processing the request but taking longer than expected
-2. The request is still valid and being processed by the external service
-3. The webhook will continue processing in the background
+          
+          webhookResStatus = webhookRes.status;
+          
+          console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
+          console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
+          console.log(`[Webhook] Response ok:`, webhookRes.ok);
+          console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
+          
+          if (webhookResStatus === 200) {
+            status = 'success';
+            error = null;
+            error_details = null;
+            console.log(`[Webhook] Success - Status 200 received on attempt ${retryCount + 1}`);
+            break; // Exit retry loop on success
+          } else if (webhookResStatus === 504) {
+            // 504 Gateway Timeout - retry with exponential backoff
+            console.log(`[Webhook] 504 Gateway Timeout received on attempt ${retryCount + 1}`);
+            
+            if (retryCount < maxRetries) {
+              const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+              console.log(`[Webhook] Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              retryCount++;
+              continue; // Continue to next retry
+            } else {
+              // Max retries reached
+              status = 'fail';
+              error = `Gateway timeout (504) - Max retries (${maxRetries}) reached`;
+              error_details = `The external resume processing service returned 504 Gateway Timeout after ${maxRetries} retry attempts. This indicates:
+1. The external service is experiencing high load or processing delays
+2. The service may be temporarily unavailable
+3. All retry attempts have been exhausted
 
-The system is configured to wait indefinitely for the webhook response. The external service will complete processing when ready.
+Retry attempts made: ${maxRetries + 1}
 Consider:
 - Checking the external service status
-- The webhook may still complete successfully despite the 504 response
-- Monitor the webhook service for completion`;
+- The service may be overloaded
+- Contact the service provider for assistance`;
+              console.log(`[Webhook] Max retries reached - giving up`);
+              break;
+            }
           } else {
+            // Other error status codes - don't retry
+            status = 'fail';
             error = `Webhook responded with status ${webhookResStatus}`;
+            console.log(`[Webhook] Non-504 error - Status ${webhookResStatus} received`);
+            break;
           }
           
-          console.log(`[Webhook] Failure - Status ${webhookResStatus} received`);
-          console.log(`[Webhook] Setting status to: ${status}`);
+        } catch (fetchError) {
+          console.error(`[Webhook] Fetch error on attempt ${retryCount + 1}:`, fetchError);
           
-          try {
-            if (webhookRes) {
-              webhookResponseText = await webhookRes.text();
-              if (!error_details) {
-                error_details = webhookResponseText;
-              }
-              console.error('[Webhook] Non-200 response body:', error_details);
-            }
-          } catch (textError) {
-            console.error('[Webhook] Failed to read response text:', textError);
-            if (!error_details) {
-              error_details = error;
-            }
+          if (retryCount < maxRetries) {
+            const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+            console.log(`[Webhook] Retrying in ${delay}ms due to fetch error...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            retryCount++;
+            continue; // Continue to next retry
+          } else {
+            // Max retries reached
+            status = 'fail';
+            error = `Fetch error after ${maxRetries} retry attempts`;
+            error_details = `Failed to connect to webhook service after ${maxRetries} retry attempts. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+            console.log(`[Webhook] Max retries reached due to fetch errors - giving up`);
+            break;
           }
         }
+      }
+      
+      // Read response text if available
+      try {
+        if (webhookRes && webhookResStatus !== 200) {
+          webhookResponseText = await webhookRes.text();
+          if (!error_details) {
+            error_details = webhookResponseText;
+          }
+          console.error('[Webhook] Non-200 response body:', error_details);
+        }
+      } catch (textError) {
+        console.error('[Webhook] Failed to read response text:', textError);
+        if (!error_details) {
+          error_details = error;
+        }
+      }
         
         // --- Store webhook details in payload for UI ---
         payload = {
@@ -597,7 +626,6 @@ Consider:
           webhookUrl: resumeWebhookUrl,
           method: 'POST',
           headers: headers,
-          timeoutMs: timeoutMs,
           responseMode: responseMode,
           // Webhook response information
           webhookResStatus,
@@ -617,12 +645,11 @@ Consider:
         // Handle different types of errors more specifically
         if (err instanceof Error) {
           if (err.name === 'AbortError') {
-            error = 'Webhook timeout - request exceeded timeout limit';
-            error_details = `The webhook request timed out after ${timeoutMs / 1000} seconds. This could indicate:
+            error = 'Webhook request was aborted';
+            error_details = `The webhook request was aborted. This could indicate:
 1. The external service is taking too long to respond
 2. Network connectivity issues
-3. The timeout setting may be too low for the service
-4. The external service is overloaded`;
+3. The external service is overloaded`;
           } else if (err.message.includes('fetch')) {
             error = 'Webhook network error';
             error_details = `Network error during webhook call: ${err.message}`;
@@ -641,7 +668,6 @@ Consider:
           webhookUrl: resumeWebhookUrl,
           method: 'POST',
           headers: headers,
-          timeoutMs: timeoutMs,
           responseMode: responseMode,
           // Webhook error information
           webhookError: error,
@@ -684,7 +710,9 @@ Consider:
         jobId: job.id,
         fileName: job.file_name,
         webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
-        hasAppliedJob: !!appliedJob
+        hasAppliedJob: !!appliedJob,
+        processingTimeMs: Date.now() - startTime,
+        processingTimeSeconds: ((Date.now() - startTime) / 1000).toFixed(1)
       });
     } else {
       console.error(`Upload queue job '${job.file_name}' failed with webhook error`, {
@@ -692,7 +720,9 @@ Consider:
         fileName: job.file_name,
         webhookStatus: webhookRes && 'status' in webhookRes ? webhookRes.status : null,
         error,
-        errorDetails: error_details
+        errorDetails: error_details,
+        processingTimeMs: Date.now() - startTime,
+        processingTimeSeconds: ((Date.now() - startTime) / 1000).toFixed(1)
       });
     }
     

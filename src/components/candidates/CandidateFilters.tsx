@@ -201,10 +201,10 @@ export function CandidateFilters({
     initialFilters.maxMatchingJobFitScore ?? 100,
   ]);
 
-  // Checkbox states for fit score grades - start with no grades selected for better UX
+  // Checkbox states for fit score grades - simple state management
   const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set());
   const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
-  
+
   // Add refs for debouncing multiselect changes
   const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
@@ -292,58 +292,7 @@ export function CandidateFilters({
   // Add locationOperator state
   const [locationOperator, setLocationOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'>(initialFilters.locationOperator || 'contains');
 
-  // Initialize checkbox states based on initial filters
-  useEffect(() => {
-    const scoreRanges = getScoreRangesForChart();
-    
-    // Initialize applied candidates fit score checkboxes
-    if (initialFilters.minAppliedJobFitScore !== undefined || initialFilters.maxAppliedJobFitScore !== undefined) {
-      const minScore = initialFilters.minAppliedJobFitScore ?? 0;
-      const maxScore = initialFilters.maxAppliedJobFitScore ?? 100;
-      
-      // Handle special case for "no fit score" filter
-      if (minScore === -1) {
-        setSelectedFitScoreGrades(new Set(['no-score']));
-      } else {
-        const selectedGrades = scoreRanges
-          .filter(range => 
-            (range.min >= minScore && range.min <= maxScore) ||
-            (range.max >= minScore && range.max <= maxScore) ||
-            (range.min <= minScore && range.max >= maxScore)
-          )
-          .map(range => range.letter);
-        setSelectedFitScoreGrades(new Set(selectedGrades));
-      }
-    } else {
-      // Start with no grades selected when no filter is applied
-      // This provides better UX for multi-select behavior
-      setSelectedFitScoreGrades(new Set());
-    }
-    
-    // Initialize matching candidates fit score checkboxes
-    if (initialFilters.minMatchingJobFitScore !== undefined || initialFilters.maxMatchingJobFitScore !== undefined) {
-      const minScore = initialFilters.minMatchingJobFitScore ?? 0;
-      const maxScore = initialFilters.maxMatchingJobFitScore ?? 100;
-      
-      // Handle special case for "no fit score" filter
-      if (minScore === -1) {
-        setSelectedMatchingFitScoreGrades(new Set(['no-score']));
-      } else {
-        const selectedGrades = scoreRanges
-          .filter(range => 
-            (range.min >= minScore && range.min <= maxScore) ||
-            (range.max >= minScore && range.max <= maxScore) ||
-            (range.min <= minScore && range.max >= maxScore)
-          )
-          .map(range => range.letter);
-        setSelectedMatchingFitScoreGrades(new Set(selectedGrades));
-      }
-    } else {
-      // Start with no grades selected when no filter is applied
-      // This provides better UX for multi-select behavior
-      setSelectedMatchingFitScoreGrades(new Set());
-    }
-  }, [initialFilters.minAppliedJobFitScore, initialFilters.maxAppliedJobFitScore, initialFilters.minMatchingJobFitScore, initialFilters.maxMatchingJobFitScore]);
+
 
   // Define a list of common skills
   const skillOptions = [
@@ -1090,7 +1039,7 @@ export function CandidateFilters({
   };
 
   const handleFitScoreGradeChange = (grade: string, checked: boolean) => {
-    // Multi-select behavior: toggle only the clicked grade, keep others unchanged
+    // Simple toggle behavior
     const newSelected = new Set(selectedFitScoreGrades);
     if (checked) {
       newSelected.add(grade);
@@ -1099,38 +1048,12 @@ export function CandidateFilters({
     }
     setSelectedFitScoreGrades(newSelected);
     
-    // Convert selected grades to min/max fit score range
-    const scoreRanges = getScoreRangesForChart();
-    const selectedRanges = scoreRanges.filter(range => newSelected.has(range.letter));
-    const hasNoScore = newSelected.has('no-score');
-    
-    let minFitScore: number | undefined = undefined;
-    let maxFitScore: number | undefined = undefined;
-    
-    if (selectedRanges.length > 0) {
-      const minScore = Math.min(...selectedRanges.map(r => r.min));
-      const maxScore = Math.max(...selectedRanges.map(r => r.max));
-      setAppliedJobFitScoreRange([minScore, maxScore]);
-      minFitScore = minScore;
-      maxFitScore = maxScore;
-    } else if (hasNoScore) {
-      // Only "no-score" is selected
-      setAppliedJobFitScoreRange([0, 100]); // Reset visual range
-      minFitScore = -1; // Special marker for no fit score
-      maxFitScore = undefined;
-    } else {
-      // No grades selected - don't apply any fit score filtering
-      setAppliedJobFitScoreRange([0, 100]);
-      minFitScore = undefined;
-      maxFitScore = undefined;
-    }
-    
-    // Always apply filters when grades change to ensure proper state
+    // Apply filters immediately
     handleApplyStandardFiltersDebounced();
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
-    // Multi-select behavior: toggle only the clicked grade, keep others unchanged
+    // Simple toggle behavior
     const newSelected = new Set(selectedMatchingFitScoreGrades);
     if (checked) {
       newSelected.add(grade);
@@ -1139,33 +1062,7 @@ export function CandidateFilters({
     }
     setSelectedMatchingFitScoreGrades(newSelected);
     
-    // Convert selected grades to min/max matching fit score range
-    const scoreRanges = getScoreRangesForChart();
-    const selectedRanges = scoreRanges.filter(range => newSelected.has(range.letter));
-    const hasNoScore = newSelected.has('no-score');
-    
-    let minMatchingJobFitScore: number | undefined = undefined;
-    let maxMatchingJobFitScore: number | undefined = undefined;
-    
-    if (selectedRanges.length > 0) {
-      const minScore = Math.min(...selectedRanges.map(r => r.min));
-      const maxScore = Math.max(...selectedRanges.map(r => r.max));
-      setMatchingJobFitScoreRange([minScore, maxScore]);
-      minMatchingJobFitScore = minScore;
-      maxMatchingJobFitScore = maxScore;
-    } else if (hasNoScore) {
-      // Only "no-score" is selected for matching
-      setMatchingJobFitScoreRange([0, 100]); // Reset visual range
-      minMatchingJobFitScore = -1; // Special marker for no matching fit score
-      maxMatchingJobFitScore = undefined;
-    } else {
-      // No grades selected - don't apply any matching fit score filtering
-      setMatchingJobFitScoreRange([0, 100]);
-      minMatchingJobFitScore = undefined;
-      maxMatchingJobFitScore = undefined;
-    }
-    
-    // Always apply filters when grades change to ensure proper state
+    // Apply filters immediately
     handleApplyStandardFiltersDebounced();
   };
 

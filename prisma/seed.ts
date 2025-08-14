@@ -138,6 +138,8 @@ async function main() {
     }
     console.log('✅ System settings created/updated');
 
+
+
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

@@ -87,6 +87,30 @@ export async function POST(request: NextRequest) {
   const client = await pool.connect();
 
   try {
+    // First, check if any categories exist
+    const categoriesExist = await client.query(`
+      SELECT COUNT(*) as count FROM "SystemPromptCategory"
+    `);
+
+    if (categoriesExist.rows[0].count === 0) {
+      return NextResponse.json({ 
+        message: 'No system prompt categories exist. Please create at least one category first.',
+        error: 'No categories available'
+      }, { status: 400 });
+    }
+
+    // Then, verify that the specific category exists
+    const categoryCheck = await client.query(`
+      SELECT id FROM "SystemPromptCategory" WHERE id = $1
+    `, [categoryId]);
+
+    if (categoryCheck.rows.length === 0) {
+      return NextResponse.json({ 
+        message: 'Invalid category ID. Please select a valid category.',
+        error: 'Category not found'
+      }, { status: 400 });
+    }
+
     // Generate UUID for the id field
     const result = await client.query(`
       INSERT INTO "SystemPrompt" (id, name, description, content, "categoryId", is_active, created_at, updated_at)
@@ -105,7 +129,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {
     console.error('Error creating system prompt:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('foreign key')) {
+        return NextResponse.json({ 
+          message: 'Invalid category ID. Please select a valid category.',
+          error: error.message 
+        }, { status: 400 });
+      }
+      if (error.message.includes('unique constraint')) {
+        return NextResponse.json({ 
+          message: 'A system prompt with this name already exists.',
+          error: error.message 
+        }, { status: 400 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'Internal server error', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   } finally {
     client.release();
   }

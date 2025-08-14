@@ -43,7 +43,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result.rows);
   } catch (error) {
     console.error('Error fetching system prompt categories:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('relation') && error.message.includes('does not exist')) {
+        return NextResponse.json({ 
+          message: 'Database table does not exist. Please run database migrations.',
+          error: error.message 
+        }, { status: 500 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'Internal server error', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   } finally {
     client.release();
   }
@@ -108,7 +122,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {
     console.error('Error creating system prompt category:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('unique constraint')) {
+        return NextResponse.json({ 
+          message: 'A category with this name already exists.',
+          error: error.message 
+        }, { status: 400 });
+      }
+      if (error.message.includes('relation') && error.message.includes('does not exist')) {
+        return NextResponse.json({ 
+          message: 'Database table does not exist. Please run database migrations.',
+          error: error.message 
+        }, { status: 500 });
+      }
+    }
+    
+    return NextResponse.json({ 
+      message: 'Internal server error', 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   } finally {
     client.release();
   }

@@ -85,7 +85,11 @@ export default function SystemPromptsPage() {
         const data = await response.json();
         setCategories(data);
       } else {
-        console.error('Failed to fetch categories');
+        const error = await response.json();
+        console.error('Failed to fetch categories:', error.message);
+        if (error.message?.includes('No categories')) {
+          toast.error('No system prompt categories exist. Please create at least one category first.');
+        }
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -137,7 +141,13 @@ export default function SystemPromptsPage() {
         fetchSystemPrompts();
       } else {
         const error = await response.json();
-        toast.error(error.message || 'Failed to save system prompt');
+        if (error.message?.includes('No categories')) {
+          toast.error('Please create at least one system prompt category first before creating prompts.');
+        } else if (error.message?.includes('Invalid category')) {
+          toast.error('Please select a valid category.');
+        } else {
+          toast.error(error.message || 'Failed to save system prompt');
+        }
       }
     } catch (error) {
       console.error('Error saving system prompt:', error);
@@ -230,7 +240,12 @@ export default function SystemPromptsPage() {
           <h1 className="text-2xl font-bold text-foreground">System Prompts</h1>
           <p className="text-muted-foreground">Manage AI system prompts for generative features</p>
         </div>
-        <Button onClick={openCreateModal} className="flex items-center gap-2">
+        <Button 
+          onClick={openCreateModal} 
+          className="flex items-center gap-2"
+          disabled={categories.length === 0}
+          title={categories.length === 0 ? 'Create at least one category first' : ''}
+        >
           <Plus className="h-4 w-4" />
           Create Prompt
         </Button>
@@ -268,6 +283,18 @@ export default function SystemPromptsPage() {
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-12">
+            <BrainCircuit className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No system prompt categories found</h3>
+            <p className="text-muted-foreground mb-4">
+              You need to create at least one category before you can create system prompts.
+            </p>
+            <Button onClick={() => window.location.href = '/settings/system-prompt-categories'}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Categories
+            </Button>
           </div>
         ) : filteredPrompts.length === 0 ? (
           <div className="text-center py-12">
@@ -381,6 +408,11 @@ export default function SystemPromptsPage() {
                     <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
+                {categories.length === 0 && (
+                  <p className="text-sm text-amber-600">
+                    No categories available. Please create a category first in the System Prompt Categories section.
+                  </p>
+                )}
               </div>
             </div>
 

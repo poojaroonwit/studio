@@ -86,49 +86,37 @@ export async function POST(request: NextRequest) {
         
         const candidate = candidateResult.rows[0];
         
-        // Get candidate comments
-        const commentsQuery = `
+        // Get candidate comments (from CandidateComment table)
+        const candidateCommentsQuery = `
           SELECT 
-            content,
-            "createdAt",
-            "createdBy"
-          FROM "Comment"
-          WHERE "candidateId" = $1
-          ORDER BY "createdAt" DESC
+            cc.content,
+            cc."createdAt",
+            u.name as "createdBy"
+          FROM "CandidateComment" cc
+          LEFT JOIN "User" u ON cc."authorId" = u.id
+          WHERE cc."candidateId" = $1
+          ORDER BY cc."createdAt" DESC
           LIMIT 10
         `;
         
-        const commentsResult = await client.query(commentsQuery, [candidateId]);
+        const candidateCommentsResult = await client.query(candidateCommentsQuery, [candidateId]);
         
-        // Get candidate transitions history
-        const transitionsQuery = `
+        // Get candidate transition records
+        const transitionRecordsQuery = `
           SELECT 
-            "fromStage",
-            "toStage",
-            "transitionDate",
-            "reason",
-            "createdBy"
-          FROM "Transition"
-          WHERE "candidateId" = $1
-          ORDER BY "transitionDate" DESC
+            tr.stage,
+            tr.date,
+            tr.notes,
+            tr."actingUserId",
+            u.name as "actingUserName"
+          FROM "TransitionRecord" tr
+          LEFT JOIN "User" u ON tr."actingUserId" = u.id
+          WHERE tr."candidateId" = $1
+          ORDER BY tr.date DESC
           LIMIT 10
         `;
         
-        const transitionsResult = await client.query(transitionsQuery, [candidateId]);
-        
-        // Get candidate resumes
-        const resumesQuery = `
-          SELECT 
-            filename,
-            "fileUrl",
-            "uploadDate",
-            "fileSize"
-          FROM "Resume"
-          WHERE "candidateId" = $1
-          ORDER BY "uploadDate" DESC
-        `;
-        
-        const resumesResult = await client.query(resumesQuery, [candidateId]);
+        const transitionRecordsResult = await client.query(transitionRecordsQuery, [candidateId]);
         
         // Get candidate attachments
         const attachmentsQuery = `
@@ -147,36 +135,7 @@ export async function POST(request: NextRequest) {
         
         const attachmentsResult = await client.query(attachmentsQuery, [candidateId]);
         
-        // Get candidate comments (from CandidateComment table)
-        const candidateCommentsQuery = `
-          SELECT 
-            content,
-            "createdAt",
-            "createdBy"
-          FROM "CandidateComment"
-          WHERE "candidateId" = $1
-          ORDER BY "createdAt" DESC
-          LIMIT 10
-        `;
-        
-        const candidateCommentsResult = await client.query(candidateCommentsQuery, [candidateId]);
-        
-        // Get transition records (more detailed than transitions)
-        const transitionRecordsQuery = `
-          SELECT 
-            tr.stage,
-            tr.date,
-            tr.notes,
-            tr."actingUserId",
-            u.name as "actingUserName"
-          FROM "TransitionRecord" tr
-          LEFT JOIN "User" u ON tr."actingUserId" = u.id
-          WHERE tr."candidateId" = $1
-          ORDER BY tr.date DESC
-          LIMIT 10
-        `;
-        
-        const transitionRecordsResult = await client.query(transitionRecordsQuery, [candidateId]);
+
         
         // Get job matches if position exists
         let jobMatches = null;
@@ -199,9 +158,9 @@ export async function POST(request: NextRequest) {
         
         return {
           candidate,
-          comments: commentsResult.rows,
-          transitions: transitionsResult.rows,
-          resumes: resumesResult.rows,
+          comments: candidateCommentsResult.rows,
+          transitions: transitionRecordsResult.rows,
+          resumes: [], // No separate Resume table, resumes are stored in Candidate.resumePath
           attachments: attachmentsResult.rows,
           candidateComments: candidateCommentsResult.rows,
           transitionRecords: transitionRecordsResult.rows,
@@ -282,7 +241,7 @@ export async function POST(request: NextRequest) {
         color: candidate.stageColor
       },
       documents: {
-        resumes: resumes,
+        resumePath: candidate.resumePath,
         attachments: attachments
       },
       history: {
@@ -315,7 +274,7 @@ IMPORTANT: Pay special attention to the candidate's education and experience dat
 - Parsed data from resumes and documents
 - Assignment justification and reasoning
 - Custom attributes and additional candidate information
-- All uploaded documents and attachments
+- Resume file path and uploaded attachments
 - Detailed transition history and stage progression
 - All comments and feedback from recruiters and team members
 - Job matching scores and criteria

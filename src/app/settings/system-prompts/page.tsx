@@ -37,9 +37,20 @@ interface SystemPrompt {
   updatedAt: string;
 }
 
+interface SystemPromptCategory {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function SystemPromptsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [systemPrompts, setSystemPrompts] = useState<SystemPrompt[]>([]);
+  const [categories, setCategories] = useState<SystemPromptCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
@@ -55,20 +66,31 @@ export default function SystemPromptsPage() {
     isActive: true
   });
 
-  const categories = [
-    'Job Description Generation',
-    'Candidate Analysis',
-    'Email Templates',
-    'Report Generation',
-    'General',
-    'Custom'
-  ];
+
 
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchSystemPrompts();
+      fetchCategories();
     }
   }, [sessionStatus]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/settings/system-prompt-categories', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      } else {
+        console.error('Failed to fetch categories');
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchSystemPrompts = async () => {
     try {
@@ -235,7 +257,7 @@ export default function SystemPromptsPage() {
           >
             <option value="all">All Categories</option>
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category.id} value={category.name}>{category.name}</option>
             ))}
           </select>
         </div>
@@ -356,7 +378,7 @@ export default function SystemPromptsPage() {
                 >
                   <option value="">Select category</option>
                   {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
               </div>

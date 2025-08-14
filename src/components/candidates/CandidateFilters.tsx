@@ -201,9 +201,9 @@ export function CandidateFilters({
     initialFilters.maxMatchingJobFitScore ?? 100,
   ]);
 
-  // Checkbox states for fit score grades - all selected by default
-  const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
-  const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+  // Checkbox states for fit score grades - will be initialized by useEffect based on initialFilters
+  const [selectedFitScoreGrades, setSelectedFitScoreGrades] = useState<Set<string>>(new Set());
+  const [selectedMatchingFitScoreGrades, setSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
   
   // Add refs for debouncing multiselect changes
   const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -300,34 +300,48 @@ export function CandidateFilters({
     if (initialFilters.minAppliedJobFitScore !== undefined || initialFilters.maxAppliedJobFitScore !== undefined) {
       const minScore = initialFilters.minAppliedJobFitScore ?? 0;
       const maxScore = initialFilters.maxAppliedJobFitScore ?? 100;
-      const selectedGrades = scoreRanges
-        .filter(range => 
-          (range.min >= minScore && range.min <= maxScore) ||
-          (range.max >= minScore && range.max <= maxScore) ||
-          (range.min <= minScore && range.max >= maxScore)
-        )
-        .map(range => range.letter);
-      setSelectedFitScoreGrades(new Set(selectedGrades));
+      
+      // Handle special case for "no fit score" filter
+      if (minScore === -1) {
+        setSelectedFitScoreGrades(new Set(['no-score']));
+      } else {
+        const selectedGrades = scoreRanges
+          .filter(range => 
+            (range.min >= minScore && range.min <= maxScore) ||
+            (range.max >= minScore && range.max <= maxScore) ||
+            (range.min <= minScore && range.max >= maxScore)
+          )
+          .map(range => range.letter);
+        setSelectedFitScoreGrades(new Set(selectedGrades));
+      }
     } else {
-      // Clear applied fit score checkboxes when no filter is applied
-      setSelectedFitScoreGrades(new Set());
+      // Keep all grades selected by default when no filter is applied
+      // This prevents the race condition where checkboxes get cleared
+      setSelectedFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
     }
     
     // Initialize matching candidates fit score checkboxes
     if (initialFilters.minMatchingJobFitScore !== undefined || initialFilters.maxMatchingJobFitScore !== undefined) {
       const minScore = initialFilters.minMatchingJobFitScore ?? 0;
       const maxScore = initialFilters.maxMatchingJobFitScore ?? 100;
-      const selectedGrades = scoreRanges
-        .filter(range => 
-          (range.min >= minScore && range.min <= maxScore) ||
-          (range.max >= minScore && range.max <= maxScore) ||
-          (range.min <= minScore && range.max >= maxScore)
-        )
-        .map(range => range.letter);
-      setSelectedMatchingFitScoreGrades(new Set(selectedGrades));
+      
+      // Handle special case for "no fit score" filter
+      if (minScore === -1) {
+        setSelectedMatchingFitScoreGrades(new Set(['no-score']));
+      } else {
+        const selectedGrades = scoreRanges
+          .filter(range => 
+            (range.min >= minScore && range.min <= maxScore) ||
+            (range.max >= minScore && range.max <= maxScore) ||
+            (range.min <= minScore && range.max >= maxScore)
+          )
+          .map(range => range.letter);
+        setSelectedMatchingFitScoreGrades(new Set(selectedGrades));
+      }
     } else {
-      // Clear matching fit score checkboxes when no filter is applied
-      setSelectedMatchingFitScoreGrades(new Set());
+      // Keep all grades selected by default when no filter is applied
+      // This prevents the race condition where checkboxes get cleared
+      setSelectedMatchingFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
     }
   }, [initialFilters.minAppliedJobFitScore, initialFilters.maxAppliedJobFitScore, initialFilters.minMatchingJobFitScore, initialFilters.maxMatchingJobFitScore]);
 
@@ -1174,18 +1188,14 @@ export function CandidateFilters({
     setExperienceYearsRange([0, 50]);
     setAppliedJobFitScoreRange([0, 100]);
     setMatchingJobFitScoreRange([0, 100]);
-    setSelectedFitScoreGrades(new Set());
-    setSelectedMatchingFitScoreGrades(new Set());
+    setSelectedFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
+    setSelectedMatchingFitScoreGrades(new Set(['A', 'B', 'C', 'D', 'E', 'no-score']));
     setApplicationDateRange(undefined);
     setSelectedRecruiterIds(new Set());
     setAiSearchQueryInput('');
     setAiSearchType('hybrid');
     setAiSearchFilters({});
     onFilterChange({
-      minAppliedJobFitScore: 0,
-      maxAppliedJobFitScore: 100,
-      minMatchingJobFitScore: 0,
-      maxMatchingJobFitScore: 100,
       selectedPositionIds: undefined,
       selectedStatuses: undefined,
       selectedRecruiterIds: undefined,
@@ -1929,18 +1939,10 @@ export function CandidateFilters({
                                         checked={selectedFitScoreGrades.has(grade.letter)}
                                         onCheckedChange={(checked) => handleFitScoreGradeChange(grade.letter, checked as boolean)}
                                         disabled={isLoading || isAiSearching}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                        }}
                                       />
                                       <Label 
                                         htmlFor={`fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                        }}
                                       >
                                         {grade.label}
                                       </Label>
@@ -1959,18 +1961,10 @@ export function CandidateFilters({
                                     checked={selectedFitScoreGrades.has('no-score')}
                                     onCheckedChange={(checked) => handleFitScoreGradeChange('no-score', checked as boolean)}
                                     disabled={isLoading || isAiSearching}
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
                                   />
                                   <Label 
                                     htmlFor="applied-no-fit-score" 
                                     className="text-xs font-normal cursor-pointer"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
                                   >
                                     No Fit Score
                                   </Label>
@@ -1997,18 +1991,10 @@ export function CandidateFilters({
                                         checked={selectedMatchingFitScoreGrades.has(grade.letter)}
                                         onCheckedChange={(checked) => handleMatchingFitScoreGradeChange(grade.letter, checked as boolean)}
                                         disabled={isLoading || isAiSearching}
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                        }}
                                       />
                                       <Label 
                                         htmlFor={`matching-fit-score-${grade.letter}`} 
                                         className="text-xs font-normal cursor-pointer"
-                                        onMouseDown={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                        }}
                                       >
                                         {grade.label}
                                       </Label>
@@ -2027,18 +2013,10 @@ export function CandidateFilters({
                                     checked={selectedMatchingFitScoreGrades.has('no-score')}
                                     onCheckedChange={(checked) => handleMatchingFitScoreGradeChange('no-score', checked as boolean)}
                                     disabled={isLoading || isAiSearching}
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
                                   />
                                   <Label 
                                     htmlFor="matching-no-fit-score" 
                                     className="text-xs font-normal cursor-pointer"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
                                   >
                                     No Fit Score
                                   </Label>

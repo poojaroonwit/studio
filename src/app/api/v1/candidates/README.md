@@ -21,6 +21,17 @@ The following fields are automatically handled by the database and should not be
 
 These fields are returned in API responses but are managed by the database schema and Prisma ORM.
 
+## Automatic Recruiter Assignment
+
+When creating or updating candidates through the v1 API, recruiters are automatically assigned based on the following rules:
+
+- **New Candidates**: If a candidate is created with a `positionId` and the position has a recruiter assigned, the candidate will automatically be assigned to that recruiter
+- **Updated Candidates**: If a candidate's position is changed and the new position has a recruiter, the candidate will be automatically assigned to that recruiter
+- **Bulk Operations**: When using bulk position assignment, all affected candidates will be automatically assigned to the position's recruiter
+- **Import Operations**: When importing candidates with a position but no recruiter, they will be automatically assigned to the position's recruiter
+
+**Note**: Existing recruiter assignments are preserved and will not be overwritten by automatic assignment.
+
 ## Endpoints
 
 ### POST /api/v1/candidates

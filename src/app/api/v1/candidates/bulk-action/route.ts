@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 // Import the schemas from the main candidate route
 import { updateCandidateSchema } from '../[id]/route';
 
@@ -91,6 +92,31 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await client.query(updateQuery, queryParams);
+    
+    // Auto-assign recruiters for assign_position action
+    if (action === 'assign_position' && data?.positionId) {
+      let syncCount = 0;
+      for (const candidateId of candidateIds) {
+        try {
+          const syncSuccess = await syncRecruiterForCandidate(
+            candidateId,
+            data.positionId,
+            user.id,
+            user.name || user.email || 'System'
+          );
+          if (syncSuccess) {
+            syncCount++;
+          }
+        } catch (syncError) {
+          console.error(`Failed to auto-assign recruiter for candidate ${candidateId}:`, syncError);
+          // Don't fail the bulk action if sync fails
+        }
+      }
+      if (syncCount > 0) {
+        console.log(`Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
+      }
+    }
+    
     await client.query('COMMIT');
     await logAudit('AUDIT', `Bulk action '${action}' performed by ${user.name}. Affected: ${result.rowCount}.`, 'API:V1:Candidates:BulkAction', user.id, { action, candidateIds, data, affectedCount: result.rowCount });
     return new Response(JSON.stringify({ 

@@ -228,8 +228,8 @@ export async function POST(request: NextRequest) {
     });
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
     
-    // Auto-assign recruiter if candidate has a position and no recruiter
-    if (positionId && !newCandidate.recruiterId) {
+    // Auto-assign recruiter if candidate has a position
+    if (positionId) {
       try {
         const syncSuccess = await syncRecruiterForCandidate(
           newCandidateId,

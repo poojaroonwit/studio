@@ -423,10 +423,23 @@ export default function CandidateDetailPage() {
   // Update form values when candidate data is loaded
   useEffect(() => {
     if (candidate) {
-      console.log('Initializing form with candidate data:', {
-        candidateJobMatches: candidate.jobMatches,
-        allDbPositionsLength: allDbPositions.length,
-        allDbPositions: allDbPositions
+      // Enrich job matches with position details if allDbPositions is available
+      const enrichedJobMatches = (candidate.jobMatches || []).map((match: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
+          : null;
+        
+        return {
+          ...match,
+          jobId: position ? position.id : match.jobId,
+          jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
+          positionTitle: match.positionTitle || match.jobTitle || '',
+          matchReasons: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.filter(Boolean)
+            : typeof match.matchReasons === 'string'
+              ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+              : [],
+        };
       });
       
       // Process assignmentJustification properly
@@ -449,11 +462,11 @@ export default function CandidateDetailPage() {
         recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          job_matches: [] // Initialize with empty array, will be populated by the candidateJobMatches effect
+          job_matches: enrichedJobMatches
         }
       });
     }
-  }, [candidate, reset]);
+  }, [candidate, allDbPositions, reset]);
 
 
 
@@ -1205,6 +1218,7 @@ export default function CandidateDetailPage() {
     ) {
       jobMatches = (candidate.parsedData as any).job_matches;
     }
+    
     if (jobMatches.length > 0) {
       // Enrich each job match with jobTitle and position details
       const enrichedJobMatches = jobMatches.map((jm: any) => {
@@ -1236,7 +1250,11 @@ export default function CandidateDetailPage() {
 
   // Update form job_matches when candidateJobMatches changes
   useEffect(() => {
+    console.log('candidateJobMatches changed:', candidateJobMatches);
+    console.log('candidateJobMatches length:', candidateJobMatches.length);
+    
     if (candidateJobMatches.length > 0) {
+      console.log('Updating form job_matches with:', candidateJobMatches);
       // Update the form's job_matches field with the enriched data
       setValue('parsedData.job_matches', candidateJobMatches.map((match: any) => ({
         ...match,
@@ -1246,6 +1264,8 @@ export default function CandidateDetailPage() {
             ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
             : [],
       })));
+    } else {
+      console.log('No candidateJobMatches to update form with');
     }
   }, [candidateJobMatches, setValue]);
 

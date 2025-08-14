@@ -6,6 +6,7 @@ import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
+import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 // Import the schemas from the main candidate route
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
 
@@ -147,12 +148,13 @@ export async function POST(req: NextRequest) {
           fitScore = Math.max(0, Math.min(1, candidate.candidate_info.job_applied.fitScore / 100));
         }
         // Insert new candidate
+        const candidateId = uuidv4();
         const insertQuery = `
           INSERT INTO "Candidate" (id, name, email, phone, status, "positionId", "recruiterId", "fitScore", "customAttributes", "parsedData", "resumePath", "applicationDate")
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         `;
         await client.query(insertQuery, [
-          uuidv4(),
+          candidateId,
           candidate.name,
           candidate.email,
           candidate.phone || null,
@@ -164,6 +166,25 @@ export async function POST(req: NextRequest) {
           candidate.parsedData || null,
           candidate.resumePath || null
         ]);
+        
+        // Auto-assign recruiter if candidate has a position but no recruiter
+        if (candidate.positionId && !candidate.recruiterId) {
+          try {
+            const syncSuccess = await syncRecruiterForCandidate(
+              candidateId,
+              candidate.positionId,
+              user.id,
+              user.name || user.email || 'System'
+            );
+            if (syncSuccess) {
+              console.log(`Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
+            }
+          } catch (syncError) {
+            console.error('Failed to auto-assign recruiter after candidate import:', syncError);
+            // Don't fail the import if sync fails
+          }
+        }
+        
         results.imported++;
       } catch (error) {
         results.errors.push(`Failed to import ${candidate.email}: ${(error as Error).message}`);

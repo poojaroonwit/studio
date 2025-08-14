@@ -339,13 +339,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     await client.query('COMMIT');
     const updatedCandidate = updateResult.rows[0];
     
-    // Auto-assign recruiter if position changed and candidate has no recruiter
+    // Auto-assign recruiter if position changed
     const oldPositionId = existingCandidate.positionId;
     const newPositionId = updateData.positionId !== undefined ? updateData.positionId : oldPositionId;
     const hasPositionChanged = updateData.positionId !== undefined && updateData.positionId !== oldPositionId;
-    const hasNoRecruiter = !updatedCandidate.recruiterId;
     
-    if (hasPositionChanged && hasNoRecruiter && newPositionId) {
+    if (hasPositionChanged && newPositionId) {
       try {
         const syncSuccess = await syncRecruiterForCandidate(
           id,

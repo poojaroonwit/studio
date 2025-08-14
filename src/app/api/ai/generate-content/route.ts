@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
             c."assignmentJustification",
             c."educationData",
             c."experienceData",
+            c."resumePath",
+            c."avatarUrl",
             c."createdAt",
             c."updatedAt",
             p.id as "positionId",
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
             jm."fitScore",
             jm."matchReasons",
             jm."createdAt",
-            jm."jobDescriptionSummary",
+            jm."job_description_summary",
             jm."jobId",
             jm."jobTitle",
             p.title as "positionTitle",
@@ -303,23 +305,23 @@ export async function POST(request: NextRequest) {
           createdAt: appliedPositionData.createdAt,
           updatedAt: appliedPositionData.updatedAt
         } : null,
-        potentialMatches: jobMatches.map(match => ({
-          jobId: match.jobId,
-          jobTitle: match.jobTitle || match.positionTitle,
-          positionTitle: match.positionTitle,
-          department: match.positionDepartment,
-          description: match.positionDescription,
-          level: match.positionLevel,
-          isOpen: match.positionIsOpen,
-          customAttributes: match.positionCustomAttributes,
-          matchCriteria: match.positionMatchCriteria,
-          fitScore: match.fitScore,
-          matchReasons: match.matchReasons,
-          jobDescriptionSummary: match.jobDescriptionSummary,
-          matchedAt: match.createdAt,
-          positionCreatedAt: match.positionCreatedAt,
-          positionUpdatedAt: match.positionUpdatedAt
-        })),
+                 potentialMatches: jobMatches.map(match => ({
+           jobId: match.jobId,
+           jobTitle: match.jobTitle || match.positionTitle,
+           positionTitle: match.positionTitle,
+           department: match.positionDepartment,
+           description: match.positionDescription,
+           level: match.positionLevel,
+           isOpen: match.positionIsOpen,
+           customAttributes: match.positionCustomAttributes,
+           matchCriteria: match.positionMatchCriteria,
+           fitScore: match.fitScore,
+           matchReasons: match.matchReasons,
+           jobDescriptionSummary: match.job_description_summary,
+           matchedAt: match.createdAt,
+           positionCreatedAt: match.positionCreatedAt,
+           positionUpdatedAt: match.positionUpdatedAt
+         })),
         topMatches: jobMatches
           .filter(match => match.fitScore > 0.7)
           .slice(0, 3)

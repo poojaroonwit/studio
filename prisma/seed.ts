@@ -10,6 +10,7 @@ async function main() {
     console.log('Creating admin user...');
     const adminEmail = 'admin@qsncc.com';
     const adminPassword = '$2a$10$dwiCxbUtCqnXeB2O8BmiyeWHL0e7rOqahafQAUACsnD4EZ9nGqPx2'; // bcrypt hash for 'nccadmin'
+    
     await prisma.user.upsert({
       where: { email: adminEmail },
       update: {},
@@ -27,23 +28,21 @@ async function main() {
     });
     console.log('✅ Admin user created/updated');
 
-    // Note: No default positions created - positions should be added through the UI
-    console.log('✅ No default positions created (add positions through UI)');
-
     // Create default recruitment stages
     console.log('Creating recruitment stages...');
     const stages = [
-      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Applied', description: 'Candidate has submitted their application', isSystem: true, sortOrder: 1, color_complete: '#60a5fa', color_badge: '#60a5fa' }, // blue-400
+      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Applied', description: 'Candidate has submitted their application', isSystem: true, sortOrder: 1, color_complete: '#60a5fa', color_badge: '#60a5fa' },
       { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Screening', description: 'Initial screening of candidate qualifications', isSystem: true, sortOrder: 2, color_complete: '#60a5fa', color_badge: '#60a5fa' },
       { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Shortlisted', description: 'Candidate has been shortlisted for further consideration', isSystem: true, sortOrder: 3, color_complete: '#60a5fa', color_badge: '#60a5fa' },
       { id: '550e8400-e29b-41d4-a716-446655440004', name: 'Interview Scheduled', description: 'Interview has been scheduled with the candidate', isSystem: true, sortOrder: 4, color_complete: '#60a5fa', color_badge: '#60a5fa' },
       { id: '550e8400-e29b-41d4-a716-446655440005', name: 'Interviewing', description: 'Candidate is currently in the interview process', isSystem: true, sortOrder: 5, color_complete: '#60a5fa', color_badge: '#60a5fa' },
-      { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Offer Extended', description: 'Job offer has been extended to the candidate', isSystem: true, sortOrder: 6, color_complete: '#22c55e', color_badge: '#22c55e' }, // green-500
+      { id: '550e8400-e29b-41d4-a716-446655440006', name: 'Offer Extended', description: 'Job offer has been extended to the candidate', isSystem: true, sortOrder: 6, color_complete: '#22c55e', color_badge: '#22c55e' },
       { id: '550e8400-e29b-41d4-a716-446655440007', name: 'Offer Accepted', description: 'Candidate has accepted the job offer', isSystem: true, sortOrder: 7, color_complete: '#22c55e', color_badge: '#22c55e' },
       { id: '550e8400-e29b-41d4-a716-446655440008', name: 'Hired', description: 'Candidate has been hired and started employment', isSystem: true, sortOrder: 8, color_complete: '#22c55e', color_badge: '#22c55e' },
-      { id: '550e8400-e29b-41d4-a716-446655440009', name: 'Rejected', description: 'Candidate has been rejected from the process', isSystem: true, sortOrder: 9, color_complete: '#ef4444', color_badge: '#ef4444' }, // red-500
-      { id: '550e8400-e29b-41d4-a716-446655440010', name: 'On Hold', description: 'Candidate application is temporarily on hold', isSystem: true, sortOrder: 10, color_complete: '#6b7280', color_badge: '#6b7280' } // gray-500
+      { id: '550e8400-e29b-41d4-a716-446655440009', name: 'Rejected', description: 'Candidate has been rejected from the process', isSystem: true, sortOrder: 9, color_complete: '#ef4444', color_badge: '#ef4444' },
+      { id: '550e8400-e29b-41d4-a716-446655440010', name: 'On Hold', description: 'Candidate application is temporarily on hold', isSystem: true, sortOrder: 10, color_complete: '#6b7280', color_badge: '#6b7280' }
     ];
+    
     for (const stage of stages) {
       await prisma.recruitmentStage.upsert({
         where: { name: stage.name },
@@ -53,7 +52,7 @@ async function main() {
     }
     console.log('✅ Recruitment stages created/updated');
 
-    // Create default user groups (roles)
+    // Create default user groups
     console.log('Creating user groups...');
     const userGroups = [
       {
@@ -96,28 +95,9 @@ async function main() {
         ],
         isDefault: true,
         isSystemRole: false
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000011',
-        name: 'HR',
-        description: 'HR Department group',
-        permissions: [
-          'HR_MANAGE','HR_CREATE','HR_UPDATE','HR_DELETE'
-        ],
-        isDefault: true,
-        isSystemRole: false
-      },
-      {
-        id: '00000000-0000-0000-0000-000000000012',
-        name: 'IT',
-        description: 'IT Department group',
-        permissions: [
-          'IT_MANAGE','IT_CREATE','IT_UPDATE','IT_DELETE'
-        ],
-        isDefault: true,
-        isSystemRole: false
       }
     ];
+    
     for (const group of userGroups) {
       await prisma.userGroup.upsert({
         where: { id: group.id },
@@ -127,7 +107,7 @@ async function main() {
     }
     console.log('✅ User groups created/updated');
 
-    // Assign default admin user to Admin group
+    // Assign admin user to Admin group
     console.log('Assigning admin user to Admin group...');
     const adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
     if (adminUser) {
@@ -139,129 +119,16 @@ async function main() {
       console.log('✅ Admin user assigned to Admin group');
     }
 
-
-
-    // Seed default system settings
-    console.log('Creating default system settings...');
+    // Create basic system settings
+    console.log('Creating system settings...');
     const systemSettings = [
       { key: 'appName', value: 'FitScan' },
       { key: 'appThemePreference', value: 'system' },
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },
-      { key: 'loginPageLayoutType', value: '2column' },
-      { 
-        key: 'defaultMatchCriteria', 
-        value: `<h2>Compare Candidate and Job</h2>
-<p>Evaluate matches in the following categories:</p>
-<ul>
-<li>Skills</li>
-<li>Experience</li>
-<li>Education</li>
-<li>Overall qualitative/cultural alignment</li>
-</ul>
-<p><em>if information is not enough in each categories, please share that weight % to other categories</em></p>
-
-<h3>Scoring Criteria</h3>
-<p>Each category is scored based on how well the candidate aligns, using the following levels:</p>
-
-<p>Use the following relevance levels to assess how well a candidate matches the job criteria within each category:</p>
-
-<table border="1" style="border-collapse: collapse; width: 100%;">
-<thead>
-<tr>
-<th>Relevance Level</th>
-<th>Score</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Perfect Match</strong></td>
-<td>100</td>
-<td>Candidate fully meets or exceeds all expectations. Directly matches required qualifications with no gaps. Skills, responsibilities, or background are ideal.</td>
-</tr>
-<tr>
-<td><strong>Relevant</strong></td>
-<td>75</td>
-<td>Candidate meets most of the key requirements. Some minor gaps or deviations, but still a strong and workable fit.</td>
-</tr>
-<tr>
-<td><strong>Somewhat Relevant</strong></td>
-<td>50</td>
-<td>Candidate meets parts of the requirement but has noticeable gaps. May need upskilling or additional context to be a good fit.</td>
-</tr>
-<tr>
-<td><strong>Marginally Related</strong></td>
-<td>25</td>
-<td>Candidate shows limited relevance. Experience or qualifications are loosely connected but not sufficient.</td>
-</tr>
-<tr>
-<td><strong>Not Matched</strong></td>
-<td>0</td>
-<td>No meaningful alignment with the criteria in this category. Candidate lacks the required or even adjacent experience or skills.</td>
-</tr>
-</tbody>
-</table>
-
-<p>Apply this relevance scoring to the weighted categories below:</p>
-
-<p><em>if information is not enough in each categories, please share that weight % to other categories</em></p>
-
-<ul>
-<li><strong>Skills Match (weight 40%)</strong>
-<ul>
-<li>Match required and preferred skills against the candidate's.</li>
-<li>Calculate the average skill relevance score.</li>
-<li>Weighted score = (average skill relevance / 100) × 0.40</li>
-</ul>
-</li>
-<li><strong>Experience Match (weight 30%)</strong>
-<ul>
-<li>Assess how well the candidate's job history aligns with responsibilities and industry of the job.</li>
-<li>Consider depth, title relevance, and duration.</li>
-<li>Weighted score = (average experience relevance / 100) × 0.30</li>
-</ul>
-</li>
-<li><strong>Education Match (weight 15%)</strong>
-<ul>
-<li>Evaluate field of study, degree level, and match with educational requirements.</li>
-<li>Weighted score = (education relevance / 100) × 0.15</li>
-</ul>
-</li>
-<li><strong>Overall Alignment (weight 15%)</strong>
-<ul>
-<li>Make a subjective judgment based on tone, communication, company mission alignment, etc.</li>
-<li>Weighted score = (alignment relevance / 100) × 0.15</li>
-</ul>
-</li>
-</ul>` 
-      },
-      // Add a default logo (simple SVG data URL)
-      { key: 'appLogoDataUrl', value: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB2aWV3Qm94PSIwIDAgMjAwIDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiByeD0iOCIgZmlsbD0idXJsKCNncmFkaWVudCkiLz4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IndoaXRlIi8+Cjx0ZXh0IHg9IjgwIiB5PSI0OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiPkNhbmRpVHJhY2s8L3RleHQ+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImdyYWRpZW50IiB4MT0iMCIgeTE9IjAiIHgyPSIyMDAiIHkyPSI4MCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPgo8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojM0I4MkZGO3N0b3Atb3BhY2l0eToxIiAvPgo8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiM2MzY2RjA7c3RvcC1vcGFjaXR5OjEiIC8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPC9zdmc+' },
-      // Contextual logos - initially null, can be set through preferences
-      { key: 'loginPageLogoLightMode', value: null },
-      { key: 'loginPageLogoDarkMode', value: null },
-      { key: 'sidebarLogoCollapsedLightMode', value: null },
-      { key: 'sidebarLogoExpandedLightMode', value: null },
-      { key: 'sidebarLogoCollapsedDarkMode', value: null },
-      { key: 'sidebarLogoExpandedDarkMode', value: null },
-      // Sidebar Light Theme
-      { key: 'sidebarBgStartL', value: '220 25% 97%' },
-      { key: 'sidebarTextL', value: '220 25% 30%' },
-      { key: 'sidebarBorderL', value: '220 15% 85%' },
-      { key: 'sidebarActiveBgStartL', value: '179 67% 66%' },
-      { key: 'sidebarActiveTextL', value: '0 0% 100%' },
-      { key: 'sidebarHoverBgL', value: '220 10% 92%' },
-      { key: 'sidebarHoverTextL', value: '220 25% 25%' },
-      // Sidebar Dark Theme
-      { key: 'sidebarBgStartD', value: '220 15% 12%' },
-      { key: 'sidebarTextD', value: '210 30% 85%' },
-      { key: 'sidebarBorderD', value: '220 15% 18%' },
-      { key: 'sidebarActiveBgStartD', value: '179 67% 66%' },
-      { key: 'sidebarActiveTextD', value: '0 0% 100%' },
-      { key: 'sidebarHoverBgD', value: '220 15% 20%' },
-      { key: 'sidebarHoverTextD', value: '210 30% 90%' },
+      { key: 'loginPageLayoutType', value: '2column' }
     ];
+    
     for (const setting of systemSettings) {
       await prisma.systemSetting.upsert({
         where: { key: setting.key },
@@ -270,361 +137,6 @@ async function main() {
       });
     }
     console.log('✅ System settings created/updated');
-
-    // Upload queue sample data has been removed
-
-    // Seed sample webhooks
-    console.log('Creating sample webhooks...');
-    const sampleWebhooks = [
-      {
-        id: '50000000-0000-0000-0000-000000000001',
-        name: 'Email Service',
-        url: 'https://api.emailservice.com/webhook',
-        events: ['candidate.created', 'position.filled'],
-        method: 'POST',
-        is_active: false,
-        auth_type: 'basic',
-        auth_username: 'webhook_user',
-        auth_password: 'secure_password_123',
-        headers: {},
-        retry_count: 2,
-        timeout: 45
-      },
-      {
-        id: '50000000-0000-0000-0000-000000009999',
-        name: 'Resume Processing Workflow',
-        url: 'https://ncc-dify.qsncc.com/v1/workflows/run',
-        events: [
-          'upload_queue.created',
-          'upload_queue.processing',
-          'upload_queue.completed',
-          'upload_queue.failed',
-          'upload_queue.retry'
-        ],
-        method: 'POST',
-        is_active: true,
-        auth_type: 'bearer',
-        auth_token: 'app-Q6ZQIUiGIRWSlTu5e4SXn0ZF',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        retry_count: 3,
-        timeout: 60
-      }
-    ];
-
-    for (const webhook of sampleWebhooks) {
-      await prisma.webhook.upsert({
-        where: { id: webhook.id },
-        update: {},
-        create: webhook
-      });
-    }
-    console.log('✅ Sample webhooks created/updated');
-
-    // Seed sample webhook logs
-    console.log('Creating sample webhook logs...');
-    const sampleWebhookLogs = [
-      {
-        id: '60000000-0000-0000-0000-000000000001',
-        webhook_id: '50000000-0000-0000-0000-000000000001', // exists
-        event_type: 'candidate.created',
-        payload: {
-          candidate: {
-            id: '70000000-0000-0000-0000-000000000001',
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            status: 'Applied'
-          },
-          timestamp: '2024-01-15T10:30:00Z'
-        },
-        response_status: 200,
-        response_body: '{"success": true, "message": "Notification sent"}',
-        success: true,
-        duration_ms: 245
-      },
-      {
-        id: '60000000-0000-0000-0000-000000000002',
-        webhook_id: '50000000-0000-0000-0000-000000009999', // updated to existing
-        event_type: 'upload_queue.completed', // matches supported event for this webhook
-        payload: {
-          candidate: {
-            id: '70000000-0000-0000-0000-000000000002',
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            status: 'Interviewing'
-          },
-          previous_stage: 'Screening',
-          new_stage: 'Interviewing',
-          timestamp: '2024-01-15T14:20:00Z'
-        },
-        response_status: 200,
-        response_body: '{"success": true, "crm_updated": true}',
-        success: true,
-        duration_ms: 189
-      },
-      {
-        id: '60000000-0000-0000-0000-000000000003',
-        webhook_id: '50000000-0000-0000-0000-000000000001', // updated to existing
-        event_type: 'position.filled', // matches supported event for this webhook
-        payload: {
-          candidate: {
-            id: '70000000-0000-0000-0000-000000000003',
-            name: 'Mike Johnson',
-            email: 'mike.johnson@example.com',
-            status: 'Applied'
-          },
-          timestamp: '2024-01-15T16:45:00Z'
-        },
-        response_status: 401,
-        response_body: '{"error": "Unauthorized", "message": "Invalid credentials"}',
-        success: false,
-        error_message: 'Authentication failed',
-        duration_ms: 156
-      },
-      {
-        id: '60000000-0000-0000-0000-000000000004',
-        webhook_id: '50000000-0000-0000-0000-000000009999', // updated to existing
-        event_type: 'upload_queue.failed', // matches supported event for this webhook
-        payload: {
-          position: {
-            id: '00000000-0000-0000-0000-000000000000',
-            title: 'Sample Position',
-            department: 'Sample Department',
-            isOpen: true
-          },
-          timestamp: '2024-01-15T09:15:00Z'
-        },
-        response_status: 200,
-        response_body: '{"success": true, "analytics_updated": true}',
-        success: true,
-        duration_ms: 312
-      }
-    ];
-
-    for (const log of sampleWebhookLogs) {
-      await prisma.webhookLog.upsert({
-        where: { id: log.id },
-        update: {},
-        create: log
-      });
-    }
-    console.log('✅ Sample webhook logs created/updated');
-
-    // Seed default data models for candidates and positions
-    console.log('Creating default data models...');
-    const dataModels = [
-      {
-        id: '30000000-0000-0000-0000-000000000001',
-        name: 'Candidate Profile',
-        modelType: 'Candidate',
-        description: 'Standard candidate data model with personal and professional information',
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', required: true, label: 'Full Name', description: 'Candidate\'s full name' },
-            email: { type: 'string', format: 'email', required: true, label: 'Email Address', description: 'Primary email contact' },
-            phone: { type: 'string', label: 'Phone Number', description: 'Contact phone number' },
-            positionId: { type: 'string', label: 'Applied Position', description: 'Position the candidate applied for' },
-            recruiterId: { type: 'string', label: 'Assigned Recruiter', description: 'Recruiter responsible for this candidate' },
-            fitScore: { type: 'number', label: 'Fit Score', description: 'AI-generated fit score for the position' },
-            status: { type: 'string', label: 'Application Status', description: 'Current status in recruitment process' },
-            applicationDate: { type: 'date', label: 'Application Date', description: 'When the candidate applied' },
-            avatarUrl: { type: 'string', label: 'Avatar URL', description: 'Profile picture URL' },
-            dataAiHint: { type: 'string', label: 'AI Data Hint', description: 'Additional data for AI processing' },
-            customAttributes: { type: 'object', label: 'Custom Attributes', description: 'Additional custom fields' }
-          },
-          required: ['name', 'email']
-        },
-        isActive: true
-      },
-      {
-        id: '30000000-0000-0000-0000-000000000002',
-        name: 'Job Position',
-        modelType: 'Position',
-        description: 'Job position data model with requirements and details',
-        schema: {
-          type: 'object',
-          properties: {
-            title: { type: 'string', required: true, label: 'Job Title', description: 'Position title' },
-            department: { type: 'string', required: true, label: 'Department', description: 'Department this position belongs to' },
-            description: { type: 'string', label: 'Job Description', description: 'Detailed job description' },
-            isOpen: { type: 'boolean', label: 'Position Open', description: 'Whether the position is currently open' },
-            positionLevel: { type: 'string', label: 'Position Level', description: 'Seniority level of the position' },
-            customAttributes: { type: 'object', label: 'Custom Attributes', description: 'Additional custom fields' }
-          },
-          required: ['title', 'department']
-        },
-        isActive: true
-      },
-      {
-        id: '30000000-0000-0000-0000-000000000003',
-        name: 'User Profile',
-        modelType: 'User',
-        description: 'User profile data model for system users',
-        schema: {
-          type: 'object',
-          properties: {
-            name: { type: 'string', required: true, label: 'Full Name', description: 'User\'s full name' },
-            email: { type: 'string', format: 'email', required: true, label: 'Email Address', description: 'User\'s email address' },
-            role: { type: 'string', label: 'User Role', description: 'System role (Admin, Recruiter, etc.)' },
-            avatarUrl: { type: 'string', label: 'Avatar URL', description: 'Profile picture URL' },
-            modulePermissions: { type: 'array', items: { type: 'string' }, label: 'Module Permissions', description: 'List of module permissions' },
-            authenticationMethod: { type: 'string', label: 'Authentication Method', description: 'How the user authenticates' },
-            forcePasswordChange: { type: 'boolean', label: 'Force Password Change', description: 'Whether user must change password' }
-          },
-          required: ['name', 'email']
-        },
-        isActive: true
-      }
-    ];
-    
-    for (const dataModel of dataModels) {
-      await prisma.dataModel.upsert({
-        where: { id: dataModel.id },
-        update: {},
-        create: dataModel
-      });
-    }
-    console.log('✅ Default data models created/updated');
-
-    // Create default system prompt categories
-    console.log('Creating default system prompt categories...');
-    const categories = [
-      {
-        name: 'Job Description Generation',
-        description: 'Prompts for generating job descriptions and requirements',
-        color: '#3B82F6',
-        isActive: true
-      },
-      {
-        name: 'Candidate Analysis',
-        description: 'Prompts for analyzing candidate profiles and qualifications',
-        color: '#10B981',
-        isActive: true
-      },
-      {
-        name: 'Email Templates',
-        description: 'Prompts for generating professional email templates',
-        color: '#F59E0B',
-        isActive: true
-      },
-      {
-        name: 'Report Generation',
-        description: 'Prompts for creating comprehensive reports and assessments',
-        color: '#8B5CF6',
-        isActive: true
-      },
-      {
-        name: 'General',
-        description: 'General purpose prompts for various HR tasks',
-        color: '#6B7280',
-        isActive: true
-      }
-    ];
-    
-    const createdCategories = [];
-    for (const category of categories) {
-      try {
-        // Try to create the category, ignore if it already exists
-        const createdCategory = await prisma.systemPromptCategory.create({
-          data: category
-        });
-        createdCategories.push(createdCategory);
-      } catch (error) {
-        // If creation fails, try to find existing category
-        try {
-          const existingCategory = await prisma.systemPromptCategory.findFirst({
-            where: { name: category.name }
-          });
-          if (existingCategory) {
-            createdCategories.push(existingCategory);
-          }
-        } catch (findError) {
-          console.log(`⚠️  Warning: Could not handle category '${category.name}': ${error.message}`);
-        }
-      }
-    }
-    console.log('✅ Default system prompt categories created/updated');
-
-    // Create default system prompts for AI generation
-    console.log('Creating default system prompts...');
-    const systemPrompts = [
-      {
-        name: 'Candidate Analysis',
-        description: 'Analyze candidate qualifications and provide detailed assessment',
-        content: 'You are an expert HR recruiter. Analyze the candidate\'s profile and provide a comprehensive assessment including strengths, areas for development, and recommendations. Focus on technical skills, experience, and cultural fit.',
-        categoryName: 'Candidate Analysis',
-        isActive: true
-      },
-      {
-        name: 'Job Description Generator',
-        description: 'Generate professional job descriptions based on role requirements',
-        content: 'You are an expert HR professional. Create a comprehensive job description that includes job summary, key responsibilities, required qualifications, preferred qualifications, and benefits. Make it professional and attractive to potential candidates.',
-        categoryName: 'Job Description Generation',
-        isActive: true
-      },
-      {
-        name: 'Interview Email Template',
-        description: 'Generate professional interview invitation emails',
-        content: 'You are an HR coordinator. Create a professional email template for inviting candidates to interviews. Include all necessary details like date, time, location, preparation instructions, and contact information.',
-        categoryName: 'Email Templates',
-        isActive: true
-      },
-      {
-        name: 'Rejection Email Template',
-        description: 'Generate professional rejection emails',
-        content: 'You are an HR professional. Create a professional and empathetic email template for informing candidates that they were not selected for the position. Be respectful and encourage future applications.',
-        categoryName: 'Email Templates',
-        isActive: true
-      },
-      {
-        name: 'Candidate Report',
-        description: 'Generate comprehensive candidate reports',
-        content: 'You are an HR analyst. Create a detailed report about the candidate including background analysis, skill assessment, experience evaluation, and hiring recommendations. Format it professionally with clear sections.',
-        categoryName: 'Report Generation',
-        isActive: true
-      }
-    ];
-    
-    for (const prompt of systemPrompts) {
-      const category = createdCategories.find(c => c.name === prompt.categoryName);
-      if (category) {
-        try {
-          // Try to create the prompt, ignore if it already exists
-          await prisma.systemPrompt.create({
-            data: {
-              name: prompt.name,
-              description: prompt.description,
-              content: prompt.content,
-              categoryId: category.id,
-              isActive: prompt.isActive
-            }
-          });
-        } catch (error) {
-          // If creation fails, try to find existing prompt and update it
-          try {
-            const existingPrompt = await prisma.systemPrompt.findFirst({
-              where: { name: prompt.name }
-            });
-            if (existingPrompt) {
-              await prisma.systemPrompt.update({
-                where: { id: existingPrompt.id },
-                data: { 
-                  content: prompt.content, 
-                  description: prompt.description,
-                  categoryId: category.id,
-                  isActive: prompt.isActive
-                }
-              });
-            }
-          } catch (updateError) {
-            console.log(`⚠️  Warning: Could not handle prompt '${prompt.name}': ${error.message}`);
-          }
-        }
-      }
-    }
-    console.log('✅ Default system prompts created/updated');
 
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {

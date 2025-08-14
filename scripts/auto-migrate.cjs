@@ -8,21 +8,17 @@
  */
 
 const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-
-// ANSI color codes for terminal output
-const colors = {
-    reset: '\x1b[0m',
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    cyan: '\x1b[36m',
-    white: '\x1b[37m'
-};
 
 function log(message, color = 'white') {
+    const colors = {
+        reset: '\x1b[0m',
+        red: '\x1b[31m',
+        green: '\x1b[32m',
+        yellow: '\x1b[33m',
+        blue: '\x1b[34m',
+        cyan: '\x1b[36m',
+        white: '\x1b[37m'
+    };
     console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
@@ -182,21 +178,11 @@ function main() {
         }
 
         // Seed database
-        logInfo('Checking if seeding is needed...');
+        logInfo('Seeding database...');
         if (seedDatabase()) {
             logSuccess('Database seeding completed');
         } else {
-            logInfo('Database seeding skipped (already seeded or not needed)');
-        }
-
-        // Final validation
-        logInfo('Final validation...');
-        const finalStatus = getMigrationStatus();
-        if (isSchemaOutOfSync(finalStatus)) {
-            logWarning('⚠️  Database schema still appears to be out of sync');
-            logInfo('💡 This might be normal for development environments');
-        } else {
-            logSuccess('Database validation passed');
+            logWarning('Database seeding failed or already completed');
         }
 
         logSuccess('🎉 Auto-migration completed successfully!');

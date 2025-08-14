@@ -51,7 +51,7 @@ export default function SystemPromptsPage() {
     name: '',
     description: '',
     content: '',
-    category: '',
+    categoryId: '',
     isActive: true
   });
 
@@ -152,7 +152,7 @@ export default function SystemPromptsPage() {
       name: prompt.name,
       description: prompt.description,
       content: prompt.content,
-      category: prompt.category,
+      categoryId: prompt.categoryId,
       isActive: prompt.isActive
     });
     setIsModalOpen(true);
@@ -169,7 +169,7 @@ export default function SystemPromptsPage() {
       name: '',
       description: '',
       content: '',
-      category: '',
+      categoryId: '',
       isActive: true
     });
   };
@@ -177,7 +177,7 @@ export default function SystemPromptsPage() {
   const filteredPrompts = systemPrompts.filter(prompt => {
     const matchesSearch = prompt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          prompt.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || prompt.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || prompt.categoryName === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -305,7 +305,7 @@ export default function SystemPromptsPage() {
                       <Badge variant={prompt.isActive ? "default" : "secondary"}>
                         {prompt.isActive ? "Active" : "Inactive"}
                       </Badge>
-                      <Badge variant="outline">{prompt.category}</Badge>
+                                             <Badge variant="outline">{prompt.categoryName}</Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p>Updated: {new Date(prompt.updatedAt).toLocaleDateString()}</p>
@@ -350,8 +350,8 @@ export default function SystemPromptsPage() {
                 <Label htmlFor="category">Category *</Label>
                 <select
                   id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                   className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
                 >
                   <option value="">Select category</option>
@@ -401,7 +401,7 @@ export default function SystemPromptsPage() {
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={!formData.name || !formData.category || !formData.content}
+              disabled={!formData.name || !formData.categoryId || !formData.content}
             >
               <Save className="h-4 w-4 mr-2" />
               {editingPrompt ? 'Update' : 'Create'}

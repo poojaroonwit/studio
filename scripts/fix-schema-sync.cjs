@@ -67,7 +67,7 @@ function main() {
         }
 
         // Step 2: Check database connection
-        if (!runCommand('npx prisma db execute --stdin <<< "SELECT 1;"', 'Checking database connection...')) {
+        if (!runCommand('npx prisma db execute --stdin --schema=prisma/schema.prisma', 'Checking database connection...')) {
             logError('Cannot connect to database');
             process.exit(1);
         }

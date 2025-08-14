@@ -590,21 +590,38 @@ async function main() {
     for (const prompt of systemPrompts) {
       const category = createdCategories.find(c => c.name === prompt.categoryName);
       if (category) {
-        await prisma.systemPrompt.upsert({
-          where: { name: prompt.name },
-          update: { 
-            content: prompt.content, 
-            description: prompt.description,
-            categoryId: category.id
-          },
-          create: {
-            name: prompt.name,
-            description: prompt.description,
-            content: prompt.content,
-            categoryId: category.id,
-            isActive: prompt.isActive
+        try {
+          // Try to create the prompt, ignore if it already exists
+          await prisma.systemPrompt.create({
+            data: {
+              name: prompt.name,
+              description: prompt.description,
+              content: prompt.content,
+              categoryId: category.id,
+              isActive: prompt.isActive
+            }
+          });
+        } catch (error) {
+          // If creation fails, try to find existing prompt and update it
+          try {
+            const existingPrompt = await prisma.systemPrompt.findFirst({
+              where: { name: prompt.name }
+            });
+            if (existingPrompt) {
+              await prisma.systemPrompt.update({
+                where: { id: existingPrompt.id },
+                data: { 
+                  content: prompt.content, 
+                  description: prompt.description,
+                  categoryId: category.id,
+                  isActive: prompt.isActive
+                }
+              });
+            }
+          } catch (updateError) {
+            console.log(`⚠️  Warning: Could not handle prompt '${prompt.name}': ${error.message}`);
           }
-        });
+        }
       }
     }
     console.log('✅ Default system prompts created/updated');

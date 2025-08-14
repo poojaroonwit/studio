@@ -277,10 +277,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Update job status
+    console.log(`[Database] Updating job ${job.id} with status: ${status}, error: ${error}`);
+    console.log(`[Database] Final status validation - Status: ${status}, Error: ${error}, Error Details: ${error_details}`);
+    
+    // Validate status before database update
+    if (!['success', 'fail', 'error'].includes(status)) {
+      console.error(`[Database] Invalid status detected: ${status}, defaulting to 'error'`);
+      status = 'error';
+      error = 'Invalid status detected during processing';
+      error_details = `Status was set to invalid value: ${status}`;
+    }
+    
     await client.query(
-      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now() WHERE id = $4`,
-      [status, error, error_details, job.id]
+      `UPDATE upload_queue SET status = $1, error = $2, error_details = $3, completed_date = now(), updated_at = now(), webhook_payload = $4 WHERE id = $5`,
+      [status, error, error_details, payload, job.id]
     );
+    
+    console.log(`[Database] Job ${job.id} status updated successfully to: ${status}`);
 
     // Dispatch webhook for upload queue completion/failure event
     // DISABLED: This was causing duplicate webhook calls
@@ -503,6 +516,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       try {
         console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
+        console.log(`[Webhook] Timeout: ${timeoutMs}ms`);
         
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
@@ -513,10 +527,16 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         
         webhookResStatus = webhookRes.status;
         
+        console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
+        console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
+        console.log(`[Webhook] Response ok:`, webhookRes.ok);
+        console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
+        
         if (webhookResStatus === 200) {
           status = 'success';
           error = null;
           error_details = null;
+          console.log(`[Webhook] Success - Status 200 received`);
         } else {
           status = 'fail';
           if (webhookResStatus === 504) {
@@ -530,6 +550,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
             error = `Webhook responded with status ${webhookResStatus}`;
           }
           
+          console.log(`[Webhook] Failure - Status ${webhookResStatus} received`);
+          console.log(`[Webhook] Setting status to: ${status}`);
+          
           try {
             if (webhookRes) {
               webhookResponseText = await webhookRes.text();
@@ -538,7 +561,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
               }
               console.error('[Webhook] Non-200 response body:', error_details);
             }
-          } catch {
+          } catch (textError) {
+            console.error('[Webhook] Failed to read response text:', textError);
             if (!error_details) {
               error_details = error;
             }
@@ -562,9 +586,33 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           originalPayload: payloadWithIdempotency,
         };
       } catch (err) {
+        console.error('[Webhook] Exception caught during webhook call:', err);
+        console.error('[Webhook] Error type:', err instanceof Error ? err.constructor.name : typeof err);
+        console.error('[Webhook] Error name:', err instanceof Error ? err.name : 'N/A');
+        console.error('[Webhook] Error message:', err instanceof Error ? err.message : String(err));
+        
         status = 'fail';
-        error = 'Webhook call failed';
-        error_details = err instanceof Error ? err.message : String(err);
+        
+        // Handle different types of errors more specifically
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            error = 'Webhook timeout - request exceeded timeout limit';
+            error_details = `The webhook request timed out after ${timeoutMs / 1000} seconds. This could indicate:
+1. The external service is taking too long to respond
+2. Network connectivity issues
+3. The timeout setting may be too low for the service
+4. The external service is overloaded`;
+          } else if (err.message.includes('fetch')) {
+            error = 'Webhook network error';
+            error_details = `Network error during webhook call: ${err.message}`;
+          } else {
+            error = 'Webhook call failed';
+            error_details = err.message;
+          }
+        } else {
+          error = 'Webhook call failed';
+          error_details = String(err);
+        }
         
         payload = {
           ...(job.webhook_payload || {}),
@@ -576,6 +624,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           responseMode: responseMode,
           // Webhook error information
           webhookError: error,
+          webhookErrorDetails: error_details,
         };
         
         console.error('[Webhook] Call failed:', error_details);

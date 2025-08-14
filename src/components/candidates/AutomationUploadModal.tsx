@@ -164,7 +164,7 @@ export const AutomationUploadModal: React.FC<AutomationUploadModalProps> = ({ is
         </DialogHeader>
         <div className="space-y-4 py-2">
                       <div>
-              <Label htmlFor="position-select">Assign to Position (optional)</Label>
+              <Label htmlFor="position-select">Assign to Position </Label>
               <div className="mt-2">
                 <PositionSelectDropdown
                   value={selectedPositionId}

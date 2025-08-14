@@ -278,7 +278,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
           {/* Left Column - Position Selection and File Upload Area */}
           <div className="space-y-4">
                           <div>
-                <Label htmlFor="position-select">Assign to Position (optional)</Label>
+                <Label htmlFor="position-select">Assign to Position</Label>
                 <div className="mt-2">
                   <PositionMultiSelectDropdown
                     selectedIds={selectedPositionIds}

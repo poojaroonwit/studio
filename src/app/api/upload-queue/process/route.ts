@@ -523,46 +523,47 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
       console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
       
-      // Retry loop with exponential backoff
-      while (retryCount <= maxRetries) {
-        try {
-          console.log(`[Webhook] Attempt ${retryCount + 1}/${maxRetries + 1} (no timeout)`);
-          
-          // No timeout - let the webhook call run indefinitely
-          webhookRes = await fetch(resumeWebhookUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payloadWithIdempotency),
-          });
-          
-          webhookResStatus = webhookRes.status;
-          
-          console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
-          console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
-          console.log(`[Webhook] Response ok:`, webhookRes.ok);
-          console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
-          
-          if (webhookResStatus === 200) {
-            status = 'success';
-            error = null;
-            error_details = null;
-            console.log(`[Webhook] Success - Status 200 received on attempt ${retryCount + 1}`);
-            break; // Exit retry loop on success
-          } else if (webhookResStatus === 504) {
-            // 504 Gateway Timeout - retry with exponential backoff
-            console.log(`[Webhook] 504 Gateway Timeout received on attempt ${retryCount + 1}`);
+      try {
+        // Retry loop with exponential backoff
+        while (retryCount <= maxRetries) {
+          try {
+            console.log(`[Webhook] Attempt ${retryCount + 1}/${maxRetries + 1} (no timeout)`);
             
-            if (retryCount < maxRetries) {
-              const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-              console.log(`[Webhook] Retrying in ${delay}ms...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              retryCount++;
-              continue; // Continue to next retry
-            } else {
-              // Max retries reached
-              status = 'fail';
-              error = `Gateway timeout (504) - Max retries (${maxRetries}) reached`;
-              error_details = `The external resume processing service returned 504 Gateway Timeout after ${maxRetries} retry attempts. This indicates:
+            // No timeout - let the webhook call run indefinitely
+            webhookRes = await fetch(resumeWebhookUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(payloadWithIdempotency),
+            });
+            
+            webhookResStatus = webhookRes.status;
+            
+            console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
+            console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
+            console.log(`[Webhook] Response ok:`, webhookRes.ok);
+            console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
+            
+            if (webhookResStatus === 200) {
+              status = 'success';
+              error = null;
+              error_details = null;
+              console.log(`[Webhook] Success - Status 200 received on attempt ${retryCount + 1}`);
+              break; // Exit retry loop on success
+            } else if (webhookResStatus === 504) {
+              // 504 Gateway Timeout - retry with exponential backoff
+              console.log(`[Webhook] 504 Gateway Timeout received on attempt ${retryCount + 1}`);
+              
+              if (retryCount < maxRetries) {
+                const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+                console.log(`[Webhook] Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                retryCount++;
+                continue; // Continue to next retry
+              } else {
+                // Max retries reached
+                status = 'fail';
+                error = `Gateway timeout (504) - Max retries (${maxRetries}) reached`;
+                error_details = `The external resume processing service returned 504 Gateway Timeout after ${maxRetries} retry attempts. This indicates:
 1. The external service is experiencing high load or processing delays
 2. The service may be temporarily unavailable
 3. All retry attempts have been exhausted
@@ -572,36 +573,36 @@ Consider:
 - Checking the external service status
 - The service may be overloaded
 - Contact the service provider for assistance`;
-              console.log(`[Webhook] Max retries reached - giving up`);
+                console.log(`[Webhook] Max retries reached - giving up`);
+                break;
+              }
+            } else {
+              // Other error status codes - don't retry
+              status = 'fail';
+              error = `Webhook responded with status ${webhookResStatus}`;
+              console.log(`[Webhook] Non-504 error - Status ${webhookResStatus} received`);
               break;
             }
-          } else {
-            // Other error status codes - don't retry
-            status = 'fail';
-            error = `Webhook responded with status ${webhookResStatus}`;
-            console.log(`[Webhook] Non-504 error - Status ${webhookResStatus} received`);
-            break;
-          }
-          
-        } catch (fetchError) {
-          console.error(`[Webhook] Fetch error on attempt ${retryCount + 1}:`, fetchError);
-          
-          if (retryCount < maxRetries) {
-            const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-            console.log(`[Webhook] Retrying in ${delay}ms due to fetch error...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            retryCount++;
-            continue; // Continue to next retry
-          } else {
-            // Max retries reached
-            status = 'fail';
-            error = `Fetch error after ${maxRetries} retry attempts`;
-            error_details = `Failed to connect to webhook service after ${maxRetries} retry attempts. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
-            console.log(`[Webhook] Max retries reached due to fetch errors - giving up`);
-            break;
+            
+          } catch (fetchError) {
+            console.error(`[Webhook] Fetch error on attempt ${retryCount + 1}:`, fetchError);
+            
+            if (retryCount < maxRetries) {
+              const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+              console.log(`[Webhook] Retrying in ${delay}ms due to fetch error...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              retryCount++;
+              continue; // Continue to next retry
+            } else {
+              // Max retries reached
+              status = 'fail';
+              error = `Fetch error after ${maxRetries} retry attempts`;
+              error_details = `Failed to connect to webhook service after ${maxRetries} retry attempts. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+              console.log(`[Webhook] Max retries reached due to fetch errors - giving up`);
+              break;
+            }
           }
         }
-      }
       
       // Read response text if available
       try {

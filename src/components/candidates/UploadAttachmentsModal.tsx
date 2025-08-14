@@ -216,7 +216,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
                       <Tag className="w-4 h-4 text-muted-foreground" />
                       <Select value={tag} onValueChange={(value) => updateFileTag(index, value)} disabled={isUploading}>
                         <SelectTrigger className="h-8 text-sm w-full bg-background border border-border hover:bg-accent hover:text-accent-foreground">
-                          <SelectValue placeholder="Select file type (optional)" />
+                          <SelectValue placeholder="Select file type" />
                         </SelectTrigger>
                         <SelectContent className="z-[9999]">
                           {PREDEFINED_TAGS.map((tagOption) => (

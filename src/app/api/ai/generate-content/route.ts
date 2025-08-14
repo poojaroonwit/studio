@@ -137,23 +137,57 @@ export async function POST(request: NextRequest) {
         
 
         
-        // Get job matches if position exists
-        let jobMatches = null;
+        // Get all job matches for the candidate (not just the applied position)
+        const matchesQuery = `
+          SELECT 
+            jm."fitScore",
+            jm."matchReasons",
+            jm."createdAt",
+            jm."jobDescriptionSummary",
+            jm."jobId",
+            jm."jobTitle",
+            p.title as "positionTitle",
+            p.department as "positionDepartment",
+            p.description as "positionDescription",
+            p."positionLevel" as "positionLevel",
+            p."isOpen" as "positionIsOpen",
+            p."customAttributes" as "positionCustomAttributes",
+            p."matchCriteria" as "positionMatchCriteria",
+            p."createdAt" as "positionCreatedAt",
+            p."updatedAt" as "positionUpdatedAt"
+          FROM "JobMatch" jm
+          LEFT JOIN "Position" p ON jm."jobId" = p.id
+          WHERE jm."candidateId" = $1
+          ORDER BY jm."fitScore" DESC, jm."createdAt" DESC
+          LIMIT 10
+        `;
+        
+        const matchesResult = await client.query(matchesQuery, [candidateId]);
+        const jobMatches = matchesResult.rows;
+        
+        // Get the applied position data separately
+        let appliedPositionData = null;
         if (candidate.positionId) {
-          const matchesQuery = `
+          const appliedPositionQuery = `
             SELECT 
-              "matchScore",
-              "matchDetails",
-              "matchedAt",
-              "matchCriteria"
-            FROM "JobMatch"
-            WHERE "candidateId" = $1 AND "positionId" = $2
-            ORDER BY "matchedAt" DESC
-            LIMIT 5
+              p.id,
+              p.title,
+              p.department,
+              p.description,
+              p."positionLevel",
+              p."isOpen",
+              p."customAttributes",
+              p."matchCriteria",
+              p."createdAt",
+              p."updatedAt"
+            FROM "Position" p
+            WHERE p.id = $1
           `;
           
-          const matchesResult = await client.query(matchesQuery, [candidateId, candidate.positionId]);
-          jobMatches = matchesResult.rows;
+          const appliedPositionResult = await client.query(appliedPositionQuery, [candidate.positionId]);
+          if (appliedPositionResult.rows.length > 0) {
+            appliedPositionData = appliedPositionResult.rows[0];
+          }
         }
         
         return {
@@ -164,7 +198,8 @@ export async function POST(request: NextRequest) {
           attachments: attachmentsResult.rows,
           candidateComments: candidateCommentsResult.rows,
           transitionRecords: transitionRecordsResult.rows,
-          jobMatches
+          jobMatches,
+          appliedPositionData
         };
       } finally {
         client.release();
@@ -187,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch comprehensive candidate data
     const candidateData = await getCandidateData(candidateId);
-    const { candidate, comments, transitions, resumes, attachments, candidateComments, transitionRecords, jobMatches } = candidateData;
+    const { candidate, comments, transitions, resumes, attachments, candidateComments, transitionRecords, jobMatches, appliedPositionData } = candidateData;
     
     const dbApiKey = await getSystemSetting('geminiApiKey');
     const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
@@ -223,13 +258,17 @@ export async function POST(request: NextRequest) {
       },
       education: candidate.educationData || [],
       experience: candidate.experienceData || [],
-      position: candidate.positionId ? {
-        title: candidate.positionTitle,
-        department: candidate.positionDepartment,
-        description: candidate.positionDescription,
-        level: candidate.positionLevel,
-        isOpen: candidate.positionIsOpen,
-        customAttributes: candidate.positionCustomAttributes
+      position: appliedPositionData ? {
+        id: appliedPositionData.id,
+        title: appliedPositionData.title,
+        department: appliedPositionData.department,
+        description: appliedPositionData.description,
+        level: appliedPositionData.positionLevel,
+        isOpen: appliedPositionData.isOpen,
+        customAttributes: appliedPositionData.customAttributes,
+        matchCriteria: appliedPositionData.matchCriteria,
+        createdAt: appliedPositionData.createdAt,
+        updatedAt: appliedPositionData.updatedAt
       } : null,
       recruiter: candidate.recruiterName ? {
         name: candidate.recruiterName,
@@ -250,6 +289,66 @@ export async function POST(request: NextRequest) {
         transitions: transitions,
         transitionRecords: transitionRecords,
         jobMatches: jobMatches
+      },
+      opportunities: {
+        appliedPosition: appliedPositionData ? {
+          id: appliedPositionData.id,
+          title: appliedPositionData.title,
+          department: appliedPositionData.department,
+          description: appliedPositionData.description,
+          level: appliedPositionData.positionLevel,
+          isOpen: appliedPositionData.isOpen,
+          customAttributes: appliedPositionData.customAttributes,
+          matchCriteria: appliedPositionData.matchCriteria,
+          createdAt: appliedPositionData.createdAt,
+          updatedAt: appliedPositionData.updatedAt
+        } : null,
+        potentialMatches: jobMatches.map(match => ({
+          jobId: match.jobId,
+          jobTitle: match.jobTitle || match.positionTitle,
+          positionTitle: match.positionTitle,
+          department: match.positionDepartment,
+          description: match.positionDescription,
+          level: match.positionLevel,
+          isOpen: match.positionIsOpen,
+          customAttributes: match.positionCustomAttributes,
+          matchCriteria: match.positionMatchCriteria,
+          fitScore: match.fitScore,
+          matchReasons: match.matchReasons,
+          jobDescriptionSummary: match.jobDescriptionSummary,
+          matchedAt: match.createdAt,
+          positionCreatedAt: match.positionCreatedAt,
+          positionUpdatedAt: match.positionUpdatedAt
+        })),
+        topMatches: jobMatches
+          .filter(match => match.fitScore > 0.7)
+          .slice(0, 3)
+          .map(match => ({
+            jobTitle: match.jobTitle || match.positionTitle,
+            department: match.positionDepartment,
+            fitScore: match.fitScore,
+            matchReasons: match.matchReasons
+          })),
+        matchCriteriaAnalysis: {
+          appliedPositionCriteria: appliedPositionData?.matchCriteria || null,
+          highMatchPositions: jobMatches
+            .filter(match => match.fitScore > 0.8)
+            .map(match => ({
+              positionTitle: match.positionTitle,
+              department: match.positionDepartment,
+              matchCriteria: match.positionMatchCriteria,
+              fitScore: match.fitScore,
+              matchReasons: match.matchReasons
+            })),
+          criteriaComparison: jobMatches
+            .filter(match => match.positionMatchCriteria)
+            .map(match => ({
+              positionTitle: match.positionTitle,
+              matchCriteria: match.positionMatchCriteria,
+              fitScore: match.fitScore,
+              matchReasons: match.matchReasons
+            }))
+        }
       }
     };
 
@@ -278,6 +377,27 @@ IMPORTANT: Pay special attention to the candidate's education and experience dat
 - Detailed transition history and stage progression
 - All comments and feedback from recruiters and team members
 - Job matching scores and criteria
+
+POSITION AND OPPORTUNITY ANALYSIS:
+- The candidate's applied position and its specific requirements, including detailed match criteria
+- All potential job matches with fit scores and match reasons
+- Top 3 highest-scoring position matches (fit score > 70%)
+- Alternative career opportunities and growth paths
+- How the candidate's profile aligns with different positions and departments
+- Recommendations for position transitions or career development
+- Analysis of the candidate's fit across multiple positions and career trajectories
+- Insights into the candidate's potential for different roles and responsibilities
+- Strategic recommendations for career advancement opportunities
+
+MATCH CRITERIA AND JOB DESCRIPTION ANALYSIS:
+- Detailed analysis of the applied position's match criteria and requirements
+- Comparison of candidate qualifications against specific position criteria
+- Analysis of job descriptions and how they align with candidate experience
+- Evaluation of match criteria across different positions and departments
+- Identification of skill gaps and areas for development
+- Assessment of how well the candidate meets each position's specific requirements
+- Recommendations based on match criteria alignment and job description fit
+- Strategic insights into the candidate's suitability for different role types
 
 Also consider the candidate's background, position requirements, matching scores, comments, transition history, and all available context to provide the most relevant and insightful analysis.
 

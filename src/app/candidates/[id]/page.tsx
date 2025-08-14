@@ -798,14 +798,21 @@ export default function CandidateDetailPage() {
     }
   }, []);
 
+  // Fetch positions and stages only once when component mounts
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      fetchRecruiters();
+      fetchPositionsAndStages();
+    }
+  }, [sessionStatus, fetchRecruiters, fetchPositionsAndStages]);
+
+  // Fetch candidate-specific data when candidateId changes
   useEffect(() => {
     if (sessionStatus === 'authenticated') {
       fetchCandidateDetails();
-      fetchRecruiters();
-      fetchPositionsAndStages();
       fetchTransitionHistory();
     }
-  }, [candidateId, sessionStatus, fetchCandidateDetails, fetchRecruiters, fetchPositionsAndStages, fetchTransitionHistory]);
+  }, [candidateId, sessionStatus, fetchCandidateDetails, fetchTransitionHistory]);
 
   useEffect(() => {
     if (fetchError) {

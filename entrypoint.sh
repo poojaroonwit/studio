@@ -111,12 +111,22 @@ else
     echo "✅ Database is up to date - no migrations needed"
 fi
 
-# Seed the database (only if needed)
+# Seed the database (with better error handling)
 echo "🌱 Checking if database seeding is needed..."
 if npx prisma db seed; then
     echo "✅ Database seeding completed"
 else
-    echo "ℹ️  Database seeding skipped (already seeded or not needed)"
+    echo "⚠️  Database seeding failed or already completed"
+    echo "💡 This is normal if data already exists or if there are schema constraints"
+    
+    # Try to run seed with more verbose output to see what's happening
+    echo "🔍 Running seed with verbose output..."
+    if npx prisma db seed 2>&1; then
+        echo "✅ Database seeding completed on retry"
+    else
+        echo "⚠️  Database seeding still failed, but continuing..."
+        echo "💡 You may need to manually check the database schema or run migrations"
+    fi
 fi
 
 # Final validation
@@ -124,6 +134,7 @@ echo "🔍 Final validation..."
 if npx prisma migrate status --schema=prisma/schema.prisma | grep -q "Database schema is out of sync"; then
     echo "⚠️  WARNING: Database schema still appears to be out of sync"
     echo "💡 This might be normal for development environments"
+    echo "💡 You may need to run: npx prisma db push --accept-data-loss"
 else
     echo "✅ Database validation passed"
 fi

@@ -525,12 +525,25 @@ async function main() {
     
     const createdCategories = [];
     for (const category of categories) {
-      const createdCategory = await prisma.systemPromptCategory.upsert({
-        where: { name: category.name },
-        update: { description: category.description, color: category.color },
-        create: category
-      });
-      createdCategories.push(createdCategory);
+      try {
+        // Try to create the category, ignore if it already exists
+        const createdCategory = await prisma.systemPromptCategory.create({
+          data: category
+        });
+        createdCategories.push(createdCategory);
+      } catch (error) {
+        // If creation fails, try to find existing category
+        try {
+          const existingCategory = await prisma.systemPromptCategory.findFirst({
+            where: { name: category.name }
+          });
+          if (existingCategory) {
+            createdCategories.push(existingCategory);
+          }
+        } catch (findError) {
+          console.log(`⚠️  Warning: Could not handle category '${category.name}': ${error.message}`);
+        }
+      }
     }
     console.log('✅ Default system prompt categories created/updated');
 

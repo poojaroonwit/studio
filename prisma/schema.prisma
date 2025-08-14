@@ -476,3 +476,19 @@ model DashboardWidget {
   @@index([dashboardId])
   @@index([type])
 }
+
+model SystemPrompt {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  content     String
+  category    String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+}

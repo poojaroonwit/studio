@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format, differenceInMonths } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target, Copy, Check, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Briefcase, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, FileText, Building2, Target, Copy, Check, RefreshCw, MoreHorizontal, BrainCircuit } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
 import UploadResumeModal from '@/components/candidates/UploadResumeModal';
@@ -44,6 +44,7 @@ import { RecruitmentPipelineCard } from './RecruitmentPipelineCard';
 import { PositionSelectDropdown } from './PositionSelectDropdown';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 import { parse, isValid } from 'date-fns';
 import JobMatchModal from './JobMatchModal';
@@ -51,6 +52,7 @@ import { CandidateRecruiterCell } from './CandidateRecruiterCell';
 import ReprocessModal from './ReprocessModal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
+import { GenerativeAIModal } from './GenerativeAIModal';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
@@ -278,6 +280,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const { data: session } = useSession();
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
+  const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -443,17 +446,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                 : (typeof s.skill_string === 'string' ? s.skill_string : '')
             })),
             job_suitable: data.parsedData?.job_suitable || [],
-            job_matches: (data.jobMatches || []).map((match: any) => ({
-              ...match,
-              matchReasons: Array.isArray(match.matchReasons) 
-                ? match.matchReasons.filter(Boolean)
-                : typeof match.matchReasons === 'string'
-                  ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                  : [],
-              matchReasons_string: Array.isArray(match.matchReasons) 
-                ? match.matchReasons.join('\n')
-                : ''
-            })),
+            job_matches: (data.jobMatches || []).map((match: any) => {
+              // Enrich job matches with position details if allDbPositions is available
+              const position = Array.isArray(allDbPositions)
+                ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
+                : null;
+              
+              return {
+                ...match,
+                jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
+                matchReasons: Array.isArray(match.matchReasons) 
+                  ? match.matchReasons.filter(Boolean)
+                  : typeof match.matchReasons === 'string'
+                    ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                    : [],
+                matchReasons_string: Array.isArray(match.matchReasons) 
+                  ? match.matchReasons.join('\n')
+                  : ''
+              };
+            }),
           },
         });
       } catch (err) {
@@ -465,7 +476,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     };
 
     fetchCandidate();
-  }, [candidateId, reset]);
+  }, [candidateId, allDbPositions, reset]);
 
   // Fetch transition history
   useEffect(() => {
@@ -1341,98 +1352,98 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               <div className="flex justify-end gap-3">
                 {!isEditing ? (
                   <>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={() => {
-                        setIsEditing(true);
-                        if (candidate) {
-                          reset({
-                            name: candidate.name || '',
-                            email: candidate.email || '',
-                            phone: candidate.phone || '',
-                            positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
-                            fitScore: candidate.fitScore || null,
-                            assignmentJustification: candidate.assignmentJustification
-                              ? (Array.isArray(candidate.assignmentJustification)
-                                  ? candidate.assignmentJustification
-                                  : typeof candidate.assignmentJustification === 'string'
-                                    ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                                    : [])
-                              : [],
-                            status: candidate.status || '',
-                            recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                            parsedData: {
-                              ...(candidate.parsedData as any),
-                              education: ((candidate.parsedData as any)?.education || []).map((edu: EducationEntry) => ({
-                                ...edu,
-                                startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
-                                startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
-                                endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
-                                endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
-                              })),
-                              experience: ((candidate.parsedData as any)?.experience || []).map((exp: ExperienceEntry) => ({
-                                ...exp,
-                                is_current_position: typeof exp.is_current_position === 'string'
-                                  ? exp.is_current_position === 'true'
-                                  : !!exp.is_current_position,
-                                startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
-                                startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
-                                endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
-                                endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
-                              })),
-                              skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
-                                ...s,
-                                skill_string: Array.isArray(s.skill)
-                                  ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
-                                  : (typeof s.skill_string === 'string' ? s.skill_string : '')
-                              })),
-                              job_matches: (candidate.jobMatches || []).map((match: any) => ({
-                                ...match,
-                                matchReasons: Array.isArray(match.matchReasons)
-                                  ? match.matchReasons.filter(Boolean)
-                                  : typeof match.matchReasons === 'string'
-                                    ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                                    : [],
-                                matchReasons_string: Array.isArray(match.matchReasons) 
-                                  ? match.matchReasons.join('\n')
-                                  : ''
-                              })),
-                            }
-                          });
-                        }
-                      }}
-                    >
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      Edit Candidate Profile
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={() => openManageTransitionsModal()}
-                      disabled={availableStages.length === 0}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Manage Transitions
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('Re-process button clicked (FullCandidateDetail), setting modal to open');
-                        console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
-                        setIsReprocessModalOpen(true);
-                        console.log('Modal state should now be true');
-                      }}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Re-process
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-10 w-10">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setIsEditing(true);
+                          if (candidate) {
+                            reset({
+                              name: candidate.name || '',
+                              email: candidate.email || '',
+                              phone: candidate.phone || '',
+                              positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+                              fitScore: candidate.fitScore || null,
+                              assignmentJustification: candidate.assignmentJustification
+                                ? (Array.isArray(candidate.assignmentJustification)
+                                    ? candidate.assignmentJustification
+                                    : typeof candidate.assignmentJustification === 'string'
+                                      ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                                      : [])
+                                : [],
+                              status: candidate.status || '',
+                              recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+                              parsedData: {
+                                ...(candidate.parsedData as any),
+                                education: ((candidate.parsedData as any)?.education || []).map((edu: EducationEntry) => ({
+                                  ...edu,
+                                  startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+                                  startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+                                  endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+                                  endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+                                })),
+                                experience: ((candidate.parsedData as any)?.experience || []).map((exp: ExperienceEntry) => ({
+                                  ...exp,
+                                  is_current_position: typeof exp.is_current_position === 'string'
+                                    ? exp.is_current_position === 'true'
+                                    : !!exp.is_current_position,
+                                  startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+                                  startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+                                  endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+                                  endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                                })),
+                                skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
+                                  ...s,
+                                  skill_string: Array.isArray(s.skill)
+                                    ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+                                    : (typeof s.skill_string === 'string' ? s.skill_string : '')
+                                })),
+                                job_matches: (candidate.jobMatches || []).map((match: any) => ({
+                                  ...match,
+                                  matchReasons: Array.isArray(match.matchReasons)
+                                    ? match.matchReasons.filter(Boolean)
+                                    : typeof match.matchReasons === 'string'
+                                      ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                                      : [],
+                                  matchReasons_string: Array.isArray(match.matchReasons) 
+                                    ? match.matchReasons.join('\n')
+                                    : ''
+                                })),
+                              }
+                            });
+                          }
+                        }}>
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit Candidate Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openManageTransitionsModal()} disabled={availableStages.length === 0}>
+                          <Users className="mr-2 h-4 w-4" />
+                          Manage Transitions
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Re-process button clicked (FullCandidateDetail), setting modal to open');
+                          console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
+                          setIsReprocessModalOpen(true);
+                          console.log('Modal state should now be true');
+                        }}>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Re-process
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsGenerativeAIModalOpen(true)}>
+                          <BrainCircuit className="mr-2 h-4 w-4" />
+                          Generative AI
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </>
                 ) : (
                   <div className="flex gap-2">
@@ -2808,6 +2819,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             positions={allDbPositions}
         />
         </>
+      )}
+
+      {/* Generative AI Modal */}
+      {candidate && (
+        <GenerativeAIModal
+          isOpen={isGenerativeAIModalOpen}
+          onOpenChange={setIsGenerativeAIModalOpen}
+          candidateId={candidate.id}
+          candidateName={candidate.name || 'Unknown Candidate'}
+        />
       )}
     </div>
   );

@@ -20,7 +20,8 @@ import {
   ListOrdered,
   ShieldCheck,
   Loader2,
-  Webhook
+  Webhook,
+  BrainCircuit
 } from 'lucide-react';
 import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
@@ -29,6 +30,7 @@ import { Button } from '@/components/ui/button';
 const settingsNavItems: SettingsNavigationItem[] = [
   { href: "/settings/system-settings", label: "System Settings", icon: Settings, description: "System-wide configuration.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/system-preferences", label: "Preferences", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/system-prompts", label: "System Prompts", icon: BrainCircuit, description: "Manage AI system prompts for generative features.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Define your hiring pipeline.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/data-models", label: "Data Model UI", icon: DatabaseZap, description: "Customize UI for data attributes.", permissionId: 'USER_PREFERENCES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/custom-fields", label: "Custom Fields", icon: CustomFieldsIcon, description: "Define custom fields for entities.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },

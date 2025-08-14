@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
-import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download, Building2, Copy, Check, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building, CalendarDays, DollarSign, Edit, GraduationCap, HardDrive, Info, LinkIcon, ListChecks, Loader2, Mail, MapPin, MessageSquare, Percent, Phone, ServerCrash, ShieldAlert, Star, Tag, UploadCloud, User, UserCircle, UserCog, Users, Zap, ExternalLink, Edit3, Save, X, PlusCircle, Trash2, Lightbulb, ChevronDown, ChevronRight, ChevronUp, ChevronLeft, Activity, Clock, BarChart3, Eye, Download, Building2, Copy, Check, RefreshCw, MoreHorizontal, BrainCircuit } from 'lucide-react';
 // import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, getScoreGrade } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
@@ -23,6 +23,7 @@ import { ManageTransitionsModal } from '@/components/candidates/ManageTransition
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ import { CandidateRecruiterCell } from '@/components/candidates/CandidateRecruit
 import ReprocessModal from '@/components/candidates/ReprocessModal';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import CandidateAttachmentUploadModal from '@/components/candidates/CandidateAttachmentUploadModal';
+import { GenerativeAIModal } from '@/components/candidates/GenerativeAIModal';
 
 
 const MINIO_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_MINIO_PUBLIC_BASE_URL || `http://localhost:8621`;
@@ -310,6 +312,7 @@ export default function CandidateDetailPage() {
   const [isJobMatchModalOpen, setIsJobMatchModalOpen] = useState(false);
   const [selectedJobMatch, setSelectedJobMatch] = useState<any>(null);
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
+  const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
 
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
@@ -420,32 +423,61 @@ export default function CandidateDetailPage() {
   // Update form values when candidate data is loaded
   useEffect(() => {
     if (candidate) {
+      console.log('Initializing form with candidate data:', {
+        candidateJobMatches: candidate.jobMatches,
+        allDbPositionsLength: allDbPositions.length,
+        allDbPositions: allDbPositions
+      });
+      
+      // Enrich job matches with position details if allDbPositions is available
+      const enrichedJobMatches = (candidate.jobMatches || []).map((match: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
+          : null;
+        
+        console.log('Enriching job match:', { match, position });
+        
+        return {
+          ...match,
+          jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
+          matchReasons: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.filter(Boolean)
+            : typeof match.matchReasons === 'string'
+              ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+              : [],
+          matchReasons_string: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.join('\n')
+            : ''
+        };
+      });
+      
+      console.log('Enriched job matches:', enrichedJobMatches);
+
+      // Process assignmentJustification properly
+      const assignmentJustification = candidate?.assignmentJustification
+        ? (Array.isArray(candidate.assignmentJustification)
+            ? candidate.assignmentJustification.filter(Boolean)
+            : typeof candidate.assignmentJustification === 'string'
+              ? candidate.assignmentJustification.split('\n').map((sentence) => sentence.trim()).filter(Boolean)
+              : [])
+        : [];
+
       reset({
         name: candidate.name || '',
         email: candidate.email || '',
         phone: candidate.phone || '',
-        positionId: candidate.positionId || null,
-        fitScore: candidate.fitScore || null,
-        assignmentJustification: [],
+        positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+        fitScore: candidate?.fitScore || null,
+        assignmentJustification: assignmentJustification,
         status: candidate.status || '',
-        recruiterId: candidate.recruiterId || null,
+        recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          job_matches: (candidate.jobMatches || []).map((match: any) => ({
-            ...match,
-            matchReasons: Array.isArray(match.matchReasons) 
-              ? match.matchReasons.filter(Boolean)
-              : typeof match.matchReasons === 'string'
-                ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                : [],
-            matchReasons_string: Array.isArray(match.matchReasons) 
-              ? match.matchReasons.join('\n')
-              : ''
-          }))
+          job_matches: enrichedJobMatches
         }
       });
     }
-  }, [candidate, reset]);
+  }, [candidate, allDbPositions, reset]);
 
   // Form submission handler
   const onSubmit = (data: EditCandidateFormValues) => {
@@ -503,60 +535,7 @@ export default function CandidateDetailPage() {
   const { fields: jobSuitableFields, append: appendJobSuitable, remove: removeJobSuitable } = useFieldArray({ control, name: "parsedData.job_suitable" });
   const { fields: jobMatchesFields, append: appendJobMatch, remove: removeJobMatch } = useFieldArray({ control, name: "parsedData.job_matches" });
 
-  // Update form when candidate data changes
-  useEffect(() => {
-    console.log('Candidate ID Page - useEffect triggered, candidate:', candidate);
-    if (candidate) {
-      console.log('Candidate parsedData:', candidate.parsedData);
-      console.log('Candidate jobMatches:', candidate.jobMatches);
-      reset({
-        name: candidate.name || '',
-        email: candidate.email || '',
-        phone: candidate.phone || '',
-        positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
-        fitScore: candidate?.fitScore || null,
-        assignmentJustification: (() => {
-          console.log('DEBUG - Raw assignmentJustification from candidate:', candidate?.assignmentJustification);
-          console.log('DEBUG - Type of assignmentJustification:', typeof candidate?.assignmentJustification);
-          console.log('DEBUG - Is Array?', Array.isArray(candidate?.assignmentJustification));
-          
-          // Using the same processing logic as FullCandidateDetail component
-          const result = candidate?.assignmentJustification
-            ? (Array.isArray(candidate.assignmentJustification)
-                ? candidate.assignmentJustification.filter(Boolean)
-                : typeof candidate.assignmentJustification === 'string'
-                  ? candidate.assignmentJustification.split('\n').map((sentence) => sentence.trim()).filter(Boolean)
-                  : [])
-            : [];
-          console.log('Candidate ID Page - Loading assignmentJustification:', {
-            original: candidate?.assignmentJustification,
-            split: result,
-            length: result.length
-          });
-          return result;
-        })(),
-        status: candidate.status || '',
-        recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
-        parsedData: {
-          ...(candidate.parsedData as any) || {},
-          job_matches: (candidate.jobMatches || []).map((match: any) => {
-            // Use the enriched job matches that were processed in the useEffect
-            return {
-              jobId: match.jobId,
-              jobTitle: match.jobTitle || match.positionTitle || '',
-              fitScore: match.fitScore || 0,
-              matchReasons: match.matchReasons || [],
-              matchReasons_string: Array.isArray(match.matchReasons) 
-                ? match.matchReasons.join('\n')
-                : '',
-              is_applied_job: match.jobId === candidate.positionId
-            };
-          })
-        }
-      });
-      // Form reset with parsedData and job matches complete
-    }
-  }, [candidate, reset]);
+
 
   // Update filtered recruiters when search term or recruiters list changes
   useEffect(() => {
@@ -1142,7 +1121,7 @@ export default function CandidateDetailPage() {
               ? (Array.isArray(candidate.assignmentJustification)
                   ? candidate.assignmentJustification
                   : typeof candidate.assignmentJustification === 'string'
-                    ? candidate.assignmentJustification.split(/[\n\r,]+/).filter((item: string) => item.trim() !== '')
+                    ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
                     : [])
               : [],
             status: candidate.status,
@@ -1942,63 +1921,62 @@ export default function CandidateDetailPage() {
                   <div className="flex justify-end gap-3">
                     {!isEditing ? (
                       <>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                          onClick={() => {
-                            setIsEditing(true);
-                            if (candidate) {
-                              reset({
-                                name: candidate.name || '',
-                                email: candidate.email || '',
-                                phone: candidate.phone || '',
-                                positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
-                                fitScore: candidate?.fitScore || null,
-                                assignmentJustification: candidate?.assignmentJustification
-                                  ? (Array.isArray(candidate.assignmentJustification)
-                                    ? candidate.assignmentJustification
-                                      : typeof candidate.assignmentJustification === 'string'
-                                        ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                                        : [])
-                                  : [],
-                                status: candidate.status || '',
-                                recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
-                                parsedData: (candidate?.parsedData as any) || {}
-                              });
-                            }
-                          }}
-                        >
-                          <Edit3 className="h-4 w-4 mr-2" />
-                          Edit Candidate Profile
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                          onClick={() => openManageTransitionsModal()}
-                          disabled={availableStages.length === 0}
-                        >
-                          <Users className="h-4 w-4 mr-2" />
-                          Manage Transitions
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          className="bg-gradient-to-r from-background/80 to-background/60 backdrop-blur-sm border-border/50 hover:from-primary/10 hover:to-primary/5 hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-xl"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Re-process button clicked, setting modal to open');
-                            console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
-                            setIsReprocessModalOpen(true);
-                            console.log('Modal state should now be true');
-                          }}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Re-process
-                        </Button>
-                        {/* Removed Export to Excel button as per requirements */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-10 w-10">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              setIsEditing(true);
+                              if (candidate) {
+                                reset({
+                                  name: candidate.name || '',
+                                  email: candidate.email || '',
+                                  phone: candidate.phone || '',
+                                  positionId: !candidate?.positionId || candidate?.positionId === '' ? null : candidate?.positionId,
+                                  fitScore: candidate?.fitScore || null,
+                                  assignmentJustification: candidate?.assignmentJustification
+                                    ? (Array.isArray(candidate.assignmentJustification)
+                                      ? candidate.assignmentJustification
+                                        : typeof candidate.assignmentJustification === 'string'
+                                          ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+                                          : [])
+                                    : [],
+                                  status: candidate.status || '',
+                                  recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
+                                  parsedData: (candidate?.parsedData as any) || {}
+                                });
+                              }
+                            }}>
+                              <Edit3 className="mr-2 h-4 w-4" />
+                              Edit Candidate Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openManageTransitionsModal()} disabled={availableStages.length === 0}>
+                              <Users className="mr-2 h-4 w-4" />
+                              Manage Transitions
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Re-process button clicked, setting modal to open');
+                              console.log('Current isReprocessModalOpen state:', isReprocessModalOpen);
+                              setIsReprocessModalOpen(true);
+                              console.log('Modal state should now be true');
+                            }}>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Re-process
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setIsGenerativeAIModalOpen(true)}>
+                              <BrainCircuit className="mr-2 h-4 w-4" />
+                              Generative AI
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </>
                     ) : (
                       <div className="flex gap-2">
@@ -3374,6 +3352,16 @@ export default function CandidateDetailPage() {
               positions={allDbPositions}
             />
           </>
+        )}
+
+        {/* Generative AI Modal */}
+        {candidate && (
+          <GenerativeAIModal
+            isOpen={isGenerativeAIModalOpen}
+            onOpenChange={setIsGenerativeAIModalOpen}
+            candidateId={candidate.id}
+            candidateName={candidate.name || 'Unknown Candidate'}
+          />
         )}
 
         {/* Floating Save/Cancel Buttons for Edit Mode */}

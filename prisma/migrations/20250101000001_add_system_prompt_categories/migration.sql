@@ -24,18 +24,18 @@ ALTER TABLE "SystemPrompt" ADD CONSTRAINT "SystemPrompt_categoryId_fkey" FOREIGN
 -- Create index on categoryId
 CREATE INDEX "SystemPrompt_categoryId_idx" ON "SystemPrompt"("categoryId");
 
--- Insert default categories
-INSERT INTO "SystemPromptCategory" ("id", "name", "description", "color", "is_active", "created_at", "updated_at") VALUES
-    (gen_random_uuid(), 'Job Description Generation', 'Prompts for generating job descriptions and requirements', '#3B82F6', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (gen_random_uuid(), 'Candidate Analysis', 'Prompts for analyzing candidate profiles and qualifications', '#10B981', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (gen_random_uuid(), 'Email Templates', 'Prompts for generating email templates and communications', '#F59E0B', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (gen_random_uuid(), 'Report Generation', 'Prompts for generating reports and summaries', '#8B5CF6', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    (gen_random_uuid(), 'General', 'General purpose prompts for various tasks', '#6B7280', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+-- -- Insert default categories
+-- INSERT INTO "SystemPromptCategory" ("id", "name", "description", "color", "is_active", "created_at", "updated_at") VALUES
+--     (gen_random_uuid(), 'Job Description Generation', 'Prompts for generating job descriptions and requirements', '#3B82F6', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+--     (gen_random_uuid(), 'Candidate Analysis', 'Prompts for analyzing candidate profiles and qualifications', '#10B981', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+--     (gen_random_uuid(), 'Email Templates', 'Prompts for generating email templates and communications', '#F59E0B', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+--     (gen_random_uuid(), 'Report Generation', 'Prompts for generating reports and summaries', '#8B5CF6', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+--     (gen_random_uuid(), 'General', 'General purpose prompts for various tasks', '#6B7280', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
--- Update existing SystemPrompt records to use the General category
-UPDATE "SystemPrompt" 
-SET "categoryId" = (SELECT id FROM "SystemPromptCategory" WHERE name = 'General' LIMIT 1)
-WHERE "categoryId" IS NULL;
+-- -- Update existing SystemPrompt records to use the General category
+-- UPDATE "SystemPrompt" 
+-- SET "categoryId" = (SELECT id FROM "SystemPromptCategory" WHERE name = 'General' LIMIT 1)
+-- WHERE "categoryId" IS NULL;
 
 -- Make categoryId NOT NULL after setting default values
 ALTER TABLE "SystemPrompt" ALTER COLUMN "categoryId" SET NOT NULL;

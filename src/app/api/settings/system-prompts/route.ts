@@ -84,9 +84,10 @@ export async function POST(request: NextRequest) {
   const client = await pool.connect();
 
   try {
+    // Generate UUID for the id field
     const result = await client.query(`
-      INSERT INTO "SystemPrompt" (name, description, content, category, is_active, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      INSERT INTO "SystemPrompt" (id, name, description, content, category, is_active, created_at, updated_at)
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING 
         id,
         name,

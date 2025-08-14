@@ -454,15 +454,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
               
               return {
                 ...match,
+                jobId: position ? position.id : match.jobId,
                 jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
-                matchReasons: Array.isArray(match.matchReasons) 
-                  ? match.matchReasons.filter(Boolean)
-                  : typeof match.matchReasons === 'string'
-                    ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                    : [],
-                matchReasons_string: Array.isArray(match.matchReasons) 
-                  ? match.matchReasons.join('\n')
-                  : ''
+                positionTitle: match.positionTitle || match.jobTitle || '',
+                position: position
+                  ? {
+                      id: position.id,
+                      title: position.title,
+                      description: position.description,
+                      department: position.department,
+                      requirements: (position as any).requirements,
+                      isOpen: position.isOpen,
+                    }
+                  : match.position,
               };
             }),
           },
@@ -565,7 +569,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
         return {
           ...jm,
           jobId: position ? position.id : jm.jobId,
-          jobTitle: position ? position.title : jm.jobTitle,
+          jobTitle: position ? position.title : (jm.jobTitle || jm.positionTitle || ''),
+          positionTitle: jm.positionTitle || jm.jobTitle || '',
           position: position
             ? {
                 id: position.id,
@@ -1910,11 +1915,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                     {candidateJobMatches && candidateJobMatches.length > 0 ? (
                       <div className="grid gap-4">
                         {candidateJobMatches.map((match: any, index: number) => {
+                          // Try to find position by jobId first, then by jobTitle
+                          const position = Array.isArray(allDbPositions) ? 
+                                         (allDbPositions.find(p => p.id === match.jobId) || 
+                                          allDbPositions.find(p => p.title === match.jobTitle)) : null;
+                          
+                          // Use the best available title: position title, then jobTitle from match, then fallback
+                          const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
+                          
                           return (
                             <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="font-semibold">{match.jobTitle || 'Unknown Position'}</h4>
+                                  <h4 className="font-semibold">{displayTitle}</h4>
                                   {match.fitScore !== undefined && match.fitScore !== null && (
                                     <ScoreBadge score={match.fitScore}>
                                       {formatScoreWithGrade(match.fitScore)}

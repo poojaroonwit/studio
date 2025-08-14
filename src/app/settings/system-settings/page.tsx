@@ -28,6 +28,7 @@ export default function SystemSettingsPage() {
   const [resumeProcessingWebhookUrl, setResumeProcessingWebhookUrl] = useState('');
   const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
   const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
+  const [resumeProcessingWebhookTimeout, setResumeProcessingWebhookTimeout] = useState(7200);
   const [generalPdfWebhookUrl, setGeneralPdfWebhookUrl] = useState('');
   const [generalPdfWebhookToken, setGeneralPdfWebhookToken] = useState('');
   const [generalPdfWebhookResponseMode, setGeneralPdfWebhookResponseMode] = useState('blocking');
@@ -66,6 +67,7 @@ export default function SystemSettingsPage() {
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
+      setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '7200', 10));
       setGeneralPdfWebhookUrl(settings.generalPdfWebhookUrl || '');
       setGeneralPdfWebhookToken(settings.generalPdfWebhookToken || '');
       setGeneralPdfWebhookResponseMode(settings.generalPdfWebhookResponseMode || 'blocking');
@@ -108,6 +110,7 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl },
       { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
       { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode },
+      { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
       { key: 'generalPdfWebhookUrl', value: generalPdfWebhookUrl },
       { key: 'generalPdfWebhookToken', value: generalPdfWebhookToken },
       { key: 'generalPdfWebhookResponseMode', value: generalPdfWebhookResponseMode },
@@ -374,6 +377,23 @@ export default function SystemSettingsPage() {
                         </Select>
                         <p className="text-xs text-muted-foreground">
                           Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="resume-processing-webhook-timeout">Webhook Timeout (seconds)</Label>
+                        <Input 
+                          id="resume-processing-webhook-timeout" 
+                          type="number" 
+                          placeholder="7200" 
+                          value={resumeProcessingWebhookTimeout} 
+                          onChange={(e) => setResumeProcessingWebhookTimeout(parseInt(e.target.value) || 7200)} 
+                          disabled={isSaving}
+                          min="30"
+                          max="36000"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Timeout for webhook requests in seconds. Default is 7200 seconds (2 hours). Minimum 30 seconds, maximum 36000 seconds (10 hours).
                         </p>
                       </div>
                     </CardContent>

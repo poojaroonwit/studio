@@ -429,30 +429,6 @@ export default function CandidateDetailPage() {
         allDbPositions: allDbPositions
       });
       
-      // Enrich job matches with position details if allDbPositions is available
-      const enrichedJobMatches = (candidate.jobMatches || []).map((match: any) => {
-        const position = Array.isArray(allDbPositions)
-          ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
-          : null;
-        
-        console.log('Enriching job match:', { match, position });
-        
-        return {
-          ...match,
-          jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
-          matchReasons: Array.isArray(match.matchReasons) 
-            ? match.matchReasons.filter(Boolean)
-            : typeof match.matchReasons === 'string'
-              ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-              : [],
-          matchReasons_string: Array.isArray(match.matchReasons) 
-            ? match.matchReasons.join('\n')
-            : ''
-        };
-      });
-      
-      console.log('Enriched job matches:', enrichedJobMatches);
-
       // Process assignmentJustification properly
       const assignmentJustification = candidate?.assignmentJustification
         ? (Array.isArray(candidate.assignmentJustification)
@@ -473,11 +449,13 @@ export default function CandidateDetailPage() {
         recruiterId: !candidate?.recruiterId || candidate?.recruiterId === '' ? null : candidate?.recruiterId,
         parsedData: {
           ...(candidate.parsedData as any) || {},
-          job_matches: enrichedJobMatches
+          job_matches: [] // Initialize with empty array, will be populated by the candidateJobMatches effect
         }
       });
     }
-  }, [candidate, allDbPositions, reset]);
+  }, [candidate, reset]);
+
+
 
   // Form submission handler
   const onSubmit = (data: EditCandidateFormValues) => {
@@ -1236,7 +1214,8 @@ export default function CandidateDetailPage() {
         return {
           ...jm,
           jobId: position ? position.id : jm.jobId,
-          jobTitle: position ? position.title : jm.jobTitle,
+          jobTitle: position ? position.title : (jm.jobTitle || jm.positionTitle || ''),
+          positionTitle: jm.positionTitle || jm.jobTitle || '',
           position: position
             ? {
                 id: position.id,
@@ -1254,6 +1233,21 @@ export default function CandidateDetailPage() {
       setCandidateJobMatches([]);
     }
   }, [candidate, allDbPositions]);
+
+  // Update form job_matches when candidateJobMatches changes
+  useEffect(() => {
+    if (candidateJobMatches.length > 0) {
+      // Update the form's job_matches field with the enriched data
+      setValue('parsedData.job_matches', candidateJobMatches.map((match: any) => ({
+        ...match,
+        matchReasons: Array.isArray(match.matchReasons) 
+          ? match.matchReasons.filter(Boolean)
+          : typeof match.matchReasons === 'string'
+            ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+            : [],
+      })));
+    }
+  }, [candidateJobMatches, setValue]);
 
   // Unified function to open ManageTransitionsModal
   const openManageTransitionsModal = (stageName?: string) => {
@@ -2548,12 +2542,16 @@ export default function CandidateDetailPage() {
                                   const position = Array.isArray(allDbPositions) ? 
                                                  (allDbPositions.find(p => p.id === match.jobId) || 
                                                   allDbPositions.find(p => p.title === match.jobTitle)) : null;
+                                  
+                                  // Use the best available title: position title, then jobTitle from match, then fallback
+                                  const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
+                                  
                                   return (
                                     <Card key={`jobmatch-${index}-${match.jobTitle || index}`} className="flex-shrink-0 w-70 p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleJobMatchClick(match)}>
                                       <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                           <h4 className="font-semibold text-foreground text-sm truncate">
-                                            {position?.title || match.jobTitle || 'Unknown Position'}
+                                            {displayTitle}
                                           </h4>
                                           {match.fitScore !== undefined && match.fitScore !== null && (
                                             <ScoreBadge score={match.fitScore}>

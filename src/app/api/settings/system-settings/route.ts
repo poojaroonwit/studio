@@ -101,7 +101,7 @@ const systemSettingKeyEnum = z.enum([
     'loginPageFooter',
     'maxConcurrentProcessors',
     // Webhook Configuration
-    'resumeProcessingWebhookResponseMode', 'generalPdfWebhookResponseMode',
+    'resumeProcessingWebhookResponseMode', 'resumeProcessingWebhookTimeout', 'generalPdfWebhookResponseMode',
     // Manual Link Configuration
     'manualLink', 'manualType',
 ]);

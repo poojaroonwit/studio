@@ -118,7 +118,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Get job matches for this candidate
     const jobMatchesQuery = `
-      SELECT jm.*, p.title as "positionTitle"
+      SELECT 
+        jm.*,
+        p.title as "positionTitle",
+        p.department as "positionDepartment",
+        p.description as "positionDescription"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1::uuid
@@ -146,6 +150,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
         fitScore: match.fitScore,
+        jobTitle: match.jobTitle || match.positionTitle || null,
+        positionTitle: match.positionTitle || match.jobTitle || null,
       })) || [],
       attachmentHistory: attachmentsResult.rows || [],
       custom_attributes: candidate.customAttributes || {},

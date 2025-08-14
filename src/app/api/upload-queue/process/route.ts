@@ -516,7 +516,8 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       try {
         console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
-        console.log(`[Webhook] Timeout: ${timeoutMs}ms`);
+        console.log(`[Webhook] Timeout: ${timeoutMs}ms (${timeoutMs / 1000} seconds)`);
+        console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
         
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
@@ -540,12 +541,19 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         } else {
           status = 'fail';
           if (webhookResStatus === 504) {
-            error = `Gateway timeout (504) - External service overloaded`;
-            error_details = `The external resume processing service is returning 504 Gateway Timeout. This indicates the service is overloaded or experiencing high load. Consider:
-1. Checking the external service status
-2. Reducing concurrent requests
-3. Implementing exponential backoff
-4. Contacting the service provider`;
+            error = `Gateway timeout (504) - External service overloaded or timeout`;
+            error_details = `The external resume processing service is returning 504 Gateway Timeout. This could indicate:
+1. The external service is overloaded or experiencing high load
+2. The request took longer than the external service's timeout limit
+3. Network connectivity issues between your server and the external service
+4. The external service is down or unreachable
+
+Current timeout setting: ${timeoutMs / 1000} seconds
+Consider:
+- Checking the external service status
+- Reducing concurrent requests
+- Increasing the webhook timeout setting if the service is slow but reliable
+- Contacting the service provider`;
           } else {
             error = `Webhook responded with status ${webhookResStatus}`;
           }

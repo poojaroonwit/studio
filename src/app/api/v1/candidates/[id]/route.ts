@@ -95,7 +95,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const candidate = candidateResult.rows[0];
     // Get job matches for this candidate
     const jobMatchesQuery = `
-      SELECT jm.*, p.title as "positionTitle"
+      SELECT 
+        jm.*,
+        p.title as "positionTitle",
+        p.department as "positionDepartment",
+        p.description as "positionDescription"
       FROM "JobMatch" jm
       LEFT JOIN "Position" p ON jm."jobId" = p.id
       WHERE jm."candidateId" = $1
@@ -122,6 +126,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
         fitScore: match.fitScore,
+        jobTitle: match.jobTitle || match.positionTitle || null,
+        positionTitle: match.positionTitle || match.jobTitle || null,
       })),
       resumeHistory: resumeHistoryResult.rows,
     }, 200);

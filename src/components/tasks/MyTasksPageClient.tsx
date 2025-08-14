@@ -269,13 +269,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
     // Check if the status is the same (no change needed)
     if (candidate.status === newStatus) {
-      console.log('Status unchanged, no update needed');
+  
       return;
     }
 
-    console.log('Moving candidate:', candidate.id, 'from', candidate.status, 'to', newStatus);
-    console.log('Candidate data:', candidate);
-    console.log('Request payload:', { status: newStatus });
+
 
     // Optimistically update UI
     setCandidates((prev) =>
@@ -291,7 +289,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     }).then(response => {
-      console.log('GET API Response status:', response.status);
+  
       if (!response.ok) {
         console.error('Candidate not found or API endpoint not accessible');
         // Revert optimistic update
@@ -315,8 +313,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }).then(async response => {
       if (!response) return; // GET failed, don't proceed
       
-      console.log('API Response status:', response.status);
-      console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+      
       
       if (!response.ok) {
         // Get error details from response
@@ -359,7 +356,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           toast.error(errorMessage);
         }
       } else {
-        console.log('Successfully moved candidate:', candidate.id, 'to status:', newStatus);
+    
         toast.success(`Moved ${candidate.name} to ${newStatus}`);
       }
     }).catch(error => {

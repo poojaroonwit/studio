@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+# Entrypoint script for Studio application
+# Handles automatic database migration and seeding for both fresh deployments and upgrades
+# Updated to properly handle fresh database initialization with migration creation
+
 # Set default environment variables
 export NODE_ENV=${NODE_ENV:-production}
 export PORT=${PORT:-8021}
@@ -15,7 +19,7 @@ echo "📊 Using DATABASE_URL: $(echo \"$DATABASE_URL\" | cut -c1-30)..."
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."
-if ! npx prisma generate; then
+if ! npx prisma generate --schema=prisma/schema.prisma; then
     echo "❌ ERROR: Failed to generate Prisma client"
     exit 1
 fi
@@ -52,6 +56,13 @@ FRESH_DB=0
 if ! echo "SELECT COUNT(*) FROM _prisma_migrations;" | npx prisma db execute --stdin --schema=prisma/schema.prisma > /dev/null 2>&1; then
     FRESH_DB=1
     echo "🆕 Fresh database detected - will create initial migration"
+else
+    # Additional check: if migrations table exists but is empty, treat as fresh
+    MIGRATION_COUNT=$(echo "SELECT COUNT(*) FROM _prisma_migrations;" | npx prisma db execute --stdin --schema=prisma/schema.prisma 2>/dev/null | grep -E '^[0-9]+$' || echo "0")
+    if [ "$MIGRATION_COUNT" -eq "0" ]; then
+        FRESH_DB=1
+        echo "🆕 Fresh database detected (empty migrations table) - will create initial migration"
+    fi
 fi
 
 # Check if there are pending migrations
@@ -78,8 +89,16 @@ if [ "$FRESH_DB" -eq 1 ]; then
     echo "🚀 Fresh deployment - creating initial migration..."
     
     # Create initial migration for fresh database
-    if npx prisma migrate deploy --schema=prisma/schema.prisma; then
+    if npx prisma migrate dev --name init --create-only --schema=prisma/schema.prisma; then
         echo "✅ Initial migration created successfully"
+        
+        # Apply the created migration
+        if npx prisma migrate deploy --schema=prisma/schema.prisma; then
+            echo "✅ Initial migration applied successfully"
+        else
+            echo "❌ Failed to apply initial migration"
+            exit 1
+        fi
     else
         echo "❌ Failed to create initial migration"
         exit 1
@@ -117,6 +136,7 @@ if npx prisma db seed; then
     echo "✅ Database seeding completed"
 else
     echo "⚠️  Database seeding failed or already completed"
+    # Don't exit on seeding failure as it might be due to existing data
 fi
 
 echo "✅ Database setup complete!"

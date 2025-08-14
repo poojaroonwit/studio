@@ -126,7 +126,9 @@ const MenuItemWithTooltip = ({ children, label }: { children: React.ReactNode; l
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          {children}
+          <span>
+            {children}
+          </span>
         </TooltipTrigger>
         <TooltipContent side="right" className="z-[100]">{label}</TooltipContent>
       </Tooltip>
@@ -148,16 +150,19 @@ const SidebarNavComponent = function SidebarNav() {
   const [pendingError, setPendingError] = React.useState(false);
   React.useEffect(() => {
     let ignore = false;
+    let eventSource: EventSource | null = null;
+    
     async function fetchPending() {
       try {
         const res = await fetch("/api/upload-queue?limit=100");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         const count = Array.isArray(data.data)
-          ? data.data.filter((item: any) => item.status === "queued").length
+          ? data.data.filter((item: any) => item.status === "queued" || item.status === "inprocess").length
           : 0;
         if (!ignore) {
           setPendingCount(count);
+          setPendingError(false);
         }
       } catch (e) {
         if (!ignore) {
@@ -165,8 +170,43 @@ const SidebarNavComponent = function SidebarNav() {
         }
       }
     }
+
+    // Initial fetch
     fetchPending();
-    return () => { ignore = true; };
+
+    // Set up SSE for real-time updates
+    try {
+      eventSource = new EventSource("/api/upload-queue/sse");
+      eventSource.onmessage = (event) => {
+        if (!ignore) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'queue' && data.summary) {
+              const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
+              setPendingCount(count);
+              setPendingError(false);
+            }
+          } catch (e) {
+            console.error('Failed to parse SSE data:', e);
+          }
+        }
+      };
+      eventSource.onerror = () => {
+        if (!ignore) {
+          setPendingError(true);
+        }
+      };
+    } catch (e) {
+      console.error('Failed to set up SSE:', e);
+      setPendingError(true);
+    }
+
+    return () => { 
+      ignore = true; 
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
   }, []);
 
   React.useEffect(() => {

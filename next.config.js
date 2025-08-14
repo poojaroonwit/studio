@@ -1,6 +1,25 @@
 /** @type {import('next').NextConfig} */
 const process = require('process');
 
+// Suppress Fast Refresh logs
+const originalConsoleLog = console.log;
+const originalConsoleInfo = console.info;
+
+// Override console methods to filter out Fast Refresh logs
+console.log = (...args) => {
+  const message = args.join(' ');
+  if (!message.includes('[Fast Refresh]')) {
+    originalConsoleLog(...args);
+  }
+};
+
+console.info = (...args) => {
+  const message = args.join(' ');
+  if (!message.includes('[Fast Refresh]')) {
+    originalConsoleInfo(...args);
+  }
+};
+
 function getMinioRemotePattern() {
   // Try to get MinIO public URL and bucket from env
   const minioUrl = process.env.NEXT_PUBLIC_MINIO_URL || 'http://localhost:8621';
@@ -29,6 +48,13 @@ const nextConfig = {
   // Disable static generation for API routes that use dynamic features
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+  },
+  // Disable Fast Refresh logs
+  onDemandEntries: {
+    // period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
   },
   // Disable static export to prevent timeout issues
   trailingSlash: false,
@@ -94,6 +120,13 @@ const nextConfig = {
       config.externals.push({
         'minio': 'commonjs minio',
       });
+    }
+    
+    // Suppress Fast Refresh logs in development
+    if (dev) {
+      config.infrastructureLogging = {
+        level: 'error',
+      };
     }
     
     return config;

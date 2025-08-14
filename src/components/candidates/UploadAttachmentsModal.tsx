@@ -38,7 +38,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
-    console.log('Files selected:', selectedFiles.length);
+
     if (selectedFiles.length > 0) {
       // Validate file types
       const allowedTypes = [
@@ -64,7 +64,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
         return true;
       });
 
-      console.log('Valid files:', validFiles.length);
+  
 
       // Add new files with empty tags
       const newFilesWithTags = validFiles.map(file => ({
@@ -73,7 +73,7 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
       }));
 
       setFilesWithTags(prev => [...prev, ...newFilesWithTags]);
-      console.log('Total files with tags:', filesWithTags.length + newFilesWithTags.length);
+  
     }
   };
 
@@ -125,13 +125,13 @@ const UploadAttachmentsModal = ({ isOpen, onOpenChange, candidate, onUploadSucce
       });
 
       await Promise.all(uploadPromises);
-      console.log('Upload successful, showing toast');
+      
       toast.success(`${filesWithTags.length} attachment(s) uploaded successfully`);
       setFilesWithTags([]);
       if (typeof onUploadSuccess === 'function') {
         onUploadSuccess();
       }
-      console.log('Closing modal');
+      
       onOpenChange(false);
     } catch (error) {
       console.error('Upload error:', error);

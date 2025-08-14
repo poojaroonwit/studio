@@ -183,7 +183,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       });
 
       const data = await response.json();
-      console.log('AI Generation response:', data);
+      
       
       if (!response.ok) {
         if (response.status === 503 && data.error?.includes('API Key')) {
@@ -193,7 +193,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       }
 
       if (data.description) {
-        console.log('Setting description:', data.description);
+
         form.setValue('description', data.description);
         
         // Add a small delay to allow Editor.js to properly render the HTML content

@@ -84,6 +84,29 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, [selectedFiles, selectedFileIndex]);
 
+  // Prevent page navigation when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = '';
+      };
+      
+      const handlePopState = (e: PopStateEvent) => {
+        e.preventDefault();
+        window.history.pushState(null, '', window.location.href);
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen]);
+
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
     
@@ -159,7 +182,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   // Simple upload function - upload all files to MinIO and create DB records
   async function uploadFilesToMinIOAndQueue(files: File[], batchId: string) {
     try {
-      console.log(`Starting upload of ${files.length} files`);
+  
       
       // Create FormData with all files
       const formData = new FormData();
@@ -212,6 +235,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   }, [onUploadSuccess]);
 
   const handleModalClose = useCallback((open: boolean) => {
+
     onOpenChange(open);
     if (!open) {
       setSelectedFiles([]);
@@ -221,7 +245,14 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     }
   }, [onOpenChange]);
 
-  const handleConfirmUpload = useCallback(async () => {
+  const handleConfirmUpload = useCallback(async (e?: React.MouseEvent) => {
+
+    // Prevent any default form submission behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     setUploading(true);
     try {
       if (selectedFiles.length === 0) return;
@@ -267,7 +298,13 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const totalFiles = selectedFiles.length;
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
-      <DialogContent className="max-w-4xl w-full">
+      <DialogContent 
+        className="max-w-4xl w-full" 
+        onPointerDownOutside={(e) => e.preventDefault()} 
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
           <DialogDescription>
@@ -357,9 +394,23 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         
         <DialogFooter>
           <DialogClose asChild>
-            <Button type="button" variant="outline" disabled={uploading}>Cancel</Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
           </DialogClose>
-          <Button type="button" onClick={handleConfirmUpload} disabled={selectedFiles.length === 0 || uploading}>
+          <Button 
+            type="button" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleConfirmUpload(e);
+            }} 
+            disabled={selectedFiles.length === 0 || uploading}
+          >
             {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             {uploading ? 'Uploading...' : `Upload ${totalFiles} files`}
           </Button>

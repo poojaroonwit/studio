@@ -8,10 +8,11 @@ export function usePageLoading() {
   const pathname = usePathname();
 
   useEffect(() => {
-    setIsLoading(true);
+    // Only show loading for actual page changes, not for the same page
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 300);
+    }, 200); // Reduced from 300ms to 200ms for faster response
+    
     return () => clearTimeout(timer);
   }, [pathname]);
 

@@ -8,13 +8,10 @@ export function GlobalLoadingOverlay() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Show loading when pathname changes
-    setIsLoading(true);
-    
-    // Hide loading after a short delay to allow page to load
+    // Only show loading for actual page changes, not for the same page
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 500);
+    }, 300); // Reduced from 500ms to 300ms for faster response
 
     return () => clearTimeout(timer);
   }, [pathname]);

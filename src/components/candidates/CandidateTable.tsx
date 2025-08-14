@@ -231,9 +231,20 @@ export function CandidateTable({
 
   const handleRowClick = (candidate: Candidate, e: React.MouseEvent) => {
     // Don't trigger row click if clicking on interactive elements
-    if ((e.target as HTMLElement).closest('button, a, input, select, [role="button"]')) {
+    if ((e.target as HTMLElement).closest('button, a, input, select, [role="button"], [data-modal], [data-dialog]')) {
       return;
     }
+    
+    // Don't trigger if clicking on modal or dialog elements
+    if ((e.target as HTMLElement).closest('[role="dialog"], [data-radix-dialog-content]')) {
+      return;
+    }
+    
+    // Don't trigger if the event was prevented
+    if (e.defaultPrevented) {
+      return;
+    }
+    
     // Navigate to candidate detail page
     window.location.href = `/candidates/${candidate.id}`;
   };

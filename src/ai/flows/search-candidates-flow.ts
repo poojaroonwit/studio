@@ -198,7 +198,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     .join('\n\n---\n\n');
   
   // Debug logging for fit scores
-  console.log('AI Search Debug - Fit Scores:', {
+  console.log({
     query: input.query,
     totalCandidates: allCandidates.length,
     fitScores: allCandidates.map(c => ({

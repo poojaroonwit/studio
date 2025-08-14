@@ -9,8 +9,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
 
 export default async function CandidatesPageServer() {
-  // Remove build-time database calls and session fetching
-  // Let the client handle data fetching
+
   
   return (
     <ErrorBoundary>

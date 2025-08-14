@@ -51,17 +51,9 @@ export function PositionMultiSelectDropdown({
   singleSelect = false,
   showUnassignedOption = false
 }: PositionMultiSelectDropdownProps) {
-  console.log('PositionMultiSelectDropdown render - props:', {
-    selectedIds: Array.from(selectedIds),
-    disabled,
-    singleSelect,
-    showUnassignedOption,
-    filterOpenOnly
-  });
+
   
-  // Wrap onSelectionChange to add debugging
   const handleSelectionChange = (newSelectedIds: Set<string>) => {
-    console.log('PositionMultiSelectDropdown - calling onSelectionChange with:', Array.from(newSelectedIds));
     onSelectionChange(newSelectedIds);
   };
   
@@ -69,27 +61,11 @@ export function PositionMultiSelectDropdown({
   const [open, setOpen] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
   
-  // Debug effect to track positions state changes
-  useEffect(() => {
-    console.log('PositionMultiSelectDropdown: positions state updated:', positions.length, 'positions');
-  }, [positions]);
+
   
-  // Effect to handle selectedIds prop changes (e.g., when clear all is clicked)
-  useEffect(() => {
-    console.log('PositionMultiSelectDropdown: selectedIds prop changed to:', Array.from(selectedIds));
-  }, [selectedIds]);
+
   
-  const testComponentFunctionality = () => {
-    console.log('=== Testing PositionMultiSelectDropdown Functionality ===');
-    console.log('Current selectedIds:', Array.from(selectedIds));
-    console.log('singleSelect:', singleSelect);
-    console.log('disabled:', disabled);
-    console.log('showUnassignedOption:', showUnassignedOption);
-    console.log('filterOpenOnly:', filterOpenOnly);
-    console.log('Available positions:', positions?.length || 0);
-    console.log('Filtered positions:', filteredPositions?.length || 0);
-    console.log('=== End Test ===');
-  };
+
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -97,33 +73,26 @@ export function PositionMultiSelectDropdown({
 
   useEffect(() => {
     const fetchPositions = async () => {
-      console.log('PositionMultiSelectDropdown: Starting to fetch positions...');
       setLoading(true);
       setError(false);
       try {
         const response = await fetch('/api/positions/all');
-        console.log('PositionMultiSelectDropdown: API response status:', response.status);
         if (!response.ok) {
           throw new Error('Failed to fetch positions');
         }
         const data = await response.json();
-        console.log('PositionMultiSelectDropdown: API response data:', data);
         let fetchedPositions = data.data || [];
-        console.log('PositionMultiSelectDropdown: Fetched positions count:', fetchedPositions.length);
         
         // Filter for open positions only if requested
         if (filterOpenOnly) {
           fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
-          console.log('PositionMultiSelectDropdown: After filtering open only:', fetchedPositions.length);
         }
         
-        console.log('PositionMultiSelectDropdown: Setting positions state with:', fetchedPositions.length, 'positions');
         setPositions(fetchedPositions);
       } catch (error) {
         console.error('PositionMultiSelectDropdown: Error fetching positions:', error);
         setError(true);
       } finally {
-        console.log('PositionMultiSelectDropdown: Fetch completed, setting loading to false');
         setLoading(false);
       }
     };
@@ -143,50 +112,36 @@ export function PositionMultiSelectDropdown({
   const selectedPositions = positions.filter(position => position && selectedIds.has(position.id));
   const hasNotApplied = selectedIds.has('not-applied');
 
-  // Call test function on every render (after all computed values are available)
-  testComponentFunctionality();
+
 
   const handleTogglePosition = (positionId: string) => {
-    console.log('PositionMultiSelectDropdown: handleTogglePosition called with:', positionId);
-    console.log('PositionMultiSelectDropdown: current selectedIds:', Array.from(selectedIds));
-    console.log('PositionMultiSelectDropdown: singleSelect:', singleSelect);
-    console.log('PositionMultiSelectDropdown: disabled:', disabled);
-    
     if (disabled) {
-      console.log('PositionMultiSelectDropdown is disabled, ignoring toggle');
       return;
     }
     
     if (singleSelect) {
       if (selectedIds.has(positionId)) {
         // Deselect if already selected
-        console.log('Single select mode - deselecting:', positionId);
         handleSelectionChange(new Set());
       } else {
         // Select only this one
-        console.log('Single select mode - selecting only:', positionId);
         handleSelectionChange(new Set([positionId]));
       }
     } else {
       // Multiple select mode
       const newSelected = new Set(selectedIds);
       if (newSelected.has(positionId)) {
-        console.log('Multiple select mode - removing:', positionId);
         newSelected.delete(positionId);
       } else {
-        console.log('Multiple select mode - adding:', positionId);
         newSelected.add(positionId);
       }
-      console.log('Multiple select mode - new selection:', newSelected);
       // Use a callback to ensure we're working with the latest state
       handleSelectionChange(newSelected);
     }
   };
 
   const handleSelectAll = () => {
-    console.log('PositionMultiSelectDropdown: handleSelectAll called');
     if (disabled) {
-      console.log('PositionMultiSelectDropdown is disabled, ignoring select all');
       return;
     }
     
@@ -200,13 +155,11 @@ export function PositionMultiSelectDropdown({
       // If all are selected, deselect all positions (but keep "not-applied" if it was selected)
       const newSelected = new Set(selectedIds);
       filteredPositions.forEach(pos => newSelected.delete(pos.id));
-      console.log('Select All: deselecting all positions, new selection:', Array.from(newSelected));
       handleSelectionChange(newSelected);
     } else {
       // If not all are selected, select all positions (and keep "not-applied" if it was selected)
       const newSelected = new Set(selectedIds);
       filteredPositions.forEach(pos => newSelected.add(pos.id));
-      console.log('Select All: selecting all positions, new selection:', Array.from(newSelected));
       handleSelectionChange(newSelected);
     }
   };
@@ -214,13 +167,10 @@ export function PositionMultiSelectDropdown({
   const handleRemovePosition = (positionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) {
-      console.log('PositionMultiSelectDropdown is disabled, ignoring remove');
       return;
     }
-    console.log('handleRemovePosition called with:', positionId, 'current selectedIds:', selectedIds);
     const newSelected = new Set(selectedIds);
     newSelected.delete(positionId);
-    console.log('handleRemovePosition - new selection:', newSelected);
     handleSelectionChange(newSelected);
   };
 
@@ -292,7 +242,6 @@ export function PositionMultiSelectDropdown({
                   type="button"
                   onClick={(e) => {
                     if (disabled) {
-                      console.log('PositionMultiSelectDropdown is disabled, ignoring position remove');
                       return;
                     }
                     handleRemovePosition(position.id, e);
@@ -353,17 +302,15 @@ export function PositionMultiSelectDropdown({
               </div>
             ) : (
               <div className="p-1">
-                {/* Select All Option */}
-                {filteredPositions.length > 0 && (
+                {/* Select All Option - Only show in multi-select mode */}
+                {filteredPositions.length > 0 && !singleSelect && (
                   <div
                     key="select-all"
                     className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150 border-b border-border"
                     onClick={() => {
                       if (disabled) {
-                        console.log('PositionMultiSelectDropdown is disabled, ignoring Select All click');
                         return;
                       }
-                      console.log('Select All option clicked');
                       handleSelectAll();
                     }}
                   >
@@ -400,10 +347,8 @@ export function PositionMultiSelectDropdown({
                     className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => {
                       if (disabled) {
-                        console.log('PositionMultiSelectDropdown is disabled, ignoring Not Applied click');
                         return;
                       }
-                      console.log('Not Applied option clicked');
                       handleTogglePosition('not-applied');
                     }}
                   >
@@ -433,10 +378,8 @@ export function PositionMultiSelectDropdown({
                     className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground text-foreground transition-colors duration-150"
                     onClick={() => {
                       if (disabled) {
-                        console.log('PositionMultiSelectDropdown is disabled, ignoring position click');
                         return;
                       }
-                      console.log('Position clicked:', position.id, position.title);
                       handleTogglePosition(position.id);
                     }}
                   >

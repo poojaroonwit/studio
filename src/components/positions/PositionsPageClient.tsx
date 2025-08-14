@@ -132,14 +132,9 @@ export default function PositionsPageClient() {
 
   // Handler for assigning/unassigning recruiter to position
   const handleAssignRecruiterToPosition = async (positionId: string, recruiterId: string | null) => {
-    console.log('handleAssignRecruiterToPosition called:', {
-      positionId,
-      recruiterId,
-      currentAssigningRecruiter: assigningRecruiter
-    });
+
     
     if (assigningRecruiter === positionId) {
-      console.log('Assignment blocked - already assigning for this position');
       return;
     }
     
@@ -239,7 +234,7 @@ export default function PositionsPageClient() {
       setPositions(prevPositions);
     } finally {
       // Ensure the assigning state is always reset
-      console.log('Finally block executed, resetting assigningRecruiter from:', assigningRecruiter, 'to null');
+  
       setAssigningRecruiter(null);
     }
   };
@@ -289,7 +284,7 @@ export default function PositionsPageClient() {
 
   // Manual reset function for debugging
   const resetAssigningRecruiter = useCallback(() => {
-    console.log('Manual reset of assigningRecruiter state');
+
     setAssigningRecruiter(null);
   }, []);
 

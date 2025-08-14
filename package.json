@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 8021",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev -p 8021",
     "dev:with-processor": "concurrently \"npm run dev\" \"npm run processor\"",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",

@@ -57,17 +57,12 @@ export default function ReprocessModal({
     // Check if attachment has the required fields
     const hasRequiredFields = att.id && att.fileName && att.filePath;
     
-    // Debug logging
-    if (!hasRequiredFields) {
-      console.log('Invalid attachment:', att);
-    }
+
     
     return hasRequiredFields;
   });
 
-  // Debug logging for state changes
-  console.log('ReprocessModal render - isProcessing:', isProcessing, 'positions.length:', positions.length, 'validAttachments.length:', validAttachments.length);
-  console.log('validAttachments:', validAttachments);
+
 
   // Reset form when modal opens
   useEffect(() => {
@@ -77,10 +72,7 @@ export default function ReprocessModal({
       setIsProcessing(false); // Reset processing state when modal opens
       setPositionSearchTerm(''); // Reset search term when modal opens
       setPreviewMode('thumbnail'); // Reset preview mode when modal opens
-      console.log('ReprocessModal opened with positions:', positions.length, positions);
-      console.log('isProcessing:', isProcessing);
-      console.log('positions.length === 0:', positions.length === 0);
-      console.log('Button disabled condition:', isProcessing || positions.length === 0);
+
     }
   }, [isOpen, candidatePositionId, positions, isProcessing]);
 
@@ -107,7 +99,7 @@ export default function ReprocessModal({
       return;
     }
 
-    console.log('Setting isProcessing to true');
+
     setIsProcessing(true);
     try {
       // Add file to upload queue instead of processing immediately
@@ -160,13 +152,13 @@ export default function ReprocessModal({
       }
       
       toast.success('File added to processing queue successfully');
-      console.log('File added to queue:', result);
+
       onOpenChange(false);
     } catch (error) {
       console.error('Re-process error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add file to processing queue');
     } finally {
-      console.log('Setting isProcessing to false');
+  
       setIsProcessing(false);
     }
   };
@@ -196,7 +188,7 @@ export default function ReprocessModal({
             <Select 
               value={selectedAttachment} 
               onValueChange={(value) => {
-                console.log('Attachment selected:', value);
+            
                 setSelectedAttachment(value);
                 // Automatically show preview for PDF files
                 if (value) {
@@ -211,7 +203,7 @@ export default function ReprocessModal({
               <SelectTrigger 
                 className="w-full"
                 onClick={() => {
-                  console.log('SelectTrigger clicked, validAttachments:', validAttachments.length);
+              
                 }}
               >
                 <SelectValue placeholder="Select an attachment to re-process..." />
@@ -303,7 +295,7 @@ export default function ReprocessModal({
             <Select 
               value={selectedPositionId} 
               onValueChange={(value) => {
-                console.log('Position selected:', value);
+            
                 setSelectedPositionId(value);
               }}
               disabled={false}

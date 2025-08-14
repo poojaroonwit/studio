@@ -398,79 +398,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
           ...data,
           fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
         });
-        
-        // Set form default values
-        reset({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          positionId: !data.positionId || data.positionId === '' ? null : data.positionId,
-          recruiterId: !data.recruiterId || data.recruiterId === '' ? null : data.recruiterId,
-          fitScore: data.fitScore || null,
-          status: data.status || '',
-                      assignmentJustification: (() => {
-              const result = data.assignmentJustification
-                ? (Array.isArray(data.assignmentJustification)
-                    ? data.assignmentJustification
-                    : typeof data.assignmentJustification === 'string'
-                      ? data.assignmentJustification.split(/[\n,]+/).filter((item: any) => item.trim() !== '')
-                      : [])
-                : [];
-              console.log('Loading assignmentJustification:', {
-                original: data.assignmentJustification,
-                split: result,
-                length: result.length
-              });
-              return result;
-            })(),
-          parsedData: {
-            ...data.parsedData,
-            education: (data.parsedData?.education || []).map((edu: any) => ({
-              ...edu,
-              startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
-              startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
-              endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
-              endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
-            })),
-            experience: (data.parsedData?.experience || []).map((exp: any) => ({
-              ...exp,
-              startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
-              startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
-              endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
-              endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
-            })),
-            skills: (data.parsedData?.skills || []).map((s: any) => ({
-              ...s,
-              skill_string: Array.isArray(s.skill)
-                ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
-                : (typeof s.skill_string === 'string' ? s.skill_string : '')
-            })),
-            job_suitable: data.parsedData?.job_suitable || [],
-            job_matches: (data.jobMatches || []).map((match: any) => {
-              // Enrich job matches with position details if allDbPositions is available
-              const position = Array.isArray(allDbPositions)
-                ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
-                : null;
-              
-              return {
-                ...match,
-                jobId: position ? position.id : match.jobId,
-                jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
-                positionTitle: match.positionTitle || match.jobTitle || '',
-                position: position
-                  ? {
-                      id: position.id,
-                      title: position.title,
-                      description: position.description,
-                      department: position.department,
-                      requirements: (position as any).requirements,
-                      isOpen: position.isOpen,
-                    }
-                  : match.position,
-              };
-            }),
-          },
-        });
       } catch (err) {
         console.error('Error fetching candidate:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch candidate');
@@ -480,7 +407,97 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     };
 
     fetchCandidate();
-  }, [candidateId, allDbPositions, reset]);
+  }, [candidateId, isValidCandidateId]);
+
+  // Reset form when candidate data and positions are available
+  useEffect(() => {
+    if (candidate && allDbPositions.length > 0) {
+      // Enrich job matches with position details
+      const enrichedJobMatches = (candidate.jobMatches || []).map((match: any) => {
+        const position = Array.isArray(allDbPositions)
+          ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
+          : null;
+        
+        return {
+          ...match,
+          jobId: position ? position.id : match.jobId,
+          jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
+          positionTitle: match.positionTitle || match.jobTitle || '',
+          matchReasons: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.filter(Boolean)
+            : typeof match.matchReasons === 'string'
+              ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+              : [],
+          matchReasons_string: Array.isArray(match.matchReasons) 
+            ? match.matchReasons.join('\n')
+            : '',
+          position: position
+            ? {
+                id: position.id,
+                title: position.title,
+                description: position.description,
+                department: position.department,
+                requirements: (position as any).requirements,
+                isOpen: position.isOpen,
+              }
+            : match.position,
+        };
+      });
+
+      reset({
+        name: candidate.name || '',
+        email: candidate.email || '',
+        phone: candidate.phone || '',
+        positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
+        recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
+        fitScore: candidate.fitScore || null,
+        status: candidate.status || '',
+        assignmentJustification: (() => {
+          const result = candidate.assignmentJustification
+            ? (Array.isArray(candidate.assignmentJustification)
+                ? candidate.assignmentJustification
+                : typeof candidate.assignmentJustification === 'string'
+                  ? candidate.assignmentJustification.split(/[\n,]+/).filter((item: any) => item.trim() !== '')
+                  : [])
+            : [];
+          console.log('Loading assignmentJustification:', {
+            original: candidate.assignmentJustification,
+            split: result,
+            length: result.length
+          });
+          return result;
+        })(),
+        parsedData: {
+          ...(candidate.parsedData as any),
+          education: ((candidate.parsedData as any)?.education || []).map((edu: any) => ({
+            ...edu,
+            startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+            startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+            endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+            endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+          })),
+          experience: ((candidate.parsedData as any)?.experience || []).map((exp: any) => ({
+            ...exp,
+            is_current_position: typeof exp.is_current_position === 'string'
+              ? exp.is_current_position === 'true'
+              : !!exp.is_current_position,
+            startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+            startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+            endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+            endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+          })),
+          skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
+            ...s,
+            skill_string: Array.isArray(s.skill)
+              ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+              : (typeof s.skill_string === 'string' ? s.skill_string : '')
+          })),
+          job_suitable: (candidate.parsedData as any)?.job_suitable || [],
+          job_matches: enrichedJobMatches,
+        }
+      });
+    }
+  }, [candidate, allDbPositions, reset]);
 
   // Fetch transition history
   useEffect(() => {
@@ -588,6 +605,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
       setCandidateJobMatches([]);
     }
   }, [candidate, allDbPositions]);
+
+  // Update form job_matches when candidateJobMatches changes
+  useEffect(() => {
+    console.log('candidateJobMatches changed:', candidateJobMatches);
+    console.log('candidateJobMatches length:', candidateJobMatches.length);
+    
+    if (candidateJobMatches.length > 0) {
+      console.log('Updating form job_matches with:', candidateJobMatches);
+      setValue('parsedData.job_matches', candidateJobMatches.map((match: any) => ({
+        ...match,
+        matchReasons: Array.isArray(match.matchReasons) 
+          ? match.matchReasons.filter(Boolean)
+          : typeof match.matchReasons === 'string'
+            ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+            : [],
+        matchReasons_string: Array.isArray(match.matchReasons) 
+          ? match.matchReasons.join('\n')
+          : ''
+      })));
+    } else {
+      console.log('No candidateJobMatches to update form with');
+      setValue('parsedData.job_matches', []);
+    }
+  }, [candidateJobMatches, setValue]);
 
   // Add this useEffect after the other useEffects in the component:
   useEffect(() => {
@@ -1570,9 +1611,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                             />
                           )}
                         />
-                        <p className="text-xs text-muted-foreground mt-2">
-                          This is the position the candidate actually applied for.
-                        </p>
                       </div>
                       
                       <div>
@@ -2747,59 +2785,82 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
             variant="outline"
             onClick={() => {
               setIsEditing(false);
-              if (candidate) {
+              if (candidate && allDbPositions.length > 0) {
+                // Enrich job matches with position details
+                const enrichedJobMatches = (candidate.jobMatches || []).map((match: any) => {
+                  const position = Array.isArray(allDbPositions)
+                    ? (allDbPositions.find(p => p.id === match.jobId) || allDbPositions.find(p => p.title === match.jobTitle))
+                    : null;
+                  
+                  return {
+                    ...match,
+                    jobId: position ? position.id : match.jobId,
+                    jobTitle: position ? position.title : (match.jobTitle || match.positionTitle || ''),
+                    positionTitle: match.positionTitle || match.jobTitle || '',
+                    matchReasons: Array.isArray(match.matchReasons) 
+                      ? match.matchReasons.filter(Boolean)
+                      : typeof match.matchReasons === 'string'
+                        ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
+                        : [],
+                    matchReasons_string: Array.isArray(match.matchReasons) 
+                      ? match.matchReasons.join('\n')
+                      : '',
+                    position: position
+                      ? {
+                          id: position.id,
+                          title: position.title,
+                          description: position.description,
+                          department: position.department,
+                          requirements: (position as any).requirements,
+                          isOpen: position.isOpen,
+                        }
+                      : match.position,
+                  };
+                });
+
                 reset({
                   name: candidate.name || '',
                   email: candidate.email || '',
                   phone: candidate.phone || '',
                   positionId: !candidate.positionId || candidate.positionId === '' ? null : candidate.positionId,
                   fitScore: candidate.fitScore || null,
-                                assignmentJustification: candidate.assignmentJustification
-              ? (Array.isArray(candidate.assignmentJustification)
-                  ? candidate.assignmentJustification
-                  : typeof candidate.assignmentJustification === 'string'
-                    ? candidate.assignmentJustification.split(/[\n,]+/).filter(item => item.trim() !== '')
-                    : [])
-              : [],
+                  assignmentJustification: candidate.assignmentJustification
+                    ? (Array.isArray(candidate.assignmentJustification)
+                        ? candidate.assignmentJustification
+                        : typeof candidate.assignmentJustification === 'string'
+                          ? candidate.assignmentJustification.split(/[\n,]+/).filter(item => item.trim() !== '')
+                          : [])
+                    : [],
                   status: candidate.status || '',
                   recruiterId: !candidate.recruiterId || candidate.recruiterId === '' ? null : candidate.recruiterId,
-                    parsedData: {
-                      ...(candidate.parsedData as any),
-                      education: ((candidate.parsedData as any)?.education || []).map((edu: any) => ({
-                        ...edu,
-                        startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
-                        startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
-                        endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
-                        endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
-                      })),
-                      experience: ((candidate.parsedData as any)?.experience || []).map((exp: any) => ({
-                        ...exp,
-                        is_current_position: typeof exp.is_current_position === 'string'
-                          ? exp.is_current_position === 'true'
-                          : !!exp.is_current_position,
-                        startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
-                        startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
-                        endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
-                        endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
-                      })),
-                      skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
-                        ...s,
-                        skill_string: Array.isArray(s.skill)
-                          ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
-                          : (typeof s.skill_string === 'string' ? s.skill_string : '')
-                      })),
-                      job_matches: (candidate.jobMatches || []).map((match: any) => ({
-                        ...match,
-                        matchReasons: Array.isArray(match.matchReasons)
-                          ? match.matchReasons.filter(Boolean)
-                          : typeof match.matchReasons === 'string'
-                            ? match.matchReasons.split(/[\n,]+/).filter((item: string) => item.trim() !== '')
-                            : [],
-                        matchReasons_string: Array.isArray(match.matchReasons) 
-                          ? match.matchReasons.join('\n')
-                          : ''
-                      })),
-                    }
+                  parsedData: {
+                    ...(candidate.parsedData as any),
+                    education: ((candidate.parsedData as any)?.education || []).map((edu: any) => ({
+                      ...edu,
+                      startMonth: edu.startMonth !== undefined && edu.startMonth !== null ? String(edu.startMonth) : undefined,
+                      startYear: edu.startYear !== undefined && edu.startYear !== null ? String(edu.startYear) : undefined,
+                      endMonth: edu.endMonth !== undefined && edu.endMonth !== null ? String(edu.endMonth) : undefined,
+                      endYear: edu.endYear !== undefined && edu.endYear !== null ? String(edu.endYear) : undefined,
+                    })),
+                    experience: ((candidate.parsedData as any)?.experience || []).map((exp: any) => ({
+                      ...exp,
+                      is_current_position: typeof exp.is_current_position === 'string'
+                        ? exp.is_current_position === 'true'
+                        : !!exp.is_current_position,
+                      startMonth: exp.startMonth !== undefined && exp.startMonth !== null ? String(exp.startMonth) : undefined,
+                      startYear: exp.startYear !== undefined && exp.startYear !== null ? String(exp.startYear) : undefined,
+                      endMonth: exp.endMonth !== undefined && exp.endMonth !== null ? String(exp.endMonth) : undefined,
+                      endYear: exp.endYear !== undefined && exp.endYear !== null ? String(exp.endYear) : undefined,
+                    })),
+                    skills: ((candidate.parsedData as any)?.skills || []).map((s: any) => ({
+                      ...s,
+                      skill_string: Array.isArray(s.skill)
+                        ? s.skill.filter((sk: any): sk is string => typeof sk === 'string').join(', ')
+                        : (typeof s.skill_string === 'string' ? s.skill_string : '')
+                    })),
+                    job_suitable: (candidate.parsedData as any)?.job_suitable || [],
+                    job_matches: enrichedJobMatches,
+                  }
                 });
               }
             }}

@@ -51,7 +51,7 @@ const UploadResumeModal = ({ isOpen, onOpenChange, candidate, onUploadSuccess }:
     setIsUploading(true);
     setUploadTriggered(false);
     try {
-      console.log('Upload started for candidate:', candidate.id, 'file:', file.name);
+  
       const formData = new FormData();
       formData.append('resume', file); // must be 'resume'
       formData.append('position_id', candidate.positionId); // must be 'position_id', ensure not empty

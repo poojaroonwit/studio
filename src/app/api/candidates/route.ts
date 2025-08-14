@@ -685,51 +685,39 @@ export async function GET(request: NextRequest) {
         (c."parsedData"->'job_applied'->>'fitScore')::float IS NULL
       )`);
     } else {
-      // Regular fit score range filtering
+      // Simplified fit score range filtering - normalize all scores to 0-100 range
+      const fitScoreCondition = `COALESCE(
+        CASE 
+          WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
+          ELSE c."fitScore"
+        END,
+        CASE 
+          WHEN (c."parsedData"->'job_applied'->>'fitScore') IS NOT NULL 
+          AND (c."parsedData"->'job_applied'->>'fitScore')::float <= 1 
+          THEN (c."parsedData"->'job_applied'->>'fitScore')::float * 100
+          ELSE (c."parsedData"->'job_applied'->>'fitScore')::float
+        END,
+        0
+      )`;
+      
       if (filters.minAppliedJobFitScore && filters.maxAppliedJobFitScore) {
-        // Normalize fit scores to 0-100 range for consistent filtering
-        whereClauses.push(`(
-          CASE 
-            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
-            ELSE c."fitScore"
-          END >= $${paramIndex} AND 
-          CASE 
-            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
-            ELSE c."fitScore"
-          END <= $${paramIndex + 1}
-        )`);
+        whereClauses.push(`${fitScoreCondition} >= $${paramIndex} AND ${fitScoreCondition} <= $${paramIndex + 1}`);
         if (!isNaN(minFit) && !isNaN(maxFit)) {
           queryParams.push(minFit, maxFit);
-        } else {
-          console.error('Skipping invalid fit score parameters');
+          paramIndex += 2;
         }
-        paramIndex += 2;
       } else if (filters.minAppliedJobFitScore) {
-        whereClauses.push(`(
-          CASE 
-            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
-            ELSE c."fitScore"
-          END >= $${paramIndex}
-        )`);
+        whereClauses.push(`${fitScoreCondition} >= $${paramIndex}`);
         if (!isNaN(minFit)) {
           queryParams.push(minFit);
-        } else {
-          console.error('Skipping invalid min fit score parameter');
+          paramIndex++;
         }
-        paramIndex++;
       } else if (filters.maxAppliedJobFitScore) {
-        whereClauses.push(`(
-          CASE 
-            WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
-            ELSE c."fitScore"
-          END <= $${paramIndex}
-        )`);
+        whereClauses.push(`${fitScoreCondition} <= $${paramIndex}`);
         if (!isNaN(maxFit)) {
           queryParams.push(maxFit);
-        } else {
-          console.error('Skipping invalid max fit score parameter');
+          paramIndex++;
         }
-        paramIndex++;
       }
     }
   }
@@ -744,33 +732,27 @@ export async function GET(request: NextRequest) {
       // Filter for candidates with no matching fit score (NULL or 0)
       whereClauses.push(`(jm_max.max_fit_score IS NULL OR jm_max.max_fit_score = 0)`);
     } else {
-      // Regular matching fit score range filtering
-      // Add a lateral join to get the max fitScore from JobMatch for each candidate
-      // We'll add the filter to the WHERE clause using the alias jm_max
+      // Simplified matching fit score range filtering
+      const matchingFitScoreCondition = `COALESCE(jm_max.max_fit_score, 0)`;
+      
       if (filters.minMatchingJobFitScore && filters.maxMatchingJobFitScore) {
-        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex} AND COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex + 1}`);
+        whereClauses.push(`${matchingFitScoreCondition} >= $${paramIndex} AND ${matchingFitScoreCondition} <= $${paramIndex + 1}`);
         if (!isNaN(minMatchingFit) && !isNaN(maxMatchingFit)) {
           queryParams.push(minMatchingFit, maxMatchingFit);
-        } else {
-          console.error('Skipping invalid matching fit score parameters');
+          paramIndex += 2;
         }
-        paramIndex += 2;
       } else if (filters.minMatchingJobFitScore) {
-        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) >= $${paramIndex}`);
+        whereClauses.push(`${matchingFitScoreCondition} >= $${paramIndex}`);
         if (!isNaN(minMatchingFit)) {
           queryParams.push(minMatchingFit);
-        } else {
-          console.error('Skipping invalid matching min fit score parameter');
+          paramIndex++;
         }
-        paramIndex++;
       } else if (filters.maxMatchingJobFitScore) {
-        whereClauses.push(`COALESCE(jm_max.max_fit_score, 0) <= $${paramIndex}`);
+        whereClauses.push(`${matchingFitScoreCondition} <= $${paramIndex}`);
         if (!isNaN(maxMatchingFit)) {
           queryParams.push(maxMatchingFit);
-        } else {
-          console.error('Skipping invalid matching max fit score parameter');
+          paramIndex++;
         }
-        paramIndex++;
       }
     }
   }

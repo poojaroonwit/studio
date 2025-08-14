@@ -99,6 +99,7 @@ export function CandidatesPageClient({
   const safeInitialAvailableStages = Array.isArray(initialAvailableStages) ? initialAvailableStages : [];
 
   const [allCandidates, setAllCandidates] = useState<Candidate[]>(safeInitialCandidates || []);
+  const [fullCandidatesForCounts, setFullCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
@@ -128,7 +129,10 @@ export function CandidatesPageClient({
 
   const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus } = useSession() as { data: any, status: 'loading' | 'authenticated' | 'unauthenticated' };
+  
+  
+
 
   const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(new Set());
   const [isBulkActionConfirmOpen, setIsBulkActionConfirmOpen] = useState(false);
@@ -156,48 +160,61 @@ export function CandidatesPageClient({
     return Math.max(1, Math.ceil(total / pageSize));
   }, [isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, pageSize, total]);
 
+  // Simplified helper function to normalize fit scores
+  const normalizeFitScore = (score: number | null | undefined): number => {
+    if (score === null || score === undefined) return 0;
+    if (score > 0 && score <= 1) return Math.round(score * 100);
+    return Math.round(score);
+  };
+
+  // Simplified helper function to get the best matching fit score
+  const getBestMatchingFitScore = (candidate: Candidate): number => {
+    // Check JobMatch table first
+    if (candidate.jobMatches && Array.isArray(candidate.jobMatches)) {
+      const maxMatchScore = Math.max(...candidate.jobMatches.map(match => match.fitScore || 0));
+      if (maxMatchScore > 0) return normalizeFitScore(maxMatchScore);
+    }
+    
+    // If no JobMatch, check parsedData.job_matches
+    if (candidate.parsedData && typeof candidate.parsedData === 'object') {
+      const parsed = candidate.parsedData as any;
+      if (parsed.job_matches && Array.isArray(parsed.job_matches)) {
+        const maxMatchScore = Math.max(...parsed.job_matches.map((match: any) => match.fitScore || 0));
+        if (maxMatchScore > 0) return normalizeFitScore(maxMatchScore);
+      }
+    }
+    
+    return 0;
+  };
+
+  // Add a separate state for table data to prevent full page refresh
+  const [tableCandidates, setTableCandidates] = useState<Candidate[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [tableError, setTableError] = useState<string | null>(null);
+
   // Calculate candidate score counts for fit score filter badges
+  // Use fullCandidatesForCounts to show total counts regardless of current filters
   const candidateScoreCounts = useMemo(() => {
     const scoreRanges = getScoreRangesForChart();
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
     
-    allCandidates.forEach((candidate: Candidate) => {
-      // Applied fit score (from top-level fitScore field)
-      if (typeof candidate.fitScore === 'number') {
+    fullCandidatesForCounts.forEach((candidate: Candidate) => {
+      // Applied fit score (normalized)
+      const appliedScore = normalizeFitScore(candidate.fitScore);
+      if (appliedScore > 0) {
         scoreRanges.forEach(range => {
-          if (candidate.fitScore >= range.min && candidate.fitScore <= range.max) {
+          if (appliedScore >= range.min && appliedScore <= range.max) {
             appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
           }
         });
       }
       
-      // Matching fit score (from JobMatch table or parsedData.job_matches)
-      let matchingFitScore: number | undefined;
-      
-      // Check JobMatch table first
-      if (candidate.jobMatches && Array.isArray(candidate.jobMatches)) {
-        const maxMatchScore = Math.max(...candidate.jobMatches.map(match => match.fitScore || 0));
-        if (maxMatchScore > 0) {
-          matchingFitScore = maxMatchScore;
-        }
-      }
-      
-      // If no JobMatch, check parsedData.job_matches
-      if (!matchingFitScore && candidate.parsedData && typeof candidate.parsedData === 'object') {
-        const parsed = candidate.parsedData as any;
-        if (parsed.job_matches && Array.isArray(parsed.job_matches)) {
-          const maxMatchScore = Math.max(...parsed.job_matches.map((match: any) => match.fitScore || 0));
-          if (maxMatchScore > 0) {
-            matchingFitScore = maxMatchScore;
-          }
-        }
-      }
-      
-      // Count matching fit scores
-      if (typeof matchingFitScore === 'number') {
+      // Matching fit score (simplified)
+      const matchingScore = getBestMatchingFitScore(candidate);
+      if (matchingScore > 0) {
         scoreRanges.forEach(range => {
-          if (matchingFitScore >= range.min && matchingFitScore <= range.max) {
+          if (matchingScore >= range.min && matchingScore <= range.max) {
             matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
           }
         });
@@ -214,7 +231,7 @@ export function CandidatesPageClient({
         count: matchingScoreRangeCounts[range.letter] || 0
       }))
     };
-  }, [allCandidates]);
+  }, [fullCandidatesForCounts]);
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
@@ -288,7 +305,7 @@ export function CandidatesPageClient({
   }, [searchParams, isClearingFilters, filters]);
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
-    console.log('fetchRecruiters called, sessionStatus:', sessionStatus, 'retryCount:', retryCount);
+
     if (sessionStatus !== 'authenticated') return;
     
     const maxRetries = 3;
@@ -324,14 +341,14 @@ export function CandidatesPageClient({
           return;
       }
       const recruitersData: UserProfile[] | undefined = await response.json(); 
-      console.log('Recruiters API response:', recruitersData);
+
       if (!recruitersData || !Array.isArray(recruitersData)) {
         console.warn("Invalid data format received for recruiters, using empty list");
         setAvailableRecruiters([]);
         return;
       }
       const mappedRecruiters = recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' }));
-      console.log('Mapped recruiters:', mappedRecruiters);
+
       setAvailableRecruiters(mappedRecruiters);
     } catch (error) {
       console.error("Error fetching recruiters:", error);
@@ -428,11 +445,9 @@ export function CandidatesPageClient({
       if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
       if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
       if (currentFilters.applicationDateStart) {
-        console.log('Sending applicationDateStart:', currentFilters.applicationDateStart.toISOString());
         query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
       }
       if (currentFilters.applicationDateEnd) {
-        console.log('Sending applicationDateEnd:', currentFilters.applicationDateEnd.toISOString());
         query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
       }
       if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
@@ -481,15 +496,18 @@ export function CandidatesPageClient({
         }
         if (response.status === 401) {
             setAuthError(true);
+            setIsLoading(false); // Clear loading state on auth error
             return;
         }
         if (response.status === 403) {
             setPermissionError(true);
             setFetchError(errorMessage);
+            setIsLoading(false); // Clear loading state on permission error
             if (latestRequestIdRef.current === requestId) setAllCandidates([]); // Only clear on permission error
             return;
         }
         setFetchError(errorMessage);
+        setIsLoading(false); // Clear loading state on error
         // Do NOT clear candidates here
         return;
       }
@@ -504,6 +522,11 @@ export function CandidatesPageClient({
         setAllCandidates(candidatesArray); // Only update on success
         setTotal(totalCount);
         setPage(actualPage); // <-- Update page state from API response
+        
+        // Ensure loading state is cleared when we have data
+        if (candidatesArray.length > 0 || totalCount > 0) {
+          setIsLoading(false);
+        }
       } 
       
     } catch (error: any) {
@@ -531,6 +554,9 @@ export function CandidatesPageClient({
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
+      if (filterChangeTimeoutRef.current) {
+        clearTimeout(filterChangeTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -546,6 +572,183 @@ export function CandidatesPageClient({
       fetchPaginatedCandidates(currentFilters, page, pageSize);
     }, 150); // Reduced debounce for faster response
   }, [fetchPaginatedCandidates]);
+
+  // Separate function to fetch only table data for optimized filtering
+  const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    latestRequestIdRef.current = requestId;
+
+    if (sessionStatusRef.current !== 'authenticated') {
+      setTableLoading(false);
+      return;
+    }
+    
+    // Prevent multiple simultaneous requests
+    if (isFetching) {
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    setIsFetching(true);
+    setTableLoading(true);
+    setTableError(null);
+    
+    // Add a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      setTableLoading(false);
+      setIsLoading(false); // Also clear the main loading state
+      setIsFetching(false);
+      setTableError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
+    }, 30000);
+    
+    try {
+      const query = new URLSearchParams();
+      
+      // Check if we have an advanced query from URL and pass it to the API
+      const advancedQueryParam = searchParams.get('query');
+      if (advancedQueryParam) {
+        query.append('query', advancedQueryParam);
+      }
+      
+      if (currentFilters.name) {
+        query.append('name', currentFilters.name);
+        if (currentFilters.nameOperator) query.append('nameOperator', currentFilters.nameOperator);
+      }
+      if (currentFilters.email) {
+        query.append('email', currentFilters.email);
+        if (currentFilters.emailOperator) query.append('emailOperator', currentFilters.emailOperator);
+      }
+      if (currentFilters.phone) {
+        query.append('phone', currentFilters.phone);
+        if (currentFilters.phoneOperator) query.append('phoneOperator', currentFilters.phoneOperator);
+      }
+      if (currentFilters.selectedPositionIds && currentFilters.selectedPositionIds.length > 0) query.append('positionId', currentFilters.selectedPositionIds.join(','));
+      if (currentFilters.selectedStatuses && currentFilters.selectedStatuses.length > 0) query.append('status', currentFilters.selectedStatuses.join(','));
+      if (currentFilters.education) query.append('education', currentFilters.education);
+      if (currentFilters.minAppliedJobFitScore !== undefined && currentFilters.minAppliedJobFitScore !== 0) query.append('minAppliedJobFitScore', String(currentFilters.minAppliedJobFitScore));
+      if (currentFilters.maxAppliedJobFitScore !== undefined && currentFilters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(currentFilters.maxAppliedJobFitScore));
+      if (currentFilters.minMatchingJobFitScore !== undefined && currentFilters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(currentFilters.minMatchingJobFitScore));
+      if (currentFilters.maxMatchingJobFitScore !== undefined && currentFilters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(currentFilters.maxMatchingJobFitScore));
+      if (currentFilters.minExperienceYears !== undefined && (currentFilters.minExperienceYears > 0 || currentFilters.minExperienceYears === -1)) query.append('minExperienceYears', String(currentFilters.minExperienceYears));
+      if (currentFilters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(currentFilters.maxExperienceYears));
+      if (currentFilters.applicationDateStart) {
+        query.append('applicationDateStart', currentFilters.applicationDateStart.toISOString());
+      }
+      if (currentFilters.applicationDateEnd) {
+        query.append('applicationDateEnd', currentFilters.applicationDateEnd.toISOString());
+      }
+      if (currentFilters.selectedRecruiterIds && currentFilters.selectedRecruiterIds.length > 0) query.append('recruiterId', currentFilters.selectedRecruiterIds.join(','));
+      query.append('page', String(currentPage));
+      query.append('limit', String(currentPageSize));
+      // Add sorting
+      if (sortColumn) query.append('sortColumn', sortColumn);
+      if (sortDirection) query.append('sortDirection', sortDirection);
+      
+      if (currentFilters.location) {
+        query.append('location', currentFilters.location);
+        if (currentFilters.locationOperator) query.append('locationOperator', currentFilters.locationOperator);
+      }
+      if (currentFilters.skills && Array.isArray(currentFilters.skills)) {
+        if (currentFilters.skills.length > 0) query.append('skills', currentFilters.skills.join(','));
+      } else if (typeof currentFilters.skills === 'string' && currentFilters.skills) {
+        query.append('skills', currentFilters.skills);
+      }
+      
+      const apiUrl = `/api/candidates?${query.toString()}`;
+      
+      // Add timeout and retry logic
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      const response = await fetch(apiUrl, {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        let errorData: any = {};
+        let errorMessageFromServer = null;
+        try {
+          errorData = await response.json();
+          errorMessageFromServer = errorData?.message || errorData?.error;
+        } catch (e) {}
+        let errorMessage = errorMessageFromServer || `Failed to fetch candidates. Server responded with status ${response.status}: ${response.statusText || 'No additional error message.'}`;
+        if (errorData?.code) {
+          errorMessage += ` (Code: ${errorData.code})`;
+        }
+        if (response.status === 401) {
+            setAuthError(true);
+            setIsLoading(false); // Clear loading state on auth error
+            return;
+        }
+        if (response.status === 403) {
+            setPermissionError(true);
+            setTableError(errorMessage);
+            setIsLoading(false); // Clear loading state on permission error
+            if (latestRequestIdRef.current === requestId) setTableCandidates([]); // Only clear on permission error
+            return;
+        }
+        setTableError(errorMessage);
+        setIsLoading(false); // Clear loading state on error
+        return;
+      }
+      const data = await response.json();
+      
+      const candidatesArray = Array.isArray(data.data) ? data.data : [];
+      const totalCount = data.pagination?.total || 0;
+      const actualPage = data.pagination?.page || 1;
+      
+      // Only update if this is the latest request
+      if (latestRequestIdRef.current === requestId) {
+        setTableCandidates(candidatesArray); // Update only table data
+        setAllCandidates(candidatesArray); // Keep main state in sync for other components
+        setTotal(totalCount);
+        setPage(actualPage);
+        
+        // Ensure loading state is cleared when we have data
+        if (candidatesArray.length > 0 || totalCount > 0) {
+          setIsLoading(false);
+        }
+      } 
+      
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        setTableError('Request timeout - please try again in a moment');
+      } else {
+        const errorMessage = (error as Error).message || "Could not load candidate data.";
+        if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
+          setTableError(errorMessage);
+        }
+      }
+    } finally {
+      clearTimeout(loadingTimeout);
+      setTableLoading(false);
+      setIsLoading(false); // Also clear the main loading state
+      setIsFetching(false);
+      currentRequestRef.current = null;
+    }
+  }, [sortColumn, sortDirection, searchParams]);
+
+  // Create a debounced version for table refresh
+  const debouncedFetchTableData = useCallback((currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
+    // Clear any pending timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    // Set a new timeout - reduced from 300ms to 150ms for smoother updates
+    fetchTimeoutRef.current = setTimeout(() => {
+      const currentFetchTableData = fetchTableData;
+      currentFetchTableData(currentFilters, currentPage, currentPageSize);
+    }, 150); // Reduced debounce for faster response
+  }, [fetchTableData]);
 
   const handleAiSearch = async (aiQuery: string) => {
     if (!aiQuery.trim()) {
@@ -586,14 +789,7 @@ export function CandidatesPageClient({
         throw new Error(result.message || `AI search failed with status: ${response.status}`);
       }
       
-      // Debug logging
-      console.log('AI Search Result:', {
-        matchedCandidateIds: result.matchedCandidateIds,
-        aiReasoning: result.aiReasoning,
-        recordCount: result.recordCount,
-        allCandidatesCount: allCandidates.length,
-        availableCandidateIds: allCandidates.map(c => c.id)
-      });
+
       
       // If AI search returned results, fetch all candidates to ensure we have them available
       // But do it silently without affecting the page state
@@ -604,10 +800,7 @@ export function CandidatesPageClient({
         
         if (missingCandidates.length > 0) {
           // Only fetch if we're missing some candidates
-          console.log('Missing candidates for AI search, fetching all candidates:', {
-            missingCount: missingCandidates.length,
-            existingCount: allCandidates.length
-          });
+
           
           // Fetch all candidates without filters to ensure AI search results are available
           // Use a separate state update to avoid triggering page refresh
@@ -622,12 +815,7 @@ export function CandidatesPageClient({
                 const newCandidates = (allCandidatesData.data as Candidate[]).filter((c: Candidate) => !existingIds.has(c.id));
                 const mergedCandidates = [...prevCandidates, ...newCandidates];
                 
-                console.log('Silently updated candidates for AI search:', {
-                  previousCount: prevCandidates.length,
-                  newCount: allCandidatesData.data.length,
-                  mergedCount: mergedCandidates.length,
-                  aiMatchedIds: result.matchedCandidateIds
-                });
+
                 
                 return mergedCandidates;
               });
@@ -656,7 +844,6 @@ export function CandidatesPageClient({
               toast.error("Could not load all candidates. Some results may not be visible.");
             }
         } else {
-          console.log('All AI search candidates already available in current list');
           setAiMatchedCandidateIds(result.matchedCandidateIds || []);
           setAiSearchReasoning(result.aiReasoning || "AI search complete.");
           setAiRecordCount(result.recordCount || 0);
@@ -698,6 +885,11 @@ export function CandidatesPageClient({
         setIsLoading(false);
       }
       
+      // Safety check: if we have candidates, ensure loading is false
+      if (allCandidates.length > 0) {
+        setIsLoading(false);
+      }
+      
       // Fetch recruiters with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
         fetchRecruiters();
@@ -707,8 +899,17 @@ export function CandidatesPageClient({
     } else {
       // Not authenticated or has errors
       setIsLoading(false);
+      setTableLoading(false); // Also clear table loading state
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, safeInitialCandidates.length, initialFetchError]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, safeInitialCandidates.length, initialFetchError, allCandidates.length]);
+
+  // Add a separate effect to clear loading when we have data
+  useEffect(() => {
+    if (allCandidates.length > 0 || tableCandidates.length > 0) {
+      setIsLoading(false);
+      setTableLoading(false);
+    }
+  }, [allCandidates.length, tableCandidates.length]);
 
   // Separate useEffect for initial data fetching
   useEffect(() => {
@@ -725,9 +926,11 @@ export function CandidatesPageClient({
       !hasInitialDataFetch
     ) {
       setHasInitialDataFetch(true);
-      fetchPaginatedCandidates(filters, page, pageSize);
+      // Use a ref to avoid dependency issues
+      const currentFetchTableData = fetchTableData;
+      currentFetchTableData(filters, page, pageSize);
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, safeInitialCandidates.length, initialFetchError, hasInitialDataFetch, fetchPaginatedCandidates, filters, page, pageSize]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, safeInitialCandidates.length, initialFetchError, hasInitialDataFetch, fetchTableData, filters, page, pageSize]);
 
   // Reset hasInitialDataFetch on client-side navigation (pathname change)
   useEffect(() => {
@@ -860,8 +1063,6 @@ export function CandidatesPageClient({
 
   // Separate useEffect to handle filter changes and fetch candidates
   useEffect(() => {
-    // console.log('Filter change useEffect triggered with filters:', filters);
-    
     // Skip if not authenticated or has errors
     if (sessionStatus !== 'authenticated' || serverAuthError || serverPermissionError) {
       return;
@@ -869,21 +1070,26 @@ export function CandidatesPageClient({
     
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      // console.log('Skipping filter change useEffect - currently clearing filters');
+      return;
+    }
+    
+    // Skip if we haven't completed initial fetch yet
+    if (!hasInitialDataFetch) {
       return;
     }
     
     // Create a unique request ID to prevent infinite loops
     const requestId = JSON.stringify({ filters, page, pageSize, sortColumn, sortDirection });
     if (currentRequestRef.current === requestId) {
-      // console.log('Skipping fetch - same request already in progress');
       return;
     }
     
     currentRequestRef.current = requestId;
-    // console.log('Fetching candidates due to filter/sort change');
-    fetchPaginatedCandidates(filters, page, pageSize);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters]);
+    console.log('Fetching candidates due to filter/sort change:', { filters, page, pageSize, sortColumn, sortDirection });
+    // Use the optimized table fetch function for better performance
+    const currentFetchTableData = fetchTableData;
+    currentFetchTableData(filters, page, pageSize);
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch]); // Added hasInitialDataFetch dependency
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated' && !serverAuthError && !serverPermissionError) {
@@ -891,7 +1097,10 @@ export function CandidatesPageClient({
     }
   }, [sessionStatus, serverAuthError, serverPermissionError]);
 
-  useEffect(() => { setAllCandidates(safeInitialCandidates || []); }, [safeInitialCandidates]);
+  useEffect(() => { 
+    setAllCandidates(safeInitialCandidates || []); 
+    setFullCandidatesForCounts(safeInitialCandidates || []); 
+  }, [safeInitialCandidates]);
   useEffect(() => { setAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions]);
   useEffect(() => { setAvailableStages(safeInitialAvailableStages || []); }, [safeInitialAvailableStages]);
 
@@ -934,6 +1143,29 @@ export function CandidatesPageClient({
     }
   }, [sessionStatus, safeInitialAvailablePositions.length]);
 
+  // Fetch full candidates dataset for accurate count calculations
+  const fetchFullCandidatesForCounts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/candidates?limit=1000');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          setFullCandidatesForCounts(data.data);
+        }
+      }
+    } catch (error) {
+      // Silently fail - this is for counts only, not critical functionality
+      console.warn('Failed to fetch full candidates for counts:', error);
+    }
+  }, []);
+
+  // Fetch full candidates on mount and when session changes
+  useEffect(() => {
+    if (sessionStatus === 'authenticated') {
+      fetchFullCandidatesForCounts();
+    }
+  }, [sessionStatus, fetchFullCandidatesForCounts]);
+
   useEffect(() => {
     // Show error as toast popup if present
     if (initialFetchError) {
@@ -946,17 +1178,8 @@ export function CandidatesPageClient({
   const lastAppliedFiltersRef = useRef<string>('');
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
-    console.log('handleFilterChange called with:', newFilters, 'isClearingFilters:', isClearingFilters);
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
-      console.log('Skipping filter change because isClearingFilters is true');
-      // Safety mechanism: if isClearingFilters is stuck for more than 1 second, reset it
-      setTimeout(() => {
-        if (isClearingFilters) {
-          console.log('Safety timeout: resetting isClearingFilters');
-          setIsClearingFilters(false);
-        }
-      }, 1000);
       return;
     }
     // Clear any existing timeout
@@ -964,6 +1187,15 @@ export function CandidatesPageClient({
       clearTimeout(filterChangeTimeoutRef.current);
       filterChangeTimeoutRef.current = null;
     }
+    
+    // Determine debounce time based on filter type
+    const isFitScoreFilter = newFilters.minAppliedJobFitScore !== undefined || 
+                            newFilters.maxAppliedJobFitScore !== undefined ||
+                            newFilters.minMatchingJobFitScore !== undefined ||
+                            newFilters.maxMatchingJobFitScore !== undefined;
+    
+    const debounceTime = isFitScoreFilter ? 50 : 150; // Faster response for fit score filters
+    
     // Debounce the filter change to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
       const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
@@ -983,13 +1215,12 @@ export function CandidatesPageClient({
       setPage(1);
       setFilters(combinedFilters);
       
-      // Don't update URL to prevent full page refresh
-      // The table will be updated through the useEffect that watches filters
-    }, 150); // Reduced to 150ms for faster response
+      // Use the optimized table fetch function instead of the full page refresh
+      debouncedFetchTableData(combinedFilters, 1, pageSize);
+    }, debounceTime);
   };
 
   const handleClearAllFilters = useCallback(() => {
-    console.log('handleClearAllFilters called');
     setIsClearingFilters(true);
     
     // Clear AI search state
@@ -1034,7 +1265,7 @@ export function CandidatesPageClient({
     // Fetch candidates with default filters to restore original state
     // Use a small delay to ensure state updates are processed
     setTimeout(() => {
-      fetchPaginatedCandidates(defaultFilters, 1, pageSize);
+      fetchTableData(defaultFilters, 1, pageSize);
       setIsClearingFilters(false);
     }, 100);
   }, [fetchPaginatedCandidates, pageSize]);
@@ -1048,18 +1279,7 @@ export function CandidatesPageClient({
     };
   }, []);
 
-  // Safety mechanism: reset isClearingFilters if it gets stuck for too long
-  useEffect(() => {
-    console.log('isClearingFilters changed to:', isClearingFilters);
-    if (isClearingFilters) {
-      const safetyTimeout = setTimeout(() => {
-        console.log('Safety timeout: resetting isClearingFilters');
-        setIsClearingFilters(false);
-      }, 2000); // Reset after 2 seconds if still stuck
-      
-      return () => clearTimeout(safetyTimeout);
-    }
-  }, [isClearingFilters]);
+
 
   const fetchCandidateById = useCallback(async (candidateId: string): Promise<Candidate | null> => {
     try {
@@ -1085,15 +1305,22 @@ export function CandidatesPageClient({
     const updatedCandidate = await fetchCandidateById(candidateId);
     if (updatedCandidate) {
       setAllCandidates(prev => prev.map(c => c.id === candidateId ? updatedCandidate : c));
+      setFullCandidatesForCounts(prev => prev.map(c => c.id === candidateId ? updatedCandidate : c));
     } else {
       toast.error('Could not refresh data for candidate. Attempting full list refresh.');
-      fetchPaginatedCandidates(filters, page, pageSize);
+      const currentFetchTableData = fetchTableData;
+      currentFetchTableData(filters, page, pageSize);
     }
-  }, [fetchCandidateById, toast, fetchPaginatedCandidates, filters, page, pageSize, aiMatchedCandidateIds]);
+      }, [fetchCandidateById, toast, filters, page, pageSize, aiMatchedCandidateIds]);
 
   // Optimistic update helper function
   const applyOptimisticUpdate = useCallback((candidateId: string, updates: Partial<Candidate>) => {
     setAllCandidates(prev => prev.map(candidate => 
+      candidate.id === candidateId 
+        ? { ...candidate, ...updates, updatedAt: new Date().toISOString() }
+        : candidate
+    ));
+    setFullCandidatesForCounts(prev => prev.map(candidate => 
       candidate.id === candidateId 
         ? { ...candidate, ...updates, updatedAt: new Date().toISOString() }
         : candidate
@@ -1103,6 +1330,9 @@ export function CandidatesPageClient({
   // Revert optimistic update helper function
   const revertOptimisticUpdate = useCallback((candidateId: string, originalCandidate: Candidate) => {
     setAllCandidates(prev => prev.map(candidate => 
+      candidate.id === candidateId ? originalCandidate : candidate
+    ));
+    setFullCandidatesForCounts(prev => prev.map(candidate => 
       candidate.id === candidateId ? originalCandidate : candidate
     ));
   }, []);
@@ -1169,6 +1399,14 @@ export function CandidatesPageClient({
           recruiter: updatedCandidate.recruiter || c.recruiter
         } : c
       ));
+      setFullCandidatesForCounts(prev => prev.map(c => 
+        c.id === candidateId ? {
+          ...c,
+          ...updatedCandidate,
+          position: updatedCandidate.position || c.position,
+          recruiter: updatedCandidate.recruiter || c.recruiter
+        } : c
+      ));
 
       if (!suppressToast) {
         toast.success(`Status updated to ${newStatus}`, { id: candidateId });
@@ -1190,6 +1428,7 @@ export function CandidatesPageClient({
         throw new Error(errorData.message || `Failed to delete candidate: ${response.statusText || `Status: ${response.status}`}`);
       }
       setAllCandidates(prev => prev.filter(c => c.id !== candidateId));
+      setFullCandidatesForCounts(prev => prev.filter(c => c.id !== candidateId));
       setSelectedCandidateIds(prev => { const newSet = new Set(prev); newSet.delete(candidateId); return newSet; });
       toast.success(`Candidate successfully deleted.`);
     } catch (error) {
@@ -1251,7 +1490,9 @@ export function CandidatesPageClient({
       }
       const { candidate } = await response.json();
       // Instead of manually adding the candidate, refetch the list from the backend
-      await fetchPaginatedCandidates(filters, page, pageSize);
+      await fetchTableData(filters, page, pageSize);
+      // Also refresh the full candidates dataset for accurate counts
+      await fetchFullCandidatesForCounts();
       setIsAddModalOpen(false);
       toast.success(`${candidate.name} has been successfully added.`);
       // Optionally force a router refresh for full sync:
@@ -1266,7 +1507,7 @@ export function CandidatesPageClient({
 
   const handleAutomatedProcessingStart = () => {
     toast('Processing Started: Resume sent for automated processing. Candidate list will refresh if successful.');
-    setTimeout(() => { fetchPaginatedCandidates(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
+    setTimeout(() => { fetchTableData(filters, page, pageSize); }, 15000); // Optimistic refresh after 15s
   };
 
   const handleExportToExcel = async () => {
@@ -1317,7 +1558,9 @@ export function CandidatesPageClient({
           const posData = await posResponse.json();
           setAvailablePositions(posData.data || []);
         }
-        fetchPaginatedCandidates(filters, page, pageSize); // Refresh candidates list
+        fetchTableData(filters, page, pageSize); // Refresh candidates list
+        // Also refresh the full candidates dataset for accurate counts
+        fetchFullCandidatesForCounts();
     }
   };
 
@@ -1393,7 +1636,9 @@ export function CandidatesPageClient({
 
       toast.success(`${result.successCount} candidate(s) affected. ${result.failCount > 0 ? `${result.failCount} failed.` : ''}`);
       setSelectedCandidateIds(new Set()); // Clear selection
-      fetchPaginatedCandidates(filters, page, pageSize); // Refresh list
+      fetchTableData(filters, page, pageSize); // Refresh list
+      // Also refresh the full candidates dataset for accurate counts
+      fetchFullCandidatesForCounts();
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -1484,7 +1729,7 @@ export function CandidatesPageClient({
         visibilityTimeout = setTimeout(() => {
           // console.log('Page became visible, refreshing candidate data...');
           lastRefreshTime = Date.now();
-          debouncedFetchPaginatedCandidates(filters, page, pageSize);
+          debouncedFetchTableData(filters, page, pageSize);
         }, 300); // Reduced delay from 1000ms to 300ms
       }
     };
@@ -1501,7 +1746,7 @@ export function CandidatesPageClient({
         focusTimeout = setTimeout(() => {
           // console.log('Window gained focus, refreshing candidate data...');
           lastRefreshTime = Date.now();
-          debouncedFetchPaginatedCandidates(filters, page, pageSize);
+          debouncedFetchTableData(filters, page, pageSize);
         }, 300); // Reduced delay from 1000ms to 300ms
       }
     };
@@ -1515,18 +1760,18 @@ export function CandidatesPageClient({
       clearTimeout(visibilityTimeout);
       clearTimeout(focusTimeout);
     };
-  }, [sessionStatus, isLoading, isAiSearchActive, debouncedFetchPaginatedCandidates, filters, page, pageSize]);
+  }, [sessionStatus, isLoading, isAiSearchActive, filters, page, pageSize]);
 
   // Note: Removed automatic recruiter filter setting to allow recruiters to freely select any recruiter filter
 
   // Ensure ALL useMemo hooks are called before any return
   const mappedCandidates = useMemo(() => {
     // Defensive check to prevent temporal dead zone issues
-    if (!Array.isArray(allCandidates)) {
+    if (!Array.isArray(tableCandidates)) {
       return [];
     }
     
-    let candidates = allCandidates.map(candidate => {
+    let candidates = tableCandidates.map(candidate => {
       // Ensure candidate is valid object
       if (!candidate || typeof candidate !== 'object') {
         return candidate;
@@ -1546,43 +1791,21 @@ export function CandidatesPageClient({
     
     // Filter by AI search if active - with safer checks
     if (isAiSearchActive && Array.isArray(aiMatchedCandidateIds)) {
-      console.log('AI Search Filtering:', {
-        isAiSearchActive,
-        aiMatchedCandidateIdsLength: aiMatchedCandidateIds.length,
-        aiMatchedCandidateIds,
-        candidatesBeforeFilter: candidates.length,
-        availableCandidateIds: candidates.map(c => c.id)
-      });
-      
       if (aiMatchedCandidateIds.length > 0) {
         // Create a Set for faster lookup
         const aiMatchedIdsSet = new Set(aiMatchedCandidateIds);
         candidates = candidates.filter(c => c && c.id && aiMatchedIdsSet.has(c.id));
-        console.log('Candidates after AI filter:', {
-          candidatesAfterFilter: candidates.length,
-          filteredCandidateIds: candidates.map(c => c.id)
-        });
       } else {
         // If AI search is active and there are no matches, show empty list
         candidates = [];
-        console.log('AI search active but no matches, setting candidates to empty array');
       }
     }
     
     return candidates;
-  }, [allCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
+  }, [tableCandidates, availablePositions, isAiSearchActive, aiMatchedCandidateIds]);
 
   // Paginate candidates for display
   const paginatedCandidates = useMemo(() => {
-    // Debug logging
-    console.log('paginatedCandidates useMemo:', {
-      mappedCandidatesLength: mappedCandidates?.length || 0,
-      allCandidatesLength: allCandidates?.length || 0,
-      isAiSearchActive,
-      aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
-      page,
-      pageSize
-    });
     // Defensive check to prevent temporal dead zone issues
     if (!Array.isArray(mappedCandidates)) {
       return [];
@@ -1595,30 +1818,23 @@ export function CandidatesPageClient({
       const start = (safePage - 1) * safePageSize;
       const end = start + safePageSize;
       const paginated = mappedCandidates.slice(start, end);
-      console.log('AI Search Pagination:', {
-        start,
-        end,
-        mappedCandidatesLength: mappedCandidates.length,
-        paginatedLength: paginated.length,
-        aiMatchedIds: aiMatchedCandidateIds
-      });
       return paginated;
     }
     
     // For regular searches, the API already returns paginated data, so just return the mapped candidates
     // But we need to ensure we're not returning an empty array when there are candidates
-    if (mappedCandidates.length === 0 && allCandidates.length > 0) {
-      // If mappedCandidates is empty but allCandidates has data, there might be a filtering issue
-      // Return the first page of allCandidates as a fallback
+    if (mappedCandidates.length === 0 && tableCandidates.length > 0) {
+      // If mappedCandidates is empty but tableCandidates has data, there might be a filtering issue
+      // Return the first page of tableCandidates as a fallback
       const safePageSize = pageSize > 0 ? pageSize : 20;
       const safePage = page > 0 ? page : 1;
       const start = (safePage - 1) * safePageSize;
       const end = start + safePageSize;
-      return allCandidates.slice(start, end);
+      return tableCandidates.slice(start, end);
     }
     
     return mappedCandidates;
-  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, allCandidates, page, pageSize]);
+  }, [isAiSearchActive, aiMatchedCandidateIds, mappedCandidates, tableCandidates, page, pageSize]);
 
   // For row numbering in table
   const baseIndex = useMemo(() => {
@@ -1628,16 +1844,17 @@ export function CandidatesPageClient({
   }, [page, pageSize]);
 
   // Calculate candidate counts by stage for the pipeline stage filter
+  // Use fullCandidatesForCounts to show total counts regardless of current filters
   const candidateCountsByStage = useMemo(() => {
     const stageCounts: { [stageName: string]: number } = {};
     
-    allCandidates.forEach((candidate: Candidate) => {
+    fullCandidatesForCounts.forEach((candidate: Candidate) => {
       const status = candidate.status;
       stageCounts[status] = (stageCounts[status] || 0) + 1;
     });
     
     return stageCounts;
-  }, [allCandidates]);
+  }, [fullCandidatesForCounts]);
 
   // Sort state variables have been moved to the top with other state declarations to prevent temporal dead zone issues
 
@@ -1678,7 +1895,8 @@ export function CandidatesPageClient({
       </div>
     );
   }
-  if (isLoading && allCandidates.length === 0 && !fetchError) {
+  // Only show full-screen loader on initial load, not during filter updates
+  if (isLoading && allCandidates.length === 0 && !fetchError && !hasInitialDataFetch) {
     return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
   if (fetchError && !isLoading) {
@@ -1695,7 +1913,7 @@ export function CandidatesPageClient({
             <p className="mt-2">Please refer to the troubleshooting steps in the `README.md` for guidance on how to resolve this, typically involving a clean Docker volume reset.</p> 
           </div> 
         )}
-        <Button onClick={() => fetchPaginatedCandidates(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
+        <Button onClick={() => fetchTableData(filters, page, pageSize)} className="btn-primary-gradient">Try Again</Button>
       </div>
     );
   }
@@ -1708,6 +1926,8 @@ export function CandidatesPageClient({
       </div>
     );
   }
+
+
 
   return (
     <div className="flex h-full relative">
@@ -1772,9 +1992,10 @@ export function CandidatesPageClient({
             (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) ||
             (filters.selectedStatuses && filters.selectedStatuses.length > 0) ||
             (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) ||
-            (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== 0) ||
+            // Fit score filters - only show if there's actual filtering
+            (filters.minAppliedJobFitScore !== undefined) ||
             (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== 100) ||
-            (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore > 0) ||
+            (filters.minMatchingJobFitScore !== undefined) ||
             (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100) ||
             filters.applicationDateStart ||
             filters.applicationDateEnd ||
@@ -1869,7 +2090,7 @@ export function CandidatesPageClient({
                   }).join(', ')}
                 </Badge>
               )}
-              {filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== 0 && (
+              {filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== -1 && (
                 <Badge variant="secondary" className="text-xs">
                   Applied Job Min Score: {filters.minAppliedJobFitScore}
                 </Badge>
@@ -1879,7 +2100,12 @@ export function CandidatesPageClient({
                   Applied Job Max Score: {filters.maxAppliedJobFitScore}
                 </Badge>
               )}
-              {filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore > 0 && (
+              {filters.minAppliedJobFitScore === -1 && (
+                <Badge variant="secondary" className="text-xs">
+                  Applied Job: No Score Only
+                </Badge>
+              )}
+              {filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== -1 && (
                 <Badge variant="secondary" className="text-xs">
                   Matching Job Min Score: {filters.minMatchingJobFitScore}
                 </Badge>
@@ -1887,6 +2113,11 @@ export function CandidatesPageClient({
               {filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100 && (
                 <Badge variant="secondary" className="text-xs">
                   Matching Job Max Score: {filters.maxMatchingJobFitScore}
+                </Badge>
+              )}
+              {filters.minMatchingJobFitScore === -1 && (
+                <Badge variant="secondary" className="text-xs">
+                  Matching Job: No Score Only
                 </Badge>
               )}
               {filters.applicationDateStart && (
@@ -1944,7 +2175,16 @@ export function CandidatesPageClient({
             )}
             <div className="flex gap-2 items-center ml-auto">
               {canManageCandidates && (
-                <Button onClick={() => setIsBulkUploadModalOpen(true)} variant="default" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
+                <Button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                
+                    setIsBulkUploadModalOpen(true);
+                  }} 
+                  variant="default" 
+                  className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105"
+                >
                   <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume)
                 </Button>
               )}
@@ -1988,26 +2228,31 @@ export function CandidatesPageClient({
           </div>
         )}
 
+        {/* Authentication Check */}
+        {String(sessionStatus) === 'unauthenticated' && (
+          <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <ShieldAlert className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Authentication Required</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              Please sign in to view and manage candidates.
+            </p>
+            <Button onClick={() => signIn()}>
+              Sign In
+            </Button>
+          </div>
+        )}
+
         {/* Empty State - Single conditional to prevent duplicates */}
-        {!isLoading && !isAiSearching && (() => {
-          // Debug logging for empty state
-          console.log('Empty State Check:', {
-            isAiSearchActive,
-            aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
-            allCandidatesLength: allCandidates.length,
-            mappedCandidatesLength: mappedCandidates.length,
-            hasAiResults: isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0
-          });
-          
+        {String(sessionStatus) === 'authenticated' && !isLoading && !isAiSearching && (() => {
           // AI search is active and has results - don't show empty state
           if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
-            console.log('AI search has results, not showing empty state');
             return null; // Don't show empty state when AI search has results
           }
           
           // No candidates in database at all
-          if (allCandidates.length === 0) {
-            console.log('No candidates in database, showing empty state');
+          if (tableCandidates.length === 0 && !tableLoading) {
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -2028,7 +2273,6 @@ export function CandidatesPageClient({
           
           // Has candidates but no results for current filters
           if (mappedCandidates.length === 0) {
-            console.log('Has candidates but no mapped candidates, showing no matching state');
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
@@ -2046,20 +2290,11 @@ export function CandidatesPageClient({
           }
           
           // Has candidates and results - show nothing
-          console.log('Has candidates and results, not showing empty state');
           return null;
         })()}
 
         {/* Only render table when there are candidates to show */}
         {(() => {
-          console.log('Table Rendering Check:', {
-            sortedCandidatesLength: sortedCandidates.length,
-            mappedCandidatesLength: mappedCandidates.length,
-            isAiSearchActive,
-            aiMatchedCandidateIds: aiMatchedCandidateIds?.length || 0,
-            shouldRenderTable: sortedCandidates.length > 0
-          });
-          
           if (sortedCandidates.length > 0) {
             return (
               <CandidateTable
@@ -2071,7 +2306,7 @@ export function CandidatesPageClient({
                 onUpdateCandidate={updateCandidateStatus}
                 onDeleteCandidate={handleDeleteCandidate}
                 onEditPosition={handleOpenEditPositionModal}
-                isLoading={isLoading}
+                isLoading={tableLoading}
                 onRefreshCandidateData={refreshCandidateInList}
                 selectedCandidateIds={selectedCandidateIds}
                 onToggleSelectCandidate={handleToggleSelectCandidate}
@@ -2091,7 +2326,7 @@ export function CandidatesPageClient({
           // If AI search is active and has results but no candidates are showing, 
           // there might be an issue with the filtering
           if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0 && sortedCandidates.length === 0) {
-            console.log('AI search has results but no candidates are showing - this indicates a filtering issue');
+        
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -2199,7 +2434,10 @@ export function CandidatesPageClient({
       {canManageCandidates && (
         <BulkUploadCVsModal
           isOpen={isBulkUploadModalOpen}
-          onOpenChange={setIsBulkUploadModalOpen}
+          onOpenChange={(open) => {
+        
+            setIsBulkUploadModalOpen(open);
+          }}
         />
       )}
 

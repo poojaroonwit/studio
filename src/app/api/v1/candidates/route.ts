@@ -243,8 +243,9 @@ export async function POST(request: NextRequest) {
     });
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
     
-    // Auto-assign recruiter if candidate has a position
-    if (positionId) {
+    // Auto-assign recruiter if candidate has a position and no recruiter
+    let finalCandidate = newCandidate;
+    if (positionId && !newCandidate.recruiterId) {
       try {
         console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
         
@@ -303,6 +304,9 @@ export async function POST(request: NextRequest) {
 
           console.log(`✅ Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
           console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+          
+          // Use the updated candidate for the response
+          finalCandidate = updatedCandidate;
         } else if (position && !position.recruiterId) {
           console.log(`⚠️ Position ${positionId} exists but has no recruiter assigned`);
         } else if (!position) {
@@ -317,15 +321,16 @@ export async function POST(request: NextRequest) {
     return createSuccessResponse(request, {
       message: 'Candidate created successfully',
       candidate: {
-        id: newCandidate.id,
-        name: newCandidate.name,
-        email: newCandidate.email,
-        phone: newCandidate.phone,
-        status: newCandidate.status,
-        parsedData: newCandidate.parsedData,
-        applicationDate: newCandidate.applicationDate,
-        createdAt: newCandidate.createdAt,
-        updatedAt: newCandidate.updatedAt,
+        id: finalCandidate.id,
+        name: finalCandidate.name,
+        email: finalCandidate.email,
+        phone: finalCandidate.phone,
+        status: finalCandidate.status,
+        parsedData: finalCandidate.parsedData,
+        applicationDate: finalCandidate.applicationDate,
+        createdAt: finalCandidate.createdAt,
+        updatedAt: finalCandidate.updatedAt,
+        recruiterId: finalCandidate.recruiterId,
       }
     }, 201);
 

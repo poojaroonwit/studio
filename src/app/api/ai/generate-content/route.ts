@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
     const dbApiKey = await getSystemSetting('geminiApiKey');
     const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
     
-    console.log('Generative AI: API Key check - DB Key:', dbApiKey ? 'Configured' : 'Not found', 'Env Key:', process.env.GOOGLE_API_KEY ? 'Configured' : 'Not found');
+
     
     if (!apiKey) {
       console.error('Generative AI: Gemini API Key not configured. AI features unavailable.');
@@ -410,8 +410,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     // Call Google Gemini API directly
     const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
     
-    console.log('Generative AI: Making request to Gemini API with key:', apiKey ? 'API Key configured' : 'No API Key');
-    console.log('Generative AI: Request URL:', url);
+
     
     const fetchRes = await fetch(url, {
       method: "POST",
@@ -443,7 +442,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     }
 
     const data = await fetchRes.json();
-    console.log('Generative AI: Response received from Gemini API');
+
     
     // Check for API errors
     if (data.error) {
@@ -452,7 +451,7 @@ Return ONLY the HTML-formatted content without any additional text or explanatio
     }
     
     let generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    console.log('Generative AI: Generated content length:', generatedContent.length);
+
 
     if (!generatedContent.trim()) {
       console.error('Generative AI: Empty response from Gemini API');

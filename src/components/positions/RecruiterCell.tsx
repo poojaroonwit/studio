@@ -41,7 +41,7 @@ export function RecruiterCell({
   React.useEffect(() => {
     if (isAssigning) {
       const timeout = setTimeout(() => {
-        console.log('Auto-resetting stuck assigning state for position:', position.id);
+    
         if (onResetAssigning) {
           onResetAssigning();
         }
@@ -54,15 +54,10 @@ export function RecruiterCell({
 
 
   const handleSelect = async (recruiterId: string | null) => {
-    console.log('RecruiterCell handleSelect called:', {
-      positionId: position.id,
-      recruiterId,
-      isAssigning,
-      canManagePositions
-    });
+
     
     if (isAssigning) {
-      console.log('Assignment in progress, ignoring selection');
+  
       return;
     }
     

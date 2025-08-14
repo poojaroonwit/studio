@@ -18,18 +18,18 @@ const MicrosoftLogo = () => (
 
 export function AzureAdSignInButton() {
   const handleSignIn = async () => {
-    console.log('[AZURE AD BUTTON] Azure AD sign-in button clicked');
+
     try {
       const result = await signIn("azure-ad", { 
         callbackUrl: "/",
         redirect: false // Don't redirect immediately to catch errors
       });
-      console.log('[AZURE AD BUTTON] signIn result:', result);
+
       
       if (result?.error) {
         console.error('[AZURE AD BUTTON] Sign-in error:', result.error);
       } else if (result?.ok) {
-        console.log('[AZURE AD BUTTON] Sign-in successful, redirecting...');  
+    
         window.location.href = result.url || "/";
       }
     } catch (error) {

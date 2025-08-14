@@ -849,9 +849,9 @@ export function CandidateFilters({
         maxAppliedJobFitScore = undefined;
       }
     } else {
-      // Use range slider values if no grades are selected
-      minAppliedJobFitScore = appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0];
-      maxAppliedJobFitScore = appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1];
+      // No grades selected - don't apply any fit score filtering
+      minAppliedJobFitScore = undefined;
+      maxAppliedJobFitScore = undefined;
     }
 
     // Handle matching job fit score grades
@@ -870,9 +870,9 @@ export function CandidateFilters({
         maxMatchingJobFitScore = undefined;
       }
     } else {
-      // Use range slider values if no grades are selected
-      minMatchingJobFitScore = matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0];
-      maxMatchingJobFitScore = matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1];
+      // No grades selected - don't apply any fit score filtering
+      minMatchingJobFitScore = undefined;
+      maxMatchingJobFitScore = undefined;
     }
 
     const newFilters: CandidateFilterValues = {
@@ -999,9 +999,9 @@ export function CandidateFilters({
         maxAppliedJobFitScore = undefined;
       }
     } else {
-      // Use range slider values if no grades are selected
-      minAppliedJobFitScore = appliedJobFitScoreRange[0] === 0 ? undefined : appliedJobFitScoreRange[0];
-      maxAppliedJobFitScore = appliedJobFitScoreRange[1] === 100 ? undefined : appliedJobFitScoreRange[1];
+      // No grades selected - don't apply any fit score filtering
+      minAppliedJobFitScore = undefined;
+      maxAppliedJobFitScore = undefined;
     }
 
     // Handle matching job fit score grades
@@ -1020,9 +1020,9 @@ export function CandidateFilters({
         maxMatchingJobFitScore = undefined;
       }
     } else {
-      // Use range slider values if no grades are selected
-      minMatchingJobFitScore = matchingJobFitScoreRange[0] === 0 ? undefined : matchingJobFitScoreRange[0];
-      maxMatchingJobFitScore = matchingJobFitScoreRange[1] === 100 ? undefined : matchingJobFitScoreRange[1];
+      // No grades selected - don't apply any fit score filtering
+      minMatchingJobFitScore = undefined;
+      maxMatchingJobFitScore = undefined;
     }
 
     const newFilters: CandidateFilterValues = {
@@ -1125,10 +1125,8 @@ export function CandidateFilters({
       maxFitScore = undefined;
     }
     
-    // Only apply filters if we have selected grades or if we're clearing all grades
-    if (newSelected.size > 0 || selectedFitScoreGrades.size > 0) {
-      handleApplyStandardFiltersDebounced();
-    }
+    // Always apply filters when grades change to ensure proper state
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
@@ -1167,10 +1165,8 @@ export function CandidateFilters({
       maxMatchingJobFitScore = undefined;
     }
     
-    // Only apply filters if we have selected grades or if we're clearing all grades
-    if (newSelected.size > 0 || selectedMatchingFitScoreGrades.size > 0) {
-      handleApplyStandardFiltersDebounced();
-    }
+    // Always apply filters when grades change to ensure proper state
+    handleApplyStandardFiltersDebounced();
   };
 
   const handleResetFilters = () => {

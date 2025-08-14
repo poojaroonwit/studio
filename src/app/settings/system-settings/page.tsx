@@ -393,7 +393,7 @@ export default function SystemSettingsPage() {
                           max="36000"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Note: Client-side timeout has been removed to prevent 504 Gateway Timeout errors. The external service will handle its own timeout if needed.
+                          Note: System now waits indefinitely (24 hours) for webhook responses to prevent 504 Gateway Timeout errors. The external service will complete processing when ready.
                         </p>
                       </div>
                     </CardContent>

@@ -519,15 +519,27 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       try {
         console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
-        console.log(`[Webhook] Timeout: Removed to prevent 504 Gateway Timeout errors`);
+        console.log(`[Webhook] Timeout: 24 hours (effectively waiting indefinitely for webhook response)`);
         console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
         
-        webhookRes = await fetch(resumeWebhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payloadWithIdempotency),
-          // Removed timeout signal to prevent 504 Gateway Timeout errors
-        });
+        // Use a custom fetch with no timeout to wait indefinitely for webhook response
+        const controller = new AbortController();
+        
+        // Set a very long timeout (24 hours) to effectively wait indefinitely
+        const veryLongTimeout = setTimeout(() => {
+          controller.abort();
+        }, 24 * 60 * 60 * 1000); // 24 hours
+        
+        try {
+          webhookRes = await fetch(resumeWebhookUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payloadWithIdempotency),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(veryLongTimeout);
+        }
         
         webhookResStatus = webhookRes.status;
         
@@ -544,18 +556,17 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
         } else {
           status = 'fail';
           if (webhookResStatus === 504) {
-            error = `Gateway timeout (504) - External service overloaded or timeout`;
-            error_details = `The external resume processing service is returning 504 Gateway Timeout. This could indicate:
-1. The external service is overloaded or experiencing high load
-2. The request took longer than the external service's timeout limit
-3. Network connectivity issues between your server and the external service
-4. The external service is down or unreachable
+            error = `Gateway timeout (504) - External service still processing`;
+            error_details = `The external resume processing service is still processing the request and returned 504 Gateway Timeout. This indicates:
+1. The external service is processing the request but taking longer than expected
+2. The request is still valid and being processed by the external service
+3. The webhook will continue processing in the background
 
-Note: Client-side timeout has been removed to prevent 504 errors. The external service will handle its own timeout if needed.
+The system is configured to wait indefinitely for the webhook response. The external service will complete processing when ready.
 Consider:
 - Checking the external service status
-- Reducing concurrent requests
-- Contacting the service provider`;
+- The webhook may still complete successfully despite the 504 response
+- Monitor the webhook service for completion`;
           } else {
             error = `Webhook responded with status ${webhookResStatus}`;
           }

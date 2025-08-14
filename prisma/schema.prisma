@@ -477,18 +477,34 @@ model DashboardWidget {
   @@index([type])
 }
 
+model SystemPromptCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  color       String?  @default("#3B82F6")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  systemPrompts SystemPrompt[]
+
+  @@index([name])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
 model SystemPrompt {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   description String?
   content     String
-  category    String
+  categoryId  String   @db.Uuid
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  category    SystemPromptCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([name])
-  @@index([category])
+  @@index([categoryId])
   @@index([isActive])
   @@index([createdAt])
 }

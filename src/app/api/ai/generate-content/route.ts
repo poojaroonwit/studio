@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { logAudit } from '@/lib/auditLog';
+import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
 const generateContentSchema = z.object({
-  candidateId: z.string().optional(),
-  candidateName: z.string().optional(),
+  candidateId: z.string().min(1, 'Candidate ID is required'),
   systemPrompt: z.string().min(1, 'System prompt is required'),
   promptName: z.string().optional(),
   promptCategory: z.string().optional(),
@@ -33,27 +34,365 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { candidateId, candidateName, systemPrompt, promptName, promptCategory } = validationResult.data;
+  const { candidateId, systemPrompt, promptName, promptCategory } = validationResult.data;
 
   try {
-    // Here you would integrate with your AI service (OpenAI, Azure OpenAI, etc.)
-    // For now, we'll simulate the AI response with a template-based approach
-    
-    let generatedContent = '';
-    
-    // Generate content based on the system prompt and context
-    if (promptCategory === 'Job Description Generation') {
-      generatedContent = generateJobDescription(systemPrompt, candidateName);
-    } else if (promptCategory === 'Candidate Analysis') {
-      generatedContent = generateCandidateAnalysis(systemPrompt, candidateName);
-    } else if (promptCategory === 'Email Templates') {
-      generatedContent = generateEmailTemplate(systemPrompt, candidateName);
-    } else if (promptCategory === 'Report Generation') {
-      generatedContent = generateReport(systemPrompt, candidateName);
-    } else {
-      // Generic content generation
-      generatedContent = generateGenericContent(systemPrompt, candidateName);
+    // Get comprehensive candidate data including job and matching information
+    async function getCandidateData(candidateId: string) {
+      const client = await getPool().connect();
+      try {
+        // Get candidate basic information including education and experience
+        const candidateQuery = `
+          SELECT 
+            c.id,
+            c.name,
+            c.email,
+            c.phone,
+            c.status,
+            c."applicationDate",
+            c."fitScore",
+            c."dataAiHint",
+            c."customAttributes",
+            c."parsedData",
+            c."assignmentJustification",
+            c."educationData",
+            c."experienceData",
+            c."createdAt",
+            c."updatedAt",
+            p.id as "positionId",
+            p.title as "positionTitle",
+            p.department as "positionDepartment",
+            p.description as "positionDescription",
+            p."positionLevel" as "positionLevel",
+            p."isOpen" as "positionIsOpen",
+            p."customAttributes" as "positionCustomAttributes",
+            u.name as "recruiterName",
+            u.email as "recruiterEmail",
+            rs.name as "currentStage",
+            rs.description as "stageDescription",
+            rs.color_badge as "stageColor"
+          FROM "Candidate" c
+          LEFT JOIN "Position" p ON c."positionId" = p.id
+          LEFT JOIN "User" u ON c."recruiterId" = u.id
+          LEFT JOIN "RecruitmentStage" rs ON c."status" = rs.name
+          WHERE c.id = $1
+        `;
+        
+        const candidateResult = await client.query(candidateQuery, [candidateId]);
+        
+        if (candidateResult.rows.length === 0) {
+          throw new Error('Candidate not found');
+        }
+        
+        const candidate = candidateResult.rows[0];
+        
+        // Get candidate comments
+        const commentsQuery = `
+          SELECT 
+            content,
+            "createdAt",
+            "createdBy"
+          FROM "Comment"
+          WHERE "candidateId" = $1
+          ORDER BY "createdAt" DESC
+          LIMIT 10
+        `;
+        
+        const commentsResult = await client.query(commentsQuery, [candidateId]);
+        
+        // Get candidate transitions history
+        const transitionsQuery = `
+          SELECT 
+            "fromStage",
+            "toStage",
+            "transitionDate",
+            "reason",
+            "createdBy"
+          FROM "Transition"
+          WHERE "candidateId" = $1
+          ORDER BY "transitionDate" DESC
+          LIMIT 10
+        `;
+        
+        const transitionsResult = await client.query(transitionsQuery, [candidateId]);
+        
+        // Get candidate resumes
+        const resumesQuery = `
+          SELECT 
+            filename,
+            "fileUrl",
+            "uploadDate",
+            "fileSize"
+          FROM "Resume"
+          WHERE "candidateId" = $1
+          ORDER BY "uploadDate" DESC
+        `;
+        
+        const resumesResult = await client.query(resumesQuery, [candidateId]);
+        
+        // Get candidate attachments
+        const attachmentsQuery = `
+          SELECT 
+            a."fileName",
+            a."filePath",
+            a.label,
+            a."isPrimary",
+            a."uploadedAt",
+            u.name as "uploadedByName"
+          FROM "Attachment" a
+          LEFT JOIN "User" u ON a."uploadedById" = u.id
+          WHERE a."candidateId" = $1
+          ORDER BY a."uploadedAt" DESC
+        `;
+        
+        const attachmentsResult = await client.query(attachmentsQuery, [candidateId]);
+        
+        // Get candidate comments (from CandidateComment table)
+        const candidateCommentsQuery = `
+          SELECT 
+            content,
+            "createdAt",
+            "createdBy"
+          FROM "CandidateComment"
+          WHERE "candidateId" = $1
+          ORDER BY "createdAt" DESC
+          LIMIT 10
+        `;
+        
+        const candidateCommentsResult = await client.query(candidateCommentsQuery, [candidateId]);
+        
+        // Get transition records (more detailed than transitions)
+        const transitionRecordsQuery = `
+          SELECT 
+            tr.stage,
+            tr.date,
+            tr.notes,
+            tr."actingUserId",
+            u.name as "actingUserName"
+          FROM "TransitionRecord" tr
+          LEFT JOIN "User" u ON tr."actingUserId" = u.id
+          WHERE tr."candidateId" = $1
+          ORDER BY tr.date DESC
+          LIMIT 10
+        `;
+        
+        const transitionRecordsResult = await client.query(transitionRecordsQuery, [candidateId]);
+        
+        // Get job matches if position exists
+        let jobMatches = null;
+        if (candidate.positionId) {
+          const matchesQuery = `
+            SELECT 
+              "matchScore",
+              "matchDetails",
+              "matchedAt",
+              "matchCriteria"
+            FROM "JobMatch"
+            WHERE "candidateId" = $1 AND "positionId" = $2
+            ORDER BY "matchedAt" DESC
+            LIMIT 5
+          `;
+          
+          const matchesResult = await client.query(matchesQuery, [candidateId, candidate.positionId]);
+          jobMatches = matchesResult.rows;
+        }
+        
+        return {
+          candidate,
+          comments: commentsResult.rows,
+          transitions: transitionsResult.rows,
+          resumes: resumesResult.rows,
+          attachments: attachmentsResult.rows,
+          candidateComments: candidateCommentsResult.rows,
+          transitionRecords: transitionRecordsResult.rows,
+          jobMatches
+        };
+      } finally {
+        client.release();
+      }
     }
+
+    // Get API key from system settings or environment
+    async function getSystemSetting(key: string): Promise<string | null> {
+      const client = await getPool().connect();
+      try {
+        const res = await client.query('SELECT value FROM "SystemSetting" WHERE key = $1', [key]);
+        if (res.rows.length > 0) {
+          return res.rows[0].value;
+        }
+        return null;
+      } finally {
+        client.release();
+      }
+    }
+
+    // Fetch comprehensive candidate data
+    const candidateData = await getCandidateData(candidateId);
+    const { candidate, comments, transitions, resumes, attachments, candidateComments, transitionRecords, jobMatches } = candidateData;
+    
+    const dbApiKey = await getSystemSetting('geminiApiKey');
+    const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
+    
+    console.log('Generative AI: API Key check - DB Key:', dbApiKey ? 'Configured' : 'Not found', 'Env Key:', process.env.GOOGLE_API_KEY ? 'Configured' : 'Not found');
+    
+    if (!apiKey) {
+      console.error('Generative AI: Gemini API Key not configured. AI features unavailable.');
+      return NextResponse.json(
+        { 
+          message: 'AI features are not available due to missing API Key configuration. Please configure the Gemini API Key in System Settings or set GOOGLE_API_KEY environment variable.',
+          error: 'MISSING_API_KEY',
+          setupInstructions: 'To enable AI features, either: 1) Add a "geminiApiKey" setting in System Settings, or 2) Set GOOGLE_API_KEY environment variable'
+        },
+        { status: 503 }
+      );
+    }
+
+    // Create comprehensive context data for AI
+    const candidateContext = {
+      basicInfo: {
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        status: candidate.status,
+        applicationDate: candidate.applicationDate,
+        fitScore: candidate.fitScore,
+        dataAiHint: candidate.dataAiHint,
+        customAttributes: candidate.customAttributes,
+        parsedData: candidate.parsedData,
+        assignmentJustification: candidate.assignmentJustification,
+        avatarUrl: candidate.avatarUrl
+      },
+      education: candidate.educationData || [],
+      experience: candidate.experienceData || [],
+      position: candidate.positionId ? {
+        title: candidate.positionTitle,
+        department: candidate.positionDepartment,
+        description: candidate.positionDescription,
+        level: candidate.positionLevel,
+        isOpen: candidate.positionIsOpen,
+        customAttributes: candidate.positionCustomAttributes
+      } : null,
+      recruiter: candidate.recruiterName ? {
+        name: candidate.recruiterName,
+        email: candidate.recruiterEmail
+      } : null,
+      currentStage: {
+        name: candidate.currentStage,
+        description: candidate.stageDescription,
+        color: candidate.stageColor
+      },
+      documents: {
+        resumes: resumes,
+        attachments: attachments
+      },
+      history: {
+        comments: comments,
+        candidateComments: candidateComments,
+        transitions: transitions,
+        transitionRecords: transitionRecords,
+        jobMatches: jobMatches
+      }
+    };
+
+    // Create a comprehensive prompt for AI generation
+    const contextInfo = `for candidate: ${candidate.name}`;
+    const detailedContext = `
+CANDIDATE CONTEXT:
+${JSON.stringify(candidateContext, null, 2)}
+
+SYSTEM PROMPT:
+${systemPrompt}
+
+Please generate professional, well-formatted content based on the system prompt above, using all the comprehensive candidate and job data provided. 
+
+IMPORTANT: Pay special attention to the candidate's education and experience data, as these are crucial for understanding their qualifications and background. Consider:
+
+- Education history, degrees, institutions, and graduation dates
+- Work experience, job titles, companies, responsibilities, and duration
+- Skills and competencies demonstrated through their experience
+- How their education and experience align with the position requirements
+- Career progression and growth patterns
+- Parsed data from resumes and documents
+- Assignment justification and reasoning
+- Custom attributes and additional candidate information
+- All uploaded documents and attachments
+- Detailed transition history and stage progression
+- All comments and feedback from recruiters and team members
+- Job matching scores and criteria
+
+Also consider the candidate's background, position requirements, matching scores, comments, transition history, and all available context to provide the most relevant and insightful analysis.
+
+Format the response in HTML with appropriate headings (h2, h3) and bullet points (ul, li) where appropriate. Make it comprehensive and professional.
+
+Return ONLY the HTML-formatted content without any additional text or explanations.`;
+
+    // Call Google Gemini API directly
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    
+    console.log('Generative AI: Making request to Gemini API with key:', apiKey ? 'API Key configured' : 'No API Key');
+    console.log('Generative AI: Request URL:', url);
+    
+    const fetchRes = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: detailedContext }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
+      }),
+    });
+
+    if (!fetchRes.ok) {
+      const errorText = await fetchRes.text();
+      console.error('Generative AI: HTTP Error Response:', fetchRes.status, fetchRes.statusText);
+      console.error('Generative AI: Error Details:', errorText);
+      throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
+    }
+
+    const data = await fetchRes.json();
+    console.log('Generative AI: Response received from Gemini API');
+    
+    // Check for API errors
+    if (data.error) {
+      console.error('Generative AI: Gemini API error:', data.error);
+      throw new Error(`Gemini API error: ${data.error.message || JSON.stringify(data.error)}`);
+    }
+    
+    let generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log('Generative AI: Generated content length:', generatedContent.length);
+
+    if (!generatedContent.trim()) {
+      console.error('Generative AI: Empty response from Gemini API');
+      console.error('Generative AI: Full response data:', JSON.stringify(data, null, 2));
+      throw new Error('No content generated by AI');
+    }
+
+    // Clean up the response - remove markdown code blocks if present
+    generatedContent = generatedContent
+      .replace(/```html\s*/gi, '')  // Remove opening ```html
+      .replace(/```\s*$/gi, '')     // Remove closing ```
+      .trim();
+
+    // Log the AI generation activity
+    await logAudit(
+      'AUDIT',
+      `AI content generated using prompt: ${promptName} (${promptCategory}) for candidate: ${candidate.name}`,
+      'API:AI:GenerateContent',
+      session.user.id,
+      { candidateId, candidateName: candidate.name, promptName, promptCategory }
+    );
 
     return NextResponse.json({ 
       content: generatedContent,
@@ -62,178 +401,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating content:', error);
-    return NextResponse.json({ message: 'Failed to generate content' }, { status: 500 });
+    await logAudit(
+      'ERROR',
+      `Failed to generate AI content: ${(error as Error).message}`,
+      'API:AI:GenerateContent',
+      session.user?.id
+    );
+    
+    return NextResponse.json({ message: `Failed to generate content: ${(error as Error).message}` }, { status: 500 });
   }
-}
-
-// Helper functions for different types of content generation
-function generateJobDescription(systemPrompt: string, candidateName?: string): string {
-  const context = candidateName ? `for ${candidateName}` : '';
-  
-  return `
-<h2>Generated Job Description ${context}</h2>
-
-<p>Based on the system prompt: <em>"${systemPrompt}"</em></p>
-
-<h3>Position Overview</h3>
-<p>We are seeking a talented and experienced professional to join our dynamic team. This role offers an exciting opportunity to contribute to our organization's success while developing your skills and advancing your career.</p>
-
-<h3>Key Responsibilities</h3>
-<ul>
-<li>Collaborate with cross-functional teams to deliver high-quality solutions</li>
-<li>Analyze requirements and develop innovative approaches</li>
-<li>Maintain best practices and industry standards</li>
-<li>Contribute to continuous improvement initiatives</li>
-</ul>
-
-<h3>Required Qualifications</h3>
-<ul>
-<li>Bachelor's degree in relevant field or equivalent experience</li>
-<li>Proven track record of success in similar roles</li>
-<li>Strong analytical and problem-solving skills</li>
-<li>Excellent communication and interpersonal abilities</li>
-</ul>
-
-<h3>Preferred Qualifications</h3>
-<ul>
-<li>Advanced degree or certifications</li>
-<li>Experience with modern technologies and methodologies</li>
-<li>Leadership or mentoring experience</li>
-</ul>
-
-<h3>Benefits</h3>
-<p>We offer a competitive compensation package including health benefits, professional development opportunities, and a collaborative work environment.</p>
-  `.trim();
-}
-
-function generateCandidateAnalysis(systemPrompt: string, candidateName?: string): string {
-  const context = candidateName ? `for ${candidateName}` : '';
-  
-  return `
-<h2>Candidate Analysis Report ${context}</h2>
-
-<p>Analysis based on system prompt: <em>"${systemPrompt}"</em></p>
-
-<h3>Executive Summary</h3>
-<p>This candidate demonstrates strong potential with a solid foundation in their field. Their background aligns well with our requirements and organizational culture.</p>
-
-<h3>Strengths</h3>
-<ul>
-<li>Relevant experience in target industry</li>
-<li>Strong technical skills and knowledge</li>
-<li>Proven track record of achievement</li>
-<li>Good communication abilities</li>
-</ul>
-
-<h3>Areas for Development</h3>
-<ul>
-<li>Could benefit from additional leadership experience</li>
-<li>May need exposure to specific technologies</li>
-<li>Opportunity to enhance strategic thinking</li>
-</ul>
-
-<h3>Recommendation</h3>
-<p>This candidate is recommended for further consideration. Their qualifications and potential make them a strong fit for the role.</p>
-
-<h3>Next Steps</h3>
-<ul>
-<li>Schedule technical interview</li>
-<li>Conduct reference checks</li>
-<li>Assess cultural fit</li>
-</ul>
-  `.trim();
-}
-
-function generateEmailTemplate(systemPrompt: string, candidateName?: string): string {
-  const context = candidateName ? `for ${candidateName}` : '';
-  
-  return `
-<h2>Email Template ${context}</h2>
-
-<p>Template based on system prompt: <em>"${systemPrompt}"</em></p>
-
-<div style="font-family: Arial, sans-serif; line-height: 1.6;">
-<p><strong>Subject:</strong> [Customize based on context]</p>
-
-<p>Dear [Recipient Name],</p>
-
-<p>I hope this email finds you well. I am writing to [purpose of the email].</p>
-
-<p>[Main content paragraph with specific details and context]</p>
-
-<p>I would appreciate the opportunity to discuss this further and answer any questions you may have.</p>
-
-<p>Thank you for your time and consideration.</p>
-
-<p>Best regards,<br>
-[Your Name]<br>
-[Your Title]<br>
-[Your Company]<br>
-[Contact Information]</p>
-</div>
-  `.trim();
-}
-
-function generateReport(systemPrompt: string, candidateName?: string): string {
-  const context = candidateName ? `for ${candidateName}` : '';
-  
-  return `
-<h2>Generated Report ${context}</h2>
-
-<p>Report based on system prompt: <em>"${systemPrompt}"</em></p>
-
-<h3>Executive Summary</h3>
-<p>This report provides a comprehensive analysis of the current situation and recommendations for future actions.</p>
-
-<h3>Key Findings</h3>
-<ul>
-<li>Finding 1: [Description]</li>
-<li>Finding 2: [Description]</li>
-<li>Finding 3: [Description]</li>
-</ul>
-
-<h3>Analysis</h3>
-<p>Detailed analysis of the findings and their implications for the organization.</p>
-
-<h3>Recommendations</h3>
-<ol>
-<li><strong>Immediate Actions:</strong> [Description]</li>
-<li><strong>Short-term Goals:</strong> [Description]</li>
-<li><strong>Long-term Strategy:</strong> [Description]</li>
-</ol>
-
-<h3>Conclusion</h3>
-<p>Summary of key points and next steps for implementation.</p>
-
-<h3>Appendices</h3>
-<p>Additional supporting information and data can be found in the appendices.</p>
-  `.trim();
-}
-
-function generateGenericContent(systemPrompt: string, candidateName?: string): string {
-  const context = candidateName ? `for ${candidateName}` : '';
-  
-  return `
-<h2>AI Generated Content ${context}</h2>
-
-<p>Content generated based on system prompt: <em>"${systemPrompt}"</em></p>
-
-<h3>Overview</h3>
-<p>This content has been generated using artificial intelligence to assist with your specific requirements. The content is designed to be informative, professional, and tailored to your needs.</p>
-
-<h3>Key Points</h3>
-<ul>
-<li>Point 1: [Generated content based on prompt]</li>
-<li>Point 2: [Generated content based on prompt]</li>
-<li>Point 3: [Generated content based on prompt]</li>
-</ul>
-
-<h3>Details</h3>
-<p>Additional detailed information and context relevant to your specific requirements and the system prompt provided.</p>
-
-<h3>Next Steps</h3>
-<p>Recommendations for how to proceed with this information and any additional actions that may be required.</p>
-
-<p><em>Note: This content has been generated by AI and should be reviewed and customized as needed for your specific use case.</em></p>
-  `.trim();
 }

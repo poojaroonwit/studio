@@ -3,6 +3,34 @@ import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 
+// Helper function to format assignment justification
+function formatAssignmentJustification(justification: any): string {
+  if (!justification) return '';
+  
+  if (Array.isArray(justification)) {
+    return justification.filter(Boolean).join('; ');
+  }
+  
+  if (typeof justification === 'string') {
+    return justification.split('\n').map(s => s.trim()).filter(Boolean).join('; ');
+  }
+  
+  return '';
+}
+
+// Helper function to format job matches
+function formatJobMatches(jobMatches: any[]): string {
+  if (!jobMatches || jobMatches.length === 0) return '';
+  
+  return jobMatches.map(match => {
+    const parts = [];
+    if (match.jobTitle) parts.push(`Job: ${match.jobTitle}`);
+    if (match.fitScore !== null && match.fitScore !== undefined) parts.push(`Score: ${Math.round(match.fitScore * 100)}%`);
+    if (match.matchReasons && match.matchReasons.length > 0) parts.push(`Reasons: ${match.matchReasons.join(', ')}`);
+    return parts.join(' | ');
+  }).join('; ');
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
@@ -19,10 +47,27 @@ export async function GET(req: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+      SELECT 
+        c.*,
+        p.title as "positionTitle", 
+        p.department as "positionDepartment", 
+        r.name as "recruiterName",
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'jobTitle', jm."jobTitle",
+              'fitScore', jm."fitScore",
+              'matchReasons', jm."matchReasons",
+              'jobDescriptionSummary', jm."job_description_summary"
+            ) ORDER BY jm."fitScore" DESC NULLS LAST
+          ) FILTER (WHERE jm.id IS NOT NULL),
+          '[]'::json
+        ) as job_matches
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "JobMatch" jm ON c.id = jm."candidateId"
+      GROUP BY c.id, p.title, p.department, r.name
       ORDER BY c."updatedAt" DESC
     `;
     const result = await client.query(query);
@@ -30,7 +75,8 @@ export async function GET(req: NextRequest) {
     // Convert to CSV format
     const headers = [
       'ID', 'Name', 'Email', 'Phone', 'Status', 'Position', 'Department', 
-      'Recruiter', 'Fit Score', 'Application Date', 'Updated At'
+      'Recruiter', 'Fit Score', 'Application Date', 'Updated At',
+      'Applied Job', 'Applied Job Justification', 'Job Matches'
     ];
     
     const csvRows = [headers.join(',')];
@@ -47,7 +93,10 @@ export async function GET(req: NextRequest) {
         `"${(row.recruiterName || '').replace(/"/g, '""')}"`,
         row.fitScore || '',
         row.applicationDate || '',
-        row.updatedAt || ''
+        row.updatedAt || '',
+        `"${(row.positionTitle || '').replace(/"/g, '""')}"`,
+        `"${formatAssignmentJustification(row.assignmentJustification).replace(/"/g, '""')}"`,
+        `"${formatJobMatches(row.job_matches || []).replace(/"/g, '""')}"`
       ];
       csvRows.push(csvRow.join(','));
     }

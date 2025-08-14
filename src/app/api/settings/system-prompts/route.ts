@@ -8,7 +8,7 @@ const systemPromptSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   content: z.string().min(1, 'Content is required'),
-  category: z.string().min(1, 'Category is required'),
+  categoryId: z.string().min(1, 'Category ID is required'),
   isActive: z.boolean().default(true),
 });
 
@@ -30,16 +30,19 @@ export async function GET(request: NextRequest) {
   try {
     const result = await client.query(`
       SELECT 
-        id,
-        name,
-        description,
-        content,
-        category,
-        is_active as "isActive",
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-      FROM "SystemPrompt" 
-      ORDER BY created_at DESC
+        sp.id,
+        sp.name,
+        sp.description,
+        sp.content,
+        sp."categoryId",
+        sp.is_active as "isActive",
+        sp.created_at as "createdAt",
+        sp.updated_at as "updatedAt",
+        spc.name as "categoryName",
+        spc.color as "categoryColor"
+      FROM "SystemPrompt" sp
+      LEFT JOIN "SystemPromptCategory" spc ON sp."categoryId" = spc.id
+      ORDER BY sp.created_at DESC
     `);
 
     return NextResponse.json(result.rows);
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  const { name, description, content, category, isActive } = validationResult.data;
+  const { name, description, content, categoryId, isActive } = validationResult.data;
 
   const pool = getPool();
   const client = await pool.connect();
@@ -86,18 +89,18 @@ export async function POST(request: NextRequest) {
   try {
     // Generate UUID for the id field
     const result = await client.query(`
-      INSERT INTO "SystemPrompt" (id, name, description, content, category, is_active, created_at, updated_at)
+      INSERT INTO "SystemPrompt" (id, name, description, content, "categoryId", is_active, created_at, updated_at)
       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING 
         id,
         name,
         description,
         content,
-        category,
+        "categoryId",
         is_active as "isActive",
         created_at as "createdAt",
         updated_at as "updatedAt"
-    `, [name, description, content, category, isActive]);
+    `, [name, description, content, categoryId, isActive]);
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {

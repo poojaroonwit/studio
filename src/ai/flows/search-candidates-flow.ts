@@ -20,6 +20,7 @@ export type SearchCandidatesInput = z.infer<typeof SearchCandidatesInputSchema>;
 const SearchCandidatesOutputSchema = z.object({
   matchedCandidateIds: z.array(z.string()).describe("An array of UUIDs of candidates that match the search query."),
   aiReasoning: z.string().optional().describe("A brief explanation from the AI on why these candidates were matched or if no matches were found."),
+  recordCount: z.number().describe("The count of records found by the AI search."),
 });
 export type SearchCandidatesOutput = z.infer<typeof SearchCandidatesOutputSchema>;
 
@@ -149,7 +150,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
   const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     console.error('AI Search: Gemini API Key not configured. AI features unavailable.');
-    return { matchedCandidateIds: [], aiReasoning: 'AI features are not available due to missing API Key configuration.' };
+    return { matchedCandidateIds: [], aiReasoning: 'AI features are not available due to missing API Key configuration.', recordCount: 0 };
   }
 
   let allCandidates: Candidate[] = [];
@@ -185,11 +186,11 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     })) as Candidate[];
 
     if (allCandidates.length === 0) {
-      return { matchedCandidateIds: [], aiReasoning: "No candidates found in the database to search." };
+      return { matchedCandidateIds: [], aiReasoning: "No candidates found in the database to search.", recordCount: 0 };
     }
   } catch (dbError) {
     console.error("AI Search: Error fetching candidates from DB:", dbError);
-    return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching." };
+    return { matchedCandidateIds: [], aiReasoning: "Failed to retrieve candidate data for searching.", recordCount: 0 };
   }
 
   const candidateSummariesText = allCandidates
@@ -355,13 +356,15 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
     return {
       matchedCandidateIds: sanitizedCandidateIds,
       aiReasoning: finalReasoning || "No reasoning provided by the AI.",
+      recordCount: sanitizedCandidateIds.length,
     };
 
   } catch (error) {
     console.error('AI Search Flow Error:', error);
     return {
       matchedCandidateIds: [],
-      aiReasoning: `An unexpected error occurred during AI processing. Details: ${(error as Error).message}`
+      aiReasoning: `An unexpected error occurred during AI processing. Details: ${(error as Error).message}`,
+      recordCount: 0
     };
   }
 }

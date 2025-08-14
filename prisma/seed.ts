@@ -488,6 +488,114 @@ async function main() {
     }
     console.log('✅ Default data models created/updated');
 
+    // Create default system prompt categories
+    console.log('Creating default system prompt categories...');
+    const categories = [
+      {
+        name: 'Job Description Generation',
+        description: 'Prompts for generating job descriptions and requirements',
+        color: '#3B82F6',
+        isActive: true
+      },
+      {
+        name: 'Candidate Analysis',
+        description: 'Prompts for analyzing candidate profiles and qualifications',
+        color: '#10B981',
+        isActive: true
+      },
+      {
+        name: 'Email Templates',
+        description: 'Prompts for generating professional email templates',
+        color: '#F59E0B',
+        isActive: true
+      },
+      {
+        name: 'Report Generation',
+        description: 'Prompts for creating comprehensive reports and assessments',
+        color: '#8B5CF6',
+        isActive: true
+      },
+      {
+        name: 'General',
+        description: 'General purpose prompts for various HR tasks',
+        color: '#6B7280',
+        isActive: true
+      }
+    ];
+    
+    const createdCategories = [];
+    for (const category of categories) {
+      const createdCategory = await prisma.systemPromptCategory.upsert({
+        where: { name: category.name },
+        update: { description: category.description, color: category.color },
+        create: category
+      });
+      createdCategories.push(createdCategory);
+    }
+    console.log('✅ Default system prompt categories created/updated');
+
+    // Create default system prompts for AI generation
+    console.log('Creating default system prompts...');
+    const systemPrompts = [
+      {
+        name: 'Candidate Analysis',
+        description: 'Analyze candidate qualifications and provide detailed assessment',
+        content: 'You are an expert HR recruiter. Analyze the candidate\'s profile and provide a comprehensive assessment including strengths, areas for development, and recommendations. Focus on technical skills, experience, and cultural fit.',
+        categoryName: 'Candidate Analysis',
+        isActive: true
+      },
+      {
+        name: 'Job Description Generator',
+        description: 'Generate professional job descriptions based on role requirements',
+        content: 'You are an expert HR professional. Create a comprehensive job description that includes job summary, key responsibilities, required qualifications, preferred qualifications, and benefits. Make it professional and attractive to potential candidates.',
+        categoryName: 'Job Description Generation',
+        isActive: true
+      },
+      {
+        name: 'Interview Email Template',
+        description: 'Generate professional interview invitation emails',
+        content: 'You are an HR coordinator. Create a professional email template for inviting candidates to interviews. Include all necessary details like date, time, location, preparation instructions, and contact information.',
+        categoryName: 'Email Templates',
+        isActive: true
+      },
+      {
+        name: 'Rejection Email Template',
+        description: 'Generate professional rejection emails',
+        content: 'You are an HR professional. Create a professional and empathetic email template for informing candidates that they were not selected for the position. Be respectful and encourage future applications.',
+        categoryName: 'Email Templates',
+        isActive: true
+      },
+      {
+        name: 'Candidate Report',
+        description: 'Generate comprehensive candidate reports',
+        content: 'You are an HR analyst. Create a detailed report about the candidate including background analysis, skill assessment, experience evaluation, and hiring recommendations. Format it professionally with clear sections.',
+        categoryName: 'Report Generation',
+        isActive: true
+      }
+    ];
+    
+    for (const prompt of systemPrompts) {
+      const category = createdCategories.find(c => c.name === prompt.categoryName);
+      if (category) {
+        await prisma.systemPrompt.upsert({
+          where: { name: prompt.name },
+          update: { 
+            content: prompt.content, 
+            description: prompt.description,
+            categoryId: category.id
+          },
+          create: {
+            name: prompt.name,
+            description: prompt.description,
+            content: prompt.content,
+            categoryId: category.id,
+            isActive: prompt.isActive
+          }
+        });
+      }
+    }
+    console.log('✅ Default system prompts created/updated');
+
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

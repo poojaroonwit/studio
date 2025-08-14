@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server';
  * /api/candidates/export:
  *   get:
  *     summary: Export candidates
- *     description: Export all candidates.
+ *     description: Export all candidates with position names, recruiter names, applied job information, and job matches.
  *     responses:
  *       200:
  *         description: Exported candidates data
@@ -82,6 +82,34 @@ function extractFromParsedData(parsedData: any, path: string): any {
   return current;
 }
 
+// Helper function to format assignment justification
+function formatAssignmentJustification(justification: any): string {
+  if (!justification) return '';
+  
+  if (Array.isArray(justification)) {
+    return justification.filter(Boolean).join('; ');
+  }
+  
+  if (typeof justification === 'string') {
+    return justification.split('\n').map(s => s.trim()).filter(Boolean).join('; ');
+  }
+  
+  return '';
+}
+
+// Helper function to format job matches
+function formatJobMatches(jobMatches: any[]): string {
+  if (!jobMatches || jobMatches.length === 0) return '';
+  
+  return jobMatches.map(match => {
+    const parts = [];
+    if (match.jobTitle) parts.push(`Job: ${match.jobTitle}`);
+    if (match.fitScore !== null && match.fitScore !== undefined) parts.push(`Score: ${Math.round(match.fitScore * 100)}%`);
+    if (match.matchReasons && match.matchReasons.length > 0) parts.push(`Reasons: ${match.matchReasons.join(', ')}`);
+    return parts.join(' | ');
+  }).join('; ');
+}
+
 // Helper function to transform candidate data for export
 function transformCandidateForExport(candidate: any): any {
   const parsedData = candidate.parsedData || {};
@@ -91,10 +119,15 @@ function transformCandidateForExport(candidate: any): any {
     'Email*': candidate.email || '',
     'Phone': candidate.phone || '',
     'Position ID': candidate.positionId || '',
+    'Position Name': candidate.position_title || '',
     'Recruiter ID': candidate.recruiterId || '',
+    'Recruiter Name': candidate.recruiter_name || '',
     'Fit Score (0-100)': candidate.fitScore?.toString() || '',
     'Status*': candidate.status || '',
     'Application Date': formatDateForExport(candidate.applicationDate),
+    'Applied Job': candidate.position_title || '',
+    'Applied Job Justification': formatAssignmentJustification(candidate.assignmentJustification),
+    'Job Matches': formatJobMatches(candidate.job_matches || []),
     'Location': extractFromParsedData(parsedData, 'personal_info.location') || '',
     'Introduction/About Me': extractFromParsedData(parsedData, 'personal_info.introduction_aboutme') || '',
     'Education (JSON)': parsedData.education ? JSON.stringify(parsedData.education) : '',
@@ -280,16 +313,29 @@ export async function GET(request: NextRequest) {
     
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
     
-    // Get candidates with position and recruiter information
+    // Get candidates with position, recruiter, and job matches information
     const query = `
       SELECT 
         c.*,
         p.title as position_title,
-        u.name as recruiter_name
+        u.name as recruiter_name,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'jobTitle', jm."jobTitle",
+              'fitScore', jm."fitScore",
+              'matchReasons', jm."matchReasons",
+              'jobDescriptionSummary', jm."job_description_summary"
+            ) ORDER BY jm."fitScore" DESC NULLS LAST
+          ) FILTER (WHERE jm.id IS NOT NULL),
+          '[]'::json
+        ) as job_matches
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" u ON c."recruiterId" = u.id
+      LEFT JOIN "JobMatch" jm ON c.id = jm."candidateId"
       ${whereClause}
+      GROUP BY c.id, p.title, u.name
       ORDER BY c."applicationDate" DESC
     `;
     
@@ -315,10 +361,15 @@ export async function GET(request: NextRequest) {
         { wch: 25 }, // Email
         { wch: 15 }, // Phone
         { wch: 36 }, // Position ID
+        { wch: 30 }, // Position Name
         { wch: 36 }, // Recruiter ID
+        { wch: 25 }, // Recruiter Name
         { wch: 15 }, // Fit Score
         { wch: 15 }, // Status
         { wch: 15 }, // Application Date
+        { wch: 30 }, // Applied Job
+        { wch: 50 }, // Applied Job Justification
+        { wch: 60 }, // Job Matches
         { wch: 20 }, // Location
         { wch: 40 }, // Introduction
         { wch: 50 }, // Education

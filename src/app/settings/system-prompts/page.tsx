@@ -29,7 +29,9 @@ interface SystemPrompt {
   name: string;
   description: string;
   content: string;
-  category: string;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -308,16 +310,7 @@ export default function SystemPromptsPage() {
                     <div className="text-sm text-muted-foreground">
                       <p>Updated: {new Date(prompt.updatedAt).toLocaleDateString()}</p>
                     </div>
-                    <div className="max-h-20 overflow-hidden">
-                      <div 
-                        className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ 
-                          __html: prompt.content.length > 200 
-                            ? prompt.content.substring(0, 200) + '...' 
-                            : prompt.content 
-                        }}
-                      />
-                    </div>
+
                   </div>
                 </CardContent>
               </Card>

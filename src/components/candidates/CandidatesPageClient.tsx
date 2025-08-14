@@ -110,6 +110,7 @@ export function CandidatesPageClient({
   const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
   const [aiMatchedCandidateIds, setAiMatchedCandidateIds] = useState<string[] | null>(null);
+  const [aiRecordCount, setAiRecordCount] = useState<number>(0);
   const [isAiSearchActive, setIsAiSearchActive] = useState(false);
   const [hasInitialFetch, setHasInitialFetch] = useState(false);
   const [hasInitialDataFetch, setHasInitialDataFetch] = useState(false);
@@ -150,10 +151,10 @@ export function CandidatesPageClient({
   // Calculate total pages for pagination
   const totalPages = useMemo(() => {
     if (isAiSearchActive && aiMatchedCandidateIds) {
-      return Math.max(1, Math.ceil(aiMatchedCandidateIds.length / pageSize));
+      return Math.max(1, Math.ceil(aiRecordCount / pageSize));
     }
     return Math.max(1, Math.ceil(total / pageSize));
-  }, [isAiSearchActive, aiMatchedCandidateIds, pageSize, total]);
+  }, [isAiSearchActive, aiMatchedCandidateIds, aiRecordCount, pageSize, total]);
 
   // Calculate candidate score counts for fit score filter badges
   const candidateScoreCounts = useMemo(() => {
@@ -555,6 +556,7 @@ export function CandidatesPageClient({
     setFetchError(null);
     setAiSearchReasoning(null);
     setAiMatchedCandidateIds(null);
+    setAiRecordCount(0);
     setIsAiSearchActive(true);
     
     // Add timeout for AI search
@@ -588,6 +590,7 @@ export function CandidatesPageClient({
       console.log('AI Search Result:', {
         matchedCandidateIds: result.matchedCandidateIds,
         aiReasoning: result.aiReasoning,
+        recordCount: result.recordCount,
         allCandidatesCount: allCandidates.length,
         availableCandidateIds: allCandidates.map(c => c.id)
       });
@@ -633,32 +636,37 @@ export function CandidatesPageClient({
               setTimeout(() => {
                 setAiMatchedCandidateIds(result.matchedCandidateIds || []);
                 setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-                toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+                setAiRecordCount(result.recordCount || 0);
+                toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
               }, 100);
             } else {
               // If we couldn't fetch candidates, still show AI results but warn user
               setAiMatchedCandidateIds(result.matchedCandidateIds || []);
               setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-              toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+              setAiRecordCount(result.recordCount || 0);
+              toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
               toast.error("Some candidates may not be visible due to current filters.");
             }
-          } else {
-            // If fetch failed, still show AI results but warn user
-            setAiMatchedCandidateIds(result.matchedCandidateIds || []);
-            setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-            toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
-            toast.error("Could not load all candidates. Some results may not be visible.");
-          }
+                      } else {
+              // If fetch failed, still show AI results but warn user
+              setAiMatchedCandidateIds(result.matchedCandidateIds || []);
+              setAiSearchReasoning(result.aiReasoning || "AI search complete.");
+              setAiRecordCount(result.recordCount || 0);
+              toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
+              toast.error("Could not load all candidates. Some results may not be visible.");
+            }
         } else {
           console.log('All AI search candidates already available in current list');
           setAiMatchedCandidateIds(result.matchedCandidateIds || []);
           setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-          toast.success(`Found ${result.matchedCandidateIds.length} potential match(es). ${result.aiReasoning || ''}`);
+          setAiRecordCount(result.recordCount || 0);
+          toast.success(`Found ${result.recordCount || result.matchedCandidateIds.length} potential match(es).`);
         }
       } else {
         setAiMatchedCandidateIds(result.matchedCandidateIds || []);
         setAiSearchReasoning(result.aiReasoning || "AI search complete.");
-        toast.success(result.aiReasoning || "No strong matches found by AI for your query.");
+        setAiRecordCount(result.recordCount || 0);
+        toast.success(`Found ${result.recordCount || 0} potential match(es).`);
       }
     } catch (error) {
       clearTimeout(timeoutId); // Clear timeout on error
@@ -671,6 +679,7 @@ export function CandidatesPageClient({
       }
       
       setAiMatchedCandidateIds([]);
+      setAiRecordCount(0);
       setIsAiSearchActive(false);
     } finally {
       setIsAiSearching(false);
@@ -968,6 +977,7 @@ export function CandidatesPageClient({
       if (isAiSearchActive) {
         setAiMatchedCandidateIds(null);
         setAiSearchReasoning(null);
+        setAiRecordCount(0);
         setIsAiSearchActive(false);
       }
       setPage(1);
@@ -985,6 +995,7 @@ export function CandidatesPageClient({
     // Clear AI search state
     setAiMatchedCandidateIds(null);
     setAiSearchReasoning(null);
+    setAiRecordCount(0);
     setIsAiSearchActive(false);
     
     // Reset filters to default
@@ -1909,7 +1920,7 @@ export function CandidatesPageClient({
           <div className="flex items-center gap-4 w-full">
             {/* Candidate count badge */}
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground transition-all duration-300 ease-in-out">
-              {isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiMatchedCandidateIds.length : total) !== 1 ? 's' : ''}
+              {isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total) !== 1 ? 's' : ''}
             </span>
             {selectedCandidateIds.size > 0 && canManageCandidates && (
               <DropdownMenu>
@@ -1965,13 +1976,12 @@ export function CandidatesPageClient({
             <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
             <AlertDescription className="text-blue-700 dark:text-blue-300">
-              {aiSearchReasoning}
-              {aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0 && " No strong matches found."}
+              Found {aiRecordCount} record{aiRecordCount !== 1 ? 's' : ''} matching your search criteria.
             </AlertDescription>
           </Alert>
         )}
 
-        {isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length === 0 && (
+        {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
           <div className="flex items-center gap-2 mt-2">
             <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
             <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>

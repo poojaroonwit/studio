@@ -27,12 +27,17 @@ This document describes the enhanced candidate import and export functionality t
 
 ### 3. Enhanced Export Functionality
 - **Endpoint**: `GET /api/candidates/export`
+- **Individual Export**: `GET /api/candidates/[id]/export`
 - **Formats**: Excel (.xlsx) and CSV
 - **Features**:
   - Matches import template format for consistency
   - Supports filtering by various criteria
   - Proper data formatting and structure
   - Includes related data (position titles, recruiter names)
+  - **NEW**: Applied job information and justification
+  - **NEW**: Job matches with match reasons and scores
+  - **NEW**: Position names and recruiter names
+  - **NEW**: Individual candidate export with detailed information
 
 ### 4. User Interface Improvements
 - **Import Modal**: 
@@ -43,6 +48,7 @@ This document describes the enhanced candidate import and export functionality t
 - **Export Options**: 
   - Excel and CSV format options
   - Filtered exports based on current view
+  - Individual candidate export from detail page
 - **Template Download**: 
   - One-click template download
   - Clear instructions and examples
@@ -69,6 +75,41 @@ This document describes the enhanced candidate import and export functionality t
 - **Skills (JSON)**: Array of skill objects
 - **Job Suitable (JSON)**: Array of job preference objects
 - **Custom Attributes (JSON)**: Any additional data as JSON object
+
+## Enhanced Export Fields
+
+### Basic Information
+- **Name***: Full name of the candidate
+- **Email***: Valid email address
+- **Phone**: Contact phone number
+- **Status***: Current recruitment status
+- **Application Date**: Date when candidate applied
+
+### Position and Recruiter Information
+- **Position ID**: UUID of the applied position
+- **Position Name**: Human-readable position title
+- **Recruiter ID**: UUID of the assigned recruiter
+- **Recruiter Name**: Human-readable recruiter name
+
+### Applied Job Information
+- **Applied Job**: The job title the candidate applied for
+- **Applied Job Justification**: Justification for why the candidate is suitable for the applied job
+- **Fit Score (0-100)**: Numeric score indicating candidate's fit for the applied position
+
+### Job Matches Information
+- **Job Matches**: Additional job matches with scores and reasons
+  - Format: "Job: [Job Title] | Score: [Percentage]% | Reasons: [Reason1, Reason2, ...]; Job: [Job Title] | Score: [Percentage]% | Reasons: [Reason1, Reason2, ...]"
+  - Sorted by fit score (highest first)
+  - Includes match reasons for each job
+
+### Additional Information
+- **Location**: Candidate's location
+- **Introduction/About Me**: Professional summary
+- **Education (JSON)**: Structured education data
+- **Experience (JSON)**: Structured work experience data
+- **Skills (JSON)**: Structured skills data
+- **Job Suitable (JSON)**: Job preference data
+- **Custom Attributes (JSON)**: Any additional custom data
 
 ## Supported Status Values
 - Applied, Screening, Shortlisted, Interview Scheduled
@@ -98,7 +139,8 @@ This document describes the enhanced candidate import and export functionality t
 4. **Export Candidates**:
    - Use the export dropdown to choose format (Excel/CSV)
    - Apply filters as needed before exporting
-   - Download the formatted file
+   - Download the formatted file with enhanced information
+   - **NEW**: Export individual candidates from their detail page
 
 ### For Developers
 
@@ -113,9 +155,12 @@ POST /api/candidates/import
 Content-Type: multipart/form-data
 Body: { file: File }
 
-// Export candidates
+// Export all candidates
 GET /api/candidates/export?format=excel&[filters]
 GET /api/candidates/export?format=csv&[filters]
+
+// Export individual candidate
+GET /api/candidates/[id]/export
 ```
 
 #### Data Transformation
@@ -125,101 +170,84 @@ The import process automatically transforms template data:
 ```typescript
 // Template format -> Internal format
 {
-  'Name*': 'John Doe',
-  'Email*': 'john@example.com',
-  'Location': 'New York, NY',
-  'Introduction/About Me': 'Experienced developer...',
-  'Education (JSON)': '[{"university":"MIT","major":"CS"}]'
-}
-
-// Transforms to:
-{
-  name: 'John Doe',
-  email: 'john@example.com',
+  name: string,
+  email: string,
+  phone?: string,
+  positionId?: string,
+  recruiterId?: string,
+  fitScore?: number,
+  status: string,
+  applicationDate?: Date,
   parsedData: {
     personal_info: {
-      firstname: 'John',
-      lastname: 'Doe',
-      location: 'New York, NY',
-      introduction_aboutme: 'Experienced developer...'
+      location?: string,
+      introduction_aboutme?: string
     },
-    education: [{ university: 'MIT', major: 'CS' }]
-  }
+    education?: any[],
+    experience?: any[],
+    skills?: any[],
+    job_suitable?: any[]
+  },
+  customAttributes?: any
 }
 ```
 
-## Error Handling
+The export process includes enhanced information:
 
-### Import Errors
-- **Duplicate emails**: Automatically detected and reported
-- **Invalid JSON**: Detailed error messages with field names
-- **Missing required fields**: Clear validation messages
-- **Invalid data types**: Type-specific error messages
+```typescript
+// Internal format -> Export format
+{
+  'Name*': string,
+  'Email*': string,
+  'Phone': string,
+  'Position ID': string,
+  'Position Name': string,        // NEW: Human-readable position title
+  'Recruiter ID': string,
+  'Recruiter Name': string,       // NEW: Human-readable recruiter name
+  'Fit Score (0-100)': string,
+  'Status*': string,
+  'Application Date': string,
+  'Applied Job': string,          // NEW: Applied job title
+  'Applied Job Justification': string, // NEW: Justification for applied job
+  'Job Matches': string,          // NEW: Additional job matches with scores and reasons
+  'Location': string,
+  'Introduction/About Me': string,
+  'Education (JSON)': string,
+  'Experience (JSON)': string,
+  'Skills (JSON)': string,
+  'Job Suitable (JSON)': string,
+  'Custom Attributes (JSON)': string
+}
+```
 
-### Export Errors
-- **Permission errors**: Proper authentication checks
-- **Database errors**: Graceful error handling with logging
-- **Format errors**: Fallback to CSV if Excel generation fails
-
-## Security Features
-
-- **Authentication**: All endpoints require valid session
-- **Authorization**: Role-based access control
-- **Audit Logging**: All import/export activities are logged
-- **Input Validation**: Comprehensive validation of all inputs
-- **File Type Validation**: Only Excel files accepted for import
-
-## Performance Considerations
-
-- **Batch Processing**: Imports are processed in transactions
-- **Memory Management**: Large files are streamed, not loaded entirely
-- **Error Recovery**: Failed imports don't affect successful ones
-- **Progress Tracking**: Real-time feedback during import process
-
-## Future Enhancements
-
-1. **Template Customization**: Allow users to customize template fields
-2. **Bulk Operations**: Support for bulk status changes during import
-3. **Validation Rules**: Custom validation rules per organization
-4. **Import Scheduling**: Background import processing for large files
-5. **Data Mapping**: Visual field mapping interface
-6. **Import History**: Track and review previous imports
-7. **Template Versioning**: Support for multiple template versions
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Import Fails**: Check that all required fields are filled
-2. **JSON Errors**: Verify JSON syntax in complex fields
-3. **Duplicate Emails**: Ensure email addresses are unique
-4. **Date Format**: Use YYYY-MM-DD format for dates
-5. **File Size**: Large files may take longer to process
-
-### Debug Information
-
-- Check browser console for detailed error messages
-- Review server logs for import/export activities
-- Use the audit log to track user actions
-- Verify file format and encoding
-
-## Technical Implementation
-
-### Key Files Modified/Created
+## File Structure
 
 1. `src/app/api/candidates/import/template/route.ts` - Template generation
-2. `src/app/api/candidates/import/route.ts` - Enhanced import logic
+2. `src/app/api/candidates/import/route.ts` - Import processing
 3. `src/app/api/candidates/export/route.ts` - Enhanced export logic
-4. `src/components/candidates/ImportCandidatesModal.tsx` - UI improvements
-5. `src/components/candidates/CandidatesPageClient.tsx` - Integration
+4. `src/app/api/candidates/[id]/export/route.ts` - Individual candidate export
+5. `src/app/api/v1/candidates/export/route.ts` - V1 API export endpoint
+6. `src/components/candidates/BulkUploadCVsModal.tsx` - Import UI
+7. `src/components/candidates/CandidatesPageClient.tsx` - Export UI integration
 
-### Dependencies
+## Recent Enhancements
 
-- `xlsx`: Excel file processing
-- `zod`: Data validation
-- `uuid`: ID generation
-- `date-fns`: Date formatting
+### Enhanced Export Information (Latest Update)
+- **Position Names**: Now exports human-readable position titles instead of just IDs
+- **Recruiter Names**: Now exports human-readable recruiter names instead of just IDs
+- **Applied Job Information**: Includes the job the candidate applied for and justification
+- **Job Matches**: Includes additional job matches with:
+  - Job titles
+  - Fit scores (as percentages)
+  - Match reasons
+  - Sorted by relevance (highest score first)
+- **Individual Export**: New endpoint for exporting detailed information for a single candidate
 
-### Database Schema
+### Data Relationships
+- **Applied Job**: The candidate's `positionId` represents the job they applied for
+- **Assignment Justification**: Stored in `assignmentJustification` field, explains why the candidate is suitable
+- **Job Matches**: Additional job recommendations stored in the `JobMatch` table
+- **Position Information**: Retrieved from `Position` table via joins
+- **Recruiter Information**: Retrieved from `User` table via joins
 
-The implementation works with the existing Candidate table structure and maintains backward compatibility with existing data formats. 
+This enhanced export functionality provides comprehensive candidate information for better decision-making and reporting. 

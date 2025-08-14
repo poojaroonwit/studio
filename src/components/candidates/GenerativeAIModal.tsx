@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +28,9 @@ interface SystemPrompt {
   name: string;
   description: string;
   content: string;
-  category: string;
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -54,14 +56,10 @@ export function GenerativeAIModal({
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const categories = [
-    'Job Description Generation',
-    'Candidate Analysis',
-    'Email Templates',
-    'Report Generation',
-    'General',
-    'Custom'
-  ];
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(systemPrompts.map(prompt => prompt.categoryName))];
+    return ['all', ...uniqueCategories];
+  }, [systemPrompts]);
 
   useEffect(() => {
     if (isOpen) {
@@ -102,10 +100,9 @@ export function GenerativeAIModal({
       // Prepare context data
       const contextData = {
         candidateId,
-        candidateName,
         systemPrompt: selectedPrompt.content,
         promptName: selectedPrompt.name,
-        promptCategory: selectedPrompt.category
+        promptCategory: selectedPrompt.categoryName
       };
 
       const response = await fetch('/api/ai/generate-content', {
@@ -267,7 +264,7 @@ export function GenerativeAIModal({
   };
 
   const filteredPrompts = systemPrompts.filter(prompt => {
-    return selectedCategory === 'all' || prompt.category === selectedCategory;
+    return selectedCategory === 'all' || prompt.categoryName === selectedCategory;
   });
 
   const handleClose = () => {
@@ -352,20 +349,15 @@ export function GenerativeAIModal({
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="text-xs">
-                          {prompt.category}
+                          {prompt.categoryName}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="text-xs text-muted-foreground max-h-16 overflow-hidden">
-                        <div 
-                          className="prose prose-xs max-w-none"
-                          dangerouslySetInnerHTML={{ 
-                            __html: prompt.content.length > 150 
-                              ? prompt.content.substring(0, 150) + '...' 
-                              : prompt.content 
-                          }}
-                        />
+                      <div className="flex items-center gap-2">
+                        <Badge variant={prompt.isActive ? "default" : "secondary"} className="text-xs">
+                          {prompt.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </div>
                     </CardContent>
                   </Card>
@@ -421,7 +413,7 @@ export function GenerativeAIModal({
                             <ChevronDown className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="z-50">
+                        <DropdownMenuContent align="end" className="z-[9999] relative" style={{ zIndex: 9999 }}>
                           <DropdownMenuItem onClick={handleDownloadPDF}>
                             <Download className="h-4 w-4 mr-2" />
                             Download as PDF

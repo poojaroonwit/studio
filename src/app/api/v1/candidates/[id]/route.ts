@@ -346,19 +346,45 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     if (hasPositionChanged && newPositionId) {
       try {
-        // Get position with recruiter
+        console.log(`Position changed for candidate ${id}: ${oldPositionId} -> ${newPositionId}`);
+        
+        // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
           where: { id: newPositionId },
-          include: { recruiter: true }
+          include: { 
+            recruiter: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
         });
 
-        if (position && position.recruiterId && !updatedCandidate.recruiterId) {
-          // Update candidate with recruiter
-          await prisma.candidate.update({
+        console.log(`New position found:`, position ? { 
+          id: position.id, 
+          title: position.title, 
+          recruiterId: position.recruiterId, 
+          recruiter: position.recruiter 
+        } : 'null');
+
+        if (position && position.recruiterId && position.recruiter && !updatedCandidate.recruiterId) {
+          // Update candidate with recruiter using Prisma
+          const updatedCandidateWithRecruiter = await prisma.candidate.update({
             where: { id },
             data: { 
               recruiterId: position.recruiterId,
               updatedAt: new Date()
+            },
+            include: {
+              recruiter: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              }
             }
           });
 
@@ -369,13 +395,20 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
               candidateId: id,
               positionId: newPositionId,
               stage: updatedCandidate.status || 'Applied',
-              notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+              notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
               actingUserId: user.id,
               date: new Date(),
             },
           });
 
-          console.log(`Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
+          console.log(`✅ Recruiter auto-assigned to candidate ${id} from position ${newPositionId}`);
+          console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+        } else if (position && !position.recruiterId) {
+          console.log(`⚠️ New position ${newPositionId} exists but has no recruiter assigned`);
+        } else if (!position) {
+          console.log(`❌ New position ${newPositionId} not found in database`);
+        } else if (updatedCandidate.recruiterId) {
+          console.log(`ℹ️ Candidate ${id} already has a recruiter assigned, skipping auto-assignment`);
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after position update:', syncError);

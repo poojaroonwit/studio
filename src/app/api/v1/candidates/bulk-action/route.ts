@@ -97,13 +97,30 @@ export async function POST(req: NextRequest) {
     // Auto-assign recruiters for assign_position action
     if (action === 'assign_position' && data?.positionId) {
       try {
-        // Get position with recruiter
+        console.log(`Bulk assigning position ${data.positionId} to ${candidateIds.length} candidates`);
+        
+        // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
           where: { id: data.positionId },
-          include: { recruiter: true }
+          include: { 
+            recruiter: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
         });
 
-        if (position && position.recruiterId) {
+        console.log(`Position found:`, position ? { 
+          id: position.id, 
+          title: position.title, 
+          recruiterId: position.recruiterId, 
+          recruiter: position.recruiter 
+        } : 'null');
+
+        if (position && position.recruiterId && position.recruiter) {
           let syncCount = 0;
           for (const candidateId of candidateIds) {
             try {
@@ -114,12 +131,21 @@ export async function POST(req: NextRequest) {
               });
 
               if (candidate && !candidate.recruiterId) {
-                // Update candidate with recruiter
-                await prisma.candidate.update({
+                // Update candidate with recruiter using Prisma
+                const updatedCandidate = await prisma.candidate.update({
                   where: { id: candidateId },
                   data: { 
                     recruiterId: position.recruiterId,
                     updatedAt: new Date()
+                  },
+                  include: {
+                    recruiter: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true
+                      }
+                    }
                   }
                 });
 
@@ -130,7 +156,7 @@ export async function POST(req: NextRequest) {
                     candidateId: candidateId,
                     positionId: data.positionId,
                     stage: 'Applied',
-                    notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+                    notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
                     actingUserId: user.id,
                     date: new Date(),
                   },
@@ -144,8 +170,13 @@ export async function POST(req: NextRequest) {
             }
           }
           if (syncCount > 0) {
-            console.log(`Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
+            console.log(`✅ Recruiter auto-assigned to ${syncCount} candidates from position ${data.positionId}`);
+            console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
           }
+        } else if (position && !position.recruiterId) {
+          console.log(`⚠️ Position ${data.positionId} exists but has no recruiter assigned`);
+        } else if (!position) {
+          console.log(`❌ Position ${data.positionId} not found in database`);
         }
       } catch (error) {
         console.error('Failed to get position for recruiter assignment:', error);

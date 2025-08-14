@@ -1125,8 +1125,10 @@ export function CandidateFilters({
       maxFitScore = undefined;
     }
     
-    // Apply filters with debouncing for smooth experience (same as other filters)
-    handleApplyStandardFiltersDebounced();
+    // Only apply filters if we have selected grades or if we're clearing all grades
+    if (newSelected.size > 0 || selectedFitScoreGrades.size > 0) {
+      handleApplyStandardFiltersDebounced();
+    }
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
@@ -1165,8 +1167,10 @@ export function CandidateFilters({
       maxMatchingJobFitScore = undefined;
     }
     
-    // Apply filters with debouncing for smooth experience (same as other filters)
-    handleApplyStandardFiltersDebounced();
+    // Only apply filters if we have selected grades or if we're clearing all grades
+    if (newSelected.size > 0 || selectedMatchingFitScoreGrades.size > 0) {
+      handleApplyStandardFiltersDebounced();
+    }
   };
 
   const handleResetFilters = () => {

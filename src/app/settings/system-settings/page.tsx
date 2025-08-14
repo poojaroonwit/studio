@@ -393,7 +393,7 @@ export default function SystemSettingsPage() {
                           max="36000"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Timeout for webhook requests in seconds. Default is 7200 seconds (2 hours). Minimum 30 seconds, maximum 36000 seconds (10 hours).
+                          Note: Client-side timeout has been removed to prevent 504 Gateway Timeout errors. The external service will handle its own timeout if needed.
                         </p>
                       </div>
                     </CardContent>

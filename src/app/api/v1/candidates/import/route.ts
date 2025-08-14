@@ -170,19 +170,36 @@ export async function POST(req: NextRequest) {
         // Auto-assign recruiter if candidate has a position but no recruiter
         if (candidate.positionId && !candidate.recruiterId) {
           try {
-            // Get position with recruiter
+            // Get position with recruiter using Prisma
             const position = await prisma.position.findUnique({
               where: { id: candidate.positionId },
-              include: { recruiter: true }
+              include: { 
+                recruiter: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true
+                  }
+                }
+              }
             });
 
-            if (position && position.recruiterId) {
-              // Update candidate with recruiter
-              await prisma.candidate.update({
+            if (position && position.recruiterId && position.recruiter) {
+              // Update candidate with recruiter using Prisma
+              const updatedCandidate = await prisma.candidate.update({
                 where: { id: candidateId },
                 data: { 
                   recruiterId: position.recruiterId,
                   updatedAt: new Date()
+                },
+                include: {
+                  recruiter: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true
+                    }
+                  }
                 }
               });
 
@@ -193,13 +210,18 @@ export async function POST(req: NextRequest) {
                   candidateId: candidateId,
                   positionId: candidate.positionId,
                   stage: candidate.status || 'Applied',
-                  notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+                  notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
                   actingUserId: user.id,
                   date: new Date(),
                 },
               });
 
-              console.log(`Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
+              console.log(`✅ Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
+              console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+            } else if (position && !position.recruiterId) {
+              console.log(`⚠️ Position ${candidate.positionId} exists but has no recruiter assigned`);
+            } else if (!position) {
+              console.log(`❌ Position ${candidate.positionId} not found in database`);
             }
           } catch (syncError) {
             console.error('Failed to auto-assign recruiter after candidate import:', syncError);

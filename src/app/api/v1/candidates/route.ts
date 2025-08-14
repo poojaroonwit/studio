@@ -198,6 +198,21 @@ export async function POST(request: NextRequest) {
       positionId = matchWithJobId.jobId;
     }
   }
+  
+  console.log(`Extracted positionId: ${positionId}`);
+  console.log(`Candidate info job_applied:`, candidateInfo.job_applied);
+  console.log(`Top-level job_applied:`, job_applied);
+  console.log(`Candidate info job_matches:`, candidateInfo.job_matches);
+  console.log(`Top-level job_matches:`, job_matches);
+  
+  // Validate positionId format if present
+  if (positionId && typeof positionId === 'string') {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(positionId)) {
+      console.warn(`Invalid positionId format: ${positionId}`);
+      positionId = null;
+    }
+  }
 
   try {
     const newCandidate = await prisma.candidate.create({
@@ -231,19 +246,45 @@ export async function POST(request: NextRequest) {
     // Auto-assign recruiter if candidate has a position
     if (positionId) {
       try {
-        // Get position with recruiter
+        console.log(`Attempting to auto-assign recruiter for candidate ${newCandidateId} with positionId: ${positionId}`);
+        
+        // Get position with recruiter using Prisma
         const position = await prisma.position.findUnique({
           where: { id: positionId },
-          include: { recruiter: true }
+          include: { 
+            recruiter: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
         });
 
-        if (position && position.recruiterId && !newCandidate.recruiterId) {
-          // Update candidate with recruiter
-          await prisma.candidate.update({
+        console.log(`Position found:`, position ? { 
+          id: position.id, 
+          title: position.title, 
+          recruiterId: position.recruiterId, 
+          recruiter: position.recruiter 
+        } : 'null');
+
+        if (position && position.recruiterId && position.recruiter) {
+          // Update candidate with recruiter using Prisma
+          const updatedCandidate = await prisma.candidate.update({
             where: { id: newCandidateId },
             data: { 
               recruiterId: position.recruiterId,
               updatedAt: new Date()
+            },
+            include: {
+              recruiter: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              }
             }
           });
 
@@ -254,13 +295,18 @@ export async function POST(request: NextRequest) {
               candidateId: newCandidateId,
               positionId: positionId,
               stage: appliedStage,
-              notes: `Recruiter auto-assigned from position: ${position.recruiter?.name || position.recruiterId}`,
+              notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
               actingUserId: user.id,
               date: new Date(),
             },
           });
 
-          console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+          console.log(`✅ Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+          console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+        } else if (position && !position.recruiterId) {
+          console.log(`⚠️ Position ${positionId} exists but has no recruiter assigned`);
+        } else if (!position) {
+          console.log(`❌ Position ${positionId} not found in database`);
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after candidate creation:', syncError);

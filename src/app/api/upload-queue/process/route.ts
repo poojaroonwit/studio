@@ -483,6 +483,9 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       }
     }
     
+    // Remove timeout to prevent 504 Gateway Timeout errors
+    // The external service will handle its own timeout if needed
+    
     const jsonPayload = {
       inputs,
       response_mode: responseMode, // Use configured response mode (blocking/streaming)
@@ -516,14 +519,14 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       try {
         console.log(`[Webhook] Sending request to: ${resumeWebhookUrl}`);
         console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
-        console.log(`[Webhook] Timeout: ${timeoutMs}ms (${timeoutMs / 1000} seconds)`);
+        console.log(`[Webhook] Timeout: Removed to prevent 504 Gateway Timeout errors`);
         console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
         
         webhookRes = await fetch(resumeWebhookUrl, {
           method: 'POST',
           headers,
           body: JSON.stringify(payloadWithIdempotency),
-          signal: AbortSignal.timeout(timeoutMs),
+          // Removed timeout signal to prevent 504 Gateway Timeout errors
         });
         
         webhookResStatus = webhookRes.status;
@@ -548,11 +551,10 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
 3. Network connectivity issues between your server and the external service
 4. The external service is down or unreachable
 
-Current timeout setting: ${timeoutMs / 1000} seconds
+Note: Client-side timeout has been removed to prevent 504 errors. The external service will handle its own timeout if needed.
 Consider:
 - Checking the external service status
 - Reducing concurrent requests
-- Increasing the webhook timeout setting if the service is slow but reliable
 - Contacting the service provider`;
           } else {
             error = `Webhook responded with status ${webhookResStatus}`;

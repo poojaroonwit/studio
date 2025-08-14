@@ -15,7 +15,7 @@
     "start": "next start -p 8021",
     "start:with-processor": "concurrently \"npm run start\" \"npm run processor\"",
     "lint": "next lint",
-    "processor": "node scripts/process-upload-queue.js",
+    "processor": "node scripts/process-upload-queue.cjs",
     "check-webhook": "node scripts/check-webhook-settings.js",
     "check-504": "node scripts/check-504-errors.js",
     "check-duplicates": "node scripts/check-duplicate-processing.js",

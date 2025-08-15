@@ -43,27 +43,27 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    let query = 'SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt" FROM "Position"';
-    let countQuery = 'SELECT COUNT(*) FROM "Position"';
+    let query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id';
+    let countQuery = 'SELECT COUNT(*) FROM "Position" p';
     const conditions = [];
     const queryParams = [];
     let paramIndex = 1;
 
     if (titleFilter) {
-      conditions.push(`title ILIKE $${paramIndex++}`);
+      conditions.push(`p.title ILIKE $${paramIndex++}`);
       queryParams.push(`%${titleFilter}%`);
     }
     if (departmentFilter) {
-      conditions.push(`department = ANY($${paramIndex++}::text[])`);
+      conditions.push(`p.department = ANY($${paramIndex++}::text[])`);
       queryParams.push(departmentFilter.split(','));
     }
     if (isOpenFilter === 'true') {
-      conditions.push('"isOpen" = TRUE');
+      conditions.push('p."isOpen" = TRUE');
     } else if (isOpenFilter === 'false') {
-      conditions.push('"isOpen" = FALSE');
+      conditions.push('p."isOpen" = FALSE');
     }
     if (positionLevelFilter) {
-      conditions.push(`"positionLevel" ILIKE $${paramIndex++}`);
+      conditions.push(`p."positionLevel" ILIKE $${paramIndex++}`);
       queryParams.push(`%${positionLevelFilter}%`);
     }
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       query += ' WHERE ' + conditions.join(' AND ');
       countQuery += ' WHERE ' + conditions.join(' AND ');
     }
-    query += ' ORDER BY "createdAt" DESC';
+    query += ' ORDER BY p."createdAt" DESC';
     query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     queryParams.push(limit, offset);
 
@@ -82,6 +82,11 @@ export async function GET(req: NextRequest) {
     const positions = result.rows.map(row => ({
       ...row,
       custom_attributes: row.customAttributes || {},
+      recruiter: row.recruiterId ? {
+        id: row.recruiterId,
+        name: row.recruiterName,
+        email: row.recruiterEmail
+      } : null
     }));
 
     return createSuccessResponse(req, { data: positions, total }, 200);

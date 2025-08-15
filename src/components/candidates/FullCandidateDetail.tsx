@@ -282,6 +282,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
+  const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Unified function to open ManageTransitionsModal (same as candidate ID page)
@@ -1239,6 +1240,30 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
     }
   };
 
+  const copyJobMatchToClipboard = async (match: any, index: number) => {
+    const position = Array.isArray(allDbPositions) ? 
+                   (allDbPositions.find(p => p.id === match.jobId) || 
+                    allDbPositions.find(p => p.title === match.jobTitle)) : null;
+    
+    const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
+    const fitScore = match.fitScore !== undefined && match.fitScore !== null 
+      ? `${formatScoreWithGrade(match.fitScore)}`
+      : 'Not set';
+    const matchReasons = match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 
+      ? match.matchReasons.join('\n• ')
+      : 'No match reasons provided';
+    
+    const textToCopy = `Job Match: ${displayTitle}\nFit Score: ${fitScore}\nMatch Reasons:\n• ${matchReasons}`;
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedJobMatchIndex(index);
+      setTimeout(() => setCopiedJobMatchIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
   // After all hooks are declared, place the early returns:
   if (loading) {
     return (
@@ -1962,15 +1987,33 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({ candidateId, 
                           const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
                           
                           return (
-                            <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleJobMatchClick(match)}>
+                            <Card key={index} className="p-4 cursor-pointer hover:shadow-md transition-shadow relative group" onClick={() => handleJobMatchClick(match)}>
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <h4 className="font-semibold">{displayTitle}</h4>
-                                  {match.fitScore !== undefined && match.fitScore !== null && (
-                                    <ScoreBadge score={match.fitScore}>
-                                      {formatScoreWithGrade(match.fitScore)}
-                                    </ScoreBadge>
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {match.fitScore !== undefined && match.fitScore !== null && (
+                                      <ScoreBadge score={match.fitScore}>
+                                        {formatScoreWithGrade(match.fitScore)}
+                                      </ScoreBadge>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        copyJobMatchToClipboard(match, index);
+                                      }}
+                                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Copy job match information"
+                                    >
+                                      {copiedJobMatchIndex === index ? (
+                                        <Check className="h-4 w-4 text-green-600" />
+                                      ) : (
+                                        <Copy className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
                                 </div>
                                 {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
                                   <div className="space-y-1">

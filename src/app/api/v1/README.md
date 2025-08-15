@@ -368,6 +368,15 @@ Update a candidate. Only the fields you want to update need to be included in th
 }
 ```
 
+**Example - Update recruiter assignment:**
+```json
+{
+  "recruiterId": "new-recruiter-uuid"
+}
+```
+
+**Note:** You can also use the dedicated recruiter assignment endpoints (`/api/v1/candidates/{id}/recruiter`) for more specific recruiter management operations.
+
 **Response:**
 ```json
 {
@@ -386,6 +395,61 @@ Update a candidate. Only the fields you want to update need to be included in th
 
 #### DELETE `/api/v1/candidates/{id}`
 Delete a candidate.
+
+### Candidate Recruiter Assignment
+
+#### GET `/api/v1/candidates/{id}/recruiter`
+Get the current recruiter assignment for a candidate.
+
+**Response:**
+```json
+{
+  "candidateId": "candidate-id",
+  "recruiter": {
+    "id": "recruiter-id",
+    "name": "Jane Smith",
+    "email": "jane.smith@company.com"
+  }
+}
+```
+
+**Note:** The `recruiter` field will be `null` if no recruiter is assigned to the candidate.
+
+#### PUT `/api/v1/candidates/{id}/recruiter`
+Assign or update the recruiter for a candidate.
+
+**Request Body:**
+```json
+{
+  "recruiterId": "recruiter-uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Candidate recruiter updated successfully",
+  "candidate": {
+    "id": "candidate-id",
+    "name": "John Doe",
+    "recruiter": {
+      "id": "recruiter-id",
+      "name": "Jane Smith",
+      "email": "jane.smith@company.com"
+    }
+  }
+}
+```
+
+#### DELETE `/api/v1/candidates/{id}/recruiter`
+Unassign the recruiter from a candidate.
+
+**Response:**
+```json
+{
+  "message": "Candidate recruiter unassigned successfully"
+}
+```
 
 ### Job Applied Information
 
@@ -585,6 +649,11 @@ Get a list of positions with pagination and filtering.
       "isOpen": true,
       "positionLevel": "Mid-level",
       "customAttributes": {},
+      "recruiter": {
+        "id": "recruiter-id",
+        "name": "Jane Smith",
+        "email": "jane.smith@company.com"
+      },
       "createdAt": "2024-01-01T00:00:00.000Z",
       "updatedAt": "2024-01-01T00:00:00.000Z"
     }
@@ -629,6 +698,29 @@ Create a new position.
 
 #### GET `/api/v1/positions/{id}`
 Get a specific position by ID.
+
+**Response:**
+```json
+{
+  "id": "position-id",
+  "title": "Software Engineer",
+  "department": "Engineering",
+  "description": "Full-stack development role",
+  "matchCriteria": "<h2>Compare Candidate and Job</h2>...",
+  "isOpen": true,
+  "positionLevel": "Mid-level",
+  "customAttributes": {},
+  "recruiter": {
+    "id": "recruiter-id",
+    "name": "Jane Smith",
+    "email": "jane.smith@company.com"
+  },
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Note:** The `recruiter` field will be `null` if no recruiter is assigned to the position.
 
 #### PUT `/api/v1/positions/{id}`
 Update a position. Only the fields you want to update need to be included in the request.
@@ -681,7 +773,7 @@ Perform bulk operations on positions.
 ### Position Import/Export
 
 #### GET `/api/v1/positions/export`
-Export positions as CSV.
+Export positions as CSV. The exported file includes recruiter information (name and email) for each position.
 
 #### GET `/api/v1/positions/import`
 Get import template.

@@ -19,16 +19,17 @@ export async function GET(req: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, title, department, description, "matchCriteria", "isOpen", "positionLevel", "customAttributes", "createdAt", "updatedAt"
-      FROM "Position"
-      ORDER BY "createdAt" DESC
+      SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", u.email as "recruiterEmail"
+      FROM "Position" p
+      LEFT JOIN "User" u ON p."recruiterId" = u.id
+      ORDER BY p."createdAt" DESC
     `;
     const result = await client.query(query);
     
     // Convert to CSV format
     const headers = [
       'ID', 'Title', 'Department', 'Description', 'Match Criteria', 'Is Open', 'Position Level', 
-      'Created At', 'Updated At'
+      'Recruiter Name', 'Recruiter Email', 'Created At', 'Updated At'
     ];
     
     const csvRows = [headers.join(',')];
@@ -42,6 +43,8 @@ export async function GET(req: NextRequest) {
         `"${(row.matchCriteria || '').replace(/"/g, '""')}"`,
         row.isOpen ? 'true' : 'false',
         `"${(row.positionLevel || '').replace(/"/g, '""')}"`,
+        `"${(row.recruiterName || '').replace(/"/g, '""')}"`,
+        `"${(row.recruiterEmail || '').replace(/"/g, '""')}"`,
         row.createdAt || '',
         row.updatedAt || ''
       ];

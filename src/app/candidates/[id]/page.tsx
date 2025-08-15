@@ -340,6 +340,7 @@ export default function CandidateDetailPage() {
   // Find the state for jobAppliedOpen and set its default to true
   const [jobAppliedOpen, setJobAppliedOpen] = useState(true);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
+  const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
 
   // Initialize form early to avoid temporal dead zone - with safe default values
   const form = useForm<EditCandidateFormValues>({
@@ -1183,6 +1184,30 @@ export default function CandidateDetailPage() {
       await navigator.clipboard.writeText(textToCopy);
       setCopiedJobApplied(true);
       setTimeout(() => setCopiedJobApplied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
+  const copyJobMatchToClipboard = async (match: any, index: number) => {
+    const position = Array.isArray(allDbPositions) ? 
+                   (allDbPositions.find(p => p.id === match.jobId) || 
+                    allDbPositions.find(p => p.title === match.jobTitle)) : null;
+    
+    const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
+    const fitScore = match.fitScore !== undefined && match.fitScore !== null 
+      ? `${formatScoreWithGrade(match.fitScore)}`
+      : 'Not set';
+    const matchReasons = match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 
+      ? match.matchReasons.join('\n• ')
+      : 'No match reasons provided';
+    
+    const textToCopy = `Job Match: ${displayTitle}\nFit Score: ${fitScore}\nMatch Reasons:\n• ${matchReasons}`;
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopiedJobMatchIndex(index);
+      setTimeout(() => setCopiedJobMatchIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
@@ -2567,18 +2592,35 @@ export default function CandidateDetailPage() {
                                   const displayTitle = position?.title || match.jobTitle || match.positionTitle || 'Unknown Position';
                                   
                                   return (
-                                    <Card key={`jobmatch-${index}-${match.jobTitle || index}`} className="flex-shrink-0 w-70 p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleJobMatchClick(match)}>
+                                    <Card key={`jobmatch-${index}-${match.jobTitle || index}`} className="flex-shrink-0 w-70 p-3 border rounded-lg hover:shadow-md transition-shadow cursor-pointer relative group" onClick={() => handleJobMatchClick(match)}>
                                       <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                           <h4 className="font-semibold text-foreground text-sm truncate">
                                             {displayTitle}
                                           </h4>
-                                          {match.fitScore !== undefined && match.fitScore !== null && (
-                                            <ScoreBadge score={match.fitScore}>
-                                              {formatScoreWithGrade(match.fitScore)}
-                                            </ScoreBadge>
-                                          )}
-                                       
+                                          <div className="flex items-center gap-2">
+                                            {match.fitScore !== undefined && match.fitScore !== null && (
+                                              <ScoreBadge score={match.fitScore}>
+                                                {formatScoreWithGrade(match.fitScore)}
+                                              </ScoreBadge>
+                                            )}
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                copyJobMatchToClipboard(match, index);
+                                              }}
+                                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                              title="Copy job match information"
+                                            >
+                                              {copiedJobMatchIndex === index ? (
+                                                <Check className="h-4 w-4 text-green-600" />
+                                              ) : (
+                                                <Copy className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          </div>
                                         </div>
                                         {match.matchReasons && Array.isArray(match.matchReasons) && match.matchReasons.length > 0 && (
                                           <div className="space-y-1">

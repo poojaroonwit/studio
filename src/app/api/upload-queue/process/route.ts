@@ -510,99 +510,65 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     if (resumeWebhookUrl && resumeWebhookUrl.startsWith('http')) {
       let webhookResStatus = null;
       let webhookResponseText = null;
-      let retryCount = 0;
-      const maxRetries = 10; // Maximum number of retries
-      const baseDelay = 5000; // Base delay of 5 seconds
       
       // Set initial status as processing
       status = 'processing';
       error = null;
       error_details = null;
       
-      console.log(`[Webhook] Starting webhook call with retry mechanism to: ${resumeWebhookUrl}`);
+      console.log(`[Webhook] Starting single webhook call to: ${resumeWebhookUrl}`);
       console.log(`[Webhook] Payload:`, JSON.stringify(payloadWithIdempotency, null, 2));
       console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
       
       try {
-        // Retry loop with exponential backoff
-        while (retryCount <= maxRetries) {
-          try {
-            console.log(`[Webhook] Attempt ${retryCount + 1}/${maxRetries + 1} (no timeout)`);
-            
-            // No timeout - let the webhook call run indefinitely
-            webhookRes = await fetch(resumeWebhookUrl, {
-              method: 'POST',
-              headers,
-              body: JSON.stringify(payloadWithIdempotency),
-            });
-            
-            webhookResStatus = webhookRes.status;
-            
-            console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
-            console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
-            console.log(`[Webhook] Response ok:`, webhookRes.ok);
-            console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
-            
-            if (webhookResStatus === 200) {
-              status = 'success';
-              error = null;
-              error_details = null;
-              console.log(`[Webhook] Success - Status 200 received on attempt ${retryCount + 1}`);
-              break; // Exit retry loop on success
-            } else if (webhookResStatus === 504) {
-              // 504 Gateway Timeout - retry with exponential backoff
-              console.log(`[Webhook] 504 Gateway Timeout received on attempt ${retryCount + 1}`);
-              
-              if (retryCount < maxRetries) {
-                const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-                console.log(`[Webhook] Retrying in ${delay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                retryCount++;
-                continue; // Continue to next retry
-              } else {
-                // Max retries reached
-                status = 'fail';
-                error = `Gateway timeout (504) - Max retries (${maxRetries}) reached`;
-                error_details = `The external resume processing service returned 504 Gateway Timeout after ${maxRetries} retry attempts. This indicates:
-1. The external service is experiencing high load or processing delays
-2. The service may be temporarily unavailable
-3. All retry attempts have been exhausted
+        // Single webhook attempt - no retry
+        console.log(`[Webhook] Making single webhook call (no retry)`);
+        
+        // No timeout - let the webhook call run indefinitely
+        webhookRes = await fetch(resumeWebhookUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payloadWithIdempotency),
+        });
+        
+        webhookResStatus = webhookRes.status;
+        
+        console.log(`[Webhook] Response received - Status: ${webhookResStatus}`);
+        console.log(`[Webhook] Response headers:`, Object.fromEntries(webhookRes.headers.entries()));
+        console.log(`[Webhook] Response ok:`, webhookRes.ok);
+        console.log(`[Webhook] Response statusText:`, webhookRes.statusText);
+        
+        if (webhookResStatus === 200) {
+          status = 'success';
+          error = null;
+          error_details = null;
+          console.log(`[Webhook] Success - Status 200 received`);
+        } else {
+          // Any non-200 status is considered a failure
+          status = 'fail';
+          error = `Webhook responded with status ${webhookResStatus}`;
+          error_details = `The external resume processing service returned status ${webhookResStatus}. This could indicate:
+1. The external service is experiencing issues
+2. The request was malformed or invalid
+3. The service is temporarily unavailable
+4. Authentication or authorization issues
 
-Retry attempts made: ${maxRetries + 1}
+Status: ${webhookResStatus}
 Consider:
 - Checking the external service status
-- The service may be overloaded
+- Verifying webhook configuration
 - Contact the service provider for assistance`;
-                console.log(`[Webhook] Max retries reached - giving up`);
-                break;
-              }
-            } else {
-              // Other error status codes - don't retry
-              status = 'fail';
-              error = `Webhook responded with status ${webhookResStatus}`;
-              console.log(`[Webhook] Non-504 error - Status ${webhookResStatus} received`);
-              break;
-            }
-            
-          } catch (fetchError) {
-            console.error(`[Webhook] Fetch error on attempt ${retryCount + 1}:`, fetchError);
-            
-            if (retryCount < maxRetries) {
-              const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-              console.log(`[Webhook] Retrying in ${delay}ms due to fetch error...`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              retryCount++;
-              continue; // Continue to next retry
-            } else {
-              // Max retries reached
-              status = 'fail';
-              error = `Fetch error after ${maxRetries} retry attempts`;
-              error_details = `Failed to connect to webhook service after ${maxRetries} retry attempts. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
-              console.log(`[Webhook] Max retries reached due to fetch errors - giving up`);
-              break;
-            }
-          }
+          console.log(`[Webhook] Failed - Status ${webhookResStatus} received`);
         }
+        
+      } catch (fetchError) {
+        console.error(`[Webhook] Fetch error:`, fetchError);
+        
+        status = 'fail';
+        error = `Webhook fetch error`;
+        error_details = `Failed to connect to webhook service. Error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+        console.log(`[Webhook] Failed due to fetch error`);
+      }
       
       // Read response text if available
       try {
@@ -620,63 +586,21 @@ Consider:
         }
       }
         
-        // --- Store webhook details in payload for UI ---
-        payload = {
-          ...(job.webhook_payload || {}),
-          // Webhook send information
-          webhookUrl: resumeWebhookUrl,
-          method: 'POST',
-          headers: headers,
-          responseMode: responseMode,
-          // Webhook response information
-          webhookResStatus,
-          webhookResponseText,
-          webhookError: status === 'fail' ? error : undefined,
-          // Original payload information
-          originalPayload: payloadWithIdempotency,
-        };
-      } catch (err) {
-        console.error('[Webhook] Exception caught during webhook call:', err);
-        console.error('[Webhook] Error type:', err instanceof Error ? err.constructor.name : typeof err);
-        console.error('[Webhook] Error name:', err instanceof Error ? err.name : 'N/A');
-        console.error('[Webhook] Error message:', err instanceof Error ? err.message : String(err));
-        
-        status = 'fail';
-        
-        // Handle different types of errors more specifically
-        if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-            error = 'Webhook request was aborted';
-            error_details = `The webhook request was aborted. This could indicate:
-1. The external service is taking too long to respond
-2. Network connectivity issues
-3. The external service is overloaded`;
-          } else if (err.message.includes('fetch')) {
-            error = 'Webhook network error';
-            error_details = `Network error during webhook call: ${err.message}`;
-          } else {
-            error = 'Webhook call failed';
-            error_details = err.message;
-          }
-        } else {
-          error = 'Webhook call failed';
-          error_details = String(err);
-        }
-        
-        payload = {
-          ...(job.webhook_payload || {}),
-          // Webhook send information (even for errors)
-          webhookUrl: resumeWebhookUrl,
-          method: 'POST',
-          headers: headers,
-          responseMode: responseMode,
-          // Webhook error information
-          webhookError: error,
-          webhookErrorDetails: error_details,
-        };
-        
-        console.error('[Webhook] Call failed:', error_details);
-      }
+      // --- Store webhook details in payload for UI ---
+      payload = {
+        ...(job.webhook_payload || {}),
+        // Webhook send information
+        webhookUrl: resumeWebhookUrl,
+        method: 'POST',
+        headers: headers,
+        responseMode: responseMode,
+        // Webhook response information
+        webhookResStatus,
+        webhookResponseText,
+        webhookError: status === 'fail' ? error : undefined,
+        // Original payload information
+        originalPayload: payloadWithIdempotency,
+      };
     } else {
       // Webhook not set, set status to error
       status = 'error';

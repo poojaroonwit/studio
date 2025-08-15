@@ -1871,8 +1871,8 @@ export function CandidatesPageClient({
   // Server-side sorting is handled by the API, so we don't need client-side sorting
   // The candidates come pre-sorted from the server based on sortColumn and sortDirection
   const sortedCandidates = useMemo(() => {
-    return mappedCandidates;
-  }, [mappedCandidates]);
+    return paginatedCandidates;
+  }, [paginatedCandidates]);
 
   // ALL EARLY RETURNS MOVED TO AFTER ALL HOOKS
   // Centralized error UI for auth/permission
@@ -2217,6 +2217,11 @@ export function CandidatesPageClient({
             <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
             <AlertDescription className="text-blue-700 dark:text-blue-300">
               Found {aiRecordCount} record{aiRecordCount !== 1 ? 's' : ''} matching your search criteria.
+              {isAiSearchActive && aiRecordCount > pageSize && (
+                <span className="block mt-1 text-sm">
+                  Showing {sortedCandidates.length} of {aiRecordCount} on page {page} of {totalPages}.
+                </span>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -2373,6 +2378,11 @@ export function CandidatesPageClient({
             </Button>
             <span className="text-sm">
               Page {page} of {totalPages}
+              {isAiSearchActive && aiRecordCount > 0 && (
+                <span className="ml-2 text-muted-foreground">
+                  ({sortedCandidates.length} of {aiRecordCount} results)
+                </span>
+              )}
             </span>
             <Button
               variant="ghost"

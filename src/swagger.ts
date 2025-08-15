@@ -297,7 +297,7 @@ export function getSwaggerSpec() {
             { name: 'status', in: 'query', description: 'Filter by candidate status', schema: { type: 'string' } },
             { name: 'positionId', in: 'query', description: 'Filter by position ID', schema: { type: 'string' } },
             { name: 'recruiterId', in: 'query', description: 'Filter by recruiter ID', schema: { type: 'string' } },
-            { name: 'searchTerm', in: 'query', description: 'Search term for name or email', schema: { type: 'string' } }
+            { name: 'search', in: 'query', description: 'Search term for name or email', schema: { type: 'string' } }
           ],
           responses: {
             '200': {

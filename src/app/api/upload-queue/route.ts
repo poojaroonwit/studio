@@ -110,23 +110,50 @@ import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
  *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Support both session and API token authentication
+  let actingUserId: string;
+  let actingUserName: string;
 
-  const validation = await validateUserSession(session);
-  if (!validation.isValid) {
-    console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-      invalidUserId: validation.userId,
-      sessionUser: validation.userName,
-      error: validation.error
-    });
-    return NextResponse.json({ error: validation.error }, { status: 401 });
-  }
+  // Try API token first (for v1 endpoints)
+  const authHeader = request.headers.get('authorization');
+  console.log('Upload queue auth header:', authHeader ? 'Present' : 'Missing');
+  
+  const token = authHeader?.split(' ')[1];
+  console.log('Upload queue token:', token ? `Present (${token.length} chars)` : 'Missing');
+  
+  if (token) {
+    console.log('Attempting to verify API token...');
+    const user = await verifyApiToken(token);
+    console.log('Token verification result:', user ? 'Success' : 'Failed');
+    
+    if (!user) {
+      console.log('Token verification failed - returning 401');
+      return NextResponse.json({ error: 'Unauthorized - Invalid or expired token' }, { status: 401 });
+    }
+    
+    console.log('Token verified successfully for user:', user.email);
+    actingUserId = user.id;
+    actingUserName = user.email || user.name || 'API User';
+  } else {
+    // Fall back to session authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const actingUserId = validation.userId!;
-  const actingUserName = validation.userName!;
+    const validation = await validateUserSession(session);
+    if (!validation.isValid) {
+      console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
+        invalidUserId: validation.userId,
+        sessionUser: validation.userName,
+        error: validation.error
+      });
+      return NextResponse.json({ error: validation.error }, { status: 401 });
+    }
+
+    actingUserId = validation.userId!;
+    actingUserName = validation.userName!;
+  }
   
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);

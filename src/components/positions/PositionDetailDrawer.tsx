@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Loader2, Briefcase, Users, Search, X, Eye, Edit, ChevronUp, ChevronDown, Save, XCircle, BrainCircuit, Target, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import parseISO from 'date-fns/parseISO';
 import { toast } from 'react-hot-toast';
@@ -83,6 +84,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [editorKey, setEditorKey] = useState(0);
   const [isDrawerReady, setIsDrawerReady] = useState(false);
 
+  // Sorting state for applied candidates table
+  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>(null);
+  const [appliedCandidatesSortDirection, setAppliedCandidatesSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
+
+  // Sorting state for potential candidates table
+  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>(null);
+  const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
+
+  // Sorting state for all candidates table
+  const [allCandidatesOpenMenu, setAllCandidatesOpenMenu] = useState<string | null>(null);
+
   // Form setup
   const form = useForm<EditPositionFormValues>({
     resolver: zodResolver(editPositionFormSchema),
@@ -95,6 +109,61 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       positionLevel: '',
     },
   });
+
+  // Sorting handlers
+  const handleAppliedCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) {
+      setAppliedCandidatesSortColumn(null);
+      setAppliedCandidatesSortDirection('asc');
+      return;
+    }
+    if (appliedCandidatesSortColumn === column && direction == null) {
+      setAppliedCandidatesSortDirection(appliedCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAppliedCandidatesSortColumn(column);
+      setAppliedCandidatesSortDirection(direction || 'asc');
+    }
+  };
+
+  const handlePotentialCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) {
+      setPotentialCandidatesSortColumn(null);
+      setPotentialCandidatesSortDirection('asc');
+      return;
+    }
+    if (potentialCandidatesSortColumn === column && direction == null) {
+      setPotentialCandidatesSortDirection(potentialCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setPotentialCandidatesSortColumn(column);
+      setPotentialCandidatesSortDirection(direction || 'asc');
+    }
+  };
+
+  const handleAllCandidatesSort = (column: string | null, direction?: 'asc' | 'desc' | null) => {
+    if (!column) {
+      setAllCandidatesSortColumn(null);
+      setAllCandidatesSortDirection('asc');
+      return;
+    }
+    if (allCandidatesSortColumn === column && direction == null) {
+      setAllCandidatesSortDirection(allCandidatesSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAllCandidatesSortColumn(column);
+      setAllCandidatesSortDirection(direction || 'asc');
+    }
+  };
+
+  // Sortable value getters
+  const getSortableValue = (candidate: Candidate, column: string) => {
+    switch (column) {
+      case 'name': return candidate.name?.toLowerCase() || '';
+      case 'email': return candidate.email?.toLowerCase() || '';
+      case 'fitScore': return candidate.fitScore || 0;
+      case 'status': return candidate.status?.toLowerCase() || '';
+      case 'applicationDate': return candidate.applicationDate || '';
+      default: return '';
+    }
+  };
 
   // Calculate total pages for pagination
   const allCandidatesTotalPages = useMemo(() => 
@@ -114,6 +183,47 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
     ).length,
     [allCandidates]
   );
+
+  // Sorted candidates
+  const sortedAppliedCandidates = useMemo(() => {
+    const appliedCandidates = allCandidates.filter((candidate: Candidate) => 
+      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
+    );
+    
+    if (!appliedCandidatesSortColumn) return appliedCandidates;
+    
+    return [...appliedCandidates].sort((a, b) => {
+      const aValue = getSortableValue(a, appliedCandidatesSortColumn);
+      const bValue = getSortableValue(b, appliedCandidatesSortColumn);
+      if (aValue < bValue) return appliedCandidatesSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return appliedCandidatesSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [allCandidates, appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
+
+  const sortedPotentialCandidates = useMemo(() => {
+    if (!potentialCandidatesSortColumn) return potentialCandidates;
+    
+    return [...potentialCandidates].sort((a, b) => {
+      const aValue = getSortableValue(a, potentialCandidatesSortColumn);
+      const bValue = getSortableValue(b, potentialCandidatesSortColumn);
+      if (aValue < bValue) return potentialCandidatesSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return potentialCandidatesSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [potentialCandidates, potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
+
+  const sortedAllCandidates = useMemo(() => {
+    if (!allCandidatesSortColumn) return allCandidates;
+    
+    return [...allCandidates].sort((a, b) => {
+      const aValue = getSortableValue(a, allCandidatesSortColumn);
+      const bValue = getSortableValue(b, allCandidatesSortColumn);
+      if (aValue < bValue) return allCandidatesSortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return allCandidatesSortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [allCandidates, allCandidatesSortColumn, allCandidatesSortDirection]);
 
   // Department and level options
   const departmentOptions = [
@@ -392,20 +502,20 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   // Helper: Group candidates by email (same as position detail page)
   const candidatesByEmail = useMemo(() => {
     const groups: Record<string, Candidate[]> = {};
-    allCandidates.forEach((c) => {
+    sortedAllCandidates.forEach((c) => {
       if (!c.email) return;
       if (!groups[c.email]) groups[c.email] = [];
       groups[c.email].push(c);
     });
     return groups;
-  }, [allCandidates]);
+  }, [sortedAllCandidates]);
 
   const emailOrder = useMemo(() => {
     const seen = new Set<string>();
-    return allCandidates
+    return sortedAllCandidates
       .map((c) => c.email)
       .filter((email) => email && !seen.has(email) && seen.add(email));
-  }, [allCandidates]);
+  }, [sortedAllCandidates]);
 
   const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>({});
 
@@ -449,6 +559,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       setIsEditMode(false);
       setIsDrawerReady(false);
       form.reset();
+      
+      // Reset sorting state
+      setAppliedCandidatesSortColumn(null);
+      setAppliedCandidatesSortDirection('asc');
+      setAppliedCandidatesOpenMenu(null);
+      setPotentialCandidatesSortColumn(null);
+      setPotentialCandidatesSortDirection('asc');
+      setPotentialCandidatesOpenMenu(null);
+      setAllCandidatesOpenMenu(null);
     }
   }, [isOpen, form]);
 
@@ -480,12 +599,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   // Render applied candidates table
   const renderAppliedCandidatesTable = () => {
-    // Filter to only show applied candidates (not matched candidates)
-    const appliedCandidates = allCandidates.filter((candidate: Candidate) => 
-      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
-    );
-
-    if (appliedCandidates.length === 0) {
+    if (sortedAppliedCandidates.length === 0) {
       return (
         <div className="text-center py-8">
           <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -501,14 +615,113 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         <TableHeader>
           <TableRow>
             <TableHead>#</TableHead>
-            <TableHead>Candidate</TableHead>
-            <TableHead>Fit Score</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handleAppliedCandidatesSort('name')}>
+              <span className="inline-flex items-center gap-1">
+                Candidate
+                <DropdownMenu open={appliedCandidatesOpenMenu === 'name'} onOpenChange={open => setAppliedCandidatesOpenMenu(open ? 'name' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {appliedCandidatesSortColumn === 'name' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('name'); }}
+                        aria-label="Sort options"
+                      >
+                        {appliedCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('name'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('name', 'asc'); setAppliedCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('name', 'desc'); setAppliedCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort(null, null); setAppliedCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handleAppliedCandidatesSort('fitScore')}>
+              <span className="inline-flex items-center gap-1">
+                Fit Score
+                <DropdownMenu open={appliedCandidatesOpenMenu === 'fitScore'} onOpenChange={open => setAppliedCandidatesOpenMenu(open ? 'fitScore' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {appliedCandidatesSortColumn === 'fitScore' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('fitScore'); }}
+                        aria-label="Sort options"
+                      >
+                        {appliedCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('fitScore'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('fitScore', 'asc'); setAppliedCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('fitScore', 'desc'); setAppliedCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort(null, null); setAppliedCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handleAppliedCandidatesSort('status')}>
+              <span className="inline-flex items-center gap-1">
+                Status
+                <DropdownMenu open={appliedCandidatesOpenMenu === 'status'} onOpenChange={open => setAppliedCandidatesOpenMenu(open ? 'status' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {appliedCandidatesSortColumn === 'status' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('status'); }}
+                        aria-label="Sort options"
+                      >
+                        {appliedCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setAppliedCandidatesOpenMenu('status'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('status', 'asc'); setAppliedCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort('status', 'desc'); setAppliedCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handleAppliedCandidatesSort(null, null); setAppliedCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {appliedCandidates.map((candidate) => (
+          {sortedAppliedCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
@@ -549,7 +762,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   // Render potential candidates table
   const renderPotentialCandidatesTable = () => {
-    if (potentialCandidates.length === 0) {
+    if (sortedPotentialCandidates.length === 0) {
       return (
         <div className="text-center py-8">
           <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -565,14 +778,113 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         <TableHeader>
           <TableRow>
             <TableHead>#</TableHead>
-            <TableHead>Candidate</TableHead>
-            <TableHead>Fit Score</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handlePotentialCandidatesSort('name')}>
+              <span className="inline-flex items-center gap-1">
+                Candidate
+                <DropdownMenu open={potentialCandidatesOpenMenu === 'name'} onOpenChange={open => setPotentialCandidatesOpenMenu(open ? 'name' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {potentialCandidatesSortColumn === 'name' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('name'); }}
+                        aria-label="Sort options"
+                      >
+                        {potentialCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('name'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('name', 'asc'); setPotentialCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('name', 'desc'); setPotentialCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort(null, null); setPotentialCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handlePotentialCandidatesSort('fitScore')}>
+              <span className="inline-flex items-center gap-1">
+                Fit Score
+                <DropdownMenu open={potentialCandidatesOpenMenu === 'fitScore'} onOpenChange={open => setPotentialCandidatesOpenMenu(open ? 'fitScore' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {potentialCandidatesSortColumn === 'fitScore' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('fitScore'); }}
+                        aria-label="Sort options"
+                      >
+                        {potentialCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('fitScore'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('fitScore', 'asc'); setPotentialCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('fitScore', 'desc'); setPotentialCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort(null, null); setPotentialCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
+            <TableHead className="cursor-pointer select-none group" onClick={() => handlePotentialCandidatesSort('status')}>
+              <span className="inline-flex items-center gap-1">
+                Status
+                <DropdownMenu open={potentialCandidatesOpenMenu === 'status'} onOpenChange={open => setPotentialCandidatesOpenMenu(open ? 'status' : null)}>
+                  <DropdownMenuTrigger asChild>
+                    {potentialCandidatesSortColumn === 'status' ? (
+                      <button
+                        type="button"
+                        className="text-primary font-bold p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('status'); }}
+                        aria-label="Sort options"
+                      >
+                        {potentialCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                        onClick={e => { e.stopPropagation(); setPotentialCandidatesOpenMenu('status'); }}
+                        aria-label="Sort options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                    )}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('status', 'asc'); setPotentialCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort('status', 'desc'); setPotentialCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { handlePotentialCandidatesSort(null, null); setPotentialCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
+            </TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {potentialCandidates.map((candidate) => (
+          {sortedPotentialCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
               <TableCell>{rowNumber++}</TableCell>
               <TableCell>
@@ -645,118 +957,224 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8 text-center">#</TableHead>
-                <TableHead>Candidate</TableHead>
-                <TableHead>Fit Score</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('name')}>
+                  <span className="inline-flex items-center gap-1">
+                    Candidate
+                    <DropdownMenu open={allCandidatesOpenMenu === 'name'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'name' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {allCandidatesSortColumn === 'name' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('name'); }}
+                            aria-label="Sort options"
+                          >
+                            {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('name'); }}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('name', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('fitScore')}>
+                  <span className="inline-flex items-center gap-1">
+                    Fit Score
+                    <DropdownMenu open={allCandidatesOpenMenu === 'fitScore'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'fitScore' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {allCandidatesSortColumn === 'fitScore' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('fitScore'); }}
+                            aria-label="Sort options"
+                          >
+                            {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('fitScore'); }}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('fitScore', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none group" onClick={() => handleAllCandidatesSort('status')}>
+                  <span className="inline-flex items-center gap-1">
+                    Status
+                    <DropdownMenu open={allCandidatesOpenMenu === 'status'} onOpenChange={open => setAllCandidatesOpenMenu(open ? 'status' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {allCandidatesSortColumn === 'status' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('status'); }}
+                            aria-label="Sort options"
+                          >
+                            {allCandidatesSortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setAllCandidatesOpenMenu('status'); }}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'asc'); setAllCandidatesOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort('status', 'desc'); setAllCandidatesOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { handleAllCandidatesSort(null, null); setAllCandidatesOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {emailOrder.map((email) => {
-                const group = candidatesByEmail[email];
-                if (!group || group.length === 0) return null;
+              {(() => {
+                // Use sorted candidates for email order
+                const sortedEmailOrder = sortedAllCandidates
+                  .map((c) => c.email)
+                  .filter((email, index, arr) => email && arr.indexOf(email) === index);
                 
-                if (group.length === 1) {
-                  const candidate = group[0];
-                  return (
-                    <TableRow 
-                      key={candidate.id} 
-                      className="hover:bg-muted/50"
-                    >
-                      <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{candidate.name}</div>
-                          <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                          <ScoreBadge score={candidate.fitScore}>
-                            {formatScoreWithGrade(candidate.fitScore)}
-                          </ScoreBadge>
-                        ) : (
-                          <Badge variant="outline">No Score</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{candidate.status || 'New'}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCandidateClick(candidate.id)}
-                          className="hover:bg-primary/10"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="ml-1 text-xs">View</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                } else {
-                  // Handle grouped candidates (same email)
-                  const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
-                  return (
-                    <React.Fragment key={email}>
-                      <TableRow className="bg-muted/30">
-                        <TableCell colSpan={99} className="p-0">
-                          <div className="flex items-center gap-2 px-2 py-1 bg-muted">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))}
-                              className="border border-primary"
-                            >
-                              {isExpanded ? <ChevronDown /> : <ChevronUp />}
-                            </Button>
-                            <span className="font-semibold">{email}</span>
-                            <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
+                return sortedEmailOrder.map((email) => {
+                  const group = sortedAllCandidates.filter(c => c.email === email);
+                  if (!group || group.length === 0) return null;
+                  
+                  if (group.length === 1) {
+                    const candidate = group[0];
+                    return (
+                      <TableRow 
+                        key={candidate.id} 
+                        className="hover:bg-muted/50"
+                      >
+                        <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{candidate.name}</div>
+                            <div className="text-xs text-muted-foreground">{candidate.email}</div>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                            <ScoreBadge score={candidate.fitScore}>
+                              {formatScoreWithGrade(candidate.fitScore)}
+                            </ScoreBadge>
+                          ) : (
+                            <Badge variant="outline">No Score</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCandidateClick(candidate.id)}
+                            className="hover:bg-primary/10"
+                          >
+                            <Eye className="h-4 w-4" />
+                            <span className="ml-1 text-xs">View</span>
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                      {isExpanded && group.map((candidate) => (
-                        <TableRow 
-                          key={candidate.id} 
-                          className="hover:bg-muted/50"
-                        >
-                          <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{candidate.name}</div>
-                              <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                    );
+                  } else {
+                    // Handle grouped candidates (same email)
+                    const isExpanded = expandedEmails[email] !== undefined ? expandedEmails[email] : true;
+                    return (
+                      <React.Fragment key={email}>
+                        <TableRow className="bg-muted/30">
+                          <TableCell colSpan={99} className="p-0">
+                            <div className="flex items-center gap-2 px-2 py-1 bg-muted">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setExpandedEmails((prev) => ({ ...prev, [email]: !isExpanded }))}
+                                className="border border-primary"
+                              >
+                                {isExpanded ? <ChevronDown /> : <ChevronUp />}
+                              </Button>
+                              <span className="font-semibold">{email}</span>
+                              <span className="text-xs text-muted-foreground">({group.length} candidates)</span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
-                              <ScoreBadge score={candidate.fitScore}>
-                                {formatScoreWithGrade(candidate.fitScore)}
-                              </ScoreBadge>
-                            ) : (
-                              <Badge variant="outline">No Score</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{candidate.status || 'New'}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCandidateClick(candidate.id)}
-                              className="hover:bg-primary/10"
-                            >
-                              <Eye className="h-4 w-4" />
-                              <span className="ml-1 text-xs">View</span>
-                            </Button>
-                          </TableCell>
                         </TableRow>
-                      ))}
-                    </React.Fragment>
-                  );
-                }
-              })}
+                        {isExpanded && group.map((candidate) => (
+                          <TableRow 
+                            key={candidate.id} 
+                            className="hover:bg-muted/50"
+                          >
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground">{rowNumber++}</TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{candidate.name}</div>
+                                <div className="text-xs text-muted-foreground">{candidate.email}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {candidate.fitScore !== undefined && candidate.fitScore !== null ? (
+                                <ScoreBadge score={candidate.fitScore}>
+                                  {formatScoreWithGrade(candidate.fitScore)}
+                                </ScoreBadge>
+                              ) : (
+                                <Badge variant="outline">No Score</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{candidate.status || 'New'}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCandidateClick(candidate.id)}
+                                className="hover:bg-primary/10"
+                              >
+                                <Eye className="h-4 w-4" />
+                                <span className="ml-1 text-xs">View</span>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </React.Fragment>
+                    );
+                  }
+                });
+              })()}
             </TableBody>
           </Table>
         </div>

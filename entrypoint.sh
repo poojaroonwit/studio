@@ -77,10 +77,17 @@ fi
 
 # Check if schema is out of sync
 SCHEMA_OUT_OF_SYNC=0
+SCHEMA_DIVERGED=0
 if [ "$FRESH_DB" -eq 0 ]; then
     if echo "$MIGRATION_STATUS" | grep -q "Database schema is out of sync"; then
         SCHEMA_OUT_OF_SYNC=1
         echo "⚠️  Schema out of sync detected"
+    fi
+    
+    # Check for migration divergence
+    if echo "$MIGRATION_STATUS" | grep -q "migrations recorded in the database diverge from the local migrations directory"; then
+        SCHEMA_DIVERGED=1
+        echo "⚠️  Migration divergence detected - database has different migrations than local files"
     fi
 fi
 
@@ -101,7 +108,13 @@ if [ "$FRESH_DB" -eq 1 ]; then
         fi
     else
         echo "❌ Failed to create initial migration"
-        exit 1
+        echo "🔄 Attempting to use db push as fallback..."
+        if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+            echo "✅ Database schema synced using db push"
+        else
+            echo "❌ Failed to sync database schema"
+            exit 1
+        fi
     fi
     
 elif [ "$PENDING_MIGRATIONS" -eq 1 ]; then
@@ -112,6 +125,17 @@ elif [ "$PENDING_MIGRATIONS" -eq 1 ]; then
         echo "✅ Pending migrations applied successfully"
     else
         echo "❌ Failed to apply pending migrations"
+        exit 1
+    fi
+    
+elif [ "$SCHEMA_DIVERGED" -eq 1 ]; then
+    echo "🔧 Migration divergence detected - syncing database schema..."
+    
+    # When migrations diverge, use db push to sync the schema
+    if npx prisma db push --accept-data-loss --schema=prisma/schema.prisma; then
+        echo "✅ Database schema synced successfully (migration divergence resolved)"
+    else
+        echo "❌ Failed to sync database schema"
         exit 1
     fi
     

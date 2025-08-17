@@ -2199,6 +2199,429 @@ export function getSwaggerSpec() {
             '500': { description: 'Processing failed' }
           }
         }
+      },
+      '/api/v1/recruitment-stages': {
+        get: {
+          summary: 'Get all recruitment stages (V1 API)',
+          description: 'Returns all recruitment stages for use in filters. Requires Bearer token authentication.',
+          tags: ['V1 Recruitment Stages'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'List of recruitment stages',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            sort_order: { type: 'integer' },
+                            color_complete: { type: 'string' },
+                            color_badge: { type: 'string' },
+                            is_system: { type: 'boolean' }
+                          }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/ai/search-candidates': {
+        post: {
+          summary: 'Search candidates using AI (V1 API)',
+          description: 'Search candidates using AI-powered semantic search. Requires Bearer token authentication.',
+          tags: ['V1 AI Search'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'Search query', example: 'software engineer with React experience' },
+                    positionId: { type: 'string', format: 'uuid', description: 'Optional position ID to filter results' },
+                    limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Number of results to return' },
+                    offset: { type: 'integer', default: 0, minimum: 0, description: 'Offset for pagination' }
+                  },
+                  required: ['query']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Search results',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            email: { type: 'string' },
+                            phone: { type: 'string' },
+                            status: { type: 'string' },
+                            fitScore: { type: 'number' },
+                            matchReasons: { type: 'array', items: { type: 'string' } },
+                            parsedData: { type: 'object' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer', description: 'Total number of matching candidates' },
+                      query: { type: 'string', description: 'The search query used' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid request body' },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/dashboard': {
+        get: {
+          summary: 'Get dashboard statistics (V1 API)',
+          description: 'Returns dashboard statistics and metrics. Requires Bearer token authentication.',
+          tags: ['V1 Dashboard'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Dashboard statistics',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          candidates: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              new: { type: 'integer' },
+                              inProgress: { type: 'integer' },
+                              hired: { type: 'integer' },
+                              rejected: { type: 'integer' }
+                            }
+                          },
+                          positions: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              open: { type: 'integer' },
+                              closed: { type: 'integer' }
+                            }
+                          },
+                          applications: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              thisMonth: { type: 'integer' },
+                              lastMonth: { type: 'integer' }
+                            }
+                          },
+                          recruiters: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              active: { type: 'integer' }
+                            }
+                          },
+                          recentActivity: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                type: { type: 'string' },
+                                message: { type: 'string' },
+                                timestamp: { type: 'string', format: 'date-time' },
+                                userId: { type: 'string', format: 'uuid' },
+                                userName: { type: 'string' }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/logs': {
+        get: {
+          summary: 'Get system logs (V1 API)',
+          description: 'Returns a paginated list of system logs. Requires Bearer token authentication and Admin role or LOGS_VIEW permission.',
+          tags: ['V1 Logs'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 }, description: 'Page number' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Number of items per page' },
+            { name: 'level', in: 'query', schema: { type: 'string', enum: ['info', 'warning', 'error'] }, description: 'Filter logs by level' },
+            { name: 'startDate', in: 'query', schema: { type: 'string', format: 'date' }, description: 'Filter logs from this date (YYYY-MM-DD)' },
+            { name: 'endDate', in: 'query', schema: { type: 'string', format: 'date' }, description: 'Filter logs until this date (YYYY-MM-DD)' },
+            { name: 'userId', in: 'query', schema: { type: 'string', format: 'uuid' }, description: 'Filter logs by user ID' }
+          ],
+          responses: {
+            '200': {
+              description: 'Paginated logs',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            level: { type: 'string', enum: ['info', 'warning', 'error'] },
+                            message: { type: 'string' },
+                            details: { type: 'object' },
+                            userId: { type: 'string', format: 'uuid' },
+                            userName: { type: 'string' },
+                            actionType: { type: 'string' },
+                            createdAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          page: { type: 'integer' },
+                          limit: { type: 'integer' },
+                          total: { type: 'integer' },
+                          totalPages: { type: 'integer' }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '403': { description: 'Forbidden - Insufficient permissions' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/transitions': {
+        get: {
+          summary: 'Get candidate transitions (V1 API)',
+          description: 'Returns a list of candidate stage transitions. Requires Bearer token authentication.',
+          tags: ['V1 Transitions'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'candidateId', in: 'query', schema: { type: 'string', format: 'uuid' }, description: 'Filter by candidate ID' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 }, description: 'Number of items per page' },
+            { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 }, description: 'Offset for pagination' }
+          ],
+          responses: {
+            '200': {
+              description: 'List of transitions',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            candidateId: { type: 'string', format: 'uuid' },
+                            fromStageId: { type: 'string', format: 'uuid' },
+                            toStageId: { type: 'string', format: 'uuid' },
+                            fromStageName: { type: 'string' },
+                            toStageName: { type: 'string' },
+                            notes: { type: 'string' },
+                            transitionDate: { type: 'string', format: 'date-time' },
+                            createdBy: { type: 'string', format: 'uuid' },
+                            createdByName: { type: 'string' },
+                            createdAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer', description: 'Total number of transitions' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        },
+        post: {
+          summary: 'Create a candidate transition (V1 API)',
+          description: 'Create a new candidate stage transition. Requires Bearer token authentication.',
+          tags: ['V1 Transitions'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    candidateId: { type: 'string', format: 'uuid', description: 'Candidate ID' },
+                    fromStageId: { type: 'string', format: 'uuid', description: 'Source stage ID' },
+                    toStageId: { type: 'string', format: 'uuid', description: 'Target stage ID' },
+                    notes: { type: 'string', description: 'Optional transition notes' },
+                    transitionDate: { type: 'string', format: 'date-time', description: 'Optional transition date (defaults to current time)' }
+                  },
+                  required: ['candidateId', 'fromStageId', 'toStageId']
+                }
+              }
+            }
+          },
+          responses: {
+            '201': {
+              description: 'Transition created successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      message: { type: 'string', example: 'Transition created successfully' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          candidateId: { type: 'string', format: 'uuid' },
+                          fromStageId: { type: 'string', format: 'uuid' },
+                          toStageId: { type: 'string', format: 'uuid' },
+                          notes: { type: 'string' },
+                          transitionDate: { type: 'string', format: 'date-time' },
+                          createdAt: { type: 'string', format: 'date-time' }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid request body' },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        }
+      },
+      '/api/v1/settings': {
+        get: {
+          summary: 'Get system settings (V1 API)',
+          description: 'Returns system settings and configuration. Requires Bearer token authentication and Admin role.',
+          tags: ['V1 Settings'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'System settings',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          systemSettings: {
+                            type: 'object',
+                            properties: {
+                              defaultMatchCriteria: { type: 'object' },
+                              emailSettings: { type: 'object' },
+                              fileUploadSettings: { type: 'object' }
+                            }
+                          },
+                          userPreferences: { type: 'object' },
+                          customFields: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string', format: 'uuid' },
+                                name: { type: 'string' },
+                                type: { type: 'string' },
+                                isRequired: { type: 'boolean' },
+                                options: { type: 'array', items: { type: 'string' } }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '403': { description: 'Forbidden - Admin role required' },
+            '500': { description: 'Internal server error' }
+          }
+        }
       }
     },
     components: {
@@ -2711,6 +3134,12 @@ export function getSwaggerSpec() {
       { name: 'V1 Authentication', description: 'External API authentication endpoints' },
       { name: 'V1 Positions', description: 'External API for positions' },
       { name: 'V1 Candidates', description: 'External API for candidates' },
+      { name: 'V1 Recruitment Stages', description: 'External API for recruitment stages' },
+      { name: 'V1 AI Search', description: 'External API for AI-powered candidate search' },
+      { name: 'V1 Dashboard', description: 'External API for dashboard statistics' },
+      { name: 'V1 Logs', description: 'External API for system logs' },
+      { name: 'V1 Transitions', description: 'External API for candidate stage transitions' },
+      { name: 'V1 Settings', description: 'External API for system settings' },
       { name: 'Job Applied', description: 'Job application information endpoints' },
       { name: 'Job Matches', description: 'Job matching endpoints' },
       { name: 'Attachments', description: 'File attachment endpoints' },

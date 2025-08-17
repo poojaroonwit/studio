@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   try {
     const query = `
       SELECT 
-        id, model_name, field_key, label, field_type, options, 
+        id, model_name, field_key, field_code, label, field_type, options, 
         is_required, sort_order, "createdAt", "updatedAt"
       FROM "CustomFieldDefinition"
       WHERE id = $1
@@ -289,7 +289,7 @@ export async function DELETE(request: NextRequest) {
       WHERE "customAttributes" ? $1
     `;
     
-    const usageResult = await getPool().query(usageQuery, [fieldData.field_key]);
+    const usageResult = await getPool().query(usageQuery, [fieldData.field_code]);
     const totalUsage = usageResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
 
     if (totalUsage > 0) {
@@ -302,10 +302,10 @@ export async function DELETE(request: NextRequest) {
     await getPool().query('DELETE FROM "CustomFieldDefinition" WHERE id = $1', [id]);
 
     await logAudit('AUDIT', 
-      `Custom field "${fieldData.label}" (${fieldData.field_key}) deleted by ${session.user.name}.`, 
+      `Custom field "${fieldData.label}" (${fieldData.field_code}) deleted by ${session.user.name}.`, 
       'API:CustomFields:Delete', 
       session.user.id, 
-      { fieldId: id, modelName: fieldData.model_name, fieldKey: fieldData.field_key }
+      { fieldId: id, modelName: fieldData.model_name, fieldCode: fieldData.field_code }
     );
 
     return NextResponse.json({ message: "Custom field definition deleted successfully" }, { status: 200 });

@@ -1,139 +1,136 @@
 "use client";
-import { useSidebar } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sun, Moon, LogOut, UserCircle, LogIn, KeyRound, Edit3, Home, Users, Briefcase, Settings, ListTodo, UploadCloud, UsersRound, Code2, ListOrdered, Palette, Zap, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, FileText, Webhook } from "lucide-react"; 
-import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+import { useSession, signOut, signIn } from 'next-auth/react';
+import { UserAvatarCompact } from "@/components/ui/user-avatar";
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound } from 'lucide-react';
+import { useSidebar } from '@/components/ui/sidebar';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { usePathname } from 'next/navigation';
+import { NotificationIcon } from '@/components/ui/notification-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
-import { EditUserModal, type EditUserFormValues } from '@/components/users/EditUserModal';
-import { toast } from "react-hot-toast";
-import type { UserProfile } from "@/lib/types";
-import * as React from 'react';
-import { usePathname } from "next/navigation";
-import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
-import { AutoFont } from "@/components/ui/auto-font";
-
-
-const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
-const DEFAULT_APP_NAME = "CV-Screening";
+import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
+import { UserProfile, UserFormValues } from '@/lib/types';
+import { toast } from 'react-hot-toast';
+import { AutoFont } from '@/components/ui/auto-font';
+import { DEFAULT_APP_NAME } from '@/lib/constants';
+import { useAvatarRefresh } from '@/hooks/use-avatar-refresh';
 
 // Function to generate breadcrumb items based on pathname
 function getBreadcrumbItems(pathname: string) {
-  const items: BreadcrumbItem[] = [{ label: "Home", href: "/", icon: Home }];
+  const items = [{ label: "Home", href: "/" }];
   
   if (pathname === "/") {
-    return [{ label: "Dashboard", href: "/", icon: Home }];
+    return [{ label: "Dashboard", href: "/" }];
   }
   
   if (pathname.startsWith("/candidates")) {
-    items.push({ label: "Candidates", href: "/candidates", icon: Users });
+    items.push({ label: "Candidates", href: "/candidates" });
     
     if (pathname === "/candidates/upload") {
-      items.push({ label: "Bulk Upload", href: "/candidates/upload", icon: UploadCloud });
+      items.push({ label: "Process queue", href: "/candidates/upload" });
     } else if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
-      items.push({ label: "Candidate Details", href: pathname, icon: UserCircle });
+      items.push({ label: "Candidate Details", href: pathname });
     }
   }
   
   if (pathname.startsWith("/positions")) {
-    items.push({ label: "Positions", href: "/positions", icon: Briefcase });
+    items.push({ label: "Positions", href: "/positions" });
     
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '') {
-      items.push({ label: "Position Details", href: pathname, icon: Briefcase });
+      items.push({ label: "Position Details", href: pathname });
     }
   }
   
   if (pathname.startsWith("/users")) {
-    items.push({ label: "Manage Users", href: "/users", icon: UsersRound });
+    items.push({ label: "Manage Users", href: "/users" });
   }
   
   if (pathname.startsWith("/my-tasks")) {
-    items.push({ label: "My Task Board", href: "/my-tasks", icon: ListTodo });
+    items.push({ label: "My Task Board", href: "/my-tasks" });
   }
   
   if (pathname.startsWith("/settings")) {
-    items.push({ label: "Settings", href: "/settings", icon: Settings });
+    items.push({ label: "Settings", href: "/settings" });
     
     if (pathname.startsWith("/settings/system-settings")) {
-      items.push({ label: "System Settings", href: "/settings/system-settings", icon: Settings });
+      items.push({ label: "System Settings", href: "/settings/system-settings" });
     } else if (pathname.startsWith("/settings/system-preferences")) {
-      items.push({ label: "System Preferences", href: "/settings/system-preferences", icon: Palette });
+      items.push({ label: "System Preferences", href: "/settings/system-preferences" });
     } else if (pathname.startsWith("/settings/stages")) {
-      items.push({ label: "Recruitment Stages", href: "/settings/stages", icon: KanbanSquare });
-    } else if (pathname.startsWith("/settings/data-models")) {
-      items.push({ label: "Data Model UI", href: "/settings/data-models", icon: DatabaseZap });
+      items.push({ label: "Recruitment Stages", href: "/settings/stages" });
     } else if (pathname.startsWith("/settings/custom-fields")) {
-      items.push({ label: "Custom Fields", href: "/settings/custom-fields", icon: Settings2 });
+      items.push({ label: "Custom Fields", href: "/settings/custom-fields" });
     } else if (pathname.startsWith("/settings/user-groups")) {
-      items.push({ label: "User Groups", href: "/settings/user-groups", icon: UsersRound });
+      items.push({ label: "User Groups", href: "/settings/user-groups" });
     } else if (pathname.startsWith("/settings/users")) {
-      items.push({ label: "Users", href: "/settings/users", icon: UsersRound });
+      items.push({ label: "Users", href: "/settings/users" });
     } else if (pathname.startsWith("/settings/webhooks")) {
-      items.push({ label: "Webhooks", href: "/settings/webhooks", icon: Webhook });
+      items.push({ label: "Webhooks", href: "/settings/webhooks" });
     } else if (pathname.startsWith("/settings/logs")) {
-      items.push({ label: "Application Logs", href: "/settings/logs", icon: ListOrdered });
+      items.push({ label: "Application Logs", href: "/settings/logs" });
     } else if (pathname.startsWith("/settings/api-docs")) {
-      items.push({ label: "API Documentation", href: "/settings/api-docs", icon: Code2 });
+      items.push({ label: "API Documentation", href: "/settings/api-docs" });
     }
   }
   
   if (pathname.startsWith("/api-docs")) {
-    items.push({ label: "API Documentation", href: "/api-docs", icon: Code2 });
+    items.push({ label: "API Documentation", href: "/api-docs" });
   }
   
   if (pathname.startsWith("/logs")) {
-    items.push({ label: "Application Logs", href: "/logs", icon: ListOrdered });
+    items.push({ label: "Application Logs", href: "/logs" });
   }
   
   if (pathname.startsWith("/auth/signin")) {
-    return [{ label: "Sign In", href: "/auth/signin", icon: LogIn }];
+    return [{ label: "Sign In", href: "/auth/signin" }];
   }
   
   return items;
 }
 
+interface HeaderProps {
+  pageTitle: string;
+}
+
 export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   const { isMobile, open } = useSidebar();
   const { data: session, status, update: updateSession } = useSession();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [currentAppName, setCurrentAppName] = useState<string>(DEFAULT_APP_NAME);
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
-  const pathname = usePathname();
-
-  useEffect(() => setMounted(true), []);
+  const { refreshKey, forceRefresh } = useAvatarRefresh();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedAppName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY);
-      setCurrentAppName(storedAppName || DEFAULT_APP_NAME);
-      // Listen for appConfigChanged event
-      const handleAppConfigChange = (event: Event) => {
-        const customEvent = event as CustomEvent<{ appName?: string }>;
-        if (customEvent.detail && customEvent.detail.appName) {
-          setCurrentAppName(customEvent.detail.appName);
-          document.title = customEvent.detail.appName;
-        } else {
-          const storedAppName = localStorage.getItem(APP_CONFIG_APP_NAME_KEY);
-          setCurrentAppName(storedAppName || DEFAULT_APP_NAME);
-          document.title = storedAppName || DEFAULT_APP_NAME;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Fetch current app name from system settings
+    const fetchAppName = async () => {
+      try {
+        const response = await fetch('/api/settings/system-settings');
+        if (response.ok) {
+          const data = await response.json();
+          let settings: any = {};
+          if (data.settings && Array.isArray(data.settings)) {
+            settings = Object.fromEntries(data.settings.map((setting: any) => [setting.key, setting.value]));
+          } else {
+            settings = data;
+          }
+          const appName = settings.appName || DEFAULT_APP_NAME;
+          setCurrentAppName(appName);
         }
-      };
-      window.addEventListener('appConfigChanged', handleAppConfigChange);
-      return () => {
-        window.removeEventListener('appConfigChanged', handleAppConfigChange);
-      };
-    }
+      } catch (error) {
+        console.error('Failed to fetch app name:', error);
+      }
+    };
+
+    fetchAppName();
   }, []);
 
   useEffect(() => {
@@ -159,29 +156,50 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     });
   };
 
-  const handleEditProfile = async (userId: string, data: EditUserFormValues) => {
+  const handleEditProfile = async (data: UserFormValues) => {
     if (!session?.user) return;
+    console.log('Header handleEditProfile - Sending data:', data);
+    console.log('Header handleEditProfile - Current session avatarUrl:', session.user.avatarUrl);
+    
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${session.user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       const result = await response.json();
+      console.log('Header handleEditProfile - API response:', result);
+      
       if (!response.ok) {
         throw new Error(result.message || 'Failed to update profile');
       }
       toast.success("Profile Updated");
       
-      // Trigger session update if name or email changed
-      if (session.user.name !== result.name || session.user.email !== result.email) {
-        await updateSession({
-          name: result.name,
-          email: result.email,
-        });
+      // Trigger session update if name, email, avatar, or personalColor changed
+      const needsSessionUpdate = 
+        session.user.name !== result.name || 
+        session.user.email !== result.email ||
+        session.user.avatarUrl !== result.avatarUrl ||
+        session.user.personalColor !== result.personalColor;
+        
+      console.log('Header handleEditProfile - Avatar URL changed:', session.user.avatarUrl !== result.avatarUrl);
+      console.log('Header handleEditProfile - Old avatarUrl:', session.user.avatarUrl);
+      console.log('Header handleEditProfile - New avatarUrl:', result.avatarUrl);
+        
+      if (needsSessionUpdate) {
+        // Force refresh the avatar if it was updated
+        if (session.user.avatarUrl !== result.avatarUrl) {
+          console.log('Header handleEditProfile - Forcing avatar refresh');
+          forceRefresh();
+        }
+        
+        // Trigger a session refresh to update the session with new data
+        console.log('Header handleEditProfile - Triggering session refresh');
+        await updateSession();
       }
-      setIsEditProfileModalOpen(false);
+      setIsUserModalOpen(false);
     } catch (error) {
+      console.error('Header handleEditProfile - Error:', error);
       toast.error((error as Error).message);
     }
   };
@@ -215,14 +233,12 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
+          {user && <NotificationIcon />}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-lg">
-                  <Avatar size="md" className="border border-border">
-                    <AvatarImage src={user.image || undefined} alt={user.name || "User"} data-ai-hint={user.image ? undefined : "profile person"} />
-                    <AvatarFallback className="text-sm font-medium">{user.name?.charAt(0)?.toUpperCase() || <UserCircle className="h-4 w-4"/>}</AvatarFallback>
-                  </Avatar>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-lg p-0">
+                  <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -233,7 +249,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onSelect={() => setIsEditProfileModalOpen(true)}>
+                 <DropdownMenuItem onSelect={() => setIsUserModalOpen(true)}>
                   <Edit3 className="mr-2 h-4 w-4" />
                   Edit My Profile
                 </DropdownMenuItem>
@@ -262,12 +278,12 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
             isOpen={isChangePasswordModalOpen} 
             onOpenChange={setIsChangePasswordModalOpen} 
           />
-          <EditUserModal
-            isOpen={isEditProfileModalOpen}
-            onOpenChange={setIsEditProfileModalOpen}
-            onEditUser={handleEditProfile}
-            user={session?.user as UserProfile | null} 
-            isSelfEdit={true} 
+          <RedesignedUserModal
+            isOpen={isUserModalOpen}
+            onOpenChange={setIsUserModalOpen}
+            mode="profile"
+            user={session?.user as UserProfile | null}
+            onSave={handleEditProfile}
           />
         </>
       )}

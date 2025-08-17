@@ -196,7 +196,7 @@ function UploadPageContent() {
     <div className="mx-auto py-3 p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Bulk Upload Candidate CVs</h1>
+          <h1 className="text-2xl font-bold">Process Queue</h1>
           {initialPage > 1 && (
             <p className="text-sm text-muted-foreground mt-1">
               Page {initialPage} • {initialPageSize} items per page

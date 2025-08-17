@@ -141,7 +141,7 @@ export default function ApplicationLogsPage() {
     if (status === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (status === 'authenticated') {
-      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('LOGS_VIEW')) {
+      if (session.user.role !== 'Admin') {
         setFetchError("You do not have permission to view logs.");
         setIsLoading(false);
       } else {

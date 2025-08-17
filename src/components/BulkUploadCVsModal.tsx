@@ -47,9 +47,8 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
-    return session?.user?.role === 'Admin' || 
-      session?.user?.modulePermissions?.includes('BULK_UPLOAD');
-  }, [session?.user?.role, session?.user?.modulePermissions]);
+    return session?.user?.role === 'Admin';
+  }, [session?.user?.role]);
   
   if (!canBulkUpload) {
     return (
@@ -306,7 +305,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Bulk Upload Candidate CVs</DialogTitle>
+          <DialogTitle>Process Queue</DialogTitle>
           <DialogDescription>
             Upload multiple PDF resumes and (optionally) assign them to a position.
           </DialogDescription>
@@ -344,7 +343,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
             {totalFiles > 0 && (
               <div className="space-y-2">
                 <Label>Selected Files ({totalFiles})</Label>
-                <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
+                <div className="max-h-[300px] overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
                   {selectedFiles.map((file, idx) => (
                     <div
                       key={idx}

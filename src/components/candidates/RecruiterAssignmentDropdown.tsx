@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Users, User, Loader2, X } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 
 interface RecruiterAssignmentDropdownProps {
   candidateId: string;
   recruiterId: string | null;
-  recruiters: Pick<UserProfile, 'id' | 'name'>[];
+  recruiters: Pick<UserProfile, 'id' | 'name' | 'avatarUrl'>[];
   isAssigningRecruiter: boolean;
   onAssignRecruiter: (recruiterId: string | null) => void;
   className?: string;
@@ -76,7 +77,12 @@ const RecruiterAssignmentDropdown: React.FC<RecruiterAssignmentDropdownProps> = 
                     className="w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground flex items-center"
                     disabled={isAssigningRecruiter}
                   >
-                    <User className="h-4 w-4 mr-2" />
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src={recruiter.avatarUrl} />
+                      <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        {recruiter.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     {recruiter.name}
                     {recruiterId === recruiter.id && (
                       <Badge variant="secondary" className="ml-auto text-xs">Current</Badge>

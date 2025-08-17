@@ -48,14 +48,6 @@ export async function middleware(req: NextRequest) {
     }
 
     if (protectedRoutes.some(route => pathname.startsWith(route))) {
-      const authHeader = req.headers.get("authorization");
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const apiKey = authHeader.replace("Bearer ", "");
-        const user = await prisma.user.findUnique({ where: { apiKey } });
-        if (user) {
-          return NextResponse.next();
-        }
-      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -78,13 +78,13 @@ Configure these in the admin panel:
 # Max concurrent processors
 maxConcurrentProcessors = 5
 
-# Webhook URLs
+# Webhook URL
 resumeProcessingWebhookUrl = https://your-webhook-endpoint
-generalPdfWebhookUrl = https://your-pdf-processor
 
-# Webhook tokens
+# Webhook token
 resumeProcessingWebhookToken = your-token
-generalPdfWebhookToken = your-token
+
+# Note: This unified webhook handles all PDF processing including resume uploads and the "Create via Resume (Automated)" feature
 ```
 
 ### **Environment Variables**
@@ -94,11 +94,11 @@ generalPdfWebhookToken = your-token
 PROCESSOR_API_KEY = your-api-key
 UPLOAD_QUEUE_PROCESS_URL = http://app:8021/api/upload-queue/process
 
-# Webhooks (fallback)
+# Webhook (fallback)
 RESUME_PROCESSING_WEBHOOK_URL = https://your-webhook-endpoint
-GENERAL_PDF_WEBHOOK_URL = https://your-pdf-processor
 RESUME_PROCESSING_WEBHOOK_TOKEN = your-token
-GENERAL_PDF_WEBHOOK_TOKEN = your-token
+
+# Note: This unified webhook handles all PDF processing
 ```
 
 ## 📊 User Interface

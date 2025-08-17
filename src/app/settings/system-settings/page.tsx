@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, FileText, Database, Webhook } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,10 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'react-hot-toast';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
+import { cn } from '@/lib/utils';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -22,21 +22,18 @@ export default function SystemSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('ai');
 
   // System/Integration settings state
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState(5);
   const [resumeProcessingWebhookUrl, setResumeProcessingWebhookUrl] = useState('');
   const [resumeProcessingWebhookToken, setResumeProcessingWebhookToken] = useState('');
   const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
-  const [resumeProcessingWebhookTimeout, setResumeProcessingWebhookTimeout] = useState(7200);
-  const [generalPdfWebhookUrl, setGeneralPdfWebhookUrl] = useState('');
-  const [generalPdfWebhookToken, setGeneralPdfWebhookToken] = useState('');
-  const [generalPdfWebhookResponseMode, setGeneralPdfWebhookResponseMode] = useState('blocking');
+  const [resumeProcessingWebhookTimeout, setResumeProcessingWebhookTimeout] = useState(1800);
+
   const [geminiApiKey, setGeminiApiKey] = useState('');
 
-  // Add state for manual link and type
-  const [manualLink, setManualLink] = useState('');
-  const [manualType, setManualType] = useState('external');
+
 
   // Add state for default match criteria
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState('');
@@ -67,14 +64,9 @@ export default function SystemSettingsPage() {
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
-      setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '7200', 10));
-      setGeneralPdfWebhookUrl(settings.generalPdfWebhookUrl || '');
-      setGeneralPdfWebhookToken(settings.generalPdfWebhookToken || '');
-      setGeneralPdfWebhookResponseMode(settings.generalPdfWebhookResponseMode || 'blocking');
-      setGeminiApiKey(settings.geminiApiKey || '');
-      // In fetchSystemSettings, load manualLink and manualType
-      setManualLink(settings.manualLink || '');
-      setManualType(settings.manualType || 'external');
+      setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '1800', 10));
+
+       setGeminiApiKey(settings.geminiApiKey || '');
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
     } catch (error) {
@@ -111,12 +103,8 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
       { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode },
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
-      { key: 'generalPdfWebhookUrl', value: generalPdfWebhookUrl },
-      { key: 'generalPdfWebhookToken', value: generalPdfWebhookToken },
-      { key: 'generalPdfWebhookResponseMode', value: generalPdfWebhookResponseMode },
-      { key: 'geminiApiKey', value: geminiApiKey },
-      { key: 'manualLink', value: manualLink },
-      { key: 'manualType', value: manualType },
+
+       { key: 'geminiApiKey', value: geminiApiKey },
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria },
     ];
     try {
@@ -231,24 +219,48 @@ export default function SystemSettingsPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs defaultValue="ai" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="ai" className="flex items-center gap-2">
+        <div className="h-full flex flex-col">
+          <div className="flex w-full border-b border-border/50 mb-6">
+            <div
+              onClick={() => setActiveTab('ai')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'ai'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <BrainCircuit className="h-4 w-4" />
               AI Services
-            </TabsTrigger>
-            <TabsTrigger value="automation" className="flex items-center gap-2">
+            </div>
+            <div
+              onClick={() => setActiveTab('automation')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'automation'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <Webhook className="h-4 w-4" />
               Automation
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
+            </div>
+            <div
+              onClick={() => setActiveTab('system')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'system'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <Database className="h-4 w-4" />
               System
-            </TabsTrigger>
-          </TabsList>
+            </div>
+          </div>
 
           <div className="flex-1 overflow-hidden">
-            <TabsContent value="ai" className="h-full">
+            {activeTab === 'ai' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   {/* AI Configuration */}
@@ -281,21 +293,52 @@ export default function SystemSettingsPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
 
-            <TabsContent value="automation" className="h-full">
+            {activeTab === 'automation' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* Resume Processing Webhook */}
+                  {/* System Configuration */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Zap className="h-5 w-5 text-primary" />
-                        Resume Processing Webhook
+                        <Database className="h-5 w-5 text-primary" />
+                        Processing Configuration
                       </CardTitle>
                       <CardDescription>
-                        Configure webhook for automated resume processing and candidate creation
+                        Configure system performance and processing settings
                       </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-concurrent-processors">Max Concurrent Processors</Label>
+                        <Input
+                          id="max-concurrent-processors"
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={maxConcurrentProcessors}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxConcurrentProcessors(Number(e.target.value))}
+                          className="w-32"
+                          disabled={isSaving}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Maximum number of concurrent resume processing jobs
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Resume Processing Webhook */}
+                  <Card>
+                    <CardHeader>
+                                             <CardTitle className="flex items-center gap-2">
+                         <Zap className="h-5 w-5 text-primary" />
+                         PDF Processing Webhook
+                       </CardTitle>
+                       <CardDescription>
+                         Configure webhook for all PDF processing including resume uploads and automated candidate creation
+                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
@@ -344,9 +387,9 @@ export default function SystemSettingsPage() {
                             Test
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.).
-                        </p>
+                                                 <p className="text-xs text-muted-foreground">
+                           This URL will receive a POST request with the uploaded resume file (as FormData). You can use any compatible webhook service (Zapier, Make, custom API, etc.). This webhook is used for all PDF processing including resume uploads and the "Create via Resume (Automated)" feature.
+                         </p>
                       </div>
 
                       <div className="space-y-2">
@@ -385,206 +428,38 @@ export default function SystemSettingsPage() {
                         <Input 
                           id="resume-processing-webhook-timeout" 
                           type="number" 
-                          placeholder="7200" 
+                          placeholder="1800" 
                           value={resumeProcessingWebhookTimeout} 
-                          onChange={(e) => setResumeProcessingWebhookTimeout(parseInt(e.target.value) || 7200)} 
+                          onChange={(e) => setResumeProcessingWebhookTimeout(parseInt(e.target.value) || 1800)} 
                           disabled={isSaving}
                           min="30"
                           max="36000"
                         />
                         <p className="text-xs text-muted-foreground">
-                          <strong>Note:</strong> Timeout setting is no longer used. The system now waits indefinitely for webhook responses without any timeout limit.
-                          <br />
-                          <strong>Recent Change:</strong> Removed all timeout restrictions to prevent premature job failures.
-                          <br />
-                          <strong>Recommendation:</strong> The external service should handle its own timeout limits if needed.
+                          Timeout for webhook requests in seconds. Default is 1800 seconds (30 minutes). Minimum 30 seconds, maximum 36000 seconds (10 hours).
                         </p>
                       </div>
+
+
                     </CardContent>
                   </Card>
 
-                  {/* General PDF Webhook */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        General PDF Webhook
-                      </CardTitle>
-                      <CardDescription>
-                        Configure webhook for general PDF processing and candidate creation
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="general-pdf-webhook">Webhook URL</Label>
-                        <div className="flex gap-2">
-                          <Input 
-                            id="general-pdf-webhook" 
-                            type="url" 
-                            placeholder="https://your-webhook-endpoint/receive-pdf" 
-                            value={generalPdfWebhookUrl} 
-                            onChange={(e) => setGeneralPdfWebhookUrl(e.target.value)} 
-                            className="flex-1" 
-                            disabled={isSaving}
-                          />
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={async () => {
-                              if (!generalPdfWebhookUrl) {
-                                toast.error('Please enter a webhook URL first');
-                                return;
-                              }
-                              try {
-                                const response = await fetch('/api/settings/webhook-test', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    webhookUrl: generalPdfWebhookUrl,
-                                    webhookToken: generalPdfWebhookToken
-                                  })
-                                });
-                                const result = await response.json();
-                                if (result.success) {
-                                  toast.success(`Webhook test successful! Response time: ${result.responseTime}`);
-                                } else {
-                                  toast.error(`Webhook test failed: ${result.error}`);
-                                }
-                              } catch (error) {
-                                toast.error('Failed to test webhook');
-                                console.error('Webhook test error:', error);
-                              }
-                            }}
-                            disabled={isSaving || !generalPdfWebhookUrl}
-                          >
-                            Test
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Used by the "Create via Resume (Automated)" feature. The application sends the PDF file (as FormData) and optional target position info to this endpoint.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="general-pdf-webhook-token">Authentication Token (Optional)</Label>
-                        <Input 
-                          id="general-pdf-webhook-token" 
-                          type="password" 
-                          placeholder="Bearer token for webhook authentication" 
-                          value={generalPdfWebhookToken} 
-                          onChange={(e) => setGeneralPdfWebhookToken(e.target.value)} 
-                          disabled={isSaving}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Optional Bearer token for webhook authentication. Leave empty if no authentication is required.
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="general-pdf-webhook-response-mode">Response Mode</Label>
-                        <Select value={generalPdfWebhookResponseMode} onValueChange={(value) => setGeneralPdfWebhookResponseMode(value)} disabled={isSaving}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select response mode" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="blocking">Blocking (waits for completion, max 100s)</SelectItem>
-                            <SelectItem value="streaming">Streaming (real-time updates)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Blocking mode waits for the workflow to complete before returning. Streaming mode provides real-time updates. Note: Cloudflare has a 100-second timeout limit for blocking requests.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
 
 
 
-            <TabsContent value="system" className="h-full">
+            {activeTab === 'system' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* System Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Database className="h-5 w-5 text-primary" />
-                        System Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Configure system performance and processing settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="max-concurrent-processors">Max Concurrent Processors</Label>
-                        <Input
-                          id="max-concurrent-processors"
-                          type="number"
-                          min={1}
-                          max={100}
-                          value={maxConcurrentProcessors}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxConcurrentProcessors(Number(e.target.value))}
-                          className="w-32"
-                          disabled={isSaving}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Maximum number of concurrent resume processing jobs
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Manual Link Settings */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        Manual Link Settings
-                      </CardTitle>
-                      <CardDescription>
-                        Configure manual documentation and help links
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="manual-link">Manual Link (URL)</Label>
-                        <Input 
-                          id="manual-link" 
-                          type="url" 
-                          placeholder="https://your-manual-page.com" 
-                          value={manualLink} 
-                          onChange={e => setManualLink(e.target.value)} 
-                          disabled={isSaving} 
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="manual-type">Manual Type</Label>
-                        <Select value={manualType} onValueChange={setManualType} disabled={isSaving}>
-                          <SelectTrigger id="manual-type" className="w-48">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="external">External Link (new tab)</SelectItem>
-                            <SelectItem value="iframe">Iframe (in-app page)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Set the manual link to an external URL or display it in-app using an iframe.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Default Match Criteria */}
+                  {/* Match Criteria */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BrainCircuit className="h-5 w-5 text-primary" />
-                        Default Match Criteria
+                        Match Criteria
                       </CardTitle>
                       <CardDescription>
                         Configure the default match criteria template for new positions. This will be used when creating new positions if no specific criteria are provided.
@@ -628,9 +503,9 @@ export default function SystemSettingsPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
           </div>
-        </Tabs>
+        </div>
       </div>
     </div>
   );

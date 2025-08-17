@@ -3,14 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import type { RecruitmentStage } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, KanbanSquare, Save, Loader2, ServerCrash, ShieldAlert, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, KanbanSquare, Save, Loader2, ServerCrash, ShieldAlert, AlertCircle, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -53,6 +46,8 @@ import { toast } from 'react-hot-toast';
 import { Session } from 'next-auth';
 import StagesTable from '@/components/settings/StagesTable';
 import StagesForm from '@/components/settings/StagesForm';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 // Remove StagesModal import
 
 
@@ -99,204 +94,133 @@ export default function RecruitmentStagesPage() {
         } catch (e) {
           messageFromServer = response.statusText || messageFromServer;
         }
-        if (response.status === 401 || response.status === 403) {
-          setFetchError("You do not have permission to manage recruitment stages.");
-          setIsLoading(false);
-          return;
-        }
         throw new Error(messageFromServer);
       }
-      const data: RecruitmentStage[] = await response.json();
-      setStages(data.sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity) || a.name.localeCompare(b.name)));
+      const data = await response.json();
+      setStages(data);
     } catch (error) {
-      console.error('Error fetching recruitment stages:', error);
       setFetchError((error as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionStatus, pathname]);
+  }, [sessionStatus]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (!session || (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('RECRUITMENT_STAGES_MANAGE'))) {
-        setFetchError("You do not have permission to manage recruitment stages.");
-        setIsLoading(false);
-      } else {
-        fetchStages();
-      }
+      fetchStages();
     }
-  }, [sessionStatus, session, fetchStages, pathname]);
+  }, [sessionStatus, pathname, fetchStages]);
 
-  useEffect(() => {
-    if (fetchError) {
-      toast.error(fetchError);
+  const handleOpenModal = (stage?: RecruitmentStage) => {
+    setEditingStage(stage || null);
+    if (stage) {
+      form.reset({
+        name: stage.name,
+        description: stage.description || '',
+        sort_order: stage.sort_order || 0,
+      });
+    } else {
+      form.reset({ name: '', description: '', sort_order: 0 });
     }
-  }, [fetchError]);
-
-  const handleOpenModal = (stage: RecruitmentStage | null = null) => {
-    setEditingStage(stage);
-    form.reset(stage ? { name: stage.name, description: stage.description || '', sort_order: stage.sort_order || 0 } : { name: '', description: '', sort_order: 0 });
     setIsModalOpen(true);
   };
 
   const handleFormSubmit = async (data: StageFormValues) => {
-    const url = editingStage ? `/api/settings/recruitment-stages/${editingStage.id}` : '/api/settings/recruitment-stages';
-    const method = editingStage ? 'PUT' : 'POST';
-
-    const payload = { ...data };
-    if (editingStage?.is_system && editingStage.name === data.name) {
-      delete (payload as any).name;
-    }
-
     try {
+      const url = editingStage 
+        ? `/api/settings/recruitment-stages/${editingStage.id}`
+        : '/api/settings/recruitment-stages';
+      
+      const method = editingStage ? 'PUT' : 'POST';
+      
       const response = await fetch(url, {
-        method: method,
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || `Failed to ${editingStage ? 'update' : 'create'} stage`);
-      
-      // Update local state immediately
-      if (editingStage) {
-        // Update existing stage
-        setStages(prev => prev.map(stage => 
-          stage.id === editingStage.id 
-            ? { ...stage, ...result }
-            : stage
-        ));
-      } else {
-        // Add new stage
-        setStages(prev => [...prev, result].sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity) || a.name.localeCompare(b.name)));
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save stage');
       }
-      
-      toast.success(`Stage ${editingStage ? 'Updated' : 'Created'}`);
+
+      toast.success(editingStage ? 'Stage updated successfully' : 'Stage created successfully');
       setIsModalOpen(false);
+      fetchStages();
     } catch (error) {
-      console.error('Error creating or updating stage:', error);
-      // Do NOT setFetchError here to avoid duplicate error toasts
       toast.error((error as Error).message);
     }
   };
 
-  const attemptDeleteStage = async (stage: RecruitmentStage, replacement?: string) => {
-    try {
-      const deleteUrl = `/api/settings/recruitment-stages/${stage.id}${replacement ? `?replacementStageName=${encodeURIComponent(replacement)}` : ''}`;
-      const response = await fetch(deleteUrl, { method: 'DELETE' });
-      const result = await response.json().catch(() => ({})); 
-
-      if (!response.ok) {
-        if (response.status === 409 && result.needsReplacement) {
-            setStageToDelete(stage); 
-            setReplacementStageName(''); 
-            setIsReplacementModalOpen(true); 
-            return; 
-        }
-        throw new Error(result.message || `Failed to delete stage. Status: ${response.status}`);
-      }
-      
-      // Update local state immediately
-      setStages(prev => prev.filter(s => s.id !== stage.id));
-      
-      toast.success(`Stage "${stage.name}" has been deleted.${replacement ? ` Candidates migrated to "${replacement}".` : ''}`);
-    } catch (error) {
-      console.error('Error deleting stage:', error);
-      toast.error((error as Error).message);
-    } finally {
-      if (!isReplacementModalOpen) { 
-          setStageToDelete(null);
-      }
-    }
+  const attemptDeleteStage = (stage: RecruitmentStage) => {
+    setStageToDelete(stage);
+    setIsReplacementModalOpen(true);
   };
 
   const handleConfirmDeleteWithReplacement = async () => {
-    if (stageToDelete && replacementStageName) {
-      setIsReplacementModalOpen(false); 
-      await attemptDeleteStage(stageToDelete, replacementStageName);
-      setStageToDelete(null); 
-      setReplacementStageName('');
-    } else {
-      toast.error("Please select a replacement stage.");
-    }
-  };
-
-  const handleMoveStage = async (stageId: string, direction: 'up' | 'down') => {
-    setIsMoving(stageId);
+    if (!stageToDelete || !replacementStageName) return;
+    
     try {
-      const response = await fetch(`/api/settings/recruitment-stages/${stageId}/move`, {
-        method: 'POST',
+      const response = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction }),
+        body: JSON.stringify({ replacementStageName }),
       });
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to move stage');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete stage');
       }
-      
-      // Update local state immediately by reordering
-      setStages(prev => {
-        const currentIndex = prev.findIndex(s => s.id === stageId);
-        if (currentIndex === -1) return prev;
-        
-        const newStages = [...prev];
-        const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-        
-        if (targetIndex >= 0 && targetIndex < newStages.length) {
-          // Swap the stages
-          [newStages[currentIndex], newStages[targetIndex]] = [newStages[targetIndex], newStages[currentIndex]];
-          
-          // Update sort_order to reflect the new order
-          newStages[currentIndex] = { ...newStages[currentIndex], sort_order: currentIndex };
-          newStages[targetIndex] = { ...newStages[targetIndex], sort_order: targetIndex };
-        }
-        
-        return newStages;
-      });
-      
-      toast.success('Recruitment stage order updated.');
+
+      toast.success('Stage deleted successfully');
+      setIsReplacementModalOpen(false);
+      setStageToDelete(null);
+      setReplacementStageName('');
+      fetchStages();
     } catch (error) {
-      console.error('Error moving stage:', error);
       toast.error((error as Error).message);
-    } finally {
-      setIsMoving(null);
     }
   };
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
-    const reorderedStages = Array.from(stages);
-    const [removed] = reorderedStages.splice(result.source.index, 1);
-    reorderedStages.splice(result.destination.index, 0, removed);
-    
-    // Update sort_order for all stages to reflect new order
-    const updatedStages = reorderedStages.map((stage, index) => ({
-      ...stage,
-      sort_order: index
+
+    const items = Array.from(stages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update sort_order for all items
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      sort_order: index + 1,
     }));
-    
-    setStages(updatedStages);
+
+    setStages(updatedItems);
+
     try {
-      await fetch('/api/settings/recruitment-stages/reorder', {
-        method: 'POST',
+      const response = await fetch('/api/settings/recruitment-stages/reorder', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageIds: updatedStages.map(s => s.id) }),
+        body: JSON.stringify({ stages: updatedItems }),
       });
-      toast.success('Recruitment stage order updated.');
+
+      if (!response.ok) {
+        throw new Error('Failed to update stage order');
+      }
+
+      toast.success('Stage order updated successfully');
     } catch (error) {
-      toast.error('Failed to update stage order.');
-      // Revert to original order on error
-      fetchStages();
+      toast.error('Failed to update stage order');
+      fetchStages(); // Revert to original order
     }
   };
 
-  // Inline color update handler
-  const handleColorChange = async (stage: RecruitmentStage, colorType: string, newColor: string) => {
-    const url = `/api/settings/recruitment-stages/${stage.id}`;
-    const payload = { [colorType]: newColor };
+  const updateStageColor = async (stage: RecruitmentStage, colorType: 'color_complete' | 'color_badge', newColor: string) => {
     try {
-      const response = await fetch(url, {
+      const payload = { [colorType]: newColor };
+      const response = await fetch(`/api/settings/recruitment-stages/${stage.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -312,8 +236,6 @@ export default function RecruitmentStagesPage() {
     }
   };
 
-
-
   if (sessionStatus === 'loading' || (isLoading && !fetchError && stages.length === 0)) {
     return ( <div className="flex h-screen w-screen items-center justify-center bg-background fixed inset-0 z-50"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div> );
   }
@@ -323,78 +245,129 @@ export default function RecruitmentStagesPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-4">
         <ServerCrash className="w-16 h-16 text-destructive mb-4" />
-        <h2 className="text-2xl font-semibold text-foreground mb-2">Error Loading Data</h2>
-        <p className="text-muted-foreground mb-4 max-w-md">{fetchError}</p>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Error Loading Data</h2>
+        <p className="text-sm text-muted-foreground mb-4 max-w-md">{fetchError}</p>
         {isPermissionError ? (<Button onClick={() => router.push('/')} className="btn-hover-primary-gradient">Go to Dashboard</Button>) : (<Button onClick={fetchStages} className="btn-hover-primary-gradient">Try Again</Button>)}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 p-6">
-          <div>
-            <div className="flex items-center text-2xl">
-              <KanbanSquare className="mr-3 h-6 w-6 text-primary"/>Recruitment Stages
-            </div>
-            <p className="text-muted-foreground">
-              Manage the stages in your recruitment pipeline. System stages cannot be deleted or renamed.
-              Use the arrow buttons to reorder stages, or the &apos;Sort Order&apos; field for specific placement.
-              If a custom stage is in use, you will be prompted to migrate candidates to another stage upon deletion.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => handleOpenModal()} variant="default" className="mt-2 sm:mt-0">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
-            </Button>
+    <div className="h-full flex flex-col p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Recruitment Stages</h1>
+          <p className="text-sm text-muted-foreground">Manage the stages in your recruitment pipeline. System stages cannot be deleted or renamed.</p>
+        </div>
+        <Button onClick={() => handleOpenModal()} variant="default">
+          <PlusCircle className="mr-2 h-4 w-4" /> Add New Stage
+        </Button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col">
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full pr-4">
+              <div className="space-y-6">
+                {isLoading && stages.length === 0 ? (
+                  <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-2 text-sm text-muted-foreground">Loading stages...</p>
+                  </div>
+                ) : stages.length === 0 && !fetchError ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <KanbanSquare className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-base font-semibold text-foreground mb-2">No Stages Configured</h3>
+                      <p className="text-sm text-muted-foreground text-center mb-4">
+                        Get started by creating your first recruitment stage.
+                      </p>
+                      <Button onClick={() => handleOpenModal()}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Create First Stage
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="stages-list">
+                      {(provided) => (
+                        <div 
+                          ref={provided.innerRef} 
+                          {...provided.droppableProps}
+                          className="space-y-4"
+                        >
+                          {stages.map((stage, index) => (
+                            <Draggable key={stage.id} draggableId={stage.id} index={index}>
+                              {(provided, snapshot) => (
+                                <Card
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  className={`transition-all duration-200 ${
+                                    snapshot.isDragging ? 'shadow-lg scale-105' : 'hover:shadow-md'
+                                  }`}
+                                >
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3 flex-1">
+                                        <div 
+                                          {...provided.dragHandleProps}
+                                          className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                          <GripVertical className="h-4 w-4" />
+                                        </div>
+                                        
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="text-sm font-medium text-foreground">{stage.name}</h3>
+                                          </div>
+                                          
+                                          {stage.description && (
+                                            <p className="text-xs text-muted-foreground">
+                                              {stage.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-1">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          onClick={() => handleOpenModal(stage)}
+                                          className="h-7 w-7"
+                                        >
+                                          <Edit3 className="h-3 w-3" />
+                                        </Button>
+                                        {!stage.is_system && (
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => attemptDeleteStage(stage)}
+                                            className="h-7 w-7 text-destructive hover:text-destructive"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         </div>
-        <div className="p-6">
-          {isLoading && stages.length === 0 ? (
-            <div className="flex justify-center items-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-2 text-muted-foreground">Loading stages...</p>
-            </div>
-          ) : stages.length === 0 && !fetchError ? (
-            <p className="text-muted-foreground text-center">No recruitment stages configured yet.</p>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="stages-table">
-                  {(provided) => (
-                    <TableBody ref={provided.innerRef} {...provided.droppableProps}>
-                      {stages.map((stage, index) => (
-                        <Draggable key={stage.id} draggableId={stage.id} index={index}>
-                          {(provided, snapshot) => (
-                            <TableRow
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              style={{ ...provided.draggableProps.style, background: snapshot.isDragging ? '#f3f4f6' : undefined }}
-                            >
-                              <TableCell className="py-1 px-2" {...provided.dragHandleProps}>
-                                <span className="cursor-move">☰</span>
-                              </TableCell>
-                              <TableCell className="font-medium">{stage.name}</TableCell>
-                              <TableCell className="text-sm text-muted-foreground max-w-xs sm:max-w-md truncate hidden sm:table-cell">{stage.description || 'N/A'}</TableCell>
-                              <TableCell><Badge variant={stage.is_system ? "secondary" : "outline"}>{stage.is_system ? "System" : "Custom"}</Badge></TableCell>
-                              <TableCell>{stage.sort_order}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(stage)} className="mr-1 h-8 w-8"><Edit3 className="h-4 w-4" /></Button>
-                                {!stage.is_system && (<Button variant="ghost" size="icon" onClick={() => attemptDeleteStage(stage)} className="text-destructive hover:text-destructive h-8 w-8"><Trash2 className="h-4 w-4" /></Button>)}
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </TableBody>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </div>
-          )}
-        </div>
-    
+      </div>
 
       <StagesForm
         open={isModalOpen}

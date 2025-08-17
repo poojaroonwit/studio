@@ -40,6 +40,7 @@ import { getPool } from '@/lib/db';
 import { handleCors } from '@/lib/cors';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
+import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -342,6 +343,31 @@ export async function POST(request: NextRequest) {
     } catch (webhookError) {
       console.error('Failed to dispatch position creation webhook:', webhookError);
       // Don't fail the request if webhook fails
+    }
+    
+    // Broadcast real-time updates
+    try {
+      broadcastPositionUpdate(newPosition);
+      broadcastPositionListUpdate();
+      // Broadcast statistics update
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdate(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast position updates:', broadcastError);
+      // Don't fail the request if broadcast fails
     }
     
     return NextResponse.json(newPosition, { status: 201, headers: handleCors(request) });

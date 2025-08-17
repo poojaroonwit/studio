@@ -6,6 +6,7 @@ import { CheckCircle, AlertTriangle, Info, Loader2, XCircle, X, Bell } from 'luc
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 // If you need to pass server-side session for initial render optimization:
@@ -72,15 +73,17 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="h-screen bg-background font-sans antialiased overflow-hidden">
         <TooltipProvider>
           <AuthProvider>
-            <ErrorBoundary>
-              <AppLayout>
-                {children}
-              </AppLayout>
-            </ErrorBoundary>
-            <ToastClient />
+            <NotificationProvider>
+              <ErrorBoundary>
+                <AppLayout>
+                  {children}
+                </AppLayout>
+              </ErrorBoundary>
+              <ToastClient />
+            </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>
       </body>

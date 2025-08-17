@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { syncRecruitersForPosition } from '@/lib/recruiterSync';
+import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
+import { NotificationService } from '@/lib/notificationService';
 
 const updatePositionSchema = z.object({
   title: z.string().min(1).optional(),
@@ -245,6 +247,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (updateData.recruiterId !== undefined && updateData.recruiterId !== oldRecruiterId) {
       try {
         syncResult = await syncRecruitersForPosition(id, actingUserId, actingUserName);
+        
+        // Send notification to the newly assigned recruiter
+        if (updateData.recruiterId) {
+          try {
+            await NotificationService.notifyRecruiterAssigned(
+              id,
+              enrichedPosition.title,
+              updateData.recruiterId,
+              actingUserId
+            );
+          } catch (notificationError) {
+            console.error('Failed to send recruiter assignment notification:', notificationError);
+            // Don't fail the entire operation if notification fails
+          }
+        }
     
       } catch (syncError) {
         console.error('Failed to assign recruiters after position update:', syncError);
@@ -266,6 +283,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     } catch (webhookError) {
       console.error('Failed to dispatch position update webhook:', webhookError);
       // Don't fail the request if webhook fails
+    }
+    
+    // Broadcast real-time updates
+    try {
+      broadcastPositionUpdate(positionWithCustomAttrs);
+      broadcastPositionListUpdate();
+      // Broadcast statistics update
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdate(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast position updates:', broadcastError);
+      // Don't fail the request if broadcast fails
     }
     
     return NextResponse.json({ 
@@ -343,6 +385,30 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     } catch (webhookError) {
       console.error('Failed to dispatch position deletion webhook:', webhookError);
       // Don't fail the request if webhook fails
+    }
+    
+    // Broadcast real-time updates
+    try {
+      broadcastPositionListUpdate();
+      // Broadcast statistics update
+      const statsQuery = `
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN "isOpen" = TRUE THEN 1 END) as open,
+          COUNT(CASE WHEN "isOpen" = FALSE THEN 1 END) as closed
+        FROM "Position"
+      `;
+      const statsResult = await getPool().query(statsQuery);
+      const stats = statsResult.rows[0];
+      const statistics = { 
+        total: parseInt(stats.total, 10), 
+        open: parseInt(stats.open, 10), 
+        closed: parseInt(stats.closed, 10) 
+      };
+      broadcastPositionStatisticsUpdate(statistics);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast position updates:', broadcastError);
+      // Don't fail the request if broadcast fails
     }
     
     return NextResponse.json({ message: 'Position deleted successfully' });

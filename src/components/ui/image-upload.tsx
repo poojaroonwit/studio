@@ -71,18 +71,18 @@ export function ImageUpload({
       return;
     }
 
+    // Immediately show preview using FileReader
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setPreviewUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+
     setIsUploading(true);
 
     try {
-      // For preview: convert to data URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setPreviewUrl(dataUrl);
-      };
-      reader.readAsDataURL(file);
-
-      // For saving: upload to server and get URL
+      // Upload to server and get URL
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch('/api/settings/upload-image', {
@@ -96,10 +96,14 @@ export function ImageUpload({
       }
       const { url } = await res.json();
       onChange(url);
+      // Keep the preview URL until the server URL is ready
+      setPreviewUrl(url);
       toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Error processing image:', error);
       toast.error('Failed to process image');
+      // Clear preview on error
+      setPreviewUrl(null);
     } finally {
       setIsUploading(false);
     }

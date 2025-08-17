@@ -47,8 +47,7 @@ const systemSettingKeyEnum = z.enum([
     'sidebarLogoCollapsedLightMode', 'sidebarLogoExpandedLightMode',
     'sidebarLogoCollapsedDarkMode', 'sidebarLogoExpandedDarkMode',
     'primaryGradientStart', 'primaryGradientEnd',
-    'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
-    'generalPdfWebhookUrl', 'generalPdfWebhookToken',
+         'resumeProcessingWebhookUrl', 'resumeProcessingWebhookToken',
     'geminiApiKey',
     'loginPageBackgroundType', 'loginPageBackgroundImageUrl', 
     'loginPageBackgroundColor1', 'loginPageBackgroundColor2',
@@ -101,9 +100,9 @@ const systemSettingKeyEnum = z.enum([
     'loginPageFooter',
     'maxConcurrentProcessors',
     // Webhook Configuration
-    'resumeProcessingWebhookResponseMode', 'resumeProcessingWebhookTimeout', 'generalPdfWebhookResponseMode',
-    // Manual Link Configuration
-    'manualLink', 'manualType',
+    'resumeProcessingWebhookResponseMode',
+    'resumeProcessingWebhookTimeout',
+
 ]);
 
 
@@ -125,8 +124,8 @@ export async function GET(request: NextRequest) {
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
-      { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },
-      { key: 'generalPdfWebhookToken', envVar: 'GENERAL_PDF_WEBHOOK_TOKEN' },
+      { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
+      { key: 'resumeProcessingWebhookTimeout', envVar: 'RESUME_PROCESSING_WEBHOOK_TIMEOUT', defaultValue: '1800' },
       { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
     ];
 
@@ -318,8 +317,7 @@ export async function POST(request: NextRequest) {
       { key: 'geminiApiKey', envVar: 'GOOGLE_API_KEY' },
       { key: 'resumeProcessingWebhookUrl', envVar: 'RESUME_PROCESSING_WEBHOOK_URL' },
       { key: 'resumeProcessingWebhookToken', envVar: 'RESUME_PROCESSING_WEBHOOK_TOKEN' },
-      { key: 'generalPdfWebhookUrl', envVar: 'GENERAL_PDF_WEBHOOK_URL' },
-      { key: 'generalPdfWebhookToken', envVar: 'GENERAL_PDF_WEBHOOK_TOKEN' },
+      { key: 'resumeProcessingWebhookResponseMode', envVar: 'RESUME_PROCESSING_WEBHOOK_RESPONSE_MODE', defaultValue: 'blocking' },
       { key: 'maxConcurrentProcessors', envVar: 'MAX_CONCURRENT_PROCESSORS', defaultValue: '5' }
     ];
 

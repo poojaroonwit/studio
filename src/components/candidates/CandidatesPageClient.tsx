@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CandidateFilters, type CandidateFilterValues } from '@/components/candidates/CandidateFilters';
 import { CandidateTable } from '@/components/candidates/CandidateTable';
-import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile } from '@/lib/types';
+import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -27,10 +27,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AutomationUploadModal from './AutomationUploadModal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
 import { HealthCheck } from '@/components/ui/health-check';
 import { Badge } from '@/components/ui/badge';
+import { ChevronDown, UserX } from 'lucide-react';
 
 
 interface CandidatesPageClientProps {
@@ -103,6 +105,7 @@ export function CandidatesPageClient({
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
   const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
+  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
 
 
 
@@ -277,32 +280,116 @@ export function CandidatesPageClient({
     const urlPositionId = searchParams.get('positionId');
     const urlRecruiterId = searchParams.get('recruiterId');
     const urlStatus = searchParams.get('status');
-    
-    // Apply URL parameters if they exist and haven't been applied yet
+    const applicationDateStartParam = searchParams.get('applicationDateStart');
+    const applicationDateEndParam = searchParams.get('applicationDateEnd');
+    const nameParam = searchParams.get('name');
+    const emailParam = searchParams.get('email');
+    const phoneParam = searchParams.get('phone');
+    const educationParam = searchParams.get('education');
+    const minAppliedJobFitScoreParam = searchParams.get('minAppliedJobFitScore');
+    const maxAppliedJobFitScoreParam = searchParams.get('maxAppliedJobFitScore');
+    const advancedQueryParam = searchParams.get('query');
+
+    // Build new filters from URL params
+    let newFilters = { ...filters };
     let hasChanges = false;
-    const newFilters = { ...filters };
-    
-    if (urlPositionId && (!filters.selectedPositionIds || filters.selectedPositionIds.length === 0)) {
-      newFilters.selectedPositionIds = [urlPositionId];
-      // console.log('Setting position filter from URL:', urlPositionId);
+    let advancedQuery = '';
+
+    // Handle advanced query parameter first
+    if (advancedQueryParam) {
+      advancedQuery = decodeURIComponent(advancedQueryParam);
       hasChanges = true;
+      // Don't process individual parameters when we have an advanced query
+      // The advanced query will be parsed by the CandidateFilters component
+    } else {
+      // Handle individual parameters
+      // Handle recruiter filter
+      if (urlRecruiterId) {
+        const recruiterIds = urlRecruiterId.split(',');
+        if (!filters.selectedRecruiterIds || 
+            JSON.stringify(filters.selectedRecruiterIds.sort()) !== JSON.stringify(recruiterIds.sort())) {
+          newFilters.selectedRecruiterIds = recruiterIds;
+          hasChanges = true;
+        }
+      }
+
+      // Handle position filter
+      if (urlPositionId) {
+        const positionIds = urlPositionId.split(',');
+        if (!filters.selectedPositionIds || 
+            JSON.stringify(filters.selectedPositionIds.sort()) !== JSON.stringify(positionIds.sort())) {
+          newFilters.selectedPositionIds = positionIds;
+          hasChanges = true;
+        }
+      }
+
+      // Handle status filter
+      if (urlStatus) {
+        const statuses = urlStatus.split(',');
+        if (!filters.selectedStatuses || 
+            JSON.stringify(filters.selectedStatuses.sort()) !== JSON.stringify(statuses.sort())) {
+          newFilters.selectedStatuses = statuses;
+          hasChanges = true;
+        }
+      }
+
+      // Handle date range
+      if (applicationDateStartParam || applicationDateEndParam) {
+        const startDate = applicationDateStartParam ? new Date(applicationDateStartParam) : undefined;
+        const endDate = applicationDateEndParam ? new Date(applicationDateEndParam) : undefined;
+        
+        if (filters.applicationDateStart !== startDate || filters.applicationDateEnd !== endDate) {
+          newFilters.applicationDateStart = startDate;
+          newFilters.applicationDateEnd = endDate;
+          hasChanges = true;
+        }
+      }
+
+      // Handle text filters
+      if (nameParam && filters.name !== nameParam) {
+        newFilters.name = nameParam;
+        hasChanges = true;
+      }
+      if (emailParam && filters.email !== emailParam) {
+        newFilters.email = emailParam;
+        hasChanges = true;
+      }
+      if (phoneParam && filters.phone !== phoneParam) {
+        newFilters.phone = phoneParam;
+        hasChanges = true;
+      }
+      if (educationParam && filters.education !== educationParam) {
+        newFilters.education = educationParam;
+        hasChanges = true;
+      }
+
+      // Handle fit score range
+      if (minAppliedJobFitScoreParam || maxAppliedJobFitScoreParam) {
+        const minScore = minAppliedJobFitScoreParam ? parseInt(minAppliedJobFitScoreParam, 10) : 0;
+        const maxScore = maxAppliedJobFitScoreParam ? parseInt(maxAppliedJobFitScoreParam, 10) : 100;
+        
+        if (filters.minAppliedJobFitScore !== minScore || filters.maxAppliedJobFitScore !== maxScore) {
+          newFilters.minAppliedJobFitScore = minScore;
+          newFilters.maxAppliedJobFitScore = maxScore;
+          hasChanges = true;
+        }
+      }
     }
-    if (urlRecruiterId && (!filters.selectedRecruiterIds || filters.selectedRecruiterIds.length === 0)) {
-      newFilters.selectedRecruiterIds = [urlRecruiterId];
-      // console.log('Setting recruiter filter from URL:', urlRecruiterId);
-      hasChanges = true;
-    }
-    if (urlStatus && (!filters.selectedStatuses || filters.selectedStatuses.length === 0)) {
-      newFilters.selectedStatuses = [urlStatus];
-      // console.log('Setting status filter from URL:', urlStatus);
-      hasChanges = true;
-    }
-    
+
+    // Only update if there are actual changes
     if (hasChanges) {
-      setFilters(newFilters);
+      // If we have an advanced query, don't update filters state directly
+      // Let the CandidateFilters component handle the parsing
+      if (!advancedQuery) {
+        setFilters(newFilters);
+      }
+      
+      // If we have an advanced query, store it for the filter component
+      if (advancedQuery) {
+        setAdvancedQueryFromUrl(advancedQuery);
+      }
     }
-    hasInitializedFilters.current = true;
-  }, [searchParams, isClearingFilters, filters]);
+  }, [searchParams, isClearingFilters, filters]); // Use searchParams instead of window.location.search
 
   const fetchRecruiters = useCallback(async (retryCount = 0) => {
 
@@ -366,6 +453,23 @@ export function CandidatesPageClient({
     }
   }, [sessionStatus]);
 
+  const fetchSources = useCallback(async () => {
+    if (sessionStatus !== 'authenticated') return;
+    
+    try {
+      const response = await fetch('/api/settings/candidate-sources');
+      if (!response.ok) {
+        console.warn("Failed to fetch candidate sources, continuing with empty list");
+        setAvailableSources([]);
+        return;
+      }
+      const sourcesData = await response.json();
+      setAvailableSources(sourcesData || []);
+    } catch (error) {
+      console.error("Error fetching candidate sources:", error);
+      setAvailableSources([]);
+    }
+  }, [sessionStatus]);
 
   // Use ref to track session status to avoid dependency issues
   const sessionStatusRef = useRef(sessionStatus);
@@ -890,9 +994,10 @@ export function CandidatesPageClient({
         setIsLoading(false);
       }
       
-      // Fetch recruiters with a delay to give server time to start up
+      // Fetch recruiters and sources with a delay to give server time to start up
       const timeoutId = setTimeout(() => {
         fetchRecruiters();
+        fetchSources();
       }, 1000);
       
       return () => clearTimeout(timeoutId);
@@ -901,7 +1006,7 @@ export function CandidatesPageClient({
       setIsLoading(false);
       setTableLoading(false); // Also clear table loading state
     }
-  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, safeInitialCandidates.length, initialFetchError, allCandidates.length]);
+  }, [sessionStatus, serverAuthError, serverPermissionError, fetchRecruiters, fetchSources, safeInitialCandidates.length, initialFetchError, allCandidates.length]);
 
   // Add a separate effect to clear loading when we have data
   useEffect(() => {
@@ -1953,6 +2058,7 @@ export function CandidatesPageClient({
               availablePositions={availablePositions}
               availableStages={availableStages}
               availableRecruiters={availableRecruiters}
+              availableSources={availableSources}
               isLoading={false}
               isAiSearching={isAiSearching}
               advancedQuery={advancedQueryFromUrl}
@@ -2475,17 +2581,85 @@ export function CandidatesPageClient({
           {bulkActionType === 'assign_recruiter' && (
             <div className="my-4 space-y-2">
               <Label htmlFor="bulk-new-recruiter">Assign to Recruiter</Label>
-              <Select value={bulkNewRecruiterId || ''} onValueChange={(value) => setBulkNewRecruiterId(value === '___UNASSIGN___' ? null : value)}>
-                <SelectTrigger id="bulk-new-recruiter">
-                  <SelectValue placeholder="Select recruiter...">
-                    {bulkNewRecruiterId ? availableRecruiters.find(r => r.id === bulkNewRecruiterId)?.name || 'Unknown' : 'Select recruiter...'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="___UNASSIGN___">Unassign</SelectItem>
-                  {availableRecruiters.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                    id="bulk-new-recruiter"
+                  >
+                    {bulkNewRecruiterId ? (
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const selectedRecruiter = availableRecruiters.find(r => r.id === bulkNewRecruiterId);
+                          return selectedRecruiter ? (
+                            <>
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={selectedRecruiter.avatarUrl} />
+                                <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                  {selectedRecruiter.name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{selectedRecruiter.name}</span>
+                            </>
+                          ) : (
+                            <span>Unknown recruiter</span>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">Select recruiter...</span>
+                    )}
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <div className="p-2">
+                    <div className="text-sm font-medium mb-2">Select Recruiter</div>
+                    
+                    {/* Unassign option */}
+                    <button
+                      onClick={() => setBulkNewRecruiterId(null)}
+                      className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                    >
+                      <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <UserX className="h-3 w-3 text-gray-500" />
+                      </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="text-sm">Unassign</span>
+                        <span className="text-xs text-muted-foreground">Remove recruiter assignment</span>
+                      </div>
+                      {bulkNewRecruiterId === null && (
+                        <div className="w-4 h-4 rounded-full bg-primary" />
+                      )}
+                    </button>
+
+                    {/* Available recruiters */}
+                    {availableRecruiters.map((recruiter) => (
+                      <button
+                        key={recruiter.id}
+                        onClick={() => setBulkNewRecruiterId(recruiter.id)}
+                        className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                      >
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={recruiter.avatarUrl} />
+                          <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                            {recruiter.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-sm font-medium">{recruiter.name}</span>
+                          <span className="text-xs text-muted-foreground">Recruiter</span>
+                        </div>
+                        {bulkNewRecruiterId === recruiter.id && (
+                          <div className="w-4 h-4 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
           <AlertDialogFooter>

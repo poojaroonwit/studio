@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -29,6 +29,7 @@ import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
 import { Pagination } from '@/components/ui/pagination';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
+import { HeadcountTab } from './HeadcountTab';
 
 // Form schema
 const editPositionFormSchema = z.object({
@@ -69,8 +70,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(20);
   const [potentialCandidatesTotal, setPotentialCandidatesTotal] = useState(0);
   const [potentialCandidatesSearchTerm, setPotentialCandidatesSearchTerm] = useState('');
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string>('matchScore');
-  const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Modal states
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
@@ -90,12 +89,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for potential candidates table
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>(null);
-  const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string>('matchScore');
+  const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
   const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for all candidates table
   const [allCandidatesOpenMenu, setAllCandidatesOpenMenu] = useState<string | null>(null);
+
+  // Tab states
+  const [activeTab, setActiveTab] = useState('details');
+  const [activeCandidateTab, setActiveCandidateTab] = useState('applied');
 
   // Form setup
   const form = useForm<EditPositionFormValues>({
@@ -1203,7 +1206,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
           }
           onOpenChange(open);
         }}
-        modal={false}
       >
         <SheetContent side="right" className="w-[50vw] min-w-[800px] max-w-none p-0">
           <div className="h-full flex flex-col">
@@ -1230,14 +1232,56 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
               </div>
             ) : position ? (
               <div className="flex-1 overflow-hidden">
-                <Tabs defaultValue="details" className="h-full flex flex-col">
-                  <TabsList className="mx-6 mt-4 grid w-full grid-cols-3">
-                    <TabsTrigger value="details">Position Details</TabsTrigger>
-                    <TabsTrigger value="criteria">Match Criteria</TabsTrigger>
-                    <TabsTrigger value="candidates">Candidates ({allCandidatesTotal})</TabsTrigger>
-                  </TabsList>
+                <div className="h-full flex flex-col">
+                  <div className="flex w-full border-b border-border/50">
+                    <div
+                      onClick={() => setActiveTab('details')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'details'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Position Details
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('criteria')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'criteria'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Match Criteria
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('candidates')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'candidates'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Candidates ({allCandidatesTotal})
+                    </div>
+                    <div
+                      onClick={() => setActiveTab('headcount')}
+                      className={cn(
+                        "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                        activeTab === 'headcount'
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      )}
+                    >
+                      Headcount
+                    </div>
+                  </div>
                   
-                  <TabsContent value="details" className="flex-1 overflow-y-auto p-6 m-0">
+                  {activeTab === 'details' && (
+                    <div className="flex-1 overflow-y-auto p-6">
                     <ScrollArea className="h-full">
                       <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
                         {/* Header with Edit Button */}
@@ -1455,9 +1499,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                         </div>
                       </form>
                     </ScrollArea>
-                  </TabsContent>
+                    </div>
+                  )}
                   
-                  <TabsContent value="criteria" className="flex-1 overflow-y-auto p-6 m-0">
+                  {activeTab === 'criteria' && (
+                    <div className="flex-1 overflow-y-auto p-6">
                     <ScrollArea className="h-full">
                       <div className="space-y-6">
                         {/* Match Criteria Header */}
@@ -1479,8 +1525,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                             <div className="flex gap-2">
                               <Button variant="outline" onClick={useDefaultCriteria} disabled={!defaultMatchCriteria}>
                                 <Target className="h-4 w-4 mr-2" />
-                                Use Default
+                                Set to Default
                               </Button>
+                              {!defaultMatchCriteria && (
+                                <div className="text-xs text-muted-foreground flex items-center">
+                                  (No default criteria set in system settings)
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1541,10 +1592,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                         )}
                       </div>
                     </ScrollArea>
-                  </TabsContent>
+                    </div>
+                  )}
                   
-                  <TabsContent value="candidates" className="flex-1 overflow-hidden p-6 m-0">
-                    <div className="h-full flex flex-col">
+                  {activeTab === 'candidates' && (
+                    <div className="h-full flex flex-col p-6">
                       {/* Candidates Header */}
                       <div className="flex items-center justify-between mb-6">
                         <div>
@@ -1560,13 +1612,33 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
                       {/* Candidate Sub-tabs */}
                       <div className="flex-1 overflow-hidden">
-                        <Tabs defaultValue="applied" className="h-full flex flex-col">
-                          <TabsList className="grid w-full grid-cols-2 mb-4">
-                            <TabsTrigger value="applied">Applied Candidates ({appliedCandidatesCount})</TabsTrigger>
-                            <TabsTrigger value="potential">Job Matches ({potentialCandidatesTotal})</TabsTrigger>
-                          </TabsList>
+                        <div className="h-full flex flex-col">
+                          <div className="flex w-full border-b border-border/50 mb-4">
+                            <div
+                              onClick={() => setActiveCandidateTab('applied')}
+                              className={cn(
+                                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                activeCandidateTab === 'applied'
+                                  ? "text-primary border-b-2 border-primary"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                              )}
+                            >
+                              Applied Candidates ({appliedCandidatesCount})
+                            </div>
+                            <div
+                              onClick={() => setActiveCandidateTab('potential')}
+                              className={cn(
+                                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                                activeCandidateTab === 'potential'
+                                  ? "text-primary border-b-2 border-primary"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                              )}
+                            >
+                              Job Matches ({potentialCandidatesTotal})
+                            </div>
+                          </div>
                           
-                          <TabsContent value="applied" className="flex-1 overflow-hidden m-0">
+                          {activeCandidateTab === 'applied' && (
                             <div className="space-y-4 h-full flex flex-col">
                               {/* Search and Filters for Applied */}
                               <div className="flex items-center gap-4">
@@ -1600,9 +1672,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 />
                               )}
                             </div>
-                          </TabsContent>
+                          )}
                           
-                          <TabsContent value="potential" className="flex-1 overflow-hidden m-0">
+                          {activeCandidateTab === 'potential' && (
                             <div className="space-y-4 h-full flex flex-col">
                               {/* Search and Filters for Potential */}
                               <div className="flex items-center gap-4">
@@ -1636,12 +1708,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 />
                               )}
                             </div>
-                          </TabsContent>
-                        </Tabs>
+                          )}
                       </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
+                    </div>
+                  )}
+                  
+                  {activeTab === 'headcount' && (
+                    <div className="h-full flex flex-col p-6">
+                      <HeadcountTab 
+                        positionId={positionId!} 
+                        candidates={allCandidates}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : null}
           </div>

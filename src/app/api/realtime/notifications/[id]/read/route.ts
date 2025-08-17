@@ -1,26 +1,20 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-
-function extractIdFromUrl(request: NextRequest): string | null {
-  const match = request.nextUrl.pathname.match(/\/notifications\/([^/]+)\/read/);
-  return match ? match[1] : null;
-}
+import { logAudit } from '@/lib/auditLog';
+import prisma from '@/lib/prisma';
 
 /**
  * @openapi
  * /api/realtime/notifications/{id}/read:
  *   post:
  *     summary: Mark a notification as read
- *     description: Marks a notification as read for the current user. Requires authentication.
  *     parameters:
- *       - in: path
- *         name: id
+ *       - name: id
+ *         in: path
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the notification
- *         example: "uuid"
  *     responses:
  *       200:
  *         description: Notification marked as read
@@ -31,41 +25,54 @@ function extractIdFromUrl(request: NextRequest): string | null {
  *               properties:
  *                 success:
  *                   type: boolean
- *             examples:
- *               success:
- *                 summary: Example response
- *                 value:
- *                   success: true
- *       400:
- *         description: Missing notification ID
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Failed to mark notification as read
+ *                 notification:
+ *                   type: object
  */
-export async function POST(request: NextRequest) {
-  const id = extractIdFromUrl(request);
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });       
   }
 
-  try {
-    if (!id) {
-      return NextResponse.json({ error: 'Missing notification ID' }, { status: 400 });
-    }
+  const actingUserId = session.user.id;
+  const actingUserName = session.user.name || session.user.email || 'System';   
+  const notificationId = params.id;
 
-    // Refactor: markNotificationAsRead(session.user.id, id);
-    // This function was removed from imports, so this line is commented out.
-    // If the intent was to remove the function entirely, this would be a larger refactor.
-    // For now, we'll just return a placeholder response.
-    return NextResponse.json({ success: true, message: 'Notification marked as read (placeholder)' });
+  try {
+    // Update the notification to mark it as read
+    const updatedNotification = await prisma.notification.update({
+      where: {
+        id: notificationId,
+        userId: actingUserId // Ensure user can only mark their own notifications as read
+      },
+      data: {
+        isRead: true
+      }
+    });
+
+    await logAudit('AUDIT', `Notification '${updatedNotification.title}' marked as read by ${actingUserName}`, 'API:Realtime:Notifications:MarkRead', actingUserId, {
+      notificationId,
+      notificationTitle: updatedNotification.title
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      notification: updatedNotification 
+    });
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    return NextResponse.json({ 
+    await logAudit('ERROR', `Failed to mark notification as read for ${actingUserName}. Error: ${(error as Error).message}`, 'API:Realtime:Notifications:MarkRead', actingUserId, {
+      notificationId,
+      error: (error as Error).message
+    });
+    return NextResponse.json({
       error: 'Failed to mark notification as read',
-      details: (error as Error).message 
+      details: (error as Error).message
     }, { status: 500 });
   }
 } 

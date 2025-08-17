@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Activity, CheckCircle, Edit3, Info, Edit, Users } from 'lucide-react';
+import { Activity, CheckCircle, Edit3, Info, Edit, Users, Clock } from 'lucide-react';
 import type { RecruitmentStage, TransitionRecord } from '@/lib/types';
 import { toast } from 'react-hot-toast';
 
@@ -106,14 +106,59 @@ export function RecruitmentPipelineCard({
   const currentStageIndex = localStages?.findIndex(s => s.name === localCurrentStatus) ?? -1;
 
   return (
-    <Card className="w-full border-0 shadow-none">
-      {/* <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Activity className="w-5 h-5 text-primary" />
-          Recruitment Pipeline
-        </CardTitle>
-      </CardHeader> */}
-      <CardContent>
+    <>
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 8px;
+          margin: 4px 0;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:active {
+          background: linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%);
+        }
+        
+        /* Firefox scrollbar */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #3b82f6 rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Dark mode adjustments */
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+          border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+        }
+        
+        .dark .custom-scrollbar {
+          scrollbar-color: #60a5fa rgba(255, 255, 255, 0.05);
+        }
+      `}</style>
+      <div className="w-full">
         <div className="relative">
           {!localStages || localStages.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
@@ -121,118 +166,187 @@ export function RecruitmentPipelineCard({
               <p className="text-sm">Loading recruitment stages...</p>
             </div>
           ) : (
-            localStages.map((stage, index) => {
-            const records = currentStageToRecords[stage.name] || [];
-            const isCompleted = index <= currentStageIndex;
-            const isCurrent = localCurrentStatus === stage.name;
-            const isFuture = index > currentStageIndex;
-            const latestRecord = records.length > 0 ? records[records.length - 1] : null;
+            <div className="flex items-center relative" style={{
+              width: localStages.length <= 5 ? `${localStages.length * 120}px` : '100%',
+              maxWidth: '100%',
+              justifyContent: localStages.length <= 5 ? 'space-between' : 'space-between'
+            }}>
+              {localStages.map((stage, index) => {
+                const records = currentStageToRecords[stage.name] || [];
+                const isCompleted = index <= currentStageIndex;
+                const isCurrent = localCurrentStatus === stage.name;
+                const isFuture = index > currentStageIndex;
+                const latestRecord = records.length > 0 ? records[records.length - 1] : null;
 
-            return (
-              <div 
-                key={stage.id} 
-                className="relative flex items-center gap-4 mb-2 last:mb-0 cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
-                onClick={() => handleStageClick(stage.name)}
-              >
-                <div className="relative">
-                  <div className={`
-                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold z-10 transition-all duration-300
-                    ${isCurrent ? 'bg-yellow-400 text-yellow-900' : ''}
-                    ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
-                    ${isFuture ? 'bg-muted text-muted-foreground' : ''}
-                  `}
-                  style={
-                    isCompleted && !isCurrent && !stage.name.toLowerCase().includes('reject')
-                      ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
-                      : undefined
-                  }>
-                    {isCompleted ? <CheckCircle className="w-4 h-4" /> : index + 1}
-                  </div>
-                  {index < (localStages?.length ?? 0) - 1 && (
-                    <div className="absolute left-1/2 top-8 w-1 h-6 bg-muted transform -translate-x-1/2"></div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className={`font-medium ${isCurrent ? 'text-primary' : ''}`}>
-                          {stage.name}
-                        </h4>
-                        {records.length > 0 && (
-                          <Popover open={openPopoverIdx === index}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 border-0"
-                                onMouseEnter={() => setOpenPopoverIdx(index)}
+                return (
+                  <div key={stage.id} className="flex items-center">
+                    {/* Stage Circle */}
+                    <div 
+                      className="relative flex flex-col items-center cursor-pointer hover:bg-muted/30 rounded-lg p-1 transition-colors"
+                      onClick={() => handleStageClick(stage.name)}
+                    >
+                       <div className={`
+                         w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
+                         ${isCurrent ? 'bg-yellow-400 text-yellow-900' : ''}
+                         ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
+                         ${isFuture ? 'bg-muted text-muted-foreground' : ''}
+                       `}
+                       style={
+                         isCompleted && !isCurrent && !stage.name.toLowerCase().includes('reject')
+                           ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
+                           : undefined
+                       }>
+                         {isCurrent ? (
+                           <div className="w-4 h-4 flex items-center justify-center">
+                             <div className="w-2 h-2 bg-current rounded-full" />
+                           </div>
+                         ) : isCompleted ? (
+                           <CheckCircle className="w-4 h-4" />
+                         ) : (
+                           index + 1
+                         )}
+                       </div>
+                      
+                      {/* Stage Name */}
+                      <div className="mt-2 text-center">
+                        <div className="flex items-center gap-1 justify-center">
+                          <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : ''} truncate`}>
+                            {stage.name}
+                          </h4>
+                          {/* Show info popover for passed nodes on hover */}
+                          {(isCompleted || isCurrent) && (
+                            <Popover open={openPopoverIdx === index}>
+                              <PopoverTrigger asChild>
+                                <div
+                                  className="absolute inset-0 cursor-pointer"
+                                  onMouseEnter={() => setOpenPopoverIdx(index)}
+                                  onMouseLeave={() => setOpenPopoverIdx(null)}
+                                />
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                className="w-80" 
+                                align="center" 
+                                sideOffset={4}
+                                onMouseEnter={() => setOpenPopoverIdx(index)} 
                                 onMouseLeave={() => setOpenPopoverIdx(null)}
                               >
-                                <Info className="w-3 h-3" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent 
-                              className="w-80" 
-                              align="end" 
-                              sideOffset={4}
-                              onMouseEnter={() => setOpenPopoverIdx(index)} 
-                              onMouseLeave={() => setOpenPopoverIdx(null)}
-                            >
-                              <div className="mb-2 font-semibold">{stage.name} Notes</div>
-                              <ul className="space-y-2 max-h-48 overflow-y-auto">
-                                {records.map((record, i) => (
-                                  <li key={record.id} className="border-b pb-2 last:border-b-0 last:pb-0">
-                                    <div className="flex items-start gap-2 text-xs text-muted-foreground mb-1">
-                                      <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                      <span className="flex-1">{record.notes || <span className='italic text-muted-foreground'>No note</span>}</span>
-                                      {editableNotes && (
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground flex-shrink-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newNote = prompt("Edit note:", record.notes);
-                                            if (newNote && newNote.trim() !== '') {
-                                              handleNoteEdit(record.id, newNote.trim());
-                                            }
-                                          }}
-                                          disabled={isUpdating.has(record.id)}
-                                        >
-                                          {isUpdating.has(record.id) ? (
-                                            <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                <div className="mb-3">
+                                  <div className="font-semibold text-sm mb-1">{stage.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {isCompleted ? 'Completed Stage' : 'Current Stage'}
+                                  </div>
+                                </div>
+                                
+                                {records.length > 0 ? (
+                                  <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+                                    <div className="text-xs font-medium text-muted-foreground mb-2">Stage Updates:</div>
+                                    {records.map((record, i) => (
+                                      <div key={record.id} className="border-l-2 border-muted pl-3 pb-2 last:pb-0">
+                                        {/* Notes */}
+                                        <div className="text-sm mb-2">
+                                          {record.notes ? (
+                                            <div className="text-foreground">{record.notes}</div>
                                           ) : (
-                                            <Edit className="h-3 w-3" />
+                                            <div className="text-muted-foreground italic">No notes added</div>
                                           )}
-                                        </Button>
-                                      )}
+                                        </div>
+                                        
+                                        {/* Update Info */}
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <Users className="h-3 w-3" />
+                                          <span>Updated by: <span className="font-medium text-foreground">{record.actingUserName || 'Unknown'}</span></span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                          <Clock className="h-3 w-3" />
+                                          <span>{record.date ? new Date(record.date).toLocaleString() : 'Unknown time'}</span>
+                                        </div>
+                                        
+                                        {/* Edit button for notes */}
+                                        {editableNotes && record.notes && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 px-2 text-xs mt-2"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const newNote = prompt("Edit note:", record.notes);
+                                              if (newNote && newNote.trim() !== '') {
+                                                handleNoteEdit(record.id, newNote.trim());
+                                              }
+                                            }}
+                                            disabled={isUpdating.has(record.id)}
+                                          >
+                                            {isUpdating.has(record.id) ? (
+                                              <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                              <>
+                                                <Edit className="h-3 w-3 mr-1" />
+                                                Edit
+                                              </>
+                                            )}
+                                          </Button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-muted-foreground py-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Info className="h-4 w-4" />
+                                      <span>No updates recorded for this stage</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-xs ml-5">
-                                      <span>By: <span className="font-medium">{record.actingUserName || 'Unknown'}</span></span>
-                                      <span className="text-muted-foreground">|</span>
-                                      <span>{record.date ? new Date(record.date).toLocaleString() : ''}</span>
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            </PopoverContent>
-                          </Popover>
-                        )}
+                                    {isCompleted && (
+                                      <div className="text-xs text-muted-foreground">
+                                        This stage was completed but no notes were added.
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                        
                       </div>
-                      {isCurrent && (
-                        <p className="text-xs text-muted-foreground mt-1">Current Stage</p>
-                      )}
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })
+                );
+              })}
+              
+              {/* Single Continuous Line - From center of first node to center of last node */}
+              <div
+                className="absolute top-4"
+                style={{
+                  left: '16px',
+                  right: '16px',
+                  height: '3px',
+                  background: `linear-gradient(to right, 
+                    ${localStages.map((stage, index) => {
+                      const isCompleted = index < currentStageIndex;
+                      const isCurrent = index === currentStageIndex;
+                      
+                      // Use stage color for completed stages, gray for current and future
+                      let color;
+                      if (isCompleted) {
+                        // Use the stage's color_complete setting, fallback to green
+                        color = stage.color_complete || '#22c55e';
+                      } else {
+                        color = '#d1d5db'; // Gray for current and future stages
+                      }
+                      
+                      const startPercent = (index / (localStages.length - 1)) * 100;
+                      const endPercent = ((index + 1) / (localStages.length - 1)) * 100;
+                      return `${color} ${startPercent}%, ${color} ${endPercent}%`;
+                    }).join(', ')}
+                  )`,
+                  borderTop: 'none',
+                  borderBottom: 'none'
+                }}
+              />
+            </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   );
 } 

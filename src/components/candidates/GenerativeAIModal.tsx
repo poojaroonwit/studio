@@ -275,7 +275,7 @@ export function GenerativeAIModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-visible">
+      <DialogContent className="max-w-7xl max-h-[90vh] h-full flex flex-col overflow-visible">
                  <div className="flex items-start justify-between mb-4">
            <div>
              <DialogTitle className="flex items-center gap-2">
@@ -299,9 +299,9 @@ export function GenerativeAIModal({
            </div>
          </div>
 
-        <div className="flex h-[70vh] gap-6">
+        <div className="flex flex-1 min-h-0 gap-6">
           {/* Left Panel - System Prompts */}
-          <div className="w-1/3 flex flex-col border-r pr-6">
+          <div className="w-1/3 flex flex-col border-r pr-6 min-h-0">
             <div className="mb-4">
               <label className="text-sm font-medium mb-2 block">Filter by Category</label>
               <select
@@ -332,7 +332,7 @@ export function GenerativeAIModal({
                     key={prompt.id} 
                     className={`cursor-pointer transition-all hover:shadow-md ${
                       selectedPrompt?.id === prompt.id 
-                        ? 'ring-2 ring-primary bg-primary/5' 
+                        ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500' 
                         : ''
                     }`}
                     onClick={() => setSelectedPrompt(prompt)}
@@ -367,7 +367,7 @@ export function GenerativeAIModal({
           </div>
 
                      {/* Right Panel - Generated Content */}
-           <div className="flex-1 flex flex-col">
+           <div className="flex-1 flex flex-col min-h-0">
              <div className="mb-4">
                <div className="flex items-center justify-between mb-2">
                  <h3 className="text-sm font-medium">Generated Content</h3>
@@ -438,12 +438,12 @@ export function GenerativeAIModal({
                 </div>
              </div>
 
-            <div className="flex-1 border rounded-lg overflow-hidden">
+            <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
               <TiptapEditor
                 value={generatedContent}
                 onChange={setGeneratedContent}
                 placeholder="Generated content will appear here..."
-                className="h-full"
+                className="flex-1 h-full"
                 readOnly={false}
               />
             </div>

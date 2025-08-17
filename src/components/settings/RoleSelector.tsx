@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import type { UserGroup } from '@/lib/types';
 
@@ -18,17 +19,19 @@ interface RoleSelectorProps {
   disabled?: boolean;
   className?: string;
   multiple?: boolean; // Allow multiple role selection
+  noCard?: boolean; // Don't render the card wrapper
 }
 
 export function RoleSelector({
   availableRoles,
   selectedRoleIds,
   onRolesChange,
-  title = "Role Selection",
-  description = "Choose which roles should be assigned to this user.",
+  title = "Group Selection",
+  description = "Choose which permission groups should be assigned to this user.",
   disabled = false,
   className,
-  multiple = false
+  multiple = false,
+  noCard = false
 }: RoleSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -64,9 +67,9 @@ export function RoleSelector({
   );
 
   const getRoleCategory = (role: UserGroup) => {
-    if (role.is_system_role) return 'System Roles';
-    if (role.is_default) return 'Default Roles';
-    return 'Custom Roles';
+    if (role.is_system_role) return 'System Groups';
+    if (role.is_default) return 'Default Groups';
+    return 'Custom Groups';
   };
 
   // Group roles by category
@@ -77,23 +80,25 @@ export function RoleSelector({
     return acc;
   }, {} as Record<string, UserGroup[]>);
 
-  const categoryOrder = ['System Roles', 'Default Roles', 'Custom Roles'];
+  const categoryOrder = ['System Groups', 'Default Groups', 'Custom Groups'];
 
-  return (
-    <Card className={cn("border border-border shadow-sm", className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center space-x-2 text-lg">
-          <div className="w-3 h-3 bg-primary rounded-full"></div>
-          <span>{title}</span>
-        </CardTitle>
-        <CardDescription>
-          {description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
+  const content = (
+    <>
+      {!noCard && (
+        <CardHeader className="pb-3 flex-shrink-0">
+          <CardTitle className="flex items-center space-x-2 text-lg">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span>{title}</span>
+          </CardTitle>
+          <CardDescription>
+            {description}
+          </CardDescription>
+        </CardHeader>
+      )}
+      <div className={cn("p-0 flex-1 overflow-hidden flex flex-col", noCard ? "pt-0" : "")}>
         {/* Quick Selection Controls */}
         {multiple && (
-          <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+          <div className="flex items-center justify-between p-4 border-b bg-muted/30 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <Button
                 type="button"
@@ -123,7 +128,7 @@ export function RoleSelector({
         )}
 
         {/* Search Input */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex-shrink-0">
           <div className="relative">
             <Input
               placeholder="Search roles..."
@@ -141,7 +146,7 @@ export function RoleSelector({
         </div>
 
         {/* Scrollable Role Groups */}
-        <div className="h-[400px] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {categoryOrder.map(category => {
             const roles = groupedRoles[category];
             if (!roles || roles.length === 0) return null;
@@ -149,7 +154,7 @@ export function RoleSelector({
             return (
               <div key={category} className="border-b border-border last:border-b-0">
                 {/* Category Header */}
-                <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-10">
+                <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <h4 className="text-sm font-semibold text-foreground capitalize">
@@ -159,61 +164,117 @@ export function RoleSelector({
                         {roles.length}
                       </Badge>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <span className="text-xs text-muted-foreground">
-                        {selectedRoleIds.filter(id => roles.some(role => role.id === id)).length}/{roles.length}
-                      </span>
-                    </div>
+                                         <div className="flex items-center space-x-1">
+                       <span className="text-xs text-muted-foreground">
+                         {multiple 
+                           ? `${selectedRoleIds.filter(id => roles.some(role => role.id === id)).length}/${roles.length}`
+                           : selectedRoleIds.filter(id => roles.some(role => role.id === id)).length > 0 ? '1 selected' : '0 selected'
+                         }
+                       </span>
+                     </div>
                   </div>
                 </div>
                 
-                {/* Role Options */}
-                <div className="divide-y divide-border/50">
-                  {roles.map(role => (
-                    <div key={role.id} className="group">
-                      <label className={cn(
-                        "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
-                        disabled && "cursor-not-allowed opacity-50"
-                      )}>
-                        <Checkbox
-                          checked={selectedRoleIds.includes(role.id)}
-                          onCheckedChange={() => toggleRole(role.id)}
-                          disabled={disabled}
-                          className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-foreground">
-                              {role.name}
-                            </span>
-                            <div className="flex items-center space-x-1">
-                              {role.is_system_role && (
-                                <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
-                                  System
-                                </Badge>
-                              )}
-                              {role.is_default && (
-                                <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                                  Default
-                                </Badge>
-                              )}
-                              {role.user_count !== undefined && (
-                                <Badge variant="outline" className="text-xs">
-                                  {role.user_count} users
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          {role.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {role.description}
-                            </p>
-                          )}
-                        </div>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                                 {/* Role Options */}
+                 <div className="divide-y divide-border/50">
+                   {multiple ? (
+                     // Multiple selection with checkboxes
+                     roles.map(role => (
+                       <div key={role.id} className="group">
+                         <label className={cn(
+                           "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
+                           disabled && "cursor-not-allowed opacity-50"
+                         )}>
+                           <Checkbox
+                             checked={selectedRoleIds.includes(role.id)}
+                             onCheckedChange={() => toggleRole(role.id)}
+                             disabled={disabled}
+                             className="rounded border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
+                           />
+                           <div className="flex-1 min-w-0">
+                             <div className="flex items-center justify-between">
+                               <span className="text-sm font-medium text-foreground">
+                                 {role.name}
+                               </span>
+                               <div className="flex items-center space-x-1">
+                                 {role.is_system_role && (
+                                   <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                     System
+                                   </Badge>
+                                 )}
+                                 {role.is_default && (
+                                   <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                                     Default
+                                   </Badge>
+                                 )}
+                                 {role.user_count !== undefined && (
+                                   <Badge variant="outline" className="text-xs">
+                                     {role.user_count} users
+                                   </Badge>
+                                 )}
+                               </div>
+                             </div>
+                             {role.description && (
+                               <p className="text-xs text-muted-foreground mt-0.5">
+                                 {role.description}
+                               </p>
+                             )}
+                           </div>
+                         </label>
+                       </div>
+                     ))
+                   ) : (
+                     // Single selection with radio buttons
+                     <RadioGroup 
+                       value={selectedRoleIds[0] || ''} 
+                       onValueChange={(value) => onRolesChange([value])}
+                       disabled={disabled}
+                     >
+                       {roles.map(role => (
+                         <div key={role.id} className="group">
+                           <label className={cn(
+                             "flex items-center space-x-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer",
+                             disabled && "cursor-not-allowed opacity-50"
+                           )}>
+                             <RadioGroupItem
+                               value={role.id}
+                               className="border-2 border-primary/30 focus:ring-2 focus:ring-primary text-primary"
+                             />
+                             <div className="flex-1 min-w-0">
+                               <div className="flex items-center justify-between">
+                                 <span className="text-sm font-medium text-foreground">
+                                   {role.name}
+                                 </span>
+                                 <div className="flex items-center space-x-1">
+                                   {role.is_system_role && (
+                                     <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20">
+                                       System
+                                     </Badge>
+                                   )}
+                                   {role.is_default && (
+                                     <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                                       Default
+                                     </Badge>
+                                   )}
+                                   {role.user_count !== undefined && (
+                                     <Badge variant="outline" className="text-xs">
+                                       {role.user_count} users
+                                     </Badge>
+                                   )}
+                                 </div>
+                               </div>
+                               {role.description && (
+                                 <p className="text-xs text-muted-foreground mt-0.5">
+                                   {role.description}
+                                 </p>
+                               )}
+                             </div>
+                           </label>
+                         </div>
+                       ))}
+                     </RadioGroup>
+                   )}
+                 </div>
               </div>
             );
           })}
@@ -221,35 +282,68 @@ export function RoleSelector({
 
         {/* Selected Roles Summary */}
         {selectedRoleIds.length > 0 && (
-          <div className="p-4 border-t bg-muted/20">
+          <div className="p-4 border-t bg-muted/20 flex-shrink-0">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                Selected Roles ({selectedRoleIds.length})
+                {multiple ? `Selected Roles (${selectedRoleIds.length})` : 'Selected Group'}
               </p>
             </div>
             <div className="flex flex-wrap gap-1">
-              {selectedRoleIds.slice(0, 5).map(roleId => {
-                const role = availableRoles.find(r => r.id === roleId);
-                return (
-                  <Badge 
-                    key={roleId} 
-                    variant="secondary" 
-                    className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
-                  >
-                    {role?.name || roleId}
-                  </Badge>
-                );
-              })}
-              {selectedRoleIds.length > 5 && (
-                <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">
-                  +{selectedRoleIds.length - 5} more
-                </Badge>
+              {multiple ? (
+                // Multiple selection display
+                <>
+                  {selectedRoleIds.slice(0, 5).map(roleId => {
+                    const role = availableRoles.find(r => r.id === roleId);
+                    return (
+                      <Badge 
+                        key={roleId} 
+                        variant="secondary" 
+                        className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                      >
+                        {role?.name || roleId}
+                      </Badge>
+                    );
+                  })}
+                  {selectedRoleIds.length > 5 && (
+                    <Badge variant="outline" className="text-xs text-green-600 dark:text-green-400 border-green-500/30">
+                      +{selectedRoleIds.length - 5} more
+                    </Badge>
+                  )}
+                </>
+              ) : (
+                // Single selection display
+                selectedRoleIds.map(roleId => {
+                  const role = availableRoles.find(r => r.id === roleId);
+                  return (
+                    <Badge 
+                      key={roleId} 
+                      variant="secondary" 
+                      className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20"
+                    >
+                      {role?.name || roleId}
+                    </Badge>
+                  );
+                })
               )}
             </div>
           </div>
         )}
-      </CardContent>
+      </div>
+    </>
+  );
+
+  if (noCard) {
+    return (
+      <div className={cn("flex flex-col h-full", className)}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Card className={cn("border border-border shadow-sm flex flex-col", className)}>
+      {content}
     </Card>
   );
 } 

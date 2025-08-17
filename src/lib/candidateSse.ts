@@ -122,4 +122,79 @@ export function broadcastRecruitmentStagesUpdate(stages: any[]) {
       controllers.delete(controller);
     }
   }
+}
+
+export function broadcastPositionUpdate(position: any) {
+  const data = `event: position\ndata: ${JSON.stringify({ type: 'position_update', positionId: position.id, position })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting position update:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
+}
+
+export function broadcastPositionListUpdate() {
+  const data = `event: position\ndata: ${JSON.stringify({ type: 'position_list_update' })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting position list update:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
+}
+
+export function broadcastPositionStatisticsUpdate(statistics: any) {
+  const data = `event: position-statistics\ndata: ${JSON.stringify({ type: 'position_statistics_update', statistics })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting position statistics update:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
+}
+
+export function broadcastNotification(notification: any) {
+  const data = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting notification:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
+}
+
+export function broadcastUserNotification(userId: string, notification: any) {
+  const data = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification, targetUserId: userId })}\n\n`;
+  const encodedData = new TextEncoder().encode(data);
+  
+  for (const controller of controllers) {
+    try {
+      controller.enqueue(encodedData);
+    } catch (e) {
+      console.error('[SSE] Error broadcasting user notification:', e);
+      // Remove the controller if it's causing errors
+      controllers.delete(controller);
+    }
+  }
 } 

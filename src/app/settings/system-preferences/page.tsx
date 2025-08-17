@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, type ChangeEvent } from "react";
-import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2, Type } from "lucide-react";
+import { Loader2, Save, X, Palette, ImageUp, Trash2, XCircle, PenSquare, Sun, Moon, RotateCcw, Sidebar as SidebarIcon, LogIn, Settings2 } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { useSession, signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,14 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { setThemeAndColors, applySidebarStyles, getSidebarActiveStyle, setSidebarActiveStyle, type SidebarActiveStyle } from "@/lib/themeUtils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'react-hot-toast';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 
-const DEFAULT_APP_NAME = "CV-Screening";
+const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_THEME: ThemePreference = "system";
 
 // Backend keys
@@ -95,12 +95,6 @@ const DEFAULT_SIDEBAR_COLORS_BASE = {
   sidebarIconMarginRightL: "0.75rem", sidebarIconTransitionL: "color 0.2s ease-in-out",
   sidebarIconSizeD: "1.25rem", sidebarIconColorD: "210 30% 85%", sidebarIconColorHoverD: "210 30% 90%", sidebarIconColorActiveD: "0 0% 100%",
   sidebarIconMarginRightD: "0.75rem", sidebarIconTransitionD: "color 0.2s ease-in-out",
-  
-  // Group label settings
-  sidebarGroupLabelColorL: "220 15% 50%", sidebarGroupLabelFontSizeL: "0.75rem", sidebarGroupLabelFontWeightL: "500",
-  sidebarGroupLabelTextTransformL: "uppercase", sidebarGroupLabelLetterSpacingL: "0.05em", sidebarGroupLabelPaddingL: "0.5rem 0.75rem", sidebarGroupLabelMarginL: "0.5rem 0",
-  sidebarGroupLabelColorD: "210 25% 70%", sidebarGroupLabelFontSizeD: "0.75rem", sidebarGroupLabelFontWeightD: "500",
-  sidebarGroupLabelTextTransformD: "uppercase", sidebarGroupLabelLetterSpacingD: "0.05em", sidebarGroupLabelPaddingD: "0.5rem 0.75rem", sidebarGroupLabelMarginD: "0.5rem 0",
 };
 
 const SIDEBAR_COLOR_KEYS = [
@@ -135,10 +129,6 @@ const SIDEBAR_COLOR_KEYS = [
   // Icon settings
   'sidebarIconSizeL', 'sidebarIconColorL', 'sidebarIconColorHoverL', 'sidebarIconColorActiveL', 'sidebarIconMarginRightL', 'sidebarIconTransitionL',
   'sidebarIconSizeD', 'sidebarIconColorD', 'sidebarIconColorHoverD', 'sidebarIconColorActiveD', 'sidebarIconMarginRightD', 'sidebarIconTransitionD',
-  
-  // Group label settings
-  'sidebarGroupLabelColorL', 'sidebarGroupLabelFontSizeL', 'sidebarGroupLabelFontWeightL', 'sidebarGroupLabelTextTransformL', 'sidebarGroupLabelLetterSpacingL', 'sidebarGroupLabelPaddingL', 'sidebarGroupLabelMarginL',
-  'sidebarGroupLabelColorD', 'sidebarGroupLabelFontSizeD', 'sidebarGroupLabelFontWeightD', 'sidebarGroupLabelTextTransformD', 'sidebarGroupLabelLetterSpacingD', 'sidebarGroupLabelPaddingD', 'sidebarGroupLabelMarginD',
 ];
 
 function parseHslString(hslString: string): { h: number; s: number; l: number } | null {
@@ -243,12 +233,6 @@ interface SidebarColors {
   sidebarIconSizeD: string; sidebarIconColorD: string; sidebarIconColorHoverD: string; sidebarIconColorActiveD: string;
   sidebarIconMarginRightD: string; sidebarIconTransitionD: string;
   
-  // Group label settings
-  sidebarGroupLabelColorL: string; sidebarGroupLabelFontSizeL: string; sidebarGroupLabelFontWeightL: string;
-  sidebarGroupLabelTextTransformL: string; sidebarGroupLabelLetterSpacingL: string; sidebarGroupLabelPaddingL: string; sidebarGroupLabelMarginL: string;
-  sidebarGroupLabelColorD: string; sidebarGroupLabelFontSizeD: string; sidebarGroupLabelFontWeightD: string;
-  sidebarGroupLabelTextTransformD: string; sidebarGroupLabelLetterSpacingD: string; sidebarGroupLabelPaddingD: string; sidebarGroupLabelMarginD: string;
-  
   [key: string]: string;
 }
 
@@ -274,6 +258,8 @@ export default function SystemPreferencesPage() {
   // Preferences state
   const [themePreference, setThemePreference] = useState<ThemePreference>(DEFAULT_THEME);
   const [appName, setAppName] = useState<string>(DEFAULT_APP_NAME);
+  const [activeTab, setActiveTab] = useState('general');
+  const [activeSidebarTab, setActiveSidebarTab] = useState('light');
   // App Logo state
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
@@ -325,9 +311,7 @@ export default function SystemPreferencesPage() {
   const [primaryGradientStart, setPrimaryGradientStart] = useState<string>(DEFAULT_PRIMARY_GRADIENT_START);
   const [primaryGradientEnd, setPrimaryGradientEnd] = useState<string>(DEFAULT_PRIMARY_GRADIENT_END);
 
-  const canEdit =
-    session?.user?.role === "Admin" ||
-    session?.user?.modulePermissions?.includes("SYSTEM_SETTINGS_MANAGE");
+      const canEdit = session?.user?.role === "Admin";
 
   useEffect(() => {
     setIsClient(true);
@@ -419,7 +403,11 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedLogoFile(file);
-      setLogoPreviewUrl(null); // Clear preview until upload completes
+      
+      // Immediately show preview for instant feedback
+      const previewUrl = URL.createObjectURL(file);
+      setLogoPreviewUrl(previewUrl);
+      
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -430,10 +418,12 @@ export default function SystemPreferencesPage() {
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        setLogoPreviewUrl(url); // Only use MinIO URL
+        setLogoPreviewUrl(url); // Update with MinIO URL
         success('Logo uploaded!');
       } catch (e: any) {
         error(e.message || 'Failed to upload logo');
+        // Clear preview on error
+        setLogoPreviewUrl(null);
       }
     }
   };
@@ -449,7 +439,11 @@ export default function SystemPreferencesPage() {
         error('Logo file size must be less than 5MB');
         return;
       }
-      setPreviewUrl(null); // Clear preview until upload completes
+      
+      // Immediately show preview for instant feedback
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewUrl(previewUrl);
+      
       // Upload to MinIO
       const formData = new FormData();
       formData.append('file', file);
@@ -460,10 +454,12 @@ export default function SystemPreferencesPage() {
         });
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
-        setPreviewUrl(url); // Only use MinIO URL
+        setPreviewUrl(url); // Update with MinIO URL
         success(successMessage);
       } catch (e: any) {
         error(e.message || 'Failed to upload logo');
+        // Clear preview on error
+        setPreviewUrl(null);
       }
     }
   };
@@ -822,28 +818,60 @@ export default function SystemPreferencesPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <Tabs defaultValue="general" className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="general" className="flex items-center gap-2">
+        <div className="h-full flex flex-col">
+          <div className="flex w-full border-b border-border/50 mb-6">
+            <div
+              onClick={() => setActiveTab('general')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'general'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <Settings2 className="h-4 w-4" />
               General
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
+            </div>
+            <div
+              onClick={() => setActiveTab('appearance')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'appearance'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <Palette className="h-4 w-4" />
               Appearance
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="flex items-center gap-2">
+            </div>
+            <div
+              onClick={() => setActiveTab('branding')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'branding'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <ImageUp className="h-4 w-4" />
               Branding
-            </TabsTrigger>
-            <TabsTrigger value="sidebar" className="flex items-center gap-2">
+            </div>
+            <div
+              onClick={() => setActiveTab('sidebar')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'sidebar'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
               <SidebarIcon className="h-4 w-4" />
               Sidebar
-            </TabsTrigger>
-          </TabsList>
+            </div>
+          </div>
 
           <div className="flex-1 overflow-hidden">
-            <TabsContent value="general" className="h-full">
+            {activeTab === 'general' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   {/* App Name Section */}
@@ -890,35 +918,38 @@ export default function SystemPreferencesPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <Label>Default Theme</Label>
-                        <RadioGroup
-                          value={themePreference}
-                          onValueChange={(value) => setThemePreference(value as ThemePreference)}
-                          className="grid grid-cols-3 gap-4"
-                          disabled={!canEdit}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="light" id="theme-light" />
-                            <Label htmlFor="theme-light" className="flex items-center gap-2">
-                              <Sun className="h-4 w-4" />
-                              Light
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="dark" id="theme-dark" />
-                            <Label htmlFor="theme-dark" className="flex items-center gap-2">
-                              <Moon className="h-4 w-4" />
-                              Dark
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="system" id="theme-system" />
-                            <Label htmlFor="theme-system" className="flex items-center gap-2">
-                              <RotateCcw className="h-4 w-4" />
-                              System
-                            </Label>
-                          </div>
-                        </RadioGroup>
+                        <div className="space-y-2">
+                          <Label htmlFor="theme-preference">Default Theme</Label>
+                          <Select 
+                            value={themePreference} 
+                            onValueChange={(value) => setThemePreference(value as ThemePreference)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id="theme-preference" className="w-full">
+                              <SelectValue placeholder="Select default theme" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="light">
+                                <div className="flex items-center gap-2">
+                                  <Sun className="h-4 w-4" />
+                                  Light
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="dark">
+                                <div className="flex items-center gap-2">
+                                  <Moon className="h-4 w-4" />
+                                  Dark
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="system">
+                                <div className="flex items-center gap-2">
+                                  <RotateCcw className="h-4 w-4" />
+                                  System
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Users can still override this setting in their personal preferences
                         </p>
@@ -927,9 +958,9 @@ export default function SystemPreferencesPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
 
-            <TabsContent value="appearance" className="h-full">
+            {activeTab === 'appearance' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
                   {/* Login Page Design */}
@@ -946,26 +977,23 @@ export default function SystemPreferencesPage() {
                     <CardContent className="space-y-6">
                       {/* Background Type */}
                       <div className="space-y-3">
-                        <Label>Background Type</Label>
-                        <RadioGroup
-                          value={loginBackgroundType}
-                          onValueChange={(value) => setLoginBackgroundType(value as LoginBackgroundType)}
-                          className="grid grid-cols-3 gap-4"
-                          disabled={!canEdit}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="gradient" id="bg-gradient" />
-                            <Label htmlFor="bg-gradient">Gradient</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="image" id="bg-image" />
-                            <Label htmlFor="bg-image">Image</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="solid" id="bg-solid" />
-                            <Label htmlFor="bg-solid">Solid Color</Label>
-                          </div>
-                        </RadioGroup>
+                        <div className="space-y-2">
+                          <Label htmlFor="background-type">Background Type</Label>
+                          <Select 
+                            value={loginBackgroundType} 
+                            onValueChange={(value) => setLoginBackgroundType(value as LoginBackgroundType)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id="background-type" className="w-full">
+                              <SelectValue placeholder="Select background type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gradient">Gradient</SelectItem>
+                              <SelectItem value="image">Image</SelectItem>
+                              <SelectItem value="solid">Solid Color</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
 
                       {/* Background Image */}
@@ -1082,429 +1110,409 @@ export default function SystemPreferencesPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
 
-            <TabsContent value="branding" className="h-full">
+            {activeTab === 'branding' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* Logo Management */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <ImageUp className="h-5 w-5 text-primary" />
-                        Logo Management
-                      </CardTitle>
-                      <CardDescription>
-                        Configure your company logos for different contexts throughout the application
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-8">
-                        {/* Primary Logo */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                              <span className="text-xs font-bold text-primary-foreground">1</span>
-                            </div>
-                            <h4 className="text-sm font-medium">Primary Logo</h4>
-                            <Badge variant="secondary" className="text-xs">Required</Badge>
-                          </div>
-                          <div className="ml-7 space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                              This is your main company logo used throughout the application and as fallback when contextual logos aren't set.
-                            </p>
-                            <div className="flex items-center gap-4">
-                              {logoPreviewUrl && (
-                                <div className="relative">
-                                  <img
-                                    src={logoPreviewUrl}
-                                    alt="Primary logo preview"
-                                    className="w-32 h-16 object-contain rounded-md border bg-background"
-                                  />
-                                  <Button
-                                    size="icon"
-                                    variant="destructive"
-                                    className="absolute -top-2 -right-2 h-6 w-6"
-                                    onClick={() => removeSelectedLogo(true)}
-                                    disabled={!canEdit}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                              <div className="flex-1 space-y-2">
-                                <div>
-                                  <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleLogoFileChange}
-                                    disabled={!canEdit}
-                                    className="hidden"
-                                    id="app-logo-upload"
-                                  />
-                                  <Label
-                                    htmlFor="app-logo-upload"
-                                    className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                                  >
-                                    <ImageUp className="mr-2 h-4 w-4" />
-                                    Upload Primary Logo
-                                  </Label>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Recommended: 200x80px, max 5MB. Used in application header and as fallback.
-                                </p>
+                                     {/* Logo Management */}
+                   <Card>
+                     <CardHeader>
+                       <CardTitle className="flex items-center gap-2">
+                         <ImageUp className="h-5 w-5 text-primary" />
+                         Logo Management
+                       </CardTitle>
+                       <CardDescription>
+                         Configure your company logos for different contexts throughout the application
+                       </CardDescription>
+                     </CardHeader>
+                    <CardContent className="space-y-6">
+                         {/* Primary Logo */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                               <div>
+                            <Label className="text-base font-semibold">Primary Logo</Label>
+                            <p className="text-sm text-muted-foreground">Main company branding used in header, favicon, and as fallback</p>
+                               </div>
+                          <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                            Required
+                          </Badge>
+                             </div>
+                             
+                                                 <div className="flex items-center gap-4">
+                               {/* Logo Preview */}
+                               <div className="flex-shrink-0">
+                             <Input
+                               type="file"
+                               accept="image/*"
+                               onChange={handleLogoFileChange}
+                               disabled={!canEdit}
+                               className="hidden"
+                               id="app-logo-upload"
+                             />
+                             <Label
+                               htmlFor="app-logo-upload"
+                               className="cursor-pointer block"
+                             >
+                               <div className="w-32 h-20 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                   {logoPreviewUrl ? (
+                                     <div className="relative group">
+                                       <img
+                                         src={logoPreviewUrl}
+                                         alt="Primary logo preview"
+                                       className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
+                                       />
+                                       <Button
+                                         size="icon"
+                                         variant="ghost"
+                                       className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                       onClick={(e) => {
+                                         e.preventDefault();
+                                         e.stopPropagation();
+                                         removeSelectedLogo(true);
+                                       }}
+                                         disabled={!canEdit}
+                                       >
+                                         <X className="h-3 w-3" />
+                                       </Button>
+                                     </div>
+                                   ) : (
+                                   <div className="text-center text-muted-foreground">
+                                     <ImageUp className="h-8 w-8 mx-auto mb-1 opacity-60" />
+                                     <p className="text-xs">Click to upload</p>
+                                     </div>
+                                   )}
+                                 </div>
+                             </Label>
+                               </div>
+                               
+                               {/* Upload Section */}
+                           <div className="flex-1 space-y-2">
+                             <p className="text-xs text-muted-foreground">
+                               Recommended: 200x80px, max 5MB • PNG, JPG, or SVG format
+                             </p>
+                             </div>
+                           </div>
+                         </div>
+
+                      <Separator />
+
+                      {/* Contextual Logos */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                               <div>
+                            <Label className="text-base font-semibold">Contextual Logos</Label>
+                            <p className="text-sm text-muted-foreground">Specialized logos for different contexts and themes</p>
+                               </div>
+                          <Badge variant="outline">Optional</Badge>
+                             </div>
+
+                               {/* Login Page Logos */}
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium text-muted-foreground">Login Page</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                                   {/* Light Mode */}
+                             <div className="space-y-2">
+                               <Label className="text-xs font-medium">Light Mode</Label>
+                               <div className="flex items-center gap-3">
+                                 <Input
+                                   type="file"
+                                   accept="image/*"
+                                   onChange={handleLoginPageLogoLightModeChange}
+                                   disabled={!canEdit}
+                                   className="hidden"
+                                   id="login-logo-light-upload"
+                                 />
+                                 <Label
+                                   htmlFor="login-logo-light-upload"
+                                   className="cursor-pointer block"
+                                 >
+                                   <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                       {loginPageLogoLightModePreviewUrl ? (
+                                         <div className="relative group">
+                                           <img
+                                             src={loginPageLogoLightModePreviewUrl}
+                                             alt="Login light mode logo"
+                                           className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                           />
+                                           <Button
+                                             size="icon"
+                                             variant="ghost"
+                                           className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                               setLoginPageLogoLightModePreviewUrl(null);
+                                               setSavedLoginPageLogoLightModeUrl(null);
+                                             }}
+                                             disabled={!canEdit}
+                                           >
+                                             <X className="h-2.5 w-2.5" />
+                                           </Button>
+                                         </div>
+                                       ) : (
+                                       <ImageUp className="h-4 w-4 text-muted-foreground" />
+                                       )}
+                                     </div>
+                                 </Label>
+                               </div>
+                             </div>
+
+                                                         {/* Dark Mode */}
+                             <div className="space-y-2">
+                               <Label className="text-xs font-medium">Dark Mode</Label>
+                               <div className="flex items-center gap-3">
+                                       <Input
+                                         type="file"
+                                         accept="image/*"
+                                   onChange={handleLoginPageLogoDarkModeChange}
+                                         disabled={!canEdit}
+                                         className="hidden"
+                                   id="login-logo-dark-upload"
+                                       />
+                                       <Label
+                                   htmlFor="login-logo-dark-upload"
+                                   className="cursor-pointer block"
+                                 >
+                                   <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                       {loginPageLogoDarkModePreviewUrl ? (
+                                         <div className="relative group">
+                                           <img
+                                             src={loginPageLogoDarkModePreviewUrl}
+                                             alt="Login dark mode logo"
+                                           className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                           />
+                                           <Button
+                                             size="icon"
+                                             variant="ghost"
+                                           className="absolute -top-1 -right-1 h-4 w-4 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                               setLoginPageLogoDarkModePreviewUrl(null);
+                                               setSavedLoginPageLogoDarkModeUrl(null);
+                                             }}
+                                             disabled={!canEdit}
+                                           >
+                                             <X className="h-2.5 w-2.5" />
+                                           </Button>
+                                         </div>
+                                       ) : (
+                                       <ImageUp className="h-4 w-4 text-muted-foreground" />
+                                       )}
+                                     </div>
+                                       </Label>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
+
+                               {/* Sidebar Logos */}
+                                   <div className="space-y-3">
+                          <Label className="text-sm font-medium text-muted-foreground">Sidebar</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Light Mode */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium">Light Mode</Label>
+                              <div className="space-y-2">
+                                     <div className="flex items-center gap-3">
+                                   <Input
+                                     type="file"
+                                     accept="image/*"
+                                     onChange={handleSidebarLogoCollapsedLightModeChange}
+                                     disabled={!canEdit}
+                                     className="hidden"
+                                     id="sidebar-collapsed-light-upload"
+                                   />
+                                                                       <Label
+                                      htmlFor="sidebar-collapsed-light-upload"
+                                      className="cursor-pointer block"
+                                    >
+                                      <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                         {sidebarLogoCollapsedLightModePreviewUrl ? (
+                                           <div className="relative group">
+                                             <img
+                                               src={sidebarLogoCollapsedLightModePreviewUrl}
+                                               alt="Sidebar collapsed light logo"
+                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                             />
+                                             <Button
+                                               size="icon"
+                                               variant="ghost"
+                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                             onClick={(e) => {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                                 setSidebarLogoCollapsedLightModePreviewUrl(null);
+                                                 setSavedSidebarLogoCollapsedLightModeUrl(null);
+                                               }}
+                                               disabled={!canEdit}
+                                             >
+                                               <X className="h-2 w-2" />
+                                             </Button>
+                                           </div>
+                                         ) : (
+                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                         )}
+                                       </div>
+                                   </Label>
+                                   <span className="text-xs text-muted-foreground">Collapsed</span>
+                                 </div>
+                                                                 <div className="flex items-center gap-3">
+                                         <Input
+                                           type="file"
+                                           accept="image/*"
+                                     onChange={handleSidebarLogoExpandedLightModeChange}
+                                           disabled={!canEdit}
+                                           className="hidden"
+                                     id="sidebar-expanded-light-upload"
+                                         />
+                                         <Label
+                                     htmlFor="sidebar-expanded-light-upload"
+                                     className="cursor-pointer block"
+                                   >
+                                     <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                         {sidebarLogoExpandedLightModePreviewUrl ? (
+                                           <div className="relative group">
+                                             <img
+                                               src={sidebarLogoExpandedLightModePreviewUrl}
+                                               alt="Sidebar expanded light logo"
+                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                             />
+                                             <Button
+                                               size="icon"
+                                               variant="ghost"
+                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                             onClick={(e) => {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                                 setSidebarLogoExpandedLightModePreviewUrl(null);
+                                                 setSavedSidebarLogoExpandedLightModeUrl(null);
+                                               }}
+                                               disabled={!canEdit}
+                                             >
+                                               <X className="h-2 w-2" />
+                                             </Button>
+                                           </div>
+                                         ) : (
+                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                         )}
+                                       </div>
+                                   </Label>
+                                   <span className="text-xs text-muted-foreground">Expanded</span>
+                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </div>
 
-                        <Separator />
-
-                        {/* Contextual Variations */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
-                              <span className="text-xs font-bold text-muted-foreground">2</span>
-                            </div>
-                            <h4 className="text-sm font-medium">Contextual Variations</h4>
-                            <Badge variant="outline" className="text-xs">Optional</Badge>
-                          </div>
-                          <div className="ml-7 space-y-6">
-                            <p className="text-sm text-muted-foreground">
-                              Upload specific logos for different contexts. If not set, the primary logo will be used automatically.
-                            </p>
-
-                            {/* Login Page Logos */}
-                            <div className="space-y-4">
-                              <h5 className="text-sm font-medium flex items-center gap-2">
-                                <LogIn className="h-4 w-4" />
-                                Login Page
-                              </h5>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ml-6">
-                                {/* Login Light Mode */}
-                                <div className="space-y-3">
-                                  <Label className="text-sm font-medium flex items-center gap-2">
-                                    <Sun className="h-4 w-4" />
-                                    Light Mode
-                                  </Label>
-                                  <div className="flex items-center gap-4">
-                                    {loginPageLogoLightModePreviewUrl && (
-                                      <div className="relative">
-                                        <img
-                                          src={loginPageLogoLightModePreviewUrl}
-                                          alt="Login light mode logo"
-                                          className="w-24 h-12 object-contain rounded-md border bg-background"
-                                        />
-                                        <Button
-                                          size="icon"
-                                          variant="destructive"
-                                          className="absolute -top-2 -right-2 h-5 w-5"
-                                          onClick={() => {
-                                            setLoginPageLogoLightModePreviewUrl(null);
-                                            setSavedLoginPageLogoLightModeUrl(null);
-                                          }}
-                                          disabled={!canEdit}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                    <div className="flex-1">
-                                      <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleLoginPageLogoLightModeChange}
-                                        disabled={!canEdit}
-                                        className="hidden"
-                                        id="login-logo-light-upload"
-                                      />
-                                      <Label
-                                        htmlFor="login-logo-light-upload"
-                                        className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
-                                      >
-                                        <ImageUp className="mr-2 h-3 w-3" />
-                                        Upload
-                                      </Label>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Login Dark Mode */}
-                                <div className="space-y-3">
-                                  <Label className="text-sm font-medium flex items-center gap-2">
-                                    <Moon className="h-4 w-4" />
-                                    Dark Mode
-                                  </Label>
-                                  <div className="flex items-center gap-4">
-                                    {loginPageLogoDarkModePreviewUrl && (
-                                      <div className="relative">
-                                        <img
-                                          src={loginPageLogoDarkModePreviewUrl}
-                                          alt="Login dark mode logo"
-                                          className="w-24 h-12 object-contain rounded-md border bg-background"
-                                        />
-                                        <Button
-                                          size="icon"
-                                          variant="destructive"
-                                          className="absolute -top-2 -right-2 h-5 w-5"
-                                          onClick={() => {
-                                            setLoginPageLogoDarkModePreviewUrl(null);
-                                            setSavedLoginPageLogoDarkModeUrl(null);
-                                          }}
-                                          disabled={!canEdit}
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                    <div className="flex-1">
-                                      <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleLoginPageLogoDarkModeChange}
-                                        disabled={!canEdit}
-                                        className="hidden"
-                                        id="login-logo-dark-upload"
-                                      />
-                                      <Label
-                                        htmlFor="login-logo-dark-upload"
-                                        className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-1"
-                                      >
-                                        <ImageUp className="mr-2 h-3 w-3" />
-                                        Upload
-                                      </Label>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Sidebar Logos */}
-                            <div className="space-y-4">
-                              <h5 className="text-sm font-medium flex items-center gap-2">
-                                <SidebarIcon className="h-4 w-4" />
-                                Sidebar
-                              </h5>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ml-6">
-                                {/* Light Mode Sidebar */}
-                                <div className="space-y-4">
-                                  <h6 className="text-sm font-medium flex items-center gap-2">
-                                    <Sun className="h-4 w-4" />
-                                    Light Mode
-                                  </h6>
-                                  
-                                  {/* Collapsed Light Mode */}
-                                  <div className="space-y-3">
-                                    <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
-                                    <div className="flex items-center gap-4">
-                                      {sidebarLogoCollapsedLightModePreviewUrl && (
-                                        <div className="relative">
-                                          <img
-                                            src={sidebarLogoCollapsedLightModePreviewUrl}
-                                            alt="Sidebar collapsed light logo"
-                                            className="w-16 h-8 object-contain rounded border bg-background"
-                                          />
-                                          <Button
-                                            size="icon"
-                                            variant="destructive"
-                                            className="absolute -top-1 -right-1 h-4 w-4"
-                                            onClick={() => {
-                                              setSidebarLogoCollapsedLightModePreviewUrl(null);
-                                              setSavedSidebarLogoCollapsedLightModeUrl(null);
-                                            }}
-                                            disabled={!canEdit}
-                                          >
-                                            <X className="h-2 w-2" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <Input
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleSidebarLogoCollapsedLightModeChange}
-                                          disabled={!canEdit}
-                                          className="hidden"
-                                          id="sidebar-collapsed-light-upload"
-                                        />
-                                        <Label
-                                          htmlFor="sidebar-collapsed-light-upload"
-                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                        >
-                                          <ImageUp className="mr-1 h-3 w-3" />
-                                          Upload
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Expanded Light Mode */}
-                                  <div className="space-y-3">
-                                    <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
-                                    <div className="flex items-center gap-4">
-                                      {sidebarLogoExpandedLightModePreviewUrl && (
-                                        <div className="relative">
-                                          <img
-                                            src={sidebarLogoExpandedLightModePreviewUrl}
-                                            alt="Sidebar expanded light logo"
-                                            className="w-20 h-10 object-contain rounded border bg-background"
-                                          />
-                                          <Button
-                                            size="icon"
-                                            variant="destructive"
-                                            className="absolute -top-1 -right-1 h-4 w-4"
-                                            onClick={() => {
-                                              setSidebarLogoExpandedLightModePreviewUrl(null);
-                                              setSavedSidebarLogoExpandedLightModeUrl(null);
-                                            }}
-                                            disabled={!canEdit}
-                                          >
-                                            <X className="h-2 w-2" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <Input
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleSidebarLogoExpandedLightModeChange}
-                                          disabled={!canEdit}
-                                          className="hidden"
-                                          id="sidebar-expanded-light-upload"
-                                        />
-                                        <Label
-                                          htmlFor="sidebar-expanded-light-upload"
-                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                        >
-                                          <ImageUp className="mr-1 h-3 w-3" />
-                                          Upload
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Dark Mode Sidebar */}
-                                <div className="space-y-4">
-                                  <h6 className="text-sm font-medium flex items-center gap-2">
-                                    <Moon className="h-4 w-4" />
-                                    Dark Mode
-                                  </h6>
-                                  
-                                  {/* Collapsed Dark Mode */}
-                                  <div className="space-y-3">
-                                    <Label className="text-xs font-medium text-muted-foreground">Collapsed State</Label>
-                                    <div className="flex items-center gap-4">
-                                      {sidebarLogoCollapsedDarkModePreviewUrl && (
-                                        <div className="relative">
-                                          <img
-                                            src={sidebarLogoCollapsedDarkModePreviewUrl}
-                                            alt="Sidebar collapsed dark logo"
-                                            className="w-16 h-8 object-contain rounded border bg-background"
-                                          />
-                                          <Button
-                                            size="icon"
-                                            variant="destructive"
-                                            className="absolute -top-1 -right-1 h-4 w-4"
-                                            onClick={() => {
-                                              setSidebarLogoCollapsedDarkModePreviewUrl(null);
-                                              setSavedSidebarLogoCollapsedDarkModeUrl(null);
-                                            }}
-                                            disabled={!canEdit}
-                                          >
-                                            <X className="h-2 w-2" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <Input
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleSidebarLogoCollapsedDarkModeChange}
-                                          disabled={!canEdit}
-                                          className="hidden"
-                                          id="sidebar-collapsed-dark-upload"
-                                        />
-                                        <Label
-                                          htmlFor="sidebar-collapsed-dark-upload"
-                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                        >
-                                          <ImageUp className="mr-1 h-3 w-3" />
-                                          Upload
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Expanded Dark Mode */}
-                                  <div className="space-y-3">
-                                    <Label className="text-xs font-medium text-muted-foreground">Expanded State</Label>
-                                    <div className="flex items-center gap-4">
-                                      {sidebarLogoExpandedDarkModePreviewUrl && (
-                                        <div className="relative">
-                                          <img
-                                            src={sidebarLogoExpandedDarkModePreviewUrl}
-                                            alt="Sidebar expanded dark logo"
-                                            className="w-20 h-10 object-contain rounded border bg-background"
-                                          />
-                                          <Button
-                                            size="icon"
-                                            variant="destructive"
-                                            className="absolute -top-1 -right-1 h-4 w-4"
-                                            onClick={() => {
-                                              setSidebarLogoExpandedDarkModePreviewUrl(null);
-                                              setSavedSidebarLogoExpandedDarkModeUrl(null);
-                                            }}
-                                            disabled={!canEdit}
-                                          >
-                                            <X className="h-2 w-2" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <div className="flex-1">
-                                        <Input
-                                          type="file"
-                                          accept="image/*"
-                                          onChange={handleSidebarLogoExpandedDarkModeChange}
-                                          disabled={!canEdit}
-                                          className="hidden"
-                                          id="sidebar-expanded-dark-upload"
-                                        />
-                                        <Label
-                                          htmlFor="sidebar-expanded-dark-upload"
-                                          className="cursor-pointer inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-2"
-                                        >
-                                          <ImageUp className="mr-1 h-3 w-3" />
-                                          Upload
-                                        </Label>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
-                            <div className="h-2 w-2 rounded-full bg-blue-600"></div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Logo Usage Guide</p>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• <strong>Primary Logo:</strong> Used throughout the application and as fallback when contextual logos aren't set</li>
-                              <li>• <strong>Login Page:</strong> Specific logos for light/dark mode login screens</li>
-                              <li>• <strong>Sidebar Collapsed:</strong> Square/icon-style logos work best for narrow sidebar</li>
-                              <li>• <strong>Sidebar Expanded:</strong> Wider logos can be accommodated in expanded sidebar</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                            {/* Dark Mode */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium">Dark Mode</Label>
+                              <div className="space-y-2">
+                                                                 <div className="flex items-center gap-3">
+                                         <Input
+                                           type="file"
+                                           accept="image/*"
+                                     onChange={handleSidebarLogoCollapsedDarkModeChange}
+                                           disabled={!canEdit}
+                                           className="hidden"
+                                     id="sidebar-collapsed-dark-upload"
+                                         />
+                                         <Label
+                                     htmlFor="sidebar-collapsed-dark-upload"
+                                     className="cursor-pointer block"
+                                   >
+                                     <div className="w-14 h-9 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                         {sidebarLogoCollapsedDarkModePreviewUrl ? (
+                                           <div className="relative group">
+                                             <img
+                                               src={sidebarLogoCollapsedDarkModePreviewUrl}
+                                               alt="Sidebar collapsed dark logo"
+                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                             />
+                                             <Button
+                                               size="icon"
+                                               variant="ghost"
+                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                             onClick={(e) => {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                                 setSidebarLogoCollapsedDarkModePreviewUrl(null);
+                                                 setSavedSidebarLogoCollapsedDarkModeUrl(null);
+                                               }}
+                                               disabled={!canEdit}
+                                             >
+                                               <X className="h-2 w-2" />
+                                             </Button>
+                                           </div>
+                                         ) : (
+                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                         )}
+                                       </div>
+                                   </Label>
+                                   <span className="text-xs text-muted-foreground">Collapsed</span>
+                                 </div>
+                                                                 <div className="flex items-center gap-3">
+                                         <Input
+                                           type="file"
+                                           accept="image/*"
+                                     onChange={handleSidebarLogoExpandedDarkModeChange}
+                                           disabled={!canEdit}
+                                           className="hidden"
+                                     id="sidebar-expanded-dark-upload"
+                                         />
+                                         <Label
+                                     htmlFor="sidebar-expanded-dark-upload"
+                                     className="cursor-pointer block"
+                                   >
+                                     <div className="w-20 h-12 bg-muted/50 rounded border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                         {sidebarLogoExpandedDarkModePreviewUrl ? (
+                                           <div className="relative group">
+                                             <img
+                                               src={sidebarLogoExpandedDarkModePreviewUrl}
+                                               alt="Sidebar expanded dark logo"
+                                               className="max-w-full max-h-full object-contain p-1 transition-transform group-hover:scale-105"
+                                             />
+                                             <Button
+                                               size="icon"
+                                               variant="ghost"
+                                             className="absolute -top-1 -right-1 h-3 w-3 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                             onClick={(e) => {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                                 setSidebarLogoExpandedDarkModePreviewUrl(null);
+                                                 setSavedSidebarLogoExpandedDarkModeUrl(null);
+                                               }}
+                                               disabled={!canEdit}
+                                             >
+                                               <X className="h-2 w-2" />
+                                             </Button>
+                                           </div>
+                                         ) : (
+                                         <ImageUp className="h-3 w-3 text-muted-foreground" />
+                                         )}
+                                       </div>
+                                         </Label>
+                                   <span className="text-xs text-muted-foreground">Expanded</span>
+                                 </div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                       
+                      {/* Usage Guide */}
+                      <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+                         <div className="flex items-start gap-3">
+                          <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                            <div className="h-2 w-2 rounded-full bg-primary"></div>
+                           </div>
+                          <div className="text-sm text-muted-foreground">
+                            <span className="font-medium">Usage Guide:</span> Primary logo is used in header, favicon, and as fallback. Contextual logos override primary for specific contexts and themes.
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
 
                   {/* Favicon */}
                   <Card>
@@ -1520,42 +1528,56 @@ export default function SystemPreferencesPage() {
                     <CardContent>
                       <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                          {faviconPreviewUrl && (
-                            <div className="relative">
+                           {/* Favicon Preview */}
+                           <div className="flex-shrink-0">
+                             <Input
+                               type="file"
+                               accept="image/*"
+                               onChange={handleFaviconFileChange}
+                               disabled={!canEdit}
+                               className="hidden"
+                               id="app-favicon-upload"
+                             />
+                             <Label
+                               htmlFor="app-favicon-upload"
+                               className="cursor-pointer block"
+                             >
+                               <div className="w-16 h-16 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center hover:bg-muted/70 hover:border-muted-foreground/40 transition-colors">
+                                 {faviconPreviewUrl ? (
+                                   <div className="relative group">
                               <img
                                 src={faviconPreviewUrl}
                                 alt="Favicon preview"
-                                className="w-8 h-8 object-contain rounded border bg-background"
+                                       className="max-w-full max-h-full object-contain p-2 transition-transform group-hover:scale-105"
                               />
                               <Button
                                 size="icon"
-                                variant="destructive"
-                                className="absolute -top-2 -right-2 h-6 w-6"
-                                onClick={() => clearFaviconSelection()}
+                                       variant="ghost"
+                                       className="absolute -top-2 -right-2 h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                       onClick={(e) => {
+                                         e.preventDefault();
+                                         e.stopPropagation();
+                                         clearFaviconSelection();
+                                       }}
                                 disabled={!canEdit}
                               >
                                 <X className="h-3 w-3" />
                               </Button>
                             </div>
-                          )}
-                          <div className="flex-1">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFaviconFileChange}
-                              disabled={!canEdit}
-                              className="hidden"
-                              id="app-favicon-upload"
-                            />
-                            <Label
-                              htmlFor="app-favicon-upload"
-                              className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                            >
-                              <ImageUp className="mr-2 h-4 w-4" />
-                              Upload Favicon
+                                 ) : (
+                                   <div className="text-center text-muted-foreground">
+                                     <ImageUp className="h-6 w-6 mx-auto mb-1 opacity-60" />
+                                     <p className="text-xs">Click to upload</p>
+                                   </div>
+                                 )}
+                               </div>
                             </Label>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Recommended: 32x32px, max 1MB
+                           </div>
+                           
+                           {/* Upload Section */}
+                           <div className="flex-1 space-y-2">
+                             <p className="text-xs text-muted-foreground">
+                               Recommended: 32x32px, max 1MB • PNG, JPG, or ICO format
                             </p>
                           </div>
                         </div>
@@ -1564,51 +1586,12 @@ export default function SystemPreferencesPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
 
-            <TabsContent value="sidebar" className="h-full">
+            {activeTab === 'sidebar' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
-                  {/* Sidebar Active Style */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <SidebarIcon className="h-5 w-5 text-primary" />
-                        Sidebar Active Menu Style
-                      </CardTitle>
-                      <CardDescription>
-                        Choose how selected menu items appear in the sidebar
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="sidebar-active-style" className="text-sm font-medium">
-                            Active Menu Style
-                          </Label>
-                          <Select
-                            value={sidebarActiveStyle}
-                            onValueChange={(value: SidebarActiveStyle) => {
-                              setSidebarActiveStyle(value);
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="gradient">Gradient Background</SelectItem>
-                              <SelectItem value="solid">Solid Background</SelectItem>
-                              <SelectItem value="outline">Outline Border</SelectItem>
-                              <SelectItem value="subtle">Subtle Highlight</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground">
-                            Changes apply immediately for preview. Save to persist the setting.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  
 
                   {/* Sidebar Colors */}
                   <Card>
@@ -1621,356 +1604,79 @@ export default function SystemPreferencesPage() {
                         Customize the sidebar appearance for light and dark themes
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <Tabs defaultValue="light" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="light">Light Theme</TabsTrigger>
-                          <TabsTrigger value="dark">Dark Theme</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="light" className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium">Light Theme Colors</h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => resetSidebarColors('Light')}
-                              disabled={!canEdit}
-                            >
-                              <RotateCcw className="mr-2 h-3 w-3" />
-                              Reset
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {renderSidebarColorInputs('Light')}
-                          </div>
-                        </TabsContent>
-                        <TabsContent value="dark" className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium">Dark Theme Colors</h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => resetSidebarColors('Dark')}
-                              disabled={!canEdit}
-                            >
-                              <RotateCcw className="mr-2 h-3 w-3" />
-                              Reset
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {renderSidebarColorInputs('Dark')}
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
+                                         <CardContent>
+                       <div className="space-y-6">
+                         <div className="flex w-full border-b border-border/50">
+                           <div
+                             onClick={() => setActiveSidebarTab('light')}
+                             className={cn(
+                               "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                               activeSidebarTab === 'light'
+                                 ? "text-primary border-b-2 border-primary"
+                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                             )}
+                           >
+                             <Sun className="h-4 w-4" />
+                             Light Theme
+                           </div>
+                           <div
+                             onClick={() => setActiveSidebarTab('dark')}
+                             className={cn(
+                               "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                               activeSidebarTab === 'dark'
+                                 ? "text-primary border-b-2 border-primary"
+                                 : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                             )}
+                           >
+                             <Moon className="h-4 w-4" />
+                             Dark Theme
+                           </div>
+                         </div>
+
+                         {activeSidebarTab === 'light' && (
+                           <div className="space-y-4">
+                             <div className="flex justify-between items-center">
+                               <h4 className="text-sm font-medium">Light Theme Colors</h4>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => resetSidebarColors('Light')}
+                                 disabled={!canEdit}
+                               >
+                                 <RotateCcw className="mr-2 h-3 w-3" />
+                                 Reset
+                               </Button>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                               {renderSidebarColorInputs('Light')}
+                             </div>
+                           </div>
+                         )}
+
+                         {activeSidebarTab === 'dark' && (
+                           <div className="space-y-4">
+                             <div className="flex justify-between items-center">
+                               <h4 className="text-sm font-medium">Dark Theme Colors</h4>
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => resetSidebarColors('Dark')}
+                                 disabled={!canEdit}
+                               >
+                                 <RotateCcw className="mr-2 h-3 w-3" />
+                                 Reset
+                               </Button>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                               {renderSidebarColorInputs('Dark')}
+                             </div>
+                           </div>
+                         )}
+                       </div>
+                     </CardContent>
                   </Card>
 
-                  {/* Sidebar Group Labels */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Type className="h-5 w-5 text-primary" />
-                        Group Labels
-                      </CardTitle>
-                      <CardDescription>
-                        Customize the appearance of sidebar group labels (General, Recruitment, Other)
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Tabs defaultValue="light" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="light">Light Theme</TabsTrigger>
-                          <TabsTrigger value="dark">Dark Theme</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="light" className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium">Light Theme Group Labels</h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => resetSidebarColors('Light')}
-                              disabled={!canEdit}
-                            >
-                              <RotateCcw className="mr-2 h-3 w-3" />
-                              Reset
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {/* Group Label Color */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelColorL" className="text-sm font-medium">
-                                Label Color
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  id="sidebarGroupLabelColorL"
-                                  type="text"
-                                  value={sidebarColors.sidebarGroupLabelColorL || ''}
-                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorL: e.target.value }))}
-                                  placeholder="220 15% 50%"
-                                  className="text-sm"
-                                />
-                                <Input
-                                  type="color"
-                                  value={convertHslStringToHex(sidebarColors.sidebarGroupLabelColorL)}
-                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorL: hexToHslString(e.target.value) }))}
-                                  className="w-10 h-9 p-1 rounded-md border"
-                                />
-                              </div>
-                            </div>
 
-                            {/* Group Label Font Size */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelFontSizeL" className="text-sm font-medium">
-                                Font Size
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelFontSizeL || '0.75rem'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontSizeL: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0.625rem">Extra Small (10px)</SelectItem>
-                                  <SelectItem value="0.75rem">Small (12px)</SelectItem>
-                                  <SelectItem value="0.875rem">Medium (14px)</SelectItem>
-                                  <SelectItem value="1rem">Large (16px)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Font Weight */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelFontWeightL" className="text-sm font-medium">
-                                Font Weight
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelFontWeightL || '500'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontWeightL: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="400">Normal</SelectItem>
-                                  <SelectItem value="500">Medium</SelectItem>
-                                  <SelectItem value="600">Semi Bold</SelectItem>
-                                  <SelectItem value="700">Bold</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Text Transform */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelTextTransformL" className="text-sm font-medium">
-                                Text Transform
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelTextTransformL || 'uppercase'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelTextTransformL: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  <SelectItem value="uppercase">Uppercase</SelectItem>
-                                  <SelectItem value="lowercase">Lowercase</SelectItem>
-                                  <SelectItem value="capitalize">Capitalize</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Letter Spacing */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelLetterSpacingL" className="text-sm font-medium">
-                                Letter Spacing
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelLetterSpacingL || '0.05em'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelLetterSpacingL: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0em">Normal</SelectItem>
-                                  <SelectItem value="0.025em">Tight</SelectItem>
-                                  <SelectItem value="0.05em">Wide</SelectItem>
-                                  <SelectItem value="0.1em">Extra Wide</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Padding */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelPaddingL" className="text-sm font-medium">
-                                Padding
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelPaddingL || '0.5rem 0.75rem'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelPaddingL: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0.25rem 0.5rem">Small</SelectItem>
-                                  <SelectItem value="0.5rem 0.75rem">Medium</SelectItem>
-                                  <SelectItem value="0.75rem 1rem">Large</SelectItem>
-                                  <SelectItem value="1rem 1.25rem">Extra Large</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </TabsContent>
-                        <TabsContent value="dark" className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium">Dark Theme Group Labels</h4>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => resetSidebarColors('Dark')}
-                              disabled={!canEdit}
-                            >
-                              <RotateCcw className="mr-2 h-3 w-3" />
-                              Reset
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {/* Group Label Color */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelColorD" className="text-sm font-medium">
-                                Label Color
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  id="sidebarGroupLabelColorD"
-                                  type="text"
-                                  value={sidebarColors.sidebarGroupLabelColorD || ''}
-                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorD: e.target.value }))}
-                                  placeholder="210 25% 70%"
-                                  className="text-sm"
-                                />
-                                <Input
-                                  type="color"
-                                  value={convertHslStringToHex(sidebarColors.sidebarGroupLabelColorD)}
-                                  onChange={e => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelColorD: hexToHslString(e.target.value) }))}
-                                  className="w-10 h-9 p-1 rounded-md border"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Group Label Font Size */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelFontSizeD" className="text-sm font-medium">
-                                Font Size
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelFontSizeD || '0.75rem'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontSizeD: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0.625rem">Extra Small (10px)</SelectItem>
-                                  <SelectItem value="0.75rem">Small (12px)</SelectItem>
-                                  <SelectItem value="0.875rem">Medium (14px)</SelectItem>
-                                  <SelectItem value="1rem">Large (16px)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Font Weight */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelFontWeightD" className="text-sm font-medium">
-                                Font Weight
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelFontWeightD || '500'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelFontWeightD: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="400">Normal</SelectItem>
-                                  <SelectItem value="500">Medium</SelectItem>
-                                  <SelectItem value="600">Semi Bold</SelectItem>
-                                  <SelectItem value="700">Bold</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Text Transform */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelTextTransformD" className="text-sm font-medium">
-                                Text Transform
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelTextTransformD || 'uppercase'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelTextTransformD: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">None</SelectItem>
-                                  <SelectItem value="uppercase">Uppercase</SelectItem>
-                                  <SelectItem value="lowercase">Lowercase</SelectItem>
-                                  <SelectItem value="capitalize">Capitalize</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Letter Spacing */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelLetterSpacingD" className="text-sm font-medium">
-                                Letter Spacing
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelLetterSpacingD || '0.05em'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelLetterSpacingD: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0em">Normal</SelectItem>
-                                  <SelectItem value="0.025em">Tight</SelectItem>
-                                  <SelectItem value="0.05em">Wide</SelectItem>
-                                  <SelectItem value="0.1em">Extra Wide</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* Group Label Padding */}
-                            <div className="space-y-2">
-                              <Label htmlFor="sidebarGroupLabelPaddingD" className="text-sm font-medium">
-                                Padding
-                              </Label>
-                              <Select
-                                value={sidebarColors.sidebarGroupLabelPaddingD || '0.5rem 0.75rem'}
-                                onValueChange={(value) => setSidebarColors((prev: SidebarColors) => ({ ...prev, sidebarGroupLabelPaddingD: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0.25rem 0.5rem">Small</SelectItem>
-                                  <SelectItem value="0.5rem 0.75rem">Medium</SelectItem>
-                                  <SelectItem value="0.75rem 1rem">Large</SelectItem>
-                                  <SelectItem value="1rem 1.25rem">Extra Large</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
 
                   {/* Primary Button Color */}
                   <Card className="mb-6">
@@ -2033,9 +1739,9 @@ export default function SystemPreferencesPage() {
                   </Card>
                 </div>
               </ScrollArea>
-            </TabsContent>
+            )}
           </div>
-        </Tabs>
+        </div>
       </div>
     </div>
   );

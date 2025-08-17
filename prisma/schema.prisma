@@ -16,25 +16,27 @@ model User {
   avatarUrl            String?
   image                String?
   dataAiHint           String?
-  modulePermissions    String[]                  @default([])
   authenticationMethod String?                   @default("basic") @map("authentication_method")
   forcePasswordChange  Boolean                   @default(false) @map("force_password_change")
   emailVerified        DateTime?
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
-  apiKey               String?                   @unique
   azure_oid            String?                   @unique
+  personalColor        String?                   @default("#3B82F6") @map("personal_color")
+  module_permissions   String[]                  @default([])
   accounts             Account[]
   attachments          Attachment[]              @relation("UserAttachments")
   candidates           Candidate[]               @relation("RecruiterCandidates")
-  positions            Position[]                @relation("RecruiterPositions")
   candidateComments    CandidateComment[]        @relation("UserComments")
   Dashboard            Dashboard[]
   DashboardShare       DashboardShare[]
   logEntries           LogEntry[]                @relation("UserLogEntries")
+  notifications        Notification[]
+  positions            Position[]                @relation("RecruiterPositions")
   transitionRecords    TransitionRecord[]        @relation("ActingUserTransitions")
   userPreferences      UserUIDisplayPreference[]
   userGroups           User_UserGroup[]
+  userTeams            User_UserTeam[]
   uploadQueue          UploadQueue[]             @relation("UserUploadQueue")
 
   @@index([email])
@@ -43,20 +45,21 @@ model User {
 }
 
 model Position {
-  id               String      @id @default(uuid()) @db.Uuid
-  title            String
-  department       String
-  description      String?
-  matchCriteria    String?
-  isOpen           Boolean     @default(true)
-  positionLevel    String?
-  recruiterId      String?     @db.Uuid
-  customAttributes Json?       @default("{}")
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  candidates       Candidate[]
+  id                String             @id @default(uuid()) @db.Uuid
+  title             String
+  department        String
+  description       String?
+  matchCriteria     String?
+  isOpen            Boolean            @default(true)
+  positionLevel     String?
+  recruiterId       String?            @db.Uuid
+  customAttributes  Json?              @default("{}")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  candidates        Candidate[]
+  headcounts        Headcount[]        @relation("PositionHeadcount")
+  recruiter         User?              @relation("RecruiterPositions", fields: [recruiterId], references: [id])
   transitionRecords TransitionRecord[]
-  recruiter        User?       @relation("RecruiterPositions", fields: [recruiterId], references: [id])
 
   @@index([title])
   @@index([department])
@@ -71,7 +74,7 @@ model Candidate {
   phone                   String?
   positionId              String?            @db.Uuid
   recruiterId             String?            @db.Uuid
-  fitScore                Float?              @default(0)
+  fitScore                Float?             @default(0)
   status                  String             @default("Applied")
   applicationDate         DateTime           @default(now())
   parsedData              Json?
@@ -84,10 +87,14 @@ model Candidate {
   assignmentJustification String?
   educationData           Json?              @default("[]")
   experienceData          Json?              @default("[]")
+  sourceId                String?            @db.Uuid
+  subSource               String?
   attachments             Attachment[]
   position                Position?          @relation(fields: [positionId], references: [id])
   recruiter               User?              @relation("RecruiterCandidates", fields: [recruiterId], references: [id])
+  source                  CandidateSource?   @relation(fields: [sourceId], references: [id])
   candidateComments       CandidateComment[]
+  headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
 
@@ -97,6 +104,7 @@ model Candidate {
   @@index([recruiterId])
   @@index([applicationDate])
   @@index([fitScore])
+  @@index([sourceId])
 }
 
 model RecruitmentStage {
@@ -124,7 +132,7 @@ model TransitionRecord {
   updatedAt    DateTime  @updatedAt
   actingUser   User?     @relation("ActingUserTransitions", fields: [actingUserId], references: [id])
   candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  position     Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  position     Position? @relation(fields: [positionId], references: [id])
 
   @@index([candidateId])
   @@index([actingUserId])
@@ -196,6 +204,30 @@ model User_UserGroup {
   @@index([groupId])
 }
 
+model UserTeam {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String          @unique
+  description String?
+  color       String?         @default("#3B82F6")
+  isActive    Boolean         @default(true) @map("is_active")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now())
+  members     User_UserTeam[]
+
+  @@index([isActive])
+}
+
+model User_UserTeam {
+  userId String   @db.Uuid
+  teamId String   @db.Uuid
+  team   UserTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+  @@index([userId])
+  @@index([teamId])
+}
+
 model SystemSetting {
   key       String   @id
   value     String?
@@ -206,20 +238,54 @@ model SystemSetting {
 }
 
 model CustomFieldDefinition {
-  id         String   @id @default(uuid()) @db.Uuid
-  modelName  String   @map("model_name")
-  fieldKey   String   @map("field_key")
-  label      String
-  fieldType  String   @map("field_type")
-  options    Json?
-  isRequired Boolean  @default(false) @map("is_required")
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
+  id                        String              @id @default(uuid()) @db.Uuid
+  modelName                 String              @map("model_name")
+  fieldKey                  String              @map("field_key")
+  label                     String
+  fieldType                 String              @map("field_type")
+  options                   Json?
+  isRequired                Boolean             @default(false) @map("is_required")
+  sortOrder                 Int                 @default(0) @map("sort_order")
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @default(now())
+  allowCustomOptions        Boolean             @default(false) @map("allow_custom_options")
+  attributeCode             String?             @map("attribute_code")
+  attributeLabel            String?             @map("attribute_label")
+  editRoles                 String[]            @default([]) @map("edit_roles")
+  showInCandidateDetail     Boolean             @default(false) @map("show_in_candidate_detail")
+  showInFilter              Boolean             @default(false) @map("show_in_filter")
+  showInFullCandidateDetail Boolean             @default(false) @map("show_in_full_candidate_detail")
+  showInPositionSettings    Boolean             @default(false) @map("show_in_position_settings")
+  showInTaskBoardFilter     Boolean             @default(false) @map("show_in_task_board_filter")
+  viewRoles                 String[]            @default([]) @map("view_roles")
+  fieldCode                 String              @map("field_code")
+  showInHeadcountDetail     Boolean             @default(false) @map("show_in_headcount_detail")
+  customFieldOptions        CustomFieldOption[]
 
   @@unique([modelName, fieldKey])
+  @@unique([modelName, fieldCode])
   @@index([modelName])
   @@index([sortOrder])
+  @@index([viewRoles])
+  @@index([editRoles])
+}
+
+model CustomFieldOption {
+  id                      String                @id @default(uuid()) @db.Uuid
+  customFieldDefinitionId String                @map("custom_field_definition_id") @db.Uuid
+  value                   String
+  label                   String
+  color                   String?               @default("#3B82F6")
+  sortOrder               Int                   @default(0) @map("sort_order")
+  isActive                Boolean               @default(true) @map("is_active")
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @default(now())
+  customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([customFieldDefinitionId, value])
+  @@index([customFieldDefinitionId])
+  @@index([sortOrder])
+  @@index([isActive])
 }
 
 model JobMatch {
@@ -258,13 +324,13 @@ model UploadQueue {
   processDate    DateTime? @map("process_date")
   createdByUser  User?     @relation("UserUploadQueue", fields: [createdBy], references: [id])
 
+  @@unique([filePath, status], name: "unique_file_path_status")
   @@index([status])
   @@index([uploadDate])
   @@index([completedDate])
   @@index([processDate])
   @@index([createdBy])
   @@index([source])
-  @@unique([filePath, status], name: "unique_file_path_status")
   @@map("upload_queue")
 }
 
@@ -304,17 +370,6 @@ model Account {
   @@index([userId])
 }
 
-model DataModel {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  modelType   String
-  description String?
-  schema      Json?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
 model SystemPreference {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @db.Uuid
@@ -340,19 +395,22 @@ model CandidateComment {
 }
 
 model Attachment {
-  id           String    @id @default(uuid()) @db.Uuid
-  candidateId  String    @db.Uuid
-  uploadedById String    @db.Uuid
+  id           String     @id @default(uuid()) @db.Uuid
+  candidateId  String?    @db.Uuid
+  uploadedById String     @db.Uuid
   filePath     String
   fileName     String
   label        String
-  isPrimary    Boolean   @default(false)
-  uploadedAt   DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  uploadedBy   User      @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
+  isPrimary    Boolean    @default(false)
+  uploadedAt   DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  headcountId  String?    @db.Uuid
+  candidate    Candidate? @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  headcount    Headcount? @relation("HeadcountAttachments", fields: [headcountId], references: [id], onDelete: Cascade)
+  uploadedBy   User       @relation("UserAttachments", fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
+  @@index([headcountId])
   @@index([uploadedById])
   @@index([label])
   @@index([isPrimary])
@@ -478,13 +536,13 @@ model DashboardWidget {
 }
 
 model SystemPromptCategory {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  description String?
-  color       String?  @default("#3B82F6")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @unique
+  description   String?
+  color         String?        @default("#3B82F6")
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   systemPrompts SystemPrompt[]
 
   @@index([name])
@@ -493,18 +551,74 @@ model SystemPromptCategory {
 }
 
 model SystemPrompt {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String               @id @default(uuid()) @db.Uuid
   name        String
   description String?
   content     String
-  categoryId  String   @db.Uuid
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  category    SystemPromptCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId  String               @db.Uuid
+  isActive    Boolean              @default(true) @map("is_active")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  category    SystemPromptCategory @relation(fields: [categoryId], references: [id])
 
   @@index([name])
   @@index([categoryId])
   @@index([isActive])
   @@index([createdAt])
+}
+
+model CandidateSource {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String      @unique
+  description    String?
+  allowSubSource Boolean     @default(false) @map("allow_sub_source")
+  sortOrder      Int         @default(0) @map("sort_order")
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  logo           String?
+  candidates     Candidate[]
+
+  @@index([sortOrder])
+  @@index([isActive])
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  message   String
+  data      Json?    @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Headcount {
+  id             String       @id @default(uuid()) @db.Uuid
+  positionId     String       @db.Uuid
+  type           String       @default("new")
+  status         String       @default("vacant")
+  candidateId    String?      @db.Uuid
+  onboardingDate DateTime?
+  notes          String?
+  memoId         String?      @map("memo_id")
+  customFields   Json?        @default("{}") @map("custom_fields")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  attachments    Attachment[] @relation("HeadcountAttachments")
+  candidate      Candidate?   @relation("CandidateHeadcount", fields: [candidateId], references: [id])
+  position       Position     @relation("PositionHeadcount", fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@index([positionId])
+  @@index([candidateId])
+  @@index([type])
+  @@index([status])
 }

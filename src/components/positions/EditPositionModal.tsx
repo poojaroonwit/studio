@@ -21,13 +21,16 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added Card imports
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users, BrainCircuit } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Edit3, Save, Loader2, Briefcase, FileText, Target, Users, BrainCircuit, ChevronDown, UserX } from 'lucide-react';
 import type { Position, Candidate, UserProfile } from '@/lib/types';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 // Import Tiptap editor with expand functionality
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
@@ -378,23 +381,87 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
 
                     <div className="space-y-2">
                       <Label htmlFor="recruiter-edit" className="font-medium">Assigned Recruiter</Label>
-                      <Select
-                        value={form.watch('recruiterId') || 'none'}
-                        onValueChange={(value) => form.setValue('recruiterId', value === 'none' ? null : value)}
-                        disabled={isSaving || isLoadingRecruiters}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingRecruiters ? "Loading recruiters..." : "Select a recruiter"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No recruiter assigned</SelectItem>
-                          {recruiters.map((recruiter) => (
-                            <SelectItem key={recruiter.id} value={recruiter.id}>
-                              {recruiter.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                            disabled={isSaving || isLoadingRecruiters}
+                          >
+                            {isLoadingRecruiters ? (
+                              <span className="text-muted-foreground">Loading recruiters...</span>
+                            ) : form.watch('recruiterId') ? (
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const selectedRecruiter = recruiters.find(r => r.id === form.watch('recruiterId'));
+                                  return selectedRecruiter ? (
+                                    <>
+                                      <Avatar className="h-5 w-5">
+                                        <AvatarImage src={selectedRecruiter.avatarUrl} />
+                                        <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                          {selectedRecruiter.name.charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span>{selectedRecruiter.name}</span>
+                                    </>
+                                  ) : (
+                                    <span>Unknown recruiter</span>
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Select a recruiter</span>
+                            )}
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <div className="p-2">
+                            <div className="text-sm font-medium mb-2">Select Recruiter</div>
+                            
+                            {/* No recruiter assigned option */}
+                            <button
+                              onClick={() => form.setValue('recruiterId', null)}
+                              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                            >
+                              <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                <UserX className="h-3 w-3 text-gray-500" />
+                              </div>
+                              <div className="flex flex-col flex-1">
+                                <span className="text-sm">No recruiter assigned</span>
+                                <span className="text-xs text-muted-foreground">Leave position unassigned</span>
+                              </div>
+                              {!form.watch('recruiterId') && (
+                                <div className="w-4 h-4 rounded-full bg-primary" />
+                              )}
+                            </button>
+
+                            {/* Available recruiters */}
+                            {recruiters.map((recruiter) => (
+                              <button
+                                key={recruiter.id}
+                                onClick={() => form.setValue('recruiterId', recruiter.id)}
+                                className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                              >
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={recruiter.avatarUrl} />
+                                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                    {recruiter.name.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col flex-1">
+                                  <span className="text-sm font-medium">{recruiter.name}</span>
+                                  <span className="text-xs text-muted-foreground">Recruiter</span>
+                                </div>
+                                {form.watch('recruiterId') === recruiter.id && (
+                                  <div className="w-4 h-4 rounded-full bg-primary" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       {form.formState.errors.recruiterId && (
                         <p className="text-sm text-destructive mt-1">{form.formState.errors.recruiterId.message}</p>
                       )}
@@ -489,15 +556,22 @@ export function EditPositionModal({ isOpen, onOpenChange, onEditPosition, positi
                         <Target className="h-4 w-4 text-primary" />
                         <CardTitle>Match Criteria</CardTitle>
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
-                        disabled={!defaultMatchCriteria}
-                      >
-                        Set to Default
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
+                          disabled={!defaultMatchCriteria}
+                        >
+                          Set to Default
+                        </Button>
+                        {!defaultMatchCriteria && (
+                          <div className="text-xs text-muted-foreground">
+                            (No default criteria set)
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col min-h-0 p-0">

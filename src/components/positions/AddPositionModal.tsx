@@ -88,7 +88,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         positionLevel: '',
       });
       
-      // Fetch default match criteria and set it in the form
+      // Fetch default match criteria
       const fetchDefaultMatchCriteria = async () => {
         setIsLoadingDefaultCriteria(true);
         try {
@@ -97,8 +97,6 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
             const data = await response.json();
             const defaultCriteria = data.defaultMatchCriteria || '';
             setDefaultMatchCriteria(defaultCriteria);
-            // Set the default match criteria in the form after reset
-            form.setValue('matchCriteria', defaultCriteria);
           }
         } catch (error) {
           console.error('Failed to fetch default match criteria:', error);
@@ -380,15 +378,22 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                       </div>
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
-                    disabled={!defaultMatchCriteria || isLoadingDefaultCriteria}
-                  >
-                    Set to Default
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => form.setValue('matchCriteria', defaultMatchCriteria)}
+                      disabled={!defaultMatchCriteria || isLoadingDefaultCriteria}
+                    >
+                      Set to Default
+                    </Button>
+                    {!defaultMatchCriteria && !isLoadingDefaultCriteria && (
+                      <div className="text-xs text-muted-foreground">
+                        (No default criteria set)
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Controller
                   name="matchCriteria"

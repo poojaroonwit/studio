@@ -28,14 +28,14 @@ import { Button } from "@/components/ui/button";
 
 const APP_LOGO_DATA_URL_KEY = 'appLogoDataUrl';
 const APP_CONFIG_APP_NAME_KEY = 'appConfigAppName';
-const DEFAULT_APP_NAME = "CV-Screening";
+const DEFAULT_APP_NAME = "FitScan";
 const DEFAULT_LOGO_ICON = <Package2 className="h-6 w-6" />;
 
 function getPageTitle(pathname: string): string {
   if (pathname === "/") return "Dashboard";
   if (pathname.startsWith("/candidates")) { 
     if (pathname === "/candidates/upload") {
-      return "Bulk Upload";
+      return "Process queue";
     }
     if (pathname.split('/').length === 3 && pathname.split('/')[2] !== '' && !pathname.includes('create-via-automation')) {
         return "Candidate Details";
@@ -53,7 +53,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith("/settings/preferences")) return "Preferences";
       if (pathname.startsWith("/settings/system-settings")) return "Integrations";
   if (pathname.startsWith("/settings/stages")) return "Recruitment Stages";
-  if (pathname.startsWith("/settings/data-models")) return "Data Model Preferences";
+
   if (pathname.startsWith("/settings/custom-fields")) return "Custom Field Definitions";
   
   if (pathname.startsWith("/settings/user-groups")) return "User Groups"; // New
@@ -265,7 +265,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <SidebarStyleInitializer />
       <FaviconUpdater faviconDataUrl={faviconDataUrl} />
       <SidebarToggleButton />
-      <div className="flex min-h-screen bg-background">
+      <div className="flex h-screen bg-background overflow-hidden">
         <Sidebar collapsible="icon" className="border-r border-border">
           <SidebarHeader>
             <SidebarHeaderContent 

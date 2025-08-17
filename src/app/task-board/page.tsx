@@ -10,8 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useUserPreferences } from '@/hooks/use-user-preferences';
 
 // Sample stages data
 const sampleStages: TaskStage[] = [
@@ -32,9 +33,39 @@ export default function TaskBoardPage() {
   const [stages] = useState<TaskStage[]>(sampleStages);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [filterAssignee, setFilterAssignee] = useState<string>('all');
+  
+  // Use persistent user preferences
+  const { 
+    taskBoard: preferences, 
+    updateTaskBoardPreferences, 
+    resetTaskBoardPreferences,
+    isLoaded 
+  } = useUserPreferences();
+
+  // Local state for immediate UI updates
+  const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
+  const [filterPriority, setFilterPriority] = useState(preferences.filterPriority);
+  const [filterAssignee, setFilterAssignee] = useState(preferences.filterAssignee);
+
+  // Update local state when preferences are loaded
+  useEffect(() => {
+    if (isLoaded) {
+      setSearchTerm(preferences.searchTerm);
+      setFilterPriority(preferences.filterPriority);
+      setFilterAssignee(preferences.filterAssignee);
+    }
+  }, [isLoaded, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
+
+  // Update preferences when local state changes
+  useEffect(() => {
+    if (isLoaded) {
+      updateTaskBoardPreferences({
+        searchTerm,
+        filterPriority,
+        filterAssignee,
+      });
+    }
+  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences]);
 
   // Filter tasks based on search and filters
   const filteredTasks = tasks.filter(task => {
@@ -99,10 +130,20 @@ export default function TaskBoardPage() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Task Board</h1>
-            <Button onClick={() => setIsAddTaskModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Task
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={resetTaskBoardPreferences}
+                title="Reset filters to defaults"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset Filters
+              </Button>
+              <Button onClick={() => setIsAddTaskModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Task
+              </Button>
+            </div>
           </div>
           
           {/* Filters */}
@@ -161,10 +202,7 @@ export default function TaskBoardPage() {
           onMoveTask={handleMoveTask}
           onTaskClick={handleTaskClick}
           onAddTask={handleAddTask}
-          showAssignee={true}
-          showPriority={true}
-          showDueDate={true}
-          showTags={true}
+
           className="h-full"
         />
       </div>

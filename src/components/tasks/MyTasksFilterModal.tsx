@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Search, Filter, X, SlidersHorizontal, Target, User, Calendar, TrendingUp, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 
@@ -155,20 +157,84 @@ export function MyTasksFilterModal({
                     <User className="w-4 h-4" />
                     Recruiter
                   </Label>
-                  <Select
-                    value={localFilters.recruiterId || "all"}
-                    onValueChange={val => setLocalFilters({ ...localFilters, recruiterId: val === "all" ? undefined : val })}
-                  >
-                    <SelectTrigger className="h-10">
-                      <SelectValue placeholder="All recruiters" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Recruiters</SelectItem>
-                      {recruiters.map((rec: any) => (
-                        <SelectItem key={rec.id} value={rec.id}>{rec.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {localFilters.recruiterId ? (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const selectedRecruiter = recruiters.find((rec: any) => rec.id === localFilters.recruiterId);
+                              return selectedRecruiter ? (
+                                <>
+                                  <Avatar className="h-5 w-5">
+                                    <AvatarImage src={selectedRecruiter.avatarUrl} />
+                                    <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                      {selectedRecruiter.name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span>{selectedRecruiter.name}</span>
+                                </>
+                              ) : (
+                                <span>Unknown recruiter</span>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">All recruiters</span>
+                        )}
+                        <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <div className="p-2">
+                        <div className="text-sm font-medium mb-2">Select Recruiter</div>
+                        
+                        {/* All recruiters option */}
+                        <button
+                          onClick={() => setLocalFilters({ ...localFilters, recruiterId: undefined })}
+                          className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                        >
+                          <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="h-3 w-3 text-gray-500" />
+                          </div>
+                          <div className="flex flex-col flex-1">
+                            <span className="text-sm">All Recruiters</span>
+                            <span className="text-xs text-muted-foreground">Show all recruiters</span>
+                          </div>
+                          {!localFilters.recruiterId && (
+                            <div className="w-4 h-4 rounded-full bg-primary" />
+                          )}
+                        </button>
+
+                        {/* Available recruiters */}
+                        {recruiters.map((rec: any) => (
+                          <button
+                            key={rec.id}
+                            onClick={() => setLocalFilters({ ...localFilters, recruiterId: rec.id })}
+                            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={rec.avatarUrl} />
+                              <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                {rec.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col flex-1">
+                              <span className="text-sm font-medium">{rec.name}</span>
+                              <span className="text-xs text-muted-foreground">Recruiter</span>
+                            </div>
+                            {localFilters.recruiterId === rec.id && (
+                              <div className="w-4 h-4 rounded-full bg-primary" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </TabsContent>
 

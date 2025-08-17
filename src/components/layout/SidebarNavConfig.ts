@@ -53,7 +53,7 @@ export const sidebarConfig: SidebarNavGroup[] = [
         description: "Job positions and openings"
       },
       { 
-        label: "Bulk Upload", 
+        label: "Process queue", 
         icon: UploadCloud, 
         href: "/candidates/upload",
         description: "Import candidates in bulk"

@@ -11,7 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Copy, Check, Eye, EyeOff, Code, Settings, TestTube } from 'lucide-react';
+import { 
+  Plus, Trash2, Copy, Check, Eye, EyeOff, Code, Settings, TestTube, 
+  Database, Palette, Layers, Zap, Save, X, AlertTriangle, Info, RefreshCw
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -22,8 +25,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface FieldMapping {
   source_field: string;
@@ -54,12 +62,12 @@ interface WebhookBodyCustomizationProps {
 }
 
 const TRANSFORM_OPTIONS = [
-  { value: 'uppercase', label: 'Uppercase' },
-  { value: 'lowercase', label: 'Lowercase' },
-  { value: 'trim', label: 'Trim' },
-  { value: 'date', label: 'Date' },
-  { value: 'number', label: 'Number' },
-  { value: 'boolean', label: 'Boolean' },
+  { value: 'uppercase', label: 'Uppercase', description: 'Convert to uppercase' },
+  { value: 'lowercase', label: 'Lowercase', description: 'Convert to lowercase' },
+  { value: 'trim', label: 'Trim', description: 'Remove whitespace' },
+  { value: 'date', label: 'Date', description: 'Format as date' },
+  { value: 'number', label: 'Number', description: 'Convert to number' },
+  { value: 'boolean', label: 'Boolean', description: 'Convert to boolean' },
 ];
 
 export default function WebhookBodyCustomization({
@@ -101,16 +109,8 @@ export default function WebhookBodyCustomization({
         const response = await fetch('/api/settings/webhooks/available-fields');
         if (response.ok) {
           const data = await response.json();
-          const fieldsMap: Record<string, string[]> = {};
-          const payloadsMap: Record<string, any> = {};
-          
-          data.event_types.forEach((eventData: any) => {
-            fieldsMap[eventData.event_type] = eventData.available_fields;
-            payloadsMap[eventData.event_type] = eventData.sample_payload;
-          });
-          
-          setAvailableFields(fieldsMap);
-          setSamplePayloads(payloadsMap);
+          setAvailableFields(data.fields || {});
+          setSamplePayloads(data.samples || {});
         }
       } catch (error) {
         console.error('Error loading available fields:', error);
@@ -120,13 +120,20 @@ export default function WebhookBodyCustomization({
     loadAvailableFields();
   }, []);
 
+  // Set first event as selected if none selected
+  useEffect(() => {
+    if (webhookEvents.length > 0 && !selectedEvent) {
+      setSelectedEvent(webhookEvents[0]);
+    }
+  }, [webhookEvents, selectedEvent]);
+
   const handleSave = async () => {
     try {
       setLoading(true);
       
       const config = {
-        custom_payload: customPayload,
-        include_metadata: includeMetadata,
+        custom_payload,
+        include_metadata,
         body_template: globalBodyTemplate,
         field_mappings: globalFieldMappings,
         body_configs: Object.values(bodyConfigs)
@@ -142,501 +149,553 @@ export default function WebhookBodyCustomization({
     }
   };
 
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
   const addGlobalFieldMapping = () => {
-    setGlobalFieldMappings([
-      ...globalFieldMappings,
-      { source_field: '', target_field: '' }
-    ]);
+    setGlobalFieldMappings(prev => [...prev, { source_field: '', target_field: '' }]);
   };
 
   const removeGlobalFieldMapping = (index: number) => {
-    setGlobalFieldMappings(globalFieldMappings.filter((_, i) => i !== index));
+    setGlobalFieldMappings(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateGlobalFieldMapping = (index: number, field: keyof FieldMapping, value: any) => {
-    const updated = [...globalFieldMappings];
-    updated[index] = { ...updated[index], [field]: value };
-    setGlobalFieldMappings(updated);
+    setGlobalFieldMappings(prev => prev.map((mapping, i) => 
+      i === index ? { ...mapping, [field]: value } : mapping
+    ));
   };
 
   const addEventConfig = (eventType: string) => {
-    setBodyConfigs({
-      ...bodyConfigs,
+    setBodyConfigs(prev => ({
+      ...prev,
       [eventType]: {
         event_type: eventType,
-        body_template: globalBodyTemplate || '{\n  "event": "{{event}}",\n  "timestamp": "{{timestamp}}",\n  "data": {{data}}\n}',
-        field_mappings: [],
+        body_template: globalBodyTemplate || '{\n  "event": "{{event}}",\n  "data": {{data}},\n  "timestamp": "{{timestamp}}"\n}',
+        field_mappings: [...globalFieldMappings],
         is_active: true
       }
-    });
-    setSelectedEvent(eventType);
+    }));
   };
 
   const removeEventConfig = (eventType: string) => {
-    const updated = { ...bodyConfigs };
-    delete updated[eventType];
-    setBodyConfigs(updated);
-  };
-
-  const updateEventConfig = (eventType: string, field: keyof WebhookBodyConfig, value: any) => {
-    setBodyConfigs({
-      ...bodyConfigs,
-      [eventType]: {
-        ...bodyConfigs[eventType],
-        [field]: value
-      }
+    setBodyConfigs(prev => {
+      const newConfigs = { ...prev };
+      delete newConfigs[eventType];
+      return newConfigs;
     });
   };
 
+  const updateEventConfig = (eventType: string, field: keyof WebhookBodyConfig, value: any) => {
+    setBodyConfigs(prev => ({
+      ...prev,
+      [eventType]: {
+        ...prev[eventType],
+        [field]: value
+      }
+    }));
+  };
+
   const addEventFieldMapping = (eventType: string) => {
-    const config = bodyConfigs[eventType];
-    const updatedMappings = [...(config.field_mappings || []), { source_field: '', target_field: '' }];
-    updateEventConfig(eventType, 'field_mappings', updatedMappings);
-  };
-
-  const removeEventFieldMapping = (eventType: string, index: number) => {
-    const config = bodyConfigs[eventType];
-    const updatedMappings = config.field_mappings?.filter((_, i) => i !== index) || [];
-    updateEventConfig(eventType, 'field_mappings', updatedMappings);
-  };
-
-  const updateEventFieldMapping = (eventType: string, index: number, field: keyof FieldMapping, value: any) => {
-    const config = bodyConfigs[eventType];
-    const updatedMappings = [...(config.field_mappings || [])];
-    updatedMappings[index] = { ...updatedMappings[index], [field]: value };
-    updateEventConfig(eventType, 'field_mappings', updatedMappings);
-  };
-
-  const validateTemplate = async (template: string, eventType?: string) => {
-    try {
-      const response = await fetch('/api/settings/webhooks/validate-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template,
-          event_type: eventType,
-          sample_data: eventType ? samplePayloads[eventType] : undefined
-        })
-      });
-
-      const result = await response.json();
-      return result.valid;
-    } catch (error) {
-      return false;
+    const currentConfig = bodyConfigs[eventType];
+    if (currentConfig) {
+      const newMappings = [...(currentConfig.field_mappings || []), { source_field: '', target_field: '' }];
+      updateEventConfig(eventType, 'field_mappings', newMappings);
     }
   };
 
-  const previewTemplate = async (template: string, eventType: string) => {
+  const removeEventFieldMapping = (eventType: string, index: number) => {
+    const currentConfig = bodyConfigs[eventType];
+    if (currentConfig) {
+      const newMappings = (currentConfig.field_mappings || []).filter((_, i) => i !== index);
+      updateEventConfig(eventType, 'field_mappings', newMappings);
+    }
+  };
+
+  const updateEventFieldMapping = (eventType: string, index: number, field: keyof FieldMapping, value: any) => {
+    const currentConfig = bodyConfigs[eventType];
+    if (currentConfig) {
+      const newMappings = (currentConfig.field_mappings || []).map((mapping, i) => 
+        i === index ? { ...mapping, [field]: value } : mapping
+      );
+      updateEventConfig(eventType, 'field_mappings', newMappings);
+    }
+  };
+
+  const generatePreview = async () => {
+    if (!selectedEvent) return;
+    
     try {
       setPreviewLoading(true);
+      const config = bodyConfigs[selectedEvent] || {
+        event_type: selectedEvent,
+        body_template: globalBodyTemplate,
+        field_mappings: globalFieldMappings
+      };
+
       const response = await fetch('/api/settings/webhooks/validate-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          template,
-          event_type: eventType,
-          sample_data: samplePayloads[eventType]
+          event_type: selectedEvent,
+          body_template: config.body_template,
+          field_mappings: config.field_mappings
         })
       });
 
-      const result = await response.json();
-      if (result.valid) {
-        setPreviewData(result.processed_payload);
+      if (response.ok) {
+        const data = await response.json();
+        setPreviewData(data.preview);
         setShowPreview(true);
       } else {
-        showError('Template validation failed: ' + result.error);
+        showError('Failed to generate preview');
       }
     } catch (error) {
-      showError('Failed to preview template');
+      showError('Failed to generate preview');
     } finally {
       setPreviewLoading(false);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showSuccess('Copied to clipboard');
-    } catch (error) {
-      showError('Failed to copy to clipboard');
-    }
+  const getDefaultTemplate = (eventType: string) => {
+    return `{
+  "event": "${eventType}",
+  "timestamp": "{{timestamp}}",
+  "data": {{data}},
+  "webhook_id": "{{webhook_id}}"
+}`;
   };
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={(open) => {
-        setIsOpen(open);
-        if (!open && onClose) onClose();
-      }}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Code className="h-4 w-4" />
-            Customize Body
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Webhook Body Customization</DialogTitle>
+    <TooltipProvider>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-7xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              Webhook Body Customization
+            </DialogTitle>
             <DialogDescription>
-              Customize the webhook payload structure and field mappings for each event type.
+              Customize the payload structure and field mappings for your webhook events.
             </DialogDescription>
           </DialogHeader>
-
-          <Tabs defaultValue="global" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="global">Global Settings</TabsTrigger>
-              <TabsTrigger value="events">Event-Specific</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="global" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Global Configuration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="custom-payload">Use Custom Payload</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable custom body templates instead of default webhook format
-                      </p>
-                    </div>
-                    <Switch
-                      id="custom-payload"
-                      checked={customPayload}
-                      onCheckedChange={setCustomPayload}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="include-metadata">Include Metadata</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Include webhook metadata in the payload
-                      </p>
-                    </div>
-                    <Switch
-                      id="include-metadata"
-                      checked={includeMetadata}
-                      onCheckedChange={setIncludeMetadata}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Global Body Template</CardTitle>
-                  <CardDescription>
-                    JSON template used as fallback for events without specific configurations.
-                    Use {'{{variable}}'} syntax for dynamic values.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={globalBodyTemplate}
-                    onChange={(e) => setGlobalBodyTemplate(e.target.value)}
-                    placeholder='{\n  "event": "{{event}}",\n  "timestamp": "{{timestamp}}",\n  "data": {{data}}\n}'
-                    className="font-mono text-sm"
-                    rows={8}
-                  />
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Available variables: event, timestamp, webhook_id, webhook_name, and all data fields
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Global Field Mappings</CardTitle>
-                  <CardDescription>
-                    Transform and map fields globally across all events
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {globalFieldMappings.map((mapping, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <Input
-                        placeholder="Source field (e.g., data.candidate.name)"
-                        value={mapping.source_field}
-                        onChange={(e) => updateGlobalFieldMapping(index, 'source_field', e.target.value)}
-                        className="flex-1"
-                      />
-                      <Input
-                        placeholder="Target field (e.g., candidate_name)"
-                        value={mapping.target_field}
-                        onChange={(e) => updateGlobalFieldMapping(index, 'target_field', e.target.value)}
-                        className="flex-1"
-                      />
-                      <Select
-                        value={mapping.transform || ''}
-                        onValueChange={(value) => updateGlobalFieldMapping(index, 'transform', value || undefined)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Transform" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TRANSFORM_OPTIONS.map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        placeholder="Default value"
-                        value={mapping.default_value || ''}
-                        onChange={(e) => updateGlobalFieldMapping(index, 'default_value', e.target.value)}
-                        className="w-32"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeGlobalFieldMapping(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={addGlobalFieldMapping}
-                    className="mt-2"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Field Mapping
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="events" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Event-Specific Configurations</CardTitle>
-                  <CardDescription>
-                    Configure custom body templates and field mappings for specific events
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+          
+          <div className="flex flex-col lg:flex-row h-[80vh]">
+            {/* Left Panel: Event Selection and Global Settings */}
+            <div className="w-full lg:w-1/3 bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6 border-r border-border flex flex-col">
+              <div className="space-y-6">
+                {/* Global Settings */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-blue-600" />
+                    Global Settings
+                  </h3>
+                  
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border">
+                      <div>
+                        <Label className="text-sm font-medium">Custom Payload</Label>
+                        <p className="text-xs text-muted-foreground">Use custom payload structure</p>
+                      </div>
+                      <Switch
+                        checked={customPayload}
+                        onCheckedChange={setCustomPayload}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border">
+                      <div>
+                        <Label className="text-sm font-medium">Include Metadata</Label>
+                        <p className="text-xs text-muted-foreground">Include webhook metadata</p>
+                      </div>
+                      <Switch
+                        checked={includeMetadata}
+                        onCheckedChange={setIncludeMetadata}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Event Selection */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Layers className="h-5 w-5 text-green-600" />
+                    Event Configurations
+                  </h3>
+                  
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
                     {webhookEvents.map(eventType => {
-                      const config = bodyConfigs[eventType];
-                      const fields = availableFields[eventType] || [];
-                      
+                      const hasConfig = !!bodyConfigs[eventType];
                       return (
-                        <Card key={eventType} className="border-2">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <CardTitle className="text-lg">{eventType}</CardTitle>
-                                <CardDescription>
-                                  {fields.length} available fields
-                                </CardDescription>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {config ? (
-                                  <>
-                                    <Badge variant={config.is_active ? "default" : "secondary"}>
-                                      {config.is_active ? "Active" : "Inactive"}
-                                    </Badge>
-                                    <Switch
-                                      checked={config.is_active}
-                                      onCheckedChange={(checked) => 
-                                        updateEventConfig(eventType, 'is_active', checked)
-                                      }
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => removeEventConfig(eventType)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </>
+                        <div
+                          key={eventType}
+                          className={cn(
+                            "p-3 rounded-lg border cursor-pointer transition-all",
+                            selectedEvent === eventType
+                              ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
+                              : "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700"
+                          )}
+                          onClick={() => setSelectedEvent(eventType)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{eventType}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {hasConfig ? (
+                                  <Badge variant="default" className="text-xs">
+                                    <Code className="h-3 w-3 mr-1" />
+                                    Custom
+                                  </Badge>
                                 ) : (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => addEventConfig(eventType)}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Config
-                                  </Button>
+                                  <Badge variant="outline" className="text-xs">
+                                    Default
+                                  </Badge>
                                 )}
                               </div>
                             </div>
-                          </CardHeader>
-                          
-                          {config && (
-                            <CardContent className="space-y-4">
-                              <div>
-                                <Label>Body Template</Label>
-                                <Textarea
-                                  value={config.body_template}
-                                  onChange={(e) => updateEventConfig(eventType, 'body_template', e.target.value)}
-                                  placeholder='{\n  "event": "{{event}}",\n  "data": {{data}}\n}'
-                                  className="font-mono text-sm mt-1"
-                                  rows={4}
-                                />
-                              </div>
-
-                              <div>
-                                <Label>Field Mappings</Label>
-                                <div className="space-y-2 mt-2">
-                                  {config.field_mappings?.map((mapping, index) => (
-                                    <div key={index} className="flex gap-2">
-                                      <Select
-                                        value={mapping.source_field}
-                                        onValueChange={(value) => 
-                                          updateEventFieldMapping(eventType, index, 'source_field', value)
-                                        }
-                                      >
-                                        <SelectTrigger className="flex-1">
-                                          <SelectValue placeholder="Source field" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {fields.map(field => (
-                                            <SelectItem key={field} value={field}>
-                                              {field}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <Input
-                                        placeholder="Target field"
-                                        value={mapping.target_field}
-                                        onChange={(e) => 
-                                          updateEventFieldMapping(eventType, index, 'target_field', e.target.value)
-                                        }
-                                        className="flex-1"
-                                      />
-                                      <Select
-                                        value={mapping.transform || ''}
-                                        onValueChange={(value) => 
-                                          updateEventFieldMapping(eventType, index, 'transform', value || undefined)
-                                        }
-                                      >
-                                        <SelectTrigger className="w-32">
-                                          <SelectValue placeholder="Transform" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {TRANSFORM_OPTIONS.map(option => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                              {option.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => removeEventFieldMapping(eventType, index)}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => addEventFieldMapping(eventType)}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add Field Mapping
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => previewTemplate(config.body_template, eventType)}
-                                  disabled={previewLoading}
-                                >
-                                  {previewLoading ? (
-                                    <div className="animate-spin h-4 w-4 mr-2" />
-                                  ) : (
-                                    <TestTube className="h-4 w-4 mr-2" />
-                                  )}
-                                  Preview
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(config.body_template)}
-                                >
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Copy Template
-                                </Button>
-                              </div>
-                            </CardContent>
-                          )}
-                        </Card>
+                            <div className="flex items-center gap-1">
+                              {!hasConfig && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addEventConfig(eventType);
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Add custom configuration</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {hasConfig && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeEventConfig(eventType);
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Remove custom configuration</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </div>
+              </div>
+            </div>
 
-            <TabsContent value="preview" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Template Preview</CardTitle>
-                  <CardDescription>
-                    Preview how your webhook payload will look with sample data
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {showPreview && previewData ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Processed Payload</h4>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(JSON.stringify(previewData, null, 2))}
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy JSON
-                        </Button>
-                      </div>
-                      <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
-                        {JSON.stringify(previewData, null, 2)}
-                      </pre>
+            {/* Right Panel: Configuration Editor */}
+            <div className="w-full lg:w-2/3 p-6 flex flex-col">
+              {selectedEvent ? (
+                <div className="space-y-6">
+                  {/* Event Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <Database className="h-5 w-5 text-purple-600" />
+                        {selectedEvent}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Configure payload structure for this event
+                      </p>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <TestTube className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Click "Preview" on any event configuration to see the processed payload</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={generatePreview}
+                        disabled={previewLoading}
+                      >
+                        {previewLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        ) : (
+                          <Eye className="h-4 w-4 mr-1" />
+                        )}
+                        Preview
+                      </Button>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>
+                  <Tabs defaultValue="template" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="template" className="flex items-center gap-2">
+                        <Code className="h-4 w-4" />
+                        Template
+                      </TabsTrigger>
+                      <TabsTrigger value="mappings" className="flex items-center gap-2">
+                        <Palette className="h-4 w-4" />
+                        Field Mappings
+                      </TabsTrigger>
+                      <TabsTrigger value="preview" className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Preview
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Template Tab */}
+                    <TabsContent value="template" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Body Template</CardTitle>
+                          <CardDescription>
+                            Define the JSON structure for the webhook payload. Use placeholders like {{field_name}} for dynamic values.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="body-template" className="text-sm font-medium">Template</Label>
+                              <Textarea
+                                id="body-template"
+                                value={bodyConfigs[selectedEvent]?.body_template || globalBodyTemplate || getDefaultTemplate(selectedEvent)}
+                                onChange={(e) => {
+                                  if (bodyConfigs[selectedEvent]) {
+                                    updateEventConfig(selectedEvent, 'body_template', e.target.value);
+                                  } else {
+                                    setGlobalBodyTemplate(e.target.value);
+                                  }
+                                }}
+                                placeholder="Enter JSON template..."
+                                className="font-mono text-sm min-h-[200px]"
+                              />
+                            </div>
+                            
+                            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                                <div className="text-sm text-blue-700 dark:text-blue-300">
+                                  <p className="font-medium mb-1">Available Placeholders:</p>
+                                  <ul className="space-y-1 text-xs">
+                                    <li><code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded">{"{{event}}"}</code> - Event type</li>
+                                    <li><code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded">{"{{timestamp}}"}</code> - Current timestamp</li>
+                                    <li><code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded">{"{{data}}"}</code> - Event data</li>
+                                    <li><code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded">{"{{webhook_id}}"}</code> - Webhook ID</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Field Mappings Tab */}
+                    <TabsContent value="mappings" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Field Mappings</CardTitle>
+                          <CardDescription>
+                            Map source fields to target fields and apply transformations.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium">Field Mappings</h4>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (bodyConfigs[selectedEvent]) {
+                                    addEventFieldMapping(selectedEvent);
+                                  } else {
+                                    addGlobalFieldMapping();
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Mapping
+                              </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {(bodyConfigs[selectedEvent]?.field_mappings || globalFieldMappings).map((mapping, index) => (
+                                <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
+                                  <div className="flex-1">
+                                    <Label className="text-xs font-medium">Source Field</Label>
+                                    <Input
+                                      value={mapping.source_field}
+                                      onChange={(e) => {
+                                        if (bodyConfigs[selectedEvent]) {
+                                          updateEventFieldMapping(selectedEvent, index, 'source_field', e.target.value);
+                                        } else {
+                                          updateGlobalFieldMapping(index, 'source_field', e.target.value);
+                                        }
+                                      }}
+                                      placeholder="e.g., user.name"
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <Label className="text-xs font-medium">Target Field</Label>
+                                    <Input
+                                      value={mapping.target_field}
+                                      onChange={(e) => {
+                                        if (bodyConfigs[selectedEvent]) {
+                                          updateEventFieldMapping(selectedEvent, index, 'target_field', e.target.value);
+                                        } else {
+                                          updateGlobalFieldMapping(index, 'target_field', e.target.value);
+                                        }
+                                      }}
+                                      placeholder="e.g., name"
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                  <div className="w-32">
+                                    <Label className="text-xs font-medium">Transform</Label>
+                                    <Select
+                                      value={mapping.transform || ''}
+                                      onValueChange={(value) => {
+                                        if (bodyConfigs[selectedEvent]) {
+                                          updateEventFieldMapping(selectedEvent, index, 'transform', value || undefined);
+                                        } else {
+                                          updateGlobalFieldMapping(index, 'transform', value || undefined);
+                                        }
+                                      }}
+                                    >
+                                      <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder="None" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        {TRANSFORM_OPTIONS.map(option => (
+                                          <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (bodyConfigs[selectedEvent]) {
+                                        removeEventFieldMapping(selectedEvent, index);
+                                      } else {
+                                        removeGlobalFieldMapping(index);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+
+                            {availableFields[selectedEvent] && (
+                              <div className="p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                  <Database className="h-4 w-4 text-green-600 mt-0.5" />
+                                  <div className="text-sm text-green-700 dark:text-green-300">
+                                    <p className="font-medium mb-1">Available Fields for {selectedEvent}:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {availableFields[selectedEvent].map(field => (
+                                        <Badge key={field} variant="outline" className="text-xs">
+                                          {field}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Preview Tab */}
+                    <TabsContent value="preview" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Payload Preview</CardTitle>
+                          <CardDescription>
+                            Preview how the webhook payload will look with sample data.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {showPreview && previewData ? (
+                            <div className="space-y-4">
+                              <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
+                                <pre className="text-sm font-mono overflow-x-auto">
+                                  {JSON.stringify(previewData, null, 2)}
+                                </pre>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(JSON.stringify(previewData, null, 2));
+                                    showSuccess('Preview copied to clipboard');
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={generatePreview}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Refresh
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p>Click "Preview" to generate a sample payload</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Select an event to configure its payload</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 py-4 border-t">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={loading}>
-              {loading ? 'Saving...' : 'Save Configuration'}
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Configuration
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 } 

@@ -288,16 +288,7 @@ Table Account {
   }
 }
 
-Table DataModel {
-  id String [pk, note: 'UUID']
-  name String [not null]
-  modelType String [not null]
-  description String [null]
-  schema Json [null]
-  isActive Boolean [default: true]
-  createdAt DateTime [default: `now()`]
-  updatedAt DateTime [note: 'updatedAt']
-}
+
 
 Table SystemPreference {
   id String [pk, note: 'UUID']

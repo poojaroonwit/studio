@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Users, UserCheck, UserX, TrendingUp } from "lucide-react";
 import type { UserProfile } from "@/lib/types";
 import { RecruiterCard } from './RecruiterCard';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 
 interface RecruiterStats {
   totalActivePositions: number;
@@ -28,27 +28,29 @@ interface RecruiterFilterSidebarProps {
 function AllRecruitersCard({ 
   totalPositions, 
   isSelected, 
-  onSelect 
+  onSelect,
+  personalColor
 }: { 
   totalPositions: number; 
   isSelected: boolean; 
-  onSelect: () => void; 
+  onSelect: () => void;
+  personalColor: string;
 }) {
   return (
     <div 
       className={cn(
         "group cursor-pointer transition-all duration-300 ease-out",
         "relative overflow-hidden rounded-xl border-2",
-        "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
         "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
         isSelected ? [
-          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
-          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
-        ] : [
-          "border-gray-300 dark:border-gray-600",
-          "hover:border-gray-400 dark:hover:border-gray-500"
-        ]
+          "shadow-lg ring-2 ring-offset-2"
+        ] : []
       )}
+      style={{
+        borderColor: personalColor,
+        backgroundColor: undefined,
+        boxShadow: isSelected ? `0 10px 15px -3px ${personalColor}20, 0 4px 6px -4px ${personalColor}20` : undefined,
+      }}
       onClick={onSelect}
     >
       {/* Subtle gradient overlay */}
@@ -56,18 +58,20 @@ function AllRecruitersCard({
       
       <div className="relative p-3">
         {/* Modern Header */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           {/* Enhanced Icon with Background */}
           <div className="relative">
             <div className={cn(
               "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
-              "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500",
               "flex items-center justify-center",
               "group-hover:shadow-xl group-hover:ring-blue-500/20 transition-all duration-300"
-            )}>
+            )}
+            style={{
+              backgroundColor: personalColor,
+              boxShadow: `0 4px 6px -1px ${personalColor}25`
+            }}>
               <UserCheck className="h-4 w-4 text-white" />
             </div>
-
           </div>
           
           {/* Name and Selection */}
@@ -82,7 +86,10 @@ function AllRecruitersCard({
           
           {/* Selection Indicator */}
           {isSelected && (
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <div 
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: personalColor }}
+            />
           )}
         </div>
       </div>
@@ -94,27 +101,29 @@ function AllRecruitersCard({
 function UnassignedPositionsCard({ 
   unassignedPositions, 
   isSelected, 
-  onSelect 
+  onSelect,
+  personalColor
 }: { 
   unassignedPositions: number; 
   isSelected: boolean; 
-  onSelect: () => void; 
+  onSelect: () => void;
+  personalColor: string;
 }) {
   return (
     <div 
       className={cn(
         "group cursor-pointer transition-all duration-300 ease-out",
         "relative overflow-hidden rounded-xl border-2",
-        "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
         "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
         isSelected ? [
-          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
-          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
-        ] : [
-          "border-gray-300 dark:border-gray-600",
-          "hover:border-gray-400 dark:hover:border-gray-500"
-        ]
+          "shadow-lg ring-2 ring-offset-2"
+        ] : []
       )}
+      style={{
+        borderColor: personalColor,
+        backgroundColor: undefined,
+        boxShadow: isSelected ? `0 10px 15px -3px ${personalColor}20, 0 4px 6px -4px ${personalColor}20` : undefined,
+      }}
       onClick={onSelect}
     >
       {/* Subtle gradient overlay */}
@@ -122,24 +131,26 @@ function UnassignedPositionsCard({
       
       <div className="relative p-3">
         {/* Modern Header */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           {/* Enhanced Icon with Background */}
           <div className="relative">
             <div className={cn(
               "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
-              "bg-gradient-to-br from-gray-500 to-gray-600 dark:from-gray-400 dark:to-gray-500",
               "flex items-center justify-center",
               "group-hover:shadow-xl group-hover:ring-gray-500/20 transition-all duration-300"
-            )}>
+            )}
+            style={{
+              backgroundColor: personalColor,
+              boxShadow: `0 4px 6px -1px ${personalColor}25`
+            }}>
               <UserX className="h-4 w-4 text-white" />
             </div>
-
           </div>
           
           {/* Name and Selection */}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-              Unassigned
+              No recruiter assign
             </h3>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {unassignedPositions} unassigned position{unassignedPositions !== 1 ? 's' : ''}
@@ -148,7 +159,10 @@ function UnassignedPositionsCard({
           
           {/* Selection Indicator */}
           {isSelected && (
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <div 
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: personalColor }}
+            />
           )}
         </div>
       </div>
@@ -161,17 +175,21 @@ export function RecruiterFilterSidebar({
   onRecruiterSelect, 
   recruiterStats 
 }: RecruiterFilterSidebarProps) {
+  const { data: session } = useSession();
   const [recruitersWithStats, setRecruitersWithStats] = useState<RecruiterWithStats[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [totalStats, setTotalStats] = useState({
     totalRecruiters: 0,
     totalPositions: 0,
     totalCandidates: 0,
     unassignedPositions: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchRecruiterStatistics = async (recruiterId: string): Promise<RecruiterStats> => {
+  // Get current user's personal color
+  const currentUserPersonalColor = session?.user?.personalColor || '#3B82F6';
+
+  const fetchRecruiterStatistics = async (recruiterId: string) => {
     try {
       // Fetch positions for recruiter
       const positionsResponse = await fetch(`/api/positions?recruiterId=${recruiterId}&includeStats=true`);
@@ -295,13 +313,13 @@ export function RecruiterFilterSidebar({
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="space-y-3 pr-2">
+        <div className="space-y-3 pr-2">
             {/* All Recruiters Option */}
             <AllRecruitersCard
               totalPositions={totalStats.totalPositions}
               isSelected={selectedRecruiterId === null}
               onSelect={() => handleRecruiterClick(null)}
+              personalColor={currentUserPersonalColor}
             />
 
             {/* Unassigned Positions */}
@@ -309,6 +327,7 @@ export function RecruiterFilterSidebar({
               unassignedPositions={totalStats.unassignedPositions}
               isSelected={selectedRecruiterId === 'unassigned'}
               onSelect={() => handleRecruiterClick('unassigned')}
+              personalColor={currentUserPersonalColor}
             />
 
             {/* Individual Recruiter Cards */}
@@ -318,15 +337,15 @@ export function RecruiterFilterSidebar({
                 recruiter={{
                   id: recruiter.id,
                   name: recruiter.name,
-                  avatar: recruiter.avatarUrl
+                  avatar: recruiter.avatarUrl,
+                  personalColor: recruiter.personalColor
                 }}
                 stats={recruiter.stats}
                 isSelected={selectedRecruiterId === recruiter.id}
                 onSelect={handleRecruiterClick}
               />
             ))}
-          </div>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

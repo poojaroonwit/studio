@@ -99,15 +99,11 @@ export async function withDbTransaction<T>(
   }
 }
 
-// Returns a deduplicated array of all permissions for a user (direct + group)
+// Returns permissions for a user from their assigned groups only
 export async function getMergedUserPermissions(userId: string): Promise<string[]> {
   const client = await getPool().connect();
   try {
-    // Get direct permissions
-    const userRes = await client.query('SELECT "modulePermissions" FROM "User" WHERE id = $1', [userId]);
-    const direct = (userRes.rows[0]?.modulePermissions || []) as string[];
-
-    // Get group permissions
+    // Get group permissions only
     const groupRes = await client.query(`
       SELECT array_agg(DISTINCT perm) AS group_permissions
       FROM (
@@ -119,8 +115,8 @@ export async function getMergedUserPermissions(userId: string): Promise<string[]
     `, [userId]);
     const group = (groupRes.rows[0]?.group_permissions || []) as string[];
 
-    // Merge and deduplicate
-    return Array.from(new Set([...(direct || []), ...(group || [])]));
+    // Return only group permissions (no direct permissions)
+    return group || [];
   } finally {
     client.release();
   }

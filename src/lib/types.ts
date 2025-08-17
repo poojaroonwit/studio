@@ -32,6 +32,8 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   { id: 'CANDIDATES_RESUMES', label: 'Manage Candidate Resumes', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows uploading and managing candidate resumes and attachments." },
   { id: 'CANDIDATES_TRANSITIONS', label: 'Manage Candidate Transitions', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows changing candidate status and managing recruitment pipeline transitions." },
   { id: 'CANDIDATES_RECRUITER_ASSIGN', label: 'Assign Recruiters', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows assigning candidates to recruiters." },
+  { id: 'TASK_BOARD_VIEW', label: 'View Task Board', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing the task board for managing candidate tasks and workflow." },
+  { id: 'TASK_BOARD_MANAGE_ALL', label: 'Manage All Tasks', category: PLATFORM_MODULE_CATEGORIES.CANDIDATE_MANAGEMENT, description: "Allows viewing and managing tasks for all recruiters (Admin functionality)." },
   
   // Position Management
   { id: 'POSITIONS_VIEW', label: 'View Positions', category: PLATFORM_MODULE_CATEGORIES.POSITION_MANAGEMENT, description: "Allows viewing job position details and lists." },
@@ -42,7 +44,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
   // User Access Control
   { id: 'USERS_MANAGE', label: 'Manage Users', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows managing user accounts and their direct permissions (typically Admin only)." },
   { id: 'USER_GROUPS_MANAGE', label: 'Manage Roles (Groups)', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows managing user groups (roles) and their assigned permissions." },
-  { id: 'API_KEYS_MANAGE', label: 'Manage API Keys', category: PLATFORM_MODULE_CATEGORIES.USER_ACCESS_CONTROL, description: "Allows generating and managing API keys for system integration." },
+
   
   // System Configuration
   { id: 'SYSTEM_SETTINGS_MANAGE', label: 'Manage System Preferences', category: PLATFORM_MODULE_CATEGORIES.SYSTEM_CONFIGURATION, description: "Allows managing global system settings like App Name, Logo." },
@@ -83,6 +85,8 @@ declare module 'next-auth' {
       id: string;
       role?: UserProfile['role'];
       modulePermissions?: PlatformModuleId[];
+      avatarUrl?: string | null;
+      personalColor?: string | null;
     } & DefaultUser; // DefaultUser includes name, email, image
   }
 
@@ -90,6 +94,8 @@ declare module 'next-auth' {
     id: string;
     role?: UserProfile['role'];
     modulePermissions?: PlatformModuleId[];
+    avatarUrl?: string | null;
+    personalColor?: string | null;
   }
 }
 
@@ -322,6 +328,29 @@ export interface UserGroup { // This is now "Role" in the UI
   updatedAt?: string;
 }
 
+export interface UserTeam {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string;
+  isActive: boolean;
+  member_count?: number; // For API response
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CandidateSource {
+  id: string;
+  name: string;
+  description?: string | null;
+  logo?: string | null;
+  allowSubSource: boolean;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Candidate {
   id: string;
   name: string;
@@ -338,6 +367,9 @@ export interface Candidate {
   applicationDate: string;
   recruiterId?: string | null;
   recruiter?: Pick<UserProfile, 'id' | 'name' | 'email'> | null;
+  sourceId?: string | null;
+  source?: CandidateSource | null;
+  subSource?: string | null;
   customAttributes?: Record<string, any> | null;
   assignmentJustification?: string | null;
   createdAt?: string;
@@ -391,11 +423,11 @@ export interface UserProfile {
   email: string;
   avatarUrl?: string;
   dataAiHint?: string;
+  personalColor?: string;
   role: 'Admin' | 'Recruiter' | 'Hiring Manager';
   password?: string;
   authenticationMethod?: 'basic' | 'azure';
-  modulePermissions?: PlatformModuleId[];
-  groups?: UserGroup[]; // User can belong to multiple groups
+  teams?: UserTeam[]; // User can belong to multiple teams
   createdAt?: string;
   updatedAt?: string;
 }
@@ -422,21 +454,7 @@ export interface AttributePreference {
   customNote: string;
 }
 
-export interface UserDataModelPreference {
-  id?: string; // DB id
-  userId: string;
-  modelType: 'Candidate' | 'Position'; // Which model this preference is for
-  attributeKey: string; // e.g., 'name', 'parsedData.personal_info.location'
-  uiPreference: UIDisplayPreference;
-  customNote?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
 
-export interface DataModelPreferences { // Used on client-side, potentially loaded from server
-  candidateAttributes: Record<string, Partial<Pick<UserDataModelPreference, 'uiPreference' | 'customNote'>>>;
-  positionAttributes: Record<string, Partial<Pick<UserDataModelPreference, 'uiPreference' | 'customNote'>>>;
-}
 
 
 
@@ -454,18 +472,46 @@ export type CustomFieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'date
 export const CUSTOM_FIELD_TYPES: CustomFieldType[] = ['text', 'textarea', 'number', 'boolean', 'date', 'select_single', 'select_multiple'];
 
 export interface CustomFieldOption {
+  id?: string;
   value: string;
   label: string;
+  color?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
 export interface CustomFieldDefinition {
   id: string;
-  model_name: 'Candidate' | 'Position';
+  model_name: 'Candidate' | 'Position' | 'User' | 'Headcount';
   field_key: string;
+  field_code: string;
   label: string;
   field_type: CustomFieldType;
   options?: CustomFieldOption[] | null;
   is_required?: boolean;
   sort_order?: number;
+  
+  // Enhanced custom attribute fields
+  attributeCode?: string;
+  attributeLabel?: string;
+  
+  // Role permissions - using role IDs (UUIDs)
+  viewRoles?: string[];
+  editRoles?: string[];
+  
+  // Visibility settings
+  showInFilter?: boolean;
+  showInCandidateDetail?: boolean;
+  showInFullCandidateDetail?: boolean;
+  showInTaskBoardFilter?: boolean;
+  showInPositionSettings?: boolean;
+  showInHeadcountDetail?: boolean;
+  
+  // For select/multiselect fields
+  allowCustomOptions?: boolean;
+  
   createdAt?: string;
   updatedAt?: string;
 }
@@ -489,11 +535,8 @@ export type SystemSettingKey =
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'
-  | 'resumeProcessingWebhookTimeout'
+
   | 'preventDuplicateWebhookProcessing'
-  | 'generalPdfWebhookUrl'
-  | 'generalPdfWebhookToken'
-  | 'generalPdfWebhookResponseMode'
   | 'geminiApiKey'
   | 'loginPageBackgroundType'
   | 'loginPageBackgroundImageUrl'
@@ -523,9 +566,7 @@ export type SystemSettingKey =
   | 'appFontFamily'
   | 'loginPageContent'
   | 'loginPageFooter'
-  | 'maxConcurrentProcessors'
-  | 'manualLink'
-  | 'manualType';
+  | 'maxConcurrentProcessors';
 
 
 export interface SystemSetting {
@@ -576,15 +617,95 @@ export interface PositionBulkActionPayload {
   newIsOpenStatus?: boolean; // For 'change_status'
 }
 
-export interface DataModel {
-  id: string;
-  name: string;
-  modelType: string;
-  description?: string;
-  schema?: any;
-  isActive: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+
 
 export type positionLevel = string;
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatarUrl?: string;
+  image?: string;
+  dataAiHint?: string;
+  personalColor?: string;
+  authenticationMethod?: string;
+  forcePasswordChange?: boolean;
+  emailVerified?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  azure_oid?: string;
+}
+
+export interface CreateUserRequest {
+  name: string;
+  email: string;
+  role: string;
+  password?: string;
+  groupIds?: string[];
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  email?: string;
+  role?: string;
+  password?: string;
+  groupIds?: string[];
+}
+
+// Headcount types
+export type HeadcountType = 'promote' | 'new' | 'replace';
+export type HeadcountStatus = 'vacant' | 'filled';
+
+export interface Headcount {
+  id: string;
+  positionId: string;
+  type: HeadcountType;
+  status: HeadcountStatus;
+  candidateId?: string | null;
+  onboardingDate?: string | null;
+  notes?: string | null;
+  memoId?: string | null;
+  customFields?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  position?: Position;
+  candidate?: Candidate;
+  attachments?: Attachment[];
+}
+
+export interface CreateHeadcountRequest {
+  positionId: string;
+  type: HeadcountType;
+  status?: HeadcountStatus;
+  candidateId?: string | null;
+  onboardingDate?: string | null;
+  notes?: string | null;
+  memoId?: string | null;
+  customFields?: Record<string, any>;
+}
+
+export interface UpdateHeadcountRequest {
+  type?: HeadcountType;
+  status?: HeadcountStatus;
+  candidateId?: string | null;
+  onboardingDate?: string | null;
+  notes?: string | null;
+  memoId?: string | null;
+  customFields?: Record<string, any>;
+}
+
+export interface Attachment {
+  id: string;
+  candidateId?: string | null;
+  headcountId?: string | null;
+  uploadedById: string;
+  filePath: string;
+  fileName: string;
+  label: string;
+  isPrimary: boolean;
+  uploadedAt: string;
+  updatedAt: string;
+  uploadedBy?: User;
+}

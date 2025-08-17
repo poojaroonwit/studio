@@ -91,22 +91,14 @@ export default function SystemStatusPage() {
       details: "The NEXTAUTH_SECRET environment variable must be set on the server for NextAuth.js to function securely for session management.",
       icon: KeyRound,
     },
-    {
-      id: "automation_resume_webhook_env_var",
-      name: "Resume Processing Webhook (Server-Side)",
-      status: 'info',
-      message: "Expected: Configured if resume processing automation is used. Relies on server-side RESUME_PROCESSING_WEBHOOK_URL.",
-      details: "For resume uploads to trigger automation workflows, the RESUME_PROCESSING_WEBHOOK_URL environment variable must be set on the server. This is used by the /api/resumes/upload endpoint.",
-      icon: Zap,
-    },
-    {
-      id: "automation_generic_pdf_webhook_env_var",
-      name: "Generic PDF Webhook (Server-Side)",
-      status: 'info',
-      message: "Expected: Configured if generic PDF to candidate creation is used. Relies on GENERAL_PDF_WEBHOOK_URL.",
-      details: "For the 'Create via Resume (Automated)' feature on the Candidates page to create new candidates from PDFs, the GENERAL_PDF_WEBHOOK_URL environment variable must be set on the server.",
-      icon: Zap,
-    },
+         {
+       id: "automation_resume_webhook_env_var",
+       name: "PDF Processing Webhook (Server-Side)",
+       status: 'info',
+       message: "Expected: Configured if PDF processing automation is used. Relies on server-side RESUME_PROCESSING_WEBHOOK_URL.",
+       details: "For all PDF processing including resume uploads and the 'Create via Resume (Automated)' feature, the RESUME_PROCESSING_WEBHOOK_URL environment variable must be set on the server. This unified webhook handles all PDF processing workflows.",
+       icon: Zap,
+     },
   ];
 
   const updateStatusItem = (id: string, updates: Partial<StatusItem>) => {

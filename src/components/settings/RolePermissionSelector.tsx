@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,6 +16,7 @@ interface RolePermissionSelectorProps {
   description?: string;
   disabled?: boolean;
   className?: string;
+  noCard?: boolean;
 }
 
 // Group permissions by category for display
@@ -31,7 +31,8 @@ export function RolePermissionSelector({
   title = "Permission Selection",
   description = "Choose which permissions should be granted to this role.",
   disabled = false,
-  className
+  className,
+  noCard = false
 }: RolePermissionSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -90,20 +91,22 @@ export function RolePermissionSelector({
     )
   })).filter(group => group.permissions.length > 0);
 
-  return (
-    <Card className={cn("border border-border shadow-sm", className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center space-x-2 text-lg">
-          <div className="w-3 h-3 bg-primary rounded-full"></div>
-          <span>{title}</span>
-        </CardTitle>
-        <CardDescription>
-          {description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
+  const content = (
+    <>
+      {!noCard && (
+        <CardHeader className="pb-3 flex-shrink-0">
+          <CardTitle className="flex items-center space-x-2 text-lg">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span>{title}</span>
+          </CardTitle>
+          <CardDescription>
+            {description}
+          </CardDescription>
+        </CardHeader>
+      )}
+      <div className={cn("p-0 flex-1 overflow-hidden flex flex-col min-h-0", noCard ? "pt-0" : "")}>
         {/* Quick Selection Controls */}
-        <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+        <div className="flex items-center justify-between p-4 border-b bg-muted/30 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <Button
               type="button"
@@ -132,7 +135,7 @@ export function RolePermissionSelector({
         </div>
 
         {/* Search Input */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex-shrink-0">
           <div className="relative">
             <Input
               placeholder="Search permissions..."
@@ -150,11 +153,11 @@ export function RolePermissionSelector({
         </div>
 
         {/* Scrollable Permission Groups */}
-        <div className="h-[400px] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {filteredGroupedPermissions.map(({ category, permissions }) => (
             <div key={category} className="border-b border-border last:border-b-0">
               {/* Category Header */}
-              <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-10">
+              <div className="sticky top-0 bg-background border-b border-border/50 px-4 py-2 z-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <h4 className="text-sm font-semibold text-foreground capitalize">
@@ -229,7 +232,7 @@ export function RolePermissionSelector({
 
         {/* Selected Permissions Summary */}
         {selectedPermissions.length > 0 && (
-          <div className="p-4 border-t bg-muted/20">
+          <div className="p-4 border-t bg-muted/20 flex-shrink-0">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <p className="text-sm font-medium text-green-600 dark:text-green-400">
@@ -257,7 +260,21 @@ export function RolePermissionSelector({
             </div>
           </div>
         )}
-      </CardContent>
+      </div>
+    </>
+  );
+
+  if (noCard) {
+    return (
+      <div className={cn("flex flex-col h-full", className)}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Card className={cn("border border-border shadow-sm flex flex-col h-full", className)}>
+      {content}
     </Card>
   );
 } 

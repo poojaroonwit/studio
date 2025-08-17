@@ -4,11 +4,13 @@ This document provides comprehensive documentation for the V1 API endpoints.
 
 ## Authentication
 
-All V1 API endpoints require Bearer token authentication. Include the token in the Authorization header:
+All V1 API endpoints require JWT Bearer token authentication. First, authenticate using the login endpoint to receive a JWT token, then include the token in the Authorization header:
 
 ```
-Authorization: Bearer <your-token>
+Authorization: Bearer <your-jwt-token>
 ```
+
+**Note:** The V1 API uses JWT-based authentication only. API keys are no longer supported. All authentication is handled through the `/api/v1/auth/login` endpoint.
 
 ## Base URL
 
@@ -935,6 +937,254 @@ Update resume information.
 #### DELETE `/api/v1/candidates/{id}/resumes`
 Delete a resume.
 
+### Recruitment Stages
+
+#### GET `/api/v1/recruitment-stages`
+Get all recruitment stages for filtering and display.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "stage-uuid",
+      "name": "Applied",
+      "description": "Candidate has applied",
+      "sort_order": 1,
+      "color_complete": "#4CAF50",
+      "color_badge": "#2E7D32",
+      "is_system": true
+    }
+  ]
+}
+```
+
+### AI Search
+
+#### POST `/api/v1/ai/search-candidates`
+Search candidates using AI-powered semantic search.
+
+**Request Body:**
+```json
+{
+  "query": "software engineer with React experience",
+  "positionId": "position-uuid",
+  "limit": 20,
+  "offset": 0
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "candidate-uuid",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "phone": "+1234567890",
+      "status": "Applied",
+      "fitScore": 85,
+      "matchReasons": ["React experience", "Software engineering background"],
+      "parsedData": {}
+    }
+  ],
+  "total": 1,
+  "query": "software engineer with React experience"
+}
+```
+
+### Dashboard
+
+#### GET `/api/v1/dashboard`
+Get dashboard statistics and metrics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "candidates": {
+      "total": 150,
+      "new": 25,
+      "inProgress": 45,
+      "hired": 15,
+      "rejected": 65
+    },
+    "positions": {
+      "total": 25,
+      "open": 18,
+      "closed": 7
+    },
+    "applications": {
+      "total": 300,
+      "thisMonth": 45,
+      "lastMonth": 38
+    },
+    "recruiters": {
+      "total": 8,
+      "active": 6
+    },
+    "recentActivity": [
+      {
+        "id": "activity-uuid",
+        "type": "candidate_created",
+        "message": "New candidate John Doe added",
+        "timestamp": "2024-01-01T00:00:00.000Z",
+        "userId": "user-uuid",
+        "userName": "Jane Smith"
+      }
+    ]
+  }
+}
+```
+
+### System Logs
+
+#### GET `/api/v1/logs`
+Get system logs with pagination and filtering. Requires Admin role or LOGS_VIEW permission.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20)
+- `level` (optional): Filter by log level (info, warning, error)
+- `startDate` (optional): Filter from date (YYYY-MM-DD)
+- `endDate` (optional): Filter until date (YYYY-MM-DD)
+- `userId` (optional): Filter by user ID
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "log-uuid",
+      "level": "info",
+      "message": "User logged in successfully",
+      "details": { "ip": "192.168.1.1" },
+      "userId": "user-uuid",
+      "userName": "John Doe",
+      "actionType": "LOGIN",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
+  }
+}
+```
+
+### Candidate Transitions
+
+#### GET `/api/v1/transitions`
+Get candidate stage transitions with optional filtering.
+
+**Query Parameters:**
+- `candidateId` (optional): Filter by candidate ID
+- `limit` (optional): Items per page (default: 20)
+- `offset` (optional): Offset for pagination (default: 0)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "transition-uuid",
+      "candidateId": "candidate-uuid",
+      "fromStageId": "stage-uuid-1",
+      "toStageId": "stage-uuid-2",
+      "fromStageName": "Applied",
+      "toStageName": "Interview",
+      "notes": "Candidate passed initial screening",
+      "transitionDate": "2024-01-01T00:00:00.000Z",
+      "createdBy": "user-uuid",
+      "createdByName": "John Doe",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+#### POST `/api/v1/transitions`
+Create a new candidate stage transition.
+
+**Request Body:**
+```json
+{
+  "candidateId": "candidate-uuid",
+  "fromStageId": "stage-uuid-1",
+  "toStageId": "stage-uuid-2",
+  "notes": "Candidate passed initial screening",
+  "transitionDate": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Transition created successfully",
+  "data": {
+    "id": "transition-uuid",
+    "candidateId": "candidate-uuid",
+    "fromStageId": "stage-uuid-1",
+    "toStageId": "stage-uuid-2",
+    "notes": "Candidate passed initial screening",
+    "transitionDate": "2024-01-01T00:00:00.000Z",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### System Settings
+
+#### GET `/api/v1/settings`
+Get system settings and configuration. Requires Admin role.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "systemSettings": {
+      "defaultMatchCriteria": {
+        "minScore": 70,
+        "requiredSkills": ["JavaScript", "React"]
+      },
+      "emailSettings": {
+        "smtpHost": "smtp.example.com",
+        "smtpPort": 587
+      },
+      "fileUploadSettings": {
+        "maxFileSize": 10485760,
+        "allowedTypes": ["pdf", "doc", "docx"]
+      }
+    },
+    "userPreferences": {
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC"
+    },
+    "customFields": [
+      {
+        "id": "field-uuid",
+        "name": "Preferred Location",
+        "type": "select",
+        "isRequired": false,
+        "options": ["Remote", "On-site", "Hybrid"]
+      }
+    ]
+  }
+}
+```
+
 ## Error Responses
 
 All endpoints return consistent error responses:
@@ -985,6 +1235,7 @@ Module permissions include:
 - `POSITIONS_EXPORT`: Export positions
 - `USERS_VIEW`: View users
 - `USERS_MANAGE`: Create, update, delete users
+- `LOGS_VIEW`: View system logs (Admin role also has access)
 
 ## API Documentation
 

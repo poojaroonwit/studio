@@ -132,7 +132,7 @@ export default async function DashboardPageServer() {
         email: row.email,
         role: row.role,
         avatarUrl: row.avatarUrl,
-        modulePermissions: row.modulePermissions || [],
+
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
       }));

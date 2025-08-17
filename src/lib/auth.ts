@@ -141,8 +141,8 @@ export const authOptions: NextAuthOptions = {
               const isValid = await bcrypt.compare(credentials.password, user.password);
               // console.log('[AUTH DEBUG] bcrypt.compare result:', isValid);
               if (isValid) {
-                // Fetch merged permissions (direct + group)
-                const mergedPermissions = await getMergedUserPermissions(user.id) as PlatformModuleId[];
+                // Fetch group permissions only
+                const groupPermissions = await getMergedUserPermissions(user.id) as PlatformModuleId[];
                 // Return a user object, omitting the password
                 return {
                   id: user.id,
@@ -150,7 +150,7 @@ export const authOptions: NextAuthOptions = {
                   email: user.email,
                   role: user.role,
                   image: user.image,
-                  modulePermissions: mergedPermissions,
+                  modulePermissions: groupPermissions,
                 };
               }
             }
@@ -181,7 +181,7 @@ export const authOptions: NextAuthOptions = {
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
-          token.modulePermissions = user.modulePermissions as PlatformModuleId[];
+          token.modulePermissions = user.module_permissions as PlatformModuleId[];
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
         if (typeof token.id === "string" && !isUuid(token.id)) {
@@ -199,12 +199,12 @@ export const authOptions: NextAuthOptions = {
             client.release();
           }
         }
-        // Always fetch fresh merged permissions if token.id is a UUID
+        // Always fetch fresh group permissions if token.id is a UUID
         if (typeof token.id === 'string' && isUuid(token.id)) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
           } catch (e) {
-            console.error('[JWT CALLBACK] Error fetching module permissions:', e);
+            console.error('[JWT CALLBACK] Error fetching group permissions:', e);
             token.modulePermissions = [];
           }
         }
@@ -215,6 +215,31 @@ export const authOptions: NextAuthOptions = {
           session.user.id = token.id as string;
           session.user.role = token.role as UserProfile['role'];
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[];
+          
+          // Fetch user data including avatarUrl and personalColor from database
+          if (token.id) {
+            try {
+              const client = await getPool().connect();
+              try {
+                const result = await client.query(
+                  'SELECT "avatarUrl", "image", "personal_color" FROM "User" WHERE id = $1',
+                  [token.id]
+                );
+                if (result.rows.length > 0) {
+                  const userData = result.rows[0];
+                  // Add avatarUrl to session (avatarUrl takes precedence over image)
+                  session.user.avatarUrl = userData.avatarUrl || userData.image || null;
+                  // Add personalColor to session (map from snake_case to camelCase)
+                  session.user.personalColor = userData.personal_color || null;
+                }
+              } finally {
+                client.release();
+              }
+            } catch (error) {
+              console.error('[SESSION CALLBACK] Error fetching user data:', error);
+              // Don't fail the session if data fetch fails
+            }
+          }
         }
         return session;
       },
@@ -253,6 +278,18 @@ export const authOptions: NextAuthOptions = {
                       // After creating user, fetch it to get the ID
                       res = await client.query('SELECT * FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile.email, oid]);
                       dbUser = res.rows[0];
+                      
+                      // Assign the new user to the Recruiter group by default
+                      try {
+                          await client.query(
+                              'INSERT INTO "User_UserGroup" ("userId", "groupId") VALUES ($1, $2) ON CONFLICT ("userId", "groupId") DO NOTHING',
+                              [dbUser.id, '00000000-0000-0000-0000-000000000002'] // Recruiter group ID
+                          );
+                          await logAudit('AUDIT', `User '${profile.name}' assigned to Recruiter group via Azure AD SSO.`, 'Auth:SignIn', dbUser.id);
+                      } catch (groupError) {
+                          console.error('[AZURE AD SIGNIN] Error assigning user to Recruiter group:', groupError);
+                          // Don't fail the sign-in if group assignment fails
+                      }
                   }
                   
                   // Use the user's actual ID (either existing or newly created)

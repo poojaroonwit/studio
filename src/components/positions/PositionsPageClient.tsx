@@ -37,16 +37,26 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@/components/ui/command';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronsUpDown, Check, UserX, User } from 'lucide-react';
+import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
+import { useUserPreferences } from '@/hooks/use-user-preferences';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+
 
 export default function PositionsPageClient() {
+  // Use persistent user preferences
+  const { 
+    positions: preferences, 
+    updatePositionsPreferences, 
+    resetPositionsPreferences,
+    isLoaded 
+  } = useUserPreferences();
+
   // All useState hooks first
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
+  const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
@@ -57,24 +67,49 @@ export default function PositionsPageClient() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(preferences.pageSize);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
   const [allDepartments, setAllDepartments] = useState<string[]>([]);
-  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(null);
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(preferences.selectedRecruiterId);
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
-  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string}[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
+  
+  // Real-time collaboration hook
+  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+    onPositionUpdate: (updatedPosition) => {
+      setPositions(prevPositions => {
+        const existingIndex = prevPositions.findIndex(p => p.id === updatedPosition.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevPositions];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedPosition };
+          return updated;
+        } else {
+          return [...prevPositions, updatedPosition];
+        }
+      });
+    },
+    onPositionListUpdate: () => {
+      // Refresh the entire position list
+      fetchPositions();
+    },
+    onPositionStatisticsUpdate: (updatedStatistics) => {
+      setStatistics(updatedStatistics);
+    }
+  });
+  
   // Debounce/search refs
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchStuckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // statusFilter: initialize from URL only on first render
+  // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
+    // First check URL parameters (for navigation from dashboard)
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const statusParam = searchParams.get('status');
@@ -90,7 +125,8 @@ export default function PositionsPageClient() {
         }
       }
     }
-    return 'all';
+    // Fall back to preferences
+    return preferences.statusFilter as 'all' | 'open' | 'closed';
   });
 
   // Sync statusFilter with URL changes (for navigation from dashboard)
@@ -112,6 +148,38 @@ export default function PositionsPageClient() {
       setStatusFilter(newStatus);
     }
   }, [typeof window !== 'undefined' ? window.location.search : '']);
+
+  // Update local state when preferences are loaded
+  useEffect(() => {
+    if (isLoaded) {
+      setSearchTerm(preferences.searchTerm);
+      setDepartmentFilter(preferences.departmentFilter);
+      setPageSize(preferences.pageSize);
+      setSelectedRecruiterId(preferences.selectedRecruiterId);
+      // Only update statusFilter if no URL parameters are present
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
+        const statusParam = searchParams.get('status');
+        const queryParam = searchParams.get('query');
+        if (!statusParam && !queryParam) {
+          setStatusFilter(preferences.statusFilter as 'all' | 'open' | 'closed');
+        }
+      }
+    }
+  }, [isLoaded, preferences.searchTerm, preferences.departmentFilter, preferences.pageSize, preferences.selectedRecruiterId, preferences.statusFilter]);
+
+  // Update preferences when local state changes
+  useEffect(() => {
+    if (isLoaded) {
+      updatePositionsPreferences({
+        searchTerm,
+        departmentFilter,
+        statusFilter,
+        selectedRecruiterId,
+        pageSize,
+      });
+    }
+  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded, updatePositionsPreferences]);
 
   // Department filter popover state
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -427,7 +495,11 @@ export default function PositionsPageClient() {
       stats.unassigned = 0; // Initialize unassigned count
       
       // Set available recruiters for dropdown
-      setAvailableRecruiters(recruitersData.map((r: any) => ({ id: r.id, name: r.name })));
+      setAvailableRecruiters(recruitersData.map((r: any) => ({ 
+        id: r.id, 
+        name: r.name, 
+        avatarUrl: r.avatarUrl 
+      })));
       
       // Then get all positions to count them
       const query = new URLSearchParams();
@@ -790,7 +862,7 @@ export default function PositionsPageClient() {
       <div className="flex flex-1 overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <div className="w-80 flex-shrink-0 border-r border-border bg-background">
-          <div className="h-full overflow-y-auto p-4">
+          <div className="h-full overflow-hidden p-4">
             <RecruiterFilterSidebar
               selectedRecruiterId={selectedRecruiterId}
               onRecruiterSelect={handleRecruiterSelect}
@@ -800,7 +872,7 @@ export default function PositionsPageClient() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           <div className="p-6 space-y-6">
           {/* Filters on top */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -870,7 +942,7 @@ export default function PositionsPageClient() {
                         </div>
                         <CommandList>
                         
-                          <div className="max-h-[200px] overflow-auto p-1">
+                          <div className="max-h-[200px] p-1">
                             <div
                               className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                               onClick={() => handleDepartmentSelect('all')}
@@ -1089,7 +1161,7 @@ export default function PositionsPageClient() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-background">
+        <div className="rounded-lg border border-border bg-background">
           
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (

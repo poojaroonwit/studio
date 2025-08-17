@@ -16,7 +16,7 @@ const customFieldOptionSchemaClient = z.object({
 });
 
 const customFieldFormSchema = z.object({
-  model_name: z.enum(['Candidate', 'Position'], { required_error: "Model is required" }),
+  model_name: z.enum(['Candidate', 'Position', 'User', 'Headcount'], { required_error: "Model is required" }),
   field_key: z.string().min(1, "Field key is required").regex(/^[a-z0-9_]+$/, "Key must be lowercase alphanumeric with underscores."),
   label: z.string().min(1, "Label is required"),
   field_type: z.enum(CUSTOM_FIELD_TYPES as [CustomFieldType, ...CustomFieldType[]], { required_error: "Field type is required" }),
@@ -104,6 +104,8 @@ const CustomFieldForm: React.FC<CustomFieldFormProps> = ({ open, definition, onC
               <select {...form.register('model_name')} className="w-full border rounded p-2 bg-background">
                 <option value="Candidate">Candidate</option>
                 <option value="Position">Position</option>
+                <option value="User">User</option>
+                <option value="Headcount">Headcount</option>
               </select>
               {form.formState.errors.model_name && <span className="text-red-500 text-xs">{form.formState.errors.model_name.message as string}</span>}
             </div>

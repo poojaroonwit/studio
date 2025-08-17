@@ -141,7 +141,9 @@ export function TiptapEditor({
         "p-6 font-sans text-base text-foreground bg-background transition-colors overflow-y-auto",
         className?.includes('fullscreen') 
           ? "min-h-[60vh] max-h-[60vh]" 
-          : "min-h-[200px] max-h-[400px]"
+          : className?.includes('h-full') || className?.includes('flex-1')
+            ? "min-h-[200px] h-full" 
+            : "min-h-[200px] max-h-[400px]"
       )}>
         <EditorContent 
           editor={editor} 

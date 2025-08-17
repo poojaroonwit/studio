@@ -33,7 +33,7 @@ const pathLabels: Record<string, string> = {
   '/candidates': 'Candidates',
   '/positions': 'Positions',
   '/my-tasks': 'My Task Board',
-  '/candidates/upload': 'Bulk Upload',
+  '/candidates/upload': 'Process queue',
   '/settings': 'Settings',
   '/settings/users': 'Users',
   '/settings/webhooks': 'Webhooks',
@@ -42,7 +42,7 @@ const pathLabels: Record<string, string> = {
   '/settings/system-settings': 'System Settings',
   '/settings/user-groups': 'User Groups',
   '/settings/custom-fields': 'Custom Fields',
-  '/settings/data-models': 'Data Models',
+
   '/settings/stages': 'Recruitment Stages',
   '/settings/logs': 'Logs',
   '/settings/api-docs': 'API Documentation',

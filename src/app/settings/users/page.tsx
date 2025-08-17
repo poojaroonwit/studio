@@ -6,14 +6,13 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle } from "lucide-react";
+import { PlusCircle, UsersRound, ShieldAlert, Edit3, Trash2, ServerCrash, Loader2, MoreHorizontal, KeyRound, Filter, Search, XCircle, Settings, Users, ShieldCheck } from "lucide-react";
 import type { UserProfile, UserGroup } from '@/lib/types'; 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect, useCallback } from 'react'; 
-import { AddUserModal, type AddUserFormValues } from '@/components/users/AddUserModal';
-import { EditUserModal, type EditUserFormValues } from '@/components/users/EditUserModal';
+import { RedesignedUserModal, type UserFormValues, type ModalMode } from '@/components/users/RedesignedUserModal';
 import { useRouter, usePathname } from 'next/navigation'; 
 import {
   AlertDialog,
@@ -34,6 +33,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signIn, useSession } from "next-auth/react";
 import { toast } from 'react-hot-toast';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { UserTeamsTab } from "@/components/settings/UserTeamsTab";
+import { UserGroupsTab } from "@/components/settings/UserGroupsTab";
 
 const userRoleOptionsFilter: (UserProfile['role'] | "ALL_ROLES")[] = ['ALL_ROLES', 'Admin', 'Recruiter', 'Hiring Manager'];
 
@@ -45,15 +48,16 @@ export default function ManageUsersPage() {
   const router = useRouter();
   const pathname = usePathname(); 
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('users');
 
   const [nameFilter, setNameFilter] = useState('');
   const [emailFilter, setEmailFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserProfile['role'] | "ALL_ROLES">("ALL_ROLES");
 
 
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserProfile | null>(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>('create');
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
 
 
@@ -79,8 +83,8 @@ export default function ManageUsersPage() {
         setUsers([]); 
         return;
       }
-      const data: UserProfile[] = await response.json();
-      setUsers(data);
+      const data = await response.json();
+      setUsers(Array.isArray(data) ? data : (data.users || []));
     } catch (error) {
       const errorMessage = (error as Error).message || "An unexpected error occurred.";
       if (!(errorMessage.toLowerCase().includes("unauthorized") || errorMessage.toLowerCase().includes("forbidden"))) {
@@ -96,7 +100,7 @@ export default function ManageUsersPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USERS_MANAGE')) {
+      if (session.user.role !== 'Admin') {
         setFetchError("You do not have permission to manage users.");
         setIsLoading(false);
       } else {
@@ -124,7 +128,7 @@ export default function ManageUsersPage() {
   };
 
 
-  const handleAddUser = async (data: AddUserFormValues) => {
+  const handleAddUser = async (data: UserFormValues) => {
     try {
       const response = await fetch('/api/users', {
         method: 'POST',
@@ -141,13 +145,13 @@ export default function ManageUsersPage() {
       }
       fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter}); 
       toast.success(`User ${result.name} added successfully.`);
-      setIsAddUserModalOpen(false);
+      setIsUserModalOpen(false);
     } catch (error) {
       toast.error((error as Error).message);
     }
   };
 
-  const handleEditUser = async (userId: string, data: EditUserFormValues) => {
+  const handleEditUser = async (userId: string, data: UserFormValues) => {
      try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
@@ -164,11 +168,11 @@ export default function ManageUsersPage() {
       }
       fetchUsers({name: nameFilter, email: emailFilter, role: roleFilter}); 
       toast.success(`User ${result.name} updated successfully.`);
-      setIsEditUserModalOpen(false);
-      setSelectedUserForEdit(null);
+      setIsUserModalOpen(false);
+      setSelectedUser(null);
 
       // If the current user is editing their own permissions, refresh the session
-      if (session?.user?.id === userId && data.modulePermissions) {
+      if (session?.user?.id === userId) {
         // Force a session refresh to update permissions
         await updateSession();
         toast.success("Your session has been refreshed with the new permissions.");
@@ -178,9 +182,10 @@ export default function ManageUsersPage() {
     }
   };
   
-  const openEditModal = (user: UserProfile) => {
-    setSelectedUserForEdit(user);
-    setIsEditUserModalOpen(true);
+  const openUserModal = (mode: ModalMode, user?: UserProfile) => {
+    setModalMode(mode);
+    setSelectedUser(user || null);
+    setIsUserModalOpen(true);
   };
 
   const confirmDeleteUser = (user: UserProfile) => {
@@ -232,173 +237,226 @@ export default function ManageUsersPage() {
   }
 
   return (
-        <div className="p-6">
-          
-          {/* Header with Add User Button */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Manage Users</h1>
-              <p className="text-muted-foreground">Create, edit, and manage user accounts and permissions</p>
-            </div>
-            {session?.user?.role === 'Admin' && (
-              <Button variant="default" onClick={() => setIsAddUserModalOpen(true)}> 
-                <PlusCircle className="mr-2 h-4 w-4" /> Add New User
-              </Button>
-            )}
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-6 pb-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">User Management</h1>
+            <p className="text-muted-foreground">Manage users, roles, permissions, and teams</p>
           </div>
-   
-          {/* Filters Section */}
-          <div className="mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div className="space-y-1">
-                <Label htmlFor="name-filter">Name</Label>
-                <Input id="name-filter" placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} disabled={isLoading}/>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="email-filter">Email</Label>
-                <Input id="email-filter" placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} disabled={isLoading}/>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="role-filter">Role</Label>
-                <Select value={roleFilter || ''} onValueChange={(value) => setRoleFilter(value as UserProfile['role'] | "ALL_ROLES")} disabled={isLoading}>
-                  <SelectTrigger id="role-filter"><SelectValue placeholder="Select role..." /></SelectTrigger>
-                  <SelectContent>
-                    {userRoleOptionsFilter.map(opt => <SelectItem key={opt} value={opt}>{opt === "ALL_ROLES" ? "All Roles" : opt}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto"><Search className="mr-2 h-4 w-4"/>Apply</Button>
-                <Button variant="outline" onClick={handleResetFilters} disabled={isLoading} className="w-full sm:w-auto"><XCircle className="mr-2 h-4 w-4"/>Reset</Button>
-              </div>
-            </div>
-          </div>
-
-          {isLoading && users.length === 0 && !fetchError ? (
-              <div className="text-center py-10">
-              <UsersRound className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
-              <p className="mt-4 text-muted-foreground">Loading users...</p>
-            </div>
-          ) : users.length === 0 && !fetchError ? ( 
-            <div className="text-center py-10">
-              <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
-                {session?.user?.role === 'Admin' && (
-                  <Button variant="default" className="mt-4" onClick={() => setIsAddUserModalOpen(true)}> 
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add First User
-                </Button>
-                )}
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden md:table-cell">Groups</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar size="md" className="border border-border">
-                          <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint={user.avatarUrl ? undefined : user.dataAiHint || "profile person"}/>
-                          <AvatarFallback className="text-sm font-medium">{user.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{user.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'Admin' ? "default" : "secondary"} className={user.role === 'Admin' ? 'bg-primary hover:bg-primary/90' : ''}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {user.groups && user.groups.length > 0 
-                        ? user.groups.map(g => <Badge key={g.id} variant="outline" className="mr-1 mb-1">{g.name}</Badge>) 
-                        : <span className="text-xs text-muted-foreground">No groups</span>
-                      }
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {session?.user?.role === 'Admin' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditModal(user)}>
-                              <Edit3 className="mr-2 h-4 w-4" /> Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => confirmDeleteUser(user)} 
-                              disabled={session?.user?.id === user.id} 
-                              className="text-destructive hover:!bg-destructive/10 focus:!bg-destructive/10 focus:!text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
+          {session?.user?.role === 'Admin' && activeTab === 'users' && (
+            <Button variant="default" onClick={() => openUserModal('create')}> 
+              <PlusCircle className="mr-2 h-4 w-4" /> Add New User
+            </Button>
           )}
-            <div className="mt-6 p-3 bg-secondary/30 border border-secondary/50 rounded-md flex items-start text-sm text-secondary-foreground">
-            <ShieldAlert className="h-5 w-5 mr-2 mt-0.5 text-primary shrink-0" />
-            <div>
-              <span className="font-semibold">Security Note:</span> User creation, deletion, and modification of roles/permissions are restricted to &apos;Admin&apos; users. User passwords are securely hashed using bcrypt.
-            </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-6">
+        <div className="flex w-full border-b border-border/50 mb-6">
+          <div
+            onClick={() => setActiveTab('users')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'users'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <UsersRound className="h-4 w-4" />
+            Users
           </div>
-    
-      <React.Fragment>
-        <AddUserModal 
-          isOpen={isAddUserModalOpen} 
-          onOpenChange={setIsAddUserModalOpen}
-          onAddUser={handleAddUser}
-        />
-        {selectedUserForEdit && (
-          <EditUserModal
-            isOpen={isEditUserModalOpen}
-            onOpenChange={(isOpen) => {
-              setIsEditUserModalOpen(isOpen);
-              if (!isOpen) setSelectedUserForEdit(null); 
-            }}
-            onEditUser={handleEditUser}
-            user={selectedUserForEdit}
-          />
-        )}
-        {userToDelete && (
-          <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if(!open) setUserToDelete(null);}}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the user <strong>{userToDelete.name}</strong>.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteUser} className={buttonVariants({ variant: "destructive" })}>
-                  Delete User
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </React.Fragment>
+          <div
+            onClick={() => setActiveTab('teams')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'teams'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            User Teams
+          </div>
+          <div
+            onClick={() => setActiveTab('groups')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              activeTab === 'groups'
+                ? "text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+            )}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Roles & Permissions
+          </div>
+        </div>
+      </div>
+
+      {/* Content with ScrollArea */}
+      <ScrollArea className="flex-1 px-6 [&_.simplebar-scrollbar]:bg-muted-foreground/20 [&_.simplebar-scrollbar]:hover:bg-muted-foreground/40 [&_.simplebar-scrollbar]:w-2 [&_.simplebar-scrollbar]:rounded-full">
+        <div className="space-y-6">
+          {/* Users Tab */}
+          {activeTab === 'users' && (
+            <>
+              {/* Filters Section */}
+              <div className="mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-1">
+                    <Label htmlFor="name-filter">Name</Label>
+                    <Input id="name-filter" placeholder="Filter by name..." value={nameFilter} onChange={(e) => setNameFilter(e.target.value)} disabled={isLoading}/>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="email-filter">Email</Label>
+                    <Input id="email-filter" placeholder="Filter by email..." value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)} disabled={isLoading}/>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="role-filter">Role</Label>
+                    <Select value={roleFilter || ''} onValueChange={(value) => setRoleFilter(value as UserProfile['role'] | "ALL_ROLES")} disabled={isLoading}>
+                      <SelectTrigger id="role-filter"><SelectValue placeholder="Select role..." /></SelectTrigger>
+                      <SelectContent>
+                        {userRoleOptionsFilter.map(opt => <SelectItem key={opt} value={opt}>{opt === "ALL_ROLES" ? "All Roles" : opt}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleApplyFilters} disabled={isLoading} className="w-full sm:w-auto"><Search className="mr-2 h-4 w-4"/>Apply</Button>
+                    <Button variant="outline" onClick={handleResetFilters} disabled={isLoading} className="w-full sm:w-auto"><XCircle className="mr-2 h-4 w-4"/>Reset</Button>
+                  </div>
+                </div>
+              </div>
+
+              {isLoading && users.length === 0 && !fetchError ? (
+                  <div className="text-center py-10">
+                  <UsersRound className="mx-auto h-12 w-12 text-muted-foreground animate-pulse" />
+                  <p className="mt-4 text-muted-foreground">Loading users...</p>
+                </div>
+              ) : users.length === 0 && !fetchError ? ( 
+                <div className="text-center py-10">
+                  <UsersRound className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <p className="mt-4 text-muted-foreground">No users found matching your criteria.</p>
+                    {session?.user?.role === 'Admin' && (
+                      <Button variant="default" className="mt-4" onClick={() => openUserModal('create')}> 
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add First User
+                    </Button>
+                    )}
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="hidden sm:table-cell">Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead className="hidden md:table-cell">Groups</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <UserAvatarCompact user={user} size="md" />
+                            <span className="font-medium">{user.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'Admin' ? "default" : "secondary"} className={user.role === 'Admin' ? 'bg-primary hover:bg-primary/90' : ''}>
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {user.teams && user.teams.length > 0
+                            ? user.teams.map(t => <Badge key={t.id} variant="outline" className="mr-1 mb-1">{t.name}</Badge>)
+                            : <span className="text-xs text-muted-foreground">No teams</span>
+                          }
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {session?.user?.role === 'Admin' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openUserModal('edit', user)}>
+                                  <Edit3 className="mr-2 h-4 w-4" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => setUserToDelete(user)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* User Teams Tab */}
+          {activeTab === 'teams' && (
+            <UserTeamsTab />
+          )}
+
+          {/* Roles & Permissions Tab */}
+          {activeTab === 'groups' && (
+            <UserGroupsTab />
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Modals */}
+      <RedesignedUserModal
+        isOpen={isUserModalOpen}
+        onOpenChange={(isOpen: boolean) => {
+          setIsUserModalOpen(isOpen);
+          if (!isOpen) {
+            setSelectedUser(null);
+            setModalMode('create');
+          }
+        }}
+        mode={modalMode}
+        user={selectedUser}
+        onSave={selectedUser ? (data: UserFormValues) => handleEditUser(selectedUser.id, data) : handleAddUser}
+        onEditUser={handleEditUser}
+        onAddUser={handleAddUser}
+      />
+
+      {userToDelete && (
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => { if(!open) setUserToDelete(null);}}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the user <strong>{userToDelete.name}</strong>.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} className={buttonVariants({ variant: "destructive" })}>
+                Delete User
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }

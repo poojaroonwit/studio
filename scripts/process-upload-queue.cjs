@@ -3,8 +3,8 @@
 /**
  * Upload Queue Processor
  * 
- * This script continuously processes the upload queue by calling the process endpoint.
- * It can be run as a background service to ensure queue processing happens automatically.
+ * This script automatically processes the upload queue by calling the process endpoint
+ * at regular intervals. It runs continuously and handles graceful shutdown.
  */
 
 const https = require('https');
@@ -12,38 +12,68 @@ const http = require('http');
 
 // Configuration
 const config = {
-  baseUrl: process.env.UPLOAD_QUEUE_PROCESS_URL || process.env.PROCESSOR_URL || 'http://localhost:8021/api/upload-queue/process',
+  baseUrl: process.env.PROCESSOR_URL || 'http://localhost:8021',
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
-  interval: parseInt(process.env.PROCESSOR_INTERVAL_MS || '5000'), // 5 seconds
+  intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000,
+  logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
   maxRetries: 3,
-  logInterval: parseInt(process.env.LOG_INTERVAL_MS || '30000'), // 30 seconds
+  retryDelayMs: 1000
 };
 
-let isRunning = false;
-let consecutiveErrors = 0;
+// State
+let isRunning = true;
 let lastLogTime = Date.now();
+let processedCount = 0;
+let errorCount = 0;
+let consecutiveErrors = 0;
 
-function log(message, level = 'INFO') {
+// Logging utility
+function log(level, message, data = {}) {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [${level}] ${message}`);
+  const logData = {
+    timestamp,
+    level,
+    message,
+    ...data
+  };
+  
+  console.log(JSON.stringify(logData));
+  
+  // Periodic status logging
+  if (level === 'INFO' && Date.now() - lastLogTime > config.logIntervalMs) {
+    console.log(JSON.stringify({
+      timestamp,
+      level: 'STATUS',
+      message: 'Processor status',
+      processedCount,
+      errorCount,
+      consecutiveErrors,
+      uptime: Math.floor((Date.now() - startTime) / 1000)
+    }));
+    lastLogTime = Date.now();
+  }
 }
 
-// Log configuration at startup
-log(`Configuration:`, 'INFO');
-log(`  Base URL: ${config.baseUrl}`, 'INFO');
-log(`  Interval: ${config.interval}ms`, 'INFO');
-log(`  Max Retries: ${config.maxRetries}`, 'INFO');
-log(`  Log Interval: ${config.logInterval}ms`, 'INFO');
-log(`Environment variables:`, 'INFO');
-log(`  PROCESSOR_URL: ${process.env.PROCESSOR_URL || 'not set'}`, 'INFO');
-log(`  UPLOAD_QUEUE_PROCESS_URL: ${process.env.UPLOAD_QUEUE_PROCESS_URL || 'not set'}`, 'INFO');
-log(`  PROCESSOR_API_KEY: ${process.env.PROCESSOR_API_KEY ? 'set' : 'not set'}`, 'INFO');
-
+// HTTP request utility
 function makeRequest(url, options) {
   return new Promise((resolve, reject) => {
-    const protocol = url.startsWith('https:') ? https : http;
+    const urlObj = new URL(url);
+    const isHttps = urlObj.protocol === 'https:';
+    const client = isHttps ? https : http;
     
-    const req = protocol.request(url, options, (res) => {
+    const requestOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || (isHttps ? 443 : 80),
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': config.apiKey,
+        ...options.headers
+      }
+    };
+    
+    const req = client.request(requestOptions, (res) => {
       let data = '';
       res.on('data', (chunk) => {
         data += chunk;
@@ -51,142 +81,172 @@ function makeRequest(url, options) {
       res.on('end', () => {
         try {
           const jsonData = JSON.parse(data);
-          resolve({ status: res.statusCode, data: jsonData });
-        } catch (error) {
-          resolve({ status: res.statusCode, data: data });
+          resolve({
+            status: res.statusCode,
+            data: jsonData,
+            headers: res.headers
+          });
+        } catch (e) {
+          resolve({
+            status: res.statusCode,
+            data: data,
+            headers: res.headers
+          });
         }
       });
     });
-
+    
     req.on('error', (error) => {
       reject(error);
     });
-
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Request timeout'));
-    });
-
-    req.setTimeout(30000); // 30 second timeout
-
+    
     if (options.body) {
-      req.write(options.body);
+      req.write(JSON.stringify(options.body));
     }
+    
     req.end();
   });
 }
 
-async function processQueue() {
-  if (isRunning) {
-    return; // Prevent concurrent processing
-  }
-
-  isRunning = true;
-  
+// Process a single job
+async function processJob() {
   try {
-    let processedJobs = 0;
-    let maxAttempts = 10; // Prevent infinite loops
-    let attempt = 0;
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process`, {
+      method: 'POST'
+    });
     
-    // Process multiple jobs until no more can be processed
-    while (attempt < maxAttempts) {
-      attempt++;
-      
-      const url = config.baseUrl;
-      log(`Attempting to call: ${url}`, 'INFO');
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': config.apiKey,
-          'User-Agent': 'UploadQueueProcessor/1.0'
-        }
-      };
-
-      const response = await makeRequest(url, options);
-      
-      if (response.status === 200) {
-        consecutiveErrors = 0;
+    if (response.status === 200) {
+      if (response.data.job) {
+        const job = response.data.job;
+        log('INFO', 'Processed job', {
+          jobId: job.id,
+          fileName: job.file_name,
+          status: job.status,
+          error: job.error
+        });
         
-        if (response.data.message === 'No queued jobs') {
-          // No jobs to process, this is normal
-          if (processedJobs === 0 && Date.now() - lastLogTime > config.logInterval) {
-            log('No queued jobs to process', 'INFO');
-            lastLogTime = Date.now();
-          }
-          break; // Exit the loop
-        } else if (response.data.message && response.data.message.includes('no available slots')) {
-          // No available slots, wait a bit and try again
-          log(`No available slots (${response.data.currentInProgress}/${response.data.maxConcurrent}), waiting...`, 'INFO');
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-          break; // Exit the loop
-        } else if (response.data.job) {
-          processedJobs++;
-          log(`Processed job: ${response.data.job.file_name} (${response.data.job.status})`, 'INFO');
-          
-          // Small delay between jobs to prevent overwhelming the system
-          await new Promise(resolve => setTimeout(resolve, 500));
+        if (job.status === 'success') {
+          processedCount++;
+          consecutiveErrors = 0;
         } else {
-          log('Queue processing completed', 'INFO');
-          break; // Exit the loop
+          errorCount++;
+          consecutiveErrors++;
         }
+      } else if (response.data.message === 'No queued jobs') {
+        // No jobs to process, this is normal
+        consecutiveErrors = 0;
+      } else if (response.data.message && response.data.message.includes('Max concurrent')) {
+        // Max concurrent jobs running, wait and try again
+        log('INFO', 'Max concurrent jobs running, waiting', {
+          message: response.data.message
+        });
+        consecutiveErrors = 0;
       } else {
-        consecutiveErrors++;
-        log(`HTTP ${response.status}: ${JSON.stringify(response.data)}`, 'ERROR');
-        break; // Exit the loop on error
+        log('INFO', 'No jobs processed', {
+          response: response.data
+        });
+        consecutiveErrors = 0;
       }
+    } else {
+      throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
     }
-    
-    if (processedJobs > 0) {
-      log(`Processing cycle completed: ${processedJobs} jobs processed`, 'INFO');
-    }
-    
   } catch (error) {
+    errorCount++;
     consecutiveErrors++;
-    log(`Processing error: ${error.message}`, 'ERROR');
     
+    log('ERROR', 'Failed to process job', {
+      error: error.message,
+      consecutiveErrors
+    });
+    
+    // If we have too many consecutive errors, wait longer
     if (consecutiveErrors >= config.maxRetries) {
-      log(`Too many consecutive errors (${consecutiveErrors}), pausing for 30 seconds`, 'WARN');
-      await new Promise(resolve => setTimeout(resolve, 30000));
-      consecutiveErrors = 0;
+      log('WARN', 'Too many consecutive errors, waiting longer', {
+        consecutiveErrors,
+        waitTimeMs: config.retryDelayMs * 2
+      });
+      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs * 2));
     }
-  } finally {
-    isRunning = false;
   }
 }
 
-function startProcessor() {
-  log(`Starting Upload Queue Processor`, 'INFO');
-
-  // Initial processing
-  processQueue();
-
-  // Set up interval
-  setInterval(processQueue, config.interval);
-
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    log('Received SIGINT, shutting down gracefully...', 'INFO');
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', () => {
-    log('Received SIGTERM, shutting down gracefully...', 'INFO');
-    process.exit(0);
-  });
-
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (error) => {
-    log(`Uncaught Exception: ${error.message}`, 'ERROR');
-    log(error.stack, 'ERROR');
-    process.exit(1);
-  });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, 'ERROR');
-    process.exit(1);
-  });
+// Main processing loop
+async function processLoop() {
+  while (isRunning) {
+    try {
+      await processJob();
+      
+      // Wait before next iteration
+      await new Promise(resolve => setTimeout(resolve, config.intervalMs));
+    } catch (error) {
+      log('ERROR', 'Unexpected error in process loop', {
+        error: error.message
+      });
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs));
+    }
+  }
 }
+
+// Graceful shutdown
+function shutdown(signal) {
+  log('INFO', `Received ${signal}, shutting down gracefully`);
+  isRunning = false;
+  
+  // Give some time for current operations to complete
+  setTimeout(() => {
+    log('INFO', 'Processor shutdown complete', {
+      totalProcessed: processedCount,
+      totalErrors: errorCount
+    });
+    process.exit(0);
+  }, 1000);
+}
+
+// Signal handlers
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// Unhandled error handlers
+process.on('uncaughtException', (error) => {
+  log('ERROR', 'Uncaught exception', {
+    error: error.message,
+    stack: error.stack
+  });
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log('ERROR', 'Unhandled rejection', {
+    reason: reason?.message || reason,
+    promise: promise
+  });
+  process.exit(1);
+});
 
 // Start the processor
-startProcessor(); 
+const startTime = Date.now();
+
+log('INFO', 'Starting Upload Queue Processor', {
+  baseUrl: config.baseUrl,
+  intervalMs: config.intervalMs,
+  logIntervalMs: config.logIntervalMs,
+  maxRetries: config.maxRetries
+});
+
+log('INFO', 'Configuration', {
+  baseUrl: config.baseUrl,
+  interval: `${config.intervalMs}ms`,
+  logInterval: `${config.logIntervalMs}ms`,
+  maxRetries: config.maxRetries
+});
+
+// Start the main processing loop
+processLoop().catch((error) => {
+  log('ERROR', 'Fatal error in main process loop', {
+    error: error.message,
+    stack: error.stack
+  });
+  process.exit(1);
+});

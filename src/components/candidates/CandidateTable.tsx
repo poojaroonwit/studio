@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
@@ -575,15 +575,16 @@ export function CandidateTable({
                         const nameInfo = formatCandidateNameWithLang(candidate);
                         return (
                           <>
-                            <Avatar size="lg" className="border-2 border-border">
-                              <AvatarImage
-                                src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`}
-                                alt={nameInfo.name}
-                                data-ai-hint="person avatar"
-                                onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`; }}
-                              />
-                              <AvatarFallback className="text-sm font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                            </Avatar>
+                            <UserAvatarCompact
+                              user={{
+                                id: candidate.id,
+                                name: nameInfo.name,
+                                avatarUrl: candidate.avatarUrl,
+                                email: candidate.email
+                              }}
+                              size="lg"
+                              className="border-2 border-border"
+                            />
                             <div>
                               <Link href={`/candidates/${candidate.id}`} passHref>
                                 <span 
@@ -738,15 +739,16 @@ export function CandidateTable({
                                   const isValidId = candidate.id && uuidSchema.safeParse(candidate.id).success;
                                   return (
                                     <>
-                                      <Avatar size="lg" className="border-2 border-border">
-                                        <AvatarImage
-                                          src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`}
-                                          alt={nameInfo.name}
-                                          data-ai-hint="person avatar"
-                                          onError={(e) => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${nameInfo.name?.charAt(0) || 'C'}`; }}
-                                        />
-                                        <AvatarFallback className="text-sm font-medium">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
-                                      </Avatar>
+                                      <UserAvatarCompact
+                                        user={{
+                                          id: candidate.id,
+                                          name: nameInfo.name,
+                                          avatarUrl: candidate.avatarUrl,
+                                          email: candidate.email
+                                        }}
+                                        size="lg"
+                                        className="border-2 border-border"
+                                      />
                                       <div>
                                         {isValidId ? (
                                           <Link href={`/candidates/${candidate.id}`} passHref>

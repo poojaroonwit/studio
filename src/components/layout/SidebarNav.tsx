@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2, FileText } from "lucide-react"; 
+import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2 } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -38,7 +38,7 @@ const dashboardNavItem = { href: "/", label: "Dashboard", icon: LayoutDashboard 
 const myTaskBoardNavItem = { href: "/my-tasks", label: "My Task Board", icon: ListTodo };
 const candidatesNavItem = { href: "/candidates", label: "Candidates", icon: Users };
 const positionsNavItem = { href: "/positions", label: "Positions", icon: Briefcase };
-const bulkUploadNavItem = { href: "/candidates/upload", label: "Bulk Upload", icon: UploadCloud };
+const bulkUploadNavItem = { href: "/candidates/upload", label: "Process queue", icon: UploadCloud };
 const settingsNavItem = { href: "/settings", label: "Settings", icon: Settings };
 
 const mainNavItems = [dashboardNavItem, myTaskBoardNavItem, candidatesNavItem, positionsNavItem, bulkUploadNavItem, settingsNavItem];
@@ -78,16 +78,12 @@ function getSidebarStyles() {
   return { sidebarGradient, activeGradient, activeText };
 }
 
-// Helper to get manual link/type from system settings
-function getManualConfig() {
+// Helper to get app menu icon from system settings
+function getAppMenuIcon() {
   if (typeof window !== "undefined" && window.__systemSettings) {
-    return {
-      manualLink: window.__systemSettings.manualLink || null,
-      manualType: window.__systemSettings.manualType || "external",
-      appMenuIcon: window.__systemSettings.appMenuIcon || null,
-    };
+    return window.__systemSettings.appMenuIcon || null;
   }
-  return { manualLink: null, manualType: "external", appMenuIcon: null };
+  return null;
 }
 
 // Helper to generate active button styles
@@ -224,15 +220,12 @@ const SidebarNavComponent = function SidebarNav() {
   };
 
   const [sidebarStyles, setSidebarStyles] = useState<SidebarStyles>({});
-  const [manualConfig, setManualConfig] = useState({ manualLink: null, manualType: "external", appMenuIcon: null });
 
   useEffect(() => {
     setSidebarStyles(getSidebarStyles());
-    setManualConfig(getManualConfig());
     // Listen for system settings changes
     const handler = () => {
       setSidebarStyles(getSidebarStyles());
-      setManualConfig(getManualConfig());
     };
     window.addEventListener("appConfigChanged", handler);
     return () => window.removeEventListener("appConfigChanged", handler);
@@ -245,7 +238,7 @@ const SidebarNavComponent = function SidebarNav() {
   // Collapsed sidebar redesign
   if (!open) {
     // Get the custom icon from preferences
-    const menuIcon = manualConfig.appMenuIcon || sidebarStyles.appMenuIcon;
+    const menuIcon = getAppMenuIcon() || sidebarStyles.appMenuIcon;
     let CustomIconComponent = null;
     let isImage = false;
     if (menuIcon) {
@@ -457,18 +450,7 @@ const SidebarNavComponent = function SidebarNav() {
               </SidebarMenuButton>
             </Link>
           </MenuItemWithTooltip>
-          {manualConfig.manualLink && (
-            <MenuItemWithTooltip label="Manual">
-              <a
-                href={manualConfig.manualType === "external" ? manualConfig.manualLink : "/manual"}
-                target={manualConfig.manualType === "external" ? "_blank" : undefined}
-                rel={manualConfig.manualType === "external" ? "noopener noreferrer" : undefined}
-                className="rounded-full p-2 mx-auto flex items-center justify-center hover:bg-accent"
-              >
-                <FileText className="h-4 w-4" />
-              </a>
-            </MenuItemWithTooltip>
-          )}
+
         </div>
       </div>
     );
@@ -502,7 +484,7 @@ const SidebarNavComponent = function SidebarNav() {
             </Link>
           </MenuItemWithTooltip>
         </SidebarMenuItem>
-        {isClient && userRole && (
+        {isClient && userRole && userRole === 'Admin' && (
           <SidebarMenuItem key={myTaskBoardNavItem.href}>
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
               <Link href={myTaskBoardNavItem.href} passHref legacyBehavior>
@@ -622,7 +604,7 @@ const SidebarNavComponent = function SidebarNav() {
         </SidebarMenu>
       )}
       
-      {/* Footer Group: Other (Bulk Actions, Settings, Manual, Power BI) */}
+      {/* Footer Group: Other (Process queue, Settings, Manual, Power BI) */}
       <div className="mt-auto">
         <SidebarMenu style={sidebarStyles.sidebarGradient ? { background: sidebarStyles.sidebarGradient } : {}}>
           {/* Separator between groups */}
@@ -681,22 +663,7 @@ const SidebarNavComponent = function SidebarNav() {
             </MenuItemWithTooltip>
           </SidebarMenuItem>
           
-          {/* Manual menu item */}
-          {manualConfig.manualLink && (
-            <SidebarMenuItem>
-              <MenuItemWithTooltip label="Manual">
-                <a
-                  href={manualConfig.manualType === "external" ? manualConfig.manualLink : "/manual"}
-                  target={manualConfig.manualType === "external" ? "_blank" : undefined}
-                  rel={manualConfig.manualType === "external" ? "noopener noreferrer" : undefined}
-                  className="flex items-center w-full px-3 py-2 text-sm rounded-md hover:bg-accent"
-                >
-                  <FileText className="h-5 w-5 mr-2" />
-                  <span className="truncate group-data-[collapsible=icon]:hidden">Manual</span>
-                </a>
-              </MenuItemWithTooltip>
-            </SidebarMenuItem>
-          )}
+
         </SidebarMenu>
       </div>
     </div>

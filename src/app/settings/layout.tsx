@@ -5,45 +5,36 @@ import * as React from "react";
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation'; // Added useRouter import
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   Settings,
   Palette,
   Zap,
-  KanbanSquare,
   DatabaseZap,
-  Settings2 as CustomFieldsIcon, // Renamed to avoid conflict
   SlidersHorizontal,
   UsersRound,
+  Users,
   Code2,
   ListOrdered,
   ShieldCheck,
   Loader2,
   Webhook,
   BrainCircuit,
-  Tag
+  Tag,
+  Database
 } from 'lucide-react';
 import type { SettingsNavigationItem, PlatformModuleId } from '@/lib/types';
 import { useSession, signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
 const settingsNavItems: SettingsNavigationItem[] = [
-  { href: "/settings/system-settings", label: "System Settings", icon: Settings, description: "System-wide configuration.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/system-preferences", label: "Preferences", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/system-prompts", label: "System Prompts", icon: BrainCircuit, description: "Manage AI system prompts for generative features.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/system-prompt-categories", label: "Prompt Categories", icon: Tag, description: "Manage categories for organizing system prompts.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/stages", label: "Recruitment Stages", icon: KanbanSquare, description: "Define your hiring pipeline.", permissionId: 'RECRUITMENT_STAGES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/data-models", label: "Data Model UI", icon: DatabaseZap, description: "Customize UI for data attributes.", permissionId: 'USER_PREFERENCES_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/custom-fields", label: "Custom Fields", icon: CustomFieldsIcon, description: "Define custom fields for entities.", permissionId: 'CUSTOM_FIELDS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-
+  { href: "/settings/system-settings", label: "System Settings", icon: Database, description: "System-wide configuration and integrations.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/system-preferences", label: "Branding & Theme", icon: Palette, description: "Global branding, theme, and logo settings.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/system-prompts", label: "System Prompts & Categories", icon: BrainCircuit, description: "Manage AI system prompts and their categories.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/data-configuration", label: "Data Configuration", icon: Database, description: "Manage custom fields, recruitment stages, and candidate sources.", permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
   { href: "/settings/webhooks", label: "Webhook Management", icon: Webhook, description: "Create and manage outgoing webhooks.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/webhooks/docs", label: "Webhook Documentation", icon: Code2, description: "Learn how to integrate with webhooks.", permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/user-groups", label: "Roles & Permissions", icon: ShieldCheck, description: "Manage user roles and permissions.", permissionId: 'USER_GROUPS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-
-  { href: "/settings/users", label: "Manage Users", icon: UsersRound, description: "Add, edit, or remove users.", permissionId: 'USERS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/api-key", label: "API Key Management", icon: Code2, description: "Generate and manage your personal API key.", permissionId: 'API_KEYS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
-  { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference." },
+  { href: "/settings/users", label: "User Management", icon: UsersRound, description: "Manage users, roles, permissions, and teams.", permissionId: 'USERS_MANAGE' as PlatformModuleId, adminOnlyOrPermission: true },
+  { href: "/settings/api-docs", label: "API Documentation", icon: Code2, description: "Developer API reference and documentation." },
   { href: "/settings/logs", label: "Application Logs", icon: ListOrdered, description: "View system and audit logs.", permissionId: 'LOGS_VIEW' as PlatformModuleId, adminOnlyOrPermission: true },
 ];
 
@@ -60,15 +51,14 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const canAccess = React.useCallback((item: SettingsNavigationItem) => {
     if (!isClient || status !== 'authenticated' || !session?.user) return false;
     const userRole = session.user.role || 'Recruiter'; // Default fallback
-    const modulePermissions = session.user.modulePermissions || [];
 
     if (item.adminOnly && userRole !== 'Admin') return false;
     if (item.adminOnlyOrPermission) { 
       if (userRole === 'Admin') return true;
-      if (item.permissionId && modulePermissions.includes(item.permissionId)) return true;
+      if (item.permissionId && session.user.modulePermissions?.includes(item.permissionId)) return true;
       return false;
     }
-    if (item.permissionId && userRole !== 'Admin' && !modulePermissions.includes(item.permissionId)) return false;
+    if (item.permissionId && userRole !== 'Admin' && !session.user.modulePermissions?.includes(item.permissionId)) return false;
     return true;
   }, [isClient, status, session?.user?.role, session?.user?.modulePermissions]);
   
@@ -104,45 +94,65 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
       }
   }
 
+  // Check if we're on the main settings page (exactly /settings)
+  const isMainSettingsPage = pathname === '/settings';
 
   return (
-    <div className="flex h-full bg-muted/30">
-      <aside className="hidden md:flex md:flex-col md:w-80 border-r">
-        <div className="p-4 border-b">
-          <h2 className="text-xl font-semibold flex items-center text-foreground">
-            <Settings className="mr-2 h-5 w-5 text-primary" /> Application Settings
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">Manage all application configurations and system settings.</p>
-        </div>
-        <ScrollArea className="flex-1">
-          <nav className="py-2 px-2">
-            {visibleNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-start rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-primary",
-                  pathname === item.href || pathname.startsWith(item.href + '/')
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-muted-foreground"
-                )}
-              >
-                <item.icon className="mr-3 h-5 w-5 shrink-0 mt-0.5" />
-                <div className="flex flex-col">
-                  <span>{item.label}</span>
-                  <span className={cn(
-                     "text-xs",
-                     pathname === item.href || pathname.startsWith(item.href + '/') ? "text-primary/80" : "text-muted-foreground/80"
-                    )}>{item.description || ''}</span>
-                </div>
-              </Link>
-            ))}
+    <div className={cn("h-full overflow-hidden", isMainSettingsPage ? "" : "flex bg-muted/30")}>
+      {!isMainSettingsPage && (
+        <aside className="hidden md:flex md:flex-col md:w-80 border-r bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
+          <nav className="py-4 px-2">
+            <div className="space-y-1">
+              {visibleNavItems.map((item, index) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                return (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center px-3 py-4 text-xs font-medium transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20",
+                        isActive
+                          ? "bg-primary/10 text-primary font-semibold shadow-sm"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-colors shrink-0",
+                          isActive 
+                            ? "bg-primary/20 text-primary" 
+                            : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                        )}>
+                          <item.icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="mb-1">
+                            <span className="truncate font-medium">{item.label}</span>
+                          </div>
+                          <p className={cn(
+                            "text-xs leading-relaxed break-words line-clamp-2",
+                            isActive ? "text-primary/80" : "text-muted-foreground/80"
+                          )}>
+                            {item.description || ''}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                    {index < visibleNavItems.length - 1 && (
+                      <div className="border-b border-border/50 mx-3 my-1"></div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </nav>
-        </ScrollArea>
-      </aside>
-      <div className="flex-1 overflow-y-auto relative p-0">
-        {/* Main content of the specific settings page will be rendered here */}
-        {children}
+        </aside>
+      )}
+      <div className={cn("flex-1 flex flex-col overflow-hidden", isMainSettingsPage ? "h-full" : "")}>
+        {/* Main content area - individual pages handle their own scrolling */}
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );

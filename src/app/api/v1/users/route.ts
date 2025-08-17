@@ -18,7 +18,7 @@ const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   role: z.enum(['Admin', 'Recruiter', 'User']),
-  modulePermissions: z.array(z.string()).optional(),
+
   password: z.string().min(8).optional(),
 });
 
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
+  if (user.role !== 'Admin') {
     return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       paramIndex++;
     }
 
-    let query = 'SELECT id, name, email, role, "modulePermissions", "createdAt", "updatedAt" FROM "User"';
+    let query = 'SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User"';
     let countQuery = 'SELECT COUNT(*) FROM "User"';
 
     if (whereClauses.length > 0) {
@@ -77,7 +77,6 @@ export async function GET(req: NextRequest) {
 
     const users = result.rows.map(row => ({
       ...row,
-      modulePermissions: row.modulePermissions || [],
     }));
 
     return createSuccessResponse(req, { users, total, page, limit }, 200);
@@ -100,7 +99,7 @@ export async function POST(req: NextRequest) {
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
+  if (user.role !== 'Admin') {
     return handleApiError(req, createForbiddenError('Insufficient permissions to create users'));
   }
 
@@ -116,7 +115,7 @@ export async function POST(req: NextRequest) {
     return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
-  const { name, email, role, modulePermissions, password } = validationResult.data;
+  const { name, email, role, password } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -128,9 +127,9 @@ export async function POST(req: NextRequest) {
 
     // Create new user
     const insertQuery = `
-      INSERT INTO "User" (id, name, email, role, "modulePermissions", password)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, email, role, "modulePermissions", "createdAt", "updatedAt";
+      INSERT INTO "User" (id, name, email, role, password)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, email, role, "createdAt", "updatedAt";
     `;
 
     const newUserId = require('uuid').v4();
@@ -139,7 +138,6 @@ export async function POST(req: NextRequest) {
       name,
       email,
       role,
-      modulePermissions || [],
       password || null
     ]);
 
@@ -149,7 +147,6 @@ export async function POST(req: NextRequest) {
       message: 'User created successfully',
       user: {
         ...newUser,
-        modulePermissions: newUser.modulePermissions || [],
       }
     }, 201);
 

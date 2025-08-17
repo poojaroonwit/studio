@@ -10,6 +10,7 @@ import { broadcastCandidateUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import { NotificationService } from '@/lib/notificationService';
 
 /**
  * @openapi
@@ -155,12 +156,13 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
     const insertCandidateQuery = `
-      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", status, "parsedData", "applicationDate", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+      INSERT INTO "Candidate" (id, name, email, phone, "positionId", "fitScore", status, "parsedData", "applicationDate", "sourceId", "subSource", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
       RETURNING *;
     `;
     const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : new Date()
+      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : new Date(),
+      body.sourceId || null, body.subSource || null
     ]);
     const newCandidate = candidateResult.rows[0];
     // Create initial transition record
@@ -186,6 +188,34 @@ export async function POST(request: NextRequest) {
         );
         if (syncSuccess) {
           console.log(`Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
+          
+          // Get the updated candidate with recruiter information
+          const updatedCandidateQuery = `
+            SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
+            FROM "Candidate" c
+            LEFT JOIN "Position" p ON c."positionId" = p.id
+            LEFT JOIN "User" u ON c."recruiterId" = u.id
+            WHERE c.id = $1
+          `;
+          const updatedCandidateResult = await client.query(updatedCandidateQuery, [newCandidateId]);
+          const updatedCandidate = updatedCandidateResult.rows[0];
+          
+          // Send notification to the assigned recruiter
+          if (updatedCandidate.recruiterId) {
+            try {
+              await NotificationService.notifyCandidateAdded(
+                newCandidateId,
+                name,
+                positionId,
+                updatedCandidate.positionTitle || 'Unknown Position',
+                updatedCandidate.recruiterId,
+                actingUserId
+              );
+            } catch (notificationError) {
+              console.error('Failed to send candidate added notification:', notificationError);
+              // Don't fail the entire operation if notification fails
+            }
+          }
         }
       } catch (syncError) {
         console.error('Failed to auto-assign recruiter after candidate creation:', syncError);
@@ -326,6 +356,8 @@ export async function GET(request: NextRequest) {
     maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') || advancedFilters.maxAppliedJobFitScore || undefined,
     minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') || advancedFilters.minMatchingJobFitScore || undefined,
     maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') || advancedFilters.maxMatchingJobFitScore || undefined,
+    sourceId: searchParams.get('sourceId') || undefined,
+    subSource: searchParams.get('subSource') || undefined,
   };
 
 
@@ -464,6 +496,24 @@ export async function GET(request: NextRequest) {
   if (isRecruiter && !recruiterIdFromFilter) {
     whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
     queryParams.push(session.user.id);
+  }
+
+  // Handle source filter
+  if (filters.sourceId) {
+    const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
+    if (sourceIds.length === 1) {
+      whereClauses.push(`c."sourceId" = $${paramIndex++}`);
+      queryParams.push(sourceIds[0]);
+    } else if (sourceIds.length > 1) {
+      whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
+      queryParams.push(sourceIds);
+    }
+  }
+
+  // Handle sub source filter
+  if (filters.subSource) {
+    whereClauses.push(`c."subSource" ILIKE $${paramIndex++}`);
+    queryParams.push(`%${filters.subSource}%`);
   }
 
   // Handle text search (name)
@@ -780,11 +830,13 @@ export async function GET(request: NextRequest) {
     const candidatesQuery = `
       SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
              r.id as "recruiterId", r.name as "recruiterName",
+             cs.id as "sourceId", cs.name as "sourceName", cs.description as "sourceDescription",
              COALESCE(th_data.history, '[]'::json) as "transitionHistory",
              COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       LEFT JOIN LATERAL (
         SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
       ) AS jm_max ON true
@@ -883,6 +935,13 @@ export async function GET(request: NextRequest) {
           name: row.recruiterName,
           email: null
         } : null,
+        sourceId: row.sourceId || null,
+        source: row.sourceId ? {
+          id: row.sourceId,
+          name: row.sourceName,
+          description: row.sourceDescription
+        } : null,
+        subSource: row.subSource || null,
         createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
         updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
         transitionHistory: row.transitionHistory || [],

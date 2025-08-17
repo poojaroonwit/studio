@@ -6,65 +6,109 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, RefreshCw, Kanban, List, Users } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown } from 'lucide-react';
 import { TaskBoard, Task, TaskStage } from '@/components/tasks/TaskBoard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
+import { useUserPreferences } from '@/hooks/use-user-preferences';
+import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
+import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
 }
 
 export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  // Use persistent user preferences
+  const { 
+    taskBoard: preferences, 
+    updateTaskBoardPreferences, 
+    resetTaskBoardPreferences,
+    isLoaded 
+  } = useUserPreferences();
+
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>(preferences.viewMode);
   const [filters, setFilters] = useState<any>({});
   const [candidates, setCandidates] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
+
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+  const [selectedStages, setSelectedStages] = useState<string[]>(preferences.selectedStages);
   const [isStageFilterOpen, setIsStageFilterOpen] = useState(false);
+  const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
   const { data: session } = useSession();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
-  const stageFilterRef = useRef<HTMLDivElement>(null);
-  
-
   
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Close stage filter dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (stageFilterRef.current && !stageFilterRef.current.contains(event.target as Node)) {
-        setIsStageFilterOpen(false);
-      }
-    };
-
-    if (isStageFilterOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+  // Real-time collaboration hook
+  const { isConnected: realtimeConnected } = useRealtimeCollaboration({
+    onCandidateUpdate: (updatedCandidate) => {
+      setCandidates(prevCandidates => {
+        const existingIndex = prevCandidates.findIndex(c => c.id === updatedCandidate.id);
+        if (existingIndex !== -1) {
+          const updated = [...prevCandidates];
+          updated[existingIndex] = { ...updated[existingIndex], ...updatedCandidate };
+          return updated;
+        } else {
+          return [...prevCandidates, updatedCandidate];
+        }
+      });
+    },
+    onTransitionUpdate: (transition) => {
+      setCandidates(prevCandidates => {
+        return prevCandidates.map(candidate => {
+          if (candidate.id === transition.candidateId) {
+            return { ...candidate, status: transition.stage };
+          }
+          return candidate;
+        });
+      });
+    },
+    onRecruitmentStagesUpdate: (updatedStages) => {
+      setStages(updatedStages.map((s: any) => s.name));
     }
+  });
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isStageFilterOpen]);
+
 
   // Permission check: can view all recruiters?
-  const canViewAllRecruiters = userSession?.role === 'Admin' || (session?.user?.modulePermissions?.includes('MANAGE_ALL_TASKS'));
+  const canViewAllRecruiters = userSession?.role === 'Admin';
 
+  // Update local state when preferences are loaded
+  useEffect(() => {
+    if (isLoaded) {
+      setViewMode(preferences.viewMode);
+      setSelectedStages(preferences.selectedStages);
+    }
+  }, [isLoaded, preferences.viewMode, preferences.selectedStages]);
 
+  // Update preferences when local state changes
+  useEffect(() => {
+    if (isLoaded) {
+      updateTaskBoardPreferences({
+        viewMode,
+        selectedStages,
+      });
+    }
+  }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences]);
 
   // Fetch stages, recruiters, positions on mount
   useEffect(() => {
@@ -92,21 +136,6 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       }
     };
     fetchMeta();
-    
-    // Listen for recruitment stage updates via SSE
-    const eventSource = new EventSource('/api/candidates/sse');
-    eventSource.addEventListener('recruitment-stages', (event: MessageEvent) => {
-      try {
-        const updatedStages = JSON.parse(event.data);
-        setStages(updatedStages.map((s: any) => s.name));
-      } catch (e) {
-        console.error('Error parsing recruitment stages update:', e);
-      }
-    });
-    
-    return () => {
-      eventSource.close();
-    };
   }, []);
 
   // Initial load of candidates
@@ -138,11 +167,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       const fetchCandidates = async () => {
         setLoading(true);
         try {
-          const params = new URLSearchParams();
-          if (filters.name) params.append('name', filters.name);
-          if (filters.positionId) params.append('positionId', filters.positionId);
-          if (filters.stage) params.append('status', filters.stage);
-          if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+                  const params = new URLSearchParams();
+        if (filters.name) params.append('name', filters.name);
+        if (filters.positionId) params.append('positionId', filters.positionId);
+        if (filters.stage) params.append('status', filters.stage);
+        if (filters.recruiterId) params.append('recruiterId', filters.recruiterId);
+        
           const res = await fetch(`/api/candidates?${params.toString()}`);
           const data = await res.json();
           setCandidates(Array.isArray(data) ? data : (data.data || []));
@@ -189,27 +219,34 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Convert candidates to tasks for the task board
   const convertCandidatesToTasks = (candidates: any[]): Task[] => {
-    return candidates.map(candidate => ({
-      id: candidate.id,
-      title: candidate.name,
-      description: candidate.parsedData?.summary || candidate.email,
-      status: candidate.status,
-      priority: candidate.fitScore > 80 ? 'high' : candidate.fitScore > 60 ? 'medium' : 'low',
-      assignee: candidate.recruiter ? {
-        id: candidate.recruiter.id,
-        name: candidate.recruiter.name,
-        avatarUrl: candidate.recruiter.avatarUrl
-      } : undefined,
-      dueDate: candidate.applicationDate,
-      tags: candidate.position?.title ? [candidate.position.title] : [],
-      createdAt: candidate.createdAt,
-      updatedAt: candidate.updatedAt,
-      fitScore: candidate.fitScore,
-      avatarUrl: candidate.avatarUrl,
-      skills: candidate.parsedData?.skills || [],
-      // Keep original candidate data for backward compatibility
-      originalCandidate: candidate
-    }));
+    return candidates.map(candidate => {
+      const task = {
+        id: candidate.id,
+        title: candidate.name,
+        description: candidate.parsedData?.summary || '', // Only use summary, don't fallback to email
+        email: candidate.email, // Always include email separately
+        status: candidate.status,
+        priority: candidate.fitScore > 80 ? 'high' : candidate.fitScore > 60 ? 'medium' : 'low',
+        assignee: candidate.recruiter ? {
+          id: candidate.recruiter.id,
+          name: candidate.recruiter.name,
+          avatarUrl: candidate.recruiter.avatarUrl
+        } : undefined,
+        dueDate: candidate.applicationDate,
+        tags: candidate.position?.title ? [candidate.position.title] : [],
+        createdAt: candidate.createdAt,
+        updatedAt: candidate.updatedAt,
+        fitScore: candidate.fitScore,
+        avatarUrl: candidate.avatarUrl,
+        skills: candidate.parsedData?.skills || [],
+        // Keep original candidate data for backward compatibility
+        originalCandidate: candidate
+      };
+      
+
+      
+      return task;
+    });
   };
 
   // Convert stages to task stages
@@ -228,6 +265,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
+    console.log('🔄 Attempting to move task:', { taskId: task.id, fromStatus: task.status, toStatus: newStatus });
+    
     const candidate = task.originalCandidate;
     if (!candidate) {
       console.error('No original candidate found for task:', task);
@@ -240,15 +279,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
 
-    // Validate status is one of the expected values
-    const validStatuses = [
-      'Applied', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewing', 
-      'Offer Sent', 'Offer Accepted', 'Hired', 'Rejected', 'Withdrawn'
-    ];
+    // Validate status is one of the available stages
+    const availableStatuses = stages.map(stage => stage.name);
+    console.log('📋 Available statuses:', availableStatuses);
+    console.log('🎯 Target status:', newStatus);
     
-    if (!validStatuses.includes(newStatus)) {
-      console.error('Invalid status value:', newStatus);
-      toast.error(`Invalid status: ${newStatus}. Must be one of: ${validStatuses.join(', ')}`);
+    if (!availableStatuses.includes(newStatus)) {
+      console.error('❌ Invalid status value:', newStatus);
+      console.error('📋 Available statuses:', availableStatuses);
+      toast.error(`Invalid status: ${newStatus}. Must be one of the available stages.`);
       return;
     }
 
@@ -390,12 +429,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     return statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800';
   };
 
-  const handleRefresh = () => {
-    // Trigger a refresh of the data
-    const currentFilters = { ...filters };
-    setFilters({});
-    setTimeout(() => setFilters(currentFilters), 100);
-  };
+
 
   // Stage filter functions
   const handleSelectAllStages = () => {
@@ -467,12 +501,12 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                {/* Search */}
                <div className="relative">
                  {loading ? (
-                   <RefreshCw className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin rounded-full border-b-2 border-current" />
                  ) : (
                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                  )}
                  <Input
-                   className="pl-10 h-9 w-64 text-sm"
+                   className="pl-10 h-9 w-48 text-sm"
                    placeholder="Search candidates..."
                    value={filters.name || ''}
                    onChange={e => setFilters((f: any) => ({ ...f, name: e.target.value }))}
@@ -495,130 +529,196 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                {/* Stage filter is now handled by the TaskBoard component's built-in multi-select filter */}
 
                {canViewAllRecruiters && (
-                 <Select value={filters.recruiterId || 'all'} onValueChange={v => setFilters((f: any) => ({ ...f, recruiterId: v === 'all' ? '' : v }))}>
-                   <SelectTrigger className="h-9 w-48 text-sm">
-                     <SelectValue placeholder="All Recruiters" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="all">All Recruiters</SelectItem>
-                     {recruiters.map((r: any) => (
-                       <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
+                 <Popover>
+                   <PopoverTrigger asChild>
+                     <Button
+                       variant="outline"
+                       role="combobox"
+                       className="h-9 w-48 text-sm justify-between"
+                     >
+                       {filters.recruiterId ? (
+                         <div className="flex items-center gap-2">
+                           {(() => {
+                             const selectedRecruiter = recruiters.find((r: any) => r.id === filters.recruiterId);
+                             return selectedRecruiter ? (
+                               <>
+                                 <Avatar className="h-4 w-4">
+                                   <AvatarImage src={selectedRecruiter.avatarUrl} />
+                                   <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                     {selectedRecruiter.name.charAt(0).toUpperCase()}
+                                   </AvatarFallback>
+                                 </Avatar>
+                                 <span className="truncate">{selectedRecruiter.name}</span>
+                               </>
+                             ) : (
+                               <span>Unknown recruiter</span>
+                             );
+                           })()}
+                         </div>
+                       ) : (
+                         <span className="text-muted-foreground">All Recruiters</span>
+                       )}
+                       <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
+                     </Button>
+                   </PopoverTrigger>
+                   <PopoverContent className="w-48 p-0" align="start">
+                     <div className="p-2">
+                       <div className="text-sm font-medium mb-2">Select Recruiter</div>
+                       
+                       {/* All recruiters option */}
+                       <button
+                         onClick={() => setFilters((f: any) => ({ ...f, recruiterId: '' }))}
+                         className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                       >
+                         <div className="h-5 w-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                           <Users className="h-3 w-3 text-gray-500" />
+                         </div>
+                         <div className="flex flex-col flex-1">
+                           <span className="text-sm">All Recruiters</span>
+                           <span className="text-xs text-muted-foreground">Show all recruiters</span>
+                         </div>
+                         {!filters.recruiterId && (
+                           <div className="w-3 h-3 rounded-full bg-primary" />
+                         )}
+                       </button>
+
+                       {/* Available recruiters */}
+                       {recruiters.map((r: any) => (
+                         <button
+                           key={r.id}
+                           onClick={() => setFilters((f: any) => ({ ...f, recruiterId: r.id }))}
+                           className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                         >
+                           <Avatar className="h-5 w-5">
+                             <AvatarImage src={r.avatarUrl} />
+                             <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                               {r.name.charAt(0).toUpperCase()}
+                             </AvatarFallback>
+                           </Avatar>
+                           <div className="flex flex-col flex-1">
+                             <span className="text-sm font-medium truncate">{r.name}</span>
+                             <span className="text-xs text-muted-foreground">Recruiter</span>
+                           </div>
+                           {filters.recruiterId === r.id && (
+                             <div className="w-3 h-3 rounded-full bg-primary" />
+                           )}
+                         </button>
+                       ))}
+                     </div>
+                   </PopoverContent>
+                 </Popover>
                )}
+
+               {/* Stage Filter */}
+               <div className="w-48">
+                 <Popover open={isStageFilterOpen} onOpenChange={setIsStageFilterOpen}>
+                   <PopoverTrigger asChild>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       className="h-9 w-full justify-between text-sm"
+                     >
+                       <div className="flex items-center gap-2">
+                         <Filter className="h-3 w-3" />
+                         {selectedStages.length === 0 
+                           ? `All Stages (${stages.length})` 
+                           : `${selectedStages.length} Stage${selectedStages.length !== 1 ? 's' : ''}`
+                         }
+                       </div>
+                     </Button>
+                   </PopoverTrigger>
+                   <PopoverContent className="w-64 p-0" align="end">
+                     <div className="p-3 border-b border-border">
+                       <div className="flex items-center justify-between">
+                         <h4 className="text-sm font-medium">Filter Stages</h4>
+                         <div className="flex gap-1">
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={handleSelectAllStages}
+                             className="h-6 px-2 text-xs"
+                           >
+                             All
+                           </Button>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={handleClearAllStages}
+                             className="h-6 px-2 text-xs"
+                           >
+                             Clear
+                           </Button>
+                         </div>
+                       </div>
+                     </div>
+                     
+                     <div className="max-h-48 overflow-y-auto">
+                       {stages.map((stage) => {
+                         const isSelected = selectedStages.includes(stage);
+                         return (
+                           <div
+                             key={stage}
+                             className={cn(
+                               "flex items-center px-3 py-2 cursor-pointer hover:bg-accent transition-colors",
+                               isSelected && "bg-accent"
+                             )}
+                             onClick={() => toggleStageSelection(stage)}
+                           >
+                             <div className={cn(
+                               "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
+                               isSelected 
+                                 ? "bg-primary border-primary" 
+                                 : "border-border"
+                             )}>
+                               {isSelected && (
+                                 <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                 </svg>
+                               )}
+                             </div>
+                             <span className={cn(
+                               "text-sm",
+                               isSelected && "font-medium"
+                             )}>
+                               {stage}
+                             </span>
+                           </div>
+                         );
+                       })}
+                     </div>
+                   </PopoverContent>
+                 </Popover>
+               </div>
+
              </div>
 
              {/* Right: Board Controls */}
              <div className="flex items-center gap-2">
-              {/* Stage Filter */}
-              <div className="relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9 px-3 text-xs gap-2"
-                  onClick={() => setIsStageFilterOpen(!isStageFilterOpen)}
-                >
-                  <Filter className="h-3 w-3" />
-                  {selectedStages.length === 0 
-                    ? `All Stages (${stages.length})` 
-                    : `${selectedStages.length} Stage${selectedStages.length !== 1 ? 's' : ''}`
-                  }
-                </Button>
-                
-                {/* Stage Filter Dropdown */}
-                {isStageFilterOpen && (
-                  <div 
-                    ref={stageFilterRef}
-                    className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg z-50"
-                  >
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium">Filter Stages</h4>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleSelectAllStages}
-                            className="h-6 px-2 text-xs"
-                          >
-                            All
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearAllStages}
-                            className="h-6 px-2 text-xs"
-                          >
-                            Clear
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="max-h-48 overflow-y-auto">
-                      {stages.map((stage) => {
-                        const isSelected = selectedStages.includes(stage);
-                        return (
-                          <div
-                            key={stage}
-                            className={cn(
-                              "flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors",
-                              isSelected && "bg-blue-50 dark:bg-blue-900/20"
-                            )}
-                            onClick={() => toggleStageSelection(stage)}
-                          >
-                            <div className={cn(
-                              "w-4 h-4 rounded border-2 mr-3 flex items-center justify-center transition-colors",
-                              isSelected 
-                                ? "bg-blue-600 border-blue-600" 
-                                : "border-gray-300 dark:border-gray-600"
-                            )}>
-                              {isSelected && (
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              )}
-                            </div>
-                            <span className={cn(
-                              "text-sm font-medium",
-                              isSelected && "text-blue-600 dark:text-blue-400"
-                            )}>
-                              {stage}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+
+              {/* Card Settings Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-2"
+                onClick={() => setIsCardSettingsOpen(true)}
+                title="Customize card display"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
 
               {/* View Mode Toggle */}
               <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
                 <TabsList className="grid w-auto grid-cols-2 h-9">
-                  <TabsTrigger value="kanban" className="text-xs px-3">
-                    <Kanban className="w-3 h-3 mr-1" />
-                    Kanban
+                  <TabsTrigger value="kanban" className="text-xs px-2">
+                    <Kanban className="w-4 h-4" />
                   </TabsTrigger>
-                  <TabsTrigger value="table" className="text-xs px-3">
-                    <List className="w-3 h-3 mr-1" />
-                    List
+                  <TabsTrigger value="table" className="text-xs px-2">
+                    <List className="w-4 h-4" />
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
 
-              {/* Refresh */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 text-xs"
-                onClick={handleRefresh}
-                disabled={loading}
-              >
-                <RefreshCw className={cn("w-4 h-4 mr-1", loading && "animate-spin")}/>
-                Refresh
-              </Button>
+
             </div>
           </div>
         </div>
@@ -670,10 +770,21 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   stages={convertStagesToTaskStages(filteredStages)}
                   onMoveTask={handleMoveTask}
                   onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
-                  showAssignee={true}
-                  showPriority={false}
-                  showDueDate={false}
-                  showTags={true}
+                  cardPreferences={{
+                    cardWidth: preferences.cardWidth,
+                    customCardWidth: preferences.customCardWidth,
+                    showAvatar: preferences.showAvatar,
+                    showName: preferences.showName,
+                    showEmail: preferences.showEmail,
+                    showDescription: preferences.showDescription,
+                    showFitScore: preferences.showFitScore,
+                    showAssignee: preferences.showAssignee,
+                    showPriority: preferences.showPriority,
+                    showDueDate: preferences.showDueDate,
+                    showTags: preferences.showTags,
+                    showSkills: preferences.showSkills,
+                    showJobApplied: preferences.showJobApplied,
+                  }}
                 />
               </div>
             ) : (
@@ -698,14 +809,16 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                       }}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <Avatar size="lg" className="border-2 border-border">
-                              <AvatarImage
-                                src={candidate.avatarUrl ? candidate.avatarUrl : `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'T'}`}
-                                alt={candidate.name}
-                                onError={e => { e.currentTarget.src = `https://placehold.co/48x48.png?text=${candidate.name?.charAt(0) || 'T'}`; }}
-                              />
-                              <AvatarFallback className="text-sm font-medium">{candidate.name?.charAt(0)?.toUpperCase() || 'T'}</AvatarFallback>
-                            </Avatar>
+                            <UserAvatarCompact
+                              user={{
+                                id: candidate.id,
+                                name: candidate.name,
+                                avatarUrl: candidate.avatarUrl,
+                                email: candidate.email
+                              }}
+                              size="lg"
+                              className="border-2 border-border"
+                            />
                             <div>
                               <span className="font-medium text-foreground hover:underline cursor-pointer">{candidate.name}</span>
                               <div className="text-xs text-muted-foreground">{candidate.email}</div>
@@ -752,6 +865,25 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         </>
       )}
 
+      {/* Card Settings Drawer */}
+      <Sheet open={isCardSettingsOpen} onOpenChange={setIsCardSettingsOpen}>
+        <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Card Customization Settings
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            <CardCustomizationSettings
+              preferences={preferences}
+              onUpdatePreferences={updateTaskBoardPreferences}
+              onResetPreferences={resetTaskBoardPreferences}
+              isSaving={false}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
     </div>
   );

@@ -1,7 +1,7 @@
 // src/app/api/users/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import type { UserProfile, PlatformModuleId, UserGroup } from '@/lib/types';
+import type { UserProfile, PlatformModuleId, UserTeam } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
@@ -55,9 +55,10 @@ const createUserSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters long").optional(),
   role: userRoleEnum,
   modulePermissions: z.array(z.enum(platformModuleIds)).optional().default([]),
-  groupIds: z.array(z.string().uuid()).optional().default([]),
+  userTeamIds: z.array(z.string().uuid()).optional().default([]),
   authenticationMethod: z.enum(['basic', 'azure']).optional().default('basic'),
   forcePasswordChange: z.boolean().optional().default(false),
+  personalColor: z.string().optional().default('#3B82F6'),
 });
 
 export async function GET(request: NextRequest) {
@@ -104,18 +105,30 @@ export async function GET(request: NextRequest) {
     try {
       users = await prisma.user.findMany({
         where: whereConditions,
-        include: {
-          userGroups: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          avatarUrl: true,
+          personalColor: true,
+          authenticationMethod: true,
+          forcePasswordChange: true,
+          module_permissions: true,
+          createdAt: true,
+          updatedAt: true,
+          userTeams: {
             include: {
-              group: {
+              team: {
                 select: {
                   id: true,
-                  name: true
+                  name: true,
+                  color: true
                 }
               }
             }
           }
-        },
+        } as any,
         orderBy: {
           name: 'asc'
         }
@@ -128,7 +141,8 @@ export async function GET(request: NextRequest) {
 
     const usersToReturn = users.map((user: any) => ({
       ...user,
-      groups: user.userGroups.map((ug: any) => ug.group)
+      teams: user.userTeams.map((ut: any) => ut.team),
+      modulePermissions: user.module_permissions || []
     }));
 
     return NextResponse.json(usersToReturn, { status: 200 });
@@ -169,7 +183,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { name, email, password, role, modulePermissions, groupIds, authenticationMethod, forcePasswordChange } = validationResult.data;
+  const { name, email, password, role, modulePermissions, userTeamIds, authenticationMethod, forcePasswordChange, personalColor } = validationResult.data;
+
+  console.log('Creating user with data:', {
+    name,
+    email,
+    role,
+    modulePermissions,
+    userTeamIds,
+    authenticationMethod,
+    forcePasswordChange,
+    personalColor
+  });
 
   const saltRounds = 10;
   let hashedPassword;
@@ -193,6 +218,8 @@ export async function POST(request: NextRequest) {
     const defaultAvatarUrl = `https://placehold.co/100x100.png?text=${name?.charAt(0)?.toUpperCase() || 'U'}`;
     const defaultDataAiHint = "profile person";
 
+    console.log('About to create user with Prisma...');
+    
     const newUser = await prisma.user.create({
       data: {
         name,
@@ -201,43 +228,42 @@ export async function POST(request: NextRequest) {
         role,
         avatarUrl: defaultAvatarUrl,
         dataAiHint: defaultDataAiHint,
-        modulePermissions,
+        module_permissions: modulePermissions,
         authenticationMethod,
         forcePasswordChange,
-        userGroups: groupIds && groupIds.length > 0 ? {
-          create: groupIds.map(groupId => ({
-            groupId
-          }))
-        } : undefined
-      },
-      include: {
-        userGroups: {
-          include: {
-            group: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        }
-      }
+        personalColor,
+        // Temporarily comment out team assignment to isolate the issue
+        // userTeams: userTeamIds && userTeamIds.length > 0 ? {
+        //   create: userTeamIds.map(teamId => ({
+        //     teamId
+        //   }))
+        // } : undefined
+      } as any
     });
+
+    console.log('User created successfully:', newUser.id);
 
     const userToReturn = {
       ...newUser,
-      groups: newUser.userGroups.map((ug: any) => ug.group)
+      teams: [],
+      modulePermissions: (newUser as any).module_permissions || []
     };
 
     // Clear user validation cache for the new user
     clearUserValidationCache(newUser.id);
 
-    await logAudit('AUDIT', `User account '${userToReturn.name}' (ID: ${userToReturn.id}) created by ${session.user.name}.`, 'API:Users:Create', session.user.id, { targetUserId: userToReturn.id, role: userToReturn.role, permissions: userToReturn.modulePermissions, groups: groupIds });
+    await logAudit('AUDIT', `User account '${userToReturn.name}' (ID: ${userToReturn.id}) created by ${session.user.name}.`, 'API:Users:Create', session.user.id, { targetUserId: userToReturn.id, role: userToReturn.role, permissions: userToReturn.modulePermissions, groups: userTeamIds });
     await dispatchWebhooks.userCreated(newUser);
     return NextResponse.json(userToReturn, { status: 201 });
 
   } catch (error: any) {
     console.error("Failed to create user:", error);
+    console.error("Error details:", {
+      code: error.code,
+      meta: error.meta,
+      message: error.message,
+      stack: error.stack
+    });
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
     await logAudit('ERROR', `Failed to create user ${email} by ${userNameForLog}. Error: ${error.message}.`, 'API:Users:Create', session.user.id);
     

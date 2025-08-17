@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Popover,
   PopoverContent,
@@ -16,7 +17,7 @@ interface RecruiterMultiSelectDropdownProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
-  recruiters: { id: string; name: string }[];
+  recruiters: { id: string; name: string; avatarUrl?: string }[];
 }
 
 export function RecruiterMultiSelectDropdown({
@@ -278,6 +279,12 @@ export function RecruiterMultiSelectDropdown({
                         selectedIds.has(recruiter.id) ? "opacity-100" : "opacity-0"
                       )}
                     />
+                    <Avatar className="h-6 w-6 mr-2">
+                      <AvatarImage src={recruiter.avatarUrl} />
+                      <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        {recruiter.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex flex-col">
                       <span className="font-medium text-foreground">{recruiter.name}</span>
                       <span className="text-sm text-muted-foreground">

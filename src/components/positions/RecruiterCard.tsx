@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +14,7 @@ interface RecruiterCardProps {
     name: string;
     email?: string;
     avatar?: string;
+    personalColor?: string;
   };
   stats: RecruiterStats;
   isSelected: boolean;
@@ -22,21 +22,23 @@ interface RecruiterCardProps {
 }
 
 export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: RecruiterCardProps) {
+  const personalColor = recruiter.personalColor || '#3B82F6';
+  
   return (
     <div 
       className={cn(
         "group cursor-pointer transition-all duration-300 ease-out",
         "relative overflow-hidden rounded-xl border-2",
-        "bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30",
         "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
         isSelected ? [
-          "border-blue-500 bg-gradient-to-br from-blue-500/10 to-blue-600/15",
-          "shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30"
-        ] : [
-          "border-gray-300 dark:border-gray-600",
-          "hover:border-gray-400 dark:hover:border-gray-500"
-        ]
+          "shadow-lg ring-2 ring-offset-2"
+        ] : []
       )}
+      style={{
+        borderColor: personalColor,
+        backgroundColor: undefined,
+        boxShadow: isSelected ? `0 10px 15px -3px ${personalColor}20, 0 4px 6px -4px ${personalColor}20` : undefined,
+      }}
       onClick={() => onSelect(recruiter.id)}
     >
       {/* Subtle gradient overlay */}
@@ -44,8 +46,8 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
       
       <div className="relative p-3">
         {/* Modern Header */}
-        <div className="flex items-center gap-3 mb-3">
-          {/* Enhanced Avatar with Thumbnail */}
+        <div className="flex items-center gap-3">
+          {/* Enhanced Avatar with Background */}
           <div className="relative">
             <Avatar className={cn(
               "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg",
@@ -56,15 +58,16 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
                 alt={recruiter.name}
                 className="object-cover"
               />
-              <AvatarFallback className={cn(
-                "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500",
-                "text-white font-semibold text-sm tracking-wide",
-                "shadow-lg shadow-blue-500/25"
-              )}>
+              <AvatarFallback 
+                className="text-white font-semibold text-sm tracking-wide shadow-lg"
+                style={{ 
+                  backgroundColor: personalColor,
+                  boxShadow: `0 4px 6px -1px ${personalColor}25`
+                }}
+              >
                 {recruiter.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-
           </div>
           
           {/* Name and Selection */}
@@ -79,11 +82,12 @@ export function RecruiterCard({ recruiter, stats, isSelected, onSelect }: Recrui
           
           {/* Selection Indicator */}
           {isSelected && (
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <div 
+              className="w-2 h-2 rounded-full animate-pulse"
+              style={{ backgroundColor: personalColor }}
+            />
           )}
         </div>
-
-
       </div>
     </div>
   );

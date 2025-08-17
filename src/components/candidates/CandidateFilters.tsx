@@ -93,7 +93,8 @@ import { DateRange } from 'react-day-picker';
 import { PositionMultiSelectDropdown } from './PositionMultiSelectDropdown';
 import { RecruiterMultiSelectDropdown } from './RecruiterMultiSelectDropdown';
 import { StatusMultiSelectDropdown } from './StatusMultiSelectDropdown';
-import type { Position, RecruitmentStage, UserProfile } from '@/lib/types';
+import { SourceMultiSelectDropdown } from './SourceMultiSelectDropdown';
+import type { Position, RecruitmentStage, UserProfile, CandidateSource } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,6 +109,8 @@ export interface CandidateFilterValues {
   phoneOperator?: 'contains' | 'is' | 'startsWith' | 'endsWith';
   selectedPositionIds?: string[];
   selectedStatuses?: string[];
+  selectedSourceIds?: string[];
+  subSource?: string;
   education?: string; // Education Keywords
   skills?: string; // Skills Keywords
   location?: string; // Location
@@ -147,6 +150,7 @@ interface CandidateFiltersProps {
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiters: Pick<UserProfile, 'id' | 'name'>[];
+  availableSources: CandidateSource[];
   isLoading?: boolean;
   isAiSearching?: boolean;
   aiSearchResults?: any;
@@ -166,6 +170,7 @@ export function CandidateFilters({
     availablePositions,
     availableStages,
     availableRecruiters,
+    availableSources,
     isLoading,
     isAiSearching,
     aiSearchResults,
@@ -208,6 +213,8 @@ export function CandidateFilters({
   );
 
   const [selectedRecruiterIds, setSelectedRecruiterIds] = useState<Set<string>>(new Set(initialFilters.selectedRecruiterIds || []));
+  const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set(initialFilters.selectedSourceIds || []));
+  const [subSource, setSubSource] = useState(initialFilters.subSource || '');
   const [aiSearchQueryInput, setAiSearchQueryInput] = useState(initialFilters.aiSearchQuery || '');
   const [aiSearchType, setAiSearchType] = useState<'semantic' | 'exact' | 'hybrid'>(initialFilters.aiSearchType || 'hybrid');
   const [aiSearchFilters, setAiSearchFilters] = useState(initialFilters.aiSearchFilters || {});
@@ -791,6 +798,8 @@ export function CandidateFilters({
       phoneOperator,
       selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
       selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
+      subSource: subSource || undefined,
       skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
       location: location || undefined,
       locationOperator,
@@ -948,6 +957,12 @@ export function CandidateFilters({
 
   const handleRecruiterChange = (newSelectedRecruiterIds: Set<string>) => {
     setSelectedRecruiterIds(newSelectedRecruiterIds);
+    // Apply filters with debouncing for smooth multiselect experience
+    handleApplyStandardFiltersDebounced();
+  };
+
+  const handleSourceChange = (newSelectedSourceIds: Set<string>) => {
+    setSelectedSourceIds(newSelectedSourceIds);
     // Apply filters with debouncing for smooth multiselect experience
     handleApplyStandardFiltersDebounced();
   };
@@ -1703,6 +1718,45 @@ export function CandidateFilters({
                                 disabled={isLoading || isAiSearching || isApplyingFilters}
                               />
                             )}
+                            {isApplyingFilters && (
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                Applying filters...
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <Label htmlFor="source-select" className="text-xs">Candidate Source(s)</Label>
+                            {availableSources.length === 0 ? (
+                              <div className="p-2 border rounded-md bg-muted/20">
+                                <span className="text-xs text-muted-foreground">No sources available</span>
+                              </div>
+                            ) : (
+                              <SourceMultiSelectDropdown
+                                selectedSourceIds={selectedSourceIds}
+                                onSelectionChange={handleSourceChange}
+                                availableSources={availableSources}
+                                placeholder="Select sources..."
+                                disabled={isLoading || isAiSearching || isApplyingFilters}
+                              />
+                            )}
+                            {isApplyingFilters && (
+                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
+                                Applying filters...
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <Label htmlFor="sub-source" className="text-xs">Sub Source</Label>
+                            <Input
+                              id="sub-source"
+                              placeholder="Enter sub source details..."
+                              value={subSource}
+                              onChange={(e) => setSubSource(e.target.value)}
+                              className="h-8 text-xs"
+                              disabled={isLoading || isAiSearching || isApplyingFilters}
+                            />
                             {isApplyingFilters && (
                               <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                 <div className="w-3 h-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>

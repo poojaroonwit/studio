@@ -72,8 +72,7 @@ export default function DashboardPageClient({
   const [permissionError, setPermissionError] = useState(serverPermissionError);
 
   // Check permissions
-  const canViewDashboard = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
+      const canViewDashboard = session?.user?.role === 'Admin';
   
   // EARLY RETURNS MOVED TO AFTER ALL HOOKS
   if (status === 'loading') {
@@ -983,7 +982,7 @@ export default function DashboardPageClient({
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart: On-process by Stage */}
+          {/* Bar Chart: On-process by Stage */}
           <Card className="group relative overflow-hidden border-2 border-purple-200 dark:border-purple-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
@@ -997,11 +996,12 @@ export default function DashboardPageClient({
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
                 ) : (
-                  <Pie
+                  <Bar
                     data={{
                       labels: Object.keys(onProcessByStage),
                       datasets: [
                         {
+                          label: 'Candidates',
                           data: Object.values(onProcessByStage),
                           backgroundColor: [
                             'rgba(147, 51, 234, 0.8)',  // purple-600
@@ -1015,23 +1015,17 @@ export default function DashboardPageClient({
                             'rgba(245, 158, 11, 0.8)',  // amber-600
                             'rgba(16, 185, 129, 0.8)',  // emerald-600
                           ],
-                          borderWidth: 2,
-                          borderColor: 'rgba(255, 255, 255, 0.8)',
+                          borderRadius: 8,
+                          borderSkipped: false,
+                          barPercentage: 0.7,
+                          borderColor: 'rgba(147, 51, 234, 0.3)',
+                          borderWidth: 1,
                         },
                       ],
                     }}
                     options={{
                       plugins: {
-                        legend: {
-                          display: true,
-                          position: 'right',
-                          labels: { 
-                            color: 'rgb(100, 116, 139)', 
-                            font: { size: 13 },
-                            usePointStyle: true,
-                            padding: 15
-                          },
-                        },
+                        legend: { display: false },
                         tooltip: {
                           backgroundColor: 'rgba(0, 0, 0, 0.8)',
                           titleColor: 'white',
@@ -1042,6 +1036,17 @@ export default function DashboardPageClient({
                       },
                       responsive: true,
                       maintainAspectRatio: false,
+                      scales: {
+                        x: {
+                          grid: { color: 'rgba(100,116,139,0.1)' },
+                          ticks: { color: 'rgb(100, 116, 139)', font: { size: 12 } },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: { color: 'rgba(100,116,139,0.1)' },
+                          ticks: { color: 'rgb(100, 116, 139)', font: { size: 12 } },
+                        },
+                      },
                     }}
                   />
                 )}

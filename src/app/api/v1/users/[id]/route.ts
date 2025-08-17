@@ -19,7 +19,7 @@ const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   role: z.enum(['Admin', 'Recruiter', 'User']).optional(),
-  modulePermissions: z.array(z.string()).optional(),
+
   password: z.string().min(6).optional(),
 });
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_VIEW')) {
+  if (user.role !== 'Admin') {
     return handleApiError(req, createForbiddenError('Insufficient permissions to view users'));
   }
 
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const client = await getPool().connect();
   
   try {
-    const query = 'SELECT id, name, email, role, "modulePermissions", "createdAt", "updatedAt" FROM "User" WHERE id = $1';
+    const query = 'SELECT id, name, email, role, "createdAt", "updatedAt" FROM "User" WHERE id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -50,7 +50,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const userData = result.rows[0];
     return createSuccessResponse(req, {
       ...userData,
-      modulePermissions: userData.modulePermissions || [],
     }, 200);
 
   } catch (error) {
@@ -71,7 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
+  if (user.role !== 'Admin') {
     return handleApiError(req, createForbiddenError('Insufficient permissions to update users'));
   }
 
@@ -88,7 +87,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return handleApiError(req, createValidationError('Invalid input', validationResult.error.flatten().fieldErrors));
   }
 
-  const { name, email, role, modulePermissions, password } = validationResult.data;
+  const { name, email, role, password } = validationResult.data;
 
   const client = await getPool().connect();
   try {
@@ -130,10 +129,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       updateValues.push(role);
     }
 
-    if (modulePermissions !== undefined) {
-      updateFields.push(`"modulePermissions" = $${paramIndex++}`);
-      updateValues.push(modulePermissions);
-    }
+
 
     if (password !== undefined) {
       updateFields.push(`password = $${paramIndex++}`);
@@ -146,20 +142,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       UPDATE "User" 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, email, role, "modulePermissions", "createdAt", "updatedAt";
+      RETURNING id, name, email, role, "createdAt", "updatedAt";
     `;
 
     const updateResult = await client.query(updateQuery, updateValues);
     await client.query('COMMIT');
 
     const updatedUser = updateResult.rows[0];
-    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${user.name}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role, modulePermissions } });
+    await logAudit('AUDIT', `User '${updatedUser.name}' updated by ${user.name}.`, 'API:V1:Users:Update', user.id, { userId: id, updatedFields: { name, email, role } });
     return createSuccessResponse(req, {
       message: 'User updated successfully',
-      user: {
-        ...updatedUser,
-        modulePermissions: updatedUser.modulePermissions || [],
-      }
+              user: {
+          ...updatedUser,
+        }
     }, 200);
 
   } catch (error) {
@@ -182,7 +177,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return handleApiError(req, createUnauthorizedError('Authentication required'));
   }
 
-  if (user.role !== 'Admin' && !user.modulePermissions?.includes('USERS_MANAGE')) {
+  if (user.role !== 'Admin') {
     return handleApiError(req, createForbiddenError('Insufficient permissions to delete users'));
   }
 

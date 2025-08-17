@@ -97,7 +97,6 @@ const SystemSettingsTable: React.FC<SystemSettingsTableProps> = ({ settings, isL
     if (key.startsWith('login')) return 'Login Page';
     if (key.startsWith('sidebar')) return 'Sidebar';
     if (key.includes('Webhook') || key.includes('Url')) return 'Webhooks';
-    if (key.includes('ApiKey') || key.includes('Key')) return 'API Keys';
     return 'General';
   };
 

@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import type { Candidate, CandidateStatus } from '@/lib/types';
+import type { Candidate, CandidateStatus, UserProfile } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -14,6 +14,7 @@ import FullCandidateDetail from './FullCandidateDetail';
 import { Pencil, Trash2, MoveRight, Plus, Calendar, Target, User, Mail, Phone, Clock, TrendingUp, ChevronLeft, ChevronRight, Eye, Users, GraduationCap, Briefcase, HardDrive } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor, normalizeFitScore, getScoreGradeInfo } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
+import { getCandidatePersonalColor, getCandidateCardStyles } from "@/lib/personalColorUtils";
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -119,7 +120,7 @@ function getFieldLabel(key: string) {
 }
 
 // Enhanced candidate card component
-const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'], columnField = 'status' }: {
+const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragStart, onDragEnd, visibleFields = ['name', 'email', 'status', 'fitScore'], columnField = 'status', recruiters }: {
   candidate: Candidate;
   isDragged?: boolean;
   onClick: () => void;
@@ -127,6 +128,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   onDragEnd: () => void;
   visibleFields?: string[];
   columnField?: string;
+  recruiters?: UserProfile[];
 }) => {
   const [isDragStarting, setIsDragStarting] = useState(false);
   
@@ -146,6 +148,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
   const skills = getSkills(candidate);
   const personalInfo = getParsedDataProperty(candidate, 'personal_info');
   const contactInfo = getParsedDataProperty(candidate, 'contact_info');
+  const personalColor = getCandidatePersonalColor(candidate, recruiters);
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragStarting(true);
@@ -187,6 +190,10 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
         isDragged && "opacity-60 scale-95 shadow-lg",
         isDragStarting && "scale-105 shadow-xl"
       )}
+      style={{
+        borderColor: personalColor,
+        backgroundColor: `${personalColor}05`,
+      }}
       onClick={onClick}
       draggable={columnField === 'status'}
       onDragStart={columnField === 'status' ? handleDragStart : undefined}
@@ -199,7 +206,12 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
           <div className="flex items-start gap-3">
             <Avatar className="h-10 w-10 flex-shrink-0">
               <AvatarImage src={candidate.avatarUrl || `https://placehold.co/40x40.png?text=${nameInfo.name?.charAt(0) || 'C'}`} alt={nameInfo.name} data-ai-hint="person avatar"/>
-              <AvatarFallback className="bg-primary/10 text-primary">{nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}</AvatarFallback>
+              <AvatarFallback 
+                className="text-white font-semibold"
+                style={{ backgroundColor: personalColor }}
+              >
+                {nameInfo.name?.charAt(0)?.toUpperCase() || 'C'}
+              </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p 
@@ -332,6 +344,7 @@ const EnhancedCandidateCard = ({ candidate, isDragged = false, onClick, onDragSt
 interface CandidateKanbanViewProps {
   candidates: Candidate[];
   statuses: CandidateStatus[];
+  recruiters?: UserProfile[];
   onMoveCandidate?: (candidate: Candidate, newValue: string) => void;
   onCardClick?: (candidate: Candidate) => void;
   showAddButton?: boolean;
@@ -345,6 +358,7 @@ interface CandidateKanbanViewProps {
 export function CandidateKanbanView({
   candidates,
   statuses,
+  recruiters,
   onMoveCandidate,
   onCardClick,
   showAddButton = true,
@@ -373,6 +387,7 @@ export function CandidateKanbanView({
     <FlexibleKanbanView
       candidates={candidates}
       statuses={statuses}
+      recruiters={recruiters}
       onMoveCandidate={onMoveCandidate}
       onCardClick={onCardClick}
       showAddButton={showAddButton}
@@ -389,6 +404,7 @@ export function CandidateKanbanView({
 export function CandidateRowKanbanView({ 
   candidates, 
   statuses, 
+  recruiters,
   onMoveCandidate, 
   onCardClick, 
   rowField = 'status', 
@@ -507,6 +523,7 @@ export function CandidateRowKanbanView({
 export function FlexibleKanbanView({ 
   candidates, 
   statuses, 
+  recruiters,
   onMoveCandidate, 
   onCardClick, 
   rowField = 'status', 
@@ -718,6 +735,7 @@ export function FlexibleKanbanView({
                             onDragStart={() => handleDragStart(candidate)}
                             onDragEnd={handleDragEnd}
                             visibleFields={visibleFields}
+                            recruiters={recruiters}
                           />
                         </div>
                       ))}
@@ -801,6 +819,7 @@ export function FlexibleKanbanView({
                       onDragStart={() => handleDragStart(candidate)}
                       onDragEnd={handleDragEnd}
                       visibleFields={visibleFields}
+                      recruiters={recruiters}
                     />
                   </div>
                 )) : (
@@ -852,6 +871,7 @@ export function FlexibleKanbanView({
                 onDragStart={() => handleDragStart(candidate)}
                 onDragEnd={handleDragEnd}
                 visibleFields={visibleFields}
+                recruiters={recruiters}
               />
             </div>
           ))}
@@ -932,6 +952,7 @@ export function FlexibleKanbanView({
                                   onDragStart={() => handleDragStart(candidate)}
                                   onDragEnd={handleDragEnd}
                                   visibleFields={visibleFields}
+                                  recruiters={recruiters}
                                 />
                               </div>
                             ))}
@@ -973,6 +994,7 @@ export function FlexibleKanbanView({
                             onDragStart={() => handleDragStart(candidate)}
                             onDragEnd={handleDragEnd}
                             visibleFields={visibleFields}
+                            recruiters={recruiters}
                           />
                         </div>
                       )) : (
@@ -1035,6 +1057,7 @@ export function FlexibleKanbanView({
                                 onDragStart={() => handleDragStart(candidate)}
                                 onDragEnd={handleDragEnd}
                                 visibleFields={visibleFields}
+                                recruiters={recruiters}
                               />
                             </div>
                           ))}
@@ -1072,6 +1095,7 @@ export function FlexibleKanbanView({
           onCardClick={onCardClick}
           onMoveCandidate={onMoveCandidate}
           visibleFields={visibleFields}
+          recruiters={recruiters}
         />
       </div>
     );
@@ -1124,6 +1148,7 @@ export function FlexibleKanbanView({
                         onDragStart={() => handleDragStart(candidate)}
                         onDragEnd={handleDragEnd}
                         visibleFields={visibleFields}
+                        recruiters={recruiters}
                       />
                     </div>
                   ))}
@@ -1144,12 +1169,14 @@ export function SingleRowCandidateView({
   candidates, 
   onCardClick, 
   onMoveCandidate, 
-  visibleFields = ['name', 'email', 'status', 'fitScore']
+  visibleFields = ['name', 'email', 'status', 'fitScore'],
+  recruiters
 }: { 
   candidates: Candidate[];
   onCardClick?: (candidate: Candidate) => void;
   onMoveCandidate?: (candidate: Candidate, newValue: string) => void;
   visibleFields?: string[];
+  recruiters?: UserProfile[];
 }) {
   const [scrollPosition, setScrollPosition] = useState(0);
 
@@ -1878,6 +1905,7 @@ export function MultiRecruiterKanbanView({ candidates, stages, recruiters, onMov
 export function HorizontalStageKanbanView({ 
   candidates, 
   statuses, 
+  recruiters,
   onMoveCandidate, 
   onCardClick, 
   rowField = 'status',
@@ -2218,6 +2246,7 @@ export function HorizontalStageKanbanView({
                               onDragEnd={handleDragEnd}
                               visibleFields={visibleFields}
                               columnField={columnField}
+                              recruiters={recruiters}
                             />
                           </div>
                         ))}

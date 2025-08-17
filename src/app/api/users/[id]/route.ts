@@ -14,9 +14,15 @@ const updateUserSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters").optional(),
   authenticationMethod: z.enum(['basic', 'azure']).optional(),
   forcePasswordChange: z.boolean().optional(),
-  newPassword: z.string().min(8, "New password must be at least 8 characters").optional(),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").optional().or(z.literal("")),
   modulePermissions: z.array(z.string()).optional(),
-  groupIds: z.array(z.string().uuid()).optional(),
+  userTeamIds: z.array(z.string().uuid()).optional(),
+  avatarUrl: z.string().optional(),
+  personalColor: z.string().optional(),
+  preferences: z.object({
+    emailNotifications: z.boolean().optional(),
+    taskBoardView: z.enum(['kanban', 'table']).optional(),
+  }).optional(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -65,19 +71,30 @@ export async function GET(request: NextRequest) {
                 email: true,
                 role: true,
                 avatarUrl: true,
+                personalColor: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
-                modulePermissions: true,
+                module_permissions: true,
                 createdAt: true,
                 updatedAt: true,
-                userGroups: {
+                userTeams: {
                     include: {
-                        group: {
+                        team: {
                             select: {
                                 id: true,
-                                name: true
+                                name: true,
+                                color: true
                             }
                         }
+                    }
+                },
+                userPreferences: {
+                    where: {
+                        modelType: 'user'
+                    },
+                    select: {
+                        attributeKey: true,
+                        uiPreference: true
                     }
                 }
             }
@@ -87,10 +104,22 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
+        // Transform preferences from UserUIDisplayPreference to the expected format
+        const preferencesMap = user.userPreferences.reduce((acc, pref) => {
+            acc[pref.attributeKey] = pref.attributeKey === 'emailNotifications' 
+                ? pref.uiPreference === 'true'
+                : pref.uiPreference;
+            return acc;
+        }, {} as any);
+
         const userToReturn = {
             ...user,
-            groups: user.userGroups.map((ug: any) => ug.group),
-            modulePermissions: user.modulePermissions || []
+            teams: user.userTeams.map((ut: any) => ut.team),
+            modulePermissions: user.module_permissions || [],
+            preferences: {
+                emailNotifications: preferencesMap.emailNotifications ?? true,
+                taskBoardView: preferencesMap.taskBoardView ?? 'kanban'
+            }
         };
 
         return NextResponse.json(userToReturn, { status: 200 });
@@ -146,19 +175,24 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Error parsing request body", error: error.message }, { status: 400 });
     }
 
+    console.log('User update request body:', JSON.stringify(body, null, 2));
     const validationResult = updateUserSchema.safeParse(body);
     if (!validationResult.success) {
+        console.log('Validation errors:', JSON.stringify(validationResult.error.flatten().fieldErrors, null, 2));
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, groupIds, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, preferences, modulePermissions, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && !newPassword && !groupIds) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !preferences && modulePermissions === undefined) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
     
     try {
-        const updateData: any = { ...fieldsToUpdate };
+        const updateData: any = { 
+            ...fieldsToUpdate,
+            ...(modulePermissions !== undefined && { module_permissions: modulePermissions })
+        };
         
         // Handle password updates
         if (password) {
@@ -166,26 +200,73 @@ export async function PUT(request: NextRequest) {
             updateData.password = await bcrypt.hash(password, saltRounds);
         }
         
-        if (newPassword) {
+        if (newPassword && newPassword.trim() !== "") {
             const saltRounds = 10;
             updateData.password = await bcrypt.hash(newPassword, saltRounds);
         }
 
-        // Handle user groups update
-        let userGroupsUpdate: any = undefined;
-        if (groupIds !== undefined) {
-            // Delete existing user groups
-            await prisma.user_UserGroup.deleteMany({
+        // Handle user teams update
+        let userTeamsUpdate: any = undefined;
+        if (userTeamIds !== undefined) {
+            // Delete existing user teams
+            await prisma.user_UserTeam.deleteMany({
                 where: { userId: id }
             });
             
-            // Create new user groups if any
-            if (groupIds.length > 0) {
-                userGroupsUpdate = {
-                    create: groupIds.map(groupId => ({
-                        groupId
+            // Create new user teams if any
+            if (userTeamIds.length > 0) {
+                userTeamsUpdate = {
+                    create: userTeamIds.map(teamId => ({
+                        teamId
                     }))
                 };
+            }
+        }
+
+        // Handle preferences update
+        if (preferences) {
+            // Update email notifications preference
+            if (preferences.emailNotifications !== undefined) {
+                await prisma.userUIDisplayPreference.upsert({
+                    where: {
+                        userId_modelType_attributeKey: {
+                            userId: id,
+                            modelType: 'user',
+                            attributeKey: 'emailNotifications'
+                        }
+                    },
+                    update: {
+                        uiPreference: preferences.emailNotifications.toString()
+                    },
+                    create: {
+                        userId: id,
+                        modelType: 'user',
+                        attributeKey: 'emailNotifications',
+                        uiPreference: preferences.emailNotifications.toString()
+                    }
+                });
+            }
+
+            // Update task board view preference
+            if (preferences.taskBoardView !== undefined) {
+                await prisma.userUIDisplayPreference.upsert({
+                    where: {
+                        userId_modelType_attributeKey: {
+                            userId: id,
+                            modelType: 'user',
+                            attributeKey: 'taskBoardView'
+                        }
+                    },
+                    update: {
+                        uiPreference: preferences.taskBoardView
+                    },
+                    create: {
+                        userId: id,
+                        modelType: 'user',
+                        attributeKey: 'taskBoardView',
+                        uiPreference: preferences.taskBoardView
+                    }
+                });
             }
         }
 
@@ -193,26 +274,37 @@ export async function PUT(request: NextRequest) {
             where: { id },
             data: {
                 ...updateData,
-                ...(userGroupsUpdate && { userGroups: userGroupsUpdate })
+                ...(userTeamsUpdate && { userTeams: userTeamsUpdate })
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
                 role: true,
+                avatarUrl: true,
+                personalColor: true,
                 authenticationMethod: true,
                 forcePasswordChange: true,
-                modulePermissions: true,
+                module_permissions: true,
                 createdAt: true,
                 updatedAt: true,
-                userGroups: {
+                userTeams: {
                     include: {
-                        group: {
+                        team: {
                             select: {
                                 id: true,
                                 name: true
                             }
                         }
+                    }
+                },
+                userPreferences: {
+                    where: {
+                        modelType: 'user'
+                    },
+                    select: {
+                        attributeKey: true,
+                        uiPreference: true
                     }
                 }
             }
@@ -221,10 +313,22 @@ export async function PUT(request: NextRequest) {
         // Clear user validation cache for the updated user
         clearUserValidationCache(id);
 
+        // Transform preferences from UserUIDisplayPreference to the expected format
+        const preferencesMap = updatedUser.userPreferences.reduce((acc, pref) => {
+            acc[pref.attributeKey] = pref.attributeKey === 'emailNotifications' 
+                ? pref.uiPreference === 'true'
+                : pref.uiPreference;
+            return acc;
+        }, {} as any);
+
         const userToReturn = {
             ...updatedUser,
-            groups: updatedUser.userGroups.map((ug: any) => ug.group),
-            modulePermissions: updatedUser.modulePermissions || []
+            teams: updatedUser.userTeams.map((ut: any) => ut.team),
+            modulePermissions: updatedUser.module_permissions || [],
+            preferences: {
+                emailNotifications: preferencesMap.emailNotifications ?? true,
+                taskBoardView: preferencesMap.taskBoardView ?? 'kanban'
+            }
         };
 
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });

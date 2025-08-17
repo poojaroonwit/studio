@@ -20,10 +20,7 @@ async function main() {
         password: adminPassword,
         role: 'Admin',
         authenticationMethod: 'basic',
-        forcePasswordChange: false,
-        modulePermissions: [
-          'CANDIDATES_VIEW','CANDIDATES_MANAGE','CANDIDATES_IMPORT','CANDIDATES_EXPORT','POSITIONS_VIEW','POSITIONS_MANAGE','POSITIONS_IMPORT','POSITIONS_EXPORT','USERS_MANAGE','USER_GROUPS_MANAGE','SYSTEM_SETTINGS_MANAGE','USER_PREFERENCES_MANAGE','RECRUITMENT_STAGES_MANAGE','CUSTOM_FIELDS_MANAGE','LOGS_VIEW'
-        ]
+        forcePasswordChange: false
       }
     });
     console.log('✅ Admin user created/updated');
@@ -60,9 +57,9 @@ async function main() {
         name: 'Admin',
         description: 'Full system access',
         permissions: [
-          'CANDIDATES_VIEW','CANDIDATES_MANAGE','CANDIDATES_IMPORT','CANDIDATES_EXPORT','CANDIDATES_COMMENTS','CANDIDATES_RESUMES','CANDIDATES_TRANSITIONS','CANDIDATES_RECRUITER_ASSIGN',
+          'CANDIDATES_VIEW','CANDIDATES_MANAGE','CANDIDATES_IMPORT','CANDIDATES_EXPORT','CANDIDATES_COMMENTS','CANDIDATES_RESUMES','CANDIDATES_TRANSITIONS','CANDIDATES_RECRUITER_ASSIGN','TASK_BOARD_VIEW','TASK_BOARD_MANAGE_ALL',
           'POSITIONS_VIEW','POSITIONS_MANAGE','POSITIONS_IMPORT','POSITIONS_EXPORT',
-          'USERS_MANAGE','USER_GROUPS_MANAGE','API_KEYS_MANAGE',
+          'USERS_MANAGE','USER_GROUPS_MANAGE',
           'SYSTEM_SETTINGS_MANAGE','USER_PREFERENCES_MANAGE','RECRUITMENT_STAGES_MANAGE','CUSTOM_FIELDS_MANAGE','WEBHOOK_MAPPING_MANAGE','AI_INTEGRATION_MANAGE',
           'UPLOAD_QUEUE_MANAGE','AUTOMATION_UPLOAD','BULK_UPLOAD',
           'LOGS_VIEW','AUDIT_LOGS_VIEW','WEBHOOK_LOGS_VIEW',
@@ -77,7 +74,7 @@ async function main() {
         name: 'Recruiter',
         description: 'Can manage candidates and positions',
         permissions: [
-          'CANDIDATES_VIEW','CANDIDATES_MANAGE','CANDIDATES_IMPORT','CANDIDATES_EXPORT','CANDIDATES_COMMENTS','CANDIDATES_RESUMES','CANDIDATES_TRANSITIONS','CANDIDATES_RECRUITER_ASSIGN',
+          'CANDIDATES_VIEW','CANDIDATES_MANAGE','CANDIDATES_IMPORT','CANDIDATES_EXPORT','CANDIDATES_COMMENTS','CANDIDATES_RESUMES','CANDIDATES_TRANSITIONS','CANDIDATES_RECRUITER_ASSIGN','TASK_BOARD_VIEW',
           'POSITIONS_VIEW','POSITIONS_MANAGE','POSITIONS_IMPORT','POSITIONS_EXPORT',
           'RECRUITMENT_STAGES_MANAGE','USER_PREFERENCES_MANAGE',
           'BULK_UPLOAD','AUTOMATION_UPLOAD',
@@ -91,7 +88,7 @@ async function main() {
         name: 'Hiring Manager',
         description: 'Can view candidates and positions',
         permissions: [
-          'CANDIDATES_VIEW','POSITIONS_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE'
+          'CANDIDATES_VIEW','POSITIONS_VIEW','TASK_BOARD_VIEW','DASHBOARD_VIEW','USER_PREFERENCES_MANAGE'
         ],
         isDefault: true,
         isSystemRole: false
@@ -126,7 +123,11 @@ async function main() {
       { key: 'appThemePreference', value: 'system' },
       { key: 'primaryGradientStart', value: '179 67% 66%' },
       { key: 'primaryGradientEnd', value: '238 74% 61%' },
-      { key: 'loginPageLayoutType', value: '2column' }
+      { key: 'loginPageLayoutType', value: '2column' },
+      { 
+        key: 'defaultMatchCriteria', 
+        value: '<h2>Required Skills & Experience</h2><ul><li>Relevant educational background (Bachelor\'s degree or equivalent)</li><li>Minimum 2-3 years of professional experience in the field</li><li>Strong technical skills and proficiency in relevant tools</li><li>Excellent communication and teamwork abilities</li></ul><h2>Preferred Qualifications</h2><ul><li>Advanced degree or certifications</li><li>Experience with modern technologies and methodologies</li><li>Leadership or project management experience</li><li>Industry-specific knowledge and expertise</li></ul><h2>Personal Qualities</h2><ul><li>Problem-solving mindset and analytical thinking</li><li>Adaptability and willingness to learn</li><li>Strong work ethic and attention to detail</li><li>Cultural fit with company values</li></ul>'
+      }
     ];
     
     for (const setting of systemSettings) {

@@ -5,6 +5,8 @@ import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { AutoFont } from "./auto-font";
+import { LiveBadge } from "./live-badge";
+import { useLivePageDetection } from "@/hooks/use-live-page-detection";
 
 export interface BreadcrumbItem {
   label: string;
@@ -18,6 +20,8 @@ interface BreadcrumbProps {
 }
 
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
+  const { isLivePage } = useLivePageDetection();
+
   return (
     <nav className={cn("flex items-center space-x-1 text-sm text-muted-foreground", className)}>
       {items.map((item, index) => {
@@ -32,6 +36,9 @@ export function Breadcrumb({ items, className }: BreadcrumbProps) {
             >
               {Icon && <Icon className="mr-1 h-4 w-4" />}
               <AutoFont>{item.label}</AutoFont>
+              {isLivePage && (
+                <LiveBadge className="ml-1.5" size="sm" showText={false} />
+              )}
             </span>
           );
         }

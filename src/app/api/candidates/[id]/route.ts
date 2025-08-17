@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import { NotificationService } from '@/lib/notificationService';
 
 /**
  * @openapi
@@ -77,6 +78,8 @@ const updateCandidateSchema = z.object({
   resumePath: z.string().optional().nullable(),
   transitionNotes: z.string().optional().nullable(),
   avatarUrl: z.string().optional().nullable(),
+  sourceId: z.string().uuid().nullable().optional(),
+  subSource: z.string().optional().nullable(),
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -179,6 +182,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
+  // Check if user has permission to manage candidates
+  if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('CANDIDATES_MANAGE')) {
+    await logAudit('WARN', `Forbidden attempt to update candidate by ${actingUserName}.`, 'API:Candidates:Update', actingUserId);
+    return NextResponse.json({ message: 'Forbidden: Insufficient permissions to update candidates' }, { status: 403 });
+  }
+
   const { id } = params;
   
   // Validate UUID format
@@ -204,7 +213,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ message: 'Invalid input', errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl } = validationResult.data;
+  const { name, email, phone, positionId, recruiterId, fitScore, status, assignmentJustification, parsedData, custom_attributes, resumePath, transitionNotes, avatarUrl, sourceId, subSource } = validationResult.data;
 
   // Extra validation to prevent DB errors - only validate status if it's being updated and not null
   if (status !== undefined && status !== null && (!status || typeof status !== 'string' || status.trim() === '')) {
@@ -227,6 +236,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
   if (recruiterId !== undefined && recruiterId !== null && !isValidUUID(recruiterId)) {
     return NextResponse.json({ message: 'recruiterId must be a valid UUID or null.' }, { status: 400 });
+  }
+  if (sourceId !== undefined && sourceId !== null && !isValidUUID(sourceId)) {
+    return NextResponse.json({ message: 'sourceId must be a valid UUID or null.' }, { status: 400 });
   }
 
   const client = await getPool().connect();
@@ -263,6 +275,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         await client.query('ROLLBACK');
         console.error('Recruiter not found or user is not a recruiter:', recruiterId);
         return NextResponse.json({ message: 'Recruiter not found or user is not a recruiter.' }, { status: 400 });
+      }
+    }
+    if (sourceId) {
+      const sourceCheck = await client.query('SELECT id FROM "CandidateSource" WHERE id = $1::uuid', [sourceId]);
+      if (sourceCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        console.error('Candidate source not found:', sourceId);
+        return NextResponse.json({ message: 'Candidate source not found.' }, { status: 400 });
       }
     }
     
@@ -333,6 +353,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (avatarUrl !== undefined) {
       updateFields.push(`"avatarUrl" = $${paramIndex}`);
       updateValues.push(avatarUrl);
+      paramIndex++;
+    }
+    if (sourceId !== undefined) {
+      updateFields.push(`"sourceId" = $${paramIndex}`);
+      updateValues.push(sourceId);
+      paramIndex++;
+    }
+    if (subSource !== undefined) {
+      updateFields.push(`"subSource" = $${paramIndex}`);
+      updateValues.push(subSource);
       paramIndex++;
     }
 
@@ -414,6 +444,35 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             transition: newTransition,
             action: 'add'
           });
+        }
+        
+        // Send notification to recruiter about status change
+        const candidateWithRecruiterQuery = `
+          SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
+          FROM "Candidate" c
+          LEFT JOIN "Position" p ON c."positionId" = p.id
+          LEFT JOIN "User" u ON c."recruiterId" = u.id
+          WHERE c.id = $1
+        `;
+        const candidateWithRecruiterResult = await client.query(candidateWithRecruiterQuery, [id]);
+        const candidateWithRecruiter = candidateWithRecruiterResult.rows[0];
+        
+        if (candidateWithRecruiter.recruiterId) {
+          try {
+            await NotificationService.notifyCandidateStatusChange(
+              id,
+              candidateWithRecruiter.name,
+              oldStatus,
+              status,
+              candidateWithRecruiter.positionId,
+              candidateWithRecruiter.positionTitle || 'Unknown Position',
+              candidateWithRecruiter.recruiterId,
+              actingUserId
+            );
+          } catch (notificationError) {
+            console.error('Failed to send candidate status change notification:', notificationError);
+            // Don't fail the entire operation if notification fails
+          }
         }
       } catch (transitionError) {
         console.error('Error creating transition record:', transitionError);

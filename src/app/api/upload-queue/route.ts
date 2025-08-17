@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { getServerSession } from 'next-auth/next';
-import { authOptions, validateUserSession, verifyApiToken } from '@/lib/auth';
+import { authOptions, validateUserSession } from '@/lib/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { broadcastUploadQueueUpdate } from './sse/broadcastUploadQueueUpdate';
@@ -110,50 +110,24 @@ import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
  *         description: Unauthorized
  */
 export async function GET(request: NextRequest) {
-  // Support both session and API token authentication
-  let actingUserId: string;
-  let actingUserName: string;
-
-  // Try API token first (for v1 endpoints)
-  const authHeader = request.headers.get('authorization');
-  console.log('Upload queue auth header:', authHeader ? 'Present' : 'Missing');
-  
-  const token = authHeader?.split(' ')[1];
-  console.log('Upload queue token:', token ? `Present (${token.length} chars)` : 'Missing');
-  
-  if (token) {
-    console.log('Attempting to verify API token...');
-    const user = await verifyApiToken(token);
-    console.log('Token verification result:', user ? 'Success' : 'Failed');
-    
-    if (!user) {
-      console.log('Token verification failed - returning 401');
-      return NextResponse.json({ error: 'Unauthorized - Invalid or expired token' }, { status: 401 });
-    }
-    
-    console.log('Token verified successfully for user:', user.email);
-    actingUserId = user.id;
-    actingUserName = user.email || user.name || 'API User';
-  } else {
-    // Fall back to session authentication
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const validation = await validateUserSession(session);
-    if (!validation.isValid) {
-      console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-        invalidUserId: validation.userId,
-        sessionUser: validation.userName,
-        error: validation.error
-      });
-      return NextResponse.json({ error: validation.error }, { status: 401 });
-    }
-
-    actingUserId = validation.userId!;
-    actingUserName = validation.userName!;
+  // Session-based authentication only
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const validation = await validateUserSession(session);
+  if (!validation.isValid) {
+    console.error(`Upload queue access attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
+      invalidUserId: validation.userId,
+      sessionUser: validation.userName,
+      error: validation.error
+    });
+    return NextResponse.json({ error: validation.error }, { status: 401 });
+  }
+
+  const actingUserId = validation.userId!;
+  const actingUserName = validation.userName!;
   
   const url = new URL(request.url);
   const limit = parseInt(url.searchParams.get('limit') || '20', 10);
@@ -264,61 +238,33 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Support both session and API token authentication
-  let actingUserId: string;
-  let actingUserName: string;
-  let canManageUploadQueue: boolean = false;
-
-  // Try API token first (for v1 endpoints)
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.split(' ')[1];
-  
-  if (token) {
-    const user = await verifyApiToken(token);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check permissions for API token user
-    canManageUploadQueue = user.role === 'Admin' || 
-      (user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
-    
-    if (!canManageUploadQueue) {
-      console.warn(`Forbidden attempt to add to upload queue by API user ${user.email || 'Unknown'}`);
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
-    }
-
-    actingUserId = user.id;
-    actingUserName = user.email || user.name || 'API User';
-  } else {
-    // Fall back to session authentication
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check permissions
-    canManageUploadQueue = session.user.role === 'Admin' || 
-      (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
-    
-    if (!canManageUploadQueue) {
-      console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
-    }
-
-    const validation = await validateUserSession(session);
-    if (!validation.isValid) {
-      console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
-        invalidUserId: validation.userId,
-        sessionUser: validation.userName,
-        error: validation.error
-      });
-      return NextResponse.json({ error: validation.error }, { status: 401 });
-    }
-
-    actingUserId = validation.userId!;
-    actingUserName = validation.userName!;
+  // Session-based authentication only
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Check permissions
+  const canManageUploadQueue = session.user.role === 'Admin' || 
+    (session.user.modulePermissions?.includes('UPLOAD_QUEUE_MANAGE') || false);
+  
+  if (!canManageUploadQueue) {
+    console.warn(`Forbidden attempt to add to upload queue by ${session.user.name || session.user.email || 'Unknown'}`);
+    return NextResponse.json({ error: 'Forbidden: Insufficient permissions to manage upload queue' }, { status: 403 });
+  }
+
+  const validation = await validateUserSession(session);
+  if (!validation.isValid) {
+    console.error(`Upload queue entry attempted with invalid session by ${validation.userName || 'Unknown'}`, { 
+      invalidUserId: validation.userId,
+      sessionUser: validation.userName,
+      error: validation.error
+    });
+    return NextResponse.json({ error: validation.error }, { status: 401 });
+  }
+
+  const actingUserId = validation.userId!;
+  const actingUserName = validation.userName!;
   
   const data = await request.json();
   let { file_name, file_size, status, source, upload_id, file_path, position_id, applied_position_id, webhook_payload } = data;

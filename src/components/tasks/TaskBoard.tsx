@@ -4,7 +4,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatarCompact } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -54,10 +54,22 @@ interface TaskBoardProps {
   onTaskClick?: (task: Task) => void;
   onAddTask?: (stageId: string) => void;
   className?: string;
-  showAssignee?: boolean;
-  showPriority?: boolean;
-  showDueDate?: boolean;
-  showTags?: boolean;
+  // Card customization props
+  cardPreferences?: {
+    cardWidth: 'narrow' | 'medium' | 'wide' | 'custom';
+    customCardWidth?: number;
+    showAvatar: boolean;
+    showName: boolean;
+    showEmail: boolean;
+    showDescription: boolean;
+    showFitScore: boolean;
+    showAssignee: boolean;
+    showPriority: boolean;
+    showDueDate: boolean;
+    showTags: boolean;
+    showSkills: boolean;
+    showJobApplied: boolean;
+  };
 }
 
 export function TaskBoard({
@@ -67,10 +79,7 @@ export function TaskBoard({
   onTaskClick,
   onAddTask,
   className,
-  showAssignee = true,
-  showPriority = false,
-  showDueDate = false,
-  showTags = true,
+  cardPreferences,
 }: TaskBoardProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
@@ -78,6 +87,8 @@ export function TaskBoard({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+
 
 
 
@@ -104,6 +115,30 @@ export function TaskBoard({
   const sortedStages = useMemo(() => {
     return [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }, [stages]);
+
+  // Calculate card width based on preferences
+  const getCardWidth = () => {
+    if (!cardPreferences) return { className: 'w-64', style: {} }; // Default fallback
+    
+    const { cardWidth, customCardWidth } = cardPreferences;
+    
+    switch (cardWidth) {
+      case 'narrow':
+        return { className: 'w-52', style: {} }; // 208px
+      case 'medium':
+        return { className: 'w-64', style: {} }; // 256px
+      case 'wide':
+        return { className: 'w-80', style: {} }; // 320px
+      case 'custom':
+        const width = customCardWidth || 256;
+        return { 
+          className: 'flex-shrink-0 flex-grow-0', 
+          style: { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` }
+        };
+      default:
+        return { className: 'w-64', style: {} };
+    }
+  };
 
   // Calculate total number of candidates
   const totalCandidates = useMemo(() => {
@@ -321,6 +356,7 @@ export function TaskBoard({
         <div 
           ref={scrollContainerRef}
           className="flex gap-0 h-full overflow-x-auto scroll-smooth scrollbar-hide"
+          style={{ minWidth: 'max-content' }}
         >
         {sortedStages.map((stage, index) => {
           const stageTasks = tasksByStage[stage.id] || [];
@@ -332,9 +368,10 @@ export function TaskBoard({
             <div
               key={stage.id}
               className={cn(
-                "flex-shrink-0 w-80 border-r border-gray-200 dark:border-gray-800 h-full",
+                `${getCardWidth().className} border-r border-gray-200 dark:border-gray-800 h-full`,
                 isLastColumn && "border-r-0"
               )}
+              style={getCardWidth().style}
             >
               <div className="h-full flex flex-col">
                 {/* Table Header Row */}
@@ -407,88 +444,133 @@ export function TaskBoard({
                           {/* Table Row Content */}
                           <div className="flex items-start gap-3 mb-1">
                             {/* Avatar Cell */}
-                            <Avatar className="w-8 h-8 text-xs relative ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-100 dark:bg-gray-800">
-                              {task.avatarUrl ? (
-                                <AvatarImage src={task.avatarUrl} alt={task.title} className="object-cover" />
-                              ) : (
-                                <AvatarFallback className="text-gray-600 dark:text-gray-400 font-medium">
-                                  {task.title?.[0] || '?'}
-                                </AvatarFallback>
-                              )}
-                            </Avatar>
+                            {(!cardPreferences || cardPreferences.showAvatar) && (
+                              <UserAvatarCompact 
+                                user={{
+                                  id: task.id,
+                                  name: task.title,
+                                  avatarUrl: task.avatarUrl,
+                                  email: task.email
+                                }}
+                                size="sm"
+                                className="ring-1 ring-gray-200 dark:ring-gray-700"
+                              />
+                            )}
                             
                             {/* Content Cell */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                    {task.title}
-                                  </h4>
+                                  {/* Name */}
+                                  {(!cardPreferences || cardPreferences.showName) && (
+                                    <h4 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                      {task.title}
+                                    </h4>
+                                  )}
                             
-                              
-                                {/* Description Row */}
-                                {task.description && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1 leading-relaxed">
-                                    {task.description}
-                                  </p>
-                                )}
-                                {/* Email Row */}
-                                {task.email && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                                    {task.email}
-                                  </p>
-                                )}
+                                  {/* Description Row */}
+                                  {(!cardPreferences || cardPreferences.showDescription) && task.description && task.description.trim() !== '' && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1 leading-relaxed">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Email Row */}
+                                  {(!cardPreferences || cardPreferences.showEmail) && task.email && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                      {task.email}
+                                    </p>
+                                  )}
+
+                                  {/* Assignee */}
+                                  {cardPreferences?.showAssignee && task.assignee && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">Assigned to:</span>
+                                      <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">
+                                        {task.assignee.name}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Priority */}
+                                  {cardPreferences?.showPriority && task.priority && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">Priority:</span>
+                                      <Badge 
+                                        variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
+                                        className="text-xs"
+                                      >
+                                        {task.priority}
+                                      </Badge>
+                                    </div>
+                                  )}
+
+                                  {/* Due Date */}
+                                  {cardPreferences?.showDueDate && task.dueDate && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">Due:</span>
+                                      <span className="text-xs text-gray-700 dark:text-gray-300">
+                                        {new Date(task.dueDate).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Tags */}
+                                  {cardPreferences?.showTags && task.tags && task.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {task.tags.slice(0, 2).map((tag, idx) => (
+                                        <Badge key={idx} variant="outline" className="text-xs">
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                      {task.tags.length > 2 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{task.tags.length - 2}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Skills */}
+                                  {cardPreferences?.showSkills && task.skills && task.skills.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {task.skills.slice(0, 2).map((skill: any, idx: number) => (
+                                        <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                                          {skill.skill_string || skill.segment_skill || 'Skill'}
+                                        </span>
+                                      ))}
+                                      {task.skills.length > 2 && (
+                                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                                          +{task.skills.length - 2}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Job Applied */}
+                                  {cardPreferences?.showJobApplied && task.tags && task.tags.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                                        <span className="font-medium">Applied for: </span> {task.tags[0]}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
+                                
                                 <div className="flex items-center gap-1">
                                   {/* Fit Score Badge */}
-                                  {task.fitScore !== undefined && task.fitScore !== null && (
+                                  {(!cardPreferences || cardPreferences.showFitScore) && task.fitScore !== undefined && task.fitScore !== null && (
                                     <ScoreBadge score={task.fitScore} className="text-xs">
                                       {formatScoreWithGrade(task.fitScore)}
                                     </ScoreBadge>
                                   )}
                                 </div>
                               </div>
-                             
                             </div>
                           </div>
 
 
-                          {/* Meta Information Row */}
-                          <div className="space-y-2">
-                            {/* Position Applied (non-badge) */}
-                            {task.tags && task.tags.length > 0 && (
-                              <>
-                                <div className="border-t border-gray-200 dark:border-gray-700 pt-1"></div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400">
-                                  <span className="font-medium">Applied for: </span> {task.tags[0]}
-                                </div>
-                              </>
-                            )}
 
-                            {/* Skills */}
-                            {task.skills && task.skills.length > 0 && (
-                              <div className="space-y-1">
-                                {/* <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                                  <span className="font-medium">Skills:</span>
-                                </div> */}
-                                <div className="flex flex-wrap gap-1">
-                                  {task.skills.slice(0, 3).map((skill: any, idx: number) => (
-                                    <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                      {skill.skill_string || skill.segment_skill || 'Skill'}
-                                    </span>
-                                  ))}
-                                  {task.skills.length > 3 && (
-                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                      +{task.skills.length - 3} other
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                     
-                           
-                          </div>
                         </div>
                       ))}
                     </div>

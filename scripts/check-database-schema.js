@@ -7,13 +7,10 @@
  * that the required tables exist in the database.
  */
 
-import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const { PrismaClient } = require('@prisma/client');
+const dotenv = require('dotenv');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 // Load environment variables

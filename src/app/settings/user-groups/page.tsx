@@ -2,14 +2,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
-import type { UserGroup, PlatformModule, PlatformModuleId } from '@/lib/types';
-import { PLATFORM_MODULES, PLATFORM_MODULE_CATEGORIES } from '@/lib/types';
+import type { UserGroup, PlatformModuleId } from '@/lib/types';
+import { PLATFORM_MODULES } from '@/lib/types';
 import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -18,7 +17,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -32,13 +30,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from "@/components/ui/switch";
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { RolePermissionSelector } from '@/components/settings/RolePermissionSelector';
+import { UnifiedRoleDrawer } from '@/components/settings/UnifiedRoleDrawer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -59,11 +55,7 @@ const roleFormSchema = z.object({
 });
 type RoleFormValues = z.infer<typeof roleFormSchema>;
 
-// Group permissions by category for display
-const groupedPermissions = Object.values(PLATFORM_MODULE_CATEGORIES).map(category => ({
-  category,
-  permissions: PLATFORM_MODULES.filter(p => p.category === category)
-}));
+
 
 export default function RolesPermissionsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -72,7 +64,7 @@ export default function RolesPermissionsPage() {
 
   const [roles, setRoles] = useState<UserGroup[]>([]); // UserGroups are now "Roles"
   const [selectedRole, setSelectedRole] = useState<UserGroup | null>(null);
-  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const [isUnifiedDrawerOpen, setIsUnifiedDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -112,7 +104,7 @@ export default function RolesPermissionsPage() {
     if (sessionStatus === 'unauthenticated') {
       signIn(undefined, { callbackUrl: pathname });
     } else if (sessionStatus === 'authenticated') {
-      if (session.user.role !== 'Admin' && !session.user.modulePermissions?.includes('USER_GROUPS_MANAGE')) {
+      if (session.user.role !== 'Admin') {
         setFetchError("You do not have permission to manage roles & permissions.");
         setIsLoading(false);
       } else {
@@ -129,7 +121,7 @@ export default function RolesPermissionsPage() {
 
   const handleSelectRole = (role: UserGroup) => {
     setSelectedRole(role);
-    setIsPermissionModalOpen(true);
+    setIsUnifiedDrawerOpen(true);
   };
 
   const handleOpenModal = (role: UserGroup | null = null) => {
@@ -160,37 +152,7 @@ export default function RolesPermissionsPage() {
     }
   };
   
-  const handlePermissionUpdate = async (roleId: string, permissions: PlatformModuleId[]) => {
-    const role = roles.find(r => r.id === roleId);
-    if (!role || role.is_system_role) {
-      toast.error("Permissions for system roles cannot be changed.");
-      return;
-    }
 
-    try {
-      const response = await fetch(`/api/settings/user-groups/${roleId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: role.name, 
-          description: role.description, 
-          permissions, 
-          is_default: role.is_default 
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Failed to update role permissions.");
-      
-      toast.success(`Permissions for role "${role.name}" updated.`);
-      // Update local state for immediate UI feedback
-      setSelectedRole(prev => prev ? { ...prev, permissions } : null);
-      setRoles(prevRoles => prevRoles.map(r => r.id === roleId ? { ...r, permissions } : r));
-    } catch (error) {
-      toast.error((error as Error).message);
-      // Revert local state on error
-      fetchRoles();
-    }
-  };
 
   const confirmDelete = (role: UserGroup) => {
     setRoleToDelete(role);
@@ -328,13 +290,8 @@ export default function RolesPermissionsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {!role.is_system_role || role.name === 'Admin' ? (
-                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleOpenModal(role); }}>
-                              <Edit3 className="mr-2 h-4 w-4" /> Edit Role
-                            </DropdownMenuItem>
-                          ) : null}
                           <DropdownMenuItem onClick={e => { e.stopPropagation(); handleSelectRole(role); }}>
-                            <ShieldCheck className="mr-2 h-4 w-4" /> Permissions
+                            <Edit3 className="mr-2 h-4 w-4" /> Manage Role
                           </DropdownMenuItem>
                           {!role.is_system_role && (
                             <>
@@ -355,42 +312,7 @@ export default function RolesPermissionsPage() {
         </Table>
       </div>
 
-      {/* Permission Settings Modal */}
-      <Dialog open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <ShieldCheck className="mr-2 h-5 w-5 text-primary" />
-              {selectedRole?.name} - Permission Settings
-            </DialogTitle>
-            <DialogDescription>
-              Configure what users with the "{selectedRole?.name}" role can do.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-hidden">
-            {selectedRole && (
-              <RolePermissionSelector
-                selectedPermissions={selectedRole.is_system_role && selectedRole.name === 'Admin' ? platformModuleIds : selectedRole.permissions || []}
-                onPermissionsChange={permissions => {
-                  if (selectedRole.is_system_role && selectedRole.name === 'Admin') return; // Prevent editing
-                  setSelectedRole(prev => prev ? { ...prev, permissions } : null);
-                  setRoles(prevRoles => prevRoles.map(r => r.id === selectedRole.id ? { ...r, permissions } : r));
-                  handlePermissionUpdate(selectedRole.id, permissions);
-                }}
-                disabled={selectedRole.is_system_role && selectedRole.name === 'Admin'}
-                className="h-full"
-              />
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPermissionModalOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Create/Edit Role Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -463,6 +385,17 @@ export default function RolesPermissionsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {/* Unified Role Drawer */}
+      {selectedRole && (
+        <UnifiedRoleDrawer
+          isOpen={isUnifiedDrawerOpen}
+          onOpenChange={setIsUnifiedDrawerOpen}
+          role={selectedRole}
+          onRoleChange={fetchRoles}
+          onMembersChange={fetchRoles}
+        />
       )}
     </div>
   );

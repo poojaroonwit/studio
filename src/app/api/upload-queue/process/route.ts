@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     // Atomically pick and mark the oldest queued job as 'inprocess'
     // Use a more robust locking mechanism to prevent duplicate processing
     // Also check for duplicate file processing to prevent multiple candidates
-    // Reset jobs that have been stuck in 'inprocess' for more than 4 hours (increased from 2)
-    const stuckTimeoutHours = 4;
+    // Reset jobs that have been stuck in 'inprocess' for more than 1 hour (reduced from 4)
+    const stuckTimeoutHours = 1;
     await client.query(
       `UPDATE upload_queue 
        SET status = 'queued', process_date = NULL, updated_at = now(), error = 'Reset due to timeout'
@@ -432,9 +432,20 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     
     // 3. POST to the configured webhook endpoint (any compatible service)
     // Priority: Database setting first, then environment variable as fallback
+    // Use single webhook for all PDF processing
     let resumeWebhookUrl = await getSystemSetting('resumeProcessingWebhookUrl');
     if (!resumeWebhookUrl) {
       resumeWebhookUrl = process.env.RESUME_PROCESSING_WEBHOOK_URL || '';
+    }
+    
+    let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
+    if (!webhookToken) {
+      webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
+    }
+    
+    let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');
+    if (!responseMode) {
+      responseMode = 'blocking'; // Default to blocking mode
     }
     
     // Build JSON payload as required
@@ -474,11 +485,6 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       candidate_id: candidateId, // Include candidate ID in webhook payload
     };
     
-    let responseMode = await getSystemSetting('resumeProcessingWebhookResponseMode');
-    if (!responseMode) {
-      responseMode = 'blocking'; // Default to blocking mode
-    }
-    
     console.log(`[Webhook] Using response mode: ${responseMode} (no timeout)`);
     
     const jsonPayload = {
@@ -487,11 +493,6 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       user: job.id, // Use queue job id instead of hardcoded value
       request_type: job.webhook_payload?.request_type || "create", // Use request_type from webhook_payload or default to "create"
     };
-    
-    let webhookToken = await getSystemSetting('resumeProcessingWebhookToken');
-    if (!webhookToken) {
-      webhookToken = process.env.RESUME_PROCESSING_WEBHOOK_TOKEN || '';
-    }
     
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (webhookToken) {
@@ -521,15 +522,41 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       console.log(`[Webhook] Job ID: ${job.id}, File: ${job.file_name}`);
       
       try {
-        // Single webhook attempt - no retry
-        console.log(`[Webhook] Making single webhook call (no retry)`);
+        // Single webhook attempt with timeout
+        console.log(`[Webhook] Making single webhook call with timeout`);
         
-        // No timeout - let the webhook call run indefinitely
-        webhookRes = await fetch(resumeWebhookUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payloadWithIdempotency),
-        });
+        // Get timeout setting (default 30 minutes)
+        let timeoutMs = 1800000; // 30 minutes default
+        const timeoutSetting = await getSystemSetting('resumeProcessingWebhookTimeout');
+        if (timeoutSetting) {
+          const parsedTimeout = parseInt(timeoutSetting, 10);
+          if (!isNaN(parsedTimeout) && parsedTimeout > 0) {
+            timeoutMs = parsedTimeout * 1000; // Convert seconds to milliseconds
+          }
+        }
+        
+        console.log(`[Webhook] Using timeout: ${timeoutMs / 1000} seconds`);
+        
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        
+        try {
+          webhookRes = await fetch(resumeWebhookUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payloadWithIdempotency),
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+        } catch (timeoutError) {
+          clearTimeout(timeoutId);
+          if (timeoutError.name === 'AbortError') {
+            throw new Error(`Webhook timeout after ${timeoutMs / 1000} seconds`);
+          }
+          throw timeoutError;
+        }
         
         webhookResStatus = webhookRes.status;
         

@@ -115,7 +115,7 @@ export const CandidateImportUploadQueue: React.FC<{
   const { success, error } = useToast();
   // Change: default dateRange is null (no filter)
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const isFetchingRef = useRef(false);
   const [summary, setSummary] = useState<any>(null);
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState<number | null>(null);
@@ -273,15 +273,28 @@ export const CandidateImportUploadQueue: React.FC<{
       if (dateRange.start) params.set('date_start', format(dateRange.start, 'yyyy-MM-dd'));
       if (dateRange.end) params.set('date_end', format(dateRange.end, 'yyyy-MM-dd'));
       if (positionIdFilter) params.set('position_id', positionIdFilter);
+      console.log('Fetching upload queue with params:', params.toString());
       const res = await fetch(`/api/upload-queue?${params.toString()}`);
+      
+      console.log('Upload queue response status:', res.status);
+      
       if (!res.ok) {
         let errorMsg = `Failed to fetch jobs: ${res.status} ${res.statusText}`;
         try {
           const errorData = await res.json();
+          console.log('Upload queue error data:', errorData);
           if (errorData && errorData.error) {
             errorMsg += ` - ${errorData.error}`;
           }
-        } catch {}
+        } catch (parseError) {
+          console.log('Failed to parse error response:', parseError);
+        }
+        
+        // If it's a 401 error, provide more specific guidance
+        if (res.status === 401) {
+          errorMsg = 'Your session has expired. Please refresh the page and sign in again.';
+        }
+        
         throw new Error(errorMsg);
       }
       const { data, total, summary } = await res.json();
@@ -398,16 +411,30 @@ export const CandidateImportUploadQueue: React.FC<{
   }, []);
 
   useEffect(() => {
-    fetchJobs();
+    // Only fetch if session is loaded and available
+    if (sessionStatus === 'authenticated' && session) {
+      fetchJobs();
+    } else if (sessionStatus === 'unauthenticated') {
+      console.log('User is not authenticated, skipping fetch');
+      setFetchError('Please sign in to view the upload queue');
+    }
     return () => {
       // No cleanup needed here
     };
-  }, [fetchJobs]);
+  }, [fetchJobs, sessionStatus, session]);
+
+  // Log session status for debugging
+  useEffect(() => {
+    console.log('Session status:', sessionStatus, 'Session:', session ? 'Present' : 'Not present');
+  }, [sessionStatus, session]);
 
   // Fetch status summary separately - only when date/position filters change, not status filter
   useEffect(() => {
-    fetchStatusSummary();
-  }, [fetchStatusSummary]);
+    // Only fetch if session is loaded and available
+    if (sessionStatus === 'authenticated' && session) {
+      fetchStatusSummary();
+    }
+  }, [fetchStatusSummary, sessionStatus, session]);
 
   useEffect(() => {
     function handleRefreshEvent() {
@@ -451,6 +478,12 @@ export const CandidateImportUploadQueue: React.FC<{
     };
 
     const connectSSE = () => {
+      // Only connect if session is authenticated
+      if (sessionStatus !== 'authenticated' || !session) {
+        console.log('Session not ready for SSE connection');
+        return;
+      }
+      
       try {
         const params = new URLSearchParams();
         if (filter) params.set('file_name', filter);
@@ -470,6 +503,7 @@ export const CandidateImportUploadQueue: React.FC<{
         params.set('limit', String(pageSize));
         params.set('offset', String((page - 1) * pageSize));
         const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
+        console.log('Connecting to SSE:', sseUrl);
         eventSource = new EventSource(sseUrl);
    
 
@@ -530,7 +564,7 @@ export const CandidateImportUploadQueue: React.FC<{
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter]);
+  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]);
 
   useEffect(() => {
     async function fetchMaxConcurrent() {

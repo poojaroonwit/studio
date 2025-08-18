@@ -307,7 +307,7 @@ export function HeadcountModal({
                 <Calendar
                   mode="single"
                   selected={formData.onboardingDate || undefined}
-                  onSelect={(date) => setFormData(prev => ({ ...prev, onboardingDate: date }))}
+                  onSelect={(date) => setFormData(prev => ({ ...prev, onboardingDate: date ?? null }))}
                   initialFocus
                 />
               </PopoverContent>

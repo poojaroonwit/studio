@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { StageSelect } from './StageSelect';
 import { HealthCheck } from '@/components/ui/health-check';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, UserX } from 'lucide-react';
+import { UserX } from 'lucide-react';
 
 
 interface CandidatesPageClientProps {
@@ -104,7 +104,7 @@ export function CandidatesPageClient({
   const [fullCandidatesForCounts, setFullCandidatesForCounts] = useState<Candidate[]>(safeInitialCandidates || []);
   const [availablePositions, setAvailablePositions] = useState<Position[]>(safeInitialAvailablePositions || []);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>(safeInitialAvailableStages || []);
-  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email'>[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<Pick<UserProfile, 'id' | 'name' | 'email' | 'avatarUrl'>[]>([]);
   const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
 
 
@@ -434,7 +434,7 @@ export function CandidatesPageClient({
         setAvailableRecruiters([]);
         return;
       }
-      const mappedRecruiters = recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '' }));
+      const mappedRecruiters = recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
 
       setAvailableRecruiters(mappedRecruiters);
     } catch (error) {

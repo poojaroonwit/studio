@@ -356,11 +356,6 @@ export async function PUT(request: NextRequest) {
       updateValues.push(updateData.options);
     }
 
-    if (updateData.field_code !== undefined) {
-      updateFields.push(`field_code = $${paramIndex++}`);
-      updateValues.push(updateData.field_code);
-    }
-
     if (updateData.attributeLabel !== undefined) {
       updateFields.push(`attribute_label = $${paramIndex++}`);
       updateValues.push(updateData.attributeLabel);

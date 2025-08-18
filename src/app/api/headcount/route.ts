@@ -5,14 +5,14 @@ import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const positionId = searchParams.get('positionId');
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { searchParams } = new URL(request.url);
-    const positionId = searchParams.get('positionId');
 
     if (!positionId) {
       return NextResponse.json({ error: 'Position ID is required' }, { status: 400 });
@@ -63,13 +63,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  let body: CreateHeadcountRequest | undefined;
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body: CreateHeadcountRequest = await request.json();
+    body = await request.json();
+    
+    if (!body) {
+      return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
+    }
+    
     const { positionId, type, status = 'vacant', candidateId, onboardingDate, notes, memoId } = body;
 
     if (!positionId || !type) {

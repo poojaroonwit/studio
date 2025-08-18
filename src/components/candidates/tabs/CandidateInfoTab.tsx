@@ -24,7 +24,9 @@ export const CandidateInfoTab: React.FC<CandidateInfoTabProps> = ({
   setValue
 }) => {
   const nameInfo = formatCandidateNameWithLang(candidate);
-  const personalInfo = candidate.parsedData?.personal_info;
+  const personalInfo = (candidate.parsedData && 'personal_info' in (candidate.parsedData as any))
+    ? (candidate.parsedData as any).personal_info
+    : undefined;
 
   if (isEditing) {
     return (

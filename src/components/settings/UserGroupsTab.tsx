@@ -247,7 +247,7 @@ export function UserGroupsTab() {
                     </TableCell>
                                        <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {role.memberCount || 0} users
+                        {(role as any).memberCount ?? role.user_count ?? 0} users
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -268,9 +268,9 @@ export function UserGroupsTab() {
           isOpen={isUnifiedDrawerOpen}
           onOpenChange={setIsUnifiedDrawerOpen}
           role={selectedRole}
-          onRoleChange={(updatedRole) => {
-            setRoles(roles.map(r => r.id === updatedRole.id ? updatedRole : r));
-            setSelectedRole(updatedRole);
+          onRoleChange={() => {
+            // After the drawer reports a role change, refresh roles from server
+            fetchRoles();
           }}
           onMembersChange={() => {
             // Refresh the role to get updated member count
@@ -311,7 +311,7 @@ export function UserGroupsTab() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Enter role description" />
+                      <Textarea {...field} value={field.value ?? ''} placeholder="Enter role description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -352,7 +352,7 @@ export function UserGroupsTab() {
                                 </FormControl>
                                 <div className="space-y-1 leading-none">
                                   <FormLabel className="text-sm font-medium">
-                                    {module.name}
+                                    {module.label}
                                   </FormLabel>
                                   <p className="text-xs text-muted-foreground">
                                     {module.description}

@@ -145,7 +145,9 @@ export const EducationTab: React.FC<EducationTabProps> = ({
   appendEducation,
   removeEducation
 }) => {
-  const education = candidate.parsedData?.education || [];
+  const education = (candidate.parsedData && 'education' in (candidate.parsedData as any))
+    ? ((candidate.parsedData as any).education || [])
+    : [];
   const totalDuration = calculateTotalEducationDuration(education);
 
   const handleAddEducation = () => {

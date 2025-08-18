@@ -392,9 +392,9 @@ export function UserTeamsTab() {
                      </Badge>
                    </TableCell>
                    <TableCell>
-                     <span className="text-sm text-muted-foreground">
-                       {team.memberCount || 0} members
-                     </span>
+                                           <span className="text-sm text-muted-foreground">
+                        {team.member_count || 0} members
+                      </span>
                    </TableCell>
                    <TableCell className="text-right">
                      <Button variant="ghost" size="sm" className="h-8 px-3">
@@ -480,7 +480,7 @@ export function UserTeamsTab() {
                             <FormItem>
                               <FormLabel>Description</FormLabel>
                               <FormControl>
-                                <Textarea {...field} placeholder="Enter team description" />
+                                <Textarea {...field} value={field.value ?? ''} placeholder="Enter team description" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -494,7 +494,7 @@ export function UserTeamsTab() {
                             <FormItem>
                               <FormLabel>Team Color</FormLabel>
                               <FormControl>
-                                <Input {...field} type="color" className="w-20 h-10" />
+                                <Input {...field} value={field.value ?? '#3B82F6'} type="color" className="w-20 h-10" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -637,7 +637,7 @@ export function UserTeamsTab() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Enter team description" />
+                      <Textarea {...field} value={field.value ?? ''} placeholder="Enter team description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -651,7 +651,7 @@ export function UserTeamsTab() {
                   <FormItem>
                     <FormLabel>Team Color</FormLabel>
                     <FormControl>
-                      <Input {...field} type="color" className="w-20 h-10" />
+                      <Input {...field} value={field.value ?? '#3B82F6'} type="color" className="w-20 h-10" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

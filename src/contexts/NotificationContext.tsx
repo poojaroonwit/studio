@@ -98,8 +98,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setUnreadCount(prev => prev + 1);
     
     // Show toast notification with theme-aware styling
-    toast.success(notification.title, {
-      description: notification.message,
+    toast.success(`${notification.title}: ${notification.message}`, {
       duration: 5000,
       icon: '🔔',
       style: {

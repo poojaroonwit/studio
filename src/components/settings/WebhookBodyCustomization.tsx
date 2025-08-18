@@ -132,8 +132,8 @@ export default function WebhookBodyCustomization({
       setLoading(true);
       
       const config = {
-        custom_payload,
-        include_metadata,
+        custom_payload: customPayload,
+        include_metadata: includeMetadata,
         body_template: globalBodyTemplate,
         field_mappings: globalFieldMappings,
         body_configs: Object.values(bodyConfigs)
@@ -455,7 +455,7 @@ export default function WebhookBodyCustomization({
                         <CardHeader>
                           <CardTitle className="text-lg">Body Template</CardTitle>
                           <CardDescription>
-                            Define the JSON structure for the webhook payload. Use placeholders like {{field_name}} for dynamic values.
+                            Define the JSON structure for the webhook payload. Use placeholders like {"{{field_name}}"} for dynamic values.
                           </CardDescription>
                         </CardHeader>
                         <CardContent>

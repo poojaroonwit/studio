@@ -552,7 +552,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
           clearTimeout(timeoutId);
         } catch (timeoutError) {
           clearTimeout(timeoutId);
-          if (timeoutError.name === 'AbortError') {
+          if (timeoutError instanceof Error && timeoutError.name === 'AbortError') {
             throw new Error(`Webhook timeout after ${timeoutMs / 1000} seconds`);
           }
           throw timeoutError;

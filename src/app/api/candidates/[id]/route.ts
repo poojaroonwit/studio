@@ -457,7 +457,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const candidateWithRecruiterResult = await client.query(candidateWithRecruiterQuery, [id]);
         const candidateWithRecruiter = candidateWithRecruiterResult.rows[0];
         
-        if (candidateWithRecruiter.recruiterId) {
+        if (candidateWithRecruiter.recruiterId && status !== null) {
           try {
             await NotificationService.notifyCandidateStatusChange(
               id,

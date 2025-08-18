@@ -18,7 +18,10 @@ export function useNotificationManager() {
 
   const createLocalNotification = useCallback((params: CreateNotificationParams) => {
     // Add notification to local state immediately
-    addNotification(params);
+    addNotification({
+      ...params,
+      data: params.data || {},
+    });
     
     // Also create it on the server
     createNotification(params);

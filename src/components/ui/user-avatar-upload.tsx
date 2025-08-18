@@ -68,10 +68,6 @@ export function UserAvatarUpload({
 
     setAvatarError(null);
     
-    // Immediately show preview for instant feedback
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewUrl(previewUrl);
-    
     setIsUploading(true);
 
     try {
@@ -106,8 +102,6 @@ export function UserAvatarUpload({
       console.error('Upload error:', error);
       setAvatarError('Failed to upload image. Please try again.');
       toast.error('Failed to upload image. Please try again.');
-      // Clear preview on error
-      setPreviewUrl(null);
     } finally {
       setIsUploading(false);
     }
@@ -155,9 +149,9 @@ export function UserAvatarUpload({
             onClick={handleAvatarClick}
             style={{ pointerEvents: disabled || isUploading ? 'none' : 'auto' }}
           >
-            {hasImage ? (
-              <AvatarImage src={displayImageUrl} alt={user.name} className="object-cover" />
-            ) : (
+                         {hasImage ? (
+               <AvatarImage src={displayImageUrl || undefined} alt={user.name} className="object-cover" />
+             ) : (
               <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 text-blue-700 dark:text-blue-300 font-bold">
                 {initials}
               </AvatarFallback>

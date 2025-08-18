@@ -535,6 +535,7 @@ export type SystemSettingKey =
   | 'resumeProcessingWebhookUrl'
   | 'resumeProcessingWebhookToken'
   | 'resumeProcessingWebhookResponseMode'
+  | 'resumeProcessingWebhookTimeout'
 
   | 'preventDuplicateWebhookProcessing'
   | 'geminiApiKey'

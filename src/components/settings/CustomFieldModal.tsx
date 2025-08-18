@@ -152,10 +152,9 @@ export default function CustomFieldModal({
     if (open) {
       form.reset({
         model_name: 'Candidate',
-        field_key: '',
+        field_code: '',
         label: '',
         field_type: 'text',
-        attributeCode: '',
         attributeLabel: '',
         viewRoles: [],
         editRoles: [],

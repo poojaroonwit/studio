@@ -84,9 +84,12 @@ export default function DebugPermissionsPage() {
           <CardDescription>Groups this user belongs to</CardDescription>
         </CardHeader>
         <CardContent>
-          {session.user.teams && session.user.teams.length > 0 ? (
+          {(() => {
+            const userAny = session.user as any;
+            const teams = userAny?.teams as Array<{ id: string; name: string }>|undefined;
+            return teams && teams.length > 0 ? (
             <div className="space-y-2">
-              {session.user.teams.map((team) => (
+              {teams.map((team) => (
                 <Badge key={team.id} variant="outline">
                   {team.name}
                 </Badge>
@@ -94,7 +97,7 @@ export default function DebugPermissionsPage() {
             </div>
           ) : (
             <p className="text-muted-foreground">No groups assigned</p>
-          )}
+          );})()}
         </CardContent>
       </Card>
     </div>

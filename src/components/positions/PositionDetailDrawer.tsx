@@ -61,7 +61,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(20);
   const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
   const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
-  const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string>('applicationDate');
+  const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string | null>('applicationDate');
   const [allCandidatesSortDirection, setAllCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for potential candidates
@@ -89,7 +89,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for potential candidates table
-  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string>('matchScore');
+  const [potentialCandidatesSortColumn, setPotentialCandidatesSortColumn] = useState<string | null>('matchScore');
   const [potentialCandidatesSortDirection, setPotentialCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
   const [potentialCandidatesOpenMenu, setPotentialCandidatesOpenMenu] = useState<string | null>(null);
 

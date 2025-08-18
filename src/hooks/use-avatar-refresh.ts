@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useSession, updateSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
 /**
  * Custom hook to manage avatar refresh state across the application

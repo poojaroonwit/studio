@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
 // GET /api/user-preferences/[userId] - Get user preferences for a specific user (admin only)
@@ -28,7 +29,27 @@ export async function GET(
     });
 
     // Transform the flat structure to nested preferences
-    const transformedPreferences = {
+    const transformedPreferences: {
+      taskBoard: {
+        searchTerm: string;
+        filterPriority: string;
+        filterAssignee: string;
+        selectedStages: any[];
+        viewMode: 'kanban' | 'table';
+      };
+      positions: {
+        searchTerm: string;
+        departmentFilter: string;
+        statusFilter: string;
+        selectedRecruiterId: string | null;
+        pageSize: number;
+        sortBy: string;
+        sortOrder: 'asc' | 'desc';
+      };
+      appearance: {
+        personalColor: string;
+      };
+    } = {
       taskBoard: {
         searchTerm: '',
         filterPriority: 'all',
@@ -43,7 +64,7 @@ export async function GET(
         selectedRecruiterId: null,
         pageSize: 20,
         sortBy: 'createdAt',
-        sortOrder: 'desc' as 'asc' | 'desc',
+        sortOrder: 'desc',
       },
       appearance: {
         personalColor: '#3B82F6',

@@ -551,7 +551,7 @@ export default function UserTeamsPage() {
                         className="w-16 h-10 p-1"
                         value={field.value || '#3B82F6'}
                       />
-                      <Input {...field} placeholder="#3B82F6" />
+                      <Input {...field} placeholder="#3B82F6" value={field.value ?? ''} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -693,7 +693,7 @@ export default function UserTeamsPage() {
                                   className="w-16 h-10 p-1"
                                   value={field.value || '#3B82F6'}
                                 />
-                                <Input {...field} placeholder="#3B82F6" />
+                                <Input {...field} placeholder="#3B82F6" value={field.value ?? ''} />
                               </div>
                             </FormControl>
                             <FormMessage />

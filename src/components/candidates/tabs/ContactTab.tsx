@@ -29,8 +29,12 @@ export const ContactTab: React.FC<ContactTabProps> = ({
   appendSkill,
   removeSkill
 }) => {
-  const contactInfo = candidate.parsedData?.contact_info;
-  const skills = candidate.parsedData?.skills || [];
+  const contactInfo = (candidate.parsedData && 'contact_info' in (candidate.parsedData as any))
+    ? (candidate.parsedData as any).contact_info
+    : undefined;
+  const skills = (candidate.parsedData && 'skills' in (candidate.parsedData as any))
+    ? ((candidate.parsedData as any).skills || [])
+    : [];
 
   const handleAddSkill = () => {
     if (appendSkill) {
@@ -192,7 +196,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({
               <p>No skills information available.</p>
             </div>
           ) : (
-            skills.map((skill, index) => (
+            skills.map((skill: any, index: number) => (
               <div key={index} className="border rounded-lg p-4 space-y-3">
                 {skill.segment_skill && (
                   <div>

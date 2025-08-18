@@ -72,7 +72,7 @@ export function RecruiterCell({
         {position.recruiterName ? (
           <>
             <Avatar className="h-6 w-6">
-              <AvatarImage src={currentRecruiter?.avatarUrl} />
+              <AvatarImage src={currentRecruiter?.avatar} />
               <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                 {position.recruiterName.charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -122,7 +122,7 @@ export function RecruiterCell({
           ) : position.recruiterName ? (
             <div className="flex items-center gap-2 min-w-0">
               <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={currentRecruiter?.avatarUrl} />
+                <AvatarImage src={currentRecruiter?.avatar} />
                 <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   {position.recruiterName.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -172,7 +172,7 @@ export function RecruiterCell({
               className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
             >
               <Avatar className="h-6 w-6">
-                <AvatarImage src={recruiter.avatarUrl} />
+                <AvatarImage src={recruiter.avatar} />
                 <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   {recruiter.name.charAt(0).toUpperCase()}
                 </AvatarFallback>

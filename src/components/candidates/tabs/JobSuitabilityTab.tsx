@@ -43,7 +43,9 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
   appendJobSuitable,
   removeJobSuitable
 }) => {
-  const jobSuitable = candidate.parsedData?.job_suitable || [];
+  const jobSuitable = (candidate.parsedData && 'job_suitable' in (candidate.parsedData as any))
+    ? ((candidate.parsedData as any).job_suitable || [])
+    : [];
 
   const handleAddJobSuitable = () => {
     if (appendJobSuitable) {
@@ -165,7 +167,7 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
               <p>No job suitability information available.</p>
             </div>
           ) : (
-            jobSuitable.map((job, index) => (
+            jobSuitable.map((job: any, index: number) => (
               <div key={index} className="border rounded-lg p-4 space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {job.suitable_career && (

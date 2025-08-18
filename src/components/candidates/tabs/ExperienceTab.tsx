@@ -96,7 +96,9 @@ export const ExperienceTab: React.FC<ExperienceTabProps> = ({
   removeExperience,
   calculateTotalExperienceDuration
 }) => {
-  const experience = candidate.parsedData?.experience || [];
+  const experience = (candidate.parsedData && 'experience' in (candidate.parsedData as any))
+    ? ((candidate.parsedData as any).experience || [])
+    : [];
   const totalDuration = calculateTotalExperienceDuration ? calculateTotalExperienceDuration(experience) : '';
 
   const handleAddExperience = () => {

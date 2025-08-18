@@ -181,7 +181,7 @@ export const authOptions: NextAuthOptions = {
           token.accessToken = account.access_token;
           token.id = user.id;
           token.role = user.role;
-          token.modulePermissions = user.module_permissions as PlatformModuleId[];
+          token.modulePermissions = user.modulePermissions as PlatformModuleId[];
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
         if (typeof token.id === "string" && !isUuid(token.id)) {

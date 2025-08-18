@@ -29,7 +29,9 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
   appendSkill,
   removeSkill
 }) => {
-  const skills = candidate.parsedData?.skills || [];
+  const skills = (candidate.parsedData && 'skills' in (candidate.parsedData as any))
+    ? (((candidate.parsedData as any).skills as any[]) || [])
+    : [];
 
   const handleAddSkill = () => {
     if (appendSkill) {
@@ -118,7 +120,7 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({
             <p>No skills information available.</p>
           </div>
         ) : (
-          skills.map((skill, index) => (
+          skills.map((skill: any, index: number) => (
             <div key={index} className="border rounded-lg p-4 space-y-3">
               {skill.segment_skill && (
                 <div>

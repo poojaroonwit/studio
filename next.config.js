@@ -47,7 +47,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Disable static generation for API routes that use dynamic features
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg'],
   },
   // Disable Fast Refresh logs
   onDemandEntries: {
@@ -122,6 +122,24 @@ const nextConfig = {
       });
     }
     
+    // Prevent client bundle from trying to polyfill Node core modules used by pg
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        net: false,
+        tls: false,
+        dns: false,
+      };
+      // Ensure pg and related libs are not bundled into the client
+      config.externals = config.externals || [];
+      config.externals.push({
+        pg: 'commonjs pg',
+        'pg-connection-string': 'commonjs pg-connection-string',
+      });
+    }
+
     // Suppress Fast Refresh logs in development
     if (dev) {
       config.infrastructureLogging = {

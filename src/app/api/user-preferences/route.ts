@@ -21,7 +21,41 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the flat structure to nested preferences
-    const transformedPreferences = {
+    const transformedPreferences: {
+      taskBoard: {
+        searchTerm: string;
+        filterPriority: string;
+        filterAssignee: string;
+        selectedStages: any[];
+        viewMode: 'kanban' | 'table';
+        cardWidth: 'narrow' | 'medium' | 'wide' | 'custom';
+        customCardWidth: number;
+        visibleCardFields: string[];
+        showAvatar: boolean;
+        showName: boolean;
+        showEmail: boolean;
+        showDescription: boolean;
+        showFitScore: boolean;
+        showAssignee: boolean;
+        showPriority: boolean;
+        showDueDate: boolean;
+        showTags: boolean;
+        showSkills: boolean;
+        showJobApplied: boolean;
+      };
+      positions: {
+        searchTerm: string;
+        departmentFilter: string;
+        statusFilter: string;
+        selectedRecruiterId: string | null;
+        pageSize: number;
+        sortBy: string;
+        sortOrder: 'asc' | 'desc';
+      };
+      appearance: {
+        personalColor: string;
+      };
+    } = {
       taskBoard: {
         searchTerm: '',
         filterPriority: 'all',
@@ -51,7 +85,7 @@ export async function GET(request: NextRequest) {
         selectedRecruiterId: null,
         pageSize: 20,
         sortBy: 'createdAt',
-        sortOrder: 'desc' as 'asc' | 'desc',
+        sortOrder: 'desc',
       },
       appearance: {
         personalColor: '#3B82F6',

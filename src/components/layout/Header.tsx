@@ -11,7 +11,8 @@ import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
-import { UserProfile, UserFormValues } from '@/lib/types';
+import type { UserProfile } from '@/lib/types';
+import type { UserFormValues } from '@/components/users/RedesignedUserModal';
 import { toast } from 'react-hot-toast';
 import { AutoFont } from '@/components/ui/auto-font';
 import { DEFAULT_APP_NAME } from '@/lib/constants';
@@ -220,7 +221,16 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     );
   }
 
-  const user = session?.user;
+  const user = session?.user
+    ? {
+        id: session.user.id as string,
+        name: (session.user.name || session.user.email || 'User') as string,
+        email: session.user.email ?? undefined,
+        avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
+        image: ((session.user as any).image ?? null) as string | null,
+        personalColor: ((session.user as any).personalColor ?? null) as string | null,
+      }
+    : null;
 
   return (
     <>

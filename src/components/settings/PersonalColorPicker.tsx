@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { Edit } from 'lucide-react';
 
 interface PersonalColorPickerProps {
   className?: string;
@@ -49,8 +50,8 @@ export function PersonalColorPicker({
               className="w-12 h-12 rounded-lg border-2 border-border shadow-sm group-hover:border-primary transition-colors duration-200"
               style={{ backgroundColor: selectedColor }}
             />
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="text-white text-xs font-medium drop-shadow-lg bg-black/20 px-1 py-0.5 rounded">Click</div>
+            <div className="absolute -bottom-1 -right-1 p-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-full shadow-sm pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity duration-200">
+              <Edit className="w-3.5 h-3.5 text-primary" />
             </div>
           </div>
           <div className="flex-1">

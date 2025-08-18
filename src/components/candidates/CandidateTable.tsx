@@ -22,6 +22,7 @@ import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidat
 import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format, formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
+import { formatDateInTimezone, convertUtcToTimezone } from '@/lib/dateUtils';
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -103,12 +104,20 @@ function displayAppliedDate(dateString: string | undefined | null, daysThreshold
   } catch {
     return 'Invalid Date';
   }
+  
+  // The date from the database is already in UTC, so we can use it directly
   const now = new Date();
+  
+  // Calculate the difference in days
   const daysAgo = Math.abs(differenceInDays(now, date));
+  
   if (daysAgo < daysThreshold) {
+    // For recent dates, show relative time
     return formatDistanceToNow(date, { addSuffix: true });
   }
-  return format(date, 'MMM d, yyyy HH:mm');
+  
+  // For older dates, show formatted date and time in local timezone
+  return formatDateInTimezone(date, 'MMM d, yyyy HH:mm');
 }
 
 // Helper to truncate text to 2 lines with ellipsis

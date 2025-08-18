@@ -1,43 +1,12 @@
 // src/components/tasks/TaskBoard.tsx
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatarCompact } from '@/components/ui/user-avatar';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, User, Tag, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'react-hot-toast';
-import { ScoreBadge, getScoreColorInfo } from '@/components/ui/score-color';
-import { formatScoreWithGrade } from '@/lib/scoreUtils';
 
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  assignee?: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  dueDate?: string;
-  tags?: string[];
-  createdAt?: string;
-  updatedAt?: string;
-  fitScore?: number;
-  avatarUrl?: string;
-  email?: string;
-  skills?: any[];
-  [key: string]: any; // Allow additional properties
-}
+import { TaskCard, Task } from './TaskCard';
 
 export interface TaskStage {
   id: string;
@@ -54,7 +23,6 @@ interface TaskBoardProps {
   onTaskClick?: (task: Task) => void;
   onAddTask?: (stageId: string) => void;
   className?: string;
-  // Card customization props
   cardPreferences?: {
     cardWidth: 'narrow' | 'medium' | 'wide' | 'custom';
     customCardWidth?: number;
@@ -72,6 +40,126 @@ interface TaskBoardProps {
   };
 }
 
+// Stage Column Component
+interface StageColumnProps {
+  stage: TaskStage;
+  tasks: Task[];
+  isDragOver: boolean;
+  isCurrentStage: boolean;
+  isLastColumn: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnter: (e: React.DragEvent) => void;
+  onTaskClick?: (task: Task) => void;
+  onAddTask?: (stageId: string) => void;
+  onDragStart: (task: Task) => void;
+  onDragEnd: () => void;
+  draggedTask: Task | null;
+  cardPreferences?: TaskBoardProps['cardPreferences'];
+  getCardWidth: () => { className: string; style: React.CSSProperties };
+}
+
+const StageColumn: React.FC<StageColumnProps> = ({
+  stage,
+  tasks,
+  isDragOver,
+  isCurrentStage,
+  isLastColumn,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnter,
+  onTaskClick,
+  onAddTask,
+  onDragStart,
+  onDragEnd,
+  draggedTask,
+  cardPreferences,
+  getCardWidth
+}) => {
+  return (
+    <div
+      className={cn(
+        "flex-shrink-0 border-r border-gray-200 dark:border-gray-800 h-full",
+        isLastColumn && "border-r-0"
+      )}
+      style={{ 
+        width: '320px', 
+        minWidth: '320px',
+        ...getCardWidth().style 
+      }}
+    >
+      <div className="h-full flex flex-col">
+        {/* Header */}
+        <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {stage.name}
+              </h3>
+              <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
+                {tasks.length}
+              </span>
+            </div>
+            {onAddTask && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                onClick={() => onAddTask(stage.id)}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Drop Zone */}
+        <div 
+          className={cn(
+            "flex-1 bg-gray-50 dark:bg-gray-900 transition-all duration-200 relative min-h-0",
+            isDragOver && !isCurrentStage && "bg-blue-50/50 dark:bg-blue-900/20"
+          )}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onDragEnter={onDragEnter}
+        >
+          {/* Drop Indicator */}
+          {isDragOver && !isCurrentStage && (
+            <div className="absolute inset-0 border-2 border-dashed border-blue-400/60 bg-blue-50/30 dark:bg-blue-900/20 pointer-events-none z-10 flex items-center justify-center">
+              <div className="text-center">
+                <Plus className="w-8 h-8 mx-auto mb-2 text-blue-500" />
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Drop here</p>
+                <p className="text-xs text-blue-500/70 dark:text-blue-400/70">Move to {stage.name}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tasks */}
+          <div className="h-full overflow-y-auto">
+            <div className="p-4 space-y-3">
+              {tasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onClick={() => onTaskClick?.(task)}
+                  onDragStart={() => onDragStart(task)}
+                  onDragEnd={onDragEnd}
+                  isDragging={draggedTask?.id === task.id}
+                  cardPreferences={cardPreferences}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main TaskBoard Component
 export function TaskBoard({
   tasks,
   stages,
@@ -81,54 +169,49 @@ export function TaskBoard({
   className,
   cardPreferences,
 }: TaskBoardProps) {
+  // State
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Scroll navigation state
+  const [canScrollLeft, setCanScrollLeft] = useState(false); // Start hidden - at beginning
+  const [canScrollRight, setCanScrollRight] = useState(false); // Will be set by updateScrollButtons
 
-
-
-
-
-  // Group tasks by stage
+  // Memoized data
   const tasksByStage = useMemo(() => {
     const grouped: Record<string, Task[]> = {};
-    
-    // Initialize all stages with empty arrays
     stages.forEach(stage => {
       grouped[stage.id] = [];
     });
-    
-    // Group tasks by their status
     tasks.forEach(task => {
       if (grouped[task.status]) {
         grouped[task.status].push(task);
       }
     });
-    
     return grouped;
   }, [tasks, stages]);
 
-  // Sort stages by sortOrder
   const sortedStages = useMemo(() => {
-    return [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    const sorted = [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    console.log('📋 Sorted stages:', sorted.length, 'stages:', sorted.map(s => s.name));
+    return sorted;
   }, [stages]);
 
-  // Calculate card width based on preferences
-  const getCardWidth = () => {
-    if (!cardPreferences) return { className: 'w-64', style: {} }; // Default fallback
+  // Card width calculation
+  const getCardWidth = useCallback(() => {
+    if (!cardPreferences) return { className: 'w-64', style: {} };
     
     const { cardWidth, customCardWidth } = cardPreferences;
     
     switch (cardWidth) {
       case 'narrow':
-        return { className: 'w-52', style: {} }; // 208px
+        return { className: 'w-52', style: {} };
       case 'medium':
-        return { className: 'w-64', style: {} }; // 256px
+        return { className: 'w-64', style: {} };
       case 'wide':
-        return { className: 'w-80', style: {} }; // 320px
+        return { className: 'w-80', style: {} };
       case 'custom':
         const width = customCardWidth || 256;
         return { 
@@ -138,41 +221,91 @@ export function TaskBoard({
       default:
         return { className: 'w-64', style: {} };
     }
-  };
+  }, [cardPreferences]);
 
-  // Calculate total number of candidates
-  const totalCandidates = useMemo(() => {
-    return tasks.length;
-  }, [tasks]);
+  // Always show all stages
+  const visibleStagesList = useMemo(() => {
+    return sortedStages;
+  }, [sortedStages]);
 
-  // Calculate average fit score
-  const averageFitScore = useMemo(() => {
-    const tasksWithScore = tasks.filter(task => task.fitScore !== undefined && task.fitScore !== null);
-    if (tasksWithScore.length === 0) return null;
+  // Scroll navigation functions
+  const scrollLeft = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = 320; // Width of approximately one column
+      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    }
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = 320; // Width of approximately one column
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  }, []);
+
+  // Check scroll position and update button visibility
+  const updateScrollButtons = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      // Show left button when not at the start (can scroll left)
+      setCanScrollLeft(scrollLeft > 10);
+      // Show right button when not at the end (can scroll right)
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  // Set up scroll event listener and initial check
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', updateScrollButtons);
+      
+      // Multiple checks to ensure content is rendered
+      const timeouts = [
+        setTimeout(updateScrollButtons, 100),
+        setTimeout(updateScrollButtons, 300),
+        setTimeout(updateScrollButtons, 500)
+      ];
+      
+      return () => {
+        container.removeEventListener('scroll', updateScrollButtons);
+        timeouts.forEach(clearTimeout);
+      };
+    }
+  }, [updateScrollButtons, visibleStagesList]);
+
+  // Update scroll buttons when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      setTimeout(updateScrollButtons, 100);
+    };
     
-    const totalScore = tasksWithScore.reduce((sum, task) => sum + (task.fitScore || 0), 0);
-    return Math.round(totalScore / tasksWithScore.length);
-  }, [tasks]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateScrollButtons]);
 
 
 
 
 
   // Drag and drop handlers
-  const handleDragStart = (task: Task) => {
+  const handleDragStart = useCallback((task: Task) => {
     setDraggedTask(task);
     setIsDragging(true);
     document.body.style.cursor = 'grabbing';
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggedTask(null);
     setDragOverStage(null);
     setIsDragging(false);
     document.body.style.cursor = '';
-  };
+  }, []);
 
-  const handleDragOver = (stageId: string, e: React.DragEvent) => {
+  const handleDragOver = useCallback((stageId: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -180,9 +313,9 @@ export function TaskBoard({
       setDragOverStage(stageId);
       e.dataTransfer.dropEffect = 'move';
     }
-  };
+  }, [draggedTask]);
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -190,12 +323,12 @@ export function TaskBoard({
     const x = e.clientX;
     const y = e.clientY;
     
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    if (x < rect.left || x > rect.right || y < rect.top || y < rect.bottom) {
       setDragOverStage(null);
     }
-  };
+  }, []);
 
-  const handleDrop = (stageId: string, e: React.DragEvent) => {
+  const handleDrop = useCallback((stageId: string, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -207,89 +340,13 @@ export function TaskBoard({
     setDragOverStage(null);
     setIsDragging(false);
     document.body.style.cursor = '';
-  };
-
-  const getFitScoreColor = (score: number) => {
-    const colorInfo = getScoreColorInfo(score);
-    // Map background colors to corresponding border colors
-    const borderColorMap: Record<string, string> = {
-      'bg-red-400': 'border-l-red-400',
-      'bg-orange-400': 'border-l-orange-400',
-      'bg-yellow-200': 'border-l-yellow-200',
-      'bg-yellow-400': 'border-l-yellow-400',
-      'bg-lime-400': 'border-l-lime-400',
-    };
-    return borderColorMap[colorInfo.bg] || 'border-l-gray-300 dark:border-l-gray-600';
-  };
-
-  // Scroll handlers
-  const handleScrollLeft = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const scrollAmount = Math.min(320, container.scrollLeft);
-      container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  const handleScrollRight = () => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      const scrollAmount = Math.min(320, maxScroll - container.scrollLeft);
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
-  // Update scroll state
-  const updateScrollState = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      const newCanScrollLeft = scrollLeft > 0;
-      const newCanScrollRight = scrollLeft < scrollWidth - clientWidth - 1;
-      
-      setCanScrollLeft(newCanScrollLeft);
-      setCanScrollRight(newCanScrollRight);
-    }
-  };
-
-  // Add scroll event listener and resize observer
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (scrollContainer) {
-      updateScrollState();
-      scrollContainer.addEventListener('scroll', updateScrollState);
-      
-      // Add resize observer to handle container size changes
-      const resizeObserver = new ResizeObserver(updateScrollState);
-      resizeObserver.observe(scrollContainer);
-      
-      return () => {
-        scrollContainer.removeEventListener('scroll', updateScrollState);
-        resizeObserver.disconnect();
-      };
-    }
-  }, [tasks, stages]);
-
-  // Add keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target === scrollContainerRef.current || scrollContainerRef.current?.contains(e.target as Node)) {
-        if (e.key === 'ArrowLeft' && canScrollLeft) {
-          e.preventDefault();
-          handleScrollLeft();
-        } else if (e.key === 'ArrowRight' && canScrollRight) {
-          e.preventDefault();
-          handleScrollRight();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [canScrollLeft, canScrollRight]);
+  }, [draggedTask, onMoveTask]);
 
 
 
+
+
+  // Empty state
   if (!stages || stages.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -306,104 +363,145 @@ export function TaskBoard({
 
   return (
     <div className={cn("flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/50", className)}>
-      {/* Header
-      <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <User className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {totalCandidates} candidates
-            </span>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Board Container with Fixed Navigation Buttons */}
+      {/* Board Container */}
       <div className="relative flex-1">
-
-        {/* Scroll Navigation Buttons */}
+        {/* Fixed Navigation Buttons - Circular blue with blur */}
         {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-blue-500/10 to-transparent dark:from-blue-500/20 pointer-events-none z-20" />
+          <div
+            onClick={scrollLeft}
+            aria-label="Scroll left"
+            role="button"
+            tabIndex={0}
+            style={{ 
+              position: 'fixed',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              left: 'calc(var(--sidebar-width, 16rem) + 1rem)',
+              width: '50px',
+              height: '50px',
+              minWidth: '50px',
+              minHeight: '50px',
+              maxWidth: '50px',
+              maxHeight: '50px',
+              borderRadius: '25px',
+              backgroundColor: 'rgba(59, 130, 246, 0.3)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(96, 165, 250, 0.3)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              zIndex: 50,
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              boxSizing: 'border-box',
+              padding: '0',
+              margin: '0',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.4)';
+              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+              e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.3)';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                scrollLeft();
+              }
+            }}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </div>
         )}
         
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-blue-500/10 to-transparent dark:from-blue-500/20 pointer-events-none z-20" />
-        )}
-
-        {canScrollLeft && (
           <div
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-16 w-16 bg-blue-500/20 backdrop-blur-md shadow-2xl hover:bg-blue-500/30 hover:shadow-blue-500/25 transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer"
-            style={{ borderRadius: '50%' }}
-            onClick={handleScrollLeft}
-            title="Scroll to previous columns (←)"
+            onClick={scrollRight}
+            aria-label="Scroll right"
+            role="button"
+            tabIndex={0}
+            style={{ 
+              position: 'fixed',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              right: '16px',
+              width: '50px',
+              height: '50px',
+              minWidth: '50px',
+              minHeight: '50px',
+              maxWidth: '50px',
+              maxHeight: '50px',
+              borderRadius: '25px',
+              backgroundColor: 'rgba(59, 130, 246, 0.3)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(96, 165, 250, 0.3)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              zIndex: 50,
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              boxSizing: 'border-box',
+              padding: '0',
+              margin: '0',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.4)';
+              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+              e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.3)';
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                scrollRight();
+              }
+            }}
           >
-            <ChevronLeft className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <ChevronRight className="h-5 w-5" />
           </div>
         )}
 
-        {canScrollRight && (
-          <div
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-16 w-16 bg-blue-500/20 backdrop-blur-md shadow-2xl hover:bg-blue-500/30 hover:shadow-blue-500/25 transition-all duration-300 hover:scale-110 flex items-center justify-center cursor-pointer"
-            style={{ borderRadius: '50%' }}
-            onClick={handleScrollRight}
-            title="Scroll to next columns (→)"
-          >
-            <ChevronRight className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-          </div>
-        )}
+
+
 
         {/* Scrollable Board Container */}
         <div 
           ref={scrollContainerRef}
-          className="flex gap-0 h-full overflow-x-auto scroll-smooth scrollbar-hide"
-          style={{ minWidth: 'max-content' }}
+          className="flex gap-0 h-full overflow-x-auto overflow-y-hidden"
+          style={{ 
+            minWidth: '100%',
+            width: '100%',
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch' // Enable touchpad scrolling
+          }}
         >
-        {sortedStages.map((stage, index) => {
+          <div className="flex gap-0 h-full" style={{ minWidth: 'max-content' }}>
+          {visibleStagesList.map((stage, index) => {
           const stageTasks = tasksByStage[stage.id] || [];
           const isDragOver = dragOverStage === stage.id;
           const isCurrentStage = draggedTask?.status === stage.id;
           const isLastColumn = index === sortedStages.length - 1;
 
           return (
-            <div
+              <StageColumn
               key={stage.id}
-              className={cn(
-                `${getCardWidth().className} border-r border-gray-200 dark:border-gray-800 h-full`,
-                isLastColumn && "border-r-0"
-              )}
-              style={getCardWidth().style}
-            >
-              <div className="h-full flex flex-col">
-                {/* Table Header Row */}
-                <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {stage.name}
-                      </h3>
-                      <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
-                        {stageTasks.length}
-                      </span>
-                    </div>
-                    {onAddTask && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                        onClick={() => onAddTask(stage.id)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Table Body - Full Height Drop Zone */}
-                <div 
-                  className={cn(
-                    "flex-1 bg-gray-50 dark:bg-gray-900 transition-all duration-200 relative min-h-0",
-                    isDragOver && !isCurrentStage && "bg-blue-50/50 dark:bg-blue-900/20"
-                  )}
+                stage={stage}
+                tasks={stageTasks}
+                isDragOver={isDragOver}
+                isCurrentStage={isCurrentStage}
+                isLastColumn={isLastColumn}
                   onDragOver={(e) => handleDragOver(stage.id, e)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(stage.id, e)}
@@ -413,173 +511,17 @@ export function TaskBoard({
                       setDragOverStage(stage.id);
                     }
                   }}
-                >
-                  {/* Drop zone indicator */}
-                  {isDragOver && !isCurrentStage && (
-                    <div className="absolute inset-0 border-2 border-dashed border-blue-400/60 bg-blue-50/30 dark:bg-blue-900/20 pointer-events-none z-10 flex items-center justify-center">
-                      <div className="text-center">
-                        <Plus className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Drop here</p>
-                        <p className="text-xs text-blue-500/70 dark:text-blue-400/70">Move to {stage.name}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Table Rows Container */}
-                  <div className="h-full overflow-y-auto">
-                    <div className="p-4 space-y-3">
-                      {stageTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className={cn(
-                            "group cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors border-l-8 rounded-lg bg-white dark:bg-gray-900 shadow-md hover:shadow-lg",
-                            draggedTask?.id === task.id && "opacity-60 scale-95",
-                            task.fitScore !== undefined && task.fitScore !== null ? getFitScoreColor(task.fitScore) : "border-l-gray-300 dark:border-l-gray-600"
-                          )}
-                          draggable
-                          onDragStart={() => handleDragStart(task)}
+                onTaskClick={onTaskClick}
+                onAddTask={onAddTask}
+                onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
-                          onClick={() => onTaskClick?.(task)}
-                        >
-                          {/* Table Row Content */}
-                          <div className="flex items-start gap-3 mb-1">
-                            {/* Avatar Cell */}
-                            {(!cardPreferences || cardPreferences.showAvatar) && (
-                              <UserAvatarCompact 
-                                user={{
-                                  id: task.id,
-                                  name: task.title,
-                                  avatarUrl: task.avatarUrl,
-                                  email: task.email
-                                }}
-                                size="sm"
-                                className="ring-1 ring-gray-200 dark:ring-gray-700"
-                              />
-                            )}
-                            
-                            {/* Content Cell */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  {/* Name */}
-                                  {(!cardPreferences || cardPreferences.showName) && (
-                                    <h4 className="font-medium text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                      {task.title}
-                                    </h4>
-                                  )}
-                            
-                                  {/* Description Row */}
-                                  {(!cardPreferences || cardPreferences.showDescription) && task.description && task.description.trim() !== '' && (
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1 leading-relaxed">
-                                      {task.description}
-                                    </p>
-                                  )}
-                                  
-                                  {/* Email Row */}
-                                  {(!cardPreferences || cardPreferences.showEmail) && task.email && (
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                                      {task.email}
-                                    </p>
-                                  )}
-
-                                  {/* Assignee */}
-                                  {cardPreferences?.showAssignee && task.assignee && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">Assigned to:</span>
-                                      <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">
-                                        {task.assignee.name}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Priority */}
-                                  {cardPreferences?.showPriority && task.priority && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">Priority:</span>
-                                      <Badge 
-                                        variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
-                                        className="text-xs"
-                                      >
-                                        {task.priority}
-                                      </Badge>
-                                    </div>
-                                  )}
-
-                                  {/* Due Date */}
-                                  {cardPreferences?.showDueDate && task.dueDate && (
-                                    <div className="flex items-center gap-1 mt-1">
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">Due:</span>
-                                      <span className="text-xs text-gray-700 dark:text-gray-300">
-                                        {new Date(task.dueDate).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Tags */}
-                                  {cardPreferences?.showTags && task.tags && task.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                      {task.tags.slice(0, 2).map((tag, idx) => (
-                                        <Badge key={idx} variant="outline" className="text-xs">
-                                          {tag}
-                                        </Badge>
-                                      ))}
-                                      {task.tags.length > 2 && (
-                                        <Badge variant="outline" className="text-xs">
-                                          +{task.tags.length - 2}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Skills */}
-                                  {cardPreferences?.showSkills && task.skills && task.skills.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                      {task.skills.slice(0, 2).map((skill: any, idx: number) => (
-                                        <span key={idx} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                          {skill.skill_string || skill.segment_skill || 'Skill'}
-                                        </span>
-                                      ))}
-                                      {task.skills.length > 2 && (
-                                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs">
-                                          +{task.skills.length - 2}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Job Applied */}
-                                  {cardPreferences?.showJobApplied && task.tags && task.tags.length > 0 && (
-                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                      <div className="text-xs text-gray-600 dark:text-gray-400">
-                                        <span className="font-medium">Applied for: </span> {task.tags[0]}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <div className="flex items-center gap-1">
-                                  {/* Fit Score Badge */}
-                                  {(!cardPreferences || cardPreferences.showFitScore) && task.fitScore !== undefined && task.fitScore !== null && (
-                                    <ScoreBadge score={task.fitScore} className="text-xs">
-                                      {formatScoreWithGrade(task.fitScore)}
-                                    </ScoreBadge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-
-
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                draggedTask={draggedTask}
+                cardPreferences={cardPreferences}
+                getCardWidth={getCardWidth}
+              />
           );
         })}
+          </div>
         </div>
       </div>
     </div>

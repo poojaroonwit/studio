@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Trash2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +19,7 @@ interface NotificationDrawerProps {
 export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps) {
   const { data: session } = useSession();
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
+  const [mounted, setMounted] = useState(false);
 
   const handleMarkAsRead = async (notificationId: string) => {
     await markAsRead(notificationId);
@@ -26,10 +29,14 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
     await markAllAsRead();
   };
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex">
+  if (!isOpen || !mounted) return null;
+
+  const drawer = (
+    <div className="fixed inset-0 z-[1000] flex">
       {/* Overlay */}
       <div 
         className="fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
@@ -145,4 +152,6 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
       </div>
     </div>
   );
+
+  return createPortal(drawer, document.body);
 }

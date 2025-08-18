@@ -30,10 +30,10 @@ export function useAvatarRefresh() {
         });
         forceRefresh();
       } catch (error) {
-        console.error('Failed to refresh session avatar:', error);
+        // Silent error handling for avatar refresh
       }
     }
-  }, [session, update, forceRefresh]);
+  }, [session?.user?.id, update, forceRefresh]);
 
   return {
     refreshKey,
@@ -65,14 +65,18 @@ export function useAvatarRefreshState() {
  */
 export function useAvatarSessionSync() {
   const { data: session } = useSession();
-  const { forceRefresh } = useAvatarRefresh();
+  const [localRefreshKey, setLocalRefreshKey] = useState(0);
+  
+  const forceRefresh = useCallback(() => {
+    setLocalRefreshKey(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
-    // Force refresh when session changes (e.g., after login/logout)
-    if (session?.user) {
-      forceRefresh();
+    // Force refresh when session avatar URL changes
+    if (session?.user?.avatarUrl) {
+      setLocalRefreshKey(prev => prev + 1);
     }
-  }, [session?.user?.avatarUrl, forceRefresh]);
+  }, [session?.user?.avatarUrl]);
 
-  return { forceRefresh };
+  return { forceRefresh, refreshKey: localRefreshKey };
 }

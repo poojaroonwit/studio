@@ -924,7 +924,7 @@ export default function PositionsPageClient() {
                 ) : allDepartments.length > 0 ? (
                   <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal shadow-none hover:shadow-none [&]:shadow-none [&]:hover:shadow-none" style={{ boxShadow: 'none' }}>
                         {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>

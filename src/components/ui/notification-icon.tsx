@@ -31,7 +31,7 @@ export function NotificationIcon() {
         variant="ghost"
         size="icon"
         onClick={handleNotificationClick}
-        className="relative"
+        className="relative bg-transparent hover:bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         disabled={isLoading}
       >
         <Bell className="h-5 w-5" />

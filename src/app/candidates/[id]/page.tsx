@@ -42,12 +42,10 @@ export default function CandidateDetailPage() {
   }
 
     return (
-    <div className="h-screen overflow-hidden">
       <CandidateDetailView
-                candidateId={candidateId}
+        candidateId={candidateId}
         isModal={false}
         onClose={() => router.push('/candidates')}
       />
-                                            </div>
-                                          );
+    );
 }

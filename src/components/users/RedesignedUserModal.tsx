@@ -144,9 +144,6 @@ interface PersonalInfoContentProps {
 }
 
 function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoContentProps) {
-  console.log('PersonalInfoContent - user object:', user);
-  console.log('PersonalInfoContent - form avatarUrl value:', form.watch('avatarUrl'));
-  
   return (
     <div className="space-y-6">
       {/* Profile Photo and Basic Info Row */}
@@ -165,11 +162,9 @@ function PersonalInfoContent({ form, user, mode, userTeams }: PersonalInfoConten
                   <UserAvatarUpload
                     user={user || { id: '', name: '', email: '', avatarUrl: field.value }}
                     onImageUpload={async (imageUrl) => {
-                      console.log('UserAvatarUpload: Image uploaded, updating field with:', imageUrl);
                       field.onChange(imageUrl);
                     }}
                     onImageRemove={async () => {
-                      console.log('UserAvatarUpload: Image removed, clearing field');
                       field.onChange('');
                     }}
                     size="lg"
@@ -609,7 +604,6 @@ export function RedesignedUserModal({
 
   // Watch the avatarUrl field to see if it's being updated
   const watchedAvatarUrl = form.watch('avatarUrl');
-  console.log('RedesignedUserModal - Watched avatarUrl:', watchedAvatarUrl);
 
   const { isSubmitting } = form.formState;
 
@@ -753,31 +747,31 @@ export function RedesignedUserModal({
         {/* Header */}
         <ModalHeader modalInfo={modalInfo} onClose={() => onOpenChange(false)} />
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden flex mt-0 pt-0">
-          {/* Tab Navigation */}
-          <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col">
+            {/* Content */}
+            <div className="flex-1 overflow-hidden flex mt-0 pt-0">
+              {/* Tab Navigation */}
+              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col">
                 <ScrollArea className="flex-1 p-6">
                   {renderTabContent()}
                 </ScrollArea>
+              </div>
+            </div>
 
-                {/* Footer */}
-                <ModalFooter 
-                  form={form}
-                  isSubmitting={isSubmitting}
-                  isLoading={isLoading}
-                  mode={mode}
-                  onClose={() => onOpenChange(false)}
-                />
-              </form>
-            </Form>
-          </div>
-        </div>
+            {/* Footer (full width) */}
+            <ModalFooter 
+              form={form}
+              isSubmitting={isSubmitting}
+              isLoading={isLoading}
+              mode={mode}
+              onClose={() => onOpenChange(false)}
+            />
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

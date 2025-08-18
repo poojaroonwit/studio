@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -47,6 +47,28 @@ export default function UserPreferencesPage() {
     isLoading,
     isAuthenticated
   } = useUserPreferences();
+
+  // Memoize the task board preferences to prevent unnecessary re-renders
+  const memoizedTaskBoardPreferences = useMemo(() => preferences.taskBoard, [
+    preferences.taskBoard.cardWidth,
+    preferences.taskBoard.customCardWidth,
+    preferences.taskBoard.showAvatar,
+    preferences.taskBoard.showName,
+    preferences.taskBoard.showEmail,
+    preferences.taskBoard.showDescription,
+    preferences.taskBoard.showFitScore,
+    preferences.taskBoard.showAssignee,
+    preferences.taskBoard.showPriority,
+    preferences.taskBoard.showDueDate,
+    preferences.taskBoard.showTags,
+    preferences.taskBoard.showSkills,
+    preferences.taskBoard.showJobApplied,
+    preferences.taskBoard.searchTerm,
+    preferences.taskBoard.filterPriority,
+    preferences.taskBoard.filterAssignee,
+    preferences.taskBoard.selectedStages,
+    preferences.taskBoard.viewMode
+  ]);
 
   const handleResetAll = async () => {
     try {
@@ -265,7 +287,7 @@ export default function UserPreferencesPage() {
           <div className="space-y-6">
             {/* Card Customization Settings */}
             <CardCustomizationSettings
-              preferences={preferences.taskBoard}
+              preferences={memoizedTaskBoardPreferences}
               onUpdatePreferences={updateTaskBoardPreferences}
               onResetPreferences={resetTaskBoardPreferences}
               isSaving={false}
@@ -299,35 +321,35 @@ export default function UserPreferencesPage() {
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">View Mode</span>
                     <Badge variant="secondary">
-                      {preferences.taskBoard.viewMode}
+                      {memoizedTaskBoardPreferences.viewMode}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Search Term</span>
                     <Badge variant="secondary">
-                      {preferences.taskBoard.searchTerm || 'None'}
+                      {memoizedTaskBoardPreferences.searchTerm || 'None'}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Priority Filter</span>
                     <Badge variant="secondary">
-                      {preferences.taskBoard.filterPriority}
+                      {memoizedTaskBoardPreferences.filterPriority}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Assignee Filter</span>
                     <Badge variant="secondary">
-                      {preferences.taskBoard.filterAssignee}
+                      {memoizedTaskBoardPreferences.filterAssignee}
                     </Badge>
                   </div>
                   
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <span className="text-sm font-medium">Selected Stages</span>
                     <Badge variant="secondary">
-                      {preferences.taskBoard.selectedStages.length} stage(s)
+                      {memoizedTaskBoardPreferences.selectedStages.length} stage(s)
                     </Badge>
                   </div>
                 </div>

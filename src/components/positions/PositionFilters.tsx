@@ -75,7 +75,7 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
 
 
   return (
-    <div className="mb-6 p-4 border rounded-lg bg-card shadow">
+    <div className="mb-6 p-4 border rounded-lg bg-card">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
         <div>
           <Label htmlFor="title-search">Position Title</Label>
@@ -93,12 +93,12 @@ export function PositionFilters({ initialFilters = { isOpen: "all" }, onFilterCh
           {availableDepartments.length > 0 ? (
             <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal">
+                <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal shadow-none hover:shadow-none">
                   {renderMultiSelectDepartmentTrigger()}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height">
+              <PopoverContent className="w-[--trigger-width] p-0 dropdown-content-height shadow-none">
                 <Command>
                   <Input placeholder="Search departments..." value={departmentSearch} onChange={e => setDepartmentSearch(e.target.value)} className="h-9 text-xs border-0 bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground focus-visible:ring-0" />
                   <CommandList>

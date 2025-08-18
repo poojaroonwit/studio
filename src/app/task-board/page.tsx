@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Search, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
+import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
 // Sample stages data
 const sampleStages: TaskStage[] = [
@@ -22,17 +24,154 @@ const sampleStages: TaskStage[] = [
   { id: 'done', name: 'Done', color: '#10b981', description: 'Completed tasks', sortOrder: 3 },
 ];
 
-// Empty tasks data - will be populated from real data source
-const sampleTasks: Task[] = [];
+// Sample tasks data for testing scroll functionality
+const sampleTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Design new landing page',
+    description: 'Create a modern and responsive landing page design',
+    status: 'todo',
+    priority: 'high',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['design', 'frontend']
+  },
+  {
+    id: '2',
+    title: 'Implement user authentication',
+    description: 'Add login and registration functionality',
+    status: 'in-progress',
+    priority: 'urgent',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['backend', 'auth']
+  },
+  {
+    id: '3',
+    title: 'Setup database migrations',
+    description: 'Create and run database migration scripts',
+    status: 'todo',
+    priority: 'medium',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['database']
+  },
+  {
+    id: '4',
+    title: 'Write API documentation',
+    description: 'Document all API endpoints with examples',
+    status: 'review',
+    priority: 'low',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['documentation']
+  },
+  {
+    id: '5',
+    title: 'Deploy to staging',
+    description: 'Deploy the latest version to staging environment',
+    status: 'done',
+    priority: 'medium',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['deployment']
+  },
+  {
+    id: '6',
+    title: 'Performance optimization',
+    description: 'Optimize application performance and loading times',
+    status: 'todo',
+    priority: 'high',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['performance']
+  },
+  {
+    id: '7',
+    title: 'Code review session',
+    description: 'Review pull requests and provide feedback',
+    status: 'in-progress',
+    priority: 'medium',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['review']
+  },
+  {
+    id: '8',
+    title: 'Update dependencies',
+    description: 'Update all npm packages to latest versions',
+    status: 'review',
+    priority: 'low',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tags: ['maintenance']
+  }
+];
 
 // Empty assignees - will be populated from real data source
 const sampleAssignees: { id: string; name: string; avatarUrl: string }[] = [];
 
-export default function TaskBoardPage() {
+// Error boundary component for task board
+class TaskBoardErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('TaskBoard Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col h-screen bg-background">
+          <div className="bg-card border-b border-border shadow-sm">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold">Task Board</h1>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.reload()}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reload Page
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+              <p className="text-muted-foreground mb-4">
+                There was an error loading the task board. Please try reloading the page.
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function TaskBoardContent() {
   const [tasks, setTasks] = useState<Task[]>(sampleTasks);
   const [stages] = useState<TaskStage[]>(sampleStages);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   // Use persistent user preferences
   const { 
@@ -41,6 +180,32 @@ export default function TaskBoardPage() {
     resetTaskBoardPreferences,
     isLoaded 
   } = useUserPreferences();
+
+  // Real-time collaboration hook with error handling
+  const { isConnected: realtimeConnected, isReconnecting, reconnectAttempts } = useRealtimeCollaboration({
+    onCandidateUpdate: (updatedCandidate) => {
+      try {
+        // Handle candidate updates if needed
+        console.log('Candidate updated:', updatedCandidate);
+      } catch (error) {
+        console.error('Error handling candidate update:', error);
+        setHasError(true);
+      }
+    },
+    onTransitionUpdate: (transition) => {
+      try {
+        // Handle transition updates if needed
+        console.log('Transition updated:', transition);
+      } catch (error) {
+        console.error('Error handling transition update:', error);
+        setHasError(true);
+      }
+    },
+    showNotifications: false, // Disable notifications to prevent conflicts
+    maxReconnectAttempts: 15, // More reconnection attempts
+    reconnectDelayMs: 500, // Faster initial reconnection
+    maxReconnectDelayMs: 15000, // Shorter max delay
+  });
 
   // Local state for immediate UI updates
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
@@ -56,16 +221,20 @@ export default function TaskBoardPage() {
     }
   }, [isLoaded, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
 
-  // Update preferences when local state changes
+  // Update preferences when local state changes, but only if they differ from current preferences
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && (
+      searchTerm !== preferences.searchTerm ||
+      filterPriority !== preferences.filterPriority ||
+      filterAssignee !== preferences.filterAssignee
+    )) {
       updateTaskBoardPreferences({
         searchTerm,
         filterPriority,
         filterAssignee,
       });
     }
-  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences]);
+  }, [searchTerm, filterPriority, filterAssignee, isLoaded, updateTaskBoardPreferences, preferences.searchTerm, preferences.filterPriority, preferences.filterAssignee]);
 
   // Filter tasks based on search and filters
   const filteredTasks = tasks.filter(task => {
@@ -79,49 +248,107 @@ export default function TaskBoardPage() {
 
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
-    setTasks(prev => prev.map(t => 
-      t.id === task.id ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
-    ));
-    toast.success(`Moved "${task.title}" to ${stages.find(s => s.id === newStatus)?.name}`);
+    try {
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
+      ));
+      toast.success(`Moved "${task.title}" to ${stages.find(s => s.id === newStatus)?.name}`);
+    } catch (error) {
+      console.error('Error moving task:', error);
+      toast.error('Failed to move task. Please try again.');
+    }
   };
 
   // Handle task click
   const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
+    try {
+      setSelectedTask(task);
+    } catch (error) {
+      console.error('Error opening task details:', error);
+      toast.error('Failed to open task details. Please try again.');
+    }
   };
 
   // Handle task update
   const handleTaskUpdate = (taskId: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => 
-      t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-    ));
-    toast.success('Task updated successfully');
+    try {
+      setTasks(prev => prev.map(t => 
+        t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      ));
+      toast.success('Task updated successfully');
+    } catch (error) {
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task. Please try again.');
+    }
   };
 
   // Handle adding new task
   const handleAddTask = (stageId: string) => {
-    setIsAddTaskModalOpen(true);
+    try {
+      setIsAddTaskModalOpen(true);
+    } catch (error) {
+      console.error('Error opening add task modal:', error);
+      toast.error('Failed to open add task modal. Please try again.');
+    }
   };
 
   // Add new task
   const handleCreateTask = (taskData: Partial<Task>) => {
-    const newTask: Task = {
-      id: Date.now().toString(),
-      title: taskData.title || '',
-      description: taskData.description || '',
-      status: taskData.status || 'todo',
-      priority: taskData.priority || 'medium',
-      assignee: taskData.assignee,
-      dueDate: taskData.dueDate,
-      tags: taskData.tags || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setTasks(prev => [...prev, newTask]);
-    setIsAddTaskModalOpen(false);
-    toast.success('Task created successfully');
+    try {
+      const newTask: Task = {
+        id: Date.now().toString(),
+        title: taskData.title || '',
+        description: taskData.description || '',
+        status: taskData.status || 'todo',
+        priority: taskData.priority || 'medium',
+        assignee: taskData.assignee,
+        dueDate: taskData.dueDate,
+        tags: taskData.tags || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      setTasks(prev => [...prev, newTask]);
+      setIsAddTaskModalOpen(false);
+      toast.success('Task created successfully');
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to create task. Please try again.');
+    }
   };
+
+  // If there's an error, show a fallback UI
+  if (hasError) {
+    return (
+      <div className="flex flex-col h-screen bg-background">
+        <div className="bg-card border-b border-border shadow-sm">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold">Task Board</h1>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reload Page
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+            <p className="text-muted-foreground mb-4">
+              There was an error loading the task board. Please try reloading the page.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -129,7 +356,27 @@ export default function TaskBoardPage() {
       <div className="bg-card border-b border-border shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">Task Board</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold">Task Board</h1>
+              <RealtimeIndicator 
+                isConnected={realtimeConnected}
+                isReconnecting={isReconnecting}
+                reconnectAttempts={reconnectAttempts}
+                size="sm"
+                showText={true}
+              />
+              {!realtimeConnected && !isReconnecting && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  title="Manual reconnect"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reconnect
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -202,7 +449,6 @@ export default function TaskBoardPage() {
           onMoveTask={handleMoveTask}
           onTaskClick={handleTaskClick}
           onAddTask={handleAddTask}
-
           className="h-full"
         />
       </div>
@@ -226,6 +472,14 @@ export default function TaskBoardPage() {
         assignees={sampleAssignees}
       />
     </div>
+  );
+}
+
+export default function TaskBoardPage() {
+  return (
+    <TaskBoardErrorBoundary>
+      <TaskBoardContent />
+    </TaskBoardErrorBoundary>
   );
 }
 

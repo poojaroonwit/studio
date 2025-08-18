@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,8 @@ interface PositionDetailDrawerProps {
 }
 
 export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: PositionDetailDrawerProps) {
+  const { data: session, status: sessionStatus } = useSession();
+  
   // State for position and general data
   const [position, setPosition] = useState<Position | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +66,15 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
   const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string | null>('applicationDate');
   const [allCandidatesSortDirection, setAllCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // State for applied candidates
+  const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
+  const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
+  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(20);
+  const [appliedCandidatesTotal, setAppliedCandidatesTotal] = useState(0);
+  const [appliedCandidatesSearchTerm, setAppliedCandidatesSearchTerm] = useState('');
+  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('applicationDate');
+  const [appliedCandidatesSortDirection, setAppliedCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // State for potential candidates
   const [potentialCandidates, setPotentialCandidates] = useState<Candidate[]>([]);
@@ -84,8 +96,6 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [isDrawerReady, setIsDrawerReady] = useState(false);
 
   // Sorting state for applied candidates table
-  const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>(null);
-  const [appliedCandidatesSortDirection, setAppliedCandidatesSortDirection] = useState<'asc' | 'desc'>('asc');
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
 
   // Sorting state for potential candidates table
@@ -181,18 +191,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   // Calculate applied candidates count
   const appliedCandidatesCount = useMemo(() => 
-    allCandidates.filter((candidate: Candidate) => 
-      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
-    ).length,
-    [allCandidates]
+    appliedCandidatesTotal,
+    [appliedCandidatesTotal]
   );
 
   // Sorted candidates
   const sortedAppliedCandidates = useMemo(() => {
-    const appliedCandidates = allCandidates.filter((candidate: Candidate) => 
-      candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
-    );
-    
     if (!appliedCandidatesSortColumn) return appliedCandidates;
     
     return [...appliedCandidates].sort((a, b) => {
@@ -202,7 +206,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       if (aValue > bValue) return appliedCandidatesSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [allCandidates, appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
+  }, [appliedCandidates, appliedCandidatesSortColumn, appliedCandidatesSortDirection]);
 
   const sortedPotentialCandidates = useMemo(() => {
     if (!potentialCandidatesSortColumn) return potentialCandidates;
@@ -294,6 +298,40 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
     }
   }, [positionId, form]);
 
+  // Fetch applied candidates for this position
+  const fetchAppliedCandidates = useCallback(async () => {
+    if (!positionId) return;
+    
+    try {
+      const query = new URLSearchParams();
+      query.append('page', String(appliedCandidatesPage));
+      query.append('limit', String(appliedCandidatesPageSize));
+      query.append('type', 'applied');
+      if (appliedCandidatesSearchTerm) {
+        query.append('searchTerm', appliedCandidatesSearchTerm);
+      }
+      if (appliedCandidatesSortColumn) {
+        query.append('sortColumn', appliedCandidatesSortColumn);
+      }
+      if (appliedCandidatesSortDirection) {
+        query.append('sortDirection', appliedCandidatesSortDirection);
+      }
+      
+      const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch applied candidates');
+      
+      const data = await response.json();
+      const candidates = Array.isArray(data.data) ? data.data : [];
+      
+      setAppliedCandidates(candidates);
+      setAppliedCandidatesTotal(data.pagination?.total || candidates.length);
+    } catch (error) {
+      console.error('Error fetching applied candidates:', error);
+      setAppliedCandidates([]);
+      setAppliedCandidatesTotal(0);
+    }
+  }, [positionId, appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, sessionStatus]);
+
   // Fetch all candidates related to this position
   const fetchAllCandidates = useCallback(async () => {
     if (!positionId) return;
@@ -302,6 +340,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       const query = new URLSearchParams();
       query.append('page', String(allCandidatesPage));
       query.append('limit', String(allCandidatesPageSize));
+      query.append('type', 'all'); // Explicitly request all candidates (applied and matched)
       if (allCandidatesSearchTerm) {
         query.append('searchTerm', allCandidatesSearchTerm);
       }
@@ -325,7 +364,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       setAllCandidates([]);
       setAllCandidatesTotal(0);
     }
-  }, [positionId, allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection]);
+  }, [positionId, allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, sessionStatus]);
 
   // Fetch potential candidates (candidates with job matches for this position but not applied)
   const fetchPotentialCandidates = useCallback(async () => {
@@ -541,22 +580,29 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
 
   // Fetch data when drawer opens or positionId changes
   useEffect(() => {
-    if (isOpen && positionId) {
+    if (isOpen && positionId && sessionStatus === 'authenticated') {
       fetchPosition();
+      fetchAppliedCandidates();
       fetchAllCandidates();
       fetchPotentialCandidates();
     }
-  }, [isOpen, positionId, fetchPosition, fetchAllCandidates, fetchPotentialCandidates]);
+  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
 
   // Reset state when drawer closes
   useEffect(() => {
     if (!isOpen) {
       setPosition(null);
       setAllCandidates([]);
+      setAllCandidatesTotal(0);
+      setAppliedCandidates([]);
+      setAppliedCandidatesTotal(0);
       setPotentialCandidates([]);
+      setPotentialCandidatesTotal(0);
       setFetchError(null);
       setAllCandidatesSearchTerm('');
       setAllCandidatesPage(1);
+      setAppliedCandidatesSearchTerm('');
+      setAppliedCandidatesPage(1);
       setPotentialCandidatesSearchTerm('');
       setPotentialCandidatesPage(1);
       setIsEditMode(false);
@@ -573,6 +619,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       setAllCandidatesOpenMenu(null);
     }
   }, [isOpen, form]);
+
+  // Refetch applied candidates when sorting or search changes
+  useEffect(() => {
+    if (isOpen && positionId && sessionStatus === 'authenticated') {
+      fetchAppliedCandidates();
+    }
+  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, fetchAppliedCandidates]);
 
   // Update form when position changes
   useEffect(() => {
@@ -1646,10 +1699,20 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                                   <Input
                                     placeholder="Search applied candidates..."
-                                    value={allCandidatesSearchTerm}
-                                    onChange={(e) => setAllCandidatesSearchTerm(e.target.value)}
+                                    value={appliedCandidatesSearchTerm}
+                                    onChange={(e) => setAppliedCandidatesSearchTerm(e.target.value)}
                                     className="pl-10"
                                   />
+                                  {appliedCandidatesSearchTerm && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                                      onClick={() => setAppliedCandidatesSearchTerm('')}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
 
@@ -1661,14 +1724,14 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                               </div>
 
                               {/* Pagination for Applied */}
-                              {allCandidatesTotalPages > 1 && (
+                              {appliedCandidatesTotal > 0 && (
                                 <Pagination
-                                  currentPage={allCandidatesPage}
-                                  totalPages={allCandidatesTotalPages}
-                                  pageSize={allCandidatesPageSize}
-                                  total={allCandidatesTotal}
-                                  onPageChange={setAllCandidatesPage}
-                                  onPageSizeChange={setAllCandidatesPageSize}
+                                  currentPage={appliedCandidatesPage}
+                                  totalPages={Math.max(1, Math.ceil(appliedCandidatesTotal / appliedCandidatesPageSize))}
+                                  pageSize={appliedCandidatesPageSize}
+                                  total={appliedCandidatesTotal}
+                                  onPageChange={setAppliedCandidatesPage}
+                                  onPageSizeChange={setAppliedCandidatesPageSize}
                                 />
                               )}
                             </div>

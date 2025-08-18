@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown } from 'lucide-react';
+import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown, Wifi } from 'lucide-react';
 import { TaskBoard, Task, TaskStage } from '@/components/tasks/TaskBoard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
@@ -26,6 +26,8 @@ import CandidateDetailModal from '@/components/candidates/CandidateDetailModal';
 import { PositionSelectDropdown } from '@/components/candidates/PositionSelectDropdown';
 import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/networkUtils';
+import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 
 interface MyTasksPageClientProps {
   userSession: { id: string; role: string; name: string | null } | null;
@@ -40,7 +42,29 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     isLoaded 
   } = useUserPreferences();
 
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>(preferences.viewMode);
+  // Memoize the preferences object to prevent unnecessary re-renders
+  const memoizedPreferences = useMemo(() => preferences, [
+    preferences.cardWidth,
+    preferences.customCardWidth,
+    preferences.showAvatar,
+    preferences.showName,
+    preferences.showEmail,
+    preferences.showDescription,
+    preferences.showFitScore,
+    preferences.showAssignee,
+    preferences.showPriority,
+    preferences.showDueDate,
+    preferences.showTags,
+    preferences.showSkills,
+    preferences.showJobApplied,
+    preferences.searchTerm,
+    preferences.filterPriority,
+    preferences.filterAssignee,
+    preferences.selectedStages,
+    preferences.viewMode
+  ]);
+
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>(memoizedPreferences.viewMode);
   const [filters, setFilters] = useState<any>({});
   const [candidates, setCandidates] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
@@ -49,9 +73,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedStages, setSelectedStages] = useState<string[]>(preferences.selectedStages);
+  const [selectedStages, setSelectedStages] = useState<string[]>(memoizedPreferences.selectedStages);
   const [isStageFilterOpen, setIsStageFilterOpen] = useState(false);
   const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
+  const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
+  const [hasNetworkError, setHasNetworkError] = useState(false);
   const { data: session } = useSession();
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   
@@ -95,20 +121,23 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   // Update local state when preferences are loaded
   useEffect(() => {
     if (isLoaded) {
-      setViewMode(preferences.viewMode);
-      setSelectedStages(preferences.selectedStages);
+      setViewMode(memoizedPreferences.viewMode);
+      setSelectedStages(memoizedPreferences.selectedStages);
     }
-  }, [isLoaded, preferences.viewMode, preferences.selectedStages]);
+  }, [isLoaded, memoizedPreferences.viewMode, memoizedPreferences.selectedStages]);
 
-  // Update preferences when local state changes
+  // Update preferences when local state changes, but only if they differ from current preferences
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && (
+      viewMode !== memoizedPreferences.viewMode ||
+      JSON.stringify(selectedStages) !== JSON.stringify(memoizedPreferences.selectedStages)
+    )) {
       updateTaskBoardPreferences({
         viewMode,
         selectedStages,
       });
     }
-  }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences]);
+  }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences, memoizedPreferences.viewMode, memoizedPreferences.selectedStages]);
 
   // Fetch stages, recruiters, positions on mount
   useEffect(() => {
@@ -265,56 +294,17 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
-    console.log('🔄 Attempting to move task:', { taskId: task.id, fromStatus: task.status, toStatus: newStatus });
+    console.log('🔄 Attempting to move task:', task.id, 'from', task.status, 'to', newStatus);
     
-    const candidate = task.originalCandidate;
+    // Find the original candidate
+    const candidate = candidates.find(c => c.id === task.id);
     if (!candidate) {
-      console.error('No original candidate found for task:', task);
+      console.error('❌ Candidate not found for task:', task.id);
+      toast.error('Candidate not found');
       return;
     }
 
-    // Validate the new value
-    if (!newStatus || typeof newStatus !== 'string' || newStatus.trim() === '') {
-      toast.error('Invalid value: Value cannot be empty');
-      return;
-    }
-
-    // Validate status is one of the available stages
-    const availableStatuses = stages.map(stage => stage.name);
-    console.log('📋 Available statuses:', availableStatuses);
-    console.log('🎯 Target status:', newStatus);
-    
-    if (!availableStatuses.includes(newStatus)) {
-      console.error('❌ Invalid status value:', newStatus);
-      console.error('📋 Available statuses:', availableStatuses);
-      toast.error(`Invalid status: ${newStatus}. Must be one of the available stages.`);
-      return;
-    }
-
-    // Validate candidate ID is a valid UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(candidate.id)) {
-      console.error('Invalid candidate ID format:', candidate.id);
-      toast.error('Invalid candidate ID format');
-      return;
-    }
-
-    // Validate required fields are present
-    if (!candidate.name || !candidate.email) {
-      console.error('Missing required fields:', { name: candidate.name, email: candidate.email });
-      toast.error('Candidate is missing required fields (name or email)');
-      return;
-    }
-
-    // Check if the status is the same (no change needed)
-    if (candidate.status === newStatus) {
-  
-      return;
-    }
-
-
-
-    // Optimistically update UI
+    // Optimistic update
     setCandidates((prev) =>
       prev.map((c) =>
         c.id === candidate.id
@@ -323,57 +313,80 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       )
     );
 
-    // Test API endpoint accessibility first
-    fetch(`/api/candidates/${candidate.id}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    }).then(response => {
-  
-      if (!response.ok) {
-        console.error('Candidate not found or API endpoint not accessible');
-        // Revert optimistic update
-        setCandidates((prev) =>
-          prev.map((c) =>
-            c.id === candidate.id
-              ? { ...c, status: candidate.status }
-              : c
-          )
-        );
-        toast.error('Candidate not found or API endpoint not accessible');
-        return;
-      }
-      
-      // If GET succeeds, proceed with PUT
-      return fetch(`/api/candidates/${candidate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-    }).then(async response => {
-      if (!response) return; // GET failed, don't proceed
-      
-      
-      
-      if (!response.ok) {
-        // Get error details from response
-        let errorMessage = 'Failed to update candidate status';
-        let errorDetails = '';
+    // Enhanced error handling with retry logic using network utilities
+    const updateCandidateStatus = async (): Promise<void> => {
+      try {
+        // Test API endpoint accessibility first
+        console.log('🔍 Testing API endpoint accessibility...');
+        const testResponse = await fetch(`/api/candidates/${candidate.id}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
         
+        if (!testResponse.ok) {
+          console.error('❌ API endpoint test failed:', testResponse.status, testResponse.statusText);
+          throw new Error(`API endpoint not accessible: ${testResponse.status} ${testResponse.statusText}`);
+        }
+        
+        console.log('✅ API endpoint accessible, proceeding with status update...');
+        
+        // Use retry logic for the actual update
+        await retryWithBackoff(async () => {
+          const updateResponse = await fetch(`/api/candidates/${candidate.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus }),
+          });
+          
+          if (!updateResponse.ok) {
+            // Get detailed error information
+            let errorData = null;
+            
+            try {
+              errorData = await updateResponse.json();
+              console.error('📋 API Error Response:', errorData);
+            } catch (parseError) {
+              console.error('❌ Could not parse error response:', parseError);
+            }
+            
+            console.error('❌ API Error:', updateResponse.status, 'for candidate:', candidate.id);
+            
+            // Create error object with status for proper handling
+            const error = new Error(errorData?.message || `HTTP ${updateResponse.status}`);
+            (error as any).status = updateResponse.status;
+            (error as any).data = errorData;
+            
+            throw error;
+          }
+          
+          return updateResponse;
+        }, 2, 1000); // 2 retries, 1 second base delay
+        
+        console.log('✅ Status update successful, refreshing candidate data...');
+        
+        // Re-fetch the candidate to ensure UI reflects the persisted status
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-          errorDetails = errorData.error || errorData.details || '';
-          console.error('API Error Response:', errorData);
-        } catch (e) {
-          // If we can't parse the error response, use the status text
-          errorMessage = `${errorMessage}: ${response.statusText}`;
-          console.error('Could not parse error response:', e);
+          const refreshed = await fetch(`/api/candidates/${candidate.id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          
+          if (refreshed.ok) {
+            const refreshedCandidate = await refreshed.json();
+            setCandidates((prev) => prev.map((c) => c.id === candidate.id ? { ...c, status: refreshedCandidate.status } : c));
+            console.log('✅ Candidate data refreshed successfully');
+          } else {
+            console.warn('⚠️ Could not refresh candidate data, but update was successful');
+          }
+        } catch (refreshError) {
+          console.warn('⚠️ Non-blocking refresh error:', refreshError);
+          // Keep optimistic state if refresh fails
         }
         
-        console.error('API Error:', response.status, errorMessage, 'for candidate:', candidate.id);
-        if (errorDetails) {
-          console.error('Error details:', errorDetails);
-        }
+        toast.success(`Moved ${candidate.name} to ${newStatus}`);
+        
+      } catch (error: any) {
+        console.error('❌ Error updating candidate status:', error, 'for candidate:', candidate.id);
         
         // Revert optimistic update on error
         setCandidates((prev) =>
@@ -384,31 +397,22 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           )
         );
         
-        // Show more specific error messages based on status code
-        if (response.status === 500) {
-          toast.error('Server error: Please try again or contact support');
-        } else if (response.status === 404) {
-          toast.error('Candidate not found');
-        } else if (response.status === 400) {
-          toast.error(errorMessage || 'Invalid request data');
-        } else {
-          toast.error(errorMessage);
+        // Use the network utility to get user-friendly error message
+        const userMessage = getErrorMessage(error);
+        toast.error(userMessage);
+        
+        // Track network errors to show diagnostics option
+        if (isRetryableError(error)) {
+          setHasNetworkError(true);
         }
-      } else {
-    
-        toast.success(`Moved ${candidate.name} to ${newStatus}`);
+        
+        throw error; // Re-throw to prevent further processing
       }
-    }).catch(error => {
-      console.error('Network error updating candidate status:', error, 'for candidate:', candidate.id);
-      // Revert optimistic update on error
-      setCandidates((prev) =>
-        prev.map((c) =>
-          c.id === candidate.id
-            ? { ...c, status: candidate.status }
-            : c
-        )
-      );
-      toast.error('Network error: Failed to update candidate status. Please try again.');
+    };
+    
+    // Execute the update
+    updateCandidateStatus().catch(error => {
+      console.error('❌ Final error in handleMoveTask:', error);
     });
   };
 
@@ -718,6 +722,19 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                 </TabsList>
               </Tabs>
 
+              {/* Network Diagnostics Button (shown when there are network errors) */}
+              {hasNetworkError && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+                  onClick={() => setShowNetworkDiagnostics(true)}
+                  title="Network diagnostics"
+                >
+                  <Wifi className="w-4 h-4" />
+                </Button>
+              )}
+
 
             </div>
           </div>
@@ -771,19 +788,19 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                   onMoveTask={handleMoveTask}
                   onTaskClick={(task) => setSelectedTask(task.originalCandidate)}
                   cardPreferences={{
-                    cardWidth: preferences.cardWidth,
-                    customCardWidth: preferences.customCardWidth,
-                    showAvatar: preferences.showAvatar,
-                    showName: preferences.showName,
-                    showEmail: preferences.showEmail,
-                    showDescription: preferences.showDescription,
-                    showFitScore: preferences.showFitScore,
-                    showAssignee: preferences.showAssignee,
-                    showPriority: preferences.showPriority,
-                    showDueDate: preferences.showDueDate,
-                    showTags: preferences.showTags,
-                    showSkills: preferences.showSkills,
-                    showJobApplied: preferences.showJobApplied,
+                    cardWidth: memoizedPreferences.cardWidth,
+                    customCardWidth: memoizedPreferences.customCardWidth,
+                    showAvatar: memoizedPreferences.showAvatar,
+                    showName: memoizedPreferences.showName,
+                    showEmail: memoizedPreferences.showEmail,
+                    showDescription: memoizedPreferences.showDescription,
+                    showFitScore: memoizedPreferences.showFitScore,
+                    showAssignee: memoizedPreferences.showAssignee,
+                    showPriority: memoizedPreferences.showPriority,
+                    showDueDate: memoizedPreferences.showDueDate,
+                    showTags: memoizedPreferences.showTags,
+                    showSkills: memoizedPreferences.showSkills,
+                    showJobApplied: memoizedPreferences.showJobApplied,
                   }}
                 />
               </div>
@@ -876,7 +893,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           </SheetHeader>
           <div className="mt-6">
             <CardCustomizationSettings
-              preferences={preferences}
+              preferences={memoizedPreferences}
               onUpdatePreferences={updateTaskBoardPreferences}
               onResetPreferences={resetTaskBoardPreferences}
               isSaving={false}
@@ -884,6 +901,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Network Diagnostics Modal */}
+      {showNetworkDiagnostics && (
+        <NetworkDiagnostics onClose={() => setShowNetworkDiagnostics(false)} />
+      )}
 
     </div>
   );

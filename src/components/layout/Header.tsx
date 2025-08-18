@@ -1,8 +1,9 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useSession, signOut, signIn } from 'next-auth/react';
 import { UserAvatarCompact } from "@/components/ui/user-avatar";
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sun, Moon, LogOut, LogIn, Edit3, KeyRound } from 'lucide-react';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -106,8 +107,49 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   const [effectivePageTitle, setEffectivePageTitle] = useState(initialPageTitle);
   const { refreshKey, forceRefresh } = useAvatarRefresh();
 
+  // Memoize user object to prevent unnecessary re-renders
+  const user = useMemo(() => {
+    return session?.user
+      ? {
+          id: session.user.id as string,
+          name: (session.user.name || session.user.email || 'User') as string,
+          email: session.user.email ?? undefined,
+          avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
+          image: ((session.user as any).image ?? null) as string | null,
+          personalColor: ((session.user as any).personalColor ?? null) as string | null,
+        }
+      : null;
+  }, [
+    session?.user?.id,
+    session?.user?.name,
+    session?.user?.email,
+    (session?.user as any)?.avatarUrl,
+    (session?.user as any)?.image,
+    (session?.user as any)?.personalColor,
+  ]);
+
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  const [isDark, setIsDark] = useState(false);
+
+  // Initialize switch state from current theme / saved preference / system
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      let initial = root.classList.contains('dark');
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
+      if (saved === 'dark') initial = true;
+      if (saved === 'light') initial = false;
+      if (saved == null && !initial && typeof window !== 'undefined' && window.matchMedia) {
+        initial = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      if (initial) root.classList.add('dark'); else root.classList.remove('dark');
+      setIsDark(initial);
+    } catch {
+      // no-op
+    }
   }, []);
 
   useEffect(() => {
@@ -144,12 +186,11 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     }
   }, [initialPageTitle, currentAppName]);
 
-  const toggleTheme = () => {
+  const handleThemeSwitch = (checked: boolean) => {
+    setIsDark(checked);
     const root = document.documentElement;
-    const willBeDark = !root.classList.contains('dark');
-    root.classList.toggle('dark');
-    
-    // Re-apply sidebar colors with explicit theme information
+    if (checked) root.classList.add('dark'); else root.classList.remove('dark');
+    try { localStorage.setItem('theme', checked ? 'dark' : 'light'); } catch {}
     requestAnimationFrame(() => {
       import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
         reapplyCurrentSidebarColors();
@@ -188,15 +229,15 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
       console.log('Header handleEditProfile - New avatarUrl:', result.avatarUrl);
         
       if (needsSessionUpdate) {
-        // Force refresh the avatar if it was updated
-        if (session.user.avatarUrl !== result.avatarUrl) {
-          console.log('Header handleEditProfile - Forcing avatar refresh');
-          forceRefresh();
-        }
-        
         // Trigger a session refresh to update the session with new data
         console.log('Header handleEditProfile - Triggering session refresh');
         await updateSession();
+        
+        // Force refresh the avatar after session update if it was updated
+        if (session.user.avatarUrl !== result.avatarUrl) {
+          console.log('Header handleEditProfile - Forcing avatar refresh after session update');
+          forceRefresh();
+        }
       }
       setIsUserModalOpen(false);
     } catch (error) {
@@ -206,7 +247,9 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   };
 
 
-  if (!mounted || status === "loading") { 
+  // Only show loading skeleton if not mounted or if we have no session data at all
+  // This prevents the avatar from disappearing during session updates
+  if (!mounted || (status === "loading" && !session?.user)) { 
     return (
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
@@ -221,17 +264,6 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
     );
   }
 
-  const user = session?.user
-    ? {
-        id: session.user.id as string,
-        name: (session.user.name || session.user.email || 'User') as string,
-        email: session.user.email ?? undefined,
-        avatarUrl: ((session.user as any).avatarUrl ?? null) as string | null,
-        image: ((session.user as any).image ?? null) as string | null,
-        personalColor: ((session.user as any).personalColor ?? null) as string | null,
-      }
-    : null;
-
   return (
     <>
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
@@ -239,15 +271,12 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
           <Breadcrumb items={getBreadcrumbItems(pathname)} />
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
+          {/* Theme switch is shown inside avatar dropdown, not here */}
           {user && <NotificationIcon />}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-lg p-0">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 bg-transparent hover:bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0">
                   <UserAvatarCompact user={user} size="md" forceRefresh={refreshKey > 0} />
                 </Button>
               </DropdownMenuTrigger>
@@ -258,6 +287,22 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
                     {user.email && ( <p className="text-xs leading-none text-muted-foreground"> {user.email} </p> )}
                   </div>
                 </DropdownMenuLabel>
+                <div className="px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">Appearance</span>
+                    <div className="flex items-center gap-2">
+                      <Sun className="h-3.5 w-3.5 text-yellow-500" />
+                      <Switch
+                        checked={isDark}
+                        onCheckedChange={handleThemeSwitch}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        aria-label="Toggle dark mode"
+                      />
+                      <Moon className="h-3.5 w-3.5 text-blue-400" />
+                    </div>
+                  </div>
+                </div>
                 <DropdownMenuSeparator />
                  <DropdownMenuItem onSelect={() => setIsUserModalOpen(true)}>
                   <Edit3 className="mr-2 h-4 w-4" />

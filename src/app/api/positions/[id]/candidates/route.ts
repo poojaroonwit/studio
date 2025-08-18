@@ -46,6 +46,9 @@ export async function GET(
 
     // Search term
     const searchTerm = searchParams.get('searchTerm') || '';
+    
+    // Filter by type (applied, matched, or all)
+    const type = searchParams.get('type') || 'all';
 
     const client = await getPool().connect();
     try {
@@ -94,6 +97,7 @@ export async function GET(
               WHERE jm."candidateId" = c.id
             ) AS jm_data ON true
             WHERE c."positionId" = $1
+            AND ($6 = 'all' OR $6 = 'applied')
           ),
           matched_candidates AS (
             -- Candidates who have job matches for this position but didn't apply
@@ -139,16 +143,21 @@ export async function GET(
           ),
           all_candidates AS (
             -- First get all applied candidates
-            SELECT *, 1 as sort_order FROM applied_candidates
+            SELECT *, 1 as sort_order, association_type FROM applied_candidates
             UNION ALL
             -- Then append matched candidates (excluding those who already applied)
-            SELECT mc.*, 2 as sort_order 
+            SELECT mc.*, 2 as sort_order, mc.association_type
             FROM matched_candidates mc
             WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
           )
           SELECT *
           FROM all_candidates
           WHERE ($2 = '' OR name ILIKE $3 OR email ILIKE $3)
+          AND (
+            $6 = 'all' OR
+            ($6 = 'applied' AND association_type = 'applied') OR
+            ($6 = 'matched' AND association_type = 'matched')
+          )
           ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
           LIMIT $4 OFFSET $5;
         `;
@@ -161,13 +170,14 @@ export async function GET(
       const countQuery = `
          WITH applied_candidates AS (
            -- Candidates who applied to this position
-           SELECT c.id
+           SELECT c.id, 'applied' as association_type
            FROM "Candidate" c
            WHERE c."positionId" = $1
+           AND ($4 = 'all' OR $4 = 'applied')
          ),
          matched_candidates AS (
            -- Candidates who have job matches for this position but didn't apply
-           SELECT c.id
+           SELECT c.id, 'matched' as association_type
            FROM "Candidate" c
            WHERE (c."positionId" IS NULL OR c."positionId" != $1)
              AND EXISTS (
@@ -177,22 +187,27 @@ export async function GET(
          ),
          all_candidates AS (
            -- First get all applied candidates
-           SELECT id FROM applied_candidates
+           SELECT id, association_type FROM applied_candidates
            UNION ALL
            -- Then append matched candidates (excluding those who already applied)
-           SELECT mc.id 
+           SELECT mc.id, mc.association_type
            FROM matched_candidates mc
            WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
          )
          SELECT COUNT(*) as total
          FROM all_candidates ac
          JOIN "Candidate" c ON c.id = ac.id
-         WHERE ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+         WHERE ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+         AND (
+           $4 = 'all' OR
+           ($4 = 'applied' AND ac.association_type = 'applied') OR
+           ($4 = 'matched' AND ac.association_type = 'matched')
+         );
        `;
 
       const searchPattern = `%${searchTerm}%`;
-      const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
-      const countParams = [positionId, searchTerm, searchPattern];
+      const queryParams = [positionId, searchTerm, searchPattern, limit, offset, type];
+      const countParams = [positionId, searchTerm, searchPattern, type];
 
       const [candidatesResult, countResult] = await Promise.all([
         client.query(candidatesQuery, queryParams),

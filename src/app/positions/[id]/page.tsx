@@ -112,6 +112,7 @@ export default function PositionDetailPage() {
       const query = new URLSearchParams();
       query.append('page', String(appliedPage));
       query.append('limit', String(appliedPageSize));
+      query.append('type', 'applied');
       if (appliedSearchTerm) {
         query.append('searchTerm', appliedSearchTerm);
       }
@@ -126,15 +127,10 @@ export default function PositionDetailPage() {
       if (!response.ok) throw new Error('Failed to fetch candidates');
       
       const data = await response.json();
-      let candidates = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
+      const candidates = Array.isArray(data.data) ? data.data : [];
       
-      // Filter to only show applied candidates (not matched candidates)
-      const appliedCandidates = candidates.filter((candidate: Candidate) => 
-        candidate.associationType === 'applied' || candidate.associationType === 'applied_and_matched'
-      );
-      
-      setCandidatesApplied(appliedCandidates);
-      setAppliedTotal(appliedCandidates.length);
+      setCandidatesApplied(candidates);
+      setAppliedTotal(data.pagination?.total || candidates.length);
     } catch (error) {
       console.error('Error fetching candidates applied:', error);
       setCandidatesApplied([]);
@@ -149,6 +145,7 @@ export default function PositionDetailPage() {
       const query = new URLSearchParams();
       query.append('page', String(matchesPage));
       query.append('limit', String(matchesPageSize));
+      query.append('type', 'matched');
       if (matchesSearchTerm) {
         query.append('searchTerm', matchesSearchTerm);
       }
@@ -163,15 +160,10 @@ export default function PositionDetailPage() {
       if (!response.ok) throw new Error('Failed to fetch candidate matches');
       
       const data = await response.json();
-      let candidates = Array.isArray(data.data) ? data.data : data.data ? [data.data] : [];
+      const candidates = Array.isArray(data.data) ? data.data : [];
       
-      // Filter to only show matched candidates (not applied candidates)
-      const matchedCandidates = candidates.filter((candidate: Candidate) => 
-        candidate.associationType === 'matched' || candidate.associationType === 'applied_and_matched'
-      );
-      
-      setCandidateMatches(matchedCandidates);
-      setMatchesTotal(matchedCandidates.length);
+      setCandidateMatches(candidates);
+      setMatchesTotal(data.pagination?.total || candidates.length);
     } catch (error) {
       console.error('Error fetching candidate matches:', error);
       setCandidateMatches([]);
@@ -186,6 +178,7 @@ export default function PositionDetailPage() {
       const query = new URLSearchParams();
       query.append('page', String(allCandidatesPage));
       query.append('limit', String(allCandidatesPageSize));
+      query.append('type', 'all');
       if (allCandidatesSearchTerm) {
         query.append('searchTerm', allCandidatesSearchTerm);
       }
@@ -353,24 +346,7 @@ export default function PositionDetailPage() {
     }
   }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
 
-  // Helper: Group candidates by email (same as CandidateTable)
-  const candidatesByEmail = React.useMemo(() => {
-    const groups: Record<string, Candidate[]> = {};
-    allCandidates.forEach((c) => {
-      if (!c.email) return;
-      if (!groups[c.email]) groups[c.email] = [];
-      groups[c.email].push(c);
-    });
-    return groups;
-  }, [allCandidates]);
-
-  const emailOrder = React.useMemo(() => {
-    const seen = new Set<string>();
-    return allCandidates
-      .map((c) => c.email)
-      .filter((email) => email && !seen.has(email) && seen.add(email));
-  }, [allCandidates]);
-
+  // State for expanded email groups
   const [expandedEmails, setExpandedEmails] = React.useState<Record<string, boolean>>({});
 
   const renderGroupedCandidateTable = (
@@ -383,6 +359,21 @@ export default function PositionDetailPage() {
     showTypeBadge: boolean = false,
     positionId?: string
   ): JSX.Element => {
+    // Group candidates by email
+    const candidatesByEmail = candidates.reduce((acc, candidate) => {
+      const email = candidate.email?.toLowerCase() || '';
+      if (!acc[email]) {
+        acc[email] = [];
+      }
+      acc[email].push(candidate);
+      return acc;
+    }, {} as Record<string, Candidate[]>);
+
+    // Get unique emails in order
+    const emailOrder = Object.keys(candidatesByEmail).sort();
+
+
+
     let rowNumber = 1;
     return (
       <div className="space-y-4">
@@ -440,41 +431,41 @@ export default function PositionDetailPage() {
                         <div>
                           {candidate.name}
                           <div className="text-xs text-muted-foreground">{candidate.email}</div>
-                                                        {showTypeBadge && positionId && (
-                                <div className="mt-1">
-                                  {(() => {
-                                    // Use the associationType from the API if available
-                                    if (candidate.associationType) {
-                                      switch (candidate.associationType) {
-                                        case 'applied_and_matched':
-                                          return <Badge variant="default" className="mr-1">Applied & Matched</Badge>;
-                                        case 'applied':
-                                          return <Badge variant="default">Applied</Badge>;
-                                        case 'matched':
-                                          return <Badge variant="secondary">Matched</Badge>;
-                                        default:
-                                          return null;
-                                      }
-                                    }
-                                    
-                                    // Fallback to old logic for backward compatibility
-                                    const hasApplied = candidate.positionId === positionId;
-                                    const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
-                                      (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
-                                       Array.isArray((candidate.parsedData as any).job_matches) && 
-                                       (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
-                                    
-                                    if (hasApplied && hasJobMatch) {
+                          {showTypeBadge && positionId && (
+                            <div className="mt-1">
+                              {(() => {
+                                // Use the associationType from the API if available
+                                if (candidate.associationType) {
+                                  switch (candidate.associationType) {
+                                    case 'applied_and_matched':
                                       return <Badge variant="default" className="mr-1">Applied & Matched</Badge>;
-                                    } else if (hasApplied) {
+                                    case 'applied':
                                       return <Badge variant="default">Applied</Badge>;
-                                    } else if (hasJobMatch) {
+                                    case 'matched':
                                       return <Badge variant="secondary">Matched</Badge>;
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              )}
+                                    default:
+                                      return null;
+                                  }
+                                }
+                                
+                                // Fallback to old logic for backward compatibility
+                                const hasApplied = candidate.positionId === positionId;
+                                const hasJobMatch = candidate.jobMatches && candidate.jobMatches.some(jm => jm.jobId === positionId) ||
+                                  (candidate.parsedData && typeof candidate.parsedData === 'object' && 'job_matches' in candidate.parsedData &&
+                                   Array.isArray((candidate.parsedData as any).job_matches) && 
+                                   (candidate.parsedData as any).job_matches.some((match: any) => match.jobId === positionId));
+                                
+                                if (hasApplied && hasJobMatch) {
+                                  return <Badge variant="default" className="mr-1">Applied & Matched</Badge>;
+                                } else if (hasApplied) {
+                                  return <Badge variant="default">Applied</Badge>;
+                                } else if (hasJobMatch) {
+                                  return <Badge variant="secondary">Matched</Badge>;
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>

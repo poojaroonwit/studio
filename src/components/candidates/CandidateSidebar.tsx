@@ -48,7 +48,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   };
 
   return (
-    <div className="lg:col-span-3 bg-muted shadow-lg backdrop-blur-sm h-full overflow-y-auto">
+    <div className="lg:col-span-3 bg-muted shadow-lg backdrop-blur-sm h-full">
       {/* Tab Navigation */}
       <div className="grid w-full grid-cols-2 bg-background border-b border-border">
         <div 

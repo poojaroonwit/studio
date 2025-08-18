@@ -353,7 +353,6 @@ export const useCandidateDetail = (candidateId: string) => {
       setCandidate(updatedCandidate);
       toast.success('Avatar updated successfully');
     } catch (err) {
-      console.error('Error updating avatar:', err);
       setAvatarError('Failed to update avatar');
       toast.error('Failed to update avatar');
     } finally {

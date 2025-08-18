@@ -6,13 +6,17 @@ interface RealtimeIndicatorProps {
   className?: string;
   showText?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  isReconnecting?: boolean;
+  reconnectAttempts?: number;
 }
 
 export function RealtimeIndicator({ 
   isConnected, 
   className, 
   showText = true, 
-  size = 'md' 
+  size = 'md',
+  isReconnecting = false,
+  reconnectAttempts = 0
 }: RealtimeIndicatorProps) {
   const sizeClasses = {
     sm: 'w-1.5 h-1.5',
@@ -26,6 +30,20 @@ export function RealtimeIndicator({
     lg: 'text-sm'
   };
 
+  const getStatusText = () => {
+    if (isReconnecting) {
+      return reconnectAttempts > 0 ? `Reconnecting (${reconnectAttempts})` : 'Reconnecting...';
+    }
+    return isConnected ? 'Live' : 'Offline';
+  };
+
+  const getStatusColor = () => {
+    if (isReconnecting) {
+      return 'bg-yellow-500 animate-pulse';
+    }
+    return isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500';
+  };
+
   return (
     <div className={cn(
       "flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50",
@@ -35,9 +53,7 @@ export function RealtimeIndicator({
         className={cn(
           "rounded-full transition-colors duration-200",
           sizeClasses[size],
-          isConnected 
-            ? "bg-green-500 animate-pulse" 
-            : "bg-red-500"
+          getStatusColor()
         )}
       />
       {showText && (
@@ -45,7 +61,7 @@ export function RealtimeIndicator({
           "text-muted-foreground font-medium",
           textSizeClasses[size]
         )}>
-          {isConnected ? 'Live' : 'Offline'}
+          {getStatusText()}
         </span>
       )}
     </div>

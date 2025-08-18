@@ -1,9 +1,10 @@
 // src/app/api/automation/create-candidate-with-matches/route.ts
-import { NextResponse, type NextRequest } from 'next/server';
-import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPool } from '@/lib/db';
 import { logAudit } from '@/lib/auditLog';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import { createDateInTimezone } from '@/lib/dateUtils';
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
       candidate.parsedData ? JSON.stringify(candidate.parsedData) : null,
       candidate.fitScore,
       candidate.dataAiHint,
-      candidate.applicationDate ? new Date(candidate.applicationDate) : new Date(),
+      candidate.applicationDate ? new Date(candidate.applicationDate) : createDateInTimezone(),
     ];
 
     const newCandidateResult = await client.query(insertCandidateQuery, candidateParams);

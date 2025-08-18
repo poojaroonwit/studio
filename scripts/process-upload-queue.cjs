@@ -16,6 +16,7 @@ const config = {
   apiKey: process.env.PROCESSOR_API_KEY || 'dev-key',
   intervalMs: parseInt(process.env.PROCESSOR_INTERVAL_MS) || 5000,
   logIntervalMs: parseInt(process.env.LOG_INTERVAL_MS) || 30000,
+  batchLimit: parseInt(process.env.PROCESSOR_BATCH_LIMIT) || 25,
   maxRetries: 3,
   retryDelayMs: 1000
 };
@@ -170,11 +171,55 @@ async function processJob() {
   }
 }
 
+// Process a batch of jobs in one call (uses new endpoint if available)
+async function processBatch() {
+  try {
+    const response = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all?limit=${encodeURIComponent(config.batchLimit)}`, {
+      method: 'POST'
+    });
+
+    if (response.status === 200) {
+      const processedCount = response.data.processed_count || 0;
+      const msgs = response.data.messages || [];
+      log('INFO', 'Batch processed', { processedCount, messages: msgs });
+
+      // Update counters heuristically
+      if (processedCount > 0) {
+        processedCount; // no-op variable reference to keep linter calm in some environments
+        consecutiveErrors = 0;
+      } else if (msgs.some(m => (m || '').includes('No queued jobs'))) {
+        consecutiveErrors = 0;
+      }
+      return processedCount;
+    } else if (response.status === 404) {
+      // Endpoint missing on server, fall back to single-job processing
+      log('WARN', 'Batch endpoint not found, falling back to single processing');
+      await processJob();
+      return 1;
+    } else {
+      throw new Error(`HTTP ${response.status}: ${JSON.stringify(response.data)}`);
+    }
+  } catch (error) {
+    errorCount++;
+    consecutiveErrors++;
+    log('ERROR', 'Failed to process batch', { error: error.message, consecutiveErrors });
+    if (consecutiveErrors >= config.maxRetries) {
+      log('WARN', 'Too many consecutive errors, waiting longer', {
+        consecutiveErrors,
+        waitTimeMs: config.retryDelayMs * 2
+      });
+      await new Promise(resolve => setTimeout(resolve, config.retryDelayMs * 2));
+    }
+    return 0;
+  }
+}
+
 // Main processing loop
 async function processLoop() {
   while (isRunning) {
     try {
-      await processJob();
+      // Prefer batch endpoint for efficiency; falls back automatically
+      const count = await processBatch();
       
       // Wait before next iteration
       await new Promise(resolve => setTimeout(resolve, config.intervalMs));

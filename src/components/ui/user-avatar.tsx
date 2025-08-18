@@ -36,20 +36,7 @@ export function UserAvatar({
   // Get cache-busted image URL to prevent browser caching issues
   const cacheBustedImageUrl = getCacheBustedImageUrl(user, forceRefresh);
   
-  // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('UserAvatar Debug:', {
-      user: {
-        id: user.id,
-        name: user.name,
-        avatarUrl: user.avatarUrl,
-        image: user.image,
-        personalColor: user.personalColor
-      },
-      cacheBustedImageUrl,
-      forceRefresh
-    });
-  }
+
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -104,12 +91,13 @@ export function UserAvatar({
 }
 
 // Compact version for lists and tables
-export function UserAvatarCompact({ user, size = 'sm', className }: UserAvatarProps) {
+export function UserAvatarCompact({ user, size = 'sm', className, forceRefresh }: UserAvatarProps) {
   return (
     <UserAvatar 
       user={user} 
       size={size} 
       className={className}
+      forceRefresh={forceRefresh}
     />
   );
 }

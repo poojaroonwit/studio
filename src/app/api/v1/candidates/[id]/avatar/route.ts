@@ -52,7 +52,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     try {
       await ensureBucketExists();
     } catch (minioError) {
-      console.error('[V1 AVATAR UPLOAD] MinIO bucket error:', minioError);
       return handleApiError(req, createInternalServerError('Storage service unavailable', { 
         originalError: String(minioError) 
       }));
@@ -71,7 +70,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         'x-amz-meta-upload-date': new Date().toISOString(),
       });
     } catch (minioError) {
-      console.error('[V1 AVATAR UPLOAD] MinIO upload error:', minioError);
       return handleApiError(req, createInternalServerError('Failed to upload file to storage', { 
         originalError: String(minioError) 
       }));
@@ -114,7 +112,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     } catch (dbError) {
       await client.query('ROLLBACK');
-      console.error('[V1 AVATAR UPLOAD] Database error:', dbError);
       return handleApiError(req, createInternalServerError('Database error', { 
         originalError: String(dbError) 
       }));
@@ -123,7 +120,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
   } catch (error) {
-    console.error('[V1 AVATAR UPLOAD] Unexpected error:', error);
     return handleApiError(req, createInternalServerError('Internal server error', { 
       originalError: String(error) 
     }));
@@ -152,7 +148,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       avatar_url: result.rows[0].avatarUrl || null 
     }, 200);
   } catch (error) {
-    console.error('[V1 AVATAR GET] Database error:', error);
     return handleApiError(req, createInternalServerError('Database error', { 
       originalError: String(error) 
     }));

@@ -19,6 +19,7 @@ import { normalizePayloadTypes } from '@/lib/apiUtils';
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from './schemas';
 import { logAudit } from '@/lib/auditLog';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
+import { createDateInTimezone } from '@/lib/dateUtils';
 
 // These schemas are now imported from ./schemas.ts
 
@@ -225,8 +226,9 @@ export async function POST(request: NextRequest) {
         status: appliedStage,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        applicationDate: createDateInTimezone(),
+        createdAt: createDateInTimezone(),
+        updatedAt: createDateInTimezone(),
       },
     });
 
@@ -238,7 +240,7 @@ export async function POST(request: NextRequest) {
         stage: appliedStage,
         notes: 'Initial creation via API',
         actingUserId: user.id,
-        date: new Date(),
+        date: createDateInTimezone(),
       },
     });
     await logAudit('AUDIT', `Candidate '${name}' created by ${user.name}.`, 'API:V1:Candidates:Create', user.id, { candidateId: newCandidateId, name, email, status: appliedStage });
@@ -276,7 +278,7 @@ export async function POST(request: NextRequest) {
             where: { id: newCandidateId },
             data: { 
               recruiterId: position.recruiterId,
-              updatedAt: new Date()
+              updatedAt: createDateInTimezone()
             },
             include: {
               recruiter: {
@@ -298,7 +300,7 @@ export async function POST(request: NextRequest) {
               stage: appliedStage,
               notes: `Recruiter auto-assigned from position: ${position.recruiter.name}`,
               actingUserId: user.id,
-              date: new Date(),
+              date: createDateInTimezone(),
             },
           });
 
@@ -327,9 +329,9 @@ export async function POST(request: NextRequest) {
         phone: finalCandidate.phone,
         status: finalCandidate.status,
         parsedData: finalCandidate.parsedData,
-        applicationDate: finalCandidate.applicationDate,
-        createdAt: finalCandidate.createdAt,
-        updatedAt: finalCandidate.updatedAt,
+        applicationDate: finalCandidate.applicationDate ? new Date(finalCandidate.applicationDate as any).toISOString() : new Date().toISOString(),
+        createdAt: finalCandidate.createdAt ? new Date(finalCandidate.createdAt as any).toISOString() : new Date().toISOString(),
+        updatedAt: finalCandidate.updatedAt ? new Date(finalCandidate.updatedAt as any).toISOString() : new Date().toISOString(),
         recruiterId: finalCandidate.recruiterId,
       }
     }, 201);

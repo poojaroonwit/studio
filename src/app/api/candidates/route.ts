@@ -1,12 +1,13 @@
 // src/app/api/candidates/route.ts
-import { NextResponse, type NextRequest } from 'next/server';
-import { getPool } from '../../../lib/db';
-import { z } from 'zod';
-import { logAudit } from '@/lib/auditLog';
-import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
+import { getPool } from '@/lib/db';
+import { logAudit } from '@/lib/auditLog';
 import { broadcastCandidateUpdate } from '@/lib/candidateSse';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+import { createDateInTimezone } from '@/lib/dateUtils';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
       RETURNING *;
     `;
     const candidateResult = await client.query(insertCandidateQuery, [
-      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : new Date(),
+      newCandidateId, name, email, phone, positionId, fitScore, status, parsedData, applicationDate ? new Date(applicationDate) : createDateInTimezone(),
       body.sourceId || null, body.subSource || null
     ]);
     const newCandidate = candidateResult.rows[0];

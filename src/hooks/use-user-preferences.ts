@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
 export interface TaskBoardPreferences {
@@ -92,6 +92,7 @@ export function useUserPreferences() {
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load preferences from database when session is available
   useEffect(() => {
@@ -103,6 +104,15 @@ export function useUserPreferences() {
       setIsLoaded(true);
     }
   }, [status, session?.user?.id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadPreferences = useCallback(async () => {
     if (!session?.user?.id) return;
@@ -141,24 +151,63 @@ export function useUserPreferences() {
   const savePreferences = useCallback(async (modelType: 'taskBoard' | 'positions' | 'appearance', updates: any) => {
     if (!session?.user?.id) return;
 
-    try {
-      const response = await fetch('/api/user-preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          modelType,
-          updates,
-        }),
-      });
-
-      if (!response.ok) {
-        console.warn('Failed to save user preferences to database');
-      }
-    } catch (error) {
-      console.warn('Error saving user preferences to database:', error);
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    // Debounce the save operation to prevent excessive API calls
+    saveTimeoutRef.current = setTimeout(async () => {
+      // Add retry logic for network issues
+      const maxRetries = 3;
+      let retryCount = 0;
+
+      while (retryCount < maxRetries) {
+        try {
+          const response = await fetch('/api/user-preferences', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              modelType,
+              updates,
+            }),
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(10000), // 10 second timeout
+          });
+
+          if (!response.ok) {
+            console.warn(`Failed to save user preferences to database: ${response.status} ${response.statusText}`);
+            if (response.status >= 500) {
+              // Server error, retry
+              retryCount++;
+              if (retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+                continue;
+              }
+            }
+          } else {
+            // Success, break out of retry loop
+            break;
+          }
+        } catch (error) {
+          console.warn(`Error saving user preferences to database (attempt ${retryCount + 1}):`, error);
+          
+          // Check if it's a network error that should be retried
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+              continue;
+            }
+          }
+          
+          // For other errors, don't retry
+          break;
+        }
+      }
+    }, 500); // 500ms debounce delay
   }, [session?.user?.id]);
 
   // Update task board preferences

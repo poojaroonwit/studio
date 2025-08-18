@@ -70,9 +70,7 @@ export async function POST(request: NextRequest) {
       };
       
       await minioClient.setBucketPolicy(MINIO_BUCKET, JSON.stringify(policy));
-      console.log(`[AVATAR UPLOAD] Bucket policy set for public read access`);
     } catch (minioError) {
-      console.error('[AVATAR UPLOAD] MinIO bucket error:', minioError);
       await logAudit('ERROR', `Avatar upload failed - MinIO bucket error: ${minioError}`, 'API:Candidates:Avatar:Upload', actingUserId, { candidateId });
       return NextResponse.json({ message: 'Storage service unavailable' }, { status: 503 });
     }
@@ -139,7 +137,6 @@ export async function GET(request: NextRequest) {
       avatar_url: result.rows[0].avatarUrl || null 
     });
   } catch (error) {
-    console.error('[AVATAR GET] Database error:', error);
     return NextResponse.json({ message: 'Database error', error: String(error) }, { status: 500 });
   } finally {
     client.release();

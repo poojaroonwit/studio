@@ -305,7 +305,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   return (
-    <div className={isModal ? "h-full overflow-y-auto" : "h-screen overflow-y-auto"}>
+    <div className={isModal ? "h-full overflow-y-auto" : "h-full"}>
       {/* Header */}
       <CandidateHeader
                   candidate={candidate}
@@ -355,7 +355,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                       </div>
                       
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card">
         {/* Main Content with Tabs */}
         <div className="lg:col-span-7 border-r border-border bg-muted/50">
           <div className="w-full h-full">
@@ -451,7 +451,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
              
              </div>
              
-            <div className="p-8 h-full overflow-y-auto">
+            <div className="p-8 h-full">
               <CandidateTabsContent
                 activeTab={activeTab}
                 candidate={candidate}

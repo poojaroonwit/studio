@@ -52,6 +52,8 @@ model Position {
   matchCriteria     String?
   isOpen            Boolean            @default(true)
   positionLevel     String?
+  gradeId           String?            @db.Uuid
+  hiringDate        DateTime?
   recruiterId       String?            @db.Uuid
   customAttributes  Json?              @default("{}")
   createdAt         DateTime           @default(now())
@@ -59,12 +61,15 @@ model Position {
   candidates        Candidate[]
   headcounts        Headcount[]        @relation("PositionHeadcount")
   recruiter         User?              @relation("RecruiterPositions", fields: [recruiterId], references: [id])
+  grade             Grade?             @relation(fields: [gradeId], references: [id])
   transitionRecords TransitionRecord[]
 
   @@index([title])
   @@index([department])
   @@index([isOpen])
   @@index([recruiterId])
+  @@index([gradeId])
+  @@index([hiringDate])
 }
 
 model Candidate {
@@ -621,4 +626,24 @@ model Headcount {
   @@index([candidateId])
   @@index([type])
   @@index([status])
+}
+
+model Grade {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  description String?
+  minLevel    Int       @map("min_level")
+  maxLevel    Int       @map("max_level")
+  slaDays     Int       @map("sla_days")
+  color       String?   @default("#3B82F6")
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  positions   Position[]
+
+  @@index([minLevel])
+  @@index([maxLevel])
+  @@index([isActive])
+  @@index([sortOrder])
 }

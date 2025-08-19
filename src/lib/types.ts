@@ -293,6 +293,20 @@ export interface OldParsedResumeData {
   summary?: string;
 }
 
+export interface Grade {
+  id: string;
+  name: string;
+  description?: string | null;
+  minLevel: number;
+  maxLevel: number;
+  slaDays: number;
+  color?: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Position {
   id: string;
   title: string;
@@ -301,6 +315,9 @@ export interface Position {
   matchCriteria?: string | null;
   isOpen: boolean;
   positionLevel?: string | null;
+  gradeId?: string | null;
+  grade?: Grade | null;
+  hiringDate?: string | null;
   recruiterId?: string | null;
   recruiterName?: string | null;
   customAttributes?: Record<string, any> | null;
@@ -314,6 +331,17 @@ export interface Position {
     appliedStatusCount: number;
     totalMatching: number;
   };
+}
+
+export interface PositionLevel {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface UserGroup { // This is now "Role" in the UI

@@ -16,6 +16,11 @@ const updatePositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
+  gradeId: z.union([
+    z.string().uuid(),
+    z.null()
+  ]).optional(),
+  hiringDate: z.string().optional().nullable(),
   recruiterId: z.union([
     z.string().uuid(),
     z.null()
@@ -89,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -201,6 +206,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (updateData.positionLevel !== undefined) {
       updateFields.push(`"positionLevel" = $${paramIndex++}`);
       updateValues.push(updateData.positionLevel);
+    }
+    if (updateData.gradeId !== undefined) {
+      updateFields.push(`"gradeId" = $${paramIndex++}`);
+      updateValues.push(updateData.gradeId);
+    }
+    if (updateData.hiringDate !== undefined) {
+      updateFields.push(`"hiringDate" = $${paramIndex++}`);
+      updateValues.push(updateData.hiringDate);
     }
     if (updateData.recruiterId !== undefined) {
       updateFields.push(`"recruiterId" = $${paramIndex++}`);

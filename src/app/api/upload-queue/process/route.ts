@@ -423,12 +423,24 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
     }
     
     // 2. Download file from MinIO
-    const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
-    const chunks = [];
-    for await (const chunk of fileStream) {
-      chunks.push(chunk);
+    let fileBuffer: Buffer;
+    try {
+      console.log(`[Webhook] Attempting to download file from MinIO: ${MINIO_BUCKET}/${job.file_path}`);
+      const fileStream = await minioClient.getObject(MINIO_BUCKET, job.file_path);
+      const chunks = [];
+      for await (const chunk of fileStream) {
+        chunks.push(chunk);
+      }
+      fileBuffer = Buffer.concat(chunks);
+      console.log(`[Webhook] Successfully downloaded file, size: ${fileBuffer.length} bytes`);
+    } catch (minioError) {
+      console.error(`[Webhook] Failed to download file from MinIO:`, minioError);
+      await client.query(
+        `UPDATE upload_queue SET status = 'error', error = $1, error_details = $2, completed_date = now(), updated_at = now() WHERE id = $3`,
+        ['Failed to download file from MinIO', `MinIO error: ${minioError instanceof Error ? minioError.message : String(minioError)}`, job.id]
+      );
+      return { error: 'Failed to download file from MinIO', job };
     }
-    let fileBuffer: Buffer = Buffer.concat(chunks);
     
     // 3. POST to the configured webhook endpoint (any compatible service)
     // Priority: Database setting first, then environment variable as fallback

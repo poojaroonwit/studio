@@ -7,6 +7,9 @@
  * to help resolve stuck jobs.
  */
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const https = require('https');
 const http = require('http');
 
@@ -66,29 +69,7 @@ async function triggerProcessQueue() {
     console.log('🚀 Trigger Process Queue');
     console.log('========================\n');
 
-    console.log('📊 Checking current queue status...');
-    const queueResponse = await makeRequest(`${config.baseUrl}/api/upload-queue`);
-    
-    if (queueResponse.status !== 200) {
-      console.error('❌ Failed to fetch queue status:', queueResponse.data);
-      return;
-    }
-
-    const queueData = queueResponse.data;
-    console.log('Current queue status:', queueData);
-
-    // Check if there are queued jobs
-    const queuedJobs = queueData.data?.filter(job => job.status === 'queued') || [];
-    const inProcessJobs = queueData.data?.filter(job => job.status === 'inprocess') || [];
-
-    console.log(`📋 Found ${queuedJobs.length} queued jobs and ${inProcessJobs.length} in-process jobs`);
-
-    if (queuedJobs.length === 0) {
-      console.log('✅ No queued jobs to process');
-      return;
-    }
-
-    console.log('\n🔄 Triggering queue processing...');
+    console.log('🔄 Triggering queue processing...');
     const processResponse = await makeRequest(`${config.baseUrl}/api/upload-queue/process`, {
       method: 'POST'
     });
@@ -102,17 +83,19 @@ async function triggerProcessQueue() {
       console.log('❌ Failed to trigger queue processing:', processResponse.data);
     }
 
-    // Wait a moment and check the queue again
-    console.log('\n⏳ Waiting 5 seconds and checking queue again...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Also try batch processing
+    console.log('\n🔄 Triggering batch queue processing...');
+    const batchResponse = await makeRequest(`${config.baseUrl}/api/upload-queue/process-all`, {
+      method: 'POST'
+    });
 
-    const queueResponse2 = await makeRequest(`${config.baseUrl}/api/upload-queue`);
-    if (queueResponse2.status === 200) {
-      const queueData2 = queueResponse2.data;
-      const queuedJobs2 = queueData2.data?.filter(job => job.status === 'queued') || [];
-      const inProcessJobs2 = queueData2.data?.filter(job => job.status === 'inprocess') || [];
-      
-      console.log(`📊 Updated status: ${queuedJobs2.length} queued jobs and ${inProcessJobs2.length} in-process jobs`);
+    console.log('Batch process response:', batchResponse);
+
+    if (batchResponse.status === 200) {
+      console.log('✅ Batch queue processing triggered successfully');
+      console.log('Response:', batchResponse.data);
+    } else {
+      console.log('❌ Failed to trigger batch queue processing:', batchResponse.data);
     }
 
   } catch (error) {

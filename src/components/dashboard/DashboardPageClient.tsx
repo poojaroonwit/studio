@@ -34,6 +34,7 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { NewApplicationsTimeSeriesChart } from './NewApplicationsTimeSeriesChart';
 import { SCORE_COLOR_STOPS } from '@/components/ui/score-color';
+import { SLAViolationsWidget } from './SLAViolationsWidget';
 import '@/lib/chartjs-setup';
 
 
@@ -965,7 +966,27 @@ export default function DashboardPageClient({
         </div>
       )}
 
-      {/* Section 4: Pipeline Analytics - Charts */}
+      {/* Section 4: SLA Violations */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">SLA Monitoring</h2>
+              <p className="text-sm text-muted-foreground mt-1">Track hiring timeline violations</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          <SLAViolationsWidget />
+          {session?.user?.role === 'Recruiter' && (
+            <SLAViolationsWidget recruiterId={session.user.id} />
+          )}
+        </div>
+      </div>
+
+      {/* Section 5: Pipeline Analytics - Charts */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">

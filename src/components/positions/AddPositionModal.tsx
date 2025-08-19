@@ -24,7 +24,7 @@ import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import type { Position } from '@/lib/types';
+import type { Position, Grade } from '@/lib/types';
 
 // Import Tiptap editor with expand functionality
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
@@ -36,6 +36,8 @@ const addPositionFormSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
+  gradeId: z.string().uuid().optional().nullable(),
+  hiringDate: z.string().optional().nullable(),
   recruiterId: z.string().uuid().optional().nullable(),
 });
 
@@ -55,6 +57,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const { error: showError, success: showSuccess } = useToast();
   
   const form = useForm<AddPositionFormValues>({
@@ -88,7 +91,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         positionLevel: '',
       });
       
-      // Fetch default match criteria
+      // Fetch default match criteria and grades
       const fetchDefaultMatchCriteria = async () => {
         setIsLoadingDefaultCriteria(true);
         try {
@@ -99,12 +102,32 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
             setDefaultMatchCriteria(defaultCriteria);
           }
         } catch (error) {
-          console.error('Failed to fetch default match criteria:', error);
+          console.error('Error fetching default match criteria:', error);
         } finally {
           setIsLoadingDefaultCriteria(false);
         }
       };
-      fetchDefaultMatchCriteria();
+
+      const fetchGrades = async () => {
+        try {
+          const response = await fetch('/api/settings/grades');
+          if (response.ok) {
+            const data = await response.json();
+            setGrades(data);
+          }
+        } catch (error) {
+          console.error('Error fetching grades:', error);
+        }
+      };
+
+      try {
+        fetchDefaultMatchCriteria();
+        fetchGrades();
+      } catch (error) {
+        console.error('Failed to fetch default match criteria:', error);
+      } finally {
+        setIsLoadingDefaultCriteria(false);
+      }
     } else {
       setIsModalReady(false);
     }
@@ -294,6 +317,39 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                   {form.formState.errors.positionLevel && (
                     <p className="text-sm text-destructive mt-1">{form.formState.errors.positionLevel.message}</p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="grade-add" className="font-medium">Grade</Label>
+                  <Controller
+                    name="gradeId"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a grade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No Grade</SelectItem>
+                          {grades.map((grade) => (
+                            <SelectItem key={grade.id} value={grade.id}>
+                              {grade.name} ({grade.slaDays} days SLA)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hiring-date-add" className="font-medium">Hiring Date</Label>
+                  <Input
+                    id="hiring-date-add"
+                    type="date"
+                    {...form.register('hiringDate')}
+                    disabled={isSaving}
+                  />
                 </div>
                 <div className="flex items-center space-x-3 pt-2">
                   <Controller

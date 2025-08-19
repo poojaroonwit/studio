@@ -113,22 +113,22 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   ];
 
   return (
-    <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+    <div className="w-56 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
       <div className="p-4 space-y-2 mt-0">
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative w-full rounded-lg",
-              activeTab === tab.id
-                ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
-            )}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
+                     <button
+             key={tab.id}
+             onClick={() => onTabChange(tab.id)}
+             className={cn(
+               "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative w-full rounded-lg text-left",
+               activeTab === tab.id
+                 ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
+                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+             )}
+           >
+             <tab.icon className="h-4 w-4 flex-shrink-0" />
+             <span className="text-left">{tab.label}</span>
+           </button>
         ))}
       </div>
     </div>
@@ -450,7 +450,7 @@ interface PreferencesContentProps {
 function PreferencesContent({ form }: PreferencesContentProps) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-6">
         <FormField 
           control={form.control} 
           name="preferences.emailNotifications" 
@@ -513,24 +513,7 @@ interface ModalFooterProps {
 
 function ModalFooter({ form, isSubmitting, isLoading, mode, onClose }: ModalFooterProps) {
   return (
-    <div className="flex items-center justify-between p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-      {/* Only show reset button for create and edit modes, not for profile mode */}
-      {mode !== 'profile' && (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => form.reset()}
-          disabled={isSubmitting || isLoading}
-          className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reset
-        </Button>
-      )}
-      
-      {/* If in profile mode, add a spacer div to maintain layout */}
-      {mode === 'profile' && <div />}
-      
+    <div className="flex items-center justify-end p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
       <div className="flex items-center gap-3">
         <Button
           type="button"

@@ -7,6 +7,9 @@
  * by calling the API endpoint directly.
  */
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const https = require('https');
 const http = require('http');
 

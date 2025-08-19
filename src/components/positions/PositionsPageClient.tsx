@@ -40,6 +40,7 @@ import { Command, CommandEmpty, CommandInput, CommandList, CommandItem } from '@
 import { ChevronsUpDown, Check, UserX, User, RotateCcw } from 'lucide-react';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
+import { checkSLAViolation, getSLABadgeVariant, formatSLAMessage, getSLARemainingDays } from '@/lib/slaUtils';
 
 
 export default function PositionsPageClient() {
@@ -1325,6 +1326,50 @@ export default function PositionsPageClient() {
                         <span className="text-xs text-muted-foreground mt-0.5">
                           {position.positionLevel}
                         </span>
+                      )}
+                      {position.grade && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                            style={{ 
+                              borderColor: position.grade.color || '#3B82F6',
+                              color: position.grade.color || '#3B82F6'
+                            }}
+                          >
+                            {position.grade.name}
+                          </Badge>
+                          {(() => {
+                            const remaining = getSLARemainingDays(position);
+                            if (remaining !== null) {
+                              return (
+                                <Badge
+                                  variant={remaining === 0 ? 'destructive' : 'secondary'}
+                                  className="text-xs"
+                                  title={remaining === 0 ? 'SLA reached' : `${remaining} days left to SLA`}
+                                >
+                                  {remaining === 0 ? 'SLA Reached' : `${remaining}d left`}
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {(() => {
+                            const slaResult = checkSLAViolation(position);
+                            if (slaResult && slaResult.isViolated) {
+                              return (
+                                <Badge 
+                                  variant={getSLABadgeVariant(slaResult.daysOverdue)}
+                                  className="text-xs"
+                                  title={formatSLAMessage(slaResult)}
+                                >
+                                  {slaResult.daysOverdue} days overdue
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       )}
                     </div>
                   </TableCell>

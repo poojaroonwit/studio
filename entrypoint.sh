@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+# set -e  # Commented out for Alpine Linux compatibility
 
 # Entrypoint script for Studio application
 # Handles automatic database migration and seeding for both fresh deployments and upgrades

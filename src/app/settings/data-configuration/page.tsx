@@ -17,7 +17,9 @@ import {
   Upload,
   X,
   AlertCircle,
-  Users
+  Users,
+  User,
+  Building
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +63,8 @@ import StagesForm from '@/components/settings/StagesForm';
 import CandidateSourceModal from '@/components/settings/CandidateSourceModal';
 import CandidateSourceAlertDialog from '@/components/settings/CandidateSourceAlertDialog';
 import { HeadcountTypesTab } from './HeadcountTypesTab';
+import { GradesTab } from '@/components/settings/GradesTab';
+import { PositionLevelsTab } from '@/components/settings/PositionLevelsTab';
 
 // Custom Fields Tab Component
 function CustomFieldsTab() {
@@ -889,7 +893,9 @@ export default function DataConfigurationPage() {
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState('stages');
+  const [activeTab, setActiveTab] = useState('candidate');
+  const [candidateSubTab, setCandidateSubTab] = useState('candidate-stages');
+  const [positionSubTab, setPositionSubTab] = useState('position-headcount');
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') {
@@ -909,6 +915,21 @@ export default function DataConfigurationPage() {
     return null;
   }
 
+  const tabItems = [
+    {
+      id: 'candidate',
+      label: 'Candidate',
+      icon: User,
+      description: 'Manage candidate-related data configuration'
+    },
+    {
+      id: 'position',
+      label: 'Position',
+      icon: Building,
+      description: 'Manage position-related data configuration'
+    }
+  ];
+
   return (
     <div className="h-full flex flex-col p-6">
       {/* Header */}
@@ -921,65 +942,142 @@ export default function DataConfigurationPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col">
-                     {/* Tabs */}
-           <div className="flex w-full border-b border-border/50 mb-6">
-             <div
-               onClick={() => setActiveTab('stages')}
-               className={cn(
-                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                 activeTab === 'stages'
-                   ? "text-primary border-b-2 border-primary"
-                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-               )}
-             >
-               <KanbanSquare className="h-4 w-4" />
-               Recruitment Stages
-             </div>
-             <div
-               onClick={() => setActiveTab('sources')}
-               className={cn(
-                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                 activeTab === 'sources'
-                   ? "text-primary border-b-2 border-primary"
-                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-               )}
-             >
-               <MapPin className="h-4 w-4" />
-               Candidate Sources
-             </div>
-             <div
-               onClick={() => setActiveTab('custom-fields')}
-               className={cn(
-                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                 activeTab === 'custom-fields'
-                   ? "text-primary border-b-2 border-primary"
-                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-               )}
-             >
-               <Settings2 className="h-4 w-4" />
-               Custom Fields
-             </div>
-             <div
-               onClick={() => setActiveTab('headcount-types')}
-               className={cn(
-                 "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                 activeTab === 'headcount-types'
-                   ? "text-primary border-b-2 border-primary"
-                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-               )}
-             >
-               <Users className="h-4 w-4" />
-               Headcount Types
-             </div>
-           </div>
+        <div className="h-full flex gap-6">
+          {/* Vertical Tabs Sidebar */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-muted/30 rounded-lg p-3">
+              <h3 className="text-sm font-semibold text-foreground mb-3 px-2">Configuration Categories</h3>
+              <div className="space-y-2">
+                {tabItems.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <div
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        "flex flex-col gap-1 px-4 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-md",
+                        activeTab === tab.id
+                          ? "bg-background text-primary shadow-sm border border-border"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        <span>{tab.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-7 leading-tight">
+                        {tab.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           {/* Tab Content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'custom-fields' && <CustomFieldsTab />}
-            {activeTab === 'stages' && <RecruitmentStagesTab />}
-            {activeTab === 'sources' && <CandidateSourcesTab />}
-            {activeTab === 'headcount-types' && <HeadcountTypesTab />}
+            {activeTab === 'candidate' && (
+              <div className="h-full flex flex-col">
+                {/* Candidate Sub-tabs */}
+                <div className="flex w-full border-b border-border/50 mb-6">
+                  <div
+                    onClick={() => setCandidateSubTab('candidate-stages')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      candidateSubTab === 'candidate-stages'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <KanbanSquare className="h-4 w-4" />
+                    Recruitment Stages
+                  </div>
+                  <div
+                    onClick={() => setCandidateSubTab('candidate-sources')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      candidateSubTab === 'candidate-sources'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Candidate Sources
+                  </div>
+                  <div
+                    onClick={() => setCandidateSubTab('candidate-fields')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      candidateSubTab === 'candidate-fields'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    Custom Fields
+                  </div>
+                </div>
+
+                {/* Candidate Tab Content */}
+                <div className="flex-1 overflow-hidden">
+                  {candidateSubTab === 'candidate-stages' && <RecruitmentStagesTab />}
+                  {candidateSubTab === 'candidate-sources' && <CandidateSourcesTab />}
+                  {candidateSubTab === 'candidate-fields' && <CustomFieldsTab />}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'position' && (
+              <div className="h-full flex flex-col">
+                {/* Position Sub-tabs */}
+                <div className="flex w-full border-b border-border/50 mb-6">
+                  <div
+                    onClick={() => setPositionSubTab('position-headcount')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      positionSubTab === 'position-headcount'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <Users className="h-4 w-4" />
+                    Headcount Types
+                  </div>
+                  <div
+                    onClick={() => setPositionSubTab('position-grades')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      positionSubTab === 'position-grades'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <Users className="h-4 w-4" />
+                    Grades
+                  </div>
+                  <div
+                    onClick={() => setPositionSubTab('position-levels')}
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                      positionSubTab === 'position-levels'
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}
+                  >
+                    <Users className="h-4 w-4" />
+                    Position Levels
+                  </div>
+                </div>
+
+                {/* Position Tab Content */}
+                <div className="flex-1 overflow-hidden">
+                  {positionSubTab === 'position-headcount' && <HeadcountTypesTab />}
+                  {positionSubTab === 'position-grades' && <GradesTab />}
+                  {positionSubTab === 'position-levels' && <PositionLevelsTab />}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

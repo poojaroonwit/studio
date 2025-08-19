@@ -139,7 +139,54 @@ async function main() {
     }
     console.log('✅ System settings created/updated');
 
-
+    // Create default system prompt categories
+    console.log('Creating system prompt categories...');
+    const systemPromptCategories = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440011',
+        name: 'Job Description',
+        description: 'Prompts for generating and improving job descriptions',
+        color: '#3B82F6',
+        isActive: true
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440012',
+        name: 'Candidate Assessment',
+        description: 'Prompts for evaluating candidate qualifications and fit',
+        color: '#10B981',
+        isActive: true
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440013',
+        name: 'Communication',
+        description: 'Prompts for drafting emails, messages, and communications',
+        color: '#F59E0B',
+        isActive: true
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440014',
+        name: 'Interview',
+        description: 'Prompts for interview questions and evaluation',
+        color: '#8B5CF6',
+        isActive: true
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440015',
+        name: 'General',
+        description: 'General purpose prompts for various recruitment tasks',
+        color: '#6B7280',
+        isActive: true
+      }
+    ];
+    
+    for (const category of systemPromptCategories) {
+      await prisma.systemPromptCategory.upsert({
+        where: { id: category.id },
+        update: {},
+        create: category
+      });
+    }
+    console.log('✅ System prompt categories created/updated');
 
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {

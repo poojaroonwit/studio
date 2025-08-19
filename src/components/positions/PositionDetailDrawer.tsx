@@ -24,7 +24,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { TiptapEditorWithExpand } from '@/components/ui/wysiwyg-editors';
-import type { Position, Candidate } from '@/lib/types';
+import type { Position, Candidate, Grade } from '@/lib/types';
 import { getPositionStatusBadge } from '@/lib/positionUtils';
 import { ScoreBadge } from '@/components/ui/score-color';
 import { formatScoreWithGrade } from '@/lib/scoreUtils';
@@ -40,6 +40,8 @@ const editPositionFormSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().default(true),
   positionLevel: z.string().optional().nullable(),
+  gradeId: z.string().uuid().optional().nullable(),
+  hiringDate: z.string().optional().nullable(),
 });
 
 export type EditPositionFormValues = z.infer<typeof editPositionFormSchema>;
@@ -94,6 +96,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [isSaving, setIsSaving] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [isDrawerReady, setIsDrawerReady] = useState(false);
+  const [grades, setGrades] = useState<Grade[]>([]);
 
   // Sorting state for applied candidates table
   const [appliedCandidatesOpenMenu, setAppliedCandidatesOpenMenu] = useState<string | null>(null);
@@ -120,6 +123,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
+      gradeId: null,
+      hiringDate: null,
     },
   });
 
@@ -285,6 +290,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
          matchCriteria: data.matchCriteria || '',
          isOpen: data.isOpen ?? true,
          positionLevel: data.positionLevel || '',
+         gradeId: data.gradeId || null,
+         hiringDate: data.hiringDate || null,
        });
        
        // Set drawer as ready for WYSIWYG editors
@@ -297,6 +304,19 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       setIsLoading(false);
     }
   }, [positionId, form]);
+
+  // Fetch grades for the form
+  const fetchGrades = useCallback(async () => {
+    try {
+      const response = await fetch('/api/settings/grades');
+      if (response.ok) {
+        const data = await response.json();
+        setGrades(data);
+      }
+    } catch (error) {
+      console.error('Error fetching grades:', error);
+    }
+  }, []);
 
   // Fetch applied candidates for this position
   const fetchAppliedCandidates = useCallback(async () => {
@@ -419,6 +439,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
+        gradeId: (position as any).gradeId || null,
+        hiringDate: position.hiringDate || null,
       });
       
       // Force re-render of WYSIWYG editors with new content
@@ -462,6 +484,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
+        gradeId: (position as any).gradeId || null,
+        hiringDate: position.hiringDate || null,
       });
     }
     setIsEditMode(false);
@@ -582,11 +606,12 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   useEffect(() => {
     if (isOpen && positionId && sessionStatus === 'authenticated') {
       fetchPosition();
+      fetchGrades();
       fetchAppliedCandidates();
       fetchAllCandidates();
       fetchPotentialCandidates();
     }
-  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
+  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
 
   // Reset state when drawer closes
   useEffect(() => {
@@ -637,6 +662,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
+        gradeId: (position as any).gradeId || null,
+        hiringDate: position.hiringDate || null,
       });
     }
   }, [position, isEditMode, form]);
@@ -1450,6 +1477,67 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                               />
                             ) : (
                               <div className="text-base">{position.positionLevel || 'Not specified'}</div>
+                            )}
+                          </div>
+
+                          {/* Grade */}
+                          <div className="space-y-2">
+                            <Label htmlFor="gradeId">Grade</Label>
+                            {isEditMode ? (
+                              <Controller
+                                name="gradeId"
+                                control={form.control}
+                                render={({ field }) => (
+                                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select grade" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="">No Grade</SelectItem>
+                                      {grades.map((grade) => (
+                                        <SelectItem key={grade.id} value={grade.id}>
+                                          {grade.name} ({grade.slaDays} days SLA)
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              />
+                            ) : (
+                              (position as any).gradeId && position.grade ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs"
+                                  style={{
+                                    borderColor: position.grade.color || '#3B82F6',
+                                    color: position.grade.color || '#3B82F6'
+                                  }}
+                                >
+                                  {position.grade.name}
+                                </Badge>
+                              ) : (
+                                <div className="text-base text-muted-foreground">No grade</div>
+                              )
+                            )}
+                          </div>
+
+                          {/* Hiring Date */}
+                          <div className="space-y-2">
+                            <Label htmlFor="hiringDate">Hiring Date</Label>
+                            {isEditMode ? (
+                              <Controller
+                                name="hiringDate"
+                                control={form.control}
+                                render={({ field }) => (
+                                  <Input type="date" value={field.value || ''} onChange={field.onChange} />
+                                )}
+                              />
+                            ) : (
+                              position.hiringDate ? (
+                                <div className="text-base">{format(parseISO(position.hiringDate), 'PPP')}</div>
+                              ) : (
+                                <div className="text-base text-muted-foreground">Not set</div>
+                              )
                             )}
                           </div>
 

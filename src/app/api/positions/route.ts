@@ -120,13 +120,25 @@ export async function GET(request: NextRequest) {
           p."matchCriteria", 
           p."isOpen", 
           p."positionLevel", 
+          p."gradeId", 
+          p."hiringDate", 
           p."recruiterId", 
           p."customAttributes", 
           p."createdAt", 
           p."updatedAt",
-          u.name as "recruiterName"
+          u.name as "recruiterName",
+          g.name as "gradeName",
+          g."sla_days" as "gradeSlaDays",
+          g.color as "gradeColor",
+          json_build_object(
+            'id', p."gradeId",
+            'name', g.name,
+            'slaDays', g."sla_days",
+            'color', g.color
+          ) as grade
         FROM "Position" p 
         LEFT JOIN "User" u ON p."recruiterId" = u.id
+        LEFT JOIN "Grade" g ON p."gradeId" = g.id
         ${whereClause}
         ORDER BY p."createdAt" DESC
         LIMIT $${paramIndex++} OFFSET $${paramIndex++}

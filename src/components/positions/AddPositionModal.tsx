@@ -325,18 +325,18 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                     name="gradeId"
                     control={form.control}
                     render={({ field }) => (
-                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                      <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a grade" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">No Grade</SelectItem>
-                          {grades.map((grade) => (
-                            <SelectItem key={grade.id} value={grade.id}>
-                              {grade.name} ({grade.slaDays} days SLA)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+                                             <SelectContent>
+                       <SelectItem value="none">No Grade</SelectItem>
+                       {grades.map((grade) => (
+                         <SelectItem key={grade.id} value={grade.id}>
+                           {grade.name} ({grade.slaDays} days SLA)
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
                       </Select>
                     )}
                   />

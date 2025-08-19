@@ -1,6 +1,4 @@
 import { format, parseISO, isValid } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz/toZonedTime';
-import { fromZonedTime } from 'date-fns-tz/fromZonedTime';
 
 // Default timezone for the application (Thailand)
 // Can be overridden by APP_TIMEZONE environment variable
@@ -54,9 +52,9 @@ export function formatDateInTimezone(
  */
 export function getTimezoneOffset(timezone: string = DEFAULT_TIMEZONE): number {
   const now = new Date();
-  const utcDate = toZonedTime(now, timezone);
-  const offsetMs = utcDate.getTime() - now.getTime();
-  return offsetMs / (1000 * 60 * 60); // Convert to hours
+  // Use browser's built-in timezone offset since we're not using external timezone libraries
+  // This returns the offset in minutes, so we convert to hours
+  return now.getTimezoneOffset() / -60; // Negative because getTimezoneOffset() returns opposite of what we want
 }
 
 /**

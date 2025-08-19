@@ -1484,25 +1484,25 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                           <div className="space-y-2">
                             <Label htmlFor="gradeId">Grade</Label>
                             {isEditMode ? (
-                              <Controller
-                                name="gradeId"
-                                control={form.control}
-                                render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select grade" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="">No Grade</SelectItem>
-                                      {grades.map((grade) => (
-                                        <SelectItem key={grade.id} value={grade.id}>
-                                          {grade.name} ({grade.slaDays} days SLA)
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
+                                               <Controller
+                   name="gradeId"
+                   control={form.control}
+                   render={({ field }) => (
+                     <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select grade" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="none">No Grade</SelectItem>
+                         {grades.map((grade) => (
+                           <SelectItem key={grade.id} value={grade.id}>
+                             {grade.name} ({grade.slaDays} days SLA)
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   )}
+                 />
                             ) : (
                               (position as any).gradeId && position.grade ? (
                                 <Badge

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';
 import { differenceInMonths } from 'date-fns';
 import * as z from 'zod';
-import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord } from '@/lib/types';
+import type { Candidate, Position, UserProfile, RecruitmentStage, TransitionRecord, CandidateSource } from '@/lib/types';
 
 // Form schemas
 const editCandidateDetailSchema = z.object({
@@ -28,10 +28,12 @@ export const useCandidateDetail = (candidateId: string) => {
   const [isEditing, setIsEditing] = useState(false);
   const [allDbPositions, setAllDbPositions] = useState<Position[]>([]);
   const [availableRecruiters, setAvailableRecruiters] = useState<UserProfile[]>([]);
+  const [availableSources, setAvailableSources] = useState<CandidateSource[]>([]);
   const [availableStages, setAvailableStages] = useState<RecruitmentStage[]>([]);
   const [transitionHistory, setTransitionHistory] = useState<TransitionRecord[]>([]);
   const [candidateJobMatches, setCandidateJobMatches] = useState<any[]>([]);
   const [isAssigningRecruiter, setIsAssigningRecruiter] = useState(false);
+  const [isAssigningSource, setIsAssigningSource] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [copiedJobApplied, setCopiedJobApplied] = useState(false);
@@ -175,6 +177,22 @@ export const useCandidateDetail = (candidateId: string) => {
       }
     };
     fetchRecruiters();
+  }, []);
+
+  // Fetch sources
+  useEffect(() => {
+    const fetchSources = async () => {
+      try {
+        const res = await fetch('/api/settings/candidate-sources');
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableSources(data || []);
+        }
+      } catch (e) {
+        console.error('Error fetching sources:', e);
+      }
+    };
+    fetchSources();
   }, []);
 
   // Fetch stages
@@ -329,6 +347,34 @@ export const useCandidateDetail = (candidateId: string) => {
     }
   };
 
+  const handleAssignSource = async (candidateId: string, newSourceId: string | null, subSource?: string | null) => {
+    setIsAssigningSource(true);
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          sourceId: newSourceId,
+          subSource: subSource || null
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign source');
+      }
+
+      const updatedCandidate = await response.json();
+      setCandidate(updatedCandidate);
+      toast.success(newSourceId ? 'Source assigned successfully' : 'Source unassigned successfully');
+    } catch (error) {
+      console.error('Error assigning source:', error);
+      toast.error('Failed to assign source');
+    } finally {
+      setIsAssigningSource(false);
+    }
+  };
+
   const handleAvatarUpload = async (file: File) => {
     if (!candidate) return;
 
@@ -368,10 +414,12 @@ export const useCandidateDetail = (candidateId: string) => {
     isEditing,
     allDbPositions,
     availableRecruiters,
+    availableSources,
     availableStages,
     transitionHistory,
     candidateJobMatches,
     isAssigningRecruiter,
+    isAssigningSource,
     avatarUploading,
     avatarError,
     copiedJobApplied,
@@ -408,11 +456,13 @@ export const useCandidateDetail = (candidateId: string) => {
     setCopiedJobMatchIndex,
     setIsSaving,
     setIsAssigningRecruiter,
+    setIsAssigningSource,
     
     // Functions
     calculateTotalExperienceDuration,
     calculateAverageDurationPerCompany,
     handleAssignRecruiter,
+    handleAssignSource,
     handleAvatarUpload,
     fetchTransitionHistory,
   };

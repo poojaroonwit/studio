@@ -1339,6 +1339,11 @@ export default function PositionsPageClient() {
                           >
                             {position.grade.name}
                           </Badge>
+                          {position.grade.label && (
+                            <span className="text-xs text-muted-foreground">
+                              {position.grade.label}
+                            </span>
+                          )}
                           {(() => {
                             const remaining = getSLARemainingDays(position);
                             if (remaining !== null) {

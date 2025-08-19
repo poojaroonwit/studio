@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, name, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
+      SELECT id, name, label, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
       FROM "Grade"
       ORDER BY "sort_order" ASC, name ASC
     `;
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const client = await getPool().connect();
   try {
     const body = await request.json();
-    const { name, description, minLevel, maxLevel, slaDays, color, isActive, sortOrder } = body;
+    const { name, label, description, minLevel, maxLevel, slaDays, color, isActive, sortOrder } = body;
 
     // Validate required fields
     if (!name || minLevel === undefined || maxLevel === undefined || slaDays === undefined) {
@@ -57,13 +57,13 @@ export async function POST(request: NextRequest) {
     }
 
     const query = `
-      INSERT INTO "Grade" (id, name, description, "min_level", "max_level", "sla_days", color, "is_active", "sort_order", "updatedAt")
-      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-      RETURNING id, name, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
+      INSERT INTO "Grade" (id, name, label, description, "min_level", "max_level", "sla_days", color, "is_active", "sort_order", "updatedAt")
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+      RETURNING id, name, label, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
     `;
     
     const result = await client.query(query, [
-      name, description, minLevel, maxLevel, slaDays, color || '#3B82F6', isActive ?? true, finalSortOrder
+      name, label, description, minLevel, maxLevel, slaDays, color || '#3B82F6', isActive ?? true, finalSortOrder
     ]);
 
     return NextResponse.json(result.rows[0], { status: 201 });

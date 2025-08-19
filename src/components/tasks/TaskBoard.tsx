@@ -92,7 +92,7 @@ const StageColumn: React.FC<StageColumnProps> = ({
     >
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex-shrink-0">
+        <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex-shrink-0 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -176,8 +176,8 @@ export function TaskBoard({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Scroll navigation state
-  const [canScrollLeft, setCanScrollLeft] = useState(false); // Start hidden - at beginning
-  const [canScrollRight, setCanScrollRight] = useState(false); // Will be set by updateScrollButtons
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   // Memoized data
   const tasksByStage = useMemo(() => {
@@ -195,7 +195,6 @@ export function TaskBoard({
 
   const sortedStages = useMemo(() => {
     const sorted = [...stages].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-    console.log('📋 Sorted stages:', sorted.length, 'stages:', sorted.map(s => s.name));
     return sorted;
   }, [stages]);
 
@@ -250,10 +249,11 @@ export function TaskBoard({
     const container = scrollContainerRef.current;
     if (container) {
       const { scrollLeft, scrollWidth, clientWidth } = container;
-      // Show left button when not at the start (can scroll left)
-      setCanScrollLeft(scrollLeft > 10);
-      // Show right button when not at the end (can scroll right)
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      const canScrollLeftValue = scrollLeft > 10;
+      const canScrollRightValue = scrollLeft < scrollWidth - clientWidth - 10;
+      
+      setCanScrollLeft(canScrollLeftValue);
+      setCanScrollRight(canScrollRightValue);
     }
   }, []);
 
@@ -267,7 +267,8 @@ export function TaskBoard({
       const timeouts = [
         setTimeout(updateScrollButtons, 100),
         setTimeout(updateScrollButtons, 300),
-        setTimeout(updateScrollButtons, 500)
+        setTimeout(updateScrollButtons, 500),
+        setTimeout(updateScrollButtons, 1000)
       ];
       
       return () => {
@@ -286,10 +287,6 @@ export function TaskBoard({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [updateScrollButtons]);
-
-
-
-
 
   // Drag and drop handlers
   const handleDragStart = useCallback((task: Task) => {
@@ -342,10 +339,6 @@ export function TaskBoard({
     document.body.style.cursor = '';
   }, [draggedTask, onMoveTask]);
 
-
-
-
-
   // Empty state
   if (!stages || stages.length === 0) {
     return (
@@ -365,143 +358,51 @@ export function TaskBoard({
     <div className={cn("flex flex-col h-full bg-gray-100/50 dark:bg-gray-800/50", className)}>
       {/* Board Container */}
       <div className="relative flex-1">
-        {/* Fixed Navigation Buttons - Circular blue with blur */}
+        {/* Scroll Navigation Buttons */}
         {canScrollLeft && (
-          <div
+          <button
             onClick={scrollLeft}
             aria-label="Scroll left"
-            role="button"
-            tabIndex={0}
-            style={{ 
-              position: 'fixed',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              left: 'calc(var(--sidebar-width, 16rem) + 1rem)',
-              width: '50px',
-              height: '50px',
-              minWidth: '50px',
-              minHeight: '50px',
-              maxWidth: '50px',
-              maxHeight: '50px',
-              borderRadius: '25px',
-              backgroundColor: 'rgba(59, 130, 246, 0.3)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(96, 165, 250, 0.3)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              zIndex: 50,
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              boxSizing: 'border-box',
-              padding: '0',
-              margin: '0',
-              outline: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.4)';
-              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
-              e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.3)';
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                scrollLeft();
-              }
-            }}
+            className="fixed left-74 top-1/2 transform -translate-y-1/2 z-50 w-10 h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
           >
             <ChevronLeft className="h-5 w-5" />
-          </div>
+          </button>
         )}
         
         {canScrollRight && (
-          <div
+          <button
             onClick={scrollRight}
             aria-label="Scroll right"
-            role="button"
-            tabIndex={0}
-            style={{ 
-              position: 'fixed',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              right: '16px',
-              width: '50px',
-              height: '50px',
-              minWidth: '50px',
-              minHeight: '50px',
-              maxWidth: '50px',
-              maxHeight: '50px',
-              borderRadius: '25px',
-              backgroundColor: 'rgba(59, 130, 246, 0.3)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(96, 165, 250, 0.3)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              zIndex: 50,
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              boxSizing: 'border-box',
-              padding: '0',
-              margin: '0',
-              outline: 'none'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.4)';
-              e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
-              e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.3)';
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                scrollRight();
-              }
-            }}
+            className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 w-10 h-10 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 backdrop-blur-sm"
           >
             <ChevronRight className="h-5 w-5" />
-          </div>
+          </button>
         )}
-
-
-
 
         {/* Scrollable Board Container */}
         <div 
           ref={scrollContainerRef}
-          className="flex gap-0 h-full overflow-x-auto overflow-y-hidden"
+          className="flex gap-0 h-full overflow-x-auto overflow-y-hidden scrollbar-hide"
           style={{ 
-            minWidth: '100%',
-            width: '100%',
-            scrollbarWidth: 'none', 
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch' // Enable touchpad scrolling
+            WebkitOverflowScrolling: 'touch'
           }}
         >
+          
           <div className="flex gap-0 h-full" style={{ minWidth: 'max-content' }}>
-          {visibleStagesList.map((stage, index) => {
-          const stageTasks = tasksByStage[stage.id] || [];
-          const isDragOver = dragOverStage === stage.id;
-          const isCurrentStage = draggedTask?.status === stage.id;
-          const isLastColumn = index === sortedStages.length - 1;
+            {visibleStagesList.map((stage, index) => {
+              const stageTasks = tasksByStage[stage.id] || [];
+              const isDragOver = dragOverStage === stage.id;
+              const isCurrentStage = draggedTask?.status === stage.id;
+              const isLastColumn = index === sortedStages.length - 1;
 
-          return (
-              <StageColumn
-              key={stage.id}
-                stage={stage}
-                tasks={stageTasks}
-                isDragOver={isDragOver}
-                isCurrentStage={isCurrentStage}
-                isLastColumn={isLastColumn}
+              return (
+                <StageColumn
+                  key={stage.id}
+                  stage={stage}
+                  tasks={stageTasks}
+                  isDragOver={isDragOver}
+                  isCurrentStage={isCurrentStage}
+                  isLastColumn={isLastColumn}
                   onDragOver={(e) => handleDragOver(stage.id, e)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(stage.id, e)}
@@ -511,16 +412,16 @@ export function TaskBoard({
                       setDragOverStage(stage.id);
                     }
                   }}
-                onTaskClick={onTaskClick}
-                onAddTask={onAddTask}
-                onDragStart={handleDragStart}
-                          onDragEnd={handleDragEnd}
-                draggedTask={draggedTask}
-                cardPreferences={cardPreferences}
-                getCardWidth={getCardWidth}
-              />
-          );
-        })}
+                  onTaskClick={onTaskClick}
+                  onAddTask={onAddTask}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  draggedTask={draggedTask}
+                  cardPreferences={cardPreferences}
+                  getCardWidth={getCardWidth}
+                />
+              );
+            })}
           </div>
         </div>
       </div>

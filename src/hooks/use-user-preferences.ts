@@ -93,6 +93,7 @@ export function useUserPreferences() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false); // Flag to prevent circular updates
 
   // Load preferences from database when session is available
   useEffect(() => {
@@ -115,7 +116,7 @@ export function useUserPreferences() {
   }, []);
 
   const loadPreferences = useCallback(async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || isSavingRef.current) return; // Don't load while saving
 
     try {
       setIsLoading(true);
@@ -158,6 +159,9 @@ export function useUserPreferences() {
 
     // Debounce the save operation to prevent excessive API calls
     saveTimeoutRef.current = setTimeout(async () => {
+      // Set saving flag to prevent circular updates
+      isSavingRef.current = true;
+      
       // Add retry logic for network issues
       const maxRetries = 3;
       let retryCount = 0;
@@ -207,6 +211,11 @@ export function useUserPreferences() {
           break;
         }
       }
+      
+      // Clear saving flag after a short delay to allow any pending operations to complete
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 100);
     }, 500); // 500ms debounce delay
   }, [session?.user?.id]);
 

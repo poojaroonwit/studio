@@ -7,6 +7,7 @@ import { handleCors } from '@/lib/cors';
 import { parse as parseCsv } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import prisma from '@/lib/prisma';
+import { NotificationService } from '@/lib/notificationService';
 // Import the schemas from the main candidate route
 import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSchema } from '../schemas';
 
@@ -218,6 +219,22 @@ export async function POST(req: NextRequest) {
 
               console.log(`✅ Recruiter auto-assigned to imported candidate ${candidateId} from position ${candidate.positionId}`);
               console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+              
+              // Send notification to the assigned recruiter
+              try {
+                await NotificationService.notifyCandidateAdded(
+                  candidateId,
+                  candidate.name,
+                  candidate.positionId,
+                  position.title,
+                  position.recruiterId,
+                  user.id
+                );
+                console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for imported candidate ${candidate.name}`);
+              } catch (notificationError) {
+                console.error('Failed to send candidate added notification:', notificationError);
+                // Don't fail the import if notification fails
+              }
             } else if (position && !position.recruiterId) {
               console.log(`⚠️ Position ${candidate.positionId} exists but has no recruiter assigned`);
             } else if (!position) {

@@ -51,6 +51,7 @@ import type { Grade } from '@/lib/types';
 
 interface GradeFormData {
   name: string;
+  label: string;
   description: string;
   minLevel: number;
   maxLevel: number;
@@ -62,6 +63,7 @@ interface GradeFormData {
 
 const defaultGradeData: GradeFormData = {
   name: '',
+  label: '',
   description: '',
   minLevel: 1,
   maxLevel: 1,
@@ -110,6 +112,7 @@ export function GradesTab() {
       setEditingGrade(grade);
       setFormData({
         name: grade.name,
+        label: grade.label || '',
         description: grade.description || '',
         minLevel: grade.minLevel,
         maxLevel: grade.maxLevel,
@@ -284,6 +287,11 @@ export function GradesTab() {
                               >
                                 {grade.name}
                               </Badge>
+                              {grade.label && (
+                                <div className="text-sm font-medium text-foreground">
+                                  {grade.label}
+                                </div>
+                              )}
                               <div className="text-sm text-muted-foreground">
                                 Level {grade.minLevel}-{grade.maxLevel}
                               </div>
@@ -350,6 +358,15 @@ export function GradesTab() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Grade 8+"
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="label">Label</Label>
+              <Input
+                id="label"
+                value={formData.label}
+                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+                placeholder="e.g., Senior"
               />
             </div>
             <div>

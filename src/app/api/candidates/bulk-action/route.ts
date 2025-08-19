@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
             const newTransitionId = uuidv4();
             await client.query(
               'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-              [newTransitionId, candidate.id, newStatus, transitionNotes || `status change from ${candidate.status} to ${newStatus}`, actingUserId]
+              [newTransitionId, candidate.id, newStatus, transitionNotes || null, actingUserId]
             );
             
             // Get the created transition record to broadcast

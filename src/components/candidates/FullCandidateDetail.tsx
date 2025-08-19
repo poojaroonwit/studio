@@ -77,10 +77,12 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     isEditing,
     allDbPositions,
     availableRecruiters,
+    availableSources,
     availableStages,
     transitionHistory,
     candidateJobMatches,
     isAssigningRecruiter,
+    isAssigningSource,
     avatarUploading,
     avatarError,
     copiedJobApplied,
@@ -98,9 +100,11 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     setCopiedJobMatchIndex,
     setIsSaving,
     setIsAssigningRecruiter,
+    setIsAssigningSource,
     calculateTotalExperienceDuration,
     calculateAverageDurationPerCompany,
     handleAssignRecruiter,
+    handleAssignSource,
     handleAvatarUpload,
     fetchTransitionHistory,
     // Form field arrays
@@ -308,15 +312,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     <div className={isModal ? "h-full overflow-y-auto" : "h-full"}>
       {/* Header */}
       <CandidateHeader
-                  candidate={candidate}
+        candidate={candidate}
         isModal={isModal}
         onClose={onClose}
         isEditing={isEditing}
         availableStages={availableStages}
-                  availableRecruiters={availableRecruiters}
+        availableRecruiters={availableRecruiters}
+        availableSources={availableSources}
         isAssigningRecruiter={isAssigningRecruiter}
+        isAssigningSource={isAssigningSource}
         onAssignRecruiter={handleAssignRecruiter}
-                  onResetAssigning={() => setIsAssigningRecruiter(false)}
+        onAssignSource={handleAssignSource}
+        onResetAssigning={() => setIsAssigningRecruiter(false)}
+        onResetSourceAssigning={() => setIsAssigningSource(false)}
         onEditClick={() => setIsEditing(true)}
         onManageTransitions={openManageTransitionsModal}
         onReprocess={() => setIsReprocessModalOpen(true)}
@@ -594,6 +602,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           onOpenChange={setIsGenerativeAIModalOpen}
           candidateId={candidate.id}
           candidateName={candidate.name || 'Unknown Candidate'}
+          onRefresh={onRefresh}
         />
       )}
  

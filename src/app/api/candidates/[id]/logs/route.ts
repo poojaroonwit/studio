@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     });
 
     // Map to activity log format
-    // To show 'Moved from ... to ...' for all transitions, we need to infer previous stage
+    // Show simplified stage change messages without redundant details
     const transitionsWithPrev = transitions.map((tr: any, idx: number, arr: any[]) => {
       const prevStage = arr[idx + 1]?.stage;
       let moveNote = '';
@@ -55,10 +55,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       } else {
         moveNote = `Entered ${tr.stage} stage.`;
       }
-      // Remove redundant 'status change from ...' in notes
-      let cleanedNote = tr.notes && tr.notes.replace(/status change from .+ to .+/i, '').trim();
-      if (cleanedNote) {
-        moveNote = `${moveNote} Note: ${cleanedNote}`;
+      // Only include custom notes if they exist
+      if (tr.notes && tr.notes.trim().length > 0) {
+        moveNote = `${moveNote} Note: ${tr.notes.trim()}`;
       }
       return {
         id: tr.id,

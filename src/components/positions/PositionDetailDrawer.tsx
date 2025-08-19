@@ -1496,7 +1496,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                          <SelectItem value="none">No Grade</SelectItem>
                          {grades.map((grade) => (
                            <SelectItem key={grade.id} value={grade.id}>
-                             {grade.name} ({grade.slaDays} days SLA)
+                             {grade.name} {grade.label && `- ${grade.label}`} ({grade.slaDays} days SLA)
                            </SelectItem>
                          ))}
                        </SelectContent>
@@ -1505,16 +1505,23 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                  />
                             ) : (
                               (position as any).gradeId && position.grade ? (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs"
-                                  style={{
-                                    borderColor: position.grade.color || '#3B82F6',
-                                    color: position.grade.color || '#3B82F6'
-                                  }}
-                                >
-                                  {position.grade.name}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs"
+                                    style={{
+                                      borderColor: position.grade.color || '#3B82F6',
+                                      color: position.grade.color || '#3B82F6'
+                                    }}
+                                  >
+                                    {position.grade.name}
+                                  </Badge>
+                                  {position.grade.label && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {position.grade.label}
+                                    </span>
+                                  )}
+                                </div>
                               ) : (
                                 <div className="text-base text-muted-foreground">No grade</div>
                               )

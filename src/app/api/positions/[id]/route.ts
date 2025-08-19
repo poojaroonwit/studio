@@ -94,7 +94,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -113,6 +113,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({
       ...position,
       custom_attributes: position.customAttributes || {},
+      grade: position.gradeId ? {
+        id: position.gradeId,
+        name: position.gradeName,
+        label: position.gradeLabel,
+        slaDays: position.gradeSlaDays,
+        color: position.gradeColor
+      } : null,
     });
   } catch (error: any) {
     return NextResponse.json({ message: 'Error fetching position', error: error.message }, { status: 500 });

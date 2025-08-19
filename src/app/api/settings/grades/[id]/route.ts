@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const client = await getPool().connect();
   try {
     const query = `
-      SELECT id, name, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
+      SELECT id, name, label, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
       FROM "Grade"
       WHERE id = $1
     `;
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const client = await getPool().connect();
   try {
     const body = await request.json();
-    const { name, description, minLevel, maxLevel, slaDays, color, isActive, sortOrder } = body;
+    const { name, label, description, minLevel, maxLevel, slaDays, color, isActive, sortOrder } = body;
 
     // Validate required fields
     if (!name || minLevel === undefined || maxLevel === undefined || slaDays === undefined) {
@@ -57,13 +57,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     const query = `
       UPDATE "Grade"
-      SET name = $1, description = $2, "min_level" = $3, "max_level" = $4, "sla_days" = $5, color = $6, "is_active" = $7, "sort_order" = $8, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = $9
-      RETURNING id, name, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
+      SET name = $1, label = $2, description = $3, "min_level" = $4, "max_level" = $5, "sla_days" = $6, color = $7, "is_active" = $8, "sort_order" = $9, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $10
+      RETURNING id, name, label, description, "min_level" as "minLevel", "max_level" as "maxLevel", "sla_days" as "slaDays", color, "is_active" as "isActive", "sort_order" as "sortOrder", "createdAt", "updatedAt"
     `;
     
     const result = await client.query(query, [
-      name, description, minLevel, maxLevel, slaDays, color || '#3B82F6', isActive ?? true, sortOrder || 0, id
+      name, label, description, minLevel, maxLevel, slaDays, color || '#3B82F6', isActive ?? true, sortOrder || 0, id
     ]);
 
     if (result.rows.length === 0) {

@@ -1212,13 +1212,13 @@ export function SingleRowCandidateView({
 
   return (
     <div className="relative w-full">
-      {/* Left Navigation Button */}
-      {candidates.length > 1 && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+             {/* Left Navigation Button */}
+       {candidates.length > 1 && (
+         <Button
+           type="button"
+           variant="outline"
+           size="icon"
+           className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1236,13 +1236,13 @@ export function SingleRowCandidateView({
         </Button>
       )}
 
-      {/* Right Navigation Button */}
-      {candidates.length > 1 && (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg hover:shadow-xl transition-all duration-200"
+             {/* Right Navigation Button */}
+       {candidates.length > 1 && (
+         <Button
+           type="button"
+           variant="outline"
+           size="icon"
+           className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1572,29 +1572,27 @@ export function SingleRowKanbanView({
               </Badge>
             </div>
             
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevious}
-                disabled={filteredCandidates.length <= 1}
-                className="h-9 px-3"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNext}
-                disabled={filteredCandidates.length <= 1}
-                className="h-9 px-3"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+                         {/* Navigation Controls */}
+             <div className="flex items-center gap-2">
+               <Button
+                 variant="outline"
+                 size="icon"
+                 onClick={handlePrevious}
+                 disabled={filteredCandidates.length <= 1}
+                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+               >
+                 <ChevronLeft className="w-4 h-4" />
+               </Button>
+               <Button
+                 variant="outline"
+                 size="icon"
+                 onClick={handleNext}
+                 disabled={filteredCandidates.length <= 1}
+                 className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+               >
+                 <ChevronRight className="w-4 h-4" />
+               </Button>
+             </div>
           </div>
 
           {/* Candidate Card */}
@@ -2094,13 +2092,12 @@ export function HorizontalStageKanbanView({
         <div className="flex items-center justify-between mb-4">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={handleScrollLeft}
-            className="h-8 px-3"
+            className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
             disabled={scrollPosition <= 0}
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
+            <ChevronLeft className="w-4 h-4" />
           </Button>
           
           <div className="flex items-center gap-2">
@@ -2114,38 +2111,37 @@ export function HorizontalStageKanbanView({
 
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={handleScrollRight}
-            className="h-8 px-3"
+            className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            Next
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
 
       {/* Horizontal Scrollable Container */}
       <div className="relative">
-        {/* Left Scroll Button */}
-        {showScrollButtons && scrollPosition > 0 && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg"
-            onClick={handleScrollLeft}
-          >
+                 {/* Left Scroll Button */}
+         {showScrollButtons && scrollPosition > 0 && (
+           <Button
+             variant="outline"
+             size="icon"
+             className="absolute left-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
+             onClick={handleScrollLeft}
+           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
         )}
 
-        {/* Right Scroll Button */}
-        {showScrollButtons && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-background/95 backdrop-blur-sm border-border hover:bg-background shadow-lg"
-            onClick={handleScrollRight}
-          >
+                 {/* Right Scroll Button */}
+         {showScrollButtons && (
+           <Button
+             variant="outline"
+             size="icon"
+             className="absolute right-2 top-1/2 transform -translate-y-1/2 z-10 h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-0 shadow-lg"
+             onClick={handleScrollRight}
+           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         )}

@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'react-hot-toast';
 import { 
   BrainCircuit, 
@@ -20,7 +22,9 @@ import {
   RefreshCw,
   Download,
   FileDown,
-  ChevronDown
+  ChevronDown,
+  Save,
+  Edit
 } from 'lucide-react';
 
 interface SystemPrompt {
@@ -41,13 +45,15 @@ interface GenerativeAIModalProps {
   onOpenChange: (open: boolean) => void;
   candidateId?: string;
   candidateName?: string;
+  onRefresh?: () => void;
 }
 
 export function GenerativeAIModal({ 
   isOpen, 
   onOpenChange, 
   candidateId, 
-  candidateName 
+  candidateName,
+  onRefresh
 }: GenerativeAIModalProps) {
   const [systemPrompts, setSystemPrompts] = useState<SystemPrompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<SystemPrompt | null>(null);
@@ -55,6 +61,9 @@ export function GenerativeAIModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isSavingToAttachment, setIsSavingToAttachment] = useState(false);
+  const [showFileNameDialog, setShowFileNameDialog] = useState(false);
+  const [fileName, setFileName] = useState('');
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(systemPrompts.map(prompt => prompt.categoryName))];
@@ -129,8 +138,6 @@ export function GenerativeAIModal({
       setIsGenerating(false);
     }
   };
-
-
 
   const handleCopy = async () => {
     try {
@@ -227,16 +234,21 @@ export function GenerativeAIModal({
           </xml>
           <![endif]-->
           <style>
-            body { font-family: 'Times New Roman', serif; line-height: 1.6; }
-            h1, h2, h3 { color: #333; }
-            ul, ol { margin: 10px 0; }
+            body { font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif; line-height: 1.6; font-size: 11pt; }
+            h1, h2, h3 { color: #333; font-weight: 600; }
+            h1 { font-size: 18pt; margin: 20px 0 10px 0; }
+            h2 { font-size: 16pt; margin: 18px 0 8px 0; }
+            h3 { font-size: 14pt; margin: 16px 0 6px 0; }
+            ul, ol { margin: 10px 0; padding-left: 20px; }
             li { margin: 5px 0; }
             p { margin: 10px 0; }
-            table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+            table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 10pt; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            blockquote { border-left: 4px solid #ddd; margin: 10px 0; padding-left: 20px; }
-            code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; }
+            th { background-color: #f2f2f2; font-weight: 600; }
+            blockquote { border-left: 4px solid #ddd; margin: 10px 0; padding-left: 20px; font-style: italic; }
+            code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; }
+            strong { font-weight: 600; }
+            em { font-style: italic; }
           </style>
         </head>
         <body>
@@ -263,6 +275,69 @@ export function GenerativeAIModal({
     }
   };
 
+  const handleSaveToAttachment = async () => {
+    if (!candidateId || !generatedContent) {
+      toast.error('No content to save or candidate ID missing');
+      return;
+    }
+
+    // Generate default filename and show dialog
+    const timestamp = new Date().toISOString().split('T')[0];
+    const defaultFileName = selectedPrompt 
+      ? `${selectedPrompt.name}-${candidateName || 'Candidate'}-${timestamp}.doc`
+      : `AI-Generated-${candidateName || 'Candidate'}-${timestamp}.doc`;
+    
+    setFileName(defaultFileName);
+    setShowFileNameDialog(true);
+  };
+
+  const handleConfirmSaveToAttachment = async () => {
+    if (!fileName.trim()) {
+      toast.error('Please enter a filename');
+      return;
+    }
+
+    // Ensure filename has .doc extension
+    const finalFileName = fileName.trim().endsWith('.doc') ? fileName.trim() : `${fileName.trim()}.doc`;
+
+    try {
+      setIsSavingToAttachment(true);
+      
+      const response = await fetch('/api/ai/save-word-to-attachment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          candidateId,
+          content: generatedContent,
+          fileName: finalFileName,
+          promptName: selectedPrompt?.name || 'Generated Content'
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success('Word document saved to candidate attachments successfully');
+        // Refresh the candidate detail to show the new attachment
+        if (onRefresh) {
+          onRefresh();
+        }
+        setShowFileNameDialog(false);
+        handleClose();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to save to attachments');
+      }
+    } catch (error) {
+      console.error('Error saving to attachment:', error);
+      toast.error('Failed to save to attachments');
+    } finally {
+      setIsSavingToAttachment(false);
+    }
+  };
+
   const filteredPrompts = systemPrompts.filter(prompt => {
     return selectedCategory === 'all' || prompt.categoryName === selectedCategory;
   });
@@ -270,116 +345,120 @@ export function GenerativeAIModal({
   const handleClose = () => {
     setSelectedPrompt(null);
     setGeneratedContent('');
+    setIsSavingToAttachment(false);
+    setShowFileNameDialog(false);
+    setFileName('');
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] h-full flex flex-col overflow-visible">
-                 <div className="flex items-start justify-between mb-4">
-           <div>
-             <DialogTitle className="flex items-center gap-2">
-               <BrainCircuit className="h-5 w-5" />
-               Generative AI Assistant
-             </DialogTitle>
-             <DialogDescription>
-               Select a system prompt and generate AI-powered content for {candidateName || 'the candidate'}.
-             </DialogDescription>
-           </div>
-           <div className="flex items-center gap-2">
-             <Button
-               variant="ghost"
-               size="sm"
-               onClick={handleClose}
-               className="h-8 w-8 p-0"
-             >
-               <X className="h-4 w-4" />
-               <span className="sr-only">Close</span>
-             </Button>
-           </div>
-         </div>
-
-        <div className="flex flex-1 min-h-0 gap-6">
-          {/* Left Panel - System Prompts */}
-          <div className="w-1/3 flex flex-col border-r pr-6 min-h-0">
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">Filter by Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
-              >
-                <option value="all">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-7xl max-h-[90vh] h-full flex flex-col overflow-visible">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5" />
+                Generative AI Assistant
+              </DialogTitle>
+              <DialogDescription>
+                Select a system prompt and generate AI-powered content for {candidateName || 'the candidate'}.
+              </DialogDescription>
             </div>
-
-            <div className="flex-1 overflow-y-auto space-y-3">
-              {isLoadingPrompts ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : filteredPrompts.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No system prompts found</p>
-                </div>
-              ) : (
-                filteredPrompts.map((prompt) => (
-                  <Card 
-                    key={prompt.id} 
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedPrompt?.id === prompt.id 
-                        ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500' 
-                        : ''
-                    }`}
-                    onClick={() => setSelectedPrompt(prompt)}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <Sparkles className="h-3 w-3 text-primary" />
-                            {prompt.name}
-                          </CardTitle>
-                          <CardDescription className="text-xs mt-1">
-                            {prompt.description}
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {prompt.categoryName}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={prompt.isActive ? "default" : "secondary"} className="text-xs">
-                          {prompt.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
             </div>
           </div>
 
-                     {/* Right Panel - Generated Content */}
-           <div className="flex-1 flex flex-col min-h-0">
-             <div className="mb-4">
-               <div className="flex items-center justify-between mb-2">
-                 <h3 className="text-sm font-medium">Generated Content</h3>
-                 <div className="flex items-center gap-2">
-                   {selectedPrompt && (
-                     <Badge variant="secondary" className="text-xs">
-                       Using: {selectedPrompt.name}
-                     </Badge>
-                   )}
-                 </div>
-               </div>
-               
+          <div className="flex flex-1 min-h-0 gap-6">
+            {/* Left Panel - System Prompts */}
+            <div className="w-1/3 flex flex-col border-r pr-6 min-h-0">
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-2 block">Filter by Category</label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3">
+                {isLoadingPrompts ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : filteredPrompts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No system prompts found</p>
+                  </div>
+                ) : (
+                  filteredPrompts.map((prompt) => (
+                    <Card 
+                      key={prompt.id} 
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedPrompt?.id === prompt.id 
+                          ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500' 
+                          : ''
+                      }`}
+                      onClick={() => setSelectedPrompt(prompt)}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <Sparkles className="h-3 w-3 text-primary" />
+                              {prompt.name}
+                            </CardTitle>
+                            <CardDescription className="text-xs mt-1">
+                              {prompt.description}
+                            </CardDescription>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {prompt.categoryName}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={prompt.isActive ? "default" : "secondary"} className="text-xs">
+                            {prompt.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel - Generated Content */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium">Generated Content</h3>
+                  <div className="flex items-center gap-2">
+                    {selectedPrompt && (
+                      <Badge variant="secondary" className="text-xs">
+                        Using: {selectedPrompt.name}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleGenerate} 
@@ -422,6 +501,13 @@ export function GenerativeAIModal({
                             <FileDown className="h-4 w-4 mr-2" />
                             Download as Word
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={handleSaveToAttachment}
+                            disabled={isSavingToAttachment}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Save to Attachments
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <Button 
@@ -436,26 +522,81 @@ export function GenerativeAIModal({
                     </>
                   )}
                 </div>
-             </div>
+              </div>
 
-            <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
-              <TiptapEditor
-                value={generatedContent}
-                onChange={setGeneratedContent}
-                placeholder="Generated content will appear here..."
-                className="flex-1 h-full"
-                readOnly={false}
-              />
+              <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
+                <TiptapEditor
+                  value={generatedContent}
+                  onChange={setGeneratedContent}
+                  placeholder="Generated content will appear here..."
+                  className="flex-1 h-full"
+                  readOnly={false}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-                 <DialogFooter>
-           <Button variant="outline" onClick={handleClose}>
-             Close
-           </Button>
-         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Filename Edit Dialog */}
+      <Dialog open={showFileNameDialog} onOpenChange={setShowFileNameDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Filename
+            </DialogTitle>
+            <DialogDescription>
+              Customize the filename before saving to candidate attachments.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename">Filename</Label>
+              <Input
+                id="filename"
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder="Enter filename..."
+                className="w-full"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                The file will be saved as a Word document (.doc)
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFileNameDialog(false)}
+              disabled={isSavingToAttachment}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmSaveToAttachment}
+              disabled={isSavingToAttachment || !fileName.trim()}
+              className="flex items-center gap-2"
+            >
+              {isSavingToAttachment ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              {isSavingToAttachment ? 'Saving...' : 'Save to Attachments'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

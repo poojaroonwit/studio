@@ -285,6 +285,256 @@ export function getSwaggerSpec() {
           }
         }
       },
+      '/api/test-notification': {
+        post: {
+          summary: 'Test notification system',
+          description: 'Send test notifications to verify the notification system is working. Only available to admin users.',
+          tags: ['Notifications'],
+          security: [{ sessionAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: ['recruiter_assigned', 'candidate_added', 'candidate_status_change'],
+                      description: 'Type of notification to test'
+                    },
+                    message: {
+                      type: 'string',
+                      description: 'Additional message for the test notification'
+                    }
+                  },
+                  required: ['type', 'message']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Test notification sent successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      message: { type: 'string' },
+                      notification: { $ref: '#/components/schemas/Notification' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid notification type or missing fields' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden: Only admins can test notifications' },
+            '500': { description: 'Failed to send test notification' }
+          }
+        }
+      },
+      '/api/realtime/notifications': {
+        get: {
+          summary: 'Get user notifications',
+          description: 'Retrieve notifications for the authenticated user',
+          tags: ['Notifications'],
+          security: [{ sessionAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', description: 'Number of notifications to return', schema: { type: 'integer', default: 50 } },
+            { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0 } },
+            { name: 'isRead', in: 'query', description: 'Filter by read status', schema: { type: 'boolean' } }
+          ],
+          responses: {
+            '200': {
+              description: 'List of notifications',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      notifications: { type: 'array', items: { $ref: '#/components/schemas/Notification' } },
+                      total: { type: 'integer' },
+                      unreadCount: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' }
+          }
+        },
+        post: {
+          summary: 'Create a notification',
+          description: 'Create a new notification for a user',
+          tags: ['Notifications'],
+          security: [{ sessionAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    type: { type: 'string', description: 'Notification type' },
+                    title: { type: 'string', description: 'Notification title' },
+                    message: { type: 'string', description: 'Notification message' },
+                    targetUserId: { type: 'string', description: 'Target user ID (optional, defaults to current user)' },
+                    data: { type: 'object', description: 'Additional data for the notification' }
+                  },
+                  required: ['type', 'title', 'message']
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Notification created successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      notification: { $ref: '#/components/schemas/Notification' }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Missing required fields' },
+            '401': { description: 'Unauthorized' }
+          }
+        }
+      },
+      '/api/v1/notifications': {
+        get: {
+          summary: 'Get user notifications (v1 API)',
+          description: 'Retrieve notifications for the authenticated user with pagination and filtering. Requires Bearer token authentication.',
+          tags: ['V1 Notifications'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', description: 'Number of notifications to return', schema: { type: 'integer', default: 50, minimum: 1, maximum: 100 } },
+            { name: 'offset', in: 'query', description: 'Offset for pagination', schema: { type: 'integer', default: 0, minimum: 0 } },
+            { name: 'isRead', in: 'query', description: 'Filter by read status', schema: { type: 'boolean' } }
+          ],
+          responses: {
+            '200': {
+              description: 'List of notifications',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      notifications: { type: 'array', items: { $ref: '#/components/schemas/Notification' } },
+                      total: { type: 'integer' },
+                      unreadCount: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      offset: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' }
+          }
+        },
+        post: {
+          summary: 'Send custom notification (v1 API)',
+          description: 'Send a custom notification to a specific user or to the current user. Supports both single and bulk notifications. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          tags: ['V1 Notifications'],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  oneOf: [
+                    {
+                      type: 'object',
+                      properties: {
+                        type: { type: 'string', description: 'Notification type' },
+                        title: { type: 'string', description: 'Notification title' },
+                        message: { type: 'string', description: 'Notification message' },
+                        targetUserId: { type: 'string', format: 'uuid', description: 'Target user ID (optional, defaults to current user)' },
+                        data: { type: 'object', description: 'Additional data for the notification' }
+                      },
+                      required: ['type', 'title', 'message'],
+                      description: 'Single notification'
+                    },
+                    {
+                      type: 'object',
+                      properties: {
+                        notifications: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              type: { type: 'string', description: 'Notification type' },
+                              title: { type: 'string', description: 'Notification title' },
+                              message: { type: 'string', description: 'Notification message' },
+                              targetUserId: { type: 'string', format: 'uuid', description: 'Target user ID' },
+                              data: { type: 'object', description: 'Additional data for the notification' }
+                            },
+                            required: ['type', 'title', 'message', 'targetUserId']
+                          },
+                          minItems: 1,
+                          maxItems: 100,
+                          description: 'Array of notifications to send'
+                        }
+                      },
+                      required: ['notifications'],
+                      description: 'Bulk notifications'
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Notification(s) sent successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    oneOf: [
+                      {
+                        type: 'object',
+                        properties: {
+                          message: { type: 'string' },
+                          notification: { $ref: '#/components/schemas/Notification' }
+                        },
+                        description: 'Single notification response'
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          message: { type: 'string' },
+                          results: {
+                            type: 'object',
+                            properties: {
+                              sent: { type: 'integer' },
+                              failed: { type: 'integer' },
+                              errors: { type: 'array', items: { type: 'string' } }
+                            }
+                          }
+                        },
+                        description: 'Bulk notification response'
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid input or missing fields' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '500': { description: 'Error sending notification' }
+          }
+        }
+      },
       '/api/v1/candidates': {
         get: {
           summary: 'Get all candidates (v1 API)',
@@ -321,7 +571,7 @@ export function getSwaggerSpec() {
         },
         post: {
           summary: 'Create a new candidate (v1 API)',
-          description: 'Creates a new candidate with structured education and experience data. Supports both legacy period strings and new structured date fields.',
+          description: 'Creates a new candidate with structured education and experience data. Supports both legacy period strings and new structured date fields. Automatically assigns recruiter from position and sends notification to the assigned recruiter.',
           tags: ['V1 Candidates'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -565,7 +815,7 @@ export function getSwaggerSpec() {
       '/api/v1/candidates/import': {
         post: {
           summary: 'Import candidates from CSV/Excel file (v1 API)',
-          description: 'Bulk import candidates from CSV or Excel files. Supports both file upload and JSON format. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          description: 'Bulk import candidates from CSV or Excel files. Supports both file upload and JSON format. Automatically assigns recruiters from positions and sends notifications to assigned recruiters. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
           tags: ['V1 Import/Export', 'V1 Candidates'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -700,7 +950,7 @@ export function getSwaggerSpec() {
       '/api/v1/candidates/bulk-upload-cv': {
         post: {
           summary: 'Upload CV file to queue for processing (v1 API)',
-          description: 'Upload a single CV file (PDF) to the upload queue for automated processing. The file will be processed through webhook automation to extract candidate information and create candidate records. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+          description: 'Upload a single CV file (PDF) to the upload queue for automated processing. The file will be processed through webhook automation to extract candidate information and create candidate records. Supports source tracking via the optional sourceId parameter. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
           tags: ['V1 Candidates', 'V1 Upload Queue'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -719,6 +969,11 @@ export function getSwaggerSpec() {
                       type: 'string',
                       format: 'uuid',
                       description: 'ID of the target position for this candidate'
+                    },
+                    sourceId: {
+                      type: 'string',
+                      format: 'uuid',
+                      description: 'ID of the candidate source (optional)'
                     }
                   },
                   required: ['file', 'positionId']
@@ -745,7 +1000,14 @@ export function getSwaggerSpec() {
                           source: { type: 'string' },
                           upload_id: { type: 'string', format: 'uuid' },
                           file_path: { type: 'string' },
-                          webhook_payload: { type: 'object', additionalProperties: true },
+                          webhook_payload: { 
+                            type: 'object', 
+                            properties: {
+                              targetPositionId: { type: 'string', format: 'uuid' },
+                              sourceId: { type: 'string', format: 'uuid', nullable: true }
+                            },
+                            additionalProperties: true 
+                          },
                           created_by: { type: 'string', format: 'uuid' },
                           upload_date: { type: 'string', format: 'date-time' }
                         }
@@ -807,6 +1069,8 @@ export function getSwaggerSpec() {
                     customAttributes: { type: 'object', additionalProperties: true, nullable: true },
                     resumePath: { type: 'string', nullable: true },
                     transitionNotes: { type: 'string', nullable: true },
+                    sourceId: { type: 'string', format: 'uuid', nullable: true },
+                    subSource: { type: 'string', nullable: true },
                     // New candidate_info format
                     candidate_info: {
                       type: 'object',
@@ -899,6 +1163,13 @@ export function getSwaggerSpec() {
                           matchReasons: ['Strong technical skills', 'Relevant experience']
                         }
                       ]
+                    }
+                  },
+                  'source_update_example': {
+                    summary: 'Update Source Only',
+                    value: {
+                      sourceId: '456e7890-e89b-12d3-a456-426614174000',
+                      subSource: 'LinkedIn Premium'
                     }
                   },
                   'detailed_update_example': {
@@ -1793,7 +2064,7 @@ export function getSwaggerSpec() {
       '/api/v1/candidates/bulk-action': {
         post: {
           summary: 'Bulk action on candidates (v1 API)',
-          description: 'Perform bulk operations on candidates.',
+          description: 'Perform bulk operations on candidates. When using assign_position action, automatically assigns recruiters from positions and sends notifications to assigned recruiters.',
           tags: ['V1 Bulk Actions', 'V1 Candidates'],
           requestBody: {
             required: true,
@@ -1897,7 +2168,190 @@ export function getSwaggerSpec() {
           }
         }
       },
+      '/api/v1/candidates/{id}/source': {
+        get: {
+          summary: 'Get candidate source information (v1 API)',
+          description: 'Returns the current source information for a specific candidate. Requires Bearer token authentication.',
+          tags: ['V1 Candidates', 'V1 Source Management'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          responses: {
+            '200': {
+              description: 'Candidate source information',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      candidateId: { type: 'string', format: 'uuid' },
+                      candidateName: { type: 'string' },
+                      sourceId: { type: 'string', format: 'uuid', nullable: true },
+                      subSource: { type: 'string', nullable: true },
+                      source: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          name: { type: 'string' },
+                          description: { type: 'string', nullable: true },
+                          logo: { type: 'string', format: 'uri', nullable: true }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '404': { description: 'Candidate not found' }
+          }
+        },
+        put: {
+          summary: 'Update candidate source (v1 API)',
+          description: 'Updates the source information for a specific candidate. Only the fields you want to update need to be included in the request. Requires Bearer token authentication and Admin or CANDIDATES_MANAGE permission.',
+          tags: ['V1 Candidates', 'V1 Source Management'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'id', in: 'path', required: true, description: 'Candidate ID', schema: { type: 'string', format: 'uuid' } }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    sourceId: { type: 'string', format: 'uuid', nullable: true, description: 'Source ID to assign to candidate' },
+                    subSource: { type: 'string', nullable: true, description: 'Optional sub-source information' }
+                  }
+                },
+                examples: {
+                  'assign_source_example': {
+                    summary: 'Assign Source',
+                    value: {
+                      sourceId: '456e7890-e89b-12d3-a456-426614174000',
+                      subSource: 'LinkedIn Premium'
+                    }
+                  },
+                  'remove_source_example': {
+                    summary: 'Remove Source',
+                    value: {
+                      sourceId: null,
+                      subSource: null
+                    }
+                  },
+                  'update_subsource_example': {
+                    summary: 'Update Sub-source Only',
+                    value: {
+                      subSource: 'LinkedIn Premium'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': {
+              description: 'Candidate source updated successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      message: { type: 'string' },
+                      candidateId: { type: 'string', format: 'uuid' },
+                      candidateName: { type: 'string' },
+                      sourceId: { type: 'string', format: 'uuid', nullable: true },
+                      subSource: { type: 'string', nullable: true },
+                      source: {
+                        type: 'object',
+                        nullable: true,
+                        properties: {
+                          id: { type: 'string', format: 'uuid' },
+                          name: { type: 'string' },
+                          description: { type: 'string', nullable: true },
+                          logo: { type: 'string', format: 'uri', nullable: true }
+                        }
+                      },
+                      changes: {
+                        type: 'object',
+                        properties: {
+                          sourceId: {
+                            type: 'object',
+                            properties: {
+                              from: { type: 'string', format: 'uuid', nullable: true },
+                              to: { type: 'string', format: 'uuid', nullable: true }
+                            }
+                          },
+                          subSource: {
+                            type: 'object',
+                            properties: {
+                              from: { type: 'string', nullable: true },
+                              to: { type: 'string', nullable: true }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '400': { description: 'Invalid input data' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions' },
+            '404': { description: 'Candidate not found' }
+          }
+        }
+      },
       '/api/v1/users': {
+        get: {
+          summary: 'Get all users (v1 API)',
+          description: 'Returns a paginated list of users. Requires Admin role and Bearer token authentication.',
+          tags: ['V1 Users'],
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: 'page', in: 'query', description: 'Page number for pagination', schema: { type: 'integer', default: 1, minimum: 1 } },
+            { name: 'limit', in: 'query', description: 'Number of items per page', schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 } },
+            { name: 'role', in: 'query', description: 'Filter by user role', schema: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] } },
+            { name: 'searchTerm', in: 'query', description: 'Search term for name or email', schema: { type: 'string' } }
+          ],
+          responses: {
+            '200': {
+              description: 'List of users',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      users: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            email: { type: 'string', format: 'email' },
+                            role: { type: 'string', enum: ['Admin', 'Recruiter', 'User'] },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      total: { type: 'integer' },
+                      page: { type: 'integer' },
+                      limit: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Insufficient permissions - Admin role required' }
+          }
+        },
         post: {
           summary: 'Create a new user (v1 API)',
           description: 'Creates a new user. Requires Admin role.',
@@ -2622,6 +3076,52 @@ export function getSwaggerSpec() {
             '500': { description: 'Internal server error' }
           }
         }
+      },
+      '/api/v1/candidate-sources': {
+        get: {
+          summary: 'Get all candidate sources (V1 API)',
+          description: 'Returns all candidate sources ordered by sort order and name. Requires Bearer token authentication.',
+          tags: ['V1 Settings'],
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'List of candidate sources',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            name: { type: 'string' },
+                            description: { type: 'string', nullable: true },
+                            logo: { type: 'string', nullable: true },
+                            allowSubSource: { type: 'boolean' },
+                            sortOrder: { type: 'integer' },
+                            isActive: { type: 'boolean' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' }
+                          }
+                        }
+                      },
+                      timestamp: { type: 'string', format: 'date-time' },
+                      path: { type: 'string' },
+                      method: { type: 'string' },
+                      statusCode: { type: 'integer' }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized - Invalid or missing Bearer token' },
+            '500': { description: 'Internal server error' }
+          }
+        }
       }
     },
     components: {
@@ -3146,7 +3646,9 @@ export function getSwaggerSpec() {
       { name: 'V1 Health', description: 'Health check endpoints' },
       { name: 'V1 Bulk Actions', description: 'Bulk actions for positions and candidates' },
       { name: 'V1 Import/Export', description: 'Import/export templates and actions' },
-      { name: 'V1 Users', description: 'External API for users' }
+      { name: 'V1 Users', description: 'External API for users' },
+      { name: 'V1 Notifications', description: 'External API for notifications' },
+      { name: 'Notifications', description: 'Notification system endpoints' }
     ]
   };
 }

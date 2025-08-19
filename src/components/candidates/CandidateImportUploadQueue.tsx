@@ -1336,11 +1336,6 @@ export const CandidateImportUploadQueue: React.FC<{
                         <Eye className="h-4 w-4 text-primary" />
                       </Button>
                       {(item.status === "error" || item.status === "fail") && (
-                        <Button variant="ghost" size="icon" onClick={() => setShowErrorLogId(item.id)} title="View error log">
-                          <Eye className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                      {(item.status === "error" || item.status === "fail") && (
                         <Button
                           variant="ghost"
                           size="icon"

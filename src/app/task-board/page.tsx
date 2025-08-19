@@ -353,7 +353,7 @@ function TaskBoardContent() {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <div className="bg-card border-b border-border shadow-sm">
+      <div className="bg-card border-b border-border shadow-sm sticky top-0 z-20">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">

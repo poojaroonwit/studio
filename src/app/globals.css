@@ -701,6 +701,13 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
     border-radius: 9999px !important;
   }
 
+  /* Ensure navigation buttons with rounded-full are always circular */
+  button.rounded-full,
+  .btn.rounded-full,
+  [role="button"].rounded-full {
+    border-radius: 9999px !important;
+  }
+
   /* Ensure rounded-sm class works */
   .rounded-sm {
     border-radius: 0.125rem !important;

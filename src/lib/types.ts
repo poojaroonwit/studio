@@ -296,6 +296,7 @@ export interface OldParsedResumeData {
 export interface Grade {
   id: string;
   name: string;
+  label?: string | null;
   description?: string | null;
   minLevel: number;
   maxLevel: number;

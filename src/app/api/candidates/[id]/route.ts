@@ -103,12 +103,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const client = await getPool().connect();
   try {
-    // Get candidate with position and recruiter info
+    // Get candidate with position, recruiter, and source info
     const candidateQuery = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+             cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1::uuid;
     `;
     const candidateResult = await client.query(candidateQuery, [id]);
@@ -150,6 +152,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         department: candidate.positionDepartment || null
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
+      source: candidate.sourceId ? {
+        id: candidate.sourceId,
+        name: candidate.sourceName,
+        description: candidate.sourceDescription,
+        logo: candidate.sourceLogo
+      } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
         fitScore: match.fitScore,
@@ -381,6 +389,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     console.log('Update values:', updateValues);
 
     const updateResult = await client.query(updateQuery, updateValues);
+    
+    // Fetch updated candidate with source information
+    const updatedCandidateWithSource = await client.query(`
+      SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+      FROM "Candidate" c
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      WHERE c.id = $1
+    `, [id]);
+    
+    const candidateWithSource = updatedCandidateWithSource.rows[0];
 
     // --- Recruiter change detection ---
     let recruiterChanged = false;
@@ -403,7 +421,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Create transition record if status changed
     if (status !== undefined && oldStatus !== status) {
       let safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
-      const transitionMessage = `Status changed from ${oldStatus} to ${status}` + (transitionNotes ? `\nNote: ${transitionNotes}` : '');
+      // Only store custom transition notes, not the redundant status change message
+      const transitionMessage = transitionNotes || null;
       const newTransitionId = uuidv4();
       
       // Validate positionId before creating transition record
@@ -549,14 +568,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
     
-    // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
-    const candidateResult = await client.query(`
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" r ON c."recruiterId" = r.id
-      WHERE c.id = $1::uuid;
-    `, [id]);
+         // After update, re-fetch the candidate using the same logic as GET to ensure response structure is identical
+     const candidateResult = await client.query(`
+       SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+              cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+       FROM "Candidate" c
+       LEFT JOIN "Position" p ON c."positionId" = p.id
+       LEFT JOIN "User" r ON c."recruiterId" = r.id
+       LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+       WHERE c.id = $1::uuid;
+     `, [id]);
     
     if (candidateResult.rows.length === 0) {
       throw new Error('Candidate not found after update');
@@ -611,6 +632,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         department: candidate.positionDepartment || null
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
+      source: candidate.sourceId ? {
+        id: candidate.sourceId,
+        name: candidate.sourceName,
+        description: candidate.sourceDescription,
+        logo: candidate.sourceLogo
+      } : null,
       jobMatches: jobMatchesResult.rows || [],
       attachmentHistory: attachmentsResult.rows || [],
       recruiterSync: syncResult

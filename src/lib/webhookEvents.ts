@@ -131,6 +131,15 @@ export class WebhookEvents {
   }
 
   static async uploadQueueFailed(uploadQueue: any, error: string): Promise<void> {
+    // Extract source information from webhook payload if available
+    let sourceInfo = null;
+    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
+      sourceInfo = {
+        sourceId: uploadQueue.webhook_payload.sourceId || null,
+        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
+      };
+    }
+
     await WebhookService.sendWebhooks('upload_queue.failed', {
       upload_queue: {
         id: uploadQueue.id,
@@ -140,13 +149,23 @@ export class WebhookEvents {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt,
+        source: sourceInfo // Include source information in webhook payload
       },
       error: error
     });
   }
 
   static async uploadQueueRetry(uploadQueue: any, attempt: number): Promise<void> {
+    // Extract source information from webhook payload if available
+    let sourceInfo = null;
+    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
+      sourceInfo = {
+        sourceId: uploadQueue.webhook_payload.sourceId || null,
+        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
+      };
+    }
+
     await WebhookService.sendWebhooks('upload_queue.retry', {
       upload_queue: {
         id: uploadQueue.id,
@@ -156,7 +175,8 @@ export class WebhookEvents {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt,
+        source: sourceInfo // Include source information in webhook payload
       },
       retry: {
         attempt: attempt,

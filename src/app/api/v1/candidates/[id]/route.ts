@@ -31,6 +31,8 @@ const updateCandidateSchema = z.object({
   resumePath: z.string().optional().nullable(),
   transitionNotes: z.string().optional().nullable(),
   avatarUrl: z.string().optional().nullable(),
+  sourceId: z.string().uuid().nullable().optional(),
+  subSource: z.string().optional().nullable(),
   
   // New candidate_info format
   candidate_info: z.object({
@@ -82,10 +84,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const client = await getPool().connect();
   try {
     const candidateQuery = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+             cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
       LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
       WHERE c.id = $1;
     `;
     const candidateResult = await client.query(candidateQuery, [id]);
@@ -123,6 +127,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         department: candidate.positionDepartment
       } : null,
       recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
+      source: candidate.sourceId ? {
+        id: candidate.sourceId,
+        name: candidate.sourceName,
+        description: candidate.sourceDescription,
+        logo: candidate.sourceLogo
+      } : null,
       jobMatches: jobMatchesResult.rows.map(match => ({
         ...match,
         fitScore: match.fitScore,
@@ -235,6 +245,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (updateData.avatarUrl !== undefined) {
       updateFields.push(`"avatarUrl" = $${paramIndex++}`);
       updateValues.push(updateData.avatarUrl);
+    }
+    
+    if (updateData.sourceId !== undefined) {
+      updateFields.push(`"sourceId" = $${paramIndex++}`);
+      updateValues.push(updateData.sourceId);
+    }
+    
+    if (updateData.subSource !== undefined) {
+      updateFields.push(`"subSource" = $${paramIndex++}`);
+      updateValues.push(updateData.subSource);
     }
     
     // Handle new candidate_info format
@@ -417,11 +437,28 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
     
     await logAudit('AUDIT', `Candidate '${updatedCandidate.name}' updated by ${user.name}.`, 'API:V1:Candidates:Update', user.id, { candidateId: id, updatedFields: updateData });
+    
+    // Fetch updated candidate with source information for response
+    const updatedCandidateWithSource = await client.query(`
+      SELECT c.*, cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
+      FROM "Candidate" c
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      WHERE c.id = $1
+    `, [id]);
+    
+    const candidateWithSource = updatedCandidateWithSource.rows[0];
+    
     return createSuccessResponse(req, {
       message: 'Candidate updated successfully',
       candidate: {
-        ...updatedCandidate,
-        custom_attributes: updatedCandidate.customAttributes || {},
+        ...candidateWithSource,
+        custom_attributes: candidateWithSource.customAttributes || {},
+        source: candidateWithSource.sourceId ? {
+          id: candidateWithSource.sourceId,
+          name: candidateWithSource.sourceName,
+          description: candidateWithSource.sourceDescription,
+          logo: candidateWithSource.sourceLogo
+        } : null,
       },
       updated_fields: Object.keys(updateData).filter(key => updateData[key as keyof typeof updateData] !== undefined)
     }, 200);

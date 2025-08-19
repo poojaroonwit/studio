@@ -64,7 +64,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     preferences.viewMode
   ]);
 
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>(memoizedPreferences.viewMode);
+  // Initialize viewMode with a ref to track if it's been set from preferences
+  const viewModeInitializedRef = useRef(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban'); // Default to kanban
   const [filters, setFilters] = useState<any>({});
   const [candidates, setCandidates] = useState<any[]>([]);
   const [stages, setStages] = useState<any[]>([]);
@@ -73,7 +75,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedStages, setSelectedStages] = useState<string[]>(memoizedPreferences.selectedStages);
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [isStageFilterOpen, setIsStageFilterOpen] = useState(false);
   const [isCardSettingsOpen, setIsCardSettingsOpen] = useState(false);
   const [showNetworkDiagnostics, setShowNetworkDiagnostics] = useState(false);
@@ -83,6 +85,13 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   
   // Add debouncing for search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add debouncing for preference updates to prevent rapid changes
+  const preferenceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedPreferencesRef = useRef<{ viewMode: string; selectedStages: string[] }>({ 
+    viewMode: 'kanban', 
+    selectedStages: [] 
+  });
 
   // Real-time collaboration hook
   const { isConnected: realtimeConnected } = useRealtimeCollaboration({
@@ -113,31 +122,92 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     }
   });
 
-
-
   // Permission check: can view all recruiters?
   const canViewAllRecruiters = userSession?.role === 'Admin';
 
-  // Update local state when preferences are loaded
+  // Update local state when preferences are loaded - only once
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && !viewModeInitializedRef.current) {
+      viewModeInitializedRef.current = true;
+      console.log('🔄 Initializing view mode from preferences:', memoizedPreferences.viewMode);
       setViewMode(memoizedPreferences.viewMode);
       setSelectedStages(memoizedPreferences.selectedStages);
+      // Update the last saved preferences to match what we just loaded
+      lastSavedPreferencesRef.current = {
+        viewMode: memoizedPreferences.viewMode,
+        selectedStages: memoizedPreferences.selectedStages
+      };
     }
   }, [isLoaded, memoizedPreferences.viewMode, memoizedPreferences.selectedStages]);
 
   // Update preferences when local state changes, but only if they differ from current preferences
+  // and only after the initial load is complete
   useEffect(() => {
-    if (isLoaded && (
-      viewMode !== memoizedPreferences.viewMode ||
-      JSON.stringify(selectedStages) !== JSON.stringify(memoizedPreferences.selectedStages)
-    )) {
-      updateTaskBoardPreferences({
+    if (isLoaded && viewModeInitializedRef.current) {
+      const currentPreferences = {
         viewMode,
-        selectedStages,
-      });
+        selectedStages: JSON.stringify(selectedStages)
+      };
+      const lastSaved = {
+        viewMode: lastSavedPreferencesRef.current.viewMode,
+        selectedStages: JSON.stringify(lastSavedPreferencesRef.current.selectedStages)
+      };
+      
+      // Only update if preferences actually changed
+      if (currentPreferences.viewMode !== lastSaved.viewMode || 
+          currentPreferences.selectedStages !== lastSaved.selectedStages) {
+        
+        console.log('🔄 View mode changed, updating preferences:', {
+          from: lastSaved.viewMode,
+          to: currentPreferences.viewMode,
+          selectedStages: selectedStages
+        });
+        
+        // Clear any existing timeout
+        if (preferenceUpdateTimeoutRef.current) {
+          clearTimeout(preferenceUpdateTimeoutRef.current);
+        }
+        
+        // Debounce the preference update
+        preferenceUpdateTimeoutRef.current = setTimeout(() => {
+          console.log('💾 Saving view mode preference:', currentPreferences.viewMode);
+          updateTaskBoardPreferences({
+            viewMode,
+            selectedStages,
+          });
+          // Update the last saved preferences
+          lastSavedPreferencesRef.current = {
+            viewMode,
+            selectedStages: [...selectedStages]
+          };
+        }, 300); // 300ms debounce
+      }
     }
-  }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences, memoizedPreferences.viewMode, memoizedPreferences.selectedStages]);
+  }, [viewMode, selectedStages, isLoaded, updateTaskBoardPreferences]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      if (preferenceUpdateTimeoutRef.current) {
+        clearTimeout(preferenceUpdateTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Manual view mode toggle handler
+  const handleViewModeChange = useCallback((newViewMode: 'kanban' | 'table') => {
+    // Prevent changes during initial load
+    if (!isLoaded || !viewModeInitializedRef.current) {
+      console.log('⚠️ View mode change blocked during initial load');
+      return;
+    }
+    
+    console.log('🎯 Manual view mode change:', { from: viewMode, to: newViewMode });
+    setViewMode(newViewMode);
+  }, [viewMode, isLoaded]);
 
   // Fetch stages, recruiters, positions on mount
   useEffect(() => {
@@ -711,16 +781,38 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
               </Button>
 
               {/* View Mode Toggle */}
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
-                <TabsList className="grid w-auto grid-cols-2 h-9">
-                  <TabsTrigger value="kanban" className="text-xs px-2">
-                    <Kanban className="w-4 h-4" />
-                  </TabsTrigger>
-                  <TabsTrigger value="table" className="text-xs px-2">
-                    <List className="w-4 h-4" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex items-center gap-2">
+                <Tabs 
+                  value={viewMode} 
+                  onValueChange={handleViewModeChange} 
+                  className="w-auto"
+                  disabled={!isLoaded || !viewModeInitializedRef.current}
+                >
+                  <TabsList className="grid w-auto grid-cols-2 h-9">
+                    <TabsTrigger value="kanban" className="text-xs px-2">
+                      <Kanban className="w-4 h-4" />
+                    </TabsTrigger>
+                    <TabsTrigger value="table" className="text-xs px-2">
+                      <List className="w-4 h-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                
+                {/* Debug indicator - only show in development */}
+                {/* {process.env.NODE_ENV === 'development' && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      isLoaded && viewModeInitializedRef.current ? "bg-green-500" : "bg-yellow-500"
+                    )} />
+                    <span>
+                      {!isLoaded ? "Loading..." : 
+                       !viewModeInitializedRef.current ? "Syncing..." : 
+                       "Ready"}
+                    </span>
+                  </div>
+                )} */}
+              </div>
 
               {/* Network Diagnostics Button (shown when there are network errors) */}
               {hasNetworkError && (

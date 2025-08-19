@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file');
     const positionId = formData.get('positionId');
+    const sourceId = formData.get('sourceId'); // Add sourceId parameter
 
     if (!file || typeof file === 'string') {
       return new Response(JSON.stringify({ error: 'No file uploaded' }), { status: 400, headers: handleCors(req) });
@@ -84,7 +85,12 @@ export async function POST(req: NextRequest) {
     });
   }
   
-  // Prepare upload queue job
+  // Prepare upload queue job with source information
+  const webhookPayload = { 
+    targetPositionId: positionId,
+    sourceId: sourceId || null // Include sourceId in webhook payload
+  };
+
   const uploadQueueJob = {
     file_name: file.name,
     file_size: buffer.length,
@@ -92,7 +98,7 @@ export async function POST(req: NextRequest) {
     source: 'bulk',
     upload_id: uploadId,
     file_path: objectName, // Store only the object name, not the full URL
-    webhook_payload: { targetPositionId: positionId },
+    webhook_payload: webhookPayload,
   };
 
   // Add to upload queue directly (no internal HTTP call)
@@ -115,7 +121,8 @@ export async function POST(req: NextRequest) {
         status: uploadQueueJob.status,
         source: uploadQueueJob.source,
         uploadId: uploadQueueJob.upload_id,
-        filePath: uploadQueueJob.file_path
+        filePath: uploadQueueJob.file_path,
+        sourceId: webhookPayload.sourceId // Log sourceId for debugging
       });
 
       // Note: Removed upload queue created webhook dispatch to prevent duplicate processing flags

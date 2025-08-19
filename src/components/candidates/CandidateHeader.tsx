@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Edit3, MoreHorizontal, RefreshCw, Users, X, BrainCircuit } from 'lucide-react';
 import { formatCandidateNameWithLang } from "@/lib/candidateUtils";
-import type { Candidate, UserProfile, RecruitmentStage } from '@/lib/types';
+import type { Candidate, UserProfile, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
+import { CandidateSourceCell } from './CandidateSourceCell';
 
 interface CandidateHeaderProps {
   candidate: Candidate;
@@ -15,9 +16,13 @@ interface CandidateHeaderProps {
   isEditing: boolean;
   availableStages: RecruitmentStage[];
   availableRecruiters: UserProfile[];
+  availableSources: CandidateSource[];
   isAssigningRecruiter: boolean;
+  isAssigningSource: boolean;
   onAssignRecruiter: (recruiterId: string | null) => void;
+  onAssignSource: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
   onResetAssigning: () => void;
+  onResetSourceAssigning: () => void;
   onEditClick: () => void;
   onManageTransitions: () => void;
   onReprocess: () => void;
@@ -45,9 +50,13 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
   isEditing,
   availableStages,
   availableRecruiters,
+  availableSources,
   isAssigningRecruiter,
+  isAssigningSource,
   onAssignRecruiter,
+  onAssignSource,
   onResetAssigning,
+  onResetSourceAssigning,
   onEditClick,
   onManageTransitions,
   onReprocess,
@@ -175,9 +184,21 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
           </div>
         </div>
         
-        {/* Column 2: Recruiter Assignment and Action Buttons (3 cols) */}
+        {/* Column 2: Source and Recruiter Assignment (3 cols) */}
         <div className="lg:col-span-3">
-          <div className="flex items-center justify-end gap-3 mt-8">
+          <div className="flex items-center justify-end gap-4 mt-8">
+            {/* Candidate Source */}
+            <div>
+              <CandidateSourceCell
+                candidate={candidate}
+                availableSources={availableSources}
+                canManageCandidates={true}
+                isAssigning={isAssigningSource}
+                onAssignSource={onAssignSource}
+                onResetAssigning={onResetSourceAssigning}
+              />
+            </div>
+
             {/* Recruiter Assignment */}
             <div>
               <CandidateRecruiterCell

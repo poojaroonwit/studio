@@ -6,6 +6,7 @@ import { handleCors } from '@/lib/cors';
 import { logAudit } from '@/lib/auditLog';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
+import { NotificationService } from '@/lib/notificationService';
 // Import the schemas from the main candidate route
 import { updateCandidateSchema } from '../[id]/route';
 
@@ -161,6 +162,28 @@ export async function POST(req: NextRequest) {
                     date: new Date(),
                   },
                 });
+
+                // Send notification to the assigned recruiter
+                try {
+                  const candidate = await prisma.candidate.findUnique({
+                    where: { id: candidateId },
+                    select: { name: true }
+                  });
+                  
+                  if (candidate) {
+                    await NotificationService.notifyCandidateAdded(
+                      candidateId,
+                      candidate.name,
+                      data.positionId,
+                      position.title,
+                      position.recruiterId,
+                      user.id
+                    );
+                  }
+                } catch (notificationError) {
+                  console.error(`Failed to send notification for candidate ${candidateId}:`, notificationError);
+                  // Don't fail the bulk action if notification fails
+                }
 
                 syncCount++;
               }

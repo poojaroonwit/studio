@@ -235,6 +235,15 @@ export class WebhookService {
    * Send webhook for upload queue events
    */
   static async sendUploadQueueWebhook(event: string, uploadQueue: any): Promise<void> {
+    // Extract source information from webhook payload if available
+    let sourceInfo = null;
+    if (uploadQueue.webhook_payload && typeof uploadQueue.webhook_payload === 'object') {
+      sourceInfo = {
+        sourceId: uploadQueue.webhook_payload.sourceId || null,
+        targetPositionId: uploadQueue.webhook_payload.targetPositionId || null
+      };
+    }
+
     await this.sendWebhooks(event, {
       upload_queue: {
         id: uploadQueue.id,
@@ -244,7 +253,8 @@ export class WebhookService {
         error: uploadQueue.error,
         upload_date: uploadQueue.uploadDate,
         completed_date: uploadQueue.completedDate,
-        createdAt: uploadQueue.createdAt
+        createdAt: uploadQueue.createdAt,
+        source: sourceInfo // Include source information in webhook payload
       }
     });
   }

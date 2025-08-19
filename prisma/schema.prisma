@@ -631,6 +631,7 @@ model Headcount {
 model Grade {
   id          String    @id @default(uuid()) @db.Uuid
   name        String    @unique
+  label       String?   // Display label for the grade
   description String?
   minLevel    Int       @map("min_level")
   maxLevel    Int       @map("max_level")

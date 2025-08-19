@@ -125,6 +125,45 @@ export class NotificationService {
   }
 
   /**
+   * Get notifications for a user with pagination and filtering
+   */
+  static async getNotifications(
+    userId: string,
+    limit: number = 50,
+    offset: number = 0,
+    isRead?: boolean
+  ) {
+    try {
+      const whereClause: any = { userId };
+      if (isRead !== undefined) {
+        whereClause.isRead = isRead;
+      }
+
+      const [notifications, total] = await Promise.all([
+        prisma.notification.findMany({
+          where: whereClause,
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.notification.count({
+          where: whereClause,
+        })
+      ]);
+
+      return {
+        notifications,
+        total,
+        limit,
+        offset
+      };
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get unread notification count for a user
    */
   static async getUnreadCount(userId: string): Promise<number> {

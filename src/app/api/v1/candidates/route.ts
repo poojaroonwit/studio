@@ -20,6 +20,7 @@ import { candidateInfoSchema, structuredEducationSchema, structuredExperienceSch
 import { logAudit } from '@/lib/auditLog';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { createDateInTimezone } from '@/lib/dateUtils';
+import { NotificationService } from '@/lib/notificationService';
 
 // These schemas are now imported from ./schemas.ts
 
@@ -29,6 +30,8 @@ const createCandidateSchema = z.object({
   experienceData: z.array(structuredExperienceSchema).optional(),
   job_applied: z.any().optional(),
   job_matches: z.array(z.any()).optional(),
+  sourceId: z.string().uuid().nullable().optional(),
+  subSource: z.string().optional().nullable(),
 }).strict().transform((data) => {
   // Ensure candidate_info is always an object
   return {
@@ -37,6 +40,8 @@ const createCandidateSchema = z.object({
     experienceData: data.experienceData || [],
     job_applied: data.job_applied,
     job_matches: data.job_matches || [],
+    sourceId: data.sourceId || null,
+    subSource: data.subSource || null,
   };
 });
 
@@ -226,6 +231,8 @@ export async function POST(request: NextRequest) {
         status: appliedStage,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
+        sourceId: data.sourceId || null,
+        subSource: data.subSource || null,
         applicationDate: createDateInTimezone(),
         createdAt: createDateInTimezone(),
         updatedAt: createDateInTimezone(),
@@ -306,6 +313,22 @@ export async function POST(request: NextRequest) {
 
           console.log(`✅ Recruiter auto-assigned to candidate ${newCandidateId} from position ${positionId}`);
           console.log(`   Recruiter: ${position.recruiter.name} (${position.recruiter.email})`);
+          
+          // Send notification to the assigned recruiter
+          try {
+            await NotificationService.notifyCandidateAdded(
+              newCandidateId,
+              name,
+              positionId,
+              position.title,
+              position.recruiterId,
+              user.id
+            );
+            console.log(`✅ Notification sent to recruiter ${position.recruiter.name} for new candidate ${name}`);
+          } catch (notificationError) {
+            console.error('Failed to send candidate added notification:', notificationError);
+            // Don't fail the entire operation if notification fails
+          }
           
           // Use the updated candidate for the response
           finalCandidate = updatedCandidate;
@@ -390,10 +413,12 @@ export async function GET(request: NextRequest) {
 
       // Get candidates with pagination
       const candidatesQuery = `
-        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName"
+        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+               cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
         LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
         ${whereClause}
         ORDER BY c."createdAt" DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -408,6 +433,8 @@ export async function GET(request: NextRequest) {
         phone: candidate.phone,
         positionId: candidate.positionId,
         recruiterId: candidate.recruiterId,
+        sourceId: candidate.sourceId,
+        subSource: candidate.subSource,
         fitScore: candidate.fitScore,
         status: candidate.status,
         applicationDate: candidate.applicationDate,
@@ -419,6 +446,12 @@ export async function GET(request: NextRequest) {
         } : null,
         recruiter: candidate.recruiterId ? {
           name: candidate.recruiterName
+        } : null,
+        source: candidate.sourceId ? {
+          id: candidate.sourceId,
+          name: candidate.sourceName,
+          description: candidate.sourceDescription,
+          logo: candidate.sourceLogo
         } : null
       }));
 

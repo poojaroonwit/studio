@@ -133,6 +133,7 @@ export async function GET(request: NextRequest) {
           json_build_object(
             'id', p."gradeId",
             'name', g.name,
+            'label', g.label,
             'slaDays', g."sla_days",
             'color', g.color
           ) as grade

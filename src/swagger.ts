@@ -863,8 +863,8 @@ export function getSwaggerSpec() {
                 example: {
                   candidates: [
                     {
-                      name: "John Doe",
-                      email: "john.doe@example.com",
+                      name: "Sample Candidate",
+                      email: "candidate@example.com",
                       phone: "+1234567890",
                       status: "Applied",
                       positionId: null,
@@ -950,7 +950,7 @@ export function getSwaggerSpec() {
       '/api/v1/candidates/bulk-upload-cv': {
         post: {
           summary: 'Upload CV file to queue for processing (v1 API)',
-          description: 'Upload a single CV file (PDF) to the upload queue for automated processing. The file will be processed through webhook automation to extract candidate information and create candidate records. Supports source tracking via the optional sourceId parameter. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
+                       description: 'Upload a single CV file (PDF) to the upload queue for automated processing. The file will be processed through webhook automation to extract candidate information and create candidate records. Supports source tracking via the optional sourceId parameter and additional attachment files. The webhook will receive both the main CV URL and the additional attachment URL for processing. Requires Bearer token authentication and CANDIDATES_MANAGE permission.',
           tags: ['V1 Candidates', 'V1 Upload Queue'],
           security: [{ bearerAuth: [] }],
           requestBody: {
@@ -974,6 +974,11 @@ export function getSwaggerSpec() {
                       type: 'string',
                       format: 'uuid',
                       description: 'ID of the candidate source (optional)'
+                    },
+                    additionalAttachment: {
+                      type: 'string',
+                      format: 'binary',
+                      description: 'Additional attachment file (optional) - can be any file type'
                     }
                   },
                   required: ['file', 'positionId']
@@ -1004,7 +1009,17 @@ export function getSwaggerSpec() {
                             type: 'object', 
                             properties: {
                               targetPositionId: { type: 'string', format: 'uuid' },
-                              sourceId: { type: 'string', format: 'uuid', nullable: true }
+                              sourceId: { type: 'string', format: 'uuid', nullable: true },
+                              additionalAttachment: {
+                                type: 'object',
+                                nullable: true,
+                                properties: {
+                                  path: { type: 'string', description: 'MinIO object path for the attachment' },
+                                  name: { type: 'string', description: 'Original filename of the attachment' },
+                                  size: { type: 'integer', description: 'File size in bytes' },
+                                  type: { type: 'string', description: 'MIME type of the attachment' }
+                                }
+                              }
                             },
                             additionalProperties: true 
                           },
@@ -1132,8 +1147,8 @@ export function getSwaggerSpec() {
                   'basic_info_update_example': {
                     summary: 'Update Basic Information Only',
                     value: {
-                      name: 'John Doe Updated',
-                      email: 'john.updated@example.com',
+                      name: 'Sample Candidate Updated',
+                      email: 'candidate.updated@example.com',
                       phone: '+1-555-0123'
                     }
                   },
@@ -1142,12 +1157,12 @@ export function getSwaggerSpec() {
                     value: {
                       candidate_info: {
                         personal_info: {
-                          firstname: 'John',
-                          lastname: 'Doe Updated',
+                          firstname: 'Sample',
+                          lastname: 'Candidate Updated',
                           location: 'San Francisco, CA'
                         },
                         contact_info: {
-                          email: 'john.updated@example.com',
+                          email: 'candidate.updated@example.com',
                           phone: '+1-555-0123'
                         }
                       }
@@ -1177,15 +1192,15 @@ export function getSwaggerSpec() {
                     value: {
                       candidate_info: {
                         personal_info: {
-                          firstname: 'John',
-                          lastname: 'Doe',
+                          firstname: 'Sample',
+                          lastname: 'Candidate',
                           title_honorific: 'Mr.',
-                          nickname: 'Johnny',
+                          nickname: 'Sample',
                           location: 'Bangkok, Thailand',
                           introduction_aboutme: 'Updated about me section'
                         },
                         contact_info: {
-                          email: 'john.doe@example.com',
+                          email: 'candidate@example.com',
                           phone: '+1234567890'
                         },
                         cv_language: 'English',

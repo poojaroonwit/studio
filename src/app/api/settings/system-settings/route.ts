@@ -6,8 +6,7 @@ import type { SystemSetting, SystemSettingKey } from '@/lib/types';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { minioClient } from '@/lib/minio';
-import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
+import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
 
 /**

@@ -201,9 +201,9 @@ export default function RecruitmentStagesPage() {
 
     try {
       const response = await fetch('/api/settings/recruitment-stages/reorder', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stages: updatedItems }),
+        body: JSON.stringify({ stageIds: updatedItems.map(item => item.id) }),
       });
 
       if (!response.ok) {

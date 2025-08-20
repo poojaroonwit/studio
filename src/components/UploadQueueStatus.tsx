@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, XCircle, Clock, Play, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, Loader2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface QueueItem {
   id: string;
   file_name: string;
-  status: 'queued' | 'inprocess' | 'success' | 'error' | 'fail';
+  status: string;
   upload_date: string;
   completed_date?: string;
   error?: string;
@@ -40,6 +40,8 @@ export function UploadQueueStatus() {
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const fetchQueue = async () => {
     setLoading(true);
@@ -55,6 +57,7 @@ export function UploadQueueStatus() {
           success: data.summary?.success || 0,
           error: data.summary?.error || 0
         });
+        setLastUpdate(new Date());
       }
     } catch (error) {
       console.error('Failed to fetch queue:', error);
@@ -68,11 +71,35 @@ export function UploadQueueStatus() {
     
     // Set up real-time updates
     const eventSource = new EventSource('/api/upload-queue/sse');
+    
+    eventSource.onopen = () => {
+      setIsRealtimeActive(true);
+      console.log('SSE connection established');
+    };
+    
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'queue_update') {
-        fetchQueue();
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'queue') {
+          setQueueItems(data.data || []);
+          setQueueStatus({
+            total: data.summary?.total || 0,
+            queued: data.summary?.queued || 0,
+            inprocess: data.summary?.inprocess || 0,
+            success: data.summary?.success || 0,
+            error: data.summary?.error || 0
+          });
+          setLastUpdate(new Date());
+          setIsRealtimeActive(true);
+        }
+      } catch (error) {
+        console.error('Failed to parse SSE data:', error);
       }
+    };
+    
+    eventSource.onerror = () => {
+      setIsRealtimeActive(false);
+      console.log('SSE connection error, falling back to polling');
     };
 
     return () => eventSource.close();
@@ -91,12 +118,12 @@ export function UploadQueueStatus() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'queued': return 'bg-blue-100 text-blue-800';
-      case 'inprocess': return 'bg-yellow-100 text-yellow-800';
-      case 'success': return 'bg-green-100 text-green-800';
+      case 'queued': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'inprocess': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'success': return 'bg-green-100 text-green-800 border-green-200';
       case 'error':
-      case 'fail': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'fail': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -111,113 +138,136 @@ export function UploadQueueStatus() {
 
   return (
     <div className="space-y-4">
-      {/* Queue Summary Cards */}
+      {/* Real-time Status Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Upload Queue Status</h3>
+        <div className="flex items-center gap-2">
+          {isRealtimeActive ? (
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <Wifi className="h-4 w-4" />
+              <span className="text-sm font-medium">Live Updates</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+              <WifiOff className="h-4 w-4" />
+              <span className="text-sm font-medium">Polling</span>
+            </div>
+          )}
+          {lastUpdate && (
+            <span className="text-xs text-muted-foreground">
+              Last update: {lastUpdate.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Status Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-sm font-medium text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold">{queueStatus.total}</p>
               </div>
+              <div className="h-8 w-8 rounded-full bg-gray-500 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">T</span>
+              </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Queued</p>
+                <p className="text-sm font-medium text-muted-foreground">Queued</p>
                 <p className="text-2xl font-bold text-blue-600">{queueStatus.queued}</p>
               </div>
-              <Clock className="h-5 w-5 text-blue-500" />
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                <Clock className="h-4 w-4 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Processing</p>
+                <p className="text-sm font-medium text-muted-foreground">Processing</p>
                 <p className="text-2xl font-bold text-yellow-600">{queueStatus.inprocess}</p>
               </div>
-              <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
+              <div className="h-8 w-8 rounded-full bg-yellow-500 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 text-white animate-spin" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Success</p>
+                <p className="text-sm font-medium text-muted-foreground">Success</p>
                 <p className="text-2xl font-bold text-green-600">{queueStatus.success}</p>
               </div>
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Errors</p>
+                <p className="text-sm font-medium text-muted-foreground">Error</p>
                 <p className="text-2xl font-bold text-red-600">{queueStatus.error}</p>
               </div>
-              <XCircle className="h-5 w-5 text-red-500" />
+              <div className="h-8 w-8 rounded-full bg-red-500 flex items-center justify-center">
+                <XCircle className="h-4 w-4 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Queue Items List */}
+      {/* Recent Items */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Upload Queue</CardTitle>
-            <Button onClick={fetchQueue} disabled={loading} size="sm">
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+          <CardTitle className="flex items-center justify-between">
+            Recent Queue Items
+            <Button variant="outline" size="sm" onClick={fetchQueue} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh'}
             </Button>
-          </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-96">
-            <div className="space-y-2">
-              {queueItems.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No files in queue
+          <div className="space-y-2">
+            {queueItems.slice(0, 10).map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(item.status)}
+                  <span className="font-medium">{item.file_name}</span>
                 </div>
-              ) : (
-                queueItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleItemClick(item)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(item.status)}
-                      <div>
-                        <p className="font-medium">{item.file_name}</p>
-                        <p className="text-sm text-gray-500">
-                          {formatDate(item.upload_date)}
-                          {item.position_title && ` • ${item.position_title}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(item.status)}>
-                        {item.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(item.status)}>
+                    {item.status}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(item.upload_date).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {queueItems.length === 0 && (
+              <div className="text-center py-4 text-muted-foreground">
+                No items in queue
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

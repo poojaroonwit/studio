@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { addSseController, removeSseController } from '@/lib/candidateSse';
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 export async function OPTIONS() {
   return new Response(null, {
@@ -18,10 +20,14 @@ export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
   let thisController: ReadableStreamDefaultController<any>;
 
+  // Get user session for user-specific notifications
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+
   const stream = new ReadableStream({
     start(controller) {
       thisController = controller;
-      addSseController(controller);
+      addSseController(controller, userId);
 
       // Send initial event
       try {

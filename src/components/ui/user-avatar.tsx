@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getCacheBustedImageUrl } from '@/lib/imageUtils';
+import { getCacheBustedImageUrl, refreshImage } from '@/lib/imageUtils';
 
 interface UserAvatarProps {
   user: {
@@ -33,10 +33,19 @@ export function UserAvatar({
   showTooltip = false,
   forceRefresh = false 
 }: UserAvatarProps) {
-  // Get cache-busted image URL to prevent browser caching issues
-  const cacheBustedImageUrl = getCacheBustedImageUrl(user, forceRefresh);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
+  // Handle force refresh
+  useEffect(() => {
+    if (forceRefresh && user.avatarUrl) {
+      // Trigger a refresh of the image
+      refreshImage(user.avatarUrl);
+      setRefreshTrigger(prev => prev + 1);
+    }
+  }, [forceRefresh, user.avatarUrl]);
 
+  // Get cache-busted image URL to prevent browser caching issues
+  const cacheBustedImageUrl = getCacheBustedImageUrl(user, refreshTrigger > 0);
   
   // Generate initials from name
   const getInitials = (name: string) => {
@@ -74,6 +83,7 @@ export function UserAvatar({
             src={cacheBustedImageUrl} 
             alt={user.name}
             className="object-cover"
+            key={`${user.id}-${refreshTrigger}`} // Force re-render on refresh
           />
         ) : null}
         <AvatarFallback 

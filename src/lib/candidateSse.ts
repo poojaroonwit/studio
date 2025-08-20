@@ -1,5 +1,6 @@
 // src/lib/candidateSse.ts
 const controllers = new Set<ReadableStreamDefaultController<any>>();
+const userControllers = new Map<string, Set<ReadableStreamDefaultController<any>>>();
 
 // Cleanup stale controllers periodically
 setInterval(() => {
@@ -11,16 +12,43 @@ setInterval(() => {
     } catch (e) {
       // Remove the controller if it's causing errors
       controllers.delete(controller);
+      // Also remove from user-specific tracking
+      for (const [userId, userControllerSet] of userControllers.entries()) {
+        if (userControllerSet.has(controller)) {
+          userControllerSet.delete(controller);
+          if (userControllerSet.size === 0) {
+            userControllers.delete(userId);
+          }
+        }
+      }
     }
   }
 }, 60000); // Check every minute
 
-export function addSseController(controller: ReadableStreamDefaultController<any>) {
+export function addSseController(controller: ReadableStreamDefaultController<any>, userId?: string) {
   controllers.add(controller);
+  
+  // Track user-specific controllers if userId is provided
+  if (userId) {
+    if (!userControllers.has(userId)) {
+      userControllers.set(userId, new Set());
+    }
+    userControllers.get(userId)!.add(controller);
+  }
 }
 
 export function removeSseController(controller: ReadableStreamDefaultController<any>) {
   controllers.delete(controller);
+  
+  // Remove from user-specific tracking
+  for (const [userId, userControllerSet] of userControllers.entries()) {
+    if (userControllerSet.has(controller)) {
+      userControllerSet.delete(controller);
+      if (userControllerSet.size === 0) {
+        userControllers.delete(userId);
+      }
+    }
+  }
 }
 
 export function broadcastCandidateUpdate(candidate: any) {
@@ -188,13 +216,21 @@ export function broadcastUserNotification(userId: string, notification: any) {
   const data = `event: notification\ndata: ${JSON.stringify({ type: 'new_notification', notification, targetUserId: userId })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
-  for (const controller of controllers) {
-    try {
-      controller.enqueue(encodedData);
-    } catch (e) {
-      console.error('[SSE] Error broadcasting user notification:', e);
-      // Remove the controller if it's causing errors
-      controllers.delete(controller);
+  // Only send to controllers belonging to the target user
+  const userControllerSet = userControllers.get(userId);
+  if (userControllerSet) {
+    for (const controller of userControllerSet) {
+      try {
+        controller.enqueue(encodedData);
+      } catch (e) {
+        console.error('[SSE] Error broadcasting user notification:', e);
+        // Remove the controller if it's causing errors
+        userControllerSet.delete(controller);
+        controllers.delete(controller);
+        if (userControllerSet.size === 0) {
+          userControllers.delete(userId);
+        }
+      }
     }
   }
 } 

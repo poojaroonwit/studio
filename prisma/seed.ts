@@ -188,6 +188,68 @@ async function main() {
     }
     console.log('✅ System prompt categories created/updated');
 
+    // Create default grades
+    console.log('Creating default grades...');
+    const grades = [
+      {
+        id: '550e8400-e29b-41d4-a716-446655440020',
+        name: 'Junior',
+        label: 'J',
+        description: 'Entry-level positions with 0-2 years experience',
+        minLevel: 1,
+        maxLevel: 2,
+        slaDays: 30,
+        color: '#10B981',
+        isActive: true,
+        sortOrder: 1
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440021',
+        name: 'Mid-Level',
+        label: 'M',
+        description: 'Mid-level positions with 3-5 years experience',
+        minLevel: 3,
+        maxLevel: 5,
+        slaDays: 45,
+        color: '#F59E0B',
+        isActive: true,
+        sortOrder: 2
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440022',
+        name: 'Senior',
+        label: 'S',
+        description: 'Senior positions with 6-8 years experience',
+        minLevel: 6,
+        maxLevel: 8,
+        slaDays: 60,
+        color: '#EF4444',
+        isActive: true,
+        sortOrder: 3
+      },
+      {
+        id: '550e8400-e29b-41d4-a716-446655440023',
+        name: 'Lead',
+        label: 'L',
+        description: 'Lead positions with 9+ years experience',
+        minLevel: 9,
+        maxLevel: 15,
+        slaDays: 90,
+        color: '#8B5CF6',
+        isActive: true,
+        sortOrder: 4
+      }
+    ];
+    
+    for (const grade of grades) {
+      await prisma.grade.upsert({
+        where: { id: grade.id },
+        update: {},
+        create: grade
+      });
+    }
+    console.log('✅ Default grades created/updated');
+
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

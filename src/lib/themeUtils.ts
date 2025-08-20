@@ -218,6 +218,9 @@ export function applySidebarStylesWithTheme(sidebarColors: Record<string, string
         // Special handling for active text color: ensure hsl() is used
         if (key === `sidebarActiveText${themeSuffix}`) {
           root.style.setProperty(cssVarName, `hsl(${value})`);
+        } else if (key === `sidebarActiveBgStart${themeSuffix}` || key === `sidebarActiveBgEnd${themeSuffix}`) {
+          // Ensure active background colors are set with hsl()
+          root.style.setProperty(cssVarName, value);
         } else {
           root.style.setProperty(cssVarName, value);
         }
@@ -296,6 +299,9 @@ export function initializeSidebarStyle() {
   if (typeof window === 'undefined') return;
   const style = getSidebarActiveStyle();
   applySidebarActiveStyle(style);
+  
+  // Also ensure sidebar colors are applied
+  reapplyCurrentSidebarColors();
 }
 
 // Listen for preference changes
@@ -306,5 +312,23 @@ export function setupSidebarStyleListener() {
     if (event.detail?.sidebarActiveStyle) {
       applySidebarActiveStyle(event.detail.sidebarActiveStyle);
     }
+    // Also reapply colors when config changes
+    reapplyCurrentSidebarColors();
   });
+}
+
+// Comprehensive initialization function
+export function initializeSidebarStyles() {
+  if (typeof window === 'undefined') return;
+  
+  // Initialize active style
+  initializeSidebarStyle();
+  
+  // Setup listeners
+  setupSidebarStyleListener();
+  
+  // Force a re-application of colors
+  setTimeout(() => {
+    reapplyCurrentSidebarColors();
+  }, 50);
 } 

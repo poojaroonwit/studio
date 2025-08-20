@@ -28,7 +28,8 @@ import {
   Database,
   Lock,
   Globe,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
@@ -72,6 +73,14 @@ const settingsItems = [
     icon: Webhook, 
     description: "Create and manage outgoing webhooks.", 
     permissionId: 'WEBHOOK_MAPPING_MANAGE' as PlatformModuleId, 
+    adminOnlyOrPermission: true
+  },
+  { 
+    href: "/settings/warning-configurations", 
+    label: "Warning Configurations", 
+    icon: AlertTriangle, 
+    description: "Configure dynamic warning rules for data monitoring.", 
+    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
   { 

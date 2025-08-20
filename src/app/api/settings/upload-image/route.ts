@@ -3,8 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
-import { minioClient, MINIO_BUCKET, ensureBucketExists } from '@/lib/minio';
-import { MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
+import { minioClient, MINIO_BUCKET, ensureBucketExists, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
 
 export async function PUT(request: NextRequest) {

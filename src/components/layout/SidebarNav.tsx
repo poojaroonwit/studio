@@ -2,7 +2,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2 } from "lucide-react"; 
+import { LayoutDashboard, Users, Briefcase, Settings, UsersRound, Code2, ListOrdered, Palette, Zap, ListTodo, DatabaseZap, SlidersHorizontal, KanbanSquare, Settings2, UserCog, UploadCloud, Loader2, XCircle } from "lucide-react"; 
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -144,9 +144,15 @@ const SidebarNavComponent = function SidebarNav() {
   // Bulk upload pending count state
   const [pendingCount, setPendingCount] = React.useState<number | null>(null);
   const [pendingError, setPendingError] = React.useState(false);
+  const [isPendingLoading, setIsPendingLoading] = React.useState(true);
+  
   React.useEffect(() => {
     let ignore = false;
     let eventSource: EventSource | null = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const baseReconnectDelay = 1000;
+    const maxReconnectDelay = 10000;
     
     async function fetchPending() {
       try {
@@ -159,8 +165,63 @@ const SidebarNavComponent = function SidebarNav() {
         if (!ignore) {
           setPendingCount(count);
           setPendingError(false);
+          setIsPendingLoading(false);
         }
       } catch (e) {
+        if (!ignore) {
+          setPendingError(true);
+          setIsPendingLoading(false);
+        }
+      }
+    }
+
+    function connectSSE() {
+      try {
+        eventSource = new EventSource("/api/upload-queue/sse");
+        
+        eventSource.onopen = () => {
+          if (!ignore) {
+            setPendingError(false);
+            reconnectAttempts = 0;
+          }
+        };
+
+        eventSource.onmessage = (event) => {
+          if (!ignore) {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'queue' && data.summary) {
+                const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
+                setPendingCount(count);
+                setPendingError(false);
+                setIsPendingLoading(false);
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        };
+        
+        eventSource.onerror = () => {
+          if (!ignore) {
+            setPendingError(true);
+            
+            // Attempt to reconnect if under max attempts
+            if (reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
+              
+              setTimeout(() => {
+                if (!ignore && eventSource) {
+                  eventSource.close();
+                  connectSSE();
+                }
+              }, delay);
+            }
+          }
+        };
+      } catch (e) {
+        console.error('Failed to set up SSE:', e);
         if (!ignore) {
           setPendingError(true);
         }
@@ -171,31 +232,7 @@ const SidebarNavComponent = function SidebarNav() {
     fetchPending();
 
     // Set up SSE for real-time updates
-    try {
-      eventSource = new EventSource("/api/upload-queue/sse");
-      eventSource.onmessage = (event) => {
-        if (!ignore) {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'queue' && data.summary) {
-              const count = (data.summary.queued || 0) + (data.summary.inprocess || 0);
-              setPendingCount(count);
-              setPendingError(false);
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE data:', e);
-          }
-        }
-      };
-      eventSource.onerror = () => {
-        if (!ignore) {
-          setPendingError(true);
-        }
-      };
-    } catch (e) {
-      console.error('Failed to set up SSE:', e);
-      setPendingError(true);
-    }
+    connectSSE();
 
     return () => { 
       ignore = true; 
@@ -230,6 +267,19 @@ const SidebarNavComponent = function SidebarNav() {
     window.addEventListener("appConfigChanged", handler);
     return () => window.removeEventListener("appConfigChanged", handler);
   }, []);
+
+  // Re-apply sidebar styles when pathname changes to ensure active menu styling is correct
+  useEffect(() => {
+    // Use a small delay to ensure DOM is updated before applying styles
+    const timer = setTimeout(() => {
+      // Import and call reapplyCurrentSidebarColors to ensure CSS variables are set
+      import('@/lib/themeUtils').then(({ reapplyCurrentSidebarColors }) => {
+        reapplyCurrentSidebarColors();
+      });
+    }, 10);
+    
+    return () => clearTimeout(timer);
+  }, [pathname]);
 
   // Only the most specific menu item should be active
   const activeMainNavItem = getActiveMenuItem(pathname, mainNavItems);
@@ -297,7 +347,9 @@ const SidebarNavComponent = function SidebarNav() {
               </SidebarMenuButton>
             </Link>
           </MenuItemWithTooltip>
-          {isClient && userRole && (
+          {isClient && userRole && (userRole === 'Admin' || 
+            session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') || 
+            session?.user?.modulePermissions?.includes('CANDIDATES_VIEW')) && (
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
               <Link href={myTaskBoardNavItem.href} passHref legacyBehavior>
                 <SidebarMenuButton
@@ -412,7 +464,7 @@ const SidebarNavComponent = function SidebarNav() {
                 asChild
                 isActive={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href}
                 className={cn(
-                  "rounded-full p-2 mx-auto flex items-center justify-center",
+                  "rounded-full p-2 mx-auto flex items-center justify-center relative",
                   activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? "shadow" : "hover:bg-accent"
                 )}
                 style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveButtonStyles(sidebarStyles) : {}}
@@ -424,6 +476,17 @@ const SidebarNavComponent = function SidebarNav() {
                     className="h-4 w-4" 
                     style={activeMainNavItem && activeMainNavItem.href === bulkUploadNavItem.href ? getActiveIconStyles(sidebarStyles) : {}}
                   />
+                  {/* Pending count badge for collapsed view */}
+                  {pendingCount && pendingCount > 0 && !pendingError && !isPendingLoading && (
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </div>
+                  )}
+                  {pendingError && (
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      !
+                    </div>
+                  )}
                 </a>
               </SidebarMenuButton>
             </Link>
@@ -484,7 +547,9 @@ const SidebarNavComponent = function SidebarNav() {
             </Link>
           </MenuItemWithTooltip>
         </SidebarMenuItem>
-        {isClient && userRole && userRole === 'Admin' && (
+        {isClient && userRole && (userRole === 'Admin' || 
+          session?.user?.modulePermissions?.includes('TASK_BOARD_VIEW') || 
+          session?.user?.modulePermissions?.includes('CANDIDATES_VIEW')) && (
           <SidebarMenuItem key={myTaskBoardNavItem.href}>
             <MenuItemWithTooltip label={myTaskBoardNavItem.label}>
               <Link href={myTaskBoardNavItem.href} passHref legacyBehavior>
@@ -628,11 +693,23 @@ const SidebarNavComponent = function SidebarNav() {
                     />
                     <span className="truncate group-data-[collapsible=icon]:hidden">{bulkUploadNavItem.label}</span>
                     {pendingError ? (
-                      <SidebarMenuBadge className="ml-2 bg-gray-400 text-white">?</SidebarMenuBadge>
-                    ) : pendingCount === null ? (
-                      <SidebarMenuBadge className="ml-2 bg-yellow-100 text-yellow-700 flex items-center"><Loader2 className="animate-spin h-4 w-4 mr-1" />Loading</SidebarMenuBadge>
+                      <SidebarMenuBadge className="ml-2 bg-red-100 text-red-700 flex items-center">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Error
+                      </SidebarMenuBadge>
+                    ) : isPendingLoading ? (
+                      <SidebarMenuBadge className="ml-2 bg-blue-100 text-blue-700 flex items-center">
+                        <Loader2 className="animate-spin h-3 w-3 mr-1" />
+                        Loading
+                      </SidebarMenuBadge>
+                    ) : pendingCount && pendingCount > 0 ? (
+                      <SidebarMenuBadge className="ml-2 bg-orange-100 text-orange-700 animate-pulse">
+                        {pendingCount}
+                      </SidebarMenuBadge>
                     ) : (
-                      <SidebarMenuBadge className="ml-2 bg-yellow-400 text-black">{pendingCount} Pending</SidebarMenuBadge>
+                      <SidebarMenuBadge className="ml-2 bg-green-100 text-green-700">
+                        0
+                      </SidebarMenuBadge>
                     )}
                   </a>
                 </SidebarMenuButton>

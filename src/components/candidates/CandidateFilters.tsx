@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,8 +83,7 @@ import {
   Loader2,
   ListFilter,
   Play,
-  Briefcase,
-  MultiSelect // Assume you have or will create a MultiSelect component
+  Briefcase
 } from 'lucide-react';
 import { getScoreRangesForChart } from "@/lib/scoreUtils";
 import { cn } from '@/lib/utils';
@@ -205,6 +204,14 @@ export function CandidateFilters({
   const multiselectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const isInitialLoadRef = useRef(true);
+  // Guard to avoid triggering auto-apply effects while syncing state from incoming props
+  const isSyncingFromInitialFiltersRef = useRef(false);
+  // Track last-applied URL/initial filters to avoid re-applying the same payload repeatedly
+  const lastAppliedUrlFiltersRef = useRef<string | null>(null);
+  // Track if component is fully initialized to prevent premature auto-apply
+  const isComponentInitializedRef = useRef(false);
+  // Track the last filters we applied to prevent infinite loops
+  const lastAppliedFiltersRef = useRef<string>('');
 
   const [applicationDateRange, setApplicationDateRange] = useState<DateRange | undefined>(
     initialFilters.applicationDateStart && initialFilters.applicationDateEnd
@@ -290,7 +297,99 @@ export function CandidateFilters({
   // Add locationOperator state
   const [locationOperator, setLocationOperator] = useState<'contains' | 'is' | 'startsWith' | 'endsWith' | 'other'>(initialFilters.locationOperator || 'contains');
 
+  // Define handleApplyStandardFilters early to avoid temporal dead zone issues
+  const handleApplyStandardFilters = useCallback(() => {
+    // Clear any pending multiselect timeout
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+      multiselectTimeoutRef.current = null;
+    }
 
+    // Calculate fit score filters based on selected grades
+    let minAppliedJobFitScore: number | undefined = undefined;
+    let maxAppliedJobFitScore: number | undefined = undefined;
+    let minMatchingJobFitScore: number | undefined = undefined;
+    let maxMatchingJobFitScore: number | undefined = undefined;
+
+    // Handle applied job fit score grades
+    // If no grades are selected, don't apply any filtering (show all)
+    if (selectedFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minAppliedJobFitScore = minScore;
+        maxAppliedJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minAppliedJobFitScore = -1; // Special marker for no fit score
+        maxAppliedJobFitScore = undefined;
+      }
+    } else {
+      // No grades selected - don't apply any fit score filtering (show all candidates)
+      minAppliedJobFitScore = undefined;
+      maxAppliedJobFitScore = undefined;
+    }
+
+    // Handle matching job fit score grades
+    // If no grades are selected, don't apply any filtering (show all)
+    if (selectedMatchingFitScoreGrades.size > 0) {
+      const scoreRanges = getScoreRangesForChart();
+      const selectedRanges = scoreRanges.filter(range => selectedMatchingFitScoreGrades.has(range.letter));
+      const hasNoScore = selectedMatchingFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minMatchingJobFitScore = minScore;
+        maxMatchingJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minMatchingJobFitScore = -1; // Special marker for no matching fit score
+        maxMatchingJobFitScore = undefined;
+      }
+    } else {
+      // No grades selected - don't apply any fit score filtering (show all candidates)
+      minMatchingJobFitScore = undefined;
+      maxMatchingJobFitScore = undefined;
+    }
+
+    const newFilters: CandidateFilterValues = {
+      name: name || undefined,
+      nameOperator,
+      email: email || undefined,
+      emailOperator,
+      phone: phone || undefined,
+      phoneOperator,
+      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
+      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
+      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
+      subSource: subSource || undefined,
+      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
+      location: location || undefined,
+      locationOperator,
+      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
+      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
+      minAppliedJobFitScore,
+      maxAppliedJobFitScore,
+      minMatchingJobFitScore,
+      maxMatchingJobFitScore,
+      applicationDateStart: applicationDateRange?.from,
+      applicationDateEnd: applicationDateRange?.to,
+      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
+      aiSearchQuery: undefined,
+    };
+
+    // Only call onFilterChange if the filters have actually changed from what we last applied
+    // This prevents infinite loops with the parent component
+    const newFiltersString = JSON.stringify(newFilters);
+    if (lastAppliedFiltersRef.current !== newFiltersString) {
+      lastAppliedFiltersRef.current = newFiltersString;
+      // Apply filters immediately for table-only refresh
+      onFilterChange(newFilters);
+    }
+  }, [name, nameOperator, email, emailOperator, phone, phoneOperator, selectedPositionIds, selectedStatuses, selectedSourceIds, subSource, skills, location, locationOperator, experienceYearsRange, selectedFitScoreGrades, selectedMatchingFitScoreGrades, applicationDateRange, selectedRecruiterIds]);
 
   // Define a list of common skills
   const skillOptions = [
@@ -637,13 +736,18 @@ export function CandidateFilters({
       setAiSearchType(initialFilters.aiSearchType || 'hybrid');
       setAiSearchFilters(initialFilters.aiSearchFilters || {});
       isInitialLoadRef.current = false;
+      // Mark component as initialized after a brief delay
+      setTimeout(() => {
+        isComponentInitializedRef.current = true;
+      }, 50);
     }
   }, [initialFilters]);
 
   // Handle initialFilters changes after initial load (e.g., when clear all is clicked)
   useEffect(() => {
     if (!isInitialLoadRef.current) {
-      
+      // Mark that we're syncing local state from incoming props to avoid feedback loops
+      isSyncingFromInitialFiltersRef.current = true;
       // Update component state to match the new initialFilters
       setName(initialFilters.name || '');
       setEmail(initialFilters.email || '');
@@ -668,11 +772,21 @@ export function CandidateFilters({
       
              // Don't clear fit score UI state based on backend response
        // The UI state should be controlled by user interactions, not backend filter values
+
+      // Defer unsetting the syncing flag to the next tick to let dependent effects settle
+      setTimeout(() => {
+        isSyncingFromInitialFiltersRef.current = false;
+      }, 0);
     }
   }, [initialFilters]);
 
   // Auto-apply filters when they are set from URL parameters
   useEffect(() => {
+    // Only apply URL filters during initial load to avoid feedback loops with parent component
+    if (!isInitialLoadRef.current) {
+      return;
+    }
+    
     // Check if we have any filters set from URL parameters
     const hasUrlFilters = (initialFilters.selectedPositionIds && initialFilters.selectedPositionIds.length > 0) || 
                          (initialFilters.selectedRecruiterIds && initialFilters.selectedRecruiterIds.length > 0) || 
@@ -685,19 +799,41 @@ export function CandidateFilters({
                          initialFilters.aiSearchQuery ||
                          initialFilters.locationOperator;
     
-        if (hasUrlFilters) {
+    if (hasUrlFilters) {
       // Use a small delay to prevent multiple rapid calls
       const timeoutId = setTimeout(() => {
-        onFilterChange(initialFilters);
+        // Only apply if this unique payload hasn't just been applied
+        const payloadKey = JSON.stringify(initialFilters);
+        if (lastAppliedUrlFiltersRef.current !== payloadKey) {
+          lastAppliedUrlFiltersRef.current = payloadKey;
+          onFilterChange(initialFilters);
+        }
       }, 100);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [initialFilters, onFilterChange]); // Added onFilterChange back to dependencies
+  }, [initialFilters]); // Keep dependency but guard with ref
+
+  // Define the debounced function after handleApplyStandardFilters is defined
+  const handleApplyStandardFiltersDebounced = useCallback(() => {
+    // Clear any existing timeout
+    if (multiselectTimeoutRef.current) {
+      clearTimeout(multiselectTimeoutRef.current);
+    }
+    
+    // Set a new timeout for debounced filter application
+    multiselectTimeoutRef.current = setTimeout(() => {
+      handleApplyStandardFilters();
+    }, 100); // Reduced to 100ms for faster table refresh
+  }, [handleApplyStandardFilters]);
 
   // Auto-apply filters when input values change (debounced)
   // Note: Fit score ranges are now handled separately through debounced handlers
   useEffect(() => {
+    // Skip auto-apply if we're currently syncing state from incoming props or not fully initialized
+    if (isSyncingFromInitialFiltersRef.current || !isComponentInitializedRef.current) {
+      return;
+    }
     const timeoutId = setTimeout(() => {
       // Skip if there's an advanced query active
       if (advancedQueryInput.trim()) return;
@@ -721,7 +857,7 @@ export function CandidateFilters({
     }, 150); // Reduced to 150ms for faster response
 
     return () => clearTimeout(timeoutId);
-  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, onFilterChange, nameOperator, emailOperator, phoneOperator, locationOperator]);
+  }, [name, email, phone, selectedPositionIds, selectedStatuses, skills, location, experienceYearsRange, applicationDateRange, selectedRecruiterIds, advancedQueryInput, nameOperator, emailOperator, phoneOperator, locationOperator, handleApplyStandardFiltersDebounced]); // Removed onFilterChange to prevent infinite loop
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -732,105 +868,7 @@ export function CandidateFilters({
     };
   }, []);
 
-  const handleApplyStandardFilters = () => {
-    // Clear any pending multiselect timeout
-    if (multiselectTimeoutRef.current) {
-      clearTimeout(multiselectTimeoutRef.current);
-      multiselectTimeoutRef.current = null;
-    }
 
-    // Calculate fit score filters based on selected grades
-    let minAppliedJobFitScore: number | undefined = undefined;
-    let maxAppliedJobFitScore: number | undefined = undefined;
-    let minMatchingJobFitScore: number | undefined = undefined;
-    let maxMatchingJobFitScore: number | undefined = undefined;
-
-    // Handle applied job fit score grades
-    // If no grades are selected, don't apply any filtering (show all)
-    if (selectedFitScoreGrades.size > 0) {
-      const scoreRanges = getScoreRangesForChart();
-      const selectedRanges = scoreRanges.filter(range => selectedFitScoreGrades.has(range.letter));
-      const hasNoScore = selectedFitScoreGrades.has('no-score');
-      
-      if (selectedRanges.length > 0) {
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        minAppliedJobFitScore = minScore;
-        maxAppliedJobFitScore = maxScore;
-      } else if (hasNoScore) {
-        minAppliedJobFitScore = -1; // Special marker for no fit score
-        maxAppliedJobFitScore = undefined;
-      }
-    } else {
-      // No grades selected - don't apply any fit score filtering (show all candidates)
-      minAppliedJobFitScore = undefined;
-      maxAppliedJobFitScore = undefined;
-    }
-
-    // Handle matching job fit score grades
-    // If no grades are selected, don't apply any filtering (show all)
-    if (selectedMatchingFitScoreGrades.size > 0) {
-      const scoreRanges = getScoreRangesForChart();
-      const selectedRanges = scoreRanges.filter(range => selectedMatchingFitScoreGrades.has(range.letter));
-      const hasNoScore = selectedMatchingFitScoreGrades.has('no-score');
-      
-      if (selectedRanges.length > 0) {
-        const minScore = Math.min(...selectedRanges.map(r => r.min));
-        const maxScore = Math.max(...selectedRanges.map(r => r.max));
-        minMatchingJobFitScore = minScore;
-        maxMatchingJobFitScore = maxScore;
-      } else if (hasNoScore) {
-        minMatchingJobFitScore = -1; // Special marker for no matching fit score
-        maxMatchingJobFitScore = undefined;
-      }
-    } else {
-      // No grades selected - don't apply any fit score filtering (show all candidates)
-      minMatchingJobFitScore = undefined;
-      maxMatchingJobFitScore = undefined;
-    }
-
-    const newFilters: CandidateFilterValues = {
-      name: name || undefined,
-      nameOperator,
-      email: email || undefined,
-      emailOperator,
-      phone: phone || undefined,
-      phoneOperator,
-      selectedPositionIds: selectedPositionIds.size > 0 ? Array.from(selectedPositionIds) : undefined,
-      selectedStatuses: selectedStatuses.size > 0 ? Array.from(selectedStatuses) : undefined,
-      selectedSourceIds: selectedSourceIds.size > 0 ? Array.from(selectedSourceIds) : undefined,
-      subSource: subSource || undefined,
-      skills: skills.size > 0 ? Array.from(skills).join(',') : undefined,
-      location: location || undefined,
-      locationOperator,
-      minExperienceYears: experienceYearsRange[0] > 0 ? experienceYearsRange[0] : undefined,
-      maxExperienceYears: experienceYearsRange[1] < 50 ? experienceYearsRange[1] : undefined,
-      minAppliedJobFitScore,
-      maxAppliedJobFitScore,
-      minMatchingJobFitScore,
-      maxMatchingJobFitScore,
-      applicationDateStart: applicationDateRange?.from,
-      applicationDateEnd: applicationDateRange?.to,
-      selectedRecruiterIds: selectedRecruiterIds.size > 0 ? Array.from(selectedRecruiterIds) : undefined,
-      aiSearchQuery: undefined,
-    };
-
-    // Apply filters immediately for table-only refresh
-    onFilterChange(newFilters);
-  };
-
-  // Debounced version for multiselect changes to improve UX
-  const handleApplyStandardFiltersDebounced = () => {
-    // Clear any existing timeout
-    if (multiselectTimeoutRef.current) {
-      clearTimeout(multiselectTimeoutRef.current);
-    }
-    
-    // Set a new timeout for debounced filter application
-    multiselectTimeoutRef.current = setTimeout(() => {
-      handleApplyStandardFilters();
-    }, 100); // Reduced to 100ms for faster table refresh
-  };
 
   const handleAiSearchClick = () => {
     if (aiSearchQueryInput.trim()) {
@@ -943,7 +981,12 @@ export function CandidateFilters({
       aiSearchQuery: undefined,
     };
 
-    onFilterChange(newFilters);
+    // Only call onFilterChange if the filters have actually changed from what we last applied
+    const newFiltersString = JSON.stringify(newFilters);
+    if (lastAppliedFiltersRef.current !== newFiltersString) {
+      lastAppliedFiltersRef.current = newFiltersString;
+      onFilterChange(newFilters);
+    }
     
     // Clear loading state
     setIsApplyingFilters(false);
@@ -1028,7 +1071,12 @@ export function CandidateFilters({
       aiSearchQuery: undefined,
     };
     
-    onFilterChange(newFilters);
+    // Only call onFilterChange if the filters have actually changed from what we last applied
+    const newFiltersString = JSON.stringify(newFilters);
+    if (lastAppliedFiltersRef.current !== newFiltersString) {
+      lastAppliedFiltersRef.current = newFiltersString;
+      onFilterChange(newFilters);
+    }
   };
 
   const handleMatchingFitScoreGradeChange = (grade: string, checked: boolean) => {
@@ -1086,7 +1134,12 @@ export function CandidateFilters({
     };
     
     // Use the same debounced approach as applied fit score filters
-    onFilterChange(newFilters);
+    // Only call onFilterChange if the filters have actually changed from what we last applied
+    const newFiltersString = JSON.stringify(newFilters);
+    if (lastAppliedFiltersRef.current !== newFiltersString) {
+      lastAppliedFiltersRef.current = newFiltersString;
+      onFilterChange(newFilters);
+    }
   };
 
 

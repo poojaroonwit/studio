@@ -47,8 +47,9 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   
   // Memoize the permission check to prevent unnecessary re-renders
   const canBulkUpload = useMemo(() => {
-    return session?.user?.role === 'Admin';
-  }, [session?.user?.role]);
+    return session?.user?.role === 'Admin' || 
+      session?.user?.modulePermissions?.includes('BULK_UPLOAD');
+  }, [session?.user?.role, session?.user?.modulePermissions]);
   
   if (!canBulkUpload) {
     return (
@@ -95,13 +96,28 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
         e.preventDefault();
         window.history.pushState(null, '', window.location.href);
       };
+
+      // Prevent browser from opening files when dragged over the modal
+      const handleDragOver = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+
+      const handleDrop = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
       
       window.addEventListener('beforeunload', handleBeforeUnload);
       window.addEventListener('popstate', handlePopState);
+      window.addEventListener('dragover', handleDragOver);
+      window.addEventListener('drop', handleDrop);
       
       return () => {
         window.removeEventListener('beforeunload', handleBeforeUnload);
         window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('dragover', handleDragOver);
+        window.removeEventListener('drop', handleDrop);
       };
     }
   }, [isOpen]);
@@ -299,8 +315,6 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent 
         className="max-w-4xl w-full" 
-        onPointerDownOutside={(e) => e.preventDefault()} 
-        onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
@@ -310,40 +324,43 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
             Upload multiple PDF resumes and (optionally) assign them to a position.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-2 p-4 pb-6">
-          {/* Left Column - Position Selection and File Upload Area */}
-          <div className="space-y-4">
-                          <div>
-                <Label htmlFor="position-select">Assign to Position</Label>
-                <div className="mt-2">
-                  <PositionMultiSelectDropdown
-                    selectedIds={selectedPositionIds}
-                    onSelectionChange={handlePositionChange}
-                    placeholder="Select a position..."
-                    disabled={uploading}
-                    showOpenStatus={true}
-                    filterOpenOnly={false}
-                    singleSelect={true}
-                  />
-                </div>
-              </div>
-            <FileUploadArea
-              key="bulk-upload-area"
-              accept="application/pdf"
-              multiple={true}
-              maxFileSize={MAX_FILE_SIZE}
-              onFilesChange={handleFiles}
-              dragActive={dragActive}
-              setDragActive={handleDragActiveChange}
-            />
+        <div className="space-y-4 py-2 p-4 pb-6">
+          {/* Position Selection */}
+          <div>
+            <Label htmlFor="position-select">Assign to Position</Label>
+            <div className="mt-2">
+              <PositionMultiSelectDropdown
+                selectedIds={selectedPositionIds}
+                onSelectionChange={handlePositionChange}
+                placeholder="Select a position..."
+                disabled={uploading}
+                showOpenStatus={true}
+                filterOpenOnly={false}
+                singleSelect={true}
+              />
+            </div>
           </div>
-          {/* Right Column - Uploaded Files List, Preview, and Static Upload Queue Card */}
-          <div className="space-y-4">
-            {/* Uploaded Files List - Show selected files in right column */}
+          
+          {/* Main Content Area */}
+          <div className={`grid gap-6 ${totalFiles > 0 ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
+            {/* Upload Area - Full width when no files, 2/3 width when files exist */}
+            <div className={`${totalFiles > 0 ? 'lg:col-span-2' : 'col-span-1'}`}>
+              <FileUploadArea
+                key="bulk-upload-area"
+                accept="application/pdf"
+                multiple={true}
+                maxFileSize={MAX_FILE_SIZE}
+                onFilesChange={handleFiles}
+                dragActive={dragActive}
+                setDragActive={handleDragActiveChange}
+              />
+            </div>
+            
+            {/* File List - Only show when files are selected */}
             {totalFiles > 0 && (
               <div className="space-y-2">
                 <Label>Selected Files ({totalFiles})</Label>
-                <div className="max-h-[300px] overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
+                <div className="max-h-[400px] overflow-y-auto space-y-2 border rounded-lg p-3 bg-muted/20">
                   {selectedFiles.map((file, idx) => (
                     <div
                       key={idx}
@@ -375,9 +392,6 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
                 </div>
               </div>
             )}
-       
-         
-        
           </div>
         </div>
         

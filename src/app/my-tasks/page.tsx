@@ -17,8 +17,12 @@ export default async function MyTasksPageServer() {
   }
 
   const userRole = session.user.role || 'Recruiter';
-  // Allow access if user is Admin
-  const canAccessTaskBoard = userRole === 'Admin';
+  const modulePermissions = session.user.modulePermissions || [];
+  
+  // Allow access if user is Admin OR has TASK_BOARD_VIEW permission OR has CANDIDATES_VIEW permission
+  const canAccessTaskBoard = userRole === 'Admin' || 
+    modulePermissions.includes('TASK_BOARD_VIEW') || 
+    modulePermissions.includes('CANDIDATES_VIEW');
 
   if (!canAccessTaskBoard) {
     return (

@@ -193,7 +193,7 @@ export function UserGroupsTab() {
           <h2 className="text-xl font-semibold text-foreground">Roles & Permissions</h2>
           <p className="text-muted-foreground">Manage user roles and their permissions</p>
         </div>
-        {session?.user?.role === 'Admin' && (
+        {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
           <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Role
@@ -208,7 +208,7 @@ export function UserGroupsTab() {
              <ShieldCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
              <h3 className="text-lg font-semibold text-foreground mb-2">No Roles Found</h3>
              <p className="text-muted-foreground mb-4">Create your first role to get started</p>
-             {session?.user?.role === 'Admin' && (
+             {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
                <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
                  <PlusCircle className="mr-2 h-4 w-4" />
                  Create First Role

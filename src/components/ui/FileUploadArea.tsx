@@ -36,7 +36,11 @@ const FileUploadArea: FC<FileUploadAreaProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    onFilesChange(e.dataTransfer.files);
+    
+    // Ensure we have files to process
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFilesChange(e.dataTransfer.files);
+    }
   }, [onFilesChange, setDragActive]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -84,6 +88,12 @@ const FileUploadArea: FC<FileUploadAreaProps> = ({
     }
   }, []);
 
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  }, [setDragActive]);
+
   return (
     <div className="relative">
       {/* Hidden file input - positioned to be accessible but invisible */}
@@ -107,24 +117,26 @@ const FileUploadArea: FC<FileUploadAreaProps> = ({
         aria-hidden="true"
       />
       
-      {/* Upload area */}
-      <div
-        className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center relative ${
-          dragActive 
-            ? 'border-primary bg-primary/20 shadow-lg scale-105' 
-            : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
-        }`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        onContextMenu={(e) => e.preventDefault()}
-        tabIndex={0}
-        role="button"
-        aria-label="Upload files"
-        style={{ cursor: 'pointer', position: 'relative', zIndex: 0 }}
-      >
+             {/* Upload area */}
+       <div
+         className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 h-full min-h-[300px] flex flex-col items-center justify-center relative ${
+           dragActive 
+             ? 'border-primary bg-primary/20 shadow-lg scale-105' 
+             : 'border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
+         }`}
+         onDrop={handleDrop}
+         onDragOver={handleDragOver}
+         onDragEnter={handleDragEnter}
+         onDragLeave={handleDragLeave}
+         onClick={handleClick}
+         onKeyDown={handleKeyDown}
+         onContextMenu={(e) => e.preventDefault()}
+         tabIndex={0}
+         role="button"
+         aria-label="Upload files"
+         draggable={false}
+         style={{ cursor: 'pointer', position: 'relative', zIndex: 10 }}
+       >
         <UploadCloud className={`mx-auto mb-4 h-12 w-12 transition-all duration-300 ${
           dragActive ? 'text-primary scale-110' : 'text-primary'
         }`} />
@@ -138,7 +150,7 @@ const FileUploadArea: FC<FileUploadAreaProps> = ({
         
         {/* Drag overlay for better visual feedback */}
         {dragActive && (
-          <div className="absolute inset-0 bg-primary/10 border-2 border-primary border-dashed rounded-2xl flex items-center justify-center">
+          <div className="absolute inset-0 bg-primary/10 border-2 border-primary border-dashed rounded-2xl flex items-center justify-center z-20">
             <div className="text-center">
               <UploadCloud className="mx-auto mb-2 h-8 w-8 text-primary animate-pulse" />
               <p className="text-sm font-medium text-primary">Drop to upload</p>

@@ -10,6 +10,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { usePathname } from 'next/navigation';
 import { NotificationIcon } from '@/components/ui/notification-icon';
+import { WarningIcon } from '@/components/ui/warning-icon';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 import { RedesignedUserModal } from '@/components/users/RedesignedUserModal';
 import type { UserProfile } from '@/lib/types';
@@ -247,9 +248,9 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
   };
 
 
-  // Only show loading skeleton if not mounted or if we have no session data at all
+  // Only show loading skeleton if not mounted or if we're loading and have no session data
   // This prevents the avatar from disappearing during session updates
-  if (!mounted || (status === "loading" && !session?.user)) { 
+  if (!mounted || status === "loading") { 
     return (
       <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-2">
@@ -272,6 +273,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
         </div>
         <div className="flex items-center gap-3">
           {/* Theme switch is shown inside avatar dropdown, not here */}
+          {user && <WarningIcon />}
           {user && <NotificationIcon />}
           {user ? (
             <DropdownMenu>
@@ -287,6 +289,7 @@ export function Header({ pageTitle: initialPageTitle }: { pageTitle: string }) {
                     {user.email && ( <p className="text-xs leading-none text-muted-foreground"> {user.email} </p> )}
                   </div>
                 </DropdownMenuLabel>
+                <div role="separator" aria-orientation="horizontal" className="-mx-1 my-1 h-px bg-muted"></div>
                 <div className="px-2 py-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-muted-foreground">Appearance</span>

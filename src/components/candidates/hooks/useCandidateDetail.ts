@@ -16,12 +16,25 @@ const editCandidateDetailSchema = z.object({
   fitScore: z.number().min(0).max(1).nullable().optional(),
   status: z.string().optional().nullable(),
   assignmentJustification: z.array(z.string()).optional(),
-  parsedData: z.any().optional(),
+  parsedData: z.object({
+    personal_info: z.any().optional(),
+    contact_info: z.any().optional(),
+    education: z.array(z.any()).optional(),
+    experience: z.array(z.any()).optional(),
+    skills: z.array(z.any()).optional(),
+    job_suitable: z.array(z.any()).optional(),
+    job_matches: z.array(z.any()).optional(),
+  }).optional(),
 });
 
 type EditCandidateFormValues = z.infer<typeof editCandidateDetailSchema>;
 
 export const useCandidateDetail = (candidateId: string) => {
+  // Validate candidateId early to prevent initialization issues
+  if (!candidateId || typeof candidateId !== 'string') {
+    throw new Error('Invalid candidate ID provided to useCandidateDetail hook');
+  }
+
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +53,28 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form setup
+  // Safe default values to prevent temporal dead zone issues
+  const getDefaultFormValues = (): EditCandidateFormValues => ({
+    name: '',
+    email: '',
+    phone: '',
+    positionId: null,
+    recruiterId: null,
+    fitScore: null,
+    status: '',
+    assignmentJustification: [],
+    parsedData: {
+      personal_info: {},
+      contact_info: {},
+      education: [],
+      experience: [],
+      skills: [],
+      job_suitable: [],
+      job_matches: [],
+    },
+  });
+
+  // Form setup with defensive initialization
   const {
     control,
     handleSubmit,
@@ -51,27 +85,11 @@ export const useCandidateDetail = (candidateId: string) => {
     setValue,
   } = useForm<EditCandidateFormValues>({
     resolver: zodResolver(editCandidateDetailSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      positionId: null,
-      recruiterId: null,
-      fitScore: null,
-      status: '',
-      assignmentJustification: [],
-      parsedData: {
-        personal_info: {},
-        contact_info: {},
-        education: [],
-        experience: [],
-        skills: [],
-        job_suitable: [],
-        job_matches: [],
-      },
-    },
+    defaultValues: getDefaultFormValues(),
+    mode: 'onChange',
   });
 
+  // Defensive useFieldArray hooks with safe initialization
   const {
     fields: educationFields,
     append: appendEducation,
@@ -79,6 +97,7 @@ export const useCandidateDetail = (candidateId: string) => {
   } = useFieldArray({
     control,
     name: 'parsedData.education',
+    keyName: 'field_id',
   });
 
   const {
@@ -88,6 +107,7 @@ export const useCandidateDetail = (candidateId: string) => {
   } = useFieldArray({
     control,
     name: 'parsedData.experience',
+    keyName: 'field_id',
   });
 
   const {
@@ -97,6 +117,7 @@ export const useCandidateDetail = (candidateId: string) => {
   } = useFieldArray({
     control,
     name: 'parsedData.skills',
+    keyName: 'field_id',
   });
 
   const {
@@ -106,6 +127,7 @@ export const useCandidateDetail = (candidateId: string) => {
   } = useFieldArray({
     control,
     name: 'parsedData.job_suitable',
+    keyName: 'field_id',
   });
 
   const {
@@ -115,30 +137,78 @@ export const useCandidateDetail = (candidateId: string) => {
   } = useFieldArray({
     control,
     name: 'parsedData.job_matches',
+    keyName: 'field_id',
   });
 
-  // Fetch candidate data
+  // Fetch candidate data with robust error handling
   useEffect(() => {
     const fetchCandidate = async () => {
-      if (!candidateId) return;
+      if (!candidateId) {
+        setError('No candidate ID provided');
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       setError(null);
       
       try {
-        const res = await fetch(`/api/candidates/${candidateId}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const res = await fetch(`/api/candidates/${candidateId}`, {
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (!res.ok) {
-          throw new Error(`Failed to fetch candidate: ${res.status}`);
+          if (res.status === 404) {
+            throw new Error('Candidate not found');
+          } else if (res.status === 403) {
+            throw new Error('Access denied to candidate');
+          } else if (res.status >= 500) {
+            throw new Error('Server error occurred');
+          } else {
+            throw new Error(`Failed to fetch candidate: ${res.status}`);
+          }
         }
         
         const data = await res.json();
+        
+        // Validate basic candidate data structure
+        if (!data || typeof data !== 'object' || !data.id) {
+          throw new Error('Invalid candidate data received');
+        }
+        
+        // Safely process candidate data
         setCandidate({
           ...data,
           fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+          parsedData: data.parsedData || {
+            personal_info: {},
+            contact_info: {},
+            education: [],
+            experience: [],
+            skills: [],
+            job_suitable: [],
+            job_matches: [],
+          },
         });
       } catch (err) {
         console.error('Error fetching candidate:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch candidate');
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            setError('Request timed out. Please try again.');
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError('Failed to fetch candidate');
+        }
       } finally {
         setLoading(false);
       }
@@ -169,8 +239,10 @@ export const useCandidateDetail = (candidateId: string) => {
       try {
         const res = await fetch('/api/users?role=Recruiter');
         if (res.ok) {
-          const data = await res.json();
-          setAvailableRecruiters(data || []);
+          const responseData = await res.json();
+          // Handle the correct API response structure: { users: [...], pagination: {...} }
+          const recruitersArray = responseData?.users || [];
+          setAvailableRecruiters(recruitersArray);
         }
       } catch (e) {
         console.error('Error fetching recruiters:', e);

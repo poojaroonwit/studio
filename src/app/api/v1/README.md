@@ -96,7 +96,7 @@ Get a list of candidates with pagination and filtering.
   "data": [
     {
       "id": "candidate-id",
-      "name": "John Doe",
+      "name": "Sample Candidate",
       "email": "john@example.com",
       "phone": "+1234567890",
       "status": "new",
@@ -202,8 +202,8 @@ Create a new candidate with candidate information, job matches, and applied job 
   "message": "Candidate created successfully",
   "candidate": {
     "id": "candidate-uuid",
-    "name": "John Doe",
-    "email": "john@example.com",
+    "name": "Sample Candidate",
+    "email": "candidate@example.com",
     "phone": "+1234567890",
     "status": "new",
     "parsedData": { /* candidate_info only */ },
@@ -229,8 +229,8 @@ curl -X POST /api/v1/candidates/import \
 {
   "candidates": [
     {
-      "name": "John Doe",
-      "email": "john.doe@example.com",
+      "name": "Sample Candidate",
+      "email": "candidate@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "positionId": "position-uuid",
@@ -247,7 +247,7 @@ curl -X POST /api/v1/candidates/import \
 **CSV Format Example:**
 ```csv
 name,email,phone,status,positionId,recruiterId,fitScore
-John Doe,john.doe@example.com,+1234567890,Applied,,,85
+Sample Candidate,candidate@example.com,+1234567890,Applied,,,85
 Jane Smith,jane.smith@example.com,+1234567891,Screening,,,90
 ```
 
@@ -271,8 +271,8 @@ Get import template for reference.
 {
   "candidates": [
     {
-      "name": "John Doe",
-      "email": "john.doe@example.com",
+      "name": "Sample Candidate",
+      "email": "candidate@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "positionId": null,
@@ -293,7 +293,7 @@ Get a specific candidate by ID.
 ```json
 {
   "id": "candidate-id",
-  "name": "John Doe",
+  "name": "Sample Candidate",
   "email": "john@example.com",
   "phone": "+1234567890",
   "status": "new",
@@ -363,7 +363,7 @@ Update a candidate. Only the fields you want to update need to be included in th
 **Example - Update multiple fields:**
 ```json
 {
-  "name": "John Doe Updated",
+  "name": "Sample Candidate Updated",
   "status": "Interviewing",
   "positionId": "new-position-uuid",
   "fitScore": 0.92
@@ -385,8 +385,8 @@ Update a candidate. Only the fields you want to update need to be included in th
   "message": "Candidate updated successfully",
   "candidate": {
     "id": "candidate-uuid",
-    "name": "John Doe Updated",
-    "email": "john.updated@example.com",
+    "name": "Sample Candidate Updated",
+    "email": "candidate.updated@example.com",
     "status": "new",
     "parsedData": { /* updated data */ },
     "updatedAt": "2024-01-01T00:00:00.000Z"
@@ -433,7 +433,7 @@ Assign or update the recruiter for a candidate.
   "message": "Candidate recruiter updated successfully",
   "candidate": {
     "id": "candidate-id",
-    "name": "John Doe",
+    "name": "Sample Candidate",
     "recruiter": {
       "id": "recruiter-id",
       "name": "Jane Smith",
@@ -907,7 +907,7 @@ curl -X POST /api/v1/candidates/{id}/avatar \
   "avatar_url": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg",
   "candidate": {
     "id": "candidate-uuid",
-    "name": "John Doe",
+    "name": "Sample Candidate",
     "avatarUrl": "http://localhost:9000/uploads/avatars/candidate-id/uuid.jpg"
   }
 }
@@ -982,8 +982,8 @@ Search candidates using AI-powered semantic search.
   "data": [
     {
       "id": "candidate-uuid",
-      "name": "John Doe",
-      "email": "john@example.com",
+      "name": "Sample Candidate",
+      "email": "candidate@example.com",
       "phone": "+1234567890",
       "status": "Applied",
       "fitScore": 85,
@@ -1031,7 +1031,7 @@ Get dashboard statistics and metrics.
       {
         "id": "activity-uuid",
         "type": "candidate_created",
-        "message": "New candidate John Doe added",
+        "message": "New candidate Sample Candidate added",
         "timestamp": "2024-01-01T00:00:00.000Z",
         "userId": "user-uuid",
         "userName": "Jane Smith"
@@ -1065,7 +1065,7 @@ Get system logs with pagination and filtering. Requires Admin role or LOGS_VIEW 
       "message": "User logged in successfully",
       "details": { "ip": "192.168.1.1" },
       "userId": "user-uuid",
-      "userName": "John Doe",
+      "userName": "Sample User",
       "actionType": "LOGIN",
       "createdAt": "2024-01-01T00:00:00.000Z"
     }
@@ -1104,7 +1104,7 @@ Get candidate stage transitions with optional filtering.
       "notes": "Candidate passed initial screening",
       "transitionDate": "2024-01-01T00:00:00.000Z",
       "createdBy": "user-uuid",
-      "createdByName": "John Doe",
+      "createdByName": "Sample User",
       "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ],

@@ -1,7 +1,6 @@
 // src/app/api/candidates/[id]/avatar/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { minioClient, ensureBucketExists } from '@/lib/minio';
-import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
+import { minioClient, ensureBucketExists, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { getPool } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth/next';

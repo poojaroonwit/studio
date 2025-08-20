@@ -73,7 +73,8 @@ export default function DashboardPageClient({
   const [permissionError, setPermissionError] = useState(serverPermissionError);
 
   // Check permissions
-      const canViewDashboard = session?.user?.role === 'Admin';
+  const canViewDashboard = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('DASHBOARD_VIEW');
   
   // EARLY RETURNS MOVED TO AFTER ALL HOOKS
   if (status === 'loading') {
@@ -641,13 +642,13 @@ export default function DashboardPageClient({
               }
             },
             { 
-              title: "Open Positions", 
-              value: totalOpenPositions, 
+              title: "Open Headcount", 
+              value: openPositions.reduce((total, position) => total + (position.headcount || 0), 0), 
               icon: Briefcase, 
               color: "text-emerald-500 dark:text-emerald-400", 
               bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50",
               borderColor: "border-emerald-200 dark:border-emerald-800",
-              description: "Available roles",
+              description: "Total headcount left",
               button: {
                 label: "View All",
                 onClick: () => router.push('/positions?status=Open')
@@ -734,12 +735,48 @@ export default function DashboardPageClient({
         ))}
         </div>
 
-        {/* New Applications Time Series Chart */}
-        <NewApplicationsTimeSeriesChart 
-          candidates={allCandidates} 
-          isLoading={isLoading} 
-        />
+        {/* Separator */}
+        <div className="border-t border-border/50 my-8"></div>
+
+        {/* New Applications + SLA side-by-side (70/30) */}
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-10">
+          <div className="lg:col-span-7">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">New Applications Over Time</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Track application trends and patterns</p>
+                </div>
+              </div>
+            </div>
+            <NewApplicationsTimeSeriesChart 
+              candidates={allCandidates} 
+              isLoading={isLoading} 
+            />
+          </div>
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">SLA Monitoring</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Track hiring timeline violations</p>
+                </div>
+              </div>
+            </div>
+            <div className="h-64 space-y-4 overflow-y-auto">
+              <SLAViolationsWidget />
+              {session?.user?.role === 'Recruiter' && (
+                <SLAViolationsWidget recruiterId={session.user.id} />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Separator */}
+      <div className="border-t border-border/50 my-8"></div>
 
       {/* Section 2.5: Candidate Scoring Analysis - Chart.js Horizontal Bar Chart */}
       <div className="space-y-6">
@@ -966,25 +1003,8 @@ export default function DashboardPageClient({
         </div>
       )}
 
-      {/* Section 4: SLA Violations */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">SLA Monitoring</h2>
-              <p className="text-sm text-muted-foreground mt-1">Track hiring timeline violations</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <SLAViolationsWidget />
-          {session?.user?.role === 'Recruiter' && (
-            <SLAViolationsWidget recruiterId={session.user.id} />
-          )}
-        </div>
-      </div>
+      {/* Separator */}
+      <div className="border-t border-border/50 my-8"></div>
 
       {/* Section 5: Pipeline Analytics - Charts */}
       <div className="space-y-6">

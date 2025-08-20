@@ -212,11 +212,13 @@ export default function PositionDetailPage() {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch recruiters' }));
         throw new Error(errorData.message || `Failed to fetch recruiters: ${response.status} ${response.statusText}`);
       }
-      const data: UserProfile[] = await response.json();
-      if (!Array.isArray(data)) {
+      const responseData = await response.json();
+      // Handle the correct API response structure: { users: [...], pagination: {...} }
+      const recruitersArray = responseData?.users || [];
+      if (!Array.isArray(recruitersArray)) {
         throw new Error('Invalid recruiter data format received');
       }
-      setAvailableRecruiters(data.map(r => ({ id: r.id, name: r.name })));
+      setAvailableRecruiters(recruitersArray.map(r => ({ id: r.id, name: r.name })));
     } catch (error) {
       console.error('Error fetching recruiters:', error);
       toast.error((error as Error).message || 'Failed to fetch recruiters');

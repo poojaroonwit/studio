@@ -72,6 +72,12 @@ export async function GET(request: NextRequest) {
   const filterNameInput = searchParams.get('name');
   const filterEmailInput = searchParams.get('email');
   const filterRoleInput = searchParams.get('role');
+  const filterTeamIdInput = searchParams.get('teamId');
+  
+  // Pagination parameters
+  const page = parseInt(searchParams.get('page') || '1');
+  const pageSize = parseInt(searchParams.get('pageSize') || '10');
+  const skip = (page - 1) * pageSize;
 
   const canManageUsers = userRole === 'Admin' || (session.user.modulePermissions?.includes('USERS_MANAGE') ?? false);
   const isRecruiter = userRole === 'Recruiter';
@@ -100,6 +106,20 @@ export async function GET(request: NextRequest) {
     if (filterEmailInput) {
       whereConditions.email = { contains: filterEmailInput, mode: 'insensitive' };
     }
+
+    // Team filter joins
+    if (filterTeamIdInput) {
+      whereConditions.userTeams = {
+        some: {
+          teamId: filterTeamIdInput
+        }
+      };
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.user.count({
+      where: whereConditions
+    });
 
     let users = [];
     try {
@@ -131,12 +151,22 @@ export async function GET(request: NextRequest) {
         } as any,
         orderBy: {
           name: 'asc'
-        }
+        },
+        skip,
+        take: pageSize
       });
     } catch (err) {
       // If the table or fields are missing, return empty array
       console.error('User table or fields missing:', err);
-      return NextResponse.json([], { status: 200 });
+      return NextResponse.json({
+        users: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalCount: 0,
+          pageSize: pageSize
+        }
+      }, { status: 200 });
     }
 
     const usersToReturn = users.map((user: any) => ({
@@ -145,7 +175,17 @@ export async function GET(request: NextRequest) {
       modulePermissions: user.module_permissions || []
     }));
 
-    return NextResponse.json(usersToReturn, { status: 200 });
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    return NextResponse.json({
+      users: usersToReturn,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        pageSize
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error("Failed to fetch users (Prisma Error):", error);
     const userNameForLog = session?.user?.name || session?.user?.email || 'Unknown User';
@@ -220,6 +260,13 @@ export async function POST(request: NextRequest) {
 
     console.log('About to create user with Prisma...');
     
+    // Define role to group ID mappings
+    const roleToGroupId = {
+      'Admin': '00000000-0000-0000-0000-000000000001',
+      'Recruiter': '00000000-0000-0000-0000-000000000002',
+      'Hiring Manager': '00000000-0000-0000-0000-000000000003'
+    };
+
     const newUser = await prisma.user.create({
       data: {
         name,
@@ -232,6 +279,12 @@ export async function POST(request: NextRequest) {
         authenticationMethod,
         forcePasswordChange,
         personalColor,
+        // Assign user to the appropriate group based on role
+        userGroups: roleToGroupId[role] ? {
+          create: {
+            groupId: roleToGroupId[role]
+          }
+        } : undefined,
         // Temporarily comment out team assignment to isolate the issue
         // userTeams: userTeamIds && userTeamIds.length > 0 ? {
         //   create: userTeamIds.map(teamId => ({

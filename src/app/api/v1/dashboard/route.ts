@@ -124,7 +124,7 @@ import {
  *                     recentActivity:
  *                       - id: "123e4567-e89b-12d3-a456-426614174000"
  *                         type: "candidate_created"
- *                         message: "New candidate John Doe added"
+ *                         message: "New candidate Sample Candidate added"
  *                         timestamp: "2024-01-01T00:00:00.000Z"
  *                         userId: "123e4567-e89b-12d3-a456-426614174001"
  *                         userName: "Jane Smith"

@@ -112,7 +112,7 @@ const searchCandidatesSchema = z.object({
  *                   success: true
  *                   data:
  *                     - id: "123e4567-e89b-12d3-a456-426614174000"
- *                       name: "John Doe"
+ *                       name: "Sample Candidate"
  *                       email: "john.doe@example.com"
  *                       phone: "+1234567890"
  *                       status: "Applied"
@@ -170,23 +170,12 @@ export async function POST(req: NextRequest) {
     const { query, positionId, limit, offset } = validationResult.data;
 
     // TODO: Implement actual AI search logic
-    // For now, return a placeholder response
-    const mockResults = [
-      {
-        id: "123e4567-e89b-12d3-a456-426614174000",
-        name: "John Doe",
-        email: "john.doe@example.com",
-        phone: "+1234567890",
-        status: "Applied",
-        fitScore: 85,
-        matchReasons: ["React experience", "Software engineering background"],
-        parsedData: {}
-      }
-    ];
+    // For now, return empty results until AI search is implemented
+    const results: any[] = [];
 
     const response = {
-      data: mockResults,
-      total: mockResults.length,
+      data: results,
+      total: results.length,
       query: query
     };
 

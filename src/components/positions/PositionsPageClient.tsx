@@ -55,6 +55,7 @@ export default function PositionsPageClient() {
   // All useState hooks first
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTableLoading, setIsTableLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
   const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
@@ -67,7 +68,19 @@ export default function PositionsPageClient() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Initialize page from URL or default to 1
+  const [page, setPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pageParam = urlParams.get('page');
+      return pageParam ? parseInt(pageParam, 10) : 1;
+    }
+    return 1;
+  });
+  
   const [pageSize, setPageSize] = useState(preferences.pageSize);
   const [total, setTotal] = useState(0);
   const [statistics, setStatistics] = useState({ total: 0, open: 0, closed: 0 });
@@ -107,6 +120,10 @@ export default function PositionsPageClient() {
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchStuckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track if we should update preferences (prevent circular updates)
+  const shouldUpdatePreferencesRef = useRef(true);
+  // Track if this is the initial load
+  const isInitialLoadRef = useRef(true);
 
   // statusFilter: initialize from preferences or URL
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed'>(() => {
@@ -153,6 +170,9 @@ export default function PositionsPageClient() {
   // Update local state when preferences are loaded
   useEffect(() => {
     if (isLoaded) {
+      // Temporarily disable preference updates to prevent circular dependency
+      shouldUpdatePreferencesRef.current = false;
+      
       setSearchTerm(preferences.searchTerm);
       setDepartmentFilter(preferences.departmentFilter);
       setPageSize(preferences.pageSize);
@@ -166,12 +186,17 @@ export default function PositionsPageClient() {
           setStatusFilter(preferences.statusFilter as 'all' | 'open' | 'closed');
         }
       }
+      
+      // Re-enable preference updates after state is set
+      setTimeout(() => {
+        shouldUpdatePreferencesRef.current = true;
+      }, 0);
     }
   }, [isLoaded, preferences.searchTerm, preferences.departmentFilter, preferences.pageSize, preferences.selectedRecruiterId, preferences.statusFilter]);
 
   // Update preferences when local state changes
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && shouldUpdatePreferencesRef.current) {
       updatePositionsPreferences({
         searchTerm,
         departmentFilter,
@@ -180,7 +205,7 @@ export default function PositionsPageClient() {
         pageSize,
       });
     }
-  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded, updatePositionsPreferences]);
+  }, [searchTerm, departmentFilter, statusFilter, selectedRecruiterId, pageSize, isLoaded]);
 
   // Department filter popover state
   const [departmentPopoverOpen, setDepartmentPopoverOpen] = useState(false);
@@ -197,6 +222,7 @@ export default function PositionsPageClient() {
   const handleRecruiterSelect = (recruiterId: string | null) => {
     setSelectedRecruiterId(recruiterId);
     setPage(1); // Reset to first page when changing recruiter filter
+    updateURL(1); // Update URL to reflect page reset
   };
 
   // Handler for assigning/unassigning recruiter to position
@@ -410,10 +436,16 @@ export default function PositionsPageClient() {
 
   // Fetch positions with pagination and statistics
   const fetchPositions = useCallback(async (isSearch = false, customPage?: number) => {
+    
     if (isSearch) {
       setIsSearching(true);
-    } else {
+    } else if (isInitialLoadRef.current) {
+      // Use full loading for initial load
       setIsLoading(true);
+      isInitialLoadRef.current = false;
+    } else {
+      // Use table loading for subsequent loads (pagination, filters, etc.)
+      setIsTableLoading(true);
     }
     
     try {
@@ -442,8 +474,6 @@ export default function PositionsPageClient() {
       const data = await response.json();
       const positionsData = data.data || [];
       
-
-      
       setPositions(positionsData);
       setTotal(data.total || 0);
         
@@ -457,11 +487,28 @@ export default function PositionsPageClient() {
     } finally {
       // Always ensure search state is reset
       setIsSearching(false);
-      if (!isSearch) {
+      if (isSearch) {
+        // Search loading handled above
+      } else {
+        // Clear the appropriate loading state
+        setIsTableLoading(false);
         setIsLoading(false);
       }
     }
   }, [selectedRecruiterId]); // Include selectedRecruiterId in dependencies
+
+  // Update URL with current pagination state
+  const updateURL = useCallback((newPage: number, newPageSize?: number) => {
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set('page', newPage.toString());
+    if (newPageSize) {
+      currentParams.set('pageSize', newPageSize.toString());
+    }
+    
+    // Update URL without page refresh
+    const newURL = `${window.location.pathname}?${currentParams.toString()}`;
+    router.replace(newURL, { scroll: false });
+  }, [router]);
 
   // Calculate recruiter statistics from positions data
   const calculateRecruiterStats = useCallback((positionsData: Position[]) => {
@@ -483,24 +530,37 @@ export default function PositionsPageClient() {
     try {
       // First, get all recruiters
       const recruitersResponse = await fetch('/api/users?role=Recruiter');
+      
       if (!recruitersResponse.ok) {
-        throw new Error('Failed to fetch recruiters');
+        const errorText = await recruitersResponse.text();
+        console.error('Recruiters API error:', errorText);
+        throw new Error(`Failed to fetch recruiters: ${recruitersResponse.status} ${errorText}`);
       }
+      
       const recruitersData = await recruitersResponse.json();
+      
+      // Handle the correct API response structure: { users: [...], pagination: {...} }
+      const recruitersArray = recruitersData?.users || [];
+      
+      if (!Array.isArray(recruitersArray)) {
+        console.error('Invalid recruiters data format:', recruitersData);
+        throw new Error('Invalid recruiters data format received from API');
+      }
       
       // Initialize stats with all recruiters set to 0 and set available recruiters
       const stats: { [key: string]: number } = {};
-      recruitersData.forEach((recruiter: any) => {
+      recruitersArray.forEach((recruiter: any) => {
         stats[recruiter.id] = 0;
       });
       stats.unassigned = 0; // Initialize unassigned count
       
       // Set available recruiters for dropdown
-      setAvailableRecruiters(recruitersData.map((r: any) => ({ 
+      const availableRecruitersData = recruitersArray.map((r: any) => ({ 
         id: r.id, 
         name: r.name, 
         avatarUrl: r.avatarUrl 
-      })));
+      }));
+      setAvailableRecruiters(availableRecruitersData);
       
       // Then get all positions to count them
       const query = new URLSearchParams();
@@ -541,9 +601,19 @@ export default function PositionsPageClient() {
   useEffect(() => {
     fetchPositions(false);
     fetchAllDepartments();
-    fetchRecruiterStats(); // Fetch recruiter stats independently
+    // Only fetch recruiter stats if session is available
+    if (session?.user?.id) {
+      fetchRecruiterStats(); // Fetch recruiter stats independently
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [session?.user?.id]); // Add session dependency
+
+  // Fetch recruiter stats when session becomes available
+  useEffect(() => {
+    if (session?.user?.id && availableRecruiters.length === 0) {
+      fetchRecruiterStats();
+    }
+  }, [session?.user?.id, availableRecruiters.length, fetchRecruiterStats]);
 
   // Effect for pagination changes only
   useEffect(() => {
@@ -552,7 +622,28 @@ export default function PositionsPageClient() {
       return;
     }
     fetchPositions(false);
-  }, [page, pageSize]);
+  }, [page, pageSize, fetchPositions]);
+
+  // Listen for URL changes and update page state
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageParam = urlParams.get('page');
+    const pageSizeParam = urlParams.get('pageSize');
+    
+    if (pageParam) {
+      const newPage = parseInt(pageParam, 10);
+      if (newPage !== page) {
+        setPage(newPage);
+      }
+    }
+    
+    if (pageSizeParam) {
+      const newPageSize = parseInt(pageSizeParam, 10);
+      if (newPageSize !== pageSize) {
+        setPageSize(newPageSize);
+      }
+    }
+  }, [searchParams]); // Listen to searchParams changes
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
@@ -566,6 +657,7 @@ export default function PositionsPageClient() {
       try {
         // Reset to first page and fetch with page 1
         setPage(1);
+        updateURL(1); // Update URL to reflect page reset
         await fetchPositions(true, 1); // Pass custom page 1 to avoid race condition
       } catch (error) {
         console.error('Search error:', error);
@@ -859,7 +951,7 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full h-full flex flex-col">
       <div className="flex flex-1 overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <div className="w-80 flex-shrink-0 border-r border-border bg-background">
@@ -868,6 +960,7 @@ export default function PositionsPageClient() {
               selectedRecruiterId={selectedRecruiterId}
               onRecruiterSelect={handleRecruiterSelect}
               recruiterStats={recruiterStats}
+              recruiters={availableRecruiters}
             />
           </div>
         </div>
@@ -918,14 +1011,14 @@ export default function PositionsPageClient() {
             </SelectContent>
           </Select>
                           {isLoadingDepartments ? (
-                  <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
+                  <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Loading departments...
                   </div>
                 ) : allDepartments.length > 0 ? (
                   <Popover open={departmentPopoverOpen} onOpenChange={setDepartmentPopoverOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full mt-1 justify-between text-xs font-normal shadow-none hover:shadow-none [&]:shadow-none [&]:hover:shadow-none" style={{ boxShadow: 'none' }}>
+                      <Button variant="outline" role="combobox" aria-expanded={departmentPopoverOpen} className="w-full justify-between text-xs font-normal shadow-none hover:shadow-none [&]:shadow-none [&]:hover:shadow-none" style={{ boxShadow: 'none' }}>
                         {departmentFilter === 'all' ? 'All Departments' : departmentFilter}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -969,7 +1062,7 @@ export default function PositionsPageClient() {
                     </PopoverContent>
                   </Popover>
                 ) : (
-                  <div className="w-full mt-1 px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                  <div className="w-full px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-md border border-dashed">
                     <div className="flex items-center gap-2">
                       <span>No departments available</span>
                       <Button
@@ -1162,7 +1255,17 @@ export default function PositionsPageClient() {
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-background">
+        <div className="rounded-lg border border-border bg-background overflow-auto max-h-[600px] custom-scrollbar relative">
+          
+          {/* Table Loading Overlay */}
+          {isTableLoading && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 min-h-[400px]">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading positions...</span>
+              </div>
+            </div>
+          )}
           
           {/* Bulk Action Bar */}
           {selectedIds.length > 0 && (
@@ -1176,7 +1279,8 @@ export default function PositionsPageClient() {
               </Button>
             </div>
           )}
-          <Table className="min-w-full divide-y divide-border">
+          <div className="min-h-[400px]">
+            <Table className="min-w-full divide-y divide-border">
             <TableHeader>
               <TableRow>
                 <TableHead>
@@ -1213,30 +1317,7 @@ export default function PositionsPageClient() {
                   </span>
                 </TableHead>
 
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('department'); setOpenMenu(null); }}>
-                  <span className="inline-flex items-center gap-1">
-                    Department
-                    <DropdownMenu open={openMenu === 'department'} onOpenChange={open => setOpenMenu(open ? 'department' : null)}>
-                      <DropdownMenuTrigger asChild>
-                        {sortColumn === 'department' ? (
-                          <button type="button" className="text-primary font-bold p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('department'); }} aria-label="Sort options">
-                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        ) : (
-                          <button type="button" className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted" onClick={e => { e.stopPropagation(); setOpenMenu('department'); }} aria-label="Sort options">
-                            <MoreVertical size={16} />
-                          </button>
-                        )}
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { handleSort('department', 'asc'); setOpenMenu(null); }}>Sort Ascending <ChevronUp size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { handleSort('department', 'desc'); setOpenMenu(null); }}>Sort Descending <ChevronDown size={16} className="ml-1 inline" /></DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => { handleSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                </TableHead>
+
                 <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('status'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     Status
@@ -1286,6 +1367,7 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
+
                 <TableHead>Applied</TableHead>
                 <TableHead>Potential Matched</TableHead>
                 <TableHead>Actions</TableHead>
@@ -1316,10 +1398,27 @@ export default function PositionsPageClient() {
                           setSelectedPositionId(position.id);
                           setIsNewDrawerOpen(true);
                         }}
-                        className="text-primary hover:underline font-medium text-left cursor-pointer hover:text-primary/80 transition-colors flex items-center gap-1 group"
+                        className="text-primary hover:underline font-medium text-left cursor-pointer hover:text-primary/80 transition-colors flex items-start gap-1 group"
                         title="Click to view position details"
-                      >
-                        {position.title}
+                                              >
+                          {position.title}
+                          {position.grade && position.grade.color && (
+                            <span 
+                              className="inline text-xs px-1.5 py-0.5 rounded-full border ml-1"
+                              style={{ 
+                                borderColor: position.grade.color,
+                                color: position.grade.color,
+                                backgroundColor: 'transparent'
+                              }}
+                            >
+                              {position.grade.name}
+                            </span>
+                          )}
+                          {position.grade && !position.grade.color && (
+                            <span className="inline text-xs text-muted-foreground ml-1">
+                              {position.grade.name}
+                            </span>
+                          )}
                         <Eye className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity" />
                       </button>
                       {position.positionLevel && (
@@ -1327,58 +1426,11 @@ export default function PositionsPageClient() {
                           {position.positionLevel}
                         </span>
                       )}
-                      {position.grade && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs"
-                            style={{ 
-                              borderColor: position.grade.color || '#3B82F6',
-                              color: position.grade.color || '#3B82F6'
-                            }}
-                          >
-                            {position.grade.name}
-                          </Badge>
-                          {position.grade.label && (
-                            <span className="text-xs text-muted-foreground">
-                              {position.grade.label}
-                            </span>
-                          )}
-                          {(() => {
-                            const remaining = getSLARemainingDays(position);
-                            if (remaining !== null) {
-                              return (
-                                <Badge
-                                  variant={remaining === 0 ? 'destructive' : 'secondary'}
-                                  className="text-xs"
-                                  title={remaining === 0 ? 'SLA reached' : `${remaining} days left to SLA`}
-                                >
-                                  {remaining === 0 ? 'SLA Reached' : `${remaining}d left`}
-                                </Badge>
-                              );
-                            }
-                            return null;
-                          })()}
-                          {(() => {
-                            const slaResult = checkSLAViolation(position);
-                            if (slaResult && slaResult.isViolated) {
-                              return (
-                                <Badge 
-                                  variant={getSLABadgeVariant(slaResult.daysOverdue)}
-                                  className="text-xs"
-                                  title={formatSLAMessage(slaResult)}
-                                >
-                                  {slaResult.daysOverdue} days overdue
-                                </Badge>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      )}
+                      <span className="text-xs text-muted-foreground mt-0.5">
+                        {position.department}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>{position.department}</TableCell>
                   <TableCell>
                     {position.isOpen ? (
                       <Badge variant="success">Open</Badge>
@@ -1396,6 +1448,7 @@ export default function PositionsPageClient() {
                       onResetAssigning={resetAssigningRecruiter}
                     />
                   </TableCell>
+                  
                   <TableCell className="text-center">
                     {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
@@ -1447,8 +1500,9 @@ export default function PositionsPageClient() {
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
-          </Table>
+                          </TableBody>
+            </Table>
+          </div>
         </div>
       )}
       
@@ -1459,7 +1513,10 @@ export default function PositionsPageClient() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setPage(1)}
+              onClick={() => {
+                setPage(1);
+                updateURL(1);
+              }}
               disabled={page === 1}
               aria-label="First page"
             >
@@ -1469,7 +1526,11 @@ export default function PositionsPageClient() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setPage(page - 1)}
+              onClick={() => {
+                const newPage = page - 1;
+                setPage(newPage);
+                updateURL(newPage);
+              }}
               disabled={page === 1}
               aria-label="Previous page"
             >
@@ -1481,7 +1542,11 @@ export default function PositionsPageClient() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setPage(page + 1)}
+              onClick={() => {
+                const newPage = page + 1;
+                setPage(newPage);
+                updateURL(newPage);
+              }}
               disabled={page === totalPages}
               aria-label="Next page"
             >
@@ -1490,7 +1555,10 @@ export default function PositionsPageClient() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setPage(totalPages)}
+              onClick={() => {
+                setPage(totalPages);
+                updateURL(totalPages);
+              }}
               disabled={page === totalPages}
               aria-label="Last page"
             >
@@ -1506,6 +1574,7 @@ export default function PositionsPageClient() {
                 const newPageSize = Number(e.target.value);
                 setPageSize(newPageSize);
                 setPage(1); // Reset to first page when changing page size
+                updateURL(1, newPageSize); // Update URL with new page size
               }}
               className="border rounded-md px-2 py-1 text-sm bg-background text-foreground"
             >

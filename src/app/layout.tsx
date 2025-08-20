@@ -7,6 +7,7 @@ import { AuthProvider } from '@/components/auth/AuthProvider';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { WarningProvider } from '@/contexts/WarningContext';
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 // If you need to pass server-side session for initial render optimization:
@@ -77,12 +78,14 @@ export default async function RootLayout({
         <TooltipProvider>
           <AuthProvider>
             <NotificationProvider>
-              <ErrorBoundary>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-              </ErrorBoundary>
-              <ToastClient />
+              <WarningProvider>
+                <ErrorBoundary>
+                  <AppLayout>
+                    {children}
+                  </AppLayout>
+                </ErrorBoundary>
+                <ToastClient />
+              </WarningProvider>
             </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>

@@ -122,7 +122,7 @@ import {
  *                       message: "User logged in successfully"
  *                       details: { ip: "192.168.1.1" }
  *                       userId: "123e4567-e89b-12d3-a456-426614174001"
- *                       userName: "John Doe"
+ *                       userName: "Sample User"
  *                       actionType: "LOGIN"
  *                       createdAt: "2024-01-01T00:00:00.000Z"
  *                   pagination:

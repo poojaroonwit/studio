@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import BulkUploadCVsModal from '@/components/BulkUploadCVsModal';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import AutomationUploadModal from './AutomationUploadModal';
@@ -33,6 +34,7 @@ import { StageSelect } from './StageSelect';
 import { HealthCheck } from '@/components/ui/health-check';
 import { Badge } from '@/components/ui/badge';
 import { UserX } from 'lucide-react';
+import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 
 
 interface CandidatesPageClientProps {
@@ -132,7 +134,7 @@ export function CandidatesPageClient({
 
   const [isEditPositionModalOpen, setIsEditPositionModalOpen] = useState(false);
   const [selectedPositionForEdit, setSelectedPositionForEdit] = useState<Position | null>(null);
-  const { data: session, status: sessionStatus } = useSession() as { data: any, status: 'loading' | 'authenticated' | 'unauthenticated' };
+  const { data: session, status: sessionStatus } = useSession();
   
   
 
@@ -152,8 +154,8 @@ export function CandidatesPageClient({
   const [sortColumn, setSortColumn] = useState<string>('lastUpdate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT');
-  const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE');
+  const canExportCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_EXPORT') || false;
+  const canManageCandidates = session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('CANDIDATES_MANAGE') || false;
 
   // Calculate total pages for pagination
   const totalPages = useMemo(() => {
@@ -241,6 +243,10 @@ export function CandidatesPageClient({
 
   // Collapsible sidebar state
   const [showFilters, setShowFilters] = useState(true);
+
+  // Horizontal fit score filter state
+  const [horizontalSelectedFitScoreGrades, setHorizontalSelectedFitScoreGrades] = useState<Set<string>>(new Set());
+  const [horizontalSelectedMatchingFitScoreGrades, setHorizontalSelectedMatchingFitScoreGrades] = useState<Set<string>>(new Set());
 
   // Add at the top of the component
   const hasInitializedFilters = useRef(false);
@@ -427,14 +433,16 @@ export function CandidatesPageClient({
           setAvailableRecruiters([]);
           return;
       }
-      const recruitersData: UserProfile[] | undefined = await response.json(); 
+      const responseData = await response.json(); 
+      // Handle the correct API response structure: { users: [...], pagination: {...} }
+      const recruitersArray = responseData?.users || [];
 
-      if (!recruitersData || !Array.isArray(recruitersData)) {
+      if (!Array.isArray(recruitersArray)) {
         console.warn("Invalid data format received for recruiters, using empty list");
         setAvailableRecruiters([]);
         return;
       }
-      const mappedRecruiters = recruitersData.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
+      const mappedRecruiters = recruitersArray.map(r => ({ id: r.id, name: r.name, email: r.email || '', avatarUrl: r.avatarUrl }));
 
       setAvailableRecruiters(mappedRecruiters);
     } catch (error) {
@@ -1164,7 +1172,7 @@ export function CandidatesPageClient({
         setAdvancedQueryFromUrl(advancedQuery);
       }
     }
-  }, [searchParams, isClearingFilters, filters]); // Use searchParams instead of window.location.search
+  }, [searchParams, isClearingFilters]); // Removed filters from dependencies to prevent infinite loop
 
   // Separate useEffect to handle filter changes and fetch candidates
   useEffect(() => {
@@ -1194,7 +1202,7 @@ export function CandidatesPageClient({
     // Use the optimized table fetch function for better performance
     const currentFetchTableData = fetchTableData;
     currentFetchTableData(filters, page, pageSize);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch]); // Added hasInitialDataFetch dependency
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData]); // Added fetchTableData dependency
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated' && !serverAuthError && !serverPermissionError) {
@@ -1317,6 +1325,11 @@ export function CandidatesPageClient({
         setAiRecordCount(0);
         setIsAiSearchActive(false);
       }
+      
+      // Clear horizontal fit score filters when other filters change to avoid conflicts
+      setHorizontalSelectedFitScoreGrades(new Set());
+      setHorizontalSelectedMatchingFitScoreGrades(new Set());
+      
       setPage(1);
       setFilters(combinedFilters);
       
@@ -1324,6 +1337,104 @@ export function CandidatesPageClient({
       debouncedFetchTableData(combinedFilters, 1, pageSize);
     }, debounceTime);
   };
+
+  // Horizontal fit score filter handlers
+  const handleHorizontalFitScoreGradeToggle = useCallback((grade: string) => {
+    setHorizontalSelectedFitScoreGrades(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(grade)) {
+        newSet.delete(grade);
+      } else {
+        newSet.add(grade);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleHorizontalMatchingFitScoreGradeToggle = useCallback((grade: string) => {
+    setHorizontalSelectedMatchingFitScoreGrades(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(grade)) {
+        newSet.delete(grade);
+      } else {
+        newSet.add(grade);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Apply horizontal fit score filters
+  const applyHorizontalFitScoreFilters = useCallback(() => {
+    const scoreRanges = getScoreRangesForChart();
+    
+    let minAppliedJobFitScore: number | undefined = undefined;
+    let maxAppliedJobFitScore: number | undefined = undefined;
+    let minMatchingJobFitScore: number | undefined = undefined;
+    let maxMatchingJobFitScore: number | undefined = undefined;
+
+    // Handle applied job fit score grades
+    if (horizontalSelectedFitScoreGrades.size > 0) {
+      const selectedRanges = scoreRanges.filter(range => horizontalSelectedFitScoreGrades.has(range.letter));
+      const hasNoScore = horizontalSelectedFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minAppliedJobFitScore = minScore;
+        maxAppliedJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minAppliedJobFitScore = -1;
+        maxAppliedJobFitScore = undefined;
+      }
+    }
+
+    // Handle matching job fit score grades
+    if (horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      const selectedRanges = scoreRanges.filter(range => horizontalSelectedMatchingFitScoreGrades.has(range.letter));
+      const hasNoScore = horizontalSelectedMatchingFitScoreGrades.has('no-score');
+      
+      if (selectedRanges.length > 0) {
+        const minScore = Math.min(...selectedRanges.map(r => r.min));
+        const maxScore = Math.max(...selectedRanges.map(r => r.max));
+        minMatchingJobFitScore = minScore;
+        maxMatchingJobFitScore = maxScore;
+      } else if (hasNoScore) {
+        minMatchingJobFitScore = -1;
+        maxMatchingJobFitScore = undefined;
+      }
+    }
+
+    const newFilters = {
+      ...filters,
+      minAppliedJobFitScore,
+      maxAppliedJobFitScore,
+      minMatchingJobFitScore,
+      maxMatchingJobFitScore,
+    };
+
+    setFilters(newFilters);
+    setPage(1);
+    debouncedFetchTableData(newFilters, 1, pageSize);
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
+
+  // Apply horizontal filters when selections change
+  useEffect(() => {
+    // Only apply horizontal filters if there are selections
+    if (horizontalSelectedFitScoreGrades.size > 0 || horizontalSelectedMatchingFitScoreGrades.size > 0) {
+      applyHorizontalFitScoreFilters();
+    } else {
+      // If no horizontal selections, clear fit score filters from main filters
+      const newFilters = {
+        ...filters,
+        minAppliedJobFitScore: undefined,
+        maxAppliedJobFitScore: undefined,
+        minMatchingJobFitScore: undefined,
+        maxMatchingJobFitScore: undefined,
+      };
+      setFilters(newFilters);
+      debouncedFetchTableData(newFilters, page, pageSize);
+    }
+  }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   const handleClearAllFilters = useCallback(() => {
     setIsClearingFilters(true);
@@ -1333,6 +1444,10 @@ export function CandidatesPageClient({
     setAiSearchReasoning(null);
     setAiRecordCount(0);
     setIsAiSearchActive(false);
+    
+    // Clear horizontal fit score filters
+    setHorizontalSelectedFitScoreGrades(new Set());
+    setHorizontalSelectedMatchingFitScoreGrades(new Set());
     
     // Reset filters to default
     const defaultFilters: CandidateFilterValues = {
@@ -2050,21 +2165,23 @@ export function CandidatesPageClient({
             </button>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <CandidateFilters
-              initialFilters={filters}
-              onFilterChange={handleFilterChange}
-              onAiSearch={handleAiSearch}
-              onClearAllFilters={handleClearAllFilters}
-              availablePositions={availablePositions}
-              availableStages={availableStages}
-              availableRecruiters={availableRecruiters}
-              availableSources={availableSources}
-              isLoading={false}
-              isAiSearching={isAiSearching}
-              advancedQuery={advancedQueryFromUrl}
-              candidateScoreCounts={candidateScoreCounts}
-              candidateCounts={candidateCountsByStage}
-            />
+            <ErrorBoundary>
+              <CandidateFilters
+                initialFilters={filters}
+                onFilterChange={handleFilterChange}
+                onAiSearch={handleAiSearch}
+                onClearAllFilters={handleClearAllFilters}
+                availablePositions={availablePositions}
+                availableStages={availableStages}
+                availableRecruiters={availableRecruiters}
+                availableSources={availableSources}
+                isLoading={false}
+                isAiSearching={isAiSearching}
+                advancedQuery={advancedQueryFromUrl}
+                candidateScoreCounts={candidateScoreCounts}
+                candidateCounts={candidateCountsByStage}
+              />
+            </ErrorBoundary>
           </div>
         </aside>
       )}
@@ -2105,7 +2222,9 @@ export function CandidatesPageClient({
             (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100) ||
             filters.applicationDateStart ||
             filters.applicationDateEnd ||
-            aiSearchReasoning;
+            aiSearchReasoning ||
+            horizontalSelectedFitScoreGrades.size > 0 ||
+            horizontalSelectedMatchingFitScoreGrades.size > 0;
 
           if (!hasActiveFilters) return null;
 
@@ -2239,6 +2358,16 @@ export function CandidatesPageClient({
               {aiSearchReasoning && (
                 <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                   AI Search Active
+                </Badge>
+              )}
+              {horizontalSelectedFitScoreGrades.size > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Applied Fit Score: {Array.from(horizontalSelectedFitScoreGrades).join(', ')}
+                </Badge>
+              )}
+              {horizontalSelectedMatchingFitScoreGrades.size > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  Matching Fit Score: {Array.from(horizontalSelectedMatchingFitScoreGrades).join(', ')}
                 </Badge>
               )}
               <Button
@@ -2404,33 +2533,55 @@ export function CandidatesPageClient({
           return null;
         })()}
 
+        {/* Horizontal Fit Score Filters - Only show when there are candidates */}
+        {sortedCandidates.length > 0 && (
+          <div className="space-y-4">
+            <FitScoreFilterBadges
+              selectedGrades={horizontalSelectedFitScoreGrades}
+              onGradeToggle={handleHorizontalFitScoreGradeToggle}
+              candidateCounts={candidateScoreCounts?.applied || []}
+              title="Applied Position Fit Score"
+              className="p-4 bg-muted/30 rounded-lg border"
+            />
+            <FitScoreFilterBadges
+              selectedGrades={horizontalSelectedMatchingFitScoreGrades}
+              onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
+              candidateCounts={candidateScoreCounts?.matching || []}
+              title="Matching Position Fit Score"
+              className="p-4 bg-muted/30 rounded-lg border"
+            />
+          </div>
+        )}
+
         {/* Only render table when there are candidates to show */}
         {(() => {
           if (sortedCandidates.length > 0) {
             return (
-              <CandidateTable
-                candidates={sortedCandidates}
-                availablePositions={availablePositions}
-                availableStages={availableStages}
-                availableRecruiters={availableRecruiters}
-                onAssignRecruiter={handleAssignRecruiter}
-                onUpdateCandidate={updateCandidateStatus}
-                onDeleteCandidate={handleDeleteCandidate}
-                onEditPosition={handleOpenEditPositionModal}
-                isLoading={tableLoading}
-                onRefreshCandidateData={refreshCandidateInList}
-                selectedCandidateIds={selectedCandidateIds}
-                onToggleSelectCandidate={handleToggleSelectCandidate}
-                onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
-                isAllCandidatesSelected={isAllCandidatesSelected}
-                page={page}
-                pageSize={pageSize}
-                baseIndex={baseIndex}
-                sortColumn={sortColumn}
-                sortDirection={sortDirection}
-                onSort={handleSort}
-                canManageCandidates={canManageCandidates}
-              />
+              <ErrorBoundary>
+                <CandidateTable
+                  candidates={sortedCandidates}
+                  availablePositions={availablePositions}
+                  availableStages={availableStages}
+                  availableRecruiters={availableRecruiters}
+                  onAssignRecruiter={handleAssignRecruiter}
+                  onUpdateCandidate={updateCandidateStatus}
+                  onDeleteCandidate={handleDeleteCandidate}
+                  onEditPosition={handleOpenEditPositionModal}
+                  isLoading={tableLoading}
+                  onRefreshCandidateData={refreshCandidateInList}
+                  selectedCandidateIds={selectedCandidateIds}
+                  onToggleSelectCandidate={handleToggleSelectCandidate}
+                  onToggleSelectAllCandidates={handleToggleSelectAllCandidates}
+                  isAllCandidatesSelected={isAllCandidatesSelected}
+                  page={page}
+                  pageSize={pageSize}
+                  baseIndex={baseIndex}
+                  sortColumn={sortColumn}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  canManageCandidates={canManageCandidates}
+                />
+              </ErrorBoundary>
             );
           }
           

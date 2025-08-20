@@ -261,7 +261,9 @@ export function CustomizeBoardModal({ open, onOpenChange, rowFieldValues = [], c
         const recruitersRes = await fetch('/api/users?role=Recruiter');
         if (!recruitersRes.ok) throw new Error('Failed to fetch recruiters');
         const recruitersData = await recruitersRes.json();
-        setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
+        // Handle the correct API response structure: { users: [...], pagination: {...} }
+        const recruitersArray = recruitersData?.users || [];
+        setRecruiters(Array.isArray(recruitersArray) ? recruitersArray : []);
         // Fetch positions
         const positionsRes = await fetch('/api/positions/all');
         if (!positionsRes.ok) throw new Error('Failed to fetch positions');

@@ -316,6 +316,7 @@ export interface Position {
   matchCriteria?: string | null;
   isOpen: boolean;
   positionLevel?: string | null;
+  positionAttribute?: string | null;
   gradeId?: string | null;
   grade?: Grade | null;
   hiringDate?: string | null;

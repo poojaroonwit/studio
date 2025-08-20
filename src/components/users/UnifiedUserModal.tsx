@@ -20,7 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Switch } from '@/components/ui/switch';
+ 
 import {
   Dialog,
   DialogContent,
@@ -57,10 +57,8 @@ const unifiedUserFormSchema = z.object({
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
   preferences: z.object({
-    emailNotifications: z.boolean().default(true),
     taskBoardView: z.enum(['kanban', 'table']).default('kanban'),
   }).optional().default({
-    emailNotifications: true,
     taskBoardView: 'kanban',
   }),
 });
@@ -113,7 +111,6 @@ export function UnifiedUserModal({
       avatarUrl: '', 
       personalColor: '#3B82F6',
       preferences: {
-        emailNotifications: true,
         taskBoardView: 'kanban',
       }
     },
@@ -122,10 +119,14 @@ export function UnifiedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions for different fields
-  const canManageUsers = session?.user?.role === 'Admin';
-  const canManageGroups = session?.user?.role === 'Admin';
-  const canForcePasswordChange = session?.user?.role === 'Admin';
-  const canManageAuthentication = session?.user?.role === 'Admin';
+  const canManageUsers = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canManageGroups = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canForcePasswordChange = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canManageAuthentication = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
 
   // Load user data and groups when modal opens
   useEffect(() => {
@@ -143,7 +144,6 @@ export function UnifiedUserModal({
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
             preferences: {
-              emailNotifications: true,
               taskBoardView: 'kanban',
             }
           });
@@ -162,7 +162,6 @@ export function UnifiedUserModal({
           avatarUrl: '',
           personalColor: '#3B82F6',
           preferences: {
-            emailNotifications: true,
             taskBoardView: 'kanban',
           }
         });
@@ -197,6 +196,10 @@ export function UnifiedUserModal({
       } else if (mode === 'profile' && onSave) {
         await onSave(data);
       }
+      
+      // Force a small delay to ensure the update is processed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
     } catch (error) {
       console.error('Error saving user:', error);
       toast.error('Failed to save user data');
@@ -594,29 +597,6 @@ export function UnifiedUserModal({
                           </div>
                           <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                              <FormField 
-                                control={form.control} 
-                                name="preferences.emailNotifications" 
-                                render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                                    <FormControl>
-                                      <Switch
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                      />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                      <FormLabel className="text-sm font-medium">
-                                        Email Notifications
-                                      </FormLabel>
-                                      <p className="text-sm text-muted-foreground">
-                                        Receive email notifications for important updates
-                                      </p>
-                                    </div>
-                                  </FormItem>
-                                )}
-                              />
-                              
                               <FormField 
                                 control={form.control} 
                                 name="preferences.taskBoardView" 

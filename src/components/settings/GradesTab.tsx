@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'react-hot-toast';
 import {
   AlertDialog,
@@ -244,8 +245,8 @@ export function GradesTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="h-full flex flex-col">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold">Grade Management</h2>
           <p className="text-muted-foreground">
@@ -258,85 +259,87 @@ export function GradesTab() {
         </Button>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="grades">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-3"
-            >
-              {grades.map((grade, index) => (
-                <Draggable key={grade.id} draggableId={grade.id} index={index}>
-                  {(provided) => (
-                    <Card
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className={`${!grade.isActive ? 'opacity-60' : ''}`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div {...provided.dragHandleProps}>
-                              <GripVertical className="h-4 w-4 text-muted-foreground" />
-                            </div>
+      <ScrollArea className="flex-1">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="grades">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="space-y-3 pr-4"
+              >
+                {grades.map((grade, index) => (
+                  <Draggable key={grade.id} draggableId={grade.id} index={index}>
+                    {(provided) => (
+                      <Card
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`${!grade.isActive ? 'opacity-60' : ''}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <Badge 
-                                style={{ backgroundColor: grade.color || '#3B82F6' }}
-                                className="text-white"
-                              >
-                                {grade.name}
-                              </Badge>
-                              {grade.label && (
-                                <div className="text-sm font-medium text-foreground">
-                                  {grade.label}
-                                </div>
-                              )}
-                              <div className="text-sm text-muted-foreground">
-                                Level {grade.minLevel}-{grade.maxLevel}
+                              <div {...provided.dragHandleProps}>
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
                               </div>
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {grade.slaDays} days SLA
+                              <div className="flex items-center space-x-3">
+                                <Badge 
+                                  style={{ backgroundColor: grade.color || '#3B82F6' }}
+                                  className="text-white"
+                                >
+                                  {grade.name}
+                                </Badge>
+                                {grade.label && (
+                                  <div className="text-sm font-medium text-foreground">
+                                    {grade.label}
+                                  </div>
+                                )}
+                                <div className="text-sm text-muted-foreground">
+                                  Level {grade.minLevel}-{grade.maxLevel}
+                                </div>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {grade.slaDays} days SLA
+                                </div>
                               </div>
                             </div>
+                            <div className="flex items-center space-x-2">
+                              {!grade.isActive && (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenModal(grade)}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setGradeToDelete(grade)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            {!grade.isActive && (
-                              <Badge variant="secondary">Inactive</Badge>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenModal(grade)}
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setGradeToDelete(grade)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {grade.description && (
-                          <p className="text-sm text-muted-foreground mt-2 ml-7">
-                            {grade.description}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                          {grade.description && (
+                            <p className="text-sm text-muted-foreground mt-2 ml-7">
+                              {grade.description}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </ScrollArea>
 
       {/* Add/Edit Grade Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

@@ -16,100 +16,14 @@ import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { useRealtimeCollaboration } from '@/hooks/use-realtime-collaboration';
 import { RealtimeIndicator } from '@/components/ui/realtime-indicator';
 
-// Sample stages data
-const sampleStages: TaskStage[] = [
-  { id: 'todo', name: 'To Do', color: '#6b7280', description: 'Tasks that need to be started', sortOrder: 0 },
-  { id: 'in-progress', name: 'In Progress', color: '#3b82f6', description: 'Tasks currently being worked on', sortOrder: 1 },
-  { id: 'review', name: 'Review', color: '#f59e0b', description: 'Tasks ready for review', sortOrder: 2 },
-  { id: 'done', name: 'Done', color: '#10b981', description: 'Completed tasks', sortOrder: 3 },
-];
+// Default stages - will be populated from real data source
+const defaultStages: TaskStage[] = [];
 
-// Sample tasks data for testing scroll functionality
-const sampleTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Design new landing page',
-    description: 'Create a modern and responsive landing page design',
-    status: 'todo',
-    priority: 'high',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['design', 'frontend']
-  },
-  {
-    id: '2',
-    title: 'Implement user authentication',
-    description: 'Add login and registration functionality',
-    status: 'in-progress',
-    priority: 'urgent',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['backend', 'auth']
-  },
-  {
-    id: '3',
-    title: 'Setup database migrations',
-    description: 'Create and run database migration scripts',
-    status: 'todo',
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['database']
-  },
-  {
-    id: '4',
-    title: 'Write API documentation',
-    description: 'Document all API endpoints with examples',
-    status: 'review',
-    priority: 'low',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['documentation']
-  },
-  {
-    id: '5',
-    title: 'Deploy to staging',
-    description: 'Deploy the latest version to staging environment',
-    status: 'done',
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['deployment']
-  },
-  {
-    id: '6',
-    title: 'Performance optimization',
-    description: 'Optimize application performance and loading times',
-    status: 'todo',
-    priority: 'high',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['performance']
-  },
-  {
-    id: '7',
-    title: 'Code review session',
-    description: 'Review pull requests and provide feedback',
-    status: 'in-progress',
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['review']
-  },
-  {
-    id: '8',
-    title: 'Update dependencies',
-    description: 'Update all npm packages to latest versions',
-    status: 'review',
-    priority: 'low',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    tags: ['maintenance']
-  }
-];
+// Default tasks - will be populated from real data source
+const defaultTasks: Task[] = [];
 
-// Empty assignees - will be populated from real data source
-const sampleAssignees: { id: string; name: string; avatarUrl: string }[] = [];
+// Default assignees - will be populated from real data source
+const defaultAssignees: { id: string; name: string; avatarUrl: string }[] = [];
 
 // Error boundary component for task board
 class TaskBoardErrorBoundary extends React.Component<
@@ -167,8 +81,8 @@ class TaskBoardErrorBoundary extends React.Component<
 }
 
 function TaskBoardContent() {
-  const [tasks, setTasks] = useState<Task[]>(sampleTasks);
-  const [stages] = useState<TaskStage[]>(sampleStages);
+  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
+  const [stages] = useState<TaskStage[]>(defaultStages);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -424,8 +338,8 @@ function TaskBoardContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assignees</SelectItem>
-                {sampleAssignees.length > 0 ? (
-                  sampleAssignees.map(assignee => (
+                {defaultAssignees.length > 0 ? (
+                  defaultAssignees.map(assignee => (
                     <SelectItem key={assignee.id} value={assignee.id}>
                       {assignee.name}
                     </SelectItem>
@@ -460,7 +374,7 @@ function TaskBoardContent() {
         onClose={() => setSelectedTask(null)}
         onUpdate={handleTaskUpdate}
         stages={stages}
-        assignees={sampleAssignees}
+        assignees={defaultAssignees}
       />
 
       {/* Add Task Modal */}
@@ -469,7 +383,7 @@ function TaskBoardContent() {
         onClose={() => setIsAddTaskModalOpen(false)}
         onCreateTask={handleCreateTask}
         stages={stages}
-        assignees={sampleAssignees}
+        assignees={defaultAssignees}
       />
     </div>
   );

@@ -1,0 +1,129 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface Warning {
+  id: string;
+  configurationId: string;
+  entityType: string;
+  entityId: string;
+  field: string;
+  currentValue?: string;
+  expectedValue?: string;
+  message: string;
+  severity: string;
+  createdAt: string;
+  updatedAt: string;
+  configuration: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}
+
+interface WarningContextType {
+  warnings: Warning[];
+  unreadCount: number;
+  isLoading: boolean;
+  fetchWarnings: () => Promise<void>;
+  checkEntityWarnings: (entityType: string, entityId: string) => Promise<void>;
+}
+
+const WarningContext = createContext<WarningContextType | undefined>(undefined);
+
+export function WarningProvider({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
+  const [warnings, setWarnings] = useState<Warning[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const unreadCount = warnings.length;
+
+  const fetchWarnings = useCallback(async () => {
+    if (!session?.user) return;
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/warnings?limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        setWarnings(data);
+      }
+    } catch (error) {
+      console.error('Error fetching warnings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session?.user]);
+
+
+
+  const checkEntityWarnings = useCallback(async (entityType: string, entityId: string) => {
+    try {
+      const response = await fetch('/api/warnings/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entityType, entityId }),
+      });
+
+      if (response.ok) {
+        // Refresh warnings after checking
+        await fetchWarnings();
+      }
+    } catch (error) {
+      console.error('Error checking entity warnings:', error);
+    }
+  }, [fetchWarnings]);
+
+  // Set up real-time updates using Server-Sent Events
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const eventSource = new EventSource('/api/warnings/stream');
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'warning_update') {
+          fetchWarnings();
+        }
+      } catch (error) {
+        console.error('Error parsing warning event:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('Warning SSE error:', error);
+      eventSource.close();
+    };
+
+    // Initial fetch
+    fetchWarnings();
+
+    return () => {
+      eventSource.close();
+    };
+  }, [session?.user, fetchWarnings]);
+
+  return (
+    <WarningContext.Provider value={{
+      warnings,
+      unreadCount,
+      isLoading,
+      fetchWarnings,
+      checkEntityWarnings,
+    }}>
+      {children}
+    </WarningContext.Provider>
+  );
+}
+
+export function useWarnings() {
+  const context = useContext(WarningContext);
+  if (context === undefined) {
+    throw new Error('useWarnings must be used within a WarningProvider');
+  }
+  return context;
+}

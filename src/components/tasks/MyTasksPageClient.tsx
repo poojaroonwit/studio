@@ -123,7 +123,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   });
 
   // Permission check: can view all recruiters?
-  const canViewAllRecruiters = userSession?.role === 'Admin';
+  const canViewAllRecruiters = userSession?.role === 'Admin' || 
+    userSession?.modulePermissions?.includes('USERS_VIEW');
 
   // Update local state when preferences are loaded - only once
   useEffect(() => {
@@ -223,7 +224,9 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         const stageNames = Array.isArray(stagesData) ? stagesData.map((s: any) => s.name) : [];
         setStages(stageNames);
         const recruitersData = await recruitersRes.json();
-        setRecruiters(Array.isArray(recruitersData) ? recruitersData : []);
+        // Handle the correct API response structure: { users: [...], pagination: {...} }
+        const recruitersArray = recruitersData?.users || [];
+        setRecruiters(Array.isArray(recruitersArray) ? recruitersArray : []);
         const positionsData = await positionsRes.json();
         setPositions(Array.isArray(positionsData.data) ? positionsData.data : []);
         setMetadataLoaded(true);

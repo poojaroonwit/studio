@@ -218,5 +218,128 @@ describe('V1 Bulk Upload CV API', () => {
       expect(response.status).toBe(400);
       expect(data.error).toBe('No file uploaded');
     });
+
+    it('should handle additional attachment file', async () => {
+      // Mock successful database insertion with additional attachment
+      mockClient.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'upload-queue-id',
+          file_name: 'test-resume.pdf',
+          file_size: 1024,
+          status: 'queued',
+          source: 'bulk',
+          upload_id: 'upload-id',
+          file_path: 'resumes/upload-queue/test-file-123.pdf',
+          webhook_payload: {
+            targetPositionId: 'position-id',
+            sourceId: null,
+            additionalAttachment: {
+              path: 'attachments/upload-queue/test-attachment-123.docx',
+              name: 'test-attachment.docx',
+              size: 512,
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            }
+          },
+          created_by: 'test-user-id',
+          upload_date: new Date().toISOString(),
+        }],
+      });
+
+      const { POST } = await import('@/app/api/v1/candidates/bulk-upload-cv/route');
+      
+      // Create form data with additional attachment
+      const formData = new FormData();
+      const file = new File(['test content'], 'test-resume.pdf', { type: 'application/pdf' });
+      const attachment = new File(['attachment content'], 'test-attachment.docx', { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      formData.append('file', file);
+      formData.append('positionId', 'position-id');
+      formData.append('additionalAttachment', attachment);
+
+      const req = new NextRequest('http://localhost:3000/api/v1/candidates/bulk-upload-cv', {
+        method: 'POST',
+        headers: {
+          'authorization': 'Bearer test-token',
+          'content-type': 'multipart/form-data; boundary=----formdata-test',
+        },
+        body: formData,
+      });
+
+      const response = await POST(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.success).toBe(true);
+      expect(data.uploadQueueJob).toBeDefined();
+                     expect(data.uploadQueueJob.webhook_payload.additionalAttachment).toEqual({
+                 path: 'attachments/upload-queue/test-attachment-123.docx',
+                 name: 'test-attachment.docx',
+                 size: 512,
+                 type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+               });
+               
+               // Verify that the webhook processing will include the additional attachment URL
+               const expectedWebhookInputs = {
+                 cv_url: expect.stringContaining('resumes/upload-queue/test-file-123.pdf'),
+                 applied_position_id: 'position-id',
+                 jobId: 'upload-queue-id',
+                 additional_attachment_url: expect.stringContaining('attachments/upload-queue/test-attachment-123.docx'),
+                 additional_attachment: {
+                   url: expect.stringContaining('attachments/upload-queue/test-attachment-123.docx'),
+                   name: 'test-attachment.docx',
+                   size: 512,
+                   type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                 }
+               };
+    });
+
+    it('should handle request without additional attachment', async () => {
+      // Mock successful database insertion without additional attachment
+      mockClient.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'upload-queue-id',
+          file_name: 'test-resume.pdf',
+          file_size: 1024,
+          status: 'queued',
+          source: 'bulk',
+          upload_id: 'upload-id',
+          file_path: 'resumes/upload-queue/test-file-123.pdf',
+          webhook_payload: {
+            targetPositionId: 'position-id',
+            sourceId: null,
+            additionalAttachment: null
+          },
+          created_by: 'test-user-id',
+          upload_date: new Date().toISOString(),
+        }],
+      });
+
+      const { POST } = await import('@/app/api/v1/candidates/bulk-upload-cv/route');
+      
+      // Create form data without additional attachment
+      const formData = new FormData();
+      const file = new File(['test content'], 'test-resume.pdf', { type: 'application/pdf' });
+      formData.append('file', file);
+      formData.append('positionId', 'position-id');
+      // No additionalAttachment appended
+
+      const req = new NextRequest('http://localhost:3000/api/v1/candidates/bulk-upload-cv', {
+        method: 'POST',
+        headers: {
+          'authorization': 'Bearer test-token',
+          'content-type': 'multipart/form-data; boundary=----formdata-test',
+        },
+        body: formData,
+      });
+
+      const response = await POST(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.success).toBe(true);
+      expect(data.uploadQueueJob).toBeDefined();
+      expect(data.uploadQueueJob.webhook_payload.additionalAttachment).toBeNull();
+    });
   });
 });

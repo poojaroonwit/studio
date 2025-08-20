@@ -347,9 +347,9 @@ function RecruitmentStagesTab() {
 
     try {
       const response = await fetch('/api/settings/recruitment-stages/reorder', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stages: updatedItems }),
+        body: JSON.stringify({ stageIds: updatedItems.map(item => item.id) }),
       });
 
       if (!response.ok) {
@@ -539,7 +539,7 @@ function CandidateSourcesTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<CandidateSource | null>(null);
   const [sourceToDelete, setSourceToDelete] = useState<CandidateSource | null>(null);
-  const [isReordering, setIsReordering] = useState(false);
+
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -677,26 +677,36 @@ function CandidateSourcesTab() {
     }
   };
 
-  const handleReorder = async (sourceId: string, newSortOrder: number) => {
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(sources);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      sortOrder: index + 1,
+    }));
+
+    setSources(updatedItems);
+
     try {
-      setIsReordering(true);
-      const response = await fetch(`/api/settings/candidate-sources/${sourceId}`, {
-        method: 'PUT',
+      const response = await fetch('/api/settings/candidate-sources/reorder', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sortOrder: newSortOrder }),
+        body: JSON.stringify({ sourceIds: updatedItems.map(item => item.id) }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update sort order');
+        throw new Error('Failed to update source order');
       }
 
-      await fetchSources();
-      toast.success('Order updated successfully');
+      toast.success('Source order updated successfully');
     } catch (error: any) {
       console.error('Failed to reorder:', error);
-      toast.error('Failed to update order');
-    } finally {
-      setIsReordering(false);
+      toast.error('Failed to update source order');
+      fetchSources(); // Revert to original order
     }
   };
 
@@ -811,63 +821,87 @@ function CandidateSourcesTab() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {sources.map((source, index) => (
-              <Card key={source.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="cursor-move text-muted-foreground hover:text-foreground transition-colors">
-                        <GripVertical className="h-4 w-4" />
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        {source.logo ? (
-                          <img 
-                            src={source.logo} 
-                            alt={`${source.name} logo`}
-                            className="h-8 w-8 object-contain rounded"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
-                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        
-                        <div>
-                          <h3 className="text-sm font-medium text-foreground">{source.name}</h3>
-                          {source.description && (
-                            <p className="text-xs text-muted-foreground">
-                              {source.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => openEditModal(source)}
-                        className="h-7 w-7"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => setSourceToDelete(source)}
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="sources-list">
+              {(provided) => (
+                <div 
+                  ref={provided.innerRef} 
+                  {...provided.droppableProps}
+                  className="space-y-4"
+                >
+                  {sources.map((source, index) => (
+                    <Draggable key={source.id} draggableId={source.id} index={index}>
+                      {(provided, snapshot) => (
+                        <Card
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`transition-all duration-200 ${
+                            snapshot.isDragging ? 'shadow-lg scale-105' : 'hover:shadow-md'
+                          }`}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                  {source.logo ? (
+                                    <img 
+                                      src={source.logo} 
+                                      alt={`${source.name} logo`}
+                                      className="h-8 w-8 object-contain rounded"
+                                    />
+                                  ) : (
+                                    <div className="h-8 w-8 bg-muted rounded flex items-center justify-center">
+                                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <h3 className="text-sm font-medium text-foreground">{source.name}</h3>
+                                    {source.description && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {source.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => openEditModal(source)}
+                                  className="h-7 w-7"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setSourceToDelete(source)}
+                                  className="h-7 w-7 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
              </div>
 

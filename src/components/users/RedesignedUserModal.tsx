@@ -12,7 +12,6 @@ import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -42,10 +41,8 @@ const userFormSchema = z.object({
   personalColor: z.string().optional(),
   userTeamIds: z.array(z.string()).optional().default([]),
   preferences: z.object({
-    emailNotifications: z.boolean().default(true),
     taskBoardView: z.enum(['kanban', 'table']).default('kanban'),
   }).optional().default({
-    emailNotifications: true,
     taskBoardView: 'kanban',
   }),
 });
@@ -116,19 +113,20 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
     <div className="w-56 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
       <div className="p-4 space-y-2 mt-0">
         {tabs.map((tab) => (
-                     <button
-             key={tab.id}
-             onClick={() => onTabChange(tab.id)}
-             className={cn(
-               "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative w-full rounded-lg text-left",
-               activeTab === tab.id
-                 ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
-                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
-             )}
-           >
-             <tab.icon className="h-4 w-4 flex-shrink-0" />
-             <span className="text-left">{tab.label}</span>
-           </button>
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors relative w-full rounded-lg text-left",
+              activeTab === tab.id
+                ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700"
+            )}
+          >
+            <tab.icon className="h-4 w-4 flex-shrink-0" />
+            <span className="text-left">{tab.label}</span>
+          </button>
         ))}
       </div>
     </div>
@@ -451,28 +449,6 @@ function PreferencesContent({ form }: PreferencesContentProps) {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
-        <FormField 
-          control={form.control} 
-          name="preferences.emailNotifications" 
-          render={({ field }: any) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Email Notifications
-                </FormLabel>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Receive email notifications for important updates
-                </p>
-              </div>
-            </FormItem>
-          )}
-        />
         
         <FormField 
           control={form.control} 
@@ -579,7 +555,6 @@ export function RedesignedUserModal({
       personalColor: '#3B82F6',
       userTeamIds: [],
       preferences: {
-        emailNotifications: true,
         taskBoardView: 'kanban',
       }
     },
@@ -591,9 +566,12 @@ export function RedesignedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions
-  const canManageUsers = session?.user?.role === 'Admin';
-  const canForcePasswordChange = session?.user?.role === 'Admin';
-  const canManageAuthentication = session?.user?.role === 'Admin';
+  const canManageUsers = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canForcePasswordChange = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canManageAuthentication = session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE');
 
   // Load user data when modal opens
   useEffect(() => {
@@ -625,7 +603,6 @@ export function RedesignedUserModal({
             personalColor: user.personalColor || '#3B82F6',
             userTeamIds: user.teams?.map(t => t.id) || [],
             preferences: {
-              emailNotifications: true,
               taskBoardView: 'kanban',
             }
           });
@@ -644,7 +621,6 @@ export function RedesignedUserModal({
           personalColor: '#3B82F6',
           userTeamIds: [],
           preferences: {
-            emailNotifications: true,
             taskBoardView: 'kanban',
           }
         });

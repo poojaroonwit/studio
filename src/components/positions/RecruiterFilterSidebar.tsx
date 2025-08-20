@@ -1,351 +1,268 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Users, UserCheck, UserX, TrendingUp } from "lucide-react";
-import type { UserProfile } from "@/lib/types";
-import { RecruiterCard } from './RecruiterCard';
+import React, { useState, useMemo } from 'react';
+import { Users, UserCheck, UserX, User, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from 'next-auth/react';
-
-interface RecruiterStats {
-  totalActivePositions: number;
-}
-
-interface RecruiterWithStats extends UserProfile {
-  stats: RecruiterStats;
-}
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface RecruiterFilterSidebarProps {
   selectedRecruiterId: string | null;
   onRecruiterSelect: (recruiterId: string | null) => void;
-  recruiterStats: { [key: string]: number };
-}
-
-// All Recruiters Card Component
-function AllRecruitersCard({ 
-  totalPositions, 
-  isSelected, 
-  onSelect,
-  personalColor
-}: { 
-  totalPositions: number; 
-  isSelected: boolean; 
-  onSelect: () => void;
-  personalColor: string;
-}) {
-  return (
-    <div 
-      className={cn(
-        "group cursor-pointer transition-all duration-300 ease-out",
-        "relative overflow-hidden rounded-xl border-2",
-        "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
-        isSelected ? [
-          "shadow-lg ring-2 ring-offset-2"
-        ] : []
-      )}
-      style={{
-        borderColor: personalColor,
-        backgroundColor: undefined,
-        boxShadow: isSelected ? `0 10px 15px -3px ${personalColor}20, 0 4px 6px -4px ${personalColor}20` : undefined,
-      }}
-      onClick={onSelect}
-    >
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="relative p-3">
-        {/* Modern Header */}
-        <div className="flex items-center gap-3">
-          {/* Enhanced Icon with Background */}
-          <div className="relative">
-            <div className={cn(
-              "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
-              "flex items-center justify-center",
-              "group-hover:shadow-xl group-hover:ring-blue-500/20 transition-all duration-300"
-            )}
-            style={{
-              backgroundColor: personalColor,
-              boxShadow: `0 4px 6px -1px ${personalColor}25`
-            }}>
-              <UserCheck className="h-4 w-4 text-white" />
-            </div>
-          </div>
-          
-          {/* Name and Selection */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-              All Recruiters
-            </h3>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {totalPositions} total position{totalPositions !== 1 ? 's' : ''}
-            </div>
-          </div>
-          
-          {/* Selection Indicator */}
-          {isSelected && (
-            <div 
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: personalColor }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Unassigned Positions Card Component
-function UnassignedPositionsCard({ 
-  unassignedPositions, 
-  isSelected, 
-  onSelect,
-  personalColor
-}: { 
-  unassignedPositions: number; 
-  isSelected: boolean; 
-  onSelect: () => void;
-  personalColor: string;
-}) {
-  return (
-    <div 
-      className={cn(
-        "group cursor-pointer transition-all duration-300 ease-out",
-        "relative overflow-hidden rounded-xl border-2",
-        "hover:shadow-lg hover:shadow-black/5 hover:scale-[1.02] active:scale-[0.98]",
-        isSelected ? [
-          "shadow-lg ring-2 ring-offset-2"
-        ] : []
-      )}
-      style={{
-        borderColor: personalColor,
-        backgroundColor: undefined,
-        boxShadow: isSelected ? `0 10px 15px -3px ${personalColor}20, 0 4px 6px -4px ${personalColor}20` : undefined,
-      }}
-      onClick={onSelect}
-    >
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="relative p-3">
-        {/* Modern Header */}
-        <div className="flex items-center gap-3">
-          {/* Enhanced Icon with Background */}
-          <div className="relative">
-            <div className={cn(
-              "w-8 h-8 ring-2 ring-white dark:ring-gray-800 shadow-lg rounded-full",
-              "flex items-center justify-center",
-              "group-hover:shadow-xl group-hover:ring-gray-500/20 transition-all duration-300"
-            )}
-            style={{
-              backgroundColor: personalColor,
-              boxShadow: `0 4px 6px -1px ${personalColor}25`
-            }}>
-              <UserX className="h-4 w-4 text-white" />
-            </div>
-          </div>
-          
-          {/* Name and Selection */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-              No recruiter assign
-            </h3>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {unassignedPositions} unassigned position{unassignedPositions !== 1 ? 's' : ''}
-            </div>
-          </div>
-          
-          {/* Selection Indicator */}
-          {isSelected && (
-            <div 
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: personalColor }}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  recruiterStats?: {
+    unassigned?: number;
+    [key: string]: any;
+  };
+  recruiters?: { id: string; name: string; avatarUrl?: string; personalColor?: string }[];
 }
 
 export function RecruiterFilterSidebar({ 
   selectedRecruiterId, 
   onRecruiterSelect, 
-  recruiterStats 
+  recruiterStats,
+  recruiters = []
 }: RecruiterFilterSidebarProps) {
-  const { data: session } = useSession();
-  const [recruitersWithStats, setRecruitersWithStats] = useState<RecruiterWithStats[]>([]);
-  const [totalStats, setTotalStats] = useState({
-    totalRecruiters: 0,
-    totalPositions: 0,
-    totalCandidates: 0,
-    unassignedPositions: 0
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Get all recruiter IDs from the recruiters prop, not just from stats
+  const recruiterIds = recruiters.map(r => r.id);
 
-  // Get current user's personal color
-  const currentUserPersonalColor = session?.user?.personalColor || '#3B82F6';
-
-  const fetchRecruiterStatistics = async (recruiterId: string) => {
-    try {
-      // Fetch positions for recruiter
-      const positionsResponse = await fetch(`/api/positions?recruiterId=${recruiterId}&includeStats=true`);
-      const positionsData = await positionsResponse.json();
-      const activePositions = positionsData.data?.filter((p: any) => p.isOpen) || [];
-      
-      // Calculate statistics
-      const totalActivePositions = activePositions.length;
-
-      return {
-        totalActivePositions,
-      };
-    } catch (error) {
-      console.error(`Error fetching statistics for recruiter ${recruiterId}:`, error);
-      return {
-        totalActivePositions: 0,
-      };
+  // Filter recruiters based on search term
+  const filteredRecruiters = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return recruiterIds;
     }
-  };
+    
+    const searchLower = searchTerm.toLowerCase();
+    return recruiterIds.filter(recruiterId => {
+      const recruiter = recruiters.find(r => r.id === recruiterId);
+      return recruiter?.name.toLowerCase().includes(searchLower);
+    });
+  }, [recruiterIds, recruiters, searchTerm]);
 
-  useEffect(() => {
-    const fetchRecruitersWithStats = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Fetch all recruiters
-        const response = await fetch('/api/users?role=Recruiter');
-        if (!response.ok) {
-          throw new Error('Failed to fetch recruiters');
-        }
-        const recruitersData = await response.json();
-        
-        // Fetch statistics for each recruiter
-        const recruitersWithStatsPromises = recruitersData.map(async (recruiter: UserProfile) => {
-          const stats = await fetchRecruiterStatistics(recruiter.id);
-          return {
-            ...recruiter,
-            stats
-          };
-        });
-        
-        const recruitersWithStats = await Promise.all(recruitersWithStatsPromises);
-        setRecruitersWithStats(recruitersWithStats);
-        
-        // Calculate total statistics
-        const totalRecruiters = recruitersWithStats.length;
-        const totalPositions = recruitersWithStats.reduce((sum, r) => sum + r.stats.totalActivePositions, 0);
-        const totalCandidates = recruitersWithStats.reduce((sum, r) => sum + r.stats.totalCandidates, 0);
-        const unassignedPositions = recruiterStats.unassigned || 0;
-        
-        setTotalStats({
-          totalRecruiters,
-          totalPositions,
-          totalCandidates,
-          unassignedPositions
-        });
-        
-      } catch (error) {
-        console.error('Error fetching recruiters with stats:', error);
-        setError('Failed to load recruiters');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRecruitersWithStats();
-  }, [recruiterStats]);
-
-  const handleRecruiterClick = (recruiterId: string | null) => {
-    onRecruiterSelect(recruiterId);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="h-full">
-        <div className="pb-2 mb-2 border-b">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-            <Users className="h-4 w-4" />
-            Recruitments
-          </h2>
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="h-full">
-        <div className="pb-2 mb-2 border-b">
-          <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-            <Users className="h-4 w-4" />
-            Recruitments
-          </h2>
-        </div>
-        <div className="text-center py-4">
-          <p className="text-xs text-muted-foreground mb-2">{error}</p>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Check if unassigned should be shown (only if there are unassigned positions and search is empty or matches)
+  const showUnassigned = recruiterStats?.unassigned && recruiterStats.unassigned > 0 && 
+    (!searchTerm.trim() || 'no recruiter assign'.includes(searchTerm.toLowerCase()) || 'unassigned'.includes(searchTerm.toLowerCase()));
 
   return (
     <div className="h-full flex flex-col">
-      {/* Minimal Header */}
-      <div className="pb-2 mb-2 border-b">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold mb-2">
-          <Users className="h-4 w-4" />
-          Recruitments
+      {/* Header */}
+      <div className="pb-4 mb-4 border-b border-border/50">
+        <h2 className="flex items-center gap-2 text-xl font-bold mb-2">
+          <Users className="h-6 w-6 text-primary" />
+          Recruiters
         </h2>
-        
-        {/* Ultra Minimal Stats - Single Row */}
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">{totalStats.totalRecruiters} recruiters</span>
+        <p className="text-base text-muted-foreground font-medium">
+          Filter positions by assigned recruiter
+        </p>
+      </div>
+
+      {/* Search Input */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search recruiters..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-10"
+          />
+          {searchTerm && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+              onClick={() => setSearchTerm('')}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <div className="space-y-3 pr-2">
-            {/* All Recruiters Option */}
-            <AllRecruitersCard
-              totalPositions={totalStats.totalPositions}
-              isSelected={selectedRecruiterId === null}
-              onSelect={() => handleRecruiterClick(null)}
-              personalColor={currentUserPersonalColor}
-            />
+        <nav className="space-y-1">
+          {/* All Recruiters Option - Always show when no search or search matches */}
+          {(!searchTerm.trim() || 'all recruiters'.includes(searchTerm.toLowerCase())) && (
+            <div 
+              className={cn(
+                "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                selectedRecruiterId === null
+                  ? "bg-muted/60 text-primary font-bold"
+                  : "text-muted-foreground"
+              )}
+              onClick={() => onRecruiterSelect(null)}
+            >
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className={cn(
+                  "p-2 rounded-lg transition-colors shrink-0",
+                  selectedRecruiterId === null 
+                    ? "bg-primary/20 text-primary"
+                    : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                )}>
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="mb-1">
+                    <span className="truncate font-semibold text-base">All Recruiters</span>
+                  </div>
+                  <p className={cn(
+                    "text-sm leading-relaxed break-words line-clamp-2 font-medium",
+                    selectedRecruiterId === null ? "text-primary/80" : "text-muted-foreground/80"
+                  )}>
+                    View all positions across all recruiters
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-            {/* Unassigned Positions */}
-            <UnassignedPositionsCard
-              unassignedPositions={totalStats.unassignedPositions}
-              isSelected={selectedRecruiterId === 'unassigned'}
-              onSelect={() => handleRecruiterClick('unassigned')}
-              personalColor={currentUserPersonalColor}
-            />
+          {/* Only show unassigned section if there are unassigned positions and search matches */}
+          {showUnassigned && (
+            <>
+              <div className="border-b border-border/50 mx-3 my-1"></div>
+              
+              {/* Unassigned Positions Option */}
+              <div 
+                className={cn(
+                  "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                  selectedRecruiterId === 'unassigned'
+                    ? "bg-muted/60 text-primary font-bold"
+                    : "text-muted-foreground"
+                )}
+                onClick={() => onRecruiterSelect('unassigned')}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={cn(
+                    "p-2 rounded-lg transition-colors shrink-0",
+                    selectedRecruiterId === 'unassigned' 
+                      ? "bg-orange-500/20 text-orange-600"
+                      : "bg-muted/50 text-muted-foreground group-hover:bg-orange-500/10 group-hover:text-orange-600"
+                  )}>
+                    <UserX className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="mb-1">
+                      <span className="truncate font-semibold text-base">No recruiter assign</span>
+                    </div>
+                    <p className={cn(
+                      "text-sm leading-relaxed break-words line-clamp-2 font-medium",
+                      selectedRecruiterId === 'unassigned' ? "text-primary/80" : "text-muted-foreground/80"
+                    )}>
+                      {recruiterStats.unassigned} positions without recruiter
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
-            {/* Individual Recruiter Cards */}
-            {recruitersWithStats.map((recruiter) => (
-              <RecruiterCard
-                key={recruiter.id}
-                recruiter={{
-                  id: recruiter.id,
-                  name: recruiter.name,
-                  avatar: recruiter.avatarUrl,
-                  personalColor: recruiter.personalColor
-                }}
-                stats={recruiter.stats}
-                isSelected={selectedRecruiterId === recruiter.id}
-                onSelect={handleRecruiterClick}
-              />
-            ))}
-        </div>
+          {/* Individual Recruiters - Show filtered recruiters */}
+          {filteredRecruiters.length > 0 && (
+            <>
+              <div className="border-b border-border/50 mx-3 my-1"></div>
+              
+              {filteredRecruiters.map((recruiterId, index) => {
+                const positionCount = recruiterStats?.[recruiterId] || 0;
+                const isActive = selectedRecruiterId === recruiterId;
+                
+                // Find recruiter data by ID
+                const recruiter = recruiters.find(r => r.id === recruiterId);
+                const recruiterName = recruiter?.name || `Recruiter ${recruiterId}`;
+                const recruiterAvatar = recruiter?.avatarUrl;
+                const recruiterColor = recruiter?.personalColor || '#3B82F6'; // Default blue if no personal color
+                
+                // Generate a consistent color based on recruiter ID
+                const colors = [
+                  'bg-blue-500/20 text-blue-600',
+                  'bg-purple-500/20 text-purple-600', 
+                  'bg-green-500/20 text-green-600',
+                  'bg-pink-500/20 text-pink-600',
+                  'bg-indigo-500/20 text-indigo-600',
+                  'bg-teal-500/20 text-teal-600'
+                ];
+                // Use a fallback index if recruiterId is not a valid number
+                const parsedId = parseInt(recruiterId);
+                const colorIndex = isNaN(parsedId) ? index % colors.length : parsedId % colors.length;
+                const activeColor = colors[colorIndex];
+                const hoverColor = activeColor.replace('/20', '/10');
+                
+                return (
+                  <React.Fragment key={recruiterId}>
+                    <div 
+                      className={cn(
+                        "group flex items-center px-3 py-4 text-sm font-semibold transition-all duration-200 hover:bg-muted/80 hover:text-primary relative h-20 cursor-pointer",
+                        isActive
+                          ? "bg-muted/60 text-primary font-bold"
+                          : "text-muted-foreground"
+                      )}
+                      onClick={() => onRecruiterSelect(recruiterId)}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div 
+                          className={cn(
+                            "rounded-full transition-colors shrink-0 border-4",
+                            isActive 
+                              ? "bg-muted/20"
+                              : "bg-muted/20 group-hover:bg-muted/30"
+                          )}
+                          style={{
+                            borderColor: isActive ? recruiterColor : 'transparent'
+                          }}
+                        >
+                          {recruiterAvatar ? (
+                            <Avatar className="h-10 w-10 rounded-full">
+                              <AvatarImage src={recruiterAvatar} alt={recruiterName} className="rounded-full" />
+                              <AvatarFallback className="text-sm font-medium rounded-full">
+                                {recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ) : (
+                            <User className="h-10 w-10" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="mb-1">
+                            <span className="truncate font-semibold text-base">{recruiterName}</span>
+                          </div>
+                          <p className={cn(
+                            "text-sm leading-relaxed break-words line-clamp-2 font-medium",
+                            isActive ? "text-primary/80" : "text-muted-foreground/80"
+                          )}>
+                            {positionCount} active positions
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {index < filteredRecruiters.length - 1 && (
+                      <div className="border-b border-border/50 mx-3 my-1"></div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </>
+          )}
+
+          {/* Show message when no recruiters match search */}
+          {searchTerm.trim() && filteredRecruiters.length === 0 && !showUnassigned && (
+            <div className="px-3 py-8 text-center">
+              <p className="text-base text-muted-foreground font-medium">
+                No recruiters found matching "{searchTerm}"
+              </p>
+            </div>
+          )}
+
+          {/* Show message when no recruiters are available */}
+          {!searchTerm.trim() && recruiterIds.length === 0 && !recruiterStats?.unassigned && (
+            <div className="px-3 py-8 text-center">
+              <p className="text-base text-muted-foreground font-medium">
+                No recruiters available
+              </p>
+            </div>
+          )}
+        </nav>
       </div>
     </div>
   );

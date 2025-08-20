@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, XCircle, CheckCircle, FileText, RotateCcw, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send } from "lucide-react";
+import { Loader2, XCircle, CheckCircle, FileText, ExternalLink, AlertCircle, Eye, FileUp, UploadCloud, X, Download, ChevronLeft, ChevronRight, MoreHorizontal, Play, MoreVertical, ChevronUp, ChevronDown, Send, Search, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { useSession } from 'next-auth/react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { Position } from '@/lib/types';
 import { FileViewerModal } from "@/components/ui/file-viewer-modal";
@@ -96,6 +98,7 @@ export const CandidateImportUploadQueue: React.FC<{
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [showErrorLogId, setShowErrorLogId] = useState<string | null>(null);
   const [showCombinedDialogId, setShowCombinedDialogId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -128,6 +131,7 @@ export const CandidateImportUploadQueue: React.FC<{
   // Add after other useState hooks at the top of the component
   const [positionIdFilter, setPositionIdFilter] = useState<string>("");
   const [availablePositions, setAvailablePositions] = useState<Position[]>([]);
+  const [positionPopoverOpen, setPositionPopoverOpen] = useState(false);
 
   // Add state for file viewer modal
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
@@ -392,10 +396,7 @@ export const CandidateImportUploadQueue: React.FC<{
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [page, total, pageSize]);
 
-  // Manual refresh function
-  const handleManualRefresh = useCallback(async () => {
-    await fetchJobs();
-  }, [fetchJobs]);
+  // Removed manual refresh function (button removed)
 
   // Fallback polling (less frequent since we have SSE)
   useEffect(() => {
@@ -421,7 +422,7 @@ export const CandidateImportUploadQueue: React.FC<{
     return () => {
       // No cleanup needed here
     };
-  }, [fetchJobs, sessionStatus, session]);
+  }, [sessionStatus, session]); // Removed fetchJobs to prevent infinite loop
 
   // Log session status for debugging
   useEffect(() => {
@@ -434,29 +435,28 @@ export const CandidateImportUploadQueue: React.FC<{
     if (sessionStatus === 'authenticated' && session) {
       fetchStatusSummary();
     }
-  }, [fetchStatusSummary, sessionStatus, session]);
+  }, [sessionStatus, session]); // Removed fetchStatusSummary to prevent infinite loop
 
   useEffect(() => {
     function handleRefreshEvent() {
-
       fetchJobs();
     }
     window.addEventListener('refreshCandidateQueue', handleRefreshEvent);
     return () => {
       window.removeEventListener('refreshCandidateQueue', handleRefreshEvent);
-
     };
-  }, [fetchJobs]);
+  }, []); // Removed fetchJobs to prevent infinite loop
 
   // Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
     let eventSource: EventSource | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
-    const baseReconnectDelay = 2000;
-    const maxReconnectDelay = 30000; // 30 seconds
+    const baseReconnectDelay = 1000;
+    const maxReconnectDelay = 15000; // Reduced from 30 seconds for faster reconnection
     let debounceTimeout: NodeJS.Timeout | null = null;
     let latestSSEData: any = null;
+    let isConnected = false;
 
     // Helper to format date as yyyy-MM-dd
     function formatDate(date: Date) {
@@ -504,33 +504,44 @@ export const CandidateImportUploadQueue: React.FC<{
         params.set('offset', String((page - 1) * pageSize));
         const sseUrl = `/api/upload-queue/sse?${params.toString()}`;
         console.log('Connecting to SSE:', sseUrl);
+        
         eventSource = new EventSource(sseUrl);
-   
 
         eventSource.onopen = () => {
-          // setIsRealtimeActive(true); // Removed
+          console.log('[SSE] Connection established');
+          isConnected = true;
+          setIsRealtimeActive(true);
           setIsLoading(false); // Ensure loading is off as soon as SSE connects
           reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-      
         };
 
         eventSource.onerror = (error) => {
-
-          // setIsRealtimeActive(false); // Removed
+          console.warn('[SSE] Connection error:', error);
+          isConnected = false;
+          setIsRealtimeActive(false);
 
           // Attempt to reconnect if under max attempts
           if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             const delay = Math.min(baseReconnectDelay * reconnectAttempts, maxReconnectDelay);
+            console.log(`[SSE] Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
            
             setTimeout(() => {
-              if (eventSource) {
+              if (eventSource && !isConnected) {
                 eventSource.close();
                 connectSSE();
               }
             }, delay);
           } else {
-            console.warn('[SSE] Max reconnect attempts reached');
+            console.warn('[SSE] Max reconnect attempts reached, falling back to polling');
+            // Fall back to polling if SSE fails completely
+            const pollInterval = setInterval(() => {
+              if (!isConnected) {
+                fetchJobs();
+              } else {
+                clearInterval(pollInterval);
+              }
+            }, 10000); // Poll every 10 seconds as fallback
           }
         };
 
@@ -538,10 +549,10 @@ export const CandidateImportUploadQueue: React.FC<{
           try {
             const msg = JSON.parse(event.data);
             if (msg.type === 'queue') {
-              // Debounce UI update - reduced from 500ms to 200ms for smoother updates
+              // Debounce UI update - reduced from 500ms to 100ms for smoother updates
               latestSSEData = msg;
               if (debounceTimeout) clearTimeout(debounceTimeout);
-              debounceTimeout = setTimeout(applySSEUpdate, 200);
+              debounceTimeout = setTimeout(applySSEUpdate, 100);
               
             } else if (msg.type === 'error') {
               console.error('[SSE] Error:', msg.message);
@@ -558,13 +569,14 @@ export const CandidateImportUploadQueue: React.FC<{
     connectSSE();
 
     return () => {
+      isConnected = false;
+      setIsRealtimeActive(false);
       if (eventSource) {
         eventSource.close();
-
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]);
+  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection
 
   useEffect(() => {
     async function fetchMaxConcurrent() {
@@ -844,8 +856,8 @@ export const CandidateImportUploadQueue: React.FC<{
 
   return (
     <div className="mb-6">
-      {/* Filters and Bulk Actions in Card */}
-      <Card className="mb-4 p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 shadow-none border">
+      {/* Filters and Bulk Actions */}
+      <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
         <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Filters */}
           <Input
@@ -854,27 +866,82 @@ export const CandidateImportUploadQueue: React.FC<{
             onChange={e => setFilter(e.target.value)}
             className="min-w-[180px] max-w-xs"
           />
-          <select
-            value={positionIdFilter}
-            onChange={e => setPositionIdFilter(e.target.value)}
-            className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
-          >
-            <option value="">All Positions</option>
-            {availablePositions.map(pos => (
-              <option key={pos.id} value={pos.id}>{pos.title}</option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="border rounded-md px-2 py-2 text-sm bg-background text-foreground min-w-[130px] max-w-xs"
-          >
-            <option value="">All Statuses</option>
-            {/* Show only unique display labels */}
-            {uniqueStatusLabels.map(label => (
-              <option key={label} value={label}>{label}</option>
-            ))}
-          </select>
+          <Popover open={positionPopoverOpen} onOpenChange={setPositionPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="min-w-[130px] max-w-xs justify-between"
+              >
+                {positionIdFilter ? availablePositions.find(pos => pos.id === positionIdFilter)?.title : "All Positions"}
+                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="min-w-[130px] p-0 z-[9999]">
+              <Command>
+                <div className="flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
+                    placeholder="Search positions..."
+                    className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    onChange={(e) => {
+                      const searchTerm = e.target.value.toLowerCase();
+                      const selectContent = e.target.closest('[data-radix-popover-content]');
+                      if (selectContent) {
+                        const items = selectContent.querySelectorAll('[data-position-item]');
+                        items.forEach((item) => {
+                          const text = item.textContent?.toLowerCase() || '';
+                          if (text.includes(searchTerm) || item.getAttribute('data-position-item') === 'all') {
+                            (item as HTMLElement).style.display = '';
+                          } else {
+                            (item as HTMLElement).style.display = 'none';
+                          }
+                        });
+                      }
+                    }}
+                  />
+                </div>
+                <CommandList>
+                  <div className="max-h-[200px] p-1">
+                    <div
+                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                      onClick={() => {
+                        setPositionIdFilter("");
+                        setPositionPopoverOpen(false);
+                      }}
+                      data-position-item="all"
+                    >
+                      All Positions
+                    </div>
+                    {availablePositions.map((pos) => (
+                      <div
+                        key={pos.id}
+                        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        onClick={() => {
+                          setPositionIdFilter(pos.id);
+                          setPositionPopoverOpen(false);
+                        }}
+                        data-position-item={pos.id}
+                      >
+                        {pos.title}
+                      </div>
+                    ))}
+                  </div>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+            <SelectTrigger className="min-w-[130px] max-w-xs">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {uniqueStatusLabels.map(label => (
+                <SelectItem key={label} value={label}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Date:</span>
             <input
@@ -891,28 +958,8 @@ export const CandidateImportUploadQueue: React.FC<{
               className="border rounded bg-background px-2 py-1 text-sm"
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualRefresh}
-            className=""
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setFilter("");
-              setStatusFilter("");
-              setDateRange({ start: null, end: null });
-              setPositionIdFilter("");
-            }}
-            className=""
-          >
-            Clear Filters
-          </Button>
+          
+          
           {/* Bulk Actions */}
           {/* <input
             type="checkbox"
@@ -948,10 +995,26 @@ export const CandidateImportUploadQueue: React.FC<{
             Delete Selected
           </Button> */}
         </div>
-
-              </Card>
+      </div>
         {/* Status Cards */}
         <div className="mb-6">
+          {/* Real-time Status Indicator */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Queue Status</h3>
+            <div className="flex items-center gap-2">
+              {isRealtimeActive ? (
+                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">Live Updates</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Polling</span>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             {/* All Upload Jobs Card - Black */}
             <Card
@@ -1080,6 +1143,23 @@ export const CandidateImportUploadQueue: React.FC<{
       )}
   
       <div className="border rounded-lg overflow-x-auto">
+        {/* Table Header with Real-time Indicator */}
+        <div className="flex items-center justify-between p-4 border-b bg-muted/50">
+          <h4 className="font-medium">Upload Queue Jobs</h4>
+          <div className="flex items-center gap-2">
+            {isRealtimeActive ? (
+              <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs">Live</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
+                <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                <span className="text-xs">Polling</span>
+              </div>
+            )}
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -1222,7 +1302,7 @@ export const CandidateImportUploadQueue: React.FC<{
           <TableBody>
             {isLoading && jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
                     <span>Loading upload queue...</span>
@@ -1231,7 +1311,7 @@ export const CandidateImportUploadQueue: React.FC<{
               </TableRow>
             ) : fetchError ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-destructive">
+                <TableCell colSpan={10} className="text-center text-destructive">
                   <div className="flex flex-col items-center gap-2">
                     <AlertCircle className="h-6 w-6 text-destructive" />
                     <span>{fetchError.includes('401') ? 'You are not authorized to view the upload queue. Please sign in again.' : fetchError}</span>
@@ -1240,7 +1320,7 @@ export const CandidateImportUploadQueue: React.FC<{
               </TableRow>
             ) : jobs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                   <div className="flex flex-col items-center gap-2">
                     <span>No queue</span>
                     <span className="text-sm text-muted-foreground">Upload CVs to see them in the queue</span>

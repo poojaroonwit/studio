@@ -378,8 +378,8 @@ export class WebhookBodyProcessor {
     const sampleData: Record<string, any> = {
       'candidate.created': {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
+        name: 'Sample Candidate',
+        email: 'candidate@example.com',
         phone: '+1234567890',
         status: 'active',
         positionId: '456e7890-e89b-12d3-a456-426614174001',
@@ -389,16 +389,16 @@ export class WebhookBodyProcessor {
       },
       'position.created': {
         id: '456e7890-e89b-12d3-a456-426614174001',
-        title: 'Senior Software Engineer',
-        department: 'Engineering',
-        description: 'We are looking for a senior software engineer...',
+        title: 'Sample Position',
+        department: 'Sample Department',
+        description: 'Sample position description...',
         isOpen: true,
         createdAt: '2024-01-15T10:30:00Z',
         updatedAt: '2024-01-15T10:30:00Z'
       },
       'upload_queue.completed': {
         id: '789e0123-e89b-12d3-a456-426614174002',
-        fileName: 'resume.pdf',
+        fileName: 'sample-resume.pdf',
         fileSize: 1024000,
         status: 'completed',
         uploadDate: '2024-01-15T10:30:00Z',

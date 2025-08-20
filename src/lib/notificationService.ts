@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
+import { broadcastUserNotification } from '@/lib/candidateSse';
 
 export interface NotificationData {
   type: string;
@@ -26,6 +27,17 @@ export class NotificationService {
           message: notification.message,
           data: notification.data || {},
         }
+      });
+
+      // Broadcast real-time notification
+      broadcastUserNotification(userId, {
+        id: newNotification.id,
+        type: newNotification.type,
+        title: newNotification.title,
+        message: newNotification.message,
+        data: newNotification.data,
+        isRead: newNotification.isRead,
+        createdAt: newNotification.createdAt,
       });
 
       if (actingUserId) {

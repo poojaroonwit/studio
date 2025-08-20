@@ -361,7 +361,7 @@ async function testAllV1APIs() {
   await testEndpoint('Create User', `${BASE_URL}/api/v1/users`, {
     method: 'POST',
     body: {
-      name: 'Test User',
+      name: 'Sample Test User',
       email: 'test@example.com',
       role: 'User'
     }

@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, ServerCrash, UserCircle } from 'lucide-react';
 import CandidateDetailView from '@/components/candidates/CandidateDetailView';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import SafeComponentWrapper from '@/components/ui/safe-component-wrapper';
 import type { Candidate } from '@/lib/types';
 
 export default function CandidateDetailPage() {
@@ -42,10 +44,17 @@ export default function CandidateDetailPage() {
   }
 
     return (
-      <CandidateDetailView
-        candidateId={candidateId}
-        isModal={false}
-        onClose={() => router.push('/candidates')}
-      />
+      <ErrorBoundary>
+        <SafeComponentWrapper 
+          fallbackTitle="Candidate Page Error"
+          fallbackDescription="There was an issue loading the candidate details. This may be due to a temporary initialization problem."
+        >
+          <CandidateDetailView
+            candidateId={candidateId}
+            isModal={false}
+            onClose={() => router.push('/candidates')}
+          />
+        </SafeComponentWrapper>
+      </ErrorBoundary>
     );
 }

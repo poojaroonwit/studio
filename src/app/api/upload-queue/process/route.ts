@@ -477,18 +477,33 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       isFullUrl: job.file_path && job.file_path.startsWith('http')
     });
     
-    // Get targetPositionId, candidate_id, and sourceId from webhook_payload if available
+    // Get targetPositionId, candidate_id, sourceId, and additionalAttachment from webhook_payload if available
     let targetPositionId = null;
     let candidateId = null;
     let sourceId = null;
+    let additionalAttachment = null;
     if (job.webhook_payload && typeof job.webhook_payload === 'object') {
       targetPositionId = job.webhook_payload.targetPositionId || null;
       candidateId = job.webhook_payload.candidate_id || null;
       sourceId = job.webhook_payload.sourceId || null; // Extract sourceId from webhook payload
+      additionalAttachment = job.webhook_payload.additionalAttachment || null; // Extract additional attachment from webhook payload
     }
     
     // Use targetPositionId from webhook_payload if available, otherwise fall back to job.position_id
     const finalPositionId = targetPositionId || job.position_id;
+    
+    // Build additional attachment URL if it exists
+    let additionalAttachmentUrl = null;
+    if (additionalAttachment && additionalAttachment.path) {
+      if (additionalAttachment.path.startsWith('http')) {
+        // Path is already a full URL, use it as is
+        additionalAttachmentUrl = additionalAttachment.path;
+      } else {
+        // Path is just the object name, construct the full URL
+        additionalAttachmentUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${additionalAttachment.path}`;
+      }
+    }
+    
     const inputs = {
       cv_url: publicUrl,
       applied_position_id: finalPositionId,
@@ -498,6 +513,13 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       mimetype: job.mimetype,
       candidate_id: candidateId, // Include candidate ID in webhook payload
       source_id: sourceId, // Include source ID in webhook payload
+      additional_attachment_url: additionalAttachmentUrl, // Include additional attachment URL in webhook payload
+      additional_attachment: additionalAttachment ? {
+        url: additionalAttachmentUrl,
+        name: additionalAttachment.name,
+        size: additionalAttachment.size,
+        type: additionalAttachment.type
+      } : null
     };
     
     console.log(`[Webhook] Using response mode: ${responseMode} (no timeout)`);

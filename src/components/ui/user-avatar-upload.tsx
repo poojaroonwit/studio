@@ -50,32 +50,6 @@ export function UserAvatarUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setAvatarError('Please select a valid image file');
-      toast.error('Please select a valid image file');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarError('Image size must be less than 5MB');
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-
-    setAvatarError(null);
-
-    // Show immediate preview
-    try {
-      const objectUrl = URL.createObjectURL(file);
-      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
-      lastObjectUrlRef.current = objectUrl;
-      setPreviewUrl(objectUrl);
-    } catch {
-      // noop if object URL creation fails
-    }
-
     setIsUploading(true);
 
     try {

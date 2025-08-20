@@ -16,7 +16,10 @@ export const addCacheBuster = (url: string, forceRefresh: boolean = false): stri
     
     // If forceRefresh is true or no cache buster exists, add/update it
     if (forceRefresh || !urlObj.searchParams.has('cb')) {
-      urlObj.searchParams.set('cb', Date.now().toString());
+      // Use a more aggressive cache buster with timestamp and random value
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 15);
+      urlObj.searchParams.set('cb', `${timestamp}-${random}`);
     }
     
     return urlObj.toString();
@@ -153,8 +156,27 @@ export const refreshImage = async (url: string): Promise<void> => {
     // Clear existing cache
     clearImageCache(url);
     
+    // Create a new cache-busted URL
+    const cacheBustedUrl = addCacheBuster(url, true);
+    
     // Preload the new version
-    await preloadImage(addCacheBuster(url, true));
+    await preloadImage(cacheBustedUrl);
+    
+    // Also try to clear from browser cache if possible
+    if (typeof window !== 'undefined' && 'caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(async (cacheName) => {
+            const cache = await caches.open(cacheName);
+            await cache.delete(url);
+            await cache.delete(cacheBustedUrl);
+          })
+        );
+      } catch (cacheError) {
+        console.warn('Failed to clear browser cache:', cacheError);
+      }
+    }
   } catch (error) {
     console.warn('Failed to refresh image:', error);
   }

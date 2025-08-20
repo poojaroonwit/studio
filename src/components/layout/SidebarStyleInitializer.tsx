@@ -1,20 +1,17 @@
 "use client";
 
 import { useEffect } from 'react';
-import { initializeSidebarStyle, setupSidebarStyleListener } from '@/lib/themeUtils';
+import { initializeSidebarStyles } from '@/lib/themeUtils';
 
 export function SidebarStyleInitializer() {
   useEffect(() => {
-    // Initialize sidebar style on component mount
-    initializeSidebarStyle();
-    
-    // Setup listener for preference changes
-    setupSidebarStyleListener();
+    // Use comprehensive initialization
+    initializeSidebarStyles();
     
     // Listen for theme changes and reapply sidebar styles
     const handleThemeChange = () => {
-      // Re-apply sidebar active style when theme changes
-      initializeSidebarStyle();
+      // Re-apply sidebar styles when theme changes
+      initializeSidebarStyles();
     };
     
     // Listen for system theme changes

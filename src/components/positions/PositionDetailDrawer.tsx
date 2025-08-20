@@ -237,20 +237,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
     });
   }, [allCandidates, allCandidatesSortColumn, allCandidatesSortDirection]);
 
-  // Department and level options
-  const departmentOptions = [
-    'Engineering',
-    'Product',
-    'Design',
-    'Marketing',
-    'Sales',
-    'Operations',
-    'Finance',
-    'Human Resources',
-    'Customer Success',
-    'Legal',
-    'Other'
-  ];
+  // Level options
 
   const levelOptions = [
     'Intern',
@@ -282,17 +269,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
       const data = await response.json();
       setPosition(data);
       
-             // Populate form with position data
-       form.reset({
-         title: data.title || '',
-         department: data.department || '',
-         description: data.description || '',
-         matchCriteria: data.matchCriteria || '',
-         isOpen: data.isOpen ?? true,
-         positionLevel: data.positionLevel || '',
-         gradeId: data.gradeId || null,
-         hiringDate: data.hiringDate || null,
-       });
+                     // Populate form with position data
+        form.reset({
+          title: data.title || '',
+          department: data.department || '',
+          description: data.description || '',
+          matchCriteria: data.matchCriteria || '',
+          isOpen: data.isOpen ?? true,
+          positionLevel: data.positionLevel || '',
+          gradeId: data.gradeId || null,
+          hiringDate: data.hiringDate || null,
+        });
        
        // Set drawer as ready for WYSIWYG editors
        setIsDrawerReady(true);
@@ -439,8 +426,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
-        gradeId: (position as any).gradeId || null,
-        hiringDate: position.hiringDate || null,
+        gradeId: position.gradeId || null,
+        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
       });
       
       // Force re-render of WYSIWYG editors with new content
@@ -484,8 +471,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
-        gradeId: (position as any).gradeId || null,
-        hiringDate: position.hiringDate || null,
+        gradeId: position.gradeId || null,
+        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
       });
     }
     setIsEditMode(false);
@@ -662,8 +649,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         matchCriteria: position.matchCriteria || '',
         isOpen: position.isOpen ?? true,
         positionLevel: position.positionLevel || '',
-        gradeId: (position as any).gradeId || null,
-        hiringDate: position.hiringDate || null,
+        gradeId: position.gradeId || null,
+        hiringDate: position.hiringDate || (position.createdAt ? new Date(position.createdAt).toISOString().split('T')[0] : null),
       });
     }
   }, [position, isEditMode, form]);
@@ -1431,18 +1418,11 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                                 name="department"
                                 control={form.control}
                                 render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger className={form.formState.errors.department ? 'border-red-500' : ''}>
-                                      <SelectValue placeholder="Select department" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {departmentOptions.map((dept) => (
-                                        <SelectItem key={dept} value={dept}>
-                                          {dept}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <Input
+                                    {...field}
+                                    placeholder="Enter department"
+                                    className={form.formState.errors.department ? 'border-red-500' : ''}
+                                  />
                                 )}
                               />
                             ) : (
@@ -1480,6 +1460,8 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                             )}
                           </div>
 
+
+
                           {/* Grade */}
                           <div className="space-y-2">
                             <Label htmlFor="gradeId">Grade</Label>
@@ -1504,33 +1486,66 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                    )}
                  />
                             ) : (
-                              (position as any).gradeId && position.grade ? (
-                                <div className="flex items-center gap-2">
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs"
-                                    style={{
-                                      borderColor: position.grade.color || '#3B82F6',
-                                      color: position.grade.color || '#3B82F6'
-                                    }}
-                                  >
-                                    {position.grade.name}
-                                  </Badge>
-                                  {position.grade.label && (
-                                    <span className="text-sm text-muted-foreground">
-                                      {position.grade.label}
-                                    </span>
-                                  )}
+                              position.gradeId && position.grade ? (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                      style={{
+                                        borderColor: position.grade.color || '#3B82F6',
+                                        color: position.grade.color || '#3B82F6'
+                                      }}
+                                    >
+                                      {position.grade.name}
+                                    </Badge>
+                                    {position.grade.label && (
+                                      <span className="text-sm text-muted-foreground">
+                                        {position.grade.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(() => {
+                                    if (position.hiringDate && position.grade?.slaDays) {
+                                      const hiringDate = new Date(position.hiringDate);
+                                      const slaEndDate = new Date(hiringDate.getTime() + (position.grade.slaDays * 24 * 60 * 60 * 1000));
+                                      const now = new Date();
+                                      const daysLeft = Math.ceil((slaEndDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+                                      
+                                      if (daysLeft > 0) {
+                                        return (
+                                          <div className="text-xs text-muted-foreground">
+                                            SLA: {daysLeft} days left
+                                          </div>
+                                        );
+                                      } else if (daysLeft === 0) {
+                                        return (
+                                          <div className="text-xs text-orange-600">
+                                            SLA: Due today
+                                          </div>
+                                        );
+                                      } else {
+                                        return (
+                                          <div className="text-xs text-red-600">
+                                            SLA: {Math.abs(daysLeft)} days overdue
+                                          </div>
+                                        );
+                                      }
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                               ) : (
-                                <div className="text-base text-muted-foreground">No grade</div>
+                                <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/50 bg-muted/20">
+                                  No Grade
+                                </Badge>
                               )
                             )}
                           </div>
 
                           {/* Hiring Date */}
                           <div className="space-y-2">
-                            <Label htmlFor="hiringDate">Hiring Date</Label>
+                            <Label htmlFor="hiringDate">Start Hiring Date</Label>
                             {isEditMode ? (
                               <Controller
                                 name="hiringDate"

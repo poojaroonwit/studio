@@ -21,25 +21,25 @@ export function NotificationDemo() {
   const handleCandidateNotification = () => {
     notifyCandidateUpdate(
       'candidate-123',
-      'John Doe',
+      'Sample Candidate',
       'updated',
-      { stage: 'Interview', recruiter: 'Jane Smith' }
+      { stage: 'Interview', recruiter: 'Sample Recruiter' }
     );
   };
 
   const handlePositionNotification = () => {
     notifyPositionUpdate(
       'position-456',
-      'Senior Software Engineer',
+      'Sample Position',
       'created',
-      { department: 'Engineering', location: 'Remote' }
+      { department: 'Sample Department', location: 'Remote' }
     );
   };
 
   const handleUserNotification = () => {
     notifyUserAction(
       'user-789',
-      'Alice Johnson',
+      'Sample User',
       'logged_in',
       { ip: '192.168.1.100', userAgent: 'Chrome/120.0' }
     );

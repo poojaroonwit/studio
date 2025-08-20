@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { toast } from 'react-hot-toast';
+import { useToastManager } from '@/hooks/use-toast-manager';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -47,6 +47,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
   
+  const { success: showToast, error: showErrorToast } = useToastManager({ deduplicationWindowMs: 2000 });
   const lastErrorToastTimeRef = useRef<number>(0);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,7 +57,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
   const showNotification = useCallback((message: string, icon: string = '🔄') => {
     if (showNotifications) {
       try {
-        toast.success(message, {
+        showToast(message, {
           duration: 3000,
           icon
         });
@@ -64,13 +65,13 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         console.error('Error showing toast notification:', error);
       }
     }
-  }, [showNotifications]);
+  }, [showNotifications, showToast]);
 
   const showErrorNotification = useCallback((message: string) => {
     const now = Date.now();
     if (showNotifications && (now - lastErrorToastTimeRef.current > errorToastCooldownMs)) {
       try {
-        toast.error(message, {
+        showErrorToast(message, {
           duration: 5000
         });
         lastErrorToastTimeRef.current = now;
@@ -78,7 +79,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         console.error('Error showing error toast notification:', error);
       }
     }
-  }, [showNotifications, errorToastCooldownMs]);
+  }, [showNotifications, errorToastCooldownMs, showErrorToast]);
 
   const cleanupConnection = useCallback(() => {
     if (eventSourceRef.current) {
@@ -149,14 +150,11 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
 
   const connectSSE = useCallback(() => {
     try {
-      console.log('🔄 Establishing SSE connection...');
-      
       const eventSource = new EventSource(endpoint);
       eventSourceRef.current = eventSource;
 
       // Handle connection events
       eventSource.onopen = () => {
-        console.log('🔄 Real-time collaboration connected');
         setIsConnected(true);
         setIsReconnecting(false);
         setReconnectAttempts(0);

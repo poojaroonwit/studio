@@ -54,7 +54,7 @@ export function CandidateRecruiterCell({
 
       return () => clearTimeout(timeout);
     }
-  }, [isAssigning, candidate.id, onResetAssigning]);
+  }, [isAssigning, candidate.id]); // Removed onResetAssigning to prevent infinite loop
 
   const handleSelect = async (recruiterId: string | null) => {
     console.log('CandidateRecruiterCell handleSelect called:', {

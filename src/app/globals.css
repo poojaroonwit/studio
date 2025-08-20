@@ -27,6 +27,151 @@
   }
 }
 
+/* Notification drawer animations */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes notificationPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes notificationShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+/* Notification drawer smooth transitions */
+.notification-drawer-enter {
+  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-drawer-exit {
+  animation: slideOutToRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Notification item animations */
+.notification-item {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.notification-item:nth-child(1) { animation-delay: 0.05s; }
+.notification-item:nth-child(2) { animation-delay: 0.1s; }
+.notification-item:nth-child(3) { animation-delay: 0.15s; }
+.notification-item:nth-child(4) { animation-delay: 0.2s; }
+.notification-item:nth-child(5) { animation-delay: 0.25s; }
+
+/* Unread notification pulse effect */
+.unread-notification-pulse {
+  animation: notificationPulse 2s ease-in-out infinite;
+}
+
+/* Warning pulse animation */
+@keyframes warning-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.unread-warning-pulse {
+  animation: warning-pulse 2s ease-in-out infinite;
+}
+
+/* Notification icon shake on new notification */
+.notification-icon-shake {
+  animation: notificationShake 0.5s ease-in-out;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Floating notification animations */
+@keyframes slideInFromBottomRight {
+  from {
+    transform: translateX(100%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutToBottomRight {
+  from {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%) translateY(100%);
+    opacity: 0;
+  }
+}
+
+.floating-notification-enter {
+  animation: slideInFromBottomRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-notification-exit {
+  animation: slideOutToBottomRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 body {
   font-family: var(--font-family-primary);
 }
@@ -94,6 +239,32 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
 .font-auto[lang="th"],
 .font-auto[lang="th-TH"] {
   font-family: 'IBM Plex Sans Thai', 'Inter', Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Firefox scrollbar styling */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
 
 /* Ensure proper font rendering for Thai text */
@@ -511,33 +682,42 @@ html, body, #__next, [data-nextjs-page-router-viewport] {
 
   /* Ensure active text color takes precedence over Tailwind classes */
   [data-sidebar="menu-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-l) !important;
+    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
   }
   
   .dark [data-sidebar="menu-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-d) !important;
+    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
+  }
+
+  /* Additional specificity for active menu items to override any Tailwind classes */
+  [data-sidebar="menu-button"][data-active="true"] * {
+    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
+  }
+  
+  .dark [data-sidebar="menu-button"][data-active="true"] * {
+    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
   }
 
   /* Ensure active text color takes precedence for sub-buttons */
   [data-sidebar="menu-sub-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-l) !important;
+    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
   }
   
   .dark [data-sidebar="menu-sub-button"][data-active="true"] {
-    color: var(--sidebar-active-foreground-d) !important;
+    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
   }
 
   /* Apply gradient to primary buttons */
   .btn-primary-gradient {
     background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-l)), hsl(var(--primary-gradient-end-l)));
-    color: var(--sidebar-active-foreground-l) !important;
+    color: var(--sidebar-active-foreground-l, hsl(0 0% 100%)) !important;
     border: none;
     /* Strong, prominent shadow for primary button */
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-l), 0.35), 0 4px 16px 0 hsla(var(--primary-gradient-start-l), 0.25);
   }
   .dark .btn-primary-gradient {
     background-image: linear-gradient(to right, hsl(var(--primary-gradient-start-d)), hsl(var(--primary-gradient-end-d)));
-    color: var(--sidebar-active-foreground-d) !important;
+    color: var(--sidebar-active-foreground-d, hsl(0 0% 100%)) !important;
     box-shadow: 0 8px 32px 0 hsla(var(--primary-gradient-start-d), 0.45), 0 4px 16px 0 hsla(var(--primary-gradient-start-d), 0.3);
   }
   .btn-primary-gradient:hover {

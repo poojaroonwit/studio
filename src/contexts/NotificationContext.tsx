@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { toast } from 'react-hot-toast';
+import { useToastManager } from '@/hooks/use-toast-manager';
 
 interface Notification {
   id: string;
@@ -23,16 +23,20 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
   clearNotifications: () => void;
+  setNotificationsEnabled: (enabled: boolean) => void;
+  notificationsEnabled: boolean;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  const { success: showToast } = useToastManager({ deduplicationWindowMs: 2000 });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
     if (!session?.user) return;
@@ -97,21 +101,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setNotifications(prev => [newNotification, ...prev]);
     setUnreadCount(prev => prev + 1);
     
-    // Show toast notification with theme-aware styling
-    toast.success(`${notification.title}: ${notification.message}`, {
-      duration: 5000,
-      icon: '🔔',
-      style: {
-        background: 'hsl(var(--card))',
-        color: 'hsl(var(--card-foreground))',
-        border: '1px solid hsl(var(--border))',
-      },
-    });
+    // Show toast notification with theme-aware styling (only if enabled)
+    if (notificationsEnabled) {
+      showToast(`${notification.title}: ${notification.message}`, {
+        duration: 5000,
+        icon: '🔔',
+        style: {
+          background: 'hsl(var(--card))',
+          color: 'hsl(var(--card-foreground))',
+          border: '1px solid hsl(var(--border))',
+        },
+      });
+    }
   }, []);
 
   const clearNotifications = useCallback(() => {
     setNotifications([]);
     setUnreadCount(0);
+  }, []);
+
+  const handleSetNotificationsEnabled = useCallback((enabled: boolean) => {
+    setNotificationsEnabled(enabled);
   }, []);
 
   // Set up real-time notifications via SSE
@@ -151,6 +161,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'new_notification') {
+              // Only show notifications meant for the current user
+              if (data.targetUserId && data.targetUserId !== session?.user?.id) {
+                return; // Skip notifications not meant for this user
+              }
+              
               addNotification({
                 type: data.notification.type,
                 title: data.notification.title,
@@ -257,6 +272,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     markAllAsRead,
     addNotification,
     clearNotifications,
+    setNotificationsEnabled: handleSetNotificationsEnabled,
+    notificationsEnabled,
   };
 
   return (

@@ -83,6 +83,8 @@ export function broadcastUploadQueueUpdate() {
   // Create a copy of controllers to safely iterate over
   const controllersCopy = Array.from(uploadQueueControllers);
   
+  console.log(`Broadcasting upload queue update to ${controllersCopy.length} clients`);
+  
   for (const controller of controllersCopy) {
     try {
       sendUploadQueueUpdate(controller);

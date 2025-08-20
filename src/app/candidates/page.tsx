@@ -19,12 +19,14 @@ export default async function CandidatesPageServer() {
           fallbackDescription="There was an issue loading the candidates page. This may be due to a temporary initialization problem."
         >
           <CandidateQueueProvider>
-            <CandidatesPageClient
-              initialCandidates={[]}
-              initialAvailablePositions={[]}
-              initialAvailableStages={[]}
-              initialFetchError={undefined}
-            />
+            <ErrorBoundary>
+              <CandidatesPageClient
+                initialCandidates={[]}
+                initialAvailablePositions={[]}
+                initialAvailableStages={[]}
+                initialFetchError={undefined}
+              />
+            </ErrorBoundary>
           </CandidateQueueProvider>
         </SafeComponentWrapper>
       </Suspense>

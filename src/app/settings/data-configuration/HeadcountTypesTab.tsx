@@ -16,7 +16,8 @@ import {
   Loader2,
   AlertCircle,
   Save,
-  X
+  X,
+  GripVertical
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -183,14 +184,7 @@ export function HeadcountTypesTab() {
       </div>
 
       {/* Headcount Types List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Headcount Type Options ({options.length})</CardTitle>
-          <CardDescription>
-            Drag and drop to reorder, or click to edit individual options
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      
           {options.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -216,10 +210,15 @@ export function HeadcountTypesTab() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
                           >
                             <div className="flex items-center gap-3">
+                              <div 
+                                {...provided.dragHandleProps}
+                                className="cursor-move text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </div>
                               <div
                                 className="w-4 h-4 rounded"
                                 style={{ backgroundColor: option.color }}
@@ -270,8 +269,7 @@ export function HeadcountTypesTab() {
               </Droppable>
             </DragDropContext>
           )}
-        </CardContent>
-      </Card>
+   
 
       {/* Edit Modal */}
       {isModalOpen && editingOption && (

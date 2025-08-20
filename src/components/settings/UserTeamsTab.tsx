@@ -336,7 +336,7 @@ export function UserTeamsTab() {
           <h2 className="text-xl font-semibold text-foreground">User Teams</h2>
           <p className="text-muted-foreground">Manage teams and team assignments</p>
         </div>
-        {session?.user?.role === 'Admin' && (
+        {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
           <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
             <PlusCircle className="mr-2 h-4 w-4" />
             Create Team
@@ -351,7 +351,7 @@ export function UserTeamsTab() {
              <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
              <h3 className="text-lg font-semibold text-foreground mb-2">No Teams Found</h3>
              <p className="text-muted-foreground mb-4">Create your first team to get started</p>
-             {session?.user?.role === 'Admin' && (
+             {(session?.user?.role === 'Admin' || session?.user?.modulePermissions?.includes('USERS_MANAGE')) && (
                <Button onClick={() => handleOpenModal()} className="btn-hover-primary-gradient">
                  <PlusCircle className="mr-2 h-4 w-4" />
                  Create First Team

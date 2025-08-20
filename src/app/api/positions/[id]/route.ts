@@ -16,6 +16,7 @@ const updatePositionSchema = z.object({
   matchCriteria: z.string().optional().nullable(),
   isOpen: z.boolean().optional(),
   positionLevel: z.string().optional().nullable(),
+  positionAttribute: z.string().optional().nullable(),
   gradeId: z.union([
     z.string().uuid(),
     z.null()
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { id } = params;
   const client = await getPool().connect();
   try {
-    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
+    const query = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."gradeId", p."hiringDate", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName", g.name as "gradeName", g.label as "gradeLabel", g."sla_days" as "gradeSlaDays", g.color as "gradeColor" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id LEFT JOIN "Grade" g ON p."gradeId" = g.id WHERE p.id = $1';
     const result = await client.query(query, [id]);
     
     if (result.rows.length === 0) {
@@ -214,6 +215,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updateFields.push(`"positionLevel" = $${paramIndex++}`);
       updateValues.push(updateData.positionLevel);
     }
+    if (updateData.positionAttribute !== undefined) {
+      updateFields.push(`"positionAttribute" = $${paramIndex++}`);
+      updateValues.push(updateData.positionAttribute);
+    }
     if (updateData.gradeId !== undefined) {
       updateFields.push(`"gradeId" = $${paramIndex++}`);
       updateValues.push(updateData.gradeId);
@@ -258,7 +263,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updatedPosition = updateResult.rows[0];
     
     // Fetch the updated position with recruiter name
-    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
+    const enrichedPositionQuery = 'SELECT p.id, p.title, p.department, p.description, p."matchCriteria", p."isOpen", p."positionLevel", p."positionAttribute", p."recruiterId", p."customAttributes", p."createdAt", p."updatedAt", u.name as "recruiterName" FROM "Position" p LEFT JOIN "User" u ON p."recruiterId" = u.id WHERE p.id = $1';
     const enrichedResult = await client.query(enrichedPositionQuery, [id]);
     const enrichedPosition = enrichedResult.rows[0];
     

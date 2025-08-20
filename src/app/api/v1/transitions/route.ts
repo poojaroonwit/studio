@@ -118,7 +118,7 @@ const createTransitionSchema = z.object({
  *                       notes: "Candidate passed initial screening"
  *                       transitionDate: "2024-01-01T00:00:00.000Z"
  *                       createdBy: "123e4567-e89b-12d3-a456-426614174004"
- *                       createdByName: "John Doe"
+ *                       createdByName: "Sample User"
  *                       createdAt: "2024-01-01T00:00:00.000Z"
  *                   total: 1
  *                   timestamp: "2024-01-01T00:00:00.000Z"

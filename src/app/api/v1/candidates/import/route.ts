@@ -280,7 +280,7 @@ export async function GET(req: NextRequest) {
   const template = {
     candidates: [
       {
-        name: "John Doe",
+        name: "Sample Candidate",
         email: "john.doe@example.com",
         phone: "+1234567890",
         status: "Applied",

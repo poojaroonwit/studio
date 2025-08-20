@@ -9,7 +9,7 @@ import type { Candidate, CandidateStatus, Position, RecruitmentStage, UserProfil
 import { getScoreRangesForChart } from '@/lib/scoreUtils';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search } from 'lucide-react';
+import { PlusCircle, Users, ServerCrash, Zap, Loader2, FileDown, FileUp, ChevronDown, FileSpreadsheet, ShieldAlert, Brain, Trash2 as BulkTrashIcon, Edit as BulkEditIcon, ChevronLeft, ChevronRight, ChevronsUpDown, Check, Briefcase, X, Filter, Search, Settings, MoreVertical } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { AddCandidateModal, type AddCandidateFormValues } from '@/components/candidates/AddCandidateModal';
 import { EditPositionModal } from '@/components/positions/EditPositionModal';
@@ -35,6 +35,8 @@ import { HealthCheck } from '@/components/ui/health-check';
 import { Badge } from '@/components/ui/badge';
 import { UserX } from 'lucide-react';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';
+import { FitScoreFilterTabs } from './FitScoreFilterTabs';
+import { CandidateSettingsDrawer, type CandidateSettings } from './CandidateSettingsDrawer';
 
 
 interface CandidatesPageClientProps {
@@ -197,46 +199,7 @@ export function CandidatesPageClient({
   const [tableLoading, setTableLoading] = useState(false);
   const [tableError, setTableError] = useState<string | null>(null);
 
-  // Calculate candidate score counts for fit score filter badges
-  // Use fullCandidatesForCounts to show total counts regardless of current filters
-  const candidateScoreCounts = useMemo(() => {
-    const scoreRanges = getScoreRangesForChart();
-    const appliedScoreRangeCounts: { [key: string]: number } = {};
-    const matchingScoreRangeCounts: { [key: string]: number } = {};
-    
-    fullCandidatesForCounts.forEach((candidate: Candidate) => {
-      // Applied fit score (normalized)
-      const appliedScore = normalizeFitScore(candidate.fitScore);
-      if (appliedScore > 0) {
-        scoreRanges.forEach(range => {
-          if (appliedScore >= range.min && appliedScore <= range.max) {
-            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-          }
-        });
-      }
-      
-      // Matching fit score (simplified)
-      const matchingScore = getBestMatchingFitScore(candidate);
-      if (matchingScore > 0) {
-        scoreRanges.forEach(range => {
-          if (matchingScore >= range.min && matchingScore <= range.max) {
-            matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
-          }
-        });
-      }
-    });
-    
-    return {
-      applied: scoreRanges.map(range => ({
-        letter: range.letter,
-        count: appliedScoreRangeCounts[range.letter] || 0
-      })),
-      matching: scoreRanges.map(range => ({
-        letter: range.letter,
-        count: matchingScoreRangeCounts[range.letter] || 0
-      }))
-    };
-  }, [fullCandidatesForCounts]);
+
 
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAutomationUploadModalOpen, setIsAutomationUploadModalOpen] = useState(false);
@@ -252,6 +215,136 @@ export function CandidatesPageClient({
   const hasInitializedFilters = useRef(false);
 
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
+
+  // Settings state
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  const [candidateSettings, setCandidateSettings] = useState<CandidateSettings>({
+    showCandidateColumn: true,
+    showAppliedJobColumn: true,
+    showJobMatchesColumn: true,
+    showFitScoreColumn: true,
+    showRecruiterColumn: true,
+    showStatusColumn: true,
+    showAppliedDateColumn: true,
+    showFilters: true,
+    showHorizontalFitScoreFilters: true,
+    fitScoreType: 'applied'
+  });
+
+  // Get candidates that match all other filters but NOT fit score filters
+  // This prevents circular dependency where fit score counts would be affected by selected fit score filters
+  const candidatesForFitScoreCounts = useMemo(() => {
+    // Apply basic filters to fullCandidatesForCounts to get counts for the current filter state
+    // This excludes fit score filters to prevent circular dependency
+    const filtered = fullCandidatesForCounts.filter((candidate: Candidate) => {
+      // Apply basic filters that we can easily replicate on client side
+      if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0 && 
+          !filters.selectedPositionIds.includes(candidate.positionId || '')) return false;
+      if (filters.selectedStatuses && filters.selectedStatuses.length > 0 && 
+          !filters.selectedStatuses.includes(candidate.status)) return false;
+      if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0 && 
+          !filters.selectedRecruiterIds.includes(candidate.recruiterId || '')) return false;
+      if (filters.selectedSourceIds && filters.selectedSourceIds.length > 0 && 
+          !filters.selectedSourceIds.includes(candidate.sourceId || '')) return false;
+      
+      return true;
+    });
+    
+    console.log('CandidatesPageClient - candidatesForFitScoreCounts filtering:', {
+      totalCandidates: fullCandidatesForCounts.length,
+      filteredCandidates: filtered.length,
+      filters: {
+        selectedPositionIds: filters.selectedPositionIds,
+        selectedStatuses: filters.selectedStatuses,
+        selectedRecruiterIds: filters.selectedRecruiterIds,
+        selectedSourceIds: filters.selectedSourceIds
+      }
+    });
+    
+    return filtered;
+  }, [fullCandidatesForCounts, filters.selectedPositionIds, filters.selectedStatuses, filters.selectedRecruiterIds, filters.selectedSourceIds]);
+
+  // Calculate candidate score counts for fit score filter badges
+  // Use candidates filtered by other criteria but NOT fit score filters to avoid circular dependency
+  const candidateScoreCounts = useMemo(() => {
+    const scoreRanges = getScoreRangesForChart();
+    const appliedScoreRangeCounts: { [key: string]: number } = {};
+    const matchingScoreRangeCounts: { [key: string]: number } = {};
+    
+    // For debugging: temporarily use all candidates to see if counts work
+    const candidatesToProcess = candidatesForFitScoreCounts;
+    console.log('Processing candidates for score counts:', candidatesToProcess.length);
+    
+    candidatesToProcess.forEach((candidate: Candidate) => {
+      // Applied fit score (normalized)
+      const appliedScore = normalizeFitScore(candidate.fitScore);
+      console.log(`Candidate ${candidate.name} (${candidate.id}):`, {
+        originalFitScore: candidate.fitScore,
+        normalizedAppliedScore: appliedScore,
+        candidateData: candidate
+      });
+      
+      if (appliedScore > 0) {
+        scoreRanges.forEach(range => {
+          if (appliedScore >= range.min && appliedScore <= range.max) {
+            appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
+            console.log(`  -> Applied score ${appliedScore} falls in range ${range.letter} (${range.min}-${range.max})`);
+          }
+        });
+      } else {
+        // Count candidates with no applied fit score
+        appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
+        console.log(`  -> Applied score ${appliedScore} -> no-score`);
+      }
+      
+      // Matching fit score (simplified)
+      const matchingScore = getBestMatchingFitScore(candidate);
+      console.log(`  Matching score for ${candidate.name}:`, matchingScore);
+      
+      if (matchingScore > 0) {
+        scoreRanges.forEach(range => {
+          if (matchingScore >= range.min && matchingScore <= range.max) {
+            matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
+            console.log(`  -> Matching score ${matchingScore} falls in range ${range.letter} (${range.min}-${range.max})`);
+          }
+        });
+      } else {
+        // Count candidates with no matching fit score
+        matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
+        console.log(`  -> Matching score ${matchingScore} -> no-score`);
+      }
+    });
+    
+    const result = {
+      applied: [
+        ...scoreRanges.map(range => ({
+          letter: range.letter,
+          count: appliedScoreRangeCounts[range.letter] || 0
+        })),
+        {
+          letter: 'no-score',
+          count: appliedScoreRangeCounts['no-score'] || 0
+        }
+      ],
+      matching: [
+        ...scoreRanges.map(range => ({
+          letter: range.letter,
+          count: matchingScoreRangeCounts[range.letter] || 0
+        })),
+        {
+          letter: 'no-score',
+          count: matchingScoreRangeCounts['no-score'] || 0
+        }
+      ]
+    };
+    
+    console.log('CandidatesPageClient - candidateScoreCounts:', result);
+    console.log('CandidatesPageClient - candidatesForFitScoreCounts count:', candidatesForFitScoreCounts.length);
+    console.log('CandidatesPageClient - appliedScoreRangeCounts:', appliedScoreRangeCounts);
+    console.log('CandidatesPageClient - matchingScoreRangeCounts:', matchingScoreRangeCounts);
+    
+    return result;
+  }, [candidatesForFitScoreCounts]);
 
   // Fetch missing positions if any candidate has a positionId not in availablePositions
   useEffect(() => {
@@ -1384,7 +1477,7 @@ export function CandidatesPageClient({
         maxAppliedJobFitScore = maxScore;
       } else if (hasNoScore) {
         minAppliedJobFitScore = -1;
-        maxAppliedJobFitScore = undefined;
+        maxAppliedJobFitScore = undefined; // Keep as undefined for "no-score" case
       }
     }
 
@@ -1400,7 +1493,7 @@ export function CandidatesPageClient({
         maxMatchingJobFitScore = maxScore;
       } else if (hasNoScore) {
         minMatchingJobFitScore = -1;
-        maxMatchingJobFitScore = undefined;
+        maxMatchingJobFitScore = undefined; // Keep as undefined for "no-score" case
       }
     }
 
@@ -2152,13 +2245,13 @@ export function CandidatesPageClient({
   return (
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
-      {showFilters && (
+      {candidateSettings.showFilters && (
         <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen">
           <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
             <span className="font-bold text-lg">Filters</span>
             <button
               className="ml-2 p-1 rounded hover:bg-muted"
-              onClick={() => setShowFilters(false)}
+              onClick={() => setCandidateSettings(prev => ({ ...prev, showFilters: false }))}
               aria-label="Hide filters"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -2186,10 +2279,10 @@ export function CandidatesPageClient({
         </aside>
       )}
       {/* Show button when sidebar is hidden */}
-      {!showFilters && (
+      {!candidateSettings.showFilters && (
         <button
           className="absolute left-0 top-4 z-10 bg-card dark:bg-background border rounded-r p-1 shadow"
-          onClick={() => setShowFilters(true)}
+                      onClick={() => setCandidateSettings(prev => ({ ...prev, showFilters: true }))}
           aria-label="Show filters"
         >
           <ChevronRight className="h-5 w-5" />
@@ -2197,6 +2290,103 @@ export function CandidatesPageClient({
       )}
       {/* Main Content */}
       <main className="flex-1 w-full space-y-6 min-w-0 p-6">
+       
+
+     
+
+    
+
+        {/* Fit Score Filter Tabs and Action Buttons Row */}
+        <div className="flex flex-col sm:flex-row justify-between items-left">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 transition-all duration-300 ease-in-out">
+          <div className="flex items-center gap-4 w-full">
+            {/* Candidate count badge */}
+            {/* <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground transition-all duration-300 ease-in-out">
+              {isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total) !== 1 ? 's' : ''}
+            </span> */}
+          </div>
+        </div>
+            {/* AI Search Results */}
+        {aiSearchReasoning && (
+          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
+            <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
+            <AlertDescription className="text-blue-700 dark:text-blue-300">
+              AI search completed successfully.
+            </AlertDescription>
+          </Alert>
+        )}
+        {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
+            <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
+          </div>
+        )}
+         
+          {/* Fit Score Filter Tabs */}
+          {candidateSettings.showHorizontalFitScoreFilters && (
+            <div className="flex-1">
+              {candidateSettings.fitScoreType === 'applied' && (
+                <FitScoreFilterTabs
+                  selectedGrades={horizontalSelectedFitScoreGrades}
+                  onGradeToggle={handleHorizontalFitScoreGradeToggle}
+                  candidateCounts={candidateScoreCounts?.applied || []}
+                  className=""
+                />
+              )}
+              {candidateSettings.fitScoreType === 'matching' && (
+                <FitScoreFilterTabs
+                  selectedGrades={horizontalSelectedMatchingFitScoreGrades}
+                  onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
+                  candidateCounts={candidateScoreCounts?.matching || []}
+                  className=""
+                />
+              )}
+            </div>
+          )}
+          
+          {/* Action buttons on the right */}
+          <div className="flex gap-2 items-center">
+            {canManageCandidates && (
+              <Button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  setIsBulkUploadModalOpen(true);
+                }}
+                variant="default"
+                size="sm"
+                className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105 mb-2"
+              >
+                <Zap className="mr-2 h-3 w-3" /> Upload CVs
+              </Button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-8 w-8 mb-2">
+                  <MoreVertical className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => setIsSettingsDrawerOpen(true)}>
+                  <Settings className="mr-2 h-4 w-4" /> Settings
+                </DropdownMenuItem>
+                {canManageCandidates && (
+                  <DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
+                  </DropdownMenuItem>
+                )}
+                {canExportCandidates && (
+                  <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
         {/* Active Filters Bar */}
         {(() => {
           const hasActiveFilters = 
@@ -2229,8 +2419,8 @@ export function CandidatesPageClient({
           if (!hasActiveFilters) return null;
 
           return (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
-              <Filter className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md filter-bar-container">
+              <Filter className="h-3 w-3" />
               <span>Active filters:</span>
               {filters.name && (
                 <Badge variant="secondary" className="text-xs">
@@ -2382,89 +2572,43 @@ export function CandidatesPageClient({
           );
         })()}
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 transition-all duration-300 ease-in-out">
-          <div className="flex items-center gap-4 w-full">
-            {/* Candidate count badge */}
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-muted text-foreground transition-all duration-300 ease-in-out">
-              {isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total} Candidate{(isAiSearchActive && aiMatchedCandidateIds ? aiRecordCount : total) !== 1 ? 's' : ''}
-            </span>
-            {selectedCandidateIds.size > 0 && canManageCandidates && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105">
-                    Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => handleBulkAction('delete')}>
-                    <BulkTrashIcon className="mr-2 h-4 w-4" /> Delete Selected
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleBulkAction('change_status')}>
-                    <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
-                    <Users className="mr-2 h-4 w-4" /> Assign Recruiter
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <div className="flex gap-2 items-center ml-auto">
-              {canManageCandidates && (
-                <Button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                
-                    setIsBulkUploadModalOpen(true);
-                  }} 
-                  variant="default" 
-                  className="w-full sm:w-auto transition-all duration-300 ease-in-out hover:scale-105"
-                >
-                  <Zap className="mr-2 h-4 w-4" /> Upload CVs (Create via Resume)
+        {/* Bulk Actions - show when candidates are selected */}
+        {selectedCandidateIds.size > 0 && canManageCandidates && (
+          <div className="flex items-center gap-2 mt-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-3 text-sm transition-all duration-300 ease-in-out hover:scale-105">
+                  Bulk Actions ({selectedCandidateIds.size}) <ChevronDown className="ml-1 h-3 w-3" />
                 </Button>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full sm:w-auto"> More Actions <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {canManageCandidates && (
-                    <DropdownMenuItem onSelect={() => setIsAddModalOpen(true)}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
-                    </DropdownMenuItem>
-                  )}
-                  {canExportCandidates && (
-                    <DropdownMenuItem onSelect={handleExportToExcel} disabled={isLoading}>
-                      <FileSpreadsheet className="mr-2 h-4 w-4" /> Export (Excel)
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => handleBulkAction('delete')}>
+                  <BulkTrashIcon className="mr-2 h-4 w-4" /> Delete Selected
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleBulkAction('change_status')}>
+                  <BulkEditIcon className="mr-2 h-4 w-4" /> Change Status
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleBulkAction('assign_recruiter')}>
+                  <Users className="mr-2 h-4 w-4" /> Assign Recruiter
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
-
-        {/* AI Search Results */}
-        {aiSearchReasoning && (
-          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
-            <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
-            <AlertDescription className="text-blue-700 dark:text-blue-300">
-              Found {aiRecordCount} record{aiRecordCount !== 1 ? 's' : ''} matching your search criteria.
-              {isAiSearchActive && aiRecordCount > pageSize && (
-                <span className="block mt-1 text-sm">
-                  Showing {sortedCandidates.length} of {aiRecordCount} on page {page} of {totalPages}.
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
         )}
 
-        {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
-            <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
+        {/* Show no matching candidates message right under the filters */}
+        {mappedCandidates.length === 0 && tableCandidates.length > 0 && (
+          <div className="flex flex-col items-center justify-center py-6 text-center transition-all duration-500 ease-in-out animate-in fade-in mt-4">
+            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
+              <Search className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground mb-2">No matching candidates</h3>
+            <p className="text-muted-foreground mb-3 max-w-md text-sm">
+              Try adjusting your filters or search criteria to find more candidates.
+            </p>
+            <Button onClick={handleClearAllFilters} variant="outline" size="sm">
+              Clear All Filters
+            </Button>
           </div>
         )}
 
@@ -2511,54 +2655,28 @@ export function CandidatesPageClient({
             );
           }
           
-          // Has candidates but no results for current filters
-          if (mappedCandidates.length === 0) {
-            return (
-              <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Search className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">No matching candidates</h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
-                  Try adjusting your filters or search criteria to find more candidates.
-                </p>
-                <Button onClick={handleClearAllFilters} variant="outline">
-                  Clear All Filters
-                </Button>
-              </div>
-            );
-          }
-          
           // Has candidates and results - show nothing
           return null;
         })()}
 
-        {/* Horizontal Fit Score Filters - Only show when there are candidates */}
-        {sortedCandidates.length > 0 && (
-          <div className="space-y-4">
-            <FitScoreFilterBadges
-              selectedGrades={horizontalSelectedFitScoreGrades}
-              onGradeToggle={handleHorizontalFitScoreGradeToggle}
-              candidateCounts={candidateScoreCounts?.applied || []}
-              title="Applied Position Fit Score"
-              className="p-4 bg-muted/30 rounded-lg border"
-            />
-            <FitScoreFilterBadges
-              selectedGrades={horizontalSelectedMatchingFitScoreGrades}
-              onGradeToggle={handleHorizontalMatchingFitScoreGradeToggle}
-              candidateCounts={candidateScoreCounts?.matching || []}
-              title="Matching Position Fit Score"
-              className="p-4 bg-muted/30 rounded-lg border"
-            />
-          </div>
-        )}
-
         {/* Only render table when there are candidates to show */}
         {(() => {
           if (sortedCandidates.length > 0) {
+            // Create a settings hash to force table re-render when column visibility changes
+            const settingsHash = JSON.stringify({
+              showCandidateColumn: candidateSettings.showCandidateColumn,
+              showAppliedJobColumn: candidateSettings.showAppliedJobColumn,
+              showJobMatchesColumn: candidateSettings.showJobMatchesColumn,
+              showFitScoreColumn: candidateSettings.showFitScoreColumn,
+              showRecruiterColumn: candidateSettings.showRecruiterColumn,
+              showStatusColumn: candidateSettings.showStatusColumn,
+              showAppliedDateColumn: candidateSettings.showAppliedDateColumn,
+            });
+
             return (
               <ErrorBoundary>
                 <CandidateTable
+                  key={`table-${settingsHash}`}
                   candidates={sortedCandidates}
                   availablePositions={availablePositions}
                   availableStages={availableStages}
@@ -2580,6 +2698,7 @@ export function CandidatesPageClient({
                   sortDirection={sortDirection}
                   onSort={handleSort}
                   canManageCandidates={canManageCandidates}
+                  settings={candidateSettings}
                 />
               </ErrorBoundary>
             );
@@ -2821,6 +2940,14 @@ export function CandidatesPageClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Settings Drawer */}
+      <CandidateSettingsDrawer
+        isOpen={isSettingsDrawerOpen}
+        onOpenChange={setIsSettingsDrawerOpen}
+        onSettingsChange={setCandidateSettings}
+        currentSettings={candidateSettings}
+      />
     </div>
   );
 }

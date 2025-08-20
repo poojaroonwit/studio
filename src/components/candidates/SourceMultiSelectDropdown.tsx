@@ -27,9 +27,13 @@ export function SourceMultiSelectDropdown({
   disabled = false
 }: SourceMultiSelectDropdownProps) {
   const [open, setOpen] = useState(false);
+  
+  // Add defensive checks for props
+  const safeSelectedSourceIds = selectedSourceIds || new Set<string>();
+  const safeAvailableSources = Array.isArray(availableSources) ? availableSources : [];
 
   const handleSelect = (sourceId: string) => {
-    const newSelection = new Set(selectedSourceIds);
+    const newSelection = new Set(safeSelectedSourceIds);
     if (newSelection.has(sourceId)) {
       newSelection.delete(sourceId);
     } else {
@@ -39,7 +43,7 @@ export function SourceMultiSelectDropdown({
   };
 
   const handleRemove = (sourceId: string) => {
-    const newSelection = new Set(selectedSourceIds);
+    const newSelection = new Set(safeSelectedSourceIds);
     newSelection.delete(sourceId);
     onSelectionChange(newSelection);
   };
@@ -48,7 +52,7 @@ export function SourceMultiSelectDropdown({
     onSelectionChange(new Set());
   };
 
-  const selectedSources = availableSources.filter(source => selectedSourceIds.has(source.id));
+  const selectedSources = safeAvailableSources.filter(source => safeSelectedSourceIds.has(source.id));
 
   return (
     <div className={cn("relative", className)}>
@@ -100,7 +104,7 @@ export function SourceMultiSelectDropdown({
             <CommandInput placeholder="Search sources..." />
             <CommandList>
               <CommandEmpty>No sources found.</CommandEmpty>
-              {availableSources.map((source) => (
+              {safeAvailableSources.map((source) => (
                 <CommandItem
                   key={source.id}
                   value={source.name}
@@ -109,7 +113,7 @@ export function SourceMultiSelectDropdown({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selectedSourceIds.has(source.id) ? "opacity-100" : "opacity-0"
+                      safeSelectedSourceIds.has(source.id) ? "opacity-100" : "opacity-0"
                     )}
                   />
                   <div className="flex flex-col">

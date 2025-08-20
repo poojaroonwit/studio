@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight, UserCheck, Bell, Eye as EyeIcon, Palette as PaletteIcon, UserPlus, Database, Filter, Layout, Lock, Shield, Mail, KeyRound, UserCog } from 'lucide-react';
+import { Save, Palette, ImageUp, Trash2, Loader2, XCircle, PenSquare, ServerCrash, ShieldAlert, Settings2, Wallpaper, Droplets, Type, Sidebar as SidebarIcon, RotateCcw, Eye, EyeOff, Monitor, Sun, Moon, Zap, StickyNote, Paintbrush, LayoutDashboard, Sidebar as SidebarMenuIcon, LogIn, Edit3, Users, ShieldCheck, ChevronsUpDown, User, ChevronRight, UserCheck, Bell, Eye as EyeIcon, Palette as PaletteIcon, UserPlus, Database, Filter, Layout, Lock, Shield, Mail, KeyRound } from 'lucide-react';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -56,11 +56,7 @@ const unifiedUserFormSchema = z.object({
   groupIds: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional().default([]),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
-  preferences: z.object({
-    taskBoardView: z.enum(['kanban', 'table']).default('kanban'),
-  }).optional().default({
-    taskBoardView: 'kanban',
-  }),
+
 });
 
 export type UnifiedUserFormValues = z.infer<typeof unifiedUserFormSchema>;
@@ -110,9 +106,7 @@ export function UnifiedUserModal({
       groupIds: mode === 'create' ? [] : '', 
       avatarUrl: '', 
       personalColor: '#3B82F6',
-      preferences: {
-        taskBoardView: 'kanban',
-      }
+
     },
   });
 
@@ -143,9 +137,7 @@ export function UnifiedUserModal({
             groupIds: user.teams?.map(t => t.id) || [],
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
-            preferences: {
-              taskBoardView: 'kanban',
-            }
+
           });
         }
       } else {
@@ -161,9 +153,7 @@ export function UnifiedUserModal({
           groupIds: [],
           avatarUrl: '',
           personalColor: '#3B82F6',
-          preferences: {
-            taskBoardView: 'kanban',
-          }
+          
         });
       }
       setActiveTab('personal');
@@ -584,45 +574,7 @@ export function UnifiedUserModal({
                           </div>
                         </div>
 
-                        {/* User Preferences */}
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <UserCog className="h-5 w-5 text-primary" />
-                              User Preferences
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              Personal application preferences and settings
-                            </p>
-                          </div>
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                              <FormField 
-                                control={form.control} 
-                                name="preferences.taskBoardView" 
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel htmlFor="taskboard-view" className="text-sm font-medium">
-                                      Task Board View
-                                    </FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger id="taskboard-view" className="h-10 transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-                                          <SelectValue placeholder="Select view mode" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="kanban">Kanban Board</SelectItem>
-                                        <SelectItem value="table">Table View</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
+
                       </div>
                     </ScrollArea>
                   )}

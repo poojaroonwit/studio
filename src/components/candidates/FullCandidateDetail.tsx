@@ -147,6 +147,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="animate-spin h-8 w-8 text-primary" />
           <p className="text-muted-foreground">Loading candidate details...</p>
+          <p className="text-xs text-muted-foreground">This may take a few moments</p>
         </div>
       </div>
     );
@@ -160,7 +161,15 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           <ServerCrash className="h-12 w-12 text-destructive" />
           <div>
             <h3 className="text-lg font-medium text-foreground">Failed to load candidate</h3>
-            <p className="text-muted-foreground text-sm">{error || 'Candidate not found'}</p>
+            <p className="text-muted-foreground text-sm mb-4">{error || 'Candidate not found'}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              size="sm"
+            >
+              <Loader2 className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </div>

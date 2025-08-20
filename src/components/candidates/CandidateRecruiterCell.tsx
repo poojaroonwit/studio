@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, ChevronDown, Loader2, User, UserPlus, UserX } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Check, ChevronDown, Loader2, User, UserPlus, UserX, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CandidateRecruiterCellProps {
@@ -37,10 +38,28 @@ export function CandidateRecruiterCell({
   onResetAssigning
 }: CandidateRecruiterCellProps) {
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const currentRecruiter = availableRecruiters.find(r => r.id === candidate.recruiterId);
+  
+  // Get the correct recruiter data - prefer candidate.recruiter if available, otherwise fall back to availableRecruiters
+  const displayRecruiter = candidate.recruiter || currentRecruiter;
 
-
+  // Filter recruiters based on search term
+  const filteredRecruiters = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return availableRecruiters;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    const filtered = availableRecruiters.filter(recruiter => 
+      recruiter.name.toLowerCase().includes(searchLower)
+    );
+    
+    console.log('Filtered recruiters:', { searchTerm, total: availableRecruiters.length, filtered: filtered.length }); // Debug log
+    return filtered;
+  }, [availableRecruiters, searchTerm]);
 
   // Auto-reset if stuck in assigning state for too long
   React.useEffect(() => {
@@ -55,6 +74,27 @@ export function CandidateRecruiterCell({
       return () => clearTimeout(timeout);
     }
   }, [isAssigning, candidate.id]); // Removed onResetAssigning to prevent infinite loop
+
+  // Reset search when popover closes
+  React.useEffect(() => {
+    if (!open) {
+      setSearchTerm('');
+    }
+  }, [open]);
+
+  // Focus search input when popover opens
+  React.useEffect(() => {
+    if (open) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select(); // Select all text if any
+          console.log('Search input focused'); // Debug log
+        }
+      }, 100);
+    }
+  }, [open]);
 
   const handleSelect = async (recruiterId: string | null) => {
     console.log('CandidateRecruiterCell handleSelect called:', {
@@ -73,20 +113,30 @@ export function CandidateRecruiterCell({
     onAssignRecruiter(candidate.id, recruiterId);
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    console.log('Search term changed:', value); // Debug log
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
+
   // Read-only view for users without manage permissions
   if (!canManageCandidates) {
     return (
       <div className="flex items-center gap-2">
-        {candidate.recruiter?.name ? (
+        {displayRecruiter?.name ? (
           <>
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={currentRecruiter?.avatar} />
-              <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                {candidate.recruiter.name.charAt(0).toUpperCase()}
+            <Avatar className="h-6 w-6 rounded-full">
+              <AvatarImage src={displayRecruiter?.avatar} />
+              <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium text-foreground truncate">
-              {candidate.recruiter.name}
+              {displayRecruiter.name}
             </span>
           </>
         ) : (
@@ -127,16 +177,16 @@ export function CandidateRecruiterCell({
               </div>
               <span className="text-xs text-muted-foreground">Updating... (auto-reset in 2s)</span>
             </div>
-          ) : candidate.recruiter?.name ? (
+          ) : displayRecruiter?.name ? (
             <div className="flex items-center gap-2 min-w-0">
-              <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={currentRecruiter?.avatar} />
-                <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {candidate.recruiter.name.charAt(0).toUpperCase()}
+              <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
+                <AvatarImage src={displayRecruiter?.avatar} />
+                <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium text-foreground truncate flex-1">
-                {candidate.recruiter.name}
+                {displayRecruiter.name}
               </span>
               <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             </div>
@@ -155,45 +205,104 @@ export function CandidateRecruiterCell({
         <div className="p-2">
           <div className="text-sm font-medium mb-2">Select Recruiter</div>
           
-          {/* Unassign option */}
-          <button
-            onClick={() => handleSelect(null)}
-            className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
-          >
-            <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <UserX className="h-3 w-3 text-gray-500" />
-            </div>
-            <div className="flex flex-col flex-1">
-              <span className="text-sm">Unassigned</span>
-              <span className="text-xs text-muted-foreground">Remove recruiter assignment</span>
-            </div>
-            {!candidate.recruiterId && (
-              <Check className="h-4 w-4 text-primary" />
+          {/* Search Input */}
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={searchInputRef}
+              placeholder="Search recruiters..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onKeyDown={(e) => {
+                // Prevent popover from closing on Enter
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+              onClick={(e) => {
+                // Prevent popover from closing when clicking on input
+                e.stopPropagation();
+              }}
+              className="pl-10 pr-10 h-8 text-sm focus:ring-2 focus:ring-primary/20"
+              data-search-input
+              autoComplete="off"
+              spellCheck="false"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-accent"
+                onClick={handleClearSearch}
+                type="button"
+              >
+                <X className="h-3 w-3" />
+              </Button>
             )}
-          </button>
-
-          {/* Available recruiters */}
-          {availableRecruiters.map((recruiter) => (
+          </div>
+          
+          {/* Scrollable content area */}
+          <div className="max-h-[300px] overflow-y-auto">
+            {/* Unassign option - always show */}
             <button
-              key={recruiter.id}
-              onClick={() => handleSelect(recruiter.id)}
+              onClick={() => handleSelect(null)}
               className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
             >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={recruiter.avatar} />
-                <AvatarFallback className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {recruiter.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col flex-1">
-                <span className="text-sm font-medium">{recruiter.name}</span>
-                <span className="text-xs text-muted-foreground">Recruiter</span>
+              <div className="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <UserX className="h-3 w-3 text-gray-500" />
               </div>
-              {candidate.recruiterId === recruiter.id && (
+              <div className="flex flex-col flex-1">
+                <span className="text-sm">Unassigned</span>
+                <span className="text-xs text-muted-foreground">Remove recruiter assignment</span>
+              </div>
+              {!candidate.recruiterId && (
                 <Check className="h-4 w-4 text-primary" />
               )}
             </button>
-          ))}
+
+            {/* Divider */}
+            {filteredRecruiters.length > 0 && (
+              <div className="border-t border-border my-2"></div>
+            )}
+
+            {/* Available recruiters */}
+            {filteredRecruiters.length > 0 ? (
+              filteredRecruiters.map((recruiter) => (
+                <button
+                  key={recruiter.id}
+                  onClick={() => handleSelect(recruiter.id)}
+                  className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
+                >
+                  <Avatar className="h-6 w-6 rounded-full">
+                    <AvatarImage src={recruiter.avatar} />
+                    <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      {recruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-sm font-medium">{recruiter.name}</span>
+                    <span className="text-xs text-muted-foreground">Recruiter</span>
+                  </div>
+                  {candidate.recruiterId === recruiter.id && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </button>
+              ))
+            ) : searchTerm.trim() ? (
+              <div className="p-2 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No recruiters found matching "{searchTerm}"
+                </p>
+              </div>
+            ) : (
+              <div className="p-2 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No recruiters available
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

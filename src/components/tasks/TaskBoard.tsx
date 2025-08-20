@@ -29,12 +29,8 @@ interface TaskBoardProps {
     showAvatar: boolean;
     showName: boolean;
     showEmail: boolean;
-    showDescription: boolean;
     showFitScore: boolean;
     showAssignee: boolean;
-    showPriority: boolean;
-    showDueDate: boolean;
-    showTags: boolean;
     showSkills: boolean;
     showJobApplied: boolean;
   };

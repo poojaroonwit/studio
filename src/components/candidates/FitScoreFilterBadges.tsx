@@ -46,9 +46,11 @@ export function FitScoreFilterBadges({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-muted-foreground">{title}:</span>
-      </div>
+      {title && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">{title}:</span>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {scoreRanges.map((grade) => {
           const isSelected = selectedGrades.has(grade.letter);
@@ -59,7 +61,7 @@ export function FitScoreFilterBadges({
               key={grade.letter}
               variant={isSelected ? "default" : "outline"}
               className={cn(
-                "cursor-pointer transition-all duration-200 hover:scale-105",
+                "cursor-pointer transition-all duration-200 hover:scale-105 relative",
                 isSelected 
                   ? getGradeColor(grade.letter)
                   : "hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
@@ -67,11 +69,17 @@ export function FitScoreFilterBadges({
               onClick={() => onGradeToggle(grade.letter)}
             >
               {grade.letter} ({grade.min}-{grade.max})
-              {count > 0 && (
-                <span className="ml-1 text-xs opacity-80">
-                  {count}
-                </span>
-              )}
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "ml-1 text-xs px-2 py-1 h-5 min-w-5 flex items-center justify-center",
+                  isSelected
+                    ? "bg-white/20 text-white border-white/30"
+                    : "bg-blue-100 text-blue-700 border-blue-200"
+                )}
+              >
+                {count}
+              </Badge>
             </Badge>
           );
         })}
@@ -80,7 +88,7 @@ export function FitScoreFilterBadges({
         <Badge
           variant={selectedGrades.has('no-score') ? "default" : "outline"}
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:scale-105",
+            "cursor-pointer transition-all duration-200 hover:scale-105 relative",
             selectedGrades.has('no-score')
               ? "bg-gray-700 hover:bg-gray-600 text-white border-gray-700"
               : "hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"
@@ -88,11 +96,17 @@ export function FitScoreFilterBadges({
           onClick={() => onGradeToggle('no-score')}
         >
           No Score
-          {getCount('no-score') > 0 && (
-            <span className="ml-1 text-xs opacity-80">
-              {getCount('no-score')}
-            </span>
-          )}
+          <Badge
+            variant="secondary"
+            className={cn(
+              "ml-1 text-xs px-2 py-1 h-5 min-w-5 flex items-center justify-center",
+              selectedGrades.has('no-score')
+                ? "bg-white/20 text-white border-white/30"
+                : "bg-gray-100 text-gray-700 border-gray-200"
+            )}
+          >
+            {getCount('no-score')}
+          </Badge>
         </Badge>
       </div>
     </div>

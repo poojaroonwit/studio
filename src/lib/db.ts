@@ -15,13 +15,33 @@ export function getPool() {
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
       max: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10'),
       idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000'),
-      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000')
+      connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '1800000'),
+      // Add query timeout to prevent hanging queries
+      statement_timeout: parseInt(process.env.DATABASE_STATEMENT_TIMEOUT || '30000'), // 30 seconds
+      // Add better error handling
+      allowExitOnIdle: false,
     };
     
     pool = new Pool(poolConfig);
+    
+    // Enhanced error handling
     pool.on('error', (err, client) => {
       console.error('Unexpected error on idle PostgreSQL client', err);
-      process.exit(-1);
+      // Don't exit the process, just log the error
+      // process.exit(-1);
+    });
+    
+    // Add connection pool monitoring
+    pool.on('connect', (client) => {
+      console.log('New database connection established');
+    });
+    
+    pool.on('acquire', (client) => {
+      console.log('Database connection acquired from pool');
+    });
+    
+    pool.on('release', (client) => {
+      console.log('Database connection released back to pool');
     });
   }
   return pool;

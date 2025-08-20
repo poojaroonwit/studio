@@ -4,22 +4,52 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+/**
+ * ResponsiveTable - A responsive table component with dynamic height support
+ * 
+ * Features:
+ * - Responsive design that adapts to different screen sizes
+ * - Dynamic height management with multiple height modes
+ * - Custom scroll indicators
+ * - Flexible styling options
+ */
 interface ResponsiveTableProps {
   children: React.ReactNode;
   className?: string;
   containerClassName?: string;
   showScrollIndicator?: boolean;
+  height?: string;
+  minHeight?: string;
+  maxHeight?: string;
 }
 
+/**
+ * ResponsiveTable component that provides responsive table behavior
+ * @param children - Table content
+ * @param className - Additional CSS classes for the table content
+ * @param containerClassName - Additional CSS classes for the container
+ * @param showScrollIndicator - Whether to show the scroll indicator
+ * @param height - Custom height value (e.g., '500px', '50vh')
+ * @param minHeight - Minimum height value
+ * @param maxHeight - Maximum height value
+ */
 export function ResponsiveTable({
   children,
   className,
   containerClassName,
-  showScrollIndicator = true
+  showScrollIndicator = true,
+  height,
+  minHeight,
+  maxHeight
 }: ResponsiveTableProps) {
+  const containerStyle: React.CSSProperties = {};
+  if (height) containerStyle.height = height;
+  if (minHeight) containerStyle.minHeight = minHeight;
+  if (maxHeight) containerStyle.maxHeight = maxHeight;
+
   return (
-    <div className={cn('relative', containerClassName)}>
-      <ScrollArea className="w-full">
+    <div className={cn('relative', containerClassName)} style={containerStyle}>
+      <ScrollArea className="w-full h-full">
         <div className={cn('min-w-full', className)}>
           {children}
         </div>
@@ -291,5 +321,55 @@ export function AdaptiveTable({
         />
       </div>
     </>
+  );
+} 
+
+/**
+ * TableWrapper - A wrapper component for tables with responsive height management
+ * 
+ * Height Modes:
+ * - 'auto': Height adjusts to content with minimum height
+ * - 'fixed': Fixed height with min/max constraints
+ * - 'viewport': Height based on viewport with responsive breakpoints
+ * - 'responsive': Default responsive mode with dynamic height calculation
+ */
+interface TableWrapperProps {
+  children: React.ReactNode;
+  className?: string;
+  heightMode?: 'auto' | 'fixed' | 'viewport' | 'responsive';
+  showScrollbar?: boolean;
+}
+
+/**
+ * TableWrapper component that provides consistent responsive behavior
+ * @param children - Table content
+ * @param className - Additional CSS classes
+ * @param heightMode - Height management mode
+ * @param showScrollbar - Whether to show custom scrollbar styling
+ */
+export function TableWrapper({
+  children,
+  className,
+  heightMode = 'responsive',
+  showScrollbar = true
+}: TableWrapperProps) {
+  const heightClasses = {
+    auto: 'table-height-auto',
+    fixed: 'table-height-fixed',
+    viewport: 'table-height-viewport',
+    responsive: 'table-container-responsive'
+  };
+
+  const scrollbarClass = showScrollbar ? 'table-scrollbar' : '';
+
+  return (
+    <div className={cn(
+      'border rounded-lg shadow overflow-hidden',
+      heightClasses[heightMode],
+      scrollbarClass,
+      className
+    )}>
+      {children}
+    </div>
   );
 } 

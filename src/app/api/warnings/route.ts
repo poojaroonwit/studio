@@ -28,18 +28,34 @@ export async function GET(request: NextRequest) {
     if (severity) where.severity = severity;
 
     // Filter warnings by user's accessible configurations
-    where.configuration = {
-      OR: [
-        { isPublic: true }, // Public configurations
-        { createdBy: actingUserId }, // User's own configurations
-        {
-          sharedWith: {
-            some: {
-              userId: actingUserId
+    // First get accessible configuration IDs
+    const accessibleConfigs = await prisma.warningConfiguration.findMany({
+      where: {
+        OR: [
+          { isPublic: true }, // Public configurations
+          { createdBy: actingUserId }, // User's own configurations
+          {
+            sharedWith: {
+              some: {
+                userId: actingUserId
+              }
             }
-          }
-        } // Shared configurations
-      ]
+          } // Shared configurations
+        ]
+      },
+      select: { id: true }
+    });
+    
+    const configIds = accessibleConfigs.map(config => config.id);
+    
+    // If no accessible configs, return empty array
+    if (configIds.length === 0) {
+      return NextResponse.json([]);
+    }
+    
+    // Add configuration ID filter to where clause
+    where.configurationId = {
+      in: configIds
     };
 
     const warnings = await prisma.warning.findMany({

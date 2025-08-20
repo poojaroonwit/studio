@@ -243,7 +243,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Candidates API: Starting GET request');
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
     if (error) return error;
 
@@ -271,7 +270,6 @@ export async function GET(request: NextRequest) {
   let advancedFilters: { [key: string]: string | undefined } = {};
   
   if (advancedQuery) {
-    console.log('Candidates API: Processing advanced query:', advancedQuery);
     const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
     
     parts.forEach(part => {
@@ -331,7 +329,6 @@ export async function GET(request: NextRequest) {
           break;
       }
     });
-    console.log('Candidates API: Advanced filters parsed:', advancedFilters);
   }
 
   // Filters - merge with advanced query filters, giving priority to individual parameters
@@ -364,14 +361,11 @@ export async function GET(request: NextRequest) {
 
 
   // Filter out undefined values to prevent PostgreSQL errors
-  console.log('Candidates API: Filters before cleanup:', filters);
   Object.keys(filters).forEach(key => {
     if (filters[key] === undefined || filters[key] === '') {
-      console.log(`Candidates API: Removing empty filter: ${key} = "${filters[key]}"`);
       delete filters[key];
     }
   });
-  console.log('Candidates API: Filters after cleanup:', filters);
   
 
 
@@ -424,38 +418,28 @@ export async function GET(request: NextRequest) {
     const hasNotApplied = positionIds.includes('not-applied');
     const regularPositions = positionIds.filter(id => id !== 'not-applied');
     
-    console.log('Candidates API: Position filter processing:', {
-      originalPositionId: filters.positionId,
-      positionIds,
-      hasNotApplied,
-      regularPositions
-    });
+
     
     if (hasNotApplied && regularPositions.length === 0) {
       // Only "not-applied" selected - filter for candidates with no position
       whereClauses.push(`c."positionId" IS NULL`);
-      console.log('Candidates API: Added "not-applied" filter without parameters');
     } else if (hasNotApplied && regularPositions.length > 0) {
       // Mixed selection - include both "not-applied" and regular positions
       if (regularPositions.length === 1) {
         whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL)`);
         queryParams.push(regularPositions[0]);
-        console.log('Candidates API: Added mixed filter with 1 regular position:', regularPositions[0]);
       } else {
         whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL)`);
         queryParams.push(regularPositions);
-        console.log('Candidates API: Added mixed filter with multiple regular positions:', regularPositions);
       }
     } else {
       // Only regular positions selected
       if (regularPositions.length === 1) {
         whereClauses.push(`c."positionId" = $${paramIndex++}`);
         queryParams.push(regularPositions[0]);
-        console.log('Candidates API: Added single position filter:', regularPositions[0]);
       } else if (regularPositions.length > 1) {
         whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
         queryParams.push(regularPositions);
-        console.log('Candidates API: Added multiple positions filter:', regularPositions);
       }
     }
   }
@@ -811,13 +795,7 @@ export async function GET(request: NextRequest) {
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
   
   // Ensure we have a valid WHERE clause
-  if (whereClauses.length === 0) {
-    console.log('Candidates API: No WHERE clauses, using empty WHERE string');
-  } else {
-    console.log('Candidates API: WHERE clauses:', whereClauses);
-  }
-  
-  console.log('Candidates API: Final query construction:', {
+  console.log('Query debugging:', {
     whereClauses,
     whereString,
     queryParams,
@@ -867,18 +845,10 @@ export async function GET(request: NextRequest) {
     `;
     
 
-    // Debug: Log query parameters
-    console.log('Candidates API: queryParams:', queryParams);
-    console.log('Candidates API: limit, offset:', limit, offset);
-    
     // Use query parameters directly without validation that might cause issues
     const finalQueryParams = [...queryParams, limit, offset];
     
-    console.log('Candidates API: finalQueryParams:', finalQueryParams);
-    console.log('Candidates API: Query to execute:', candidatesQuery);
-    console.log('Candidates API: Executing query with params:', finalQueryParams);
     const candidatesResult = await client.query(candidatesQuery, finalQueryParams);
-    console.log('Candidates API: Query executed successfully, rows returned:', candidatesResult.rows.length);
     const totalQuery = `
       SELECT COUNT(*) 
       FROM "Candidate" c
@@ -887,9 +857,7 @@ export async function GET(request: NextRequest) {
       ) AS jm_max ON true
       ${whereString};
     `;
-    console.log('Candidates API: Executing total query with params:', finalQueryParams.slice(0, -2));
     const totalResult = await client.query(totalQuery, finalQueryParams.slice(0, -2)); // Remove limit and offset for count query
-    console.log('Candidates API: Total query executed successfully, count:', totalResult.rows[0].count);
     const total = parseInt(totalResult.rows[0].count, 10);
     const candidates = candidatesResult.rows.map(row => {
       let customAttributes = row.customAttributes || {};

@@ -187,12 +187,16 @@ export function RecruitmentPipelineCard({
                     >
                        <div className={`
                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
-                         ${isCurrent ? 'bg-yellow-400 text-yellow-900' : ''}
                          ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
                          ${isFuture ? 'bg-muted text-muted-foreground' : ''}
                        `}
                        style={
-                         isCompleted && !isCurrent && !stage.name.toLowerCase().includes('reject')
+                         isCurrent
+                           ? { 
+                               backgroundColor: `${stage.color_complete || '#22c55e'}80`, 
+                               color: '#fff' 
+                             }
+                           : isCompleted && !isCurrent && !stage.name.toLowerCase().includes('reject')
                            ? { backgroundColor: stage.color_complete || '#22c55e', color: '#fff' }
                            : undefined
                        }>
@@ -306,7 +310,47 @@ export function RecruitmentPipelineCard({
                             </Popover>
                           )}
                         </div>
-                        
+                        {/* Duration information under stage name */}
+                        <div className="text-xs text-muted-foreground mt-1 min-h-[1rem]">
+                          {latestRecord && latestRecord.date ? (() => {
+                            const stageDate = new Date(latestRecord.date);
+                            let endDate;
+                            
+                            // Find the next stage record to calculate duration
+                            const nextStageRecord = localTransitionHistory
+                              .filter(record => record.stage !== stage.name)
+                              .find(record => {
+                                const recordDate = new Date(record.date);
+                                return recordDate > stageDate;
+                              });
+                            
+                            if (nextStageRecord) {
+                              // If there's a next stage, calculate duration between stages
+                              endDate = new Date(nextStageRecord.date);
+                            } else if (isCurrent) {
+                              // If this is the current stage, use current time
+                              endDate = new Date();
+                            } else {
+                              // If no next stage and not current, return empty
+                              return '';
+                            }
+                            
+                            const diffTime = Math.abs(endDate.getTime() - stageDate.getTime());
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            if (diffDays === 1) {
+                              return '1 day';
+                            } else if (diffDays < 7) {
+                              return `${diffDays} days`;
+                            } else if (diffDays < 30) {
+                              const weeks = Math.floor(diffDays / 7);
+                              return `${weeks} week${weeks > 1 ? 's' : ''}`;
+                            } else {
+                              const months = Math.floor(diffDays / 30);
+                              return `${months} month${months > 1 ? 's' : ''}`;
+                            }
+                          })() : ''}
+                        </div>
                       </div>
                     </div>
                   </div>

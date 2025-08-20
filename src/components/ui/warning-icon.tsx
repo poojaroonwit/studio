@@ -34,7 +34,7 @@ export function WarningIcon() {
         className="relative bg-transparent hover:bg-accent/50 border-0 shadow-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 ease-in-out transform hover:scale-105 active:scale-95"
         disabled={isLoading}
       >
-        <AlertTriangle className="h-5 w-5 text-amber-500 transition-transform duration-200 ease-in-out group-hover:rotate-12" />
+        <AlertTriangle className={`h-5 w-5 transition-transform duration-200 ease-in-out group-hover:rotate-12 ${unreadCount > 0 ? 'text-amber-500' : 'text-gray-300'}`} />
         {unreadCount > 0 && (
           <Badge
             variant="destructive"

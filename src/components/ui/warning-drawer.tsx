@@ -86,71 +86,55 @@ export function WarningDrawer({ isOpen, onClose }: WarningDrawerProps) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
               </div>
             ) : (
-              <div className="w-full">
-                <div className="flex w-full border-b border-border/50 mb-6">
-                  <div
-                    className="flex items-center gap-2 px-6 py-3 text-sm font-medium text-primary border-b-2 border-primary"
-                  >
-                    <AlertTriangle className="h-4 w-4" />
-                    Active Warnings
-                    {activeWarnings.length > 0 && (
-                      <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center ml-1 bg-amber-500">
-                        {activeWarnings.length}
-                      </Badge>
-                    )}
+              <div className="space-y-4">
+                {activeWarnings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No active warnings</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Warnings appear automatically when conditions are not met
+                    </p>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  {activeWarnings.length === 0 ? (
-                    <div className="text-center py-8">
-                      <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No active warnings</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Warnings appear automatically when conditions are not met
-                      </p>
-                    </div>
-                  ) : (
-                    activeWarnings.map((warning) => (
-                      <div
-                        key={warning.id}
-                        className={cn(
-                          "p-4 rounded-lg border transition-all duration-200",
-                          getSeverityColor(warning.severity)
-                        )}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            {getSeverityIcon(warning.severity)}
-                            <span className="text-sm font-medium text-foreground">
-                              {warning.configuration.name}
-                            </span>
-                            <Badge 
-                              variant="outline" 
-                              className="text-xs"
-                            >
-                              {warning.entityType}
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm text-foreground mb-2">
-                          {warning.message}
-                        </p>
-                        
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>
-                            Field: {warning.field}
+                ) : (
+                  activeWarnings.map((warning) => (
+                    <div
+                      key={warning.id}
+                      className={cn(
+                        "p-4 rounded-lg border transition-all duration-200",
+                        getSeverityColor(warning.severity)
+                      )}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {getSeverityIcon(warning.severity)}
+                          <span className="text-sm font-medium text-foreground">
+                            {warning.configuration.name}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(warning.createdAt), { addSuffix: true })}
-                          </span>
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                          >
+                            {warning.entityType}
+                          </Badge>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                      
+                      <p className="text-sm text-foreground mb-2">
+                        {warning.message}
+                      </p>
+                      
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          Field: {warning.field}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(warning.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

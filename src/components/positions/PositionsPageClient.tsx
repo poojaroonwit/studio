@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableWrapper } from "@/components/ui/responsive-table";
 import { ImportPositionsModal } from '@/components/positions/ImportPositionsModal';
 import { RecruiterFilterSidebar } from '@/components/positions/RecruiterFilterSidebar';
 import { RecruiterCell } from '@/components/positions/RecruiterCell';
@@ -1255,7 +1256,7 @@ export default function PositionsPageClient() {
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-border bg-background overflow-auto max-h-[600px] custom-scrollbar relative">
+        <TableWrapper heightMode="responsive" className="relative">
           
           {/* Table Loading Overlay */}
           {isTableLoading && (
@@ -1503,7 +1504,8 @@ export default function PositionsPageClient() {
                           </TableBody>
             </Table>
           </div>
-        </div>
+        </TableWrapper>
+   
       )}
       
       {/* Pagination Controls */}

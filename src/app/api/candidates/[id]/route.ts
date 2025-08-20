@@ -103,47 +103,51 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const client = await getPool().connect();
   try {
-    // Get candidate with position, recruiter, and source info
-    const candidateQuery = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
-             cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" r ON c."recruiterId" = r.id
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-      WHERE c.id = $1::uuid;
+    // Optimized single query using CTEs to fetch all candidate data at once
+    const optimizedQuery = `
+      WITH candidate_data AS (
+        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", 
+               r.name as "recruiterName", cs.name as "sourceName", 
+               cs.description as "sourceDescription", cs.logo as "sourceLogo"
+        FROM "Candidate" c
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        LEFT JOIN "User" r ON c."recruiterId" = r.id
+        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        WHERE c.id = $1::uuid
+      ),
+      job_matches_data AS (
+        SELECT 
+          jm.*,
+          p.title as "positionTitle",
+          p.department as "positionDepartment",
+          p.description as "positionDescription"
+        FROM "JobMatch" jm
+        LEFT JOIN "Position" p ON jm."jobId" = p.id
+        WHERE jm."candidateId" = $1::uuid
+        ORDER BY jm."fitScore" DESC
+      ),
+      attachments_data AS (
+        SELECT a.*, u.name as "uploadedByUserName"
+        FROM "Attachment" a
+        LEFT JOIN "User" u ON a."uploadedById" = u.id
+        WHERE a."candidateId" = $1::uuid
+        ORDER BY a."uploadedAt" DESC
+      )
+      SELECT 
+        (SELECT row_to_json(cd.*) FROM candidate_data cd) as candidate,
+        (SELECT COALESCE(json_agg(jm.*), '[]'::json) FROM job_matches_data jm) as job_matches,
+        (SELECT COALESCE(json_agg(ad.*), '[]'::json) FROM attachments_data ad) as attachments;
     `;
-    const candidateResult = await client.query(candidateQuery, [id]);
     
-    if (candidateResult.rows.length === 0) {
+    const result = await client.query(optimizedQuery, [id]);
+    
+    if (!result.rows[0] || !result.rows[0].candidate) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
-    const candidate = candidateResult.rows[0];
-
-    // Get job matches for this candidate
-    const jobMatchesQuery = `
-      SELECT 
-        jm.*,
-        p.title as "positionTitle",
-        p.department as "positionDepartment",
-        p.description as "positionDescription"
-      FROM "JobMatch" jm
-      LEFT JOIN "Position" p ON jm."jobId" = p.id
-      WHERE jm."candidateId" = $1::uuid
-      ORDER BY jm."fitScore" DESC;
-    `;
-    const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
-
-    // Get attachment history for this candidate (revert to previous logic)
-    const attachmentsQuery = `
-      SELECT a.*, u.name as "uploadedByUserName"
-      FROM "Attachment" a
-      LEFT JOIN "User" u ON a."uploadedById" = u.id
-      WHERE a."candidateId" = $1::uuid
-      ORDER BY a."uploadedAt" DESC;
-    `;
-    const attachmentsResult = await client.query(attachmentsQuery, [id]);
+    const candidate = result.rows[0].candidate;
+    const jobMatches = result.rows[0].job_matches || [];
+    const attachments = result.rows[0].attachments || [];
 
     return NextResponse.json({
       ...candidate,
@@ -158,13 +162,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         description: candidate.sourceDescription,
         logo: candidate.sourceLogo
       } : null,
-      jobMatches: jobMatchesResult.rows.map(match => ({
+      jobMatches: jobMatches.map((match: any) => ({
         ...match,
         fitScore: match.fitScore,
         jobTitle: match.jobTitle || match.positionTitle || null,
         positionTitle: match.positionTitle || match.jobTitle || null,
-      })) || [],
-      attachmentHistory: attachmentsResult.rows || [],
+      })),
+      attachmentHistory: attachments,
       custom_attributes: candidate.customAttributes || {},
     }, {
       headers: {

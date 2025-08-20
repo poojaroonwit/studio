@@ -19,10 +19,7 @@ const updateUserSchema = z.object({
   userTeamIds: z.array(z.string().uuid()).optional(),
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
-  preferences: z.object({
-    emailNotifications: z.boolean().optional(),
-    taskBoardView: z.enum(['kanban', 'table']).optional(),
-  }).optional(),
+
 });
 
 function extractIdFromUrl(request: NextRequest): string | null {
@@ -88,15 +85,7 @@ export async function GET(request: NextRequest) {
                         }
                     }
                 },
-                userPreferences: {
-                    where: {
-                        modelType: 'user'
-                    },
-                    select: {
-                        attributeKey: true,
-                        uiPreference: true
-                    }
-                }
+
             }
         });
 
@@ -104,22 +93,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
-        // Transform preferences from UserUIDisplayPreference to the expected format
-        const preferencesMap = user.userPreferences.reduce((acc, pref) => {
-            acc[pref.attributeKey] = pref.attributeKey === 'emailNotifications' 
-                ? pref.uiPreference === 'true'
-                : pref.uiPreference;
-            return acc;
-        }, {} as any);
-
         const userToReturn = {
             ...user,
             teams: user.userTeams.map((ut: any) => ut.team),
             modulePermissions: user.module_permissions || [],
-            preferences: {
-                emailNotifications: preferencesMap.emailNotifications ?? true,
-                taskBoardView: preferencesMap.taskBoardView ?? 'kanban'
-            }
         };
 
         return NextResponse.json(userToReturn, { status: 200 });
@@ -182,9 +159,9 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ message: "Invalid input", errors: validationResult.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { password, newPassword, userTeamIds, preferences, modulePermissions, ...fieldsToUpdate } = validationResult.data;
+    const { password, newPassword, userTeamIds, modulePermissions, ...fieldsToUpdate } = validationResult.data;
 
-    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && !preferences && modulePermissions === undefined) {
+    if (Object.keys(fieldsToUpdate).length === 0 && !password && (!newPassword || newPassword.trim() === "") && !userTeamIds && modulePermissions === undefined) {
         return NextResponse.json({ message: "No fields to update." }, { status: 400 });
     }
     
@@ -223,52 +200,7 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        // Handle preferences update
-        if (preferences) {
-            // Update email notifications preference
-            if (preferences.emailNotifications !== undefined) {
-                await prisma.userUIDisplayPreference.upsert({
-                    where: {
-                        userId_modelType_attributeKey: {
-                            userId: id,
-                            modelType: 'user',
-                            attributeKey: 'emailNotifications'
-                        }
-                    },
-                    update: {
-                        uiPreference: preferences.emailNotifications.toString()
-                    },
-                    create: {
-                        userId: id,
-                        modelType: 'user',
-                        attributeKey: 'emailNotifications',
-                        uiPreference: preferences.emailNotifications.toString()
-                    }
-                });
-            }
 
-            // Update task board view preference
-            if (preferences.taskBoardView !== undefined) {
-                await prisma.userUIDisplayPreference.upsert({
-                    where: {
-                        userId_modelType_attributeKey: {
-                            userId: id,
-                            modelType: 'user',
-                            attributeKey: 'taskBoardView'
-                        }
-                    },
-                    update: {
-                        uiPreference: preferences.taskBoardView
-                    },
-                    create: {
-                        userId: id,
-                        modelType: 'user',
-                        attributeKey: 'taskBoardView',
-                        uiPreference: preferences.taskBoardView
-                    }
-                });
-            }
-        }
 
         const updatedUser = await prisma.user.update({
             where: { id },
@@ -298,37 +230,17 @@ export async function PUT(request: NextRequest) {
                         }
                     }
                 },
-                userPreferences: {
-                    where: {
-                        modelType: 'user'
-                    },
-                    select: {
-                        attributeKey: true,
-                        uiPreference: true
-                    }
-                }
+
             }
         });
 
         // Clear user validation cache for the updated user
         clearUserValidationCache(id);
 
-        // Transform preferences from UserUIDisplayPreference to the expected format
-        const preferencesMap = updatedUser.userPreferences.reduce((acc, pref) => {
-            acc[pref.attributeKey] = pref.attributeKey === 'emailNotifications' 
-                ? pref.uiPreference === 'true'
-                : pref.uiPreference;
-            return acc;
-        }, {} as any);
-
         const userToReturn = {
             ...updatedUser,
             teams: updatedUser.userTeams.map((ut: any) => ut.team),
             modulePermissions: updatedUser.module_permissions || [],
-            preferences: {
-                emailNotifications: preferencesMap.emailNotifications ?? true,
-                taskBoardView: preferencesMap.taskBoardView ?? 'kanban'
-            }
         };
 
         await logAudit('AUDIT', `User '${updatedUser.name}' (ID: ${id}) was updated.`, 'API:Users:Update', actingUserId, { targetUserId: id, changes: validationResult.data });

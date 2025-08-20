@@ -17,9 +17,6 @@ import {
   FileText, 
   Target, 
   Users, 
-  AlertTriangle, 
-  Calendar,
-  Tag,
   HardDrive,
   Briefcase,
   Monitor,
@@ -57,12 +54,6 @@ const fieldConfigs = [
     defaultEnabled: true
   },
   {
-    key: 'showDescription',
-    label: 'Description',
-    icon: FileText,
-    defaultEnabled: true
-  },
-  {
     key: 'showFitScore',
     label: 'Fit Score',
     icon: Target,
@@ -72,24 +63,6 @@ const fieldConfigs = [
     key: 'showAssignee',
     label: 'Assignee',
     icon: Users,
-    defaultEnabled: false
-  },
-  {
-    key: 'showPriority',
-    label: 'Priority',
-    icon: AlertTriangle,
-    defaultEnabled: false
-  },
-  {
-    key: 'showDueDate',
-    label: 'Due Date',
-    icon: Calendar,
-    defaultEnabled: false
-  },
-  {
-    key: 'showTags',
-    label: 'Tags',
-    icon: Tag,
     defaultEnabled: false
   },
   {
@@ -158,7 +131,9 @@ export function CardCustomizationSettings({
     document.head.appendChild(style);
 
     return () => {
-      document.head.removeChild(style);
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
     };
   }, []);
 

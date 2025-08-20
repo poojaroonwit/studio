@@ -152,66 +152,101 @@ export const useCandidateDetail = (candidateId: string) => {
       setLoading(true);
       setError(null);
       
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const res = await fetch(`/api/candidates/${candidateId}`, {
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!res.ok) {
-          if (res.status === 404) {
-            throw new Error('Candidate not found');
-          } else if (res.status === 403) {
-            throw new Error('Access denied to candidate');
-          } else if (res.status >= 500) {
-            throw new Error('Server error occurred');
+      // Retry configuration
+      const maxRetries = 3;
+      const baseDelay = 1000; // 1 second
+      
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30 seconds
+          
+          const res = await fetch(`/api/candidates/${candidateId}`, {
+            signal: controller.signal,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+            },
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!res.ok) {
+            if (res.status === 404) {
+              throw new Error('Candidate not found');
+            } else if (res.status === 403) {
+              throw new Error('Access denied to candidate');
+            } else if (res.status >= 500) {
+              throw new Error('Server error occurred');
+            } else {
+              throw new Error(`Failed to fetch candidate: ${res.status}`);
+            }
+          }
+          
+          const data = await res.json();
+          
+          // Validate basic candidate data structure
+          if (!data || typeof data !== 'object' || !data.id) {
+            throw new Error('Invalid candidate data received');
+          }
+          
+          // Safely process candidate data
+          setCandidate({
+            ...data,
+            fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+            parsedData: data.parsedData || {
+              personal_info: {},
+              contact_info: {},
+              education: [],
+              experience: [],
+              skills: [],
+              job_suitable: [],
+              job_matches: [],
+            },
+          });
+          
+          // Success - break out of retry loop
+          break;
+          
+        } catch (err) {
+          console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
+          
+          if (err instanceof Error) {
+            if (err.name === 'AbortError') {
+              if (attempt === maxRetries) {
+                setError('Request timed out. Please try again.');
+                break;
+              }
+              // Retry on timeout
+              console.log(`Timeout on attempt ${attempt + 1}, retrying...`);
+            } else if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
+              // Don't retry on these errors
+              setError(err.message);
+              break;
+            } else if (attempt === maxRetries) {
+              setError(err.message);
+              break;
+            } else {
+              // Retry on other errors
+              console.log(`Error on attempt ${attempt + 1}, retrying...`);
+            }
           } else {
-            throw new Error(`Failed to fetch candidate: ${res.status}`);
+            if (attempt === maxRetries) {
+              setError('Failed to fetch candidate');
+              break;
+            }
+            console.log(`Unknown error on attempt ${attempt + 1}, retrying...`);
+          }
+          
+          // Wait before retrying (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = baseDelay * Math.pow(2, attempt);
+            await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
-        
-        const data = await res.json();
-        
-        // Validate basic candidate data structure
-        if (!data || typeof data !== 'object' || !data.id) {
-          throw new Error('Invalid candidate data received');
-        }
-        
-        // Safely process candidate data
-        setCandidate({
-          ...data,
-          fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
-          parsedData: data.parsedData || {
-            personal_info: {},
-            contact_info: {},
-            education: [],
-            experience: [],
-            skills: [],
-            job_suitable: [],
-            job_matches: [],
-          },
-        });
-      } catch (err) {
-        console.error('Error fetching candidate:', err);
-        if (err instanceof Error) {
-          if (err.name === 'AbortError') {
-            setError('Request timed out. Please try again.');
-          } else {
-            setError(err.message);
-          }
-        } else {
-          setError('Failed to fetch candidate');
-        }
-      } finally {
-        setLoading(false);
       }
+      
+      setLoading(false);
     };
 
     fetchCandidate();

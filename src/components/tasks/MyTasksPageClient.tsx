@@ -30,7 +30,7 @@ import { getErrorMessage, retryWithBackoff, isRetryableError } from '@/lib/netwo
 import { NetworkDiagnostics } from '@/components/ui/network-diagnostics';
 
 interface MyTasksPageClientProps {
-  userSession: { id: string; role: string; name: string | null } | null;
+  userSession: { id: string; role: string; name: string | null; modulePermissions?: string[] } | null;
 }
 
 export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
@@ -49,12 +49,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     preferences.showAvatar,
     preferences.showName,
     preferences.showEmail,
-    preferences.showDescription,
     preferences.showFitScore,
     preferences.showAssignee,
-    preferences.showPriority,
-    preferences.showDueDate,
-    preferences.showTags,
     preferences.showSkills,
     preferences.showJobApplied,
     preferences.searchTerm,
@@ -130,7 +126,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   useEffect(() => {
     if (isLoaded && !viewModeInitializedRef.current) {
       viewModeInitializedRef.current = true;
-      console.log('🔄 Initializing view mode from preferences:', memoizedPreferences.viewMode);
+      
       setViewMode(memoizedPreferences.viewMode);
       setSelectedStages(memoizedPreferences.selectedStages);
       // Update the last saved preferences to match what we just loaded
@@ -199,10 +195,15 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   }, []);
 
   // Manual view mode toggle handler
-  const handleViewModeChange = useCallback((newViewMode: 'kanban' | 'table') => {
+  const handleViewModeChange = useCallback((newViewMode: string) => {
     // Prevent changes during initial load
     if (!isLoaded || !viewModeInitializedRef.current) {
       console.log('⚠️ View mode change blocked during initial load');
+      return;
+    }
+    
+    // Type guard to ensure valid view mode
+    if (newViewMode !== 'kanban' && newViewMode !== 'table') {
       return;
     }
     
@@ -785,12 +786,11 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
               {/* View Mode Toggle */}
               <div className="flex items-center gap-2">
-                <Tabs 
-                  value={viewMode} 
-                  onValueChange={handleViewModeChange} 
-                  className="w-auto"
-                  disabled={!isLoaded || !viewModeInitializedRef.current}
-                >
+                 <Tabs 
+                   value={viewMode} 
+                   onValueChange={handleViewModeChange} 
+                   className="w-auto"
+                 >
                   <TabsList className="grid w-auto grid-cols-2 h-9">
                     <TabsTrigger value="kanban" className="text-xs px-2">
                       <Kanban className="w-4 h-4" />
@@ -888,12 +888,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
                     showAvatar: memoizedPreferences.showAvatar,
                     showName: memoizedPreferences.showName,
                     showEmail: memoizedPreferences.showEmail,
-                    showDescription: memoizedPreferences.showDescription,
                     showFitScore: memoizedPreferences.showFitScore,
                     showAssignee: memoizedPreferences.showAssignee,
-                    showPriority: memoizedPreferences.showPriority,
-                    showDueDate: memoizedPreferences.showDueDate,
-                    showTags: memoizedPreferences.showTags,
                     showSkills: memoizedPreferences.showSkills,
                     showJobApplied: memoizedPreferences.showJobApplied,
                   }}

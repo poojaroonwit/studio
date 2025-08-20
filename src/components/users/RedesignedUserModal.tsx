@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Save, Loader2, RotateCcw, User, Shield, Lock, UserPlus, Edit3, Edit, Palette, UserCog, Mail, X, Check } from 'lucide-react';
+import { Save, Loader2, RotateCcw, User, Shield, Lock, UserPlus, Edit3, Edit, Palette, Mail, X, Check } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,11 +40,7 @@ const userFormSchema = z.object({
   avatarUrl: z.string().optional(),
   personalColor: z.string().optional(),
   userTeamIds: z.array(z.string()).optional().default([]),
-  preferences: z.object({
-    taskBoardView: z.enum(['kanban', 'table']).default('kanban'),
-  }).optional().default({
-    taskBoardView: 'kanban',
-  }),
+
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
@@ -106,7 +102,6 @@ function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'account', label: 'Account Settings', icon: Shield },
-    { id: 'preferences', label: 'Preferences', icon: UserCog },
   ];
 
   return (
@@ -440,43 +435,7 @@ function AccountSettingsContent({ form, mode, canManageAuthentication, canForceP
   );
 }
 
-// Preferences Tab Content
-interface PreferencesContentProps {
-  form: any;
-}
 
-function PreferencesContent({ form }: PreferencesContentProps) {
-  return (
-    <div className="space-y-6">
-      <div className="space-y-6">
-        
-        <FormField 
-          control={form.control} 
-          name="preferences.taskBoardView" 
-          render={({ field }: any) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Task Board View
-              </FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:ring-blue-500">
-                    <SelectValue placeholder="Select view mode" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="kanban">Kanban Board</SelectItem>
-                  <SelectItem value="table">Table View</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-    </div>
-  );
-}
 
 // Footer Component
 interface ModalFooterProps {
@@ -554,9 +513,7 @@ export function RedesignedUserModal({
       avatarUrl: '', 
       personalColor: '#3B82F6',
       userTeamIds: [],
-      preferences: {
-        taskBoardView: 'kanban',
-      }
+      
     },
   });
 
@@ -602,9 +559,7 @@ export function RedesignedUserModal({
             avatarUrl: user.avatarUrl || '',
             personalColor: user.personalColor || '#3B82F6',
             userTeamIds: user.teams?.map(t => t.id) || [],
-            preferences: {
-              taskBoardView: 'kanban',
-            }
+
           });
         }
       } else {
@@ -620,9 +575,7 @@ export function RedesignedUserModal({
           avatarUrl: '',
           personalColor: '#3B82F6',
           userTeamIds: [],
-          preferences: {
-            taskBoardView: 'kanban',
-          }
+          
         });
       }
       setActiveTab('personal');
@@ -693,8 +646,7 @@ export function RedesignedUserModal({
             userRoleOptions={userRoleOptions}
           />
         );
-      case 'preferences':
-        return <PreferencesContent form={form} />;
+
       default:
         return null;
     }

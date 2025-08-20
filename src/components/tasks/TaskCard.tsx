@@ -40,12 +40,8 @@ interface TaskCardProps {
     showAvatar: boolean;
     showName: boolean;
     showEmail: boolean;
-    showDescription: boolean;
     showFitScore: boolean;
     showAssignee: boolean;
-    showPriority: boolean;
-    showDueDate: boolean;
-    showTags: boolean;
     showSkills: boolean;
     showJobApplied: boolean;
   };
@@ -69,44 +65,7 @@ const TaskCardFields: React.FC<{ task: Task; cardPreferences?: TaskCardProps['ca
         </div>
       )}
 
-      {/* Priority */}
-      {cardPreferences.showPriority && task.priority && (
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400">Priority:</span>
-          <Badge 
-            variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
-            className="text-xs"
-          >
-            {task.priority}
-          </Badge>
-        </div>
-      )}
 
-      {/* Due Date */}
-      {cardPreferences.showDueDate && task.dueDate && (
-        <div className="flex items-center gap-1 mt-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400">Due:</span>
-          <span className="text-xs text-gray-700 dark:text-gray-300">
-            {new Date(task.dueDate).toLocaleDateString()}
-          </span>
-        </div>
-      )}
-
-      {/* Tags */}
-      {cardPreferences.showTags && task.tags && task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {task.tags.slice(0, 2).map((tag, idx) => (
-            <Badge key={idx} variant="outline" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-          {task.tags.length > 2 && (
-            <Badge variant="outline" className="text-xs">
-              +{task.tags.length - 2}
-            </Badge>
-          )}
-        </div>
-      )}
 
       {/* Skills */}
       {cardPreferences.showSkills && task.skills && task.skills.length > 0 && (
@@ -194,12 +153,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 </h4>
               )}
               
-              {/* Description */}
-              {(!cardPreferences || cardPreferences.showDescription) && task.description && task.description.trim() !== '' && (
-                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1 leading-relaxed">
-                  {task.description}
-                </p>
-              )}
+
               
               {/* Email */}
               {(!cardPreferences || cardPreferences.showEmail) && task.email && (

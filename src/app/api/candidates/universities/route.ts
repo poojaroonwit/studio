@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 // Force this route to be dynamic (not statically generated)
 export const dynamic = 'force-dynamic';
@@ -12,7 +11,7 @@ export async function GET(req: NextRequest) {
     try {
       candidates = await prisma.candidate.findMany({
         select: { educationData: true },
-        where: { educationData: { not: Prisma.JsonNull } },
+        where: { educationData: { not: null } },
       });
     } catch (err) {
       // If the field is missing or not JSON, return empty array

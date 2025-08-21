@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyApiToken } from '@/lib/auth';
 import { handleCors } from '@/lib/cors';
 import { getPool } from '@/lib/db';
-import { createSuccessResponse, createErrorResponse } from '@/lib/apiUtils';
+import { createSuccessResponse, createErrorResponse } from '@/lib/apiErrorHandler';
 
 export const runtime = 'nodejs';
 

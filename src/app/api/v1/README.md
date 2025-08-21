@@ -398,6 +398,45 @@ Update a candidate. Only the fields you want to update need to be included in th
 #### DELETE `/api/v1/candidates/{id}`
 Delete a candidate.
 
+#### POST `/api/v1/candidates/clear-duplicates`
+Clear duplicate candidates based on email and position applied, keeping only the first candidate with a non-zero match score.
+
+**Request Body:**
+```json
+{
+  "dryRun": false,
+  "positionId": "optional-position-uuid"
+}
+```
+
+**Parameters:**
+- `dryRun` (boolean, optional): If `true`, shows what would be deleted without actually deleting. Default: `false`
+- `positionId` (string, optional): If provided, only check duplicates within this position. If `null`, check all positions.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "message": "Successfully cleared 5 duplicate candidates",
+    "duplicatesFound": 3,
+    "candidatesDeleted": 5,
+    "keptCandidates": [
+      {
+        "id": "uuid",
+        "email": "candidate@example.com",
+        "positionId": "position-uuid",
+        "fitScore": 85.5,
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "dryRun": false
+  }
+}
+```
+
+**Logic:** The API groups candidates by email and positionId, then keeps the first created candidate (earliest createdAt date).
+
 ### Candidate Recruiter Assignment
 
 #### GET `/api/v1/candidates/{id}/recruiter`

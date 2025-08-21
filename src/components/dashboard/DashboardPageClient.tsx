@@ -765,12 +765,15 @@ export default function DashboardPageClient({
                 </div>
               </div>
             </div>
-            <div className="h-64 space-y-4 overflow-y-auto">
-              <SLAViolationsWidget />
-              {session?.user?.role === 'Recruiter' && (
-                <SLAViolationsWidget recruiterId={session.user.id} />
-              )}
-            </div>
+            <Card className="group relative overflow-hidden border-2 border-orange-200 dark:border-orange-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <CardContent className="relative h-64 space-y-4 overflow-y-auto">
+                <SLAViolationsWidget />
+                {session?.user?.role === 'Recruiter' && (
+                  <SLAViolationsWidget recruiterId={session.user.id} />
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -788,10 +791,6 @@ export default function DashboardPageClient({
               <p className="text-sm text-muted-foreground mt-1">Distribution by fit score quality</p>
             </div>
           </div>
-        <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-muted-foreground">Interactive</span>
-        </div>
         </div>
         <p className="text-sm text-muted-foreground mb-4">This chart shows the distribution of candidates by their fit score, helping you quickly identify the quality mix in your pipeline.</p>
         {/* Sort score ranges by count descending */}

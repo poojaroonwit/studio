@@ -22,7 +22,7 @@ export async function GET(
       where: {
         id: params.id,
         OR: [
-          { createdBy: actingUserId },
+          { createdBy: actingUserId } as any,
           { isPublic: true },
           {
             sharedWith: {
@@ -99,7 +99,7 @@ export async function PUT(
       where: {
         id: params.id,
         OR: [
-          { createdBy: actingUserId },
+          { createdBy: actingUserId } as any,
           {
             sharedWith: {
               some: {
@@ -183,7 +183,7 @@ export async function DELETE(
       where: {
         id: params.id,
         OR: [
-          { createdBy: actingUserId },
+          { createdBy: actingUserId } as any,
           {
             sharedWith: {
               some: {

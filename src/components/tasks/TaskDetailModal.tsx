@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, User, Tag, Clock, Edit3, Save, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Task } from './TaskBoard';
+import { Task } from './TaskCard';
 
 interface TaskDetailModalProps {
   task: Task | null;

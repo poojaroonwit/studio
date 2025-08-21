@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   

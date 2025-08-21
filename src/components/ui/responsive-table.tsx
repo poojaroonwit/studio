@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -338,6 +338,7 @@ interface TableWrapperProps {
   className?: string;
   heightMode?: 'auto' | 'fixed' | 'viewport' | 'responsive';
   showScrollbar?: boolean;
+  height?: number | string;
 }
 
 /**
@@ -346,13 +347,15 @@ interface TableWrapperProps {
  * @param className - Additional CSS classes
  * @param heightMode - Height management mode
  * @param showScrollbar - Whether to show custom scrollbar styling
+ * @param height - Custom height value (overrides heightMode)
  */
-export function TableWrapper({
+export const TableWrapper = forwardRef<HTMLDivElement, TableWrapperProps>(({
   children,
   className,
   heightMode = 'responsive',
-  showScrollbar = true
-}: TableWrapperProps) {
+  showScrollbar = true,
+  height
+}, ref) => {
   const heightClasses = {
     auto: 'table-height-auto',
     fixed: 'table-height-fixed',
@@ -362,14 +365,25 @@ export function TableWrapper({
 
   const scrollbarClass = showScrollbar ? 'table-scrollbar' : '';
 
+  const style: React.CSSProperties = {};
+  if (height) {
+    style.height = typeof height === 'number' ? `${height}px` : height;
+  }
+
   return (
-    <div className={cn(
-      'border rounded-lg shadow overflow-hidden',
-      heightClasses[heightMode],
-      scrollbarClass,
-      className
-    )}>
+    <div 
+      ref={ref}
+      className={cn(
+        'border rounded-lg shadow overflow-hidden',
+        heightClasses[heightMode],
+        scrollbarClass,
+        className
+      )}
+      style={style}
+    >
       {children}
     </div>
   );
-} 
+});
+
+TableWrapper.displayName = 'TableWrapper'; 

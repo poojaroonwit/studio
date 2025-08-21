@@ -7,6 +7,9 @@ import { getPool } from '../../../../lib/db';
 import { logAudit } from '@/lib/auditLog';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
+
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string().min(8, "New password must be at least 8 characters"),

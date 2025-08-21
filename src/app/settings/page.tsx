@@ -29,7 +29,8 @@ import {
   Lock,
   Globe,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
@@ -56,6 +57,14 @@ const settingsItems = [
     label: "System Prompts & Categories", 
     icon: BrainCircuit, 
     description: "Manage AI system prompts and their categories.", 
+    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
+    adminOnlyOrPermission: true
+  },
+  { 
+    href: "/settings/ai-power-search-config", 
+    label: "AI Power Search Config", 
+    icon: BrainCircuit, 
+    description: "Configure AI Power Search system prompt for precise candidate matching.", 
     permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
@@ -104,6 +113,13 @@ const settingsItems = [
     description: "View system and audit logs.", 
     permissionId: 'LOGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
+  },
+  { 
+    href: "/settings/auto-close", 
+    label: "Auto-Close Positions", 
+    icon: CheckCircle, 
+    description: "Manage automatic position closure when all headcounts are filled.", 
+    adminOnly: true
   },
 ];
 

@@ -11,7 +11,7 @@ import { IncomingForm, Fields, Files, File } from 'formidable';
 import fs from 'fs';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 
-export const dynamic = "force-dynamic";
+
 
 // Route segment config for handling multipart form data
 export const runtime = 'nodejs';

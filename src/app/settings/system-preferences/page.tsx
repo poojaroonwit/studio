@@ -249,7 +249,7 @@ const DEFAULT_LOGIN_BACKGROUND_GRADIENT_END = '238 74% 61%';
 const DEFAULT_LOGIN_BACKGROUND_COLOR = '220 25% 97%';
 
 export default function SystemPreferencesPage() {
-  const { success, error } = useToast();
+  const { success, error: showError } = useToast();
   const [isClient, setIsClient] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
@@ -399,7 +399,7 @@ export default function SystemPreferencesPage() {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        error('Logo file size must be less than 5MB');
+        showError('Logo file size must be less than 5MB');
         return;
       }
       setSelectedLogoFile(file);
@@ -421,7 +421,7 @@ export default function SystemPreferencesPage() {
         setLogoPreviewUrl(url); // Update with MinIO URL
         success('Logo uploaded!');
       } catch (e: any) {
-        error(e.message || 'Failed to upload logo');
+        showError(e.message || 'Failed to upload logo');
         // Clear preview on error
         setLogoPreviewUrl(null);
       }
@@ -436,7 +436,7 @@ export default function SystemPreferencesPage() {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        error('Logo file size must be less than 5MB');
+        showError('Logo file size must be less than 5MB');
         return;
       }
       
@@ -457,7 +457,7 @@ export default function SystemPreferencesPage() {
         setPreviewUrl(url); // Update with MinIO URL
         success(successMessage);
       } catch (e: any) {
-        error(e.message || 'Failed to upload logo');
+        showError(e.message || 'Failed to upload logo');
         // Clear preview on error
         setPreviewUrl(null);
       }
@@ -499,11 +499,11 @@ export default function SystemPreferencesPage() {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 1 * 1024 * 1024) { // 1MB limit for favicon
-        error('Favicon file size must be less than 1MB');
+        showError('Favicon file size must be less than 1MB');
         return;
       }
       if (!file.type.startsWith('image/')) {
-        error('Please select a valid image file for favicon');
+        showError('Please select a valid image file for favicon');
         return;
       }
       setSelectedFaviconFile(file);
@@ -521,7 +521,7 @@ export default function SystemPreferencesPage() {
         setFaviconPreviewUrl(url); // Only use MinIO URL
         success('Favicon uploaded!');
       } catch (e: any) {
-        error(e.message || 'Failed to upload favicon');
+        showError(e.message || 'Failed to upload favicon');
       }
     }
   };
@@ -555,7 +555,7 @@ export default function SystemPreferencesPage() {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 500 * 1024) { // 500KB limit
-        error('Login background image must be less than 500KB');
+        showError('Login background image must be less than 500KB');
         return;
       }
       setSelectedLoginImageFile(file);

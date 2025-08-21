@@ -142,17 +142,7 @@ export function UploadQueueStatus() {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Upload Queue Status</h3>
         <div className="flex items-center gap-2">
-          {isRealtimeActive ? (
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-              <Wifi className="h-4 w-4" />
-              <span className="text-sm font-medium">Live Updates</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-              <WifiOff className="h-4 w-4" />
-              <span className="text-sm font-medium">Polling</span>
-            </div>
-          )}
+       
           {lastUpdate && (
             <span className="text-xs text-muted-foreground">
               Last update: {lastUpdate.toLocaleTimeString()}

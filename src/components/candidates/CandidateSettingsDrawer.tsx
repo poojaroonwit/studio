@@ -187,41 +187,6 @@ export function CandidateSettingsDrawer({
 
             <Separator />
 
-            {/* Filter Options Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Filter Options</CardTitle>
-                <CardDescription>
-                  Configure filter display options
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showFilters" className="text-sm font-medium">
-                    Show Left Sidebar Filters
-                  </Label>
-                  <Switch
-                    id="showFilters"
-                    checked={localSettings.showFilters}
-                    onCheckedChange={(checked) => handleSettingChange('showFilters', checked)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showHorizontalFitScoreFilters" className="text-sm font-medium">
-                    Show Horizontal Fit Score Filters
-                  </Label>
-                  <Switch
-                    id="showHorizontalFitScoreFilters"
-                    checked={localSettings.showHorizontalFitScoreFilters}
-                    onCheckedChange={(checked) => handleSettingChange('showHorizontalFitScoreFilters', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Separator />
-
             {/* Fit Score Type Section */}
             <Card>
               <CardHeader>
@@ -254,10 +219,7 @@ export function CandidateSettingsDrawer({
           </div>
 
           <SheetFooter className="border-t pt-4">
-            <div className="flex items-center justify-between w-full">
-              <Button variant="outline" onClick={handleReset}>
-                Reset to Default
-              </Button>
+            <div className="flex items-center justify-end w-full">
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleCancel}>
                   Cancel

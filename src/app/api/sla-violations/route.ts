@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { checkAndNotifySLAViolations, getSLAViolationsForRecruiter } from '@/lib/slaNotificationService';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

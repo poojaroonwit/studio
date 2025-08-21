@@ -55,7 +55,16 @@ function createCandidateSummary(candidate: Candidate): string {
       if (pi.title_honorific) summaryParts.push(`Title: ${pi.title_honorific}`);
       if (pi.nickname) summaryParts.push(`Nickname: ${pi.nickname}`);
       if (pi.location) summaryParts.push(`Location: ${pi.location}`);
-      if (pi.introduction_aboutme) summaryParts.push(`About Me: ${pi.introduction_aboutme}`);
+      if (pi.introduction_aboutme) {
+        const aboutMe = pi.introduction_aboutme;
+        // Check if about me mentions language certifications
+        const hasLanguageCert = aboutMe.toLowerCase().includes('toeic') || 
+                               aboutMe.toLowerCase().includes('ielts') || 
+                               aboutMe.toLowerCase().includes('toefl') ||
+                               aboutMe.toLowerCase().includes('language');
+        const prefix = hasLanguageCert ? "🏆 About Me: " : "About Me: ";
+        summaryParts.push(`${prefix}${aboutMe}`);
+      }
     }
 
     if (details.education && details.education.length > 0) {
@@ -67,6 +76,24 @@ function createCandidateSummary(candidate: Candidate): string {
         if (edu.period) eduStr += `, Period: ${edu.period}`;
         if (edu.duration) eduStr += `, Duration: ${edu.duration}`;
         if (edu.GPA) eduStr += `, GPA: ${edu.GPA}`;
+        
+        // Check if education mentions language certifications
+        const educationText = `${edu.university || ''} ${edu.major || ''} ${edu.field || ''} ${edu.campus || ''}`.toLowerCase();
+        const hasLanguageCert = educationText.includes('toeic') || 
+                               educationText.includes('ielts') || 
+                               educationText.includes('toefl') ||
+                               educationText.includes('language') ||
+                               educationText.includes('english');
+        
+        if (hasLanguageCert) {
+          eduStr = `  🏆 ${index + 1}. University: ${edu.university || 'N/A'}`;
+          if (edu.major || edu.field) eduStr += `, Major/Field: ${edu.major || ''}${edu.major && edu.field ? ' / ' : ''}${edu.field || ''}`;
+          if (edu.campus) eduStr += `, Campus: ${edu.campus}`;
+          if (edu.period) eduStr += `, Period: ${edu.period}`;
+          if (edu.duration) eduStr += `, Duration: ${edu.duration}`;
+          if (edu.GPA) eduStr += `, GPA: ${edu.GPA}`;
+        }
+        
         summaryParts.push(eduStr);
       });
     }
@@ -79,7 +106,16 @@ function createCandidateSummary(candidate: Candidate): string {
         if (exp.period) expStr += `, Period: ${exp.period}`;
         if (exp.duration) expStr += `, Duration: ${exp.duration}`;
         if (exp.is_current_position === true || exp.isCurrent === true) expStr += ` (Current Position)`;
-        if (exp.description) expStr += `\n    Description: ${exp.description.substring(0, 250)}${exp.description.length > 250 ? '...' : ''}`;
+        if (exp.description) {
+          const description = exp.description.substring(0, 250) + (exp.description.length > 250 ? '...' : '');
+          // Check if description mentions language certifications
+          const hasLanguageCert = description.toLowerCase().includes('toeic') || 
+                                 description.toLowerCase().includes('ielts') || 
+                                 description.toLowerCase().includes('toefl') ||
+                                 description.toLowerCase().includes('language');
+          const prefix = hasLanguageCert ? "    🏆 Description: " : "    Description: ";
+          expStr += `\n${prefix}${description}`;
+        }
         summaryParts.push(expStr);
       });
     }
@@ -88,13 +124,27 @@ function createCandidateSummary(candidate: Candidate): string {
       summaryParts.push("Skills:");
       details.skills.forEach((skillEntry: SkillEntry) => {
         let skillStr = `  - Segment: ${skillEntry.segment_skill || 'General'}: `;
+        let skillsText = "";
+        
         if (skillEntry.skill && skillEntry.skill.length > 0) {
-          skillStr += skillEntry.skill.join(', ');
+          skillsText = skillEntry.skill.join(', ');
         } else if (skillEntry.skill_string) {
-           skillStr += skillEntry.skill_string;
+           skillsText = skillEntry.skill_string;
         } else {
-            skillStr += "N/A";
+            skillsText = "N/A";
         }
+        
+        // Highlight language certifications in skills
+        const hasLanguageCert = skillsText.toLowerCase().includes('toeic') || 
+                               skillsText.toLowerCase().includes('ielts') || 
+                               skillsText.toLowerCase().includes('toefl') ||
+                               (skillEntry.segment_skill && skillEntry.segment_skill.toLowerCase().includes('language'));
+        
+        if (hasLanguageCert) {
+          skillStr = `  🏆 - Segment: ${skillEntry.segment_skill || 'General'}: `;
+        }
+        
+        skillStr += skillsText;
         summaryParts.push(skillStr);
       });
     }
@@ -122,7 +172,13 @@ function createCandidateSummary(candidate: Candidate): string {
   if (customAttributes && Object.keys(customAttributes).length > 0) {
     summaryParts.push("Custom Attributes:");
     for (const [key, value] of Object.entries(customAttributes)) {
-        summaryParts.push(`  ${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
+        // Highlight language certifications and important custom fields
+        const isLanguageCert = key.toLowerCase().includes('toeic') || 
+                              key.toLowerCase().includes('ielts') || 
+                              key.toLowerCase().includes('language') || 
+                              key.toLowerCase().includes('certification');
+        const prefix = isLanguageCert ? "  🏆 " : "  ";
+        summaryParts.push(`${prefix}${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
     }
   }
 
@@ -217,59 +273,125 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
   const effectiveCandidateData = candidateSummariesText.trim() ? candidateSummariesText : "No candidate details available for processing.";
 
   try {
-    // Direct Gemini API call
-    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    const prompt = `You are an expert HR assistant. Your task is to analyze a list of candidate summaries based on a user's search query.
-Identify the candidates that best match the query.
+    // Get configurable system prompt from settings
+    const customSystemPrompt = await getSystemSetting('aiPowerSearchSystemPrompt');
+    
+    // Use custom prompt if available, otherwise use default
+    const systemPromptTemplate = customSystemPrompt || `You are a precise HR search assistant. Your task is to find candidates who EXACTLY match the specific information requested in the user's query.
 
 User Search Query:
-${input.query}
+"{query}"
 
 Candidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):
-${effectiveCandidateData}
+{candidateData}
 
-When matching candidates to the user's query, you must consider ALL available candidate attributes, including (but not limited to):
-- Name
-- Contact information (email, phone)
-- Education history (university, major, GPA, etc.)
-- Work experience (companies, positions, durations, descriptions)
-- Skills
-- Fit score (expressed as a percentage, e.g., 85% = 85, 0.89% = 0.89)
-- Position applied for
-- Application date
-- Recruiter
-- Status and transition history
-- Job suitability preferences
-- Automated job matches
-- Custom fields/attributes
-- Any other data provided in the summary
+CRITICAL SEARCH RULES:
+1. **EXACT MATCHING ONLY**: Only include candidates who explicitly have the specific information mentioned in the query
+2. **NO SEMANTIC INFERENCE**: Do not include candidates based on similar or related information
+3. **VERIFICATION REQUIRED**: Only include candidates where the requested information is clearly present in their data
+4. **CASE INSENSITIVE**: Match information regardless of case (e.g., "TOEIC" matches "toeic", "Toeic")
 
-IMPORTANT FIT SCORE GUIDELINES:
+SEARCH GUIDELINES BY QUERY TYPE:
+
+**For Language/Certification Searches (e.g., "has TOEIC", "find candidates with TOEIC"):**
+- Only include candidates who explicitly mention TOEIC in their data
+- Check: Skills, Custom Attributes, Education, Experience descriptions, Personal info
+- Do NOT include candidates who only mention "English" or "language skills" without TOEIC
+- Do NOT include candidates based on general language abilities
+
+**For Skill Searches (e.g., "has React", "knows Python"):**
+- Only include candidates who explicitly list the specific skill
+- Check: Skills section, Experience descriptions, Job matches
+- Do NOT include candidates with similar technologies unless explicitly mentioned
+
+**For Education Searches (e.g., "graduated from MIT", "has MBA"):**
+- Only include candidates who explicitly mention the specific institution or degree
+- Check: Education history, University names, Majors, Degrees
+- Do NOT include candidates from similar institutions
+
+**For Experience Searches (e.g., "worked at Google", "has 5 years experience"):**
+- Only include candidates who explicitly mention the specific company or duration
+- Check: Work experience, Company names, Duration fields
+- Do NOT include candidates with similar companies or experience levels
+
+**For Fit Score Searches:**
 - Fit scores are displayed as percentages (0-100%)
 - Decimal values (0-1) are automatically converted to percentages (e.g., 0.89 becomes 89%)
 - When the query mentions "fit score less than X" or "fit score below X", only include candidates with fit scores < X%
 - When the query mentions "fit score greater than X" or "fit score above X", only include candidates with fit scores > X%
 - When the query mentions "fit score between X and Y", only include candidates with fit scores between X% and Y%
-- Pay attention to the percentage values in the candidate data
-- If a candidate has multiple fit scores (applied job fit score and matching job fit scores), consider the most relevant one based on the query
-- For percentage comparisons, treat the values as percentages (89% is greater than 30%, 25% is less than 30%, etc.)
 
-EXAMPLE: If the query is "fit score less than 30", then:
-- A candidate with fit score 0.89 (displayed as 89%) should NOT be included (because 89% > 30%)
-- A candidate with fit score 0.25 (displayed as 25%) should be included (because 25% < 30%)
-- A candidate with fit score 85 (displayed as 85%) should NOT be included (because 85% > 30%)
+**For Position/Job Searches:**
+- Only include candidates who explicitly applied for or are matched to the specific position
+- Check: Applied Position, Job Matches, Position titles
+- Do NOT include candidates with similar positions
 
-Base your decision strictly on the provided candidate summaries and the user's query. Return a list of candidate IDs that are strong matches.
-If no candidates seem to match, return an empty list for matchedCandidateIds.
-Provide a brief reasoning for your selection or if no matches are found.
+**For Date Searches:**
+- Only include candidates who match the specific date criteria
+- Check: Application Date, Education dates, Experience dates
+- Use exact date matching, not approximate
 
-IMPORTANT: You must respond with ONLY a valid JSON object in this exact format:
+**For Location Searches:**
+- Only include candidates who explicitly mention the specific location
+- Check: Personal info location, Education location, Experience location
+- Do NOT include candidates from nearby areas unless explicitly mentioned
+
+**For Recruiter Searches:**
+- Only include candidates assigned to the specific recruiter
+- Check: Assigned Recruiter field
+- Do NOT include candidates with similar recruiter names
+
+**For Status Searches:**
+- Only include candidates with the exact status mentioned
+- Check: Status field, Transition history
+- Do NOT include candidates with similar statuses
+
+**For Custom Field Searches:**
+- Only include candidates who have the specific custom field value
+- Check: Custom Attributes section
+- Match exact values, not similar ones
+
+EXAMPLES OF CORRECT BEHAVIOR:
+
+Query: "find the candidate has toeic"
+- ✅ INCLUDE: Candidate with "Skills: - Segment: Language: TOEIC 850, English"
+- ✅ INCLUDE: Candidate with "Custom Attributes: TOEIC_Score: 750"
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: English, Spanish" (no TOEIC mentioned)
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: IELTS 7.0" (different certification)
+
+Query: "has React experience"
+- ✅ INCLUDE: Candidate with "Skills: - Segment: Programming: React, JavaScript"
+- ✅ INCLUDE: Candidate with "Experience: React Developer at Company X"
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: Angular, Vue" (different framework)
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: JavaScript" (no React mentioned)
+
+Query: "fit score less than 30"
+- ✅ INCLUDE: Candidate with "Fit Score: 25%"
+- ✅ INCLUDE: Candidate with "Fit Score: 0.15" (15%)
+- ❌ EXCLUDE: Candidate with "Fit Score: 85%" (85% > 30%)
+- ❌ EXCLUDE: Candidate with "Fit Score: 0.89" (89% > 30%)
+
+IMPORTANT: 
+- If no candidates have the EXACT information requested, return an empty matchedCandidateIds array
+- Do not make assumptions or include candidates with similar information
+- Be strict and precise in your matching
+- Always verify the information exists in the candidate data before including them
+
+Return ONLY a valid JSON object in this exact format:
 {
   "matchedCandidateIds": ["uuid1", "uuid2", ...],
-  "aiReasoning": "Your reasoning here"
+  "aiReasoning": "Brief explanation of why these candidates were included or why none were found"
 }
 
 Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
+
+    // Replace placeholders in the system prompt
+    const prompt = systemPromptTemplate
+      .replace(/\{query\}/g, input.query)
+      .replace(/\{candidateData\}/g, effectiveCandidateData);
+
+    // Direct Gemini API call
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     const fetchRes = await fetch(url, {
       method: "POST",

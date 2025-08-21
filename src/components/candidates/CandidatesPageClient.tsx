@@ -149,7 +149,7 @@ export function CandidatesPageClient({
   const [bulkTransitionNotes, setBulkTransitionNotes] = useState<string>('');
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState(0);
   
   // Add sorting state variables here to prevent temporal dead zone issues
@@ -1292,10 +1292,149 @@ export function CandidatesPageClient({
     
     currentRequestRef.current = requestId;
     console.log('Fetching candidates due to filter/sort change:', { filters, page, pageSize, sortColumn, sortDirection });
-    // Use the optimized table fetch function for better performance
-    const currentFetchTableData = fetchTableData;
-    currentFetchTableData(filters, page, pageSize);
-  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, fetchTableData]); // Added fetchTableData dependency
+    
+    // Call fetchTableData directly instead of through dependency
+    const fetchCandidates = async () => {
+      const requestId = `${Date.now()}-${Math.random()}`;
+      latestRequestIdRef.current = requestId;
+
+      if (sessionStatus !== 'authenticated') {
+        setTableLoading(false);
+        return;
+      }
+      
+      // Prevent multiple simultaneous requests
+      if (isFetching) {
+        return;
+      }
+      
+      // Clear any existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+      
+      setIsFetching(true);
+      setTableLoading(true);
+      setTableError(null);
+      
+      // Add a timeout to prevent infinite loading
+      const loadingTimeout = setTimeout(() => {
+        setTableLoading(false);
+        setIsLoading(false); // Also clear the main loading state
+        setIsFetching(false);
+        setTableError('Request timeout. The server may be starting up. Please wait a moment and refresh.');
+      }, 30000);
+      
+      try {
+        const query = new URLSearchParams();
+        
+        // Check if we have an advanced query from URL and pass it to the API
+        const advancedQueryParam = searchParams.get('query');
+        if (advancedQueryParam) {
+          query.append('query', advancedQueryParam);
+        }
+        
+        if (filters.name) {
+          query.append('name', filters.name);
+          if (filters.nameOperator) query.append('nameOperator', filters.nameOperator);
+        }
+        if (filters.email) {
+          query.append('email', filters.email);
+          if (filters.emailOperator) query.append('emailOperator', filters.emailOperator);
+        }
+        if (filters.phone) {
+          query.append('phone', filters.phone);
+          if (filters.phoneOperator) query.append('phoneOperator', filters.phoneOperator);
+        }
+        if (filters.selectedPositionIds && filters.selectedPositionIds.length > 0) query.append('positionId', filters.selectedPositionIds.join(','));
+        if (filters.selectedStatuses && filters.selectedStatuses.length > 0) query.append('status', filters.selectedStatuses.join(','));
+        if (filters.education) query.append('education', filters.education);
+        if (filters.minAppliedJobFitScore !== undefined && filters.minAppliedJobFitScore !== 0) query.append('minAppliedJobFitScore', String(filters.minAppliedJobFitScore));
+        if (filters.maxAppliedJobFitScore !== undefined && filters.maxAppliedJobFitScore !== 100) query.append('maxAppliedJobFitScore', String(filters.maxAppliedJobFitScore));
+        if (filters.minMatchingJobFitScore !== undefined && filters.minMatchingJobFitScore !== 0) query.append('minMatchingJobFitScore', String(filters.minMatchingJobFitScore));
+        if (filters.maxMatchingJobFitScore !== undefined && filters.maxMatchingJobFitScore !== 100) query.append('maxMatchingJobFitScore', String(filters.maxMatchingJobFitScore));
+        if (filters.minExperienceYears !== undefined && (filters.minExperienceYears > 0 || filters.minExperienceYears === -1)) query.append('minExperienceYears', String(filters.minExperienceYears));
+        if (filters.maxExperienceYears !== undefined) query.append('maxExperienceYears', String(filters.maxExperienceYears));
+        if (filters.applicationDateStart) {
+          query.append('applicationDateStart', filters.applicationDateStart.toISOString());
+        }
+        if (filters.applicationDateEnd) {
+          query.append('applicationDateEnd', filters.applicationDateEnd.toISOString());
+        }
+        if (filters.selectedRecruiterIds && filters.selectedRecruiterIds.length > 0) query.append('recruiterId', filters.selectedRecruiterIds.join(','));
+        query.append('page', String(page));
+        query.append('limit', String(pageSize));
+        // Add sorting
+        if (sortColumn) query.append('sortColumn', sortColumn);
+        if (sortDirection) query.append('sortDirection', sortDirection);
+        
+        if (filters.location) {
+          query.append('location', filters.location);
+          if (filters.locationOperator) query.append('locationOperator', filters.locationOperator);
+        }
+        if (filters.skills && Array.isArray(filters.skills)) {
+          if (filters.skills.length > 0) query.append('skills', filters.skills.join(','));
+        } else if (typeof filters.skills === 'string' && filters.skills) {
+          query.append('skills', filters.skills);
+        }
+        
+        const apiUrl = `/api/candidates?${query.toString()}`;
+        
+        // Add timeout and retry logic
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+        const response = await fetch(apiUrl, {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch candidates: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Check if this is still the latest request
+        if (latestRequestIdRef.current !== requestId) {
+          return;
+        }
+        
+        if (data.data && Array.isArray(data.data)) {
+          setAllCandidates(data.data);
+          setTotal(data.pagination?.total || data.data.length);
+          setTableError(null);
+        } else {
+          setAllCandidates([]);
+          setTotal(0);
+          setTableError('Invalid data format received from server');
+        }
+      } catch (error) {
+        if (latestRequestIdRef.current !== requestId) {
+          return;
+        }
+        
+        console.error('Error fetching candidates:', error);
+        setTableError((error as Error).message || 'Failed to fetch candidates');
+        setAllCandidates([]);
+        setTotal(0);
+      } finally {
+        if (latestRequestIdRef.current !== requestId) {
+          return;
+        }
+        
+        clearTimeout(loadingTimeout);
+        setTableLoading(false);
+        setIsFetching(false);
+        currentRequestRef.current = null;
+      }
+    };
+    
+    fetchCandidates();
+  }, [filters, page, pageSize, sortColumn, sortDirection, sessionStatus, serverAuthError, serverPermissionError, isClearingFilters, hasInitialDataFetch, searchParams]);
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated' && !serverAuthError && !serverPermissionError) {

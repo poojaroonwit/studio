@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, ensureBucketExists, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { randomUUID } from 'crypto';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication

@@ -10,6 +10,8 @@ import {
   createValidationError 
 } from '@/lib/apiErrorHandler';
 
+export const dynamic = 'force-dynamic';
+
 const createCandidateSchema = z.object({
   candidate_info: candidateInfoSchema.optional(),
   educationData: z.array(structuredEducationSchema).optional(),

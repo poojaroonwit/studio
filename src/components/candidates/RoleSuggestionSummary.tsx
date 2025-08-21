@@ -69,7 +69,7 @@ const RoleSuggestionSummary: React.FC<RoleSuggestionSummaryProps> = ({ candidate
         {bestAlternativeMatch && bestAlternativePositionInDb ? (
           <div className="p-3 border border-dashed border-primary/50 rounded-md bg-primary/5">
             <p className="text-sm text-foreground">
-              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.jobTitle}</strong> (Open Position).
+              Consider {candidate.name} for the role of <strong>{bestAlternativeMatch.jobTitle}</strong> (Open Headcount).
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Automated Fit Score for this role: <span className="font-semibold text-foreground">{formatScoreWithGrade(bestAlternativeMatch.fitScore)}</span>.

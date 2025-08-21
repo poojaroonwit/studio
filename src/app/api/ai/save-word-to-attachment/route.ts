@@ -6,6 +6,9 @@ import { minioClient } from '@/lib/minio';
 import { MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio-constants';
 import { v4 as uuidv4 } from 'uuid';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   

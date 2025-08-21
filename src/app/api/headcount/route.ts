@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import type { CreateHeadcountRequest } from '@/lib/types';
+import { autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
+
+export const dynamic = 'force-dynamic';
+
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -142,7 +146,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(headcount, { status: 201 });
+    // Check if all headcounts are now filled and auto-close position if needed
+    let autoCloseResult = null;
+    try {
+      autoCloseResult = await autoClosePositionIfHeadcountFilled(
+        positionId,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+    } catch (autoCloseError) {
+      console.error('Error auto-closing position:', autoCloseError);
+      // Don't fail the headcount creation if auto-close fails
+    }
+
+    return NextResponse.json({ 
+      headcount,
+      autoCloseResult,
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating headcount:', error);
     console.error('Request body:', body);

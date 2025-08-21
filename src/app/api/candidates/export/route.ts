@@ -7,6 +7,9 @@ import { authOptions } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import { NextRequest } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/candidates/export:

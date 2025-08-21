@@ -60,7 +60,7 @@ export async function GET(
       });
 
       // Get unique candidate IDs from JobMatch table
-      const jobMatchCandidateIds = new Set(jobMatchCandidates.map(match => match.candidateId));
+      const jobMatchCandidateIds = new Set(jobMatchCandidates.map((match: any) => match.candidateId));
 
       // Method 2: Check parsedData.job_matches (legacy system)
       const allCandidates = await prisma.candidate.findMany({
@@ -103,16 +103,16 @@ export async function GET(
       matchingNotApplied = 0;
       
       // From JobMatch table
-      jobMatchCandidates.forEach(match => {
+      jobMatchCandidates.forEach((match: any) => {
         if (match.candidate.positionId !== positionId) {
           matchingNotApplied++;
         }
       });
       
-      // From parsedData (only count if not already counted from JobMatch table)
+            // From parsedData (only count if not already counted from JobMatch table)
       allCandidates
-        .filter(candidate => 
-          parsedDataCandidateIds.has(candidate.id) && 
+        .filter((candidate: any) =>
+          parsedDataCandidateIds.has(candidate.id) &&
           !jobMatchCandidateIds.has(candidate.id) &&
           candidate.positionId !== positionId
         )

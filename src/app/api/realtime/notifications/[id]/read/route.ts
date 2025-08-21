@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/realtime/notifications/{id}/read:

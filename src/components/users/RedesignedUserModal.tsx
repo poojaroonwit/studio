@@ -523,12 +523,12 @@ export function RedesignedUserModal({
   const { isSubmitting } = form.formState;
 
   // Check permissions
-  const canManageUsers = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
-  const canForcePasswordChange = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
-  const canManageAuthentication = session?.user?.role === 'Admin' || 
-    session?.user?.modulePermissions?.includes('USERS_MANAGE');
+  const canManageUsers = Boolean(session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE'));
+  const canForcePasswordChange = Boolean(session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE'));
+  const canManageAuthentication = Boolean(session?.user?.role === 'Admin' || 
+    session?.user?.modulePermissions?.includes('USERS_MANAGE'));
 
   // Load user data when modal opens
   useEffect(() => {

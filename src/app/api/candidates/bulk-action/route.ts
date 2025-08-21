@@ -8,7 +8,7 @@ import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 
-export const dynamic = "force-dynamic";
+
 
 const bulkActionSchema = z.object({
   action: z.enum(['delete', 'change_status', 'assign_recruiter']),

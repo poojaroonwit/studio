@@ -9,6 +9,9 @@ import { broadcastCandidateCommentUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
+
 // Helper to get attachment info by IDs
 async function getAttachmentsByIds(ids: string[]) {
   if (!ids || ids.length === 0) return [];

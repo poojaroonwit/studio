@@ -8,6 +8,9 @@ import { authOptions } from '@/lib/auth';
 import { broadcastCandidateResumeUpdate } from '@/lib/candidateSse';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
+
 // GET: List resumes for a candidate
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params;

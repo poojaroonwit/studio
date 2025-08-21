@@ -64,7 +64,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
             <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
             <div>
               <h2 className="text-2xl font-bold text-foreground">Candidates per Position</h2>
-              <p className="text-sm text-muted-foreground mt-1">Distribution across open positions</p>
+              <p className="text-sm text-muted-foreground mt-1">Distribution across open headcount</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -104,7 +104,7 @@ export function CandidatesPerPositionChart({ candidates, positions }: Candidates
           <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-blue-400 rounded-full"></div>
           <div>
             <h2 className="text-2xl font-bold text-foreground">Candidates per Position</h2>
-            <p className="text-sm text-muted-foreground mt-1">Distribution across open positions</p>
+            <p className="text-sm text-muted-foreground mt-1">Distribution across open headcount</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">

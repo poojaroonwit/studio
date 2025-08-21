@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
+
 // GET /api/user-preferences - Get user preferences
 export async function GET(request: NextRequest) {
   try {
@@ -93,7 +96,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Map database records to preferences structure
-    preferences.forEach(pref => {
+    preferences.forEach((pref: any) => {
       const value = pref.uiPreference;
       
       if (pref.modelType === 'taskBoard') {

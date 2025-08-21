@@ -333,7 +333,6 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
                  <TableHead>Type</TableHead>
                  <TableHead>Status</TableHead>
                  <TableHead>Candidate</TableHead>
-                 <TableHead>Onboarding Date</TableHead>
                  <TableHead>Notes</TableHead>
                  {customFieldDefinitions.map((definition) => (
                    <TableHead key={definition.id} className="min-w-[120px]">
@@ -369,18 +368,6 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">No candidate assigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {headcount.onboardingDate ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-sm">
-                            {format(new Date(headcount.onboardingDate), 'MMM dd, yyyy')}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Not set</span>
                       )}
                     </TableCell>
                                          <TableCell>

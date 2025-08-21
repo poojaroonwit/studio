@@ -10,6 +10,9 @@ import { Buffer } from 'buffer';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import os from 'os';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/upload-queue/process:

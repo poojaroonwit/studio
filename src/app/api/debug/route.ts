@@ -3,6 +3,9 @@ import { getPool } from '@/lib/db';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(request: NextRequest) {
   // Only allow in development or with a secret key
   if (process.env.NODE_ENV === 'production' && !request.nextUrl.searchParams.get('debug_key')) {

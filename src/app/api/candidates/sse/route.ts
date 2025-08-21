@@ -1,9 +1,10 @@
-export const dynamic = "force-dynamic";
-
 import { addSseController, removeSseController } from '@/lib/candidateSse';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
+
 
 export async function OPTIONS() {
   return new Response(null, {

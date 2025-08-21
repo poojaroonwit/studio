@@ -24,6 +24,7 @@ import dynamic from 'next/dynamic';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Position, Grade } from '@/lib/types';
 
 // Import Tiptap editor with expand functionality
@@ -58,6 +59,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
   const [showReplaceConfirmation, setShowReplaceConfirmation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const { error: showError, success: showSuccess } = useToast();
   
   const form = useForm<AddPositionFormValues>({
@@ -69,6 +71,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
       matchCriteria: '',
       isOpen: true,
       positionLevel: '',
+      hiringDate: new Date().toISOString().split('T')[0], // Set default to today
     },
   });
 
@@ -89,6 +92,7 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         matchCriteria: '',
         isOpen: true,
         positionLevel: '',
+        hiringDate: new Date().toISOString().split('T')[0], // Set default to today
       });
       
       // Fetch default match criteria and grades
@@ -120,9 +124,28 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
         }
       };
 
+      const fetchRecruiters = async () => {
+        try {
+          const response = await fetch('/api/users?role=Recruiter');
+          if (response.ok) {
+            const data = await response.json();
+            const recruitersArray = data?.users || [];
+            const availableRecruitersData = recruitersArray.map((r: any) => ({ 
+              id: r.id, 
+              name: r.name, 
+              avatarUrl: r.avatarUrl 
+            }));
+            setAvailableRecruiters(availableRecruitersData);
+          }
+        } catch (error) {
+          console.error('Error fetching recruiters:', error);
+        }
+      };
+
       try {
         fetchDefaultMatchCriteria();
         fetchGrades();
+        fetchRecruiters();
       } catch (error) {
         console.error('Failed to fetch default match criteria:', error);
       } finally {
@@ -351,6 +374,29 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                     disabled={isSaving}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recruiter-add" className="font-medium">Assigned Recruiter</Label>
+                  <Controller
+                    name="recruiterId"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? null : value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a recruiter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Recruiter</SelectItem>
+                          {availableRecruiters.map((recruiter) => (
+                            <SelectItem key={recruiter.id} value={recruiter.id}>
+                              {recruiter.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
                 <div className="flex items-center space-x-3 pt-2">
                   <Controller
                     name="isOpen"
@@ -363,17 +409,6 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                     )}
                   />
                   <Label htmlFor="isOpen-add">Position is Open</Label>
-                </div>
-                
-                {/* Helper text for AI generation */}
-                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-2">
-                    <BrainCircuit className="h-3 w-3 mt-0.5 text-blue-600 dark:text-blue-400" />
-                    <div>
-                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">AI Generation Requirements</p>
-                      <p>Fill in Position Title, Department, and Position Level to enable AI job description generation.</p>
-                    </div>
-                  </div>
                 </div>
               </div>
               
@@ -390,18 +425,29 @@ export function AddPositionModal({ isOpen, onOpenChange, onAddPosition }: AddPos
                       </div>
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateJobDescription}
-                    disabled={isGeneratingDescription || !areRequiredFieldsFilled()}
-                    className="flex items-center gap-2"
-                    title={!areRequiredFieldsFilled() ? "Please fill in Position Title, Department, and Position Level first" : "Generate job description using AI"}
-                  >
-                    <BrainCircuit className="h-3 w-3" />
-                    {isGeneratingDescription ? 'Generating...' : "Let's AI Generate"}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateJobDescription}
+                          disabled={isGeneratingDescription || !areRequiredFieldsFilled()}
+                          className="flex items-center gap-2"
+                        >
+                          <BrainCircuit className="h-3 w-3" />
+                          {isGeneratingDescription ? 'Generating...' : "Let's AI Generate"}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="max-w-xs">
+                          <p className="font-medium mb-1">AI Generation Requirements</p>
+                          <p className="text-sm">Fill in Position Title, Department, and Position Level to enable AI job description generation.</p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <Controller
                   name="description"

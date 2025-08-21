@@ -48,7 +48,7 @@ interface WarningConfiguration {
 
 export default function WarningConfigurationsPage() {
   const { data: session, status: sessionStatus } = useSession();
-  const { toast } = useToast();
+  const { success, error: showError } = useToast();
   const [configurations, setConfigurations] = useState<WarningConfiguration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -67,11 +67,7 @@ export default function WarningConfigurationsPage() {
       }
     } catch (error) {
       console.error('Error fetching warning configurations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load warning configurations",
-        variant: "destructive",
-      });
+      showError("Failed to load warning configurations");
     } finally {
       setIsLoading(false);
     }
@@ -104,21 +100,14 @@ export default function WarningConfigurationsPage() {
       });
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Warning configuration deleted successfully",
-        });
+        success("Warning configuration deleted successfully");
         fetchConfigurations();
       } else {
         throw new Error('Failed to delete configuration');
       }
     } catch (error) {
       console.error('Error deleting warning configuration:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete warning configuration",
-        variant: "destructive",
-      });
+      showError("Failed to delete warning configuration");
     }
   };
 

@@ -250,6 +250,207 @@ async function main() {
     }
     console.log('✅ Default grades created/updated');
 
+    // Initialize AI Power Search system prompt
+    console.log('Initializing AI Power Search system prompt...');
+    const DEFAULT_AI_POWER_SEARCH_PROMPT = `You are a precise HR search assistant. Your task is to find candidates who EXACTLY match the specific information requested in the user's query.
+
+User Search Query:
+"{query}"
+
+Candidate Data (each candidate is between CANDIDATE_START and CANDIDATE_END):
+{candidateData}
+
+CRITICAL SEARCH RULES:
+1. **EXACT MATCHING ONLY**: Only include candidates who explicitly have the specific information mentioned in the query
+2. **NO SEMANTIC INFERENCE**: Do not include candidates based on similar or related information
+3. **VERIFICATION REQUIRED**: Only include candidates where the requested information is clearly present in their data
+4. **CASE INSENSITIVE**: Match information regardless of case (e.g., "TOEIC" matches "toeic", "Toeic")
+
+SEARCH GUIDELINES BY QUERY TYPE:
+
+**For Language/Certification Searches (e.g., "has TOEIC", "find candidates with TOEIC"):**
+- Only include candidates who explicitly mention TOEIC in their data
+- Check: Skills, Custom Attributes, Education, Experience descriptions, Personal info
+- Do NOT include candidates who only mention "English" or "language skills" without TOEIC
+- Do NOT include candidates based on general language abilities
+
+**For Skill Searches (e.g., "has React", "knows Python"):**
+- Only include candidates who explicitly list the specific skill
+- Check: Skills section, Experience descriptions, Job matches
+- Do NOT include candidates with similar technologies unless explicitly mentioned
+
+**For Education Searches (e.g., "graduated from MIT", "has MBA"):**
+- Only include candidates who explicitly mention the specific institution or degree
+- Check: Education history, University names, Majors, Degrees
+- Do NOT include candidates from similar institutions
+
+**For Experience Searches (e.g., "worked at Google", "has 5 years experience"):**
+- Only include candidates who explicitly mention the specific company or duration
+- Check: Work experience, Company names, Duration fields
+- Do NOT include candidates with similar companies or experience levels
+
+**For Fit Score Searches:**
+- Fit scores are displayed as percentages (0-100%)
+- Decimal values (0-1) are automatically converted to percentages (e.g., 0.89 becomes 89%)
+- When the query mentions "fit score less than X" or "fit score below X", only include candidates with fit scores < X%
+- When the query mentions "fit score greater than X" or "fit score above X", only include candidates with fit scores > X%
+- When the query mentions "fit score between X and Y", only include candidates with fit scores between X% and Y%
+
+**For Position/Job Searches:**
+- Only include candidates who explicitly applied for or are matched to the specific position
+- Check: Applied Position, Job Matches, Position titles
+- Do NOT include candidates with similar positions
+
+**For Date Searches:**
+- Only include candidates who match the specific date criteria
+- Check: Application Date, Education dates, Experience dates
+- Use exact date matching, not approximate
+
+**For Location Searches:**
+- Only include candidates who explicitly mention the specific location
+- Check: Personal info location, Education location, Experience location
+- Do NOT include candidates from nearby areas unless explicitly mentioned
+
+**For Recruiter Searches:**
+- Only include candidates assigned to the specific recruiter
+- Check: Assigned Recruiter field
+- Do NOT include candidates with similar recruiter names
+
+**For Status Searches:**
+- Only include candidates with the exact status mentioned
+- Check: Status field, Transition history
+- Do NOT include candidates with similar statuses
+
+**For Custom Field Searches:**
+- Only include candidates who have the specific custom field value
+- Check: Custom Attributes section
+- Match exact values, not similar ones
+
+EXAMPLES OF CORRECT BEHAVIOR:
+
+Query: "find the candidate has toeic"
+- ✅ INCLUDE: Candidate with "Skills: - Segment: Language: TOEIC 850, English"
+- ✅ INCLUDE: Candidate with "Custom Attributes: TOEIC_Score: 750"
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: English, Spanish" (no TOEIC mentioned)
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Language: IELTS 7.0" (different certification)
+
+Query: "has React experience"
+- ✅ INCLUDE: Candidate with "Skills: - Segment: Programming: React, JavaScript"
+- ✅ INCLUDE: Candidate with "Experience: React Developer at Company X"
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: Angular, Vue" (different framework)
+- ❌ EXCLUDE: Candidate with "Skills: - Segment: Programming: JavaScript" (no React mentioned)
+
+Query: "fit score less than 30"
+- ✅ INCLUDE: Candidate with "Fit Score: 25%"
+- ✅ INCLUDE: Candidate with "Fit Score: 0.15" (15%)
+- ❌ EXCLUDE: Candidate with "Fit Score: 85%" (85% > 30%)
+- ❌ EXCLUDE: Candidate with "Fit Score: 0.89" (89% > 30%)
+
+IMPORTANT: 
+- If no candidates have the EXACT information requested, return an empty matchedCandidateIds array
+- Do not make assumptions or include candidates with similar information
+- Be strict and precise in your matching
+- Always verify the information exists in the candidate data before including them
+
+Return ONLY a valid JSON object in this exact format:
+{
+  "matchedCandidateIds": ["uuid1", "uuid2", ...],
+  "aiReasoning": "Brief explanation of why these candidates were included or why none were found"
+}
+
+Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
+
+    // Create AI Power Search system prompt in the Candidate Assessment category
+    await prisma.systemPrompt.upsert({
+      where: { 
+        name: 'AI Power Search - Candidate Matching'
+      },
+      update: {
+        content: DEFAULT_AI_POWER_SEARCH_PROMPT,
+        description: 'System prompt for AI Power Search to find candidates with exact matching criteria'
+      },
+      create: {
+        name: 'AI Power Search - Candidate Matching',
+        description: 'System prompt for AI Power Search to find candidates with exact matching criteria',
+        content: DEFAULT_AI_POWER_SEARCH_PROMPT,
+        categoryId: '550e8400-e29b-41d4-a716-446655440012', // Candidate Assessment category
+        isActive: true
+      }
+    });
+    console.log('✅ AI Power Search system prompt initialized');
+
+    // Create TOEIC custom field definition
+    console.log('Creating TOEIC custom field definition...');
+    await prisma.customFieldDefinition.upsert({
+      where: { 
+        modelName_fieldKey: {
+          modelName: 'Candidate',
+          fieldKey: 'toeic_score'
+        }
+      },
+      update: {},
+      create: {
+        fieldKey: 'toeic_score',
+        fieldCode: 'TOEIC_SCORE',
+        label: 'TOEIC Score',
+        fieldType: 'SELECT',
+        modelName: 'Candidate',
+        isRequired: false,
+        sortOrder: 1,
+        options: JSON.stringify({
+          minValue: 0,
+          maxValue: 990,
+          options: [
+            { value: '0-200', label: '0-200 (Beginner)' },
+            { value: '201-400', label: '201-400 (Elementary)' },
+            { value: '401-600', label: '401-600 (Intermediate)' },
+            { value: '601-800', label: '601-800 (Upper Intermediate)' },
+            { value: '801-990', label: '801-990 (Advanced)' }
+          ]
+        })
+      }
+    });
+
+    // Create TOEIC custom field options
+    const toeicFieldDefinition = await prisma.customFieldDefinition.findUnique({
+      where: {
+        modelName_fieldKey: {
+          modelName: 'Candidate',
+          fieldKey: 'toeic_score'
+        }
+      }
+    });
+
+    if (toeicFieldDefinition) {
+      const toeicOptions = [
+        { value: '0-200', label: '0-200 (Beginner)', sortOrder: 1 },
+        { value: '201-400', label: '201-400 (Elementary)', sortOrder: 2 },
+        { value: '401-600', label: '401-600 (Intermediate)', sortOrder: 3 },
+        { value: '601-800', label: '601-800 (Upper Intermediate)', sortOrder: 4 },
+        { value: '801-990', label: '801-990 (Advanced)', sortOrder: 5 }
+      ];
+
+      for (const option of toeicOptions) {
+        await prisma.customFieldOption.upsert({
+          where: {
+            customFieldDefinitionId_value: {
+              customFieldDefinitionId: toeicFieldDefinition.id,
+              value: option.value
+            }
+          },
+          update: { label: option.label, sortOrder: option.sortOrder },
+          create: {
+            customFieldDefinitionId: toeicFieldDefinition.id,
+            value: option.value,
+            label: option.label,
+            sortOrder: option.sortOrder,
+            isActive: true
+          }
+        });
+      }
+    }
+    console.log('✅ TOEIC custom field and options created/updated');
+
     console.log('🎉 Database seeding completed successfully!');
   } catch (error) {
     console.error('❌ Error during seeding:', error);

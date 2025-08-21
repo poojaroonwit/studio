@@ -7,7 +7,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+
 
 const updateTransitionSchema = z.object({
   notes: z.string().optional().nullable(),

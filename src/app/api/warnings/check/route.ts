@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import { WarningService } from '@/lib/warningService';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 

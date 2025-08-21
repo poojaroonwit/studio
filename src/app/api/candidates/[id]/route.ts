@@ -11,6 +11,9 @@ import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/candidates/{id}:

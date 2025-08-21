@@ -22,6 +22,9 @@ import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { createDateInTimezone } from '@/lib/dateUtils';
 import { NotificationService } from '@/lib/notificationService';
 
+export const dynamic = 'force-dynamic';
+
+
 // These schemas are now imported from ./schemas.ts
 
 const createCandidateSchema = z.object({
@@ -231,8 +234,8 @@ export async function POST(request: NextRequest) {
         status: appliedStage,
         fitScore: fitScore, // <-- always set top-level fitScore if present
         parsedData: parsedData,
-        sourceId: data.sourceId || null,
-        subSource: data.subSource || null,
+        sourceId: validationResult.data.sourceId || null,
+        subSource: validationResult.data.subSource || null,
         applicationDate: createDateInTimezone(),
         createdAt: createDateInTimezone(),
         updatedAt: createDateInTimezone(),

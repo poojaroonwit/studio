@@ -8,7 +8,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { generateUniqueFilename } from '@/lib/fileUtils';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+
 
 /**
  * @openapi

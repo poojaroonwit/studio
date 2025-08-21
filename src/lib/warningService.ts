@@ -289,7 +289,7 @@ export class WarningService {
     // Create or update warnings for current conditions
     const processedConfigurationIds = new Set<string>();
     for (const result of results) {
-      if (result.hasWarning) {
+      if (result.hasWarning && result.configurationId) {
         await this.createOrUpdateWarning(entityType, entityId, result);
         processedConfigurationIds.add(result.configurationId);
       }
@@ -329,8 +329,7 @@ export class WarningService {
           where: {
             configurationId: config.id,
             entityType,
-            entityId,
-            isResolved: false
+            entityId
           }
         });
 
@@ -341,8 +340,8 @@ export class WarningService {
             data: {
               currentValue: result.currentValue,
               expectedValue: result.expectedValue,
-              message: result.message,
-              severity: result.severity,
+              message: result.message || '',
+              severity: result.severity || 'warning',
               updatedAt: new Date()
             }
           });
@@ -356,8 +355,8 @@ export class WarningService {
               field: config.field,
               currentValue: result.currentValue,
               expectedValue: result.expectedValue,
-              message: result.message,
-              severity: result.severity
+              message: result.message || '',
+              severity: result.severity || 'warning'
             }
           });
         }

@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
 const headcountTypeOptionSchema = z.object({
   value: z.string().min(1, "Value is required"),
   label: z.string().min(1, "Label is required"),

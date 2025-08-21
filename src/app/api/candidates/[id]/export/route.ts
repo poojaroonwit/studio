@@ -6,6 +6,9 @@ import { logAudit } from '@/lib/auditLog';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
+
 // Helper function to format date for export
 function formatDateForExport(date: string | Date | null): string {
   if (!date) return '';

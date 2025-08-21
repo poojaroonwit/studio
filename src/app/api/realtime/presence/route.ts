@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * @openapi
  * /api/realtime/presence:
@@ -27,7 +29,6 @@ import { authOptions } from '@/lib/auth';
  *         description: Presence updated
  */
 
-export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);

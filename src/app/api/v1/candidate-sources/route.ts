@@ -5,6 +5,7 @@ import { getPool } from '@/lib/db';
 import { createSuccessResponse, createErrorResponse } from '@/lib/apiErrorHandler';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/v1/candidate-sources

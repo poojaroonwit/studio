@@ -53,7 +53,7 @@ export function HeadcountModal({
     type: 'new' as HeadcountType,
     status: 'vacant' as HeadcountStatus,
     candidateId: '',
-    onboardingDate: null as Date | null,
+    onboardingDate: new Date() as Date | null, // Default to today
     notes: '',
     memoId: '',
     customFields: {} as Record<string, any>,
@@ -91,17 +91,18 @@ export function HeadcountModal({
         type: headcount.type,
         status: headcount.status,
         candidateId: headcount.candidateId || '',
-        onboardingDate: headcount.onboardingDate ? new Date(headcount.onboardingDate) : null,
+        onboardingDate: headcount.onboardingDate ? new Date(headcount.onboardingDate) : new Date(),
         notes: headcount.notes || '',
         memoId: headcount.memoId || '',
         customFields: headcount.customFields || {},
       });
     } else {
+      // For new headcount, set defaults
       setFormData({
         type: 'new',
-        status: 'vacant',
-        candidateId: '',
-        onboardingDate: null,
+        status: 'vacant', // Default to vacant
+        candidateId: '', // No candidate assignment for new headcount
+        onboardingDate: new Date(), // Default to today
         notes: '',
         memoId: '',
         customFields: {},
@@ -135,7 +136,7 @@ export function HeadcountModal({
       type: 'new',
       status: 'vacant',
       candidateId: '',
-      onboardingDate: null,
+      onboardingDate: new Date(), // Reset to today
       notes: '',
       memoId: '',
       customFields: {},
@@ -206,86 +207,88 @@ export function HeadcountModal({
             </div>
           </div>
 
-          {/* Candidate Assignment */}
-          <div className="space-y-2">
-            <Label>Candidate Assignment</Label>
-            <div className="relative">
-              <Input
-                placeholder="Search for a candidate..."
-                value={candidateSearchTerm}
-                onChange={(e) => {
-                  setCandidateSearchTerm(e.target.value);
-                  setShowCandidateDropdown(true);
-                }}
-                onFocus={() => setShowCandidateDropdown(true)}
-              />
-              
-              {selectedCandidate && (
-                <div className="mt-2 p-3 border rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={selectedCandidate.avatarUrl || undefined} />
-                      <AvatarFallback>
-                        {selectedCandidate.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="font-medium">{selectedCandidate.name}</div>
-                      <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, candidateId: '' }));
-                        setCandidateSearchTerm('');
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {showCandidateDropdown && !selectedCandidate && (
-                <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {filteredCandidates.length > 0 ? (
-                    filteredCandidates.map((candidate) => (
-                      <div
-                        key={candidate.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
+          {/* Candidate Assignment - Only show in edit mode */}
+          {isEdit && (
+            <div className="space-y-2">
+              <Label>Candidate Assignment</Label>
+              <div className="relative">
+                <Input
+                  placeholder="Search for a candidate..."
+                  value={candidateSearchTerm}
+                  onChange={(e) => {
+                    setCandidateSearchTerm(e.target.value);
+                    setShowCandidateDropdown(true);
+                  }}
+                  onFocus={() => setShowCandidateDropdown(true)}
+                />
+                
+                {selectedCandidate && (
+                  <div className="mt-2 p-3 border rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={selectedCandidate.avatarUrl || undefined} />
+                        <AvatarFallback>
+                          {selectedCandidate.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="font-medium">{selectedCandidate.name}</div>
+                        <div className="text-sm text-muted-foreground">{selectedCandidate.email}</div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => {
-                          setFormData(prev => ({ ...prev, candidateId: candidate.id }));
-                          setCandidateSearchTerm(candidate.name);
-                          setShowCandidateDropdown(false);
+                          setFormData(prev => ({ ...prev, candidateId: '' }));
+                          setCandidateSearchTerm('');
                         }}
                       >
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={candidate.avatarUrl || undefined} />
-                          <AvatarFallback>
-                            {candidate.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{candidate.name}</div>
-                          <div className="text-sm text-muted-foreground">{candidate.email}</div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-3 text-muted-foreground text-center">
-                      No candidates found
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+
+                {showCandidateDropdown && !selectedCandidate && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredCandidates.length > 0 ? (
+                      filteredCandidates.map((candidate) => (
+                        <div
+                          key={candidate.id}
+                          className="flex items-center gap-3 p-3 hover:bg-muted cursor-pointer"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, candidateId: candidate.id }));
+                            setCandidateSearchTerm(candidate.name);
+                            setShowCandidateDropdown(false);
+                          }}
+                        >
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={candidate.avatarUrl || undefined} />
+                            <AvatarFallback>
+                              {candidate.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{candidate.name}</div>
+                            <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-3 text-muted-foreground text-center">
+                        No candidates found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Onboarding Date */}
           <div className="space-y-2">
-            <Label>Onboarding Date</Label>
+            <Label>Hiring Date</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -307,7 +310,7 @@ export function HeadcountModal({
                 <Calendar
                   mode="single"
                   selected={formData.onboardingDate || undefined}
-                  onSelect={(date) => setFormData(prev => ({ ...prev, onboardingDate: date ?? null }))}
+                  onSelect={(date) => setFormData(prev => ({ ...prev, onboardingDate: date }))}
                   initialFocus
                 />
               </PopoverContent>
@@ -319,7 +322,7 @@ export function HeadcountModal({
             <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              placeholder="Add any additional notes about this headcount..."
+              placeholder="Add any additional notes..."
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
@@ -331,7 +334,7 @@ export function HeadcountModal({
             <Label htmlFor="memoId">Memo ID</Label>
             <Input
               id="memoId"
-              placeholder="Enter memo ID (optional)"
+              placeholder="Enter memo ID if applicable..."
               value={formData.memoId}
               onChange={(e) => setFormData(prev => ({ ...prev, memoId: e.target.value }))}
             />
@@ -340,13 +343,12 @@ export function HeadcountModal({
           {/* Custom Fields */}
           <HeadcountCustomFields
             customFields={formData.customFields}
-            onCustomFieldsChange={(customFields) => setFormData(prev => ({ ...prev, customFields }))}
-            positionId={headcount?.positionId || ''}
+            onChange={(customFields) => setFormData(prev => ({ ...prev, customFields }))}
           />
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

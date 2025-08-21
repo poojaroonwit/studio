@@ -7,6 +7,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
+
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   email: z.string().email("A valid email is required").optional(),

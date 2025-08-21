@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
 import { AddPositionModal, type AddPositionFormValues } from '@/components/positions/AddPositionModal';
-import { EditPositionModal, type EditPositionFormValues } from '@/components/positions/EditPositionModal';
 import { PositionDetailDrawer } from '@/components/positions/PositionDetailDrawer';
 import { useSession } from 'next-auth/react';
 import {
@@ -61,9 +60,10 @@ export default function PositionsPageClient() {
   const [searchTerm, setSearchTerm] = useState(preferences.searchTerm);
   const [departmentFilter, setDepartmentFilter] = useState(preferences.departmentFilter);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState<string | null>(null);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [editingPositionId, setEditingPositionId] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [positionToDelete, setPositionToDelete] = useState<Position | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -90,6 +90,9 @@ export default function PositionsPageClient() {
   const [recruiterStats, setRecruiterStats] = useState<{ [key: string]: number }>({});
   const [availableRecruiters, setAvailableRecruiters] = useState<{id: string, name: string, avatarUrl?: string}[]>([]);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
+  const [headcountData, setHeadcountData] = useState<{ [positionId: string]: { total: number; vacant: number; filled: number } }>({});
+  const [isLoadingHeadcount, setIsLoadingHeadcount] = useState(false);
+  const [vacantFromOpenPositions, setVacantFromOpenPositions] = useState({ vacant: 0, totalOpen: 0 });
 
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
   const { data: session } = useSession();
@@ -466,6 +469,7 @@ export default function PositionsPageClient() {
       query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
       
       const url = `/api/positions?${query.toString()}`;
+      console.log('Fetching positions with URL:', url); // Debug log
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -477,6 +481,12 @@ export default function PositionsPageClient() {
       
       setPositions(positionsData);
       setTotal(data.total || 0);
+      
+      // Fetch headcount data for the loaded positions
+      if (positionsData.length > 0) {
+        const positionIds = positionsData.map((p: Position) => p.id);
+        fetchHeadcountData(positionIds);
+      }
         
         // Update statistics if included in response
         if (data.statistics) {
@@ -496,7 +506,59 @@ export default function PositionsPageClient() {
         setIsLoading(false);
       }
     }
-  }, [selectedRecruiterId]); // Include selectedRecruiterId in dependencies
+  }, []); // Remove selectedRecruiterId dependency to prevent circular dependency
+
+  // Fetch headcount data for positions
+  const fetchHeadcountData = useCallback(async (positionIds: string[]) => {
+    if (positionIds.length === 0) return;
+    
+    setIsLoadingHeadcount(true);
+    try {
+      const headcountPromises = positionIds.map(async (positionId) => {
+        const response = await fetch(`/api/headcount?positionId=${positionId}`);
+        if (response.ok) {
+          const headcounts = await response.json();
+          const total = headcounts.length;
+          const vacant = headcounts.filter((h: any) => h.status === 'vacant').length;
+          const filled = headcounts.filter((h: any) => h.status === 'filled').length;
+          return { positionId, total, vacant, filled };
+        }
+        return { positionId, total: 0, vacant: 0, filled: 0 };
+      });
+
+      const results = await Promise.all(headcountPromises);
+      const headcountMap: { [positionId: string]: { total: number; vacant: number; filled: number } } = {};
+      
+      results.forEach(result => {
+        headcountMap[result.positionId] = {
+          total: result.total,
+          vacant: result.vacant,
+          filled: result.filled
+        };
+      });
+
+      setHeadcountData(headcountMap);
+    } catch (error) {
+      console.error('Error fetching headcount data:', error);
+    } finally {
+      setIsLoadingHeadcount(false);
+    }
+  }, []);
+
+  // Calculate vacant headcount from open positions
+  useEffect(() => {
+    let totalVacant = 0;
+    let totalOpenPositions = 0;
+    
+    positions.forEach(position => {
+      if (position.isOpen && headcountData[position.id]) {
+        totalVacant += headcountData[position.id].vacant;
+        totalOpenPositions += 1;
+      }
+    });
+    
+    setVacantFromOpenPositions({ vacant: totalVacant, totalOpen: totalOpenPositions });
+  }, [positions, headcountData]);
 
   // Update URL with current pagination state
   const updateURL = useCallback((newPage: number, newPageSize?: number) => {
@@ -577,7 +639,7 @@ export default function PositionsPageClient() {
       const positionsData = await positionsResponse.json();
       const allPositions = positionsData.data || [];
       
-      // Count OPEN positions only for each recruiter
+      // Count OPEN headcount only for each recruiter
       allPositions.forEach((position: Position) => {
         // Only count positions that are open
         if (position.isOpen) {
@@ -648,6 +710,8 @@ export default function PositionsPageClient() {
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
+    console.log('Search effect triggered with:', { searchTerm, statusFilter, departmentFilter, selectedRecruiterId }); // Debug log
+    
     // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -656,6 +720,7 @@ export default function PositionsPageClient() {
     // Set new timeout for search with longer delay for better performance
     searchTimeoutRef.current = setTimeout(async () => {
       try {
+        console.log('Executing search with filters:', { searchTerm, statusFilter, departmentFilter, selectedRecruiterId }); // Debug log
         // Reset to first page and fetch with page 1
         setPage(1);
         updateURL(1); // Update URL to reflect page reset
@@ -676,7 +741,7 @@ export default function PositionsPageClient() {
         searchTimeoutRef.current = null;
       }
     };
-  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, fetchPositions]);
+  }, [searchTerm, statusFilter, departmentFilter, selectedRecruiterId, updateURL]); // Remove fetchPositions from dependencies
 
   // Handle search input focus and blur
   const handleSearchFocus = () => {
@@ -700,6 +765,7 @@ export default function PositionsPageClient() {
   // Handle search input change with better state management
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    console.log('Search input changed:', value); // Debug log
     setSearchTerm(value);
     
     // If search is stuck, force reset the search state
@@ -826,39 +892,7 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Handle edit position
-  const handleEditPosition = async (positionId: string, data: EditPositionFormValues) => {
-    try {
-      const response = await fetch(`/api/positions/${positionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || 'Failed to update position');
-      }
-      
-      const updatedPosition = await response.json();
-      
-      setPositions(prev => prev.map(p => p.id === positionId ? updatedPosition.position : p));
-      setIsEditModalOpen(false);
-      setSelectedPosition(null);
-      toast.success('Position updated successfully');
-      
-      // Refresh departments and recruiter stats in case the department was changed
-      setTimeout(() => {
-        fetchAllDepartments();
-        fetchRecruiterStats();
-      }, 500);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update position';
-      toast.error(errorMessage);
-      // Re-throw the error so the modal can handle it
-      throw error;
-    }
-  };
+
 
   // Handle delete position
   const handleDeletePosition = async () => {
@@ -943,6 +977,66 @@ export default function PositionsPageClient() {
     }
   };
 
+  // Add refs for height calculation
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState<number>(300);
+
+  // Calculate table height based on available space
+  const calculateTableHeight = useCallback(() => {
+    if (!contentRef.current) return;
+    
+    const contentRect = contentRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const contentTop = contentRect.top;
+    
+    // Calculate available height for table
+    // Account for padding, margins, pagination, and other UI elements
+    const headerHeight = 64; // Header height
+    const padding = 48; // Top and bottom padding (24px each)
+    const paginationHeight = 60; // Pagination controls height
+    const bottomMargin = 24; // Bottom margin
+    
+    const availableHeight = viewportHeight - contentTop - headerHeight - padding - paginationHeight - bottomMargin;
+    
+    // Set minimum and maximum constraints with responsive values
+    const minHeight = Math.max(250, window.innerHeight * 0.2); // Further reduced minimum height (20% of viewport)
+    const maxHeight = Math.max(400, availableHeight * 0.5); // Further reduced to 50% for very compact layout
+    
+    const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
+    
+    setTableHeight(calculatedHeight);
+  }, []);
+
+  // Recalculate height on window resize and content changes
+  useEffect(() => {
+    const handleResize = () => {
+      calculateTableHeight();
+    };
+
+    // Initial calculation with a small delay to ensure DOM is ready
+    const initialTimer = setTimeout(() => {
+      calculateTableHeight();
+    }, 100);
+
+    // Recalculate on window resize
+    window.addEventListener('resize', handleResize);
+    
+    // Recalculate when content changes (filters, stats, etc.)
+    const resizeObserver = new ResizeObserver(() => {
+      calculateTableHeight();
+    });
+
+    if (contentRef.current) {
+      resizeObserver.observe(contentRef.current);
+    }
+
+    return () => {
+      clearTimeout(initialTimer);
+      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
+    };
+  }, [calculateTableHeight, searchTerm, statusFilter, departmentFilter, selectedRecruiterId, totalPositions]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -967,8 +1061,8 @@ export default function PositionsPageClient() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div ref={contentRef} className="p-6 space-y-6 flex-1 flex flex-col">
           {/* Filters on top */}
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
@@ -1156,83 +1250,43 @@ export default function PositionsPageClient() {
 
 
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Positions Card - Blue */}
+      {/* Stats Card */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* Vacant Headcount from Open Positions Card - Blue */}
         <Card
-          className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
+          className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
         >
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {selectedRecruiterId === null ? 'Total Positions' : 
-                   selectedRecruiterId === 'unassigned' ? 'Unassigned Positions' : 
-                   'Filtered Positions'}
+                <p className="text-xs font-medium text-muted-foreground">
+                  Vacant Headcount from Open Positions
                 </p>
-                <p className="text-2xl font-bold text-foreground">{totalPositions}</p>
-                {selectedRecruiterId && selectedRecruiterId !== 'unassigned' && selectedRecruiterName && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Showing positions for {selectedRecruiterName}
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-foreground">
+                    {isLoadingHeadcount ? (
+                      <Loader2 className="h-6 w-6 animate-spin inline" />
+                    ) : (
+                      vacantFromOpenPositions.vacant
+                    )}
                   </p>
-                )}
-              </div>
-              <div className="h-8 w-8 rounded-xl bg-blue-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                <Briefcase className="h-5 w-5 text-white" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Open Positions Card - Green */}
-        <Card
-          className="group relative overflow-hidden border-2 border-green-200 dark:border-green-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 backdrop-blur-sm"
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Open Positions</p>
-                <p className="text-2xl font-bold text-foreground">{openPositions}</p>
+                  <span className="text-sm text-muted-foreground">
+                    vacant from {vacantFromOpenPositions.totalOpen} open position{vacantFromOpenPositions.totalOpen !== 1 ? 's' : ''}
+                  </span>
+                </div>
                 {selectedRecruiterId && (
                   <p className="text-xs text-muted-foreground mt-1">
                     {selectedRecruiterId === 'unassigned' 
-                      ? 'Unassigned open positions' 
+                      ? 'Unassigned vacant headcount' 
                       : selectedRecruiterName 
-                        ? `Open positions for ${selectedRecruiterName}`
-                        : 'Open positions for selected recruiter'
+                        ? `Vacant headcount for ${selectedRecruiterName}`
+                        : 'Vacant headcount for selected recruiter'
                     }
                   </p>
                 )}
               </div>
-              <div className="h-8 w-8 rounded-xl bg-green-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                <span className="text-white text-sm font-bold">O</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Closed Positions Card - Gray */}
-        <Card
-          className="group relative overflow-hidden border-2 border-gray-200 dark:border-gray-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/50 dark:to-gray-900/50 backdrop-blur-sm"
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Closed Positions</p>
-                <p className="text-2xl font-bold text-foreground">{closedPositions}</p>
-                {selectedRecruiterId && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedRecruiterId === 'unassigned' 
-                      ? 'Unassigned closed positions' 
-                      : selectedRecruiterName 
-                        ? `Closed positions for ${selectedRecruiterName}`
-                        : 'Closed positions for selected recruiter'
-                    }
-                  </p>
-                )}
-              </div>
-              <div className="h-8 w-8 rounded-xl bg-gray-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-sm">
-                <span className="text-white text-sm font-bold">C</span>
+              <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center group-hover:scale-105 group-hover:rotate-2 transition-all duration-300 shadow-sm">
+                <Users className="h-4 w-4 text-white" />
               </div>
             </div>
           </CardContent>
@@ -1240,7 +1294,7 @@ export default function PositionsPageClient() {
       </div>
       {/* Positions List */}
       {totalPositions === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No positions found</h3>
           <p className="text-muted-foreground mb-4">
@@ -1256,11 +1310,14 @@ export default function PositionsPageClient() {
           )}
         </div>
       ) : (
-        <TableWrapper heightMode="responsive" className="relative">
+        <div 
+          className="border rounded-lg shadow overflow-hidden relative min-h-[250px] lg:min-h-[300px] xl:min-h-[350px] flex-1"
+          style={{ height: `${tableHeight}px` }}
+        >
           
           {/* Table Loading Overlay */}
           {isTableLoading && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 min-h-[400px]">
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm text-muted-foreground">Loading positions...</span>
@@ -1280,9 +1337,11 @@ export default function PositionsPageClient() {
               </Button>
             </div>
           )}
-          <div className="min-h-[400px]">
-            <Table className="min-w-full divide-y divide-border">
-            <TableHeader>
+          
+          {/* Scrollable Table Container */}
+          <div className="table-scroll-container">
+            <Table className="table-dynamic-width divide-y divide-border table-mobile-responsive">
+            <TableHeader className="table-sticky-header">
               <TableRow>
                 <TableHead>
                   <input
@@ -1343,7 +1402,12 @@ export default function PositionsPageClient() {
                     </DropdownMenu>
                   </span>
                 </TableHead>
-                <TableHead className="group cursor-pointer select-none" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
+                <TableHead className="text-center">
+                  <span className="inline-flex items-center gap-1">
+                    Headcount
+                  </span>
+                </TableHead>
+                <TableHead className="group cursor-pointer select-none hide-on-mobile" onClick={() => { handleSort('recruiter'); setOpenMenu(null); }}>
                   <span className="inline-flex items-center gap-1">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     Recruiter
@@ -1369,8 +1433,8 @@ export default function PositionsPageClient() {
                   </span>
                 </TableHead>
 
-                <TableHead>Applied</TableHead>
-                <TableHead>Potential Matched</TableHead>
+                <TableHead className="hide-on-mobile">Applied</TableHead>
+                <TableHead className="hide-on-mobile">Potential Matched</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1378,7 +1442,7 @@ export default function PositionsPageClient() {
               {sortedPositions.map((position, index) => (
                 <TableRow 
                   key={position.id} 
-                  className="hover:bg-muted/50 transition-all duration-200"
+                  className="hover:bg-muted/50 transition-all duration-200 border-b border-border"
                   style={{
                     animationDelay: `${index * 50}ms`,
                     animation: 'fadeInUp 0.3s ease-out forwards'
@@ -1392,7 +1456,7 @@ export default function PositionsPageClient() {
                       aria-label={`Select position ${position.title}`}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium min-w-[200px]">
                     <div className="flex flex-col">
                       <button
                         onClick={() => {
@@ -1439,7 +1503,28 @@ export default function PositionsPageClient() {
                       <Badge variant="destructive">Closed</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
+                    {isLoadingHeadcount ? (
+                      <div className="flex justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : headcountData[position.id] ? (
+                      <div className="flex flex-col items-center text-xs leading-tight">
+                        <div className="font-medium text-sm mb-1">
+                          {headcountData[position.id].total}
+                        </div>
+                        <div className="text-green-600 dark:text-green-400">
+                          {headcountData[position.id].filled} filled
+                        </div>
+                        <div className="text-orange-600 dark:text-orange-400">
+                          {headcountData[position.id].vacant} vacant
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="hide-on-mobile">
                     <RecruiterCell
                       position={position}
                       availableRecruiters={availableRecruiters}
@@ -1450,7 +1535,7 @@ export default function PositionsPageClient() {
                     />
                   </TableCell>
                   
-                  <TableCell className="text-center">
+                  <TableCell className="text-center hide-on-mobile">
                     {(position.candidateStats?.appliedStatusCount ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300 rounded-md">
                         {position.candidateStats?.appliedStatusCount}
@@ -1461,7 +1546,7 @@ export default function PositionsPageClient() {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center hide-on-mobile">
                     {(position.candidateStats?.totalMatching ?? 0) > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-1 text-sm font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 rounded-md">
                         {position.candidateStats?.totalMatching}
@@ -1473,17 +1558,17 @@ export default function PositionsPageClient() {
                     )}
                   </TableCell>
                   <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 action-buttons">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setSelectedPositionId(position.id);
-                          setIsNewDrawerOpen(true);
+                          setEditingPositionId(position.id);
+                          setIsEditDrawerOpen(true);
                         }}
-                        title="View position details in drawer"
+                        title="Edit position"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
                       {true && (
                         <>
@@ -1501,10 +1586,10 @@ export default function PositionsPageClient() {
                   </TableCell>
                 </TableRow>
               ))}
-                          </TableBody>
+            </TableBody>
             </Table>
           </div>
-        </TableWrapper>
+        </div>
    
       )}
       
@@ -1609,17 +1694,7 @@ export default function PositionsPageClient() {
           }}
         />
       )}
-      {true && selectedPosition && (
-        <EditPositionModal
-          isOpen={isEditModalOpen}
-          onOpenChange={(open) => {
-            setIsEditModalOpen(open);
-            if (!open) setSelectedPosition(null);
-          }}
-          onEditPosition={handleEditPosition}
-          position={selectedPosition}
-        />
-      )}
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!positionToDelete} onOpenChange={() => setPositionToDelete(null)}>
         <AlertDialogContent>
@@ -1665,6 +1740,19 @@ export default function PositionsPageClient() {
           }
         }}
         positionId={selectedPositionId}
+      />
+
+      {/* Position Edit Drawer */}
+      <PositionDetailDrawer
+        isOpen={isEditDrawerOpen}
+        onOpenChange={(open) => {
+          setIsEditDrawerOpen(open);
+          if (!open) {
+            setEditingPositionId(null);
+          }
+        }}
+        positionId={editingPositionId}
+        initialEditMode={true}
       />
     </div>
   );

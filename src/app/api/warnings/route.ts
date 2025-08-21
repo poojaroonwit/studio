@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
       select: { id: true }
     });
     
-    const configIds = accessibleConfigs.map(config => config.id);
+    const configIds = accessibleConfigs.map((config: any) => config.id);
     
     // If no accessible configs, return empty array
     if (configIds.length === 0) {

@@ -83,7 +83,7 @@ export function FitScoreFilterTabs({
             selectedGrades.forEach(grade => onGradeToggle(grade));
           }}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
             isAllSelected
               ? "text-white border-b-2 bg-blue-800"
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
@@ -96,7 +96,7 @@ export function FitScoreFilterTabs({
             key={grade.letter}
             onClick={() => onGradeToggle(grade.letter)}
             className={cn(
-              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+              "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
               selectedGrades.has(grade.letter)
                 ? cn("text-white border-b-2", getGradeBorderColor(grade.letter))
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
@@ -108,7 +108,7 @@ export function FitScoreFilterTabs({
         <div
           onClick={() => onGradeToggle('no-score')}
           className={cn(
-            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+            "flex items-center gap-2 px-2 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer rounded-t-lg",
             selectedGrades.has('no-score')
               ? cn("text-white border-b-2", getGradeBorderColor('no-score'))
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))

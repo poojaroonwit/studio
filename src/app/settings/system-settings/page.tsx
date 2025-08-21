@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook } from 'lucide-react';
+import { Save, Zap, BrainCircuit, Loader2, ServerCrash, Settings, RefreshCw, Database, Webhook, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { cn } from '@/lib/utils';
+import AutoCloseTab from '@/components/settings/AutoCloseTab';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -256,6 +257,18 @@ export default function SystemSettingsPage() {
             >
               <Database className="h-4 w-4" />
               System
+            </div>
+            <div
+              onClick={() => setActiveTab('auto-close')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'auto-close'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <CheckCircle className="h-4 w-4" />
+              Auto-Close
             </div>
           </div>
 
@@ -502,6 +515,12 @@ export default function SystemSettingsPage() {
                     </CardContent>
                   </Card>
                 </div>
+              </ScrollArea>
+            )}
+
+            {activeTab === 'auto-close' && (
+              <ScrollArea className="h-full pr-4">
+                <AutoCloseTab />
               </ScrollArea>
             )}
           </div>

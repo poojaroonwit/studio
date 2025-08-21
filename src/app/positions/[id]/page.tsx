@@ -46,7 +46,7 @@ export default function PositionDetailPage() {
   // State for candidates applied
   const [candidatesApplied, setCandidatesApplied] = useState<Candidate[]>([]);
   const [appliedPage, setAppliedPage] = useState(1);
-  const [appliedPageSize, setAppliedPageSize] = useState(20);
+  const [appliedPageSize, setAppliedPageSize] = useState(50);
   const [appliedTotal, setAppliedTotal] = useState(0);
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [appliedSortColumn, setAppliedSortColumn] = useState<string>('applicationDate');
@@ -55,7 +55,7 @@ export default function PositionDetailPage() {
   // State for candidate matches
   const [candidateMatches, setCandidateMatches] = useState<Candidate[]>([]);
   const [matchesPage, setMatchesPage] = useState(1);
-  const [matchesPageSize, setMatchesPageSize] = useState(20);
+  const [matchesPageSize, setMatchesPageSize] = useState(50);
   const [matchesTotal, setMatchesTotal] = useState(0);
   const [matchesSearchTerm, setMatchesSearchTerm] = useState('');
   const [matchesSortColumn, setMatchesSortColumn] = useState<string>('fitScore');
@@ -64,7 +64,7 @@ export default function PositionDetailPage() {
   // State for all candidates (merged view)
   const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
   const [allCandidatesPage, setAllCandidatesPage] = useState(1);
-  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(20);
+  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(50);
   const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
   const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
   const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string>('applicationDate');
@@ -337,7 +337,7 @@ export default function PositionDetailPage() {
     };
     
     loadInitialData();
-  }, [positionId, sessionStatus, fetchPosition, fetchRecruiters]);
+  }, [positionId, sessionStatus]);
 
   // Fetch candidates when position is loaded
   useEffect(() => {
@@ -346,7 +346,28 @@ export default function PositionDetailPage() {
       fetchCandidateMatches();
       fetchAllCandidates();
     }
-  }, [position, fetchCandidatesApplied, fetchCandidateMatches, fetchAllCandidates]);
+  }, [position, positionId, sessionStatus]);
+
+  // Refetch applied candidates when pagination or search changes
+  useEffect(() => {
+    if (position) {
+      fetchCandidatesApplied();
+    }
+  }, [appliedPage, appliedPageSize, appliedSearchTerm, appliedSortColumn, appliedSortDirection, positionId, sessionStatus]);
+
+  // Refetch candidate matches when pagination or search changes
+  useEffect(() => {
+    if (position) {
+      fetchCandidateMatches();
+    }
+  }, [matchesPage, matchesPageSize, matchesSearchTerm, matchesSortColumn, matchesSortDirection, positionId, sessionStatus]);
+
+  // Refetch all candidates when pagination or search changes
+  useEffect(() => {
+    if (position) {
+      fetchAllCandidates();
+    }
+  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus]);
 
   // State for expanded email groups
   const [expandedEmails, setExpandedEmails] = React.useState<Record<string, boolean>>({});

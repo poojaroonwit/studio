@@ -5,6 +5,9 @@ import { logAudit } from '@/lib/auditLog';
 import { getPool } from '@/lib/db';
 import { z } from 'zod';
 
+export const dynamic = 'force-dynamic';
+
+
 const generateContentSchema = z.object({
   candidateId: z.string().min(1, 'Candidate ID is required'),
   systemPrompt: z.string().min(1, 'System prompt is required'),

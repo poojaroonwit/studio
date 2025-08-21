@@ -5,6 +5,9 @@ import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
 import { broadcastUserNotification } from '@/lib/candidateSse';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/realtime/notifications:

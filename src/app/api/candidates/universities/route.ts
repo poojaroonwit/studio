@@ -11,8 +11,9 @@ export async function GET(req: NextRequest) {
     try {
       candidates = await prisma.candidate.findMany({
         select: { educationData: true },
-        where: { educationData: { not: null } },
       });
+      // Filter out candidates with null educationData
+      candidates = candidates.filter(candidate => candidate.educationData !== null);
     } catch (err) {
       // If the field is missing or not JSON, return empty array
       console.error('educationData field missing or not JSON:', err);

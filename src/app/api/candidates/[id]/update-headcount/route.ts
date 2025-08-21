@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { autoClosePositionIfHeadcountFilled } from '@/lib/headcountUtils';
+
+export const dynamic = 'force-dynamic';
+
 
 export async function POST(
   request: NextRequest,
@@ -52,9 +56,23 @@ export async function POST(
           },
         });
 
+        // Check if all headcounts are now filled and auto-close position if needed
+        let autoCloseResult = null;
+        try {
+          autoCloseResult = await autoClosePositionIfHeadcountFilled(
+            candidate.positionId,
+            session.user.id,
+            session.user.name || session.user.email || 'System'
+          );
+        } catch (autoCloseError) {
+          console.error('Error auto-closing position:', autoCloseError);
+          // Don't fail the headcount update if auto-close fails
+        }
+
         return NextResponse.json({ 
           message: 'Headcount updated successfully',
           headcountId: vacantHeadcount.id,
+          autoCloseResult,
         });
       } else {
         return NextResponse.json({ 

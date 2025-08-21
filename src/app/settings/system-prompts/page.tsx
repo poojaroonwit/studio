@@ -392,7 +392,7 @@ export default function SystemPromptsPage() {
                         />
                       </div>
                     </div>
-                    <div className="w-48">
+                    <div className="w-48 mr-4">
                       <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}

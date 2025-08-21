@@ -73,6 +73,7 @@ const ALLOWED_SYSTEM_SETTING_KEYS = [
   'loginPageContent',
   'loginPageFooter',
   'maxConcurrentProcessors',
+  'aiPowerSearchSystemPrompt',
 ];
 
 const SystemSettingsForm: React.FC<SystemSettingsFormProps> = ({ 

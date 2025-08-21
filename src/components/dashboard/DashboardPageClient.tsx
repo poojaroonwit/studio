@@ -235,7 +235,7 @@ export default function DashboardPageClient({
     return safeAllPositions.filter((p: Position) => p.isOpen).length;
   }, [allPositions]);
 
-  // Memoize open positions to avoid repeated filtering
+      // Memoize open headcount to avoid repeated filtering
   const openPositions = useMemo(() => {
     const safeAllPositions = Array.isArray(allPositions) ? allPositions : [];
     return safeAllPositions.filter((p: Position) => p.isOpen);
@@ -325,7 +325,8 @@ export default function DashboardPageClient({
     
     return scoreRanges.map(range => ({
       label: range.label,
-      count: scoreRangeCounts[range.label] || 0
+      count: scoreRangeCounts[range.label] || 0,
+      letter: range.letter
     }));
   }, [allCandidates]);
 
@@ -642,13 +643,13 @@ export default function DashboardPageClient({
               }
             },
             { 
-              title: "Open Headcount", 
-              value: openPositions.reduce((total, position) => total + (position.headcount || 0), 0), 
+              title: "Number of Open Headcount", 
+              value: openPositions.length, 
               icon: Briefcase, 
               color: "text-emerald-500 dark:text-emerald-400", 
               bgColor: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50",
               borderColor: "border-emerald-200 dark:border-emerald-800",
-              description: "Total headcount left",
+              description: "Total number of open headcount",
               button: {
                 label: "View All",
                 onClick: () => router.push('/positions?status=Open')
@@ -765,15 +766,15 @@ export default function DashboardPageClient({
                 </div>
               </div>
             </div>
-            <Card className="group relative overflow-hidden border-2 border-orange-200 dark:border-orange-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 bg-card/50 backdrop-blur-sm">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <CardContent className="relative h-64 space-y-4 overflow-y-auto">
+           
+              {/* <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div> */}
+              <div className="relative  space-y-4 overflow-y-auto">
                 <SLAViolationsWidget />
                 {session?.user?.role === 'Recruiter' && (
                   <SLAViolationsWidget recruiterId={session.user.id} />
                 )}
-              </CardContent>
-            </Card>
+              </div>
+           
           </div>
         </div>
       </div>
@@ -798,8 +799,8 @@ export default function DashboardPageClient({
           // Sort by grade order: A, B, C, D, E
           const gradeOrder = ['A', 'B', 'C', 'D', 'E'];
           const sortedScoreRanges = [...candidateScoreRanges].sort((a, b) => {
-            const aGrade = a.label[0];
-            const bGrade = b.label[0];
+            const aGrade = a.letter || a.label[0];
+            const bGrade = b.letter || b.label[0];
             return gradeOrder.indexOf(aGrade) - gradeOrder.indexOf(bGrade);
           });
           return (
@@ -1237,7 +1238,7 @@ export default function DashboardPageClient({
                 Positions Needing Applicants ({openPositionsWithNoCandidates.length})
               </CardTitle>
               <CardDescription>
-                Open positions with no candidates yet.
+                Number of open headcount with no candidates yet.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1275,7 +1276,7 @@ export default function DashboardPageClient({
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mb-3" />
-                  <p className="text-sm text-muted-foreground">All open positions have applicants!</p>
+                  <p className="text-sm text-muted-foreground">All open headcount have applicants!</p>
                 </div>
               )}
             </CardContent>

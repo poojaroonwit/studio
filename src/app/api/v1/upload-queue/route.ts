@@ -3,6 +3,9 @@ import { getPool } from '@/lib/db';
 import { verifyApiToken } from '@/lib/auth';
 import { MINIO_PUBLIC_BASE_URL, MINIO_BUCKET } from '@/lib/minio-constants';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/v1/upload-queue:

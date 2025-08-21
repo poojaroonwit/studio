@@ -50,9 +50,10 @@ interface PositionDetailDrawerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   positionId: string | null;
+  initialEditMode?: boolean;
 }
 
-export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: PositionDetailDrawerProps) {
+export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initialEditMode = false }: PositionDetailDrawerProps) {
   const { data: session, status: sessionStatus } = useSession();
   
   // State for position and general data
@@ -63,7 +64,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   // State for candidates
   const [allCandidates, setAllCandidates] = useState<Candidate[]>([]);
   const [allCandidatesPage, setAllCandidatesPage] = useState(1);
-  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(20);
+  const [allCandidatesPageSize, setAllCandidatesPageSize] = useState(50);
   const [allCandidatesTotal, setAllCandidatesTotal] = useState(0);
   const [allCandidatesSearchTerm, setAllCandidatesSearchTerm] = useState('');
   const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string | null>('applicationDate');
@@ -72,7 +73,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   // State for applied candidates
   const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
   const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
-  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(20);
+  const [appliedCandidatesPageSize, setAppliedCandidatesPageSize] = useState(50);
   const [appliedCandidatesTotal, setAppliedCandidatesTotal] = useState(0);
   const [appliedCandidatesSearchTerm, setAppliedCandidatesSearchTerm] = useState('');
   const [appliedCandidatesSortColumn, setAppliedCandidatesSortColumn] = useState<string | null>('applicationDate');
@@ -81,7 +82,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   // State for potential candidates
   const [potentialCandidates, setPotentialCandidates] = useState<Candidate[]>([]);
   const [potentialCandidatesPage, setPotentialCandidatesPage] = useState(1);
-  const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(20);
+  const [potentialCandidatesPageSize, setPotentialCandidatesPageSize] = useState(50);
   const [potentialCandidatesTotal, setPotentialCandidatesTotal] = useState(0);
   const [potentialCandidatesSearchTerm, setPotentialCandidatesSearchTerm] = useState('');
 
@@ -90,8 +91,17 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
   
   // Edit states
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [defaultMatchCriteria, setDefaultMatchCriteria] = useState<string>('');
+
+  // Reset edit mode when drawer opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setIsEditMode(initialEditMode);
+    } else {
+      setIsEditMode(false);
+    }
+  }, [isOpen, initialEditMode]);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
@@ -637,7 +647,21 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
     if (isOpen && positionId && sessionStatus === 'authenticated') {
       fetchAppliedCandidates();
     }
-  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, fetchAppliedCandidates]);
+  }, [appliedCandidatesPage, appliedCandidatesPageSize, appliedCandidatesSearchTerm, appliedCandidatesSortColumn, appliedCandidatesSortDirection, positionId, sessionStatus, isOpen]);
+
+  // Refetch all candidates when sorting or search changes
+  useEffect(() => {
+    if (isOpen && positionId && sessionStatus === 'authenticated') {
+      fetchAllCandidates();
+    }
+  }, [allCandidatesPage, allCandidatesPageSize, allCandidatesSearchTerm, allCandidatesSortColumn, allCandidatesSortDirection, positionId, sessionStatus, isOpen]);
+
+  // Refetch potential candidates when sorting or search changes
+  useEffect(() => {
+    if (isOpen && positionId && sessionStatus === 'authenticated') {
+      fetchPotentialCandidates();
+    }
+  }, [potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection, positionId, sessionStatus, isOpen]);
 
   // Update form when position changes
   useEffect(() => {
@@ -1250,14 +1274,16 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
         </div>
 
         {/* Pagination */}
-        <Pagination
-          currentPage={allCandidatesPage}
-          totalPages={allCandidatesTotalPages}
-          pageSize={allCandidatesPageSize}
-          total={allCandidatesTotal}
-          onPageChange={setAllCandidatesPage}
-          onPageSizeChange={setAllCandidatesPageSize}
-        />
+        {allCandidatesTotal > 0 && (
+          <Pagination
+            currentPage={allCandidatesPage}
+            totalPages={allCandidatesTotalPages}
+            pageSize={allCandidatesPageSize}
+            total={allCandidatesTotal}
+            onPageChange={setAllCandidatesPage}
+            onPageSizeChange={setAllCandidatesPageSize}
+          />
+        )}
       </div>
     );
   };
@@ -1870,10 +1896,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId }: Posit
                               </div>
 
                               {/* Pagination for Potential */}
-                              {potentialCandidatesTotalPages > 1 && (
+                              {potentialCandidatesTotal > 0 && (
                                 <Pagination
                                   currentPage={potentialCandidatesPage}
-                                  totalPages={potentialCandidatesTotalPages}
+                                  totalPages={Math.max(1, Math.ceil(potentialCandidatesTotal / potentialCandidatesPageSize))}
                                   pageSize={potentialCandidatesPageSize}
                                   total={potentialCandidatesTotal}
                                   onPageChange={setPotentialCandidatesPage}

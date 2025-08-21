@@ -13,6 +13,8 @@ import {
   createInternalServerError 
 } from '@/lib/apiErrorHandler';
 
+export const dynamic = 'force-dynamic';
+
 const createNotificationSchema = z.object({
   type: z.string().min(1, 'Notification type is required'),
   title: z.string().min(1, 'Notification title is required'),

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 const categoryUpdateSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -10,9 +10,6 @@ const categoryUpdateSchema = z.object({
   color: z.string().optional(),
   isActive: z.boolean().default(true),
 });
-
-// Initialize Prisma client
-const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,

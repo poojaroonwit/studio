@@ -115,7 +115,7 @@ export const CandidateImportUploadQueue: React.FC<{
   // Remove isRealtimeActive state and always use SSE
   // const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [jumpToPage, setJumpToPage] = useState<string>("");
-  const { success, error } = useToast();
+  const { success, error: showError } = useToast();
   // Change: default dateRange is null (no filter)
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>(() => ({ start: null, end: null }));
   const { data: session, status: sessionStatus } = useSession();
@@ -310,7 +310,7 @@ export const CandidateImportUploadQueue: React.FC<{
     } catch (err) {
       if (isMounted) {
         setFetchError((err as Error).message);
-        error((err as Error).message);
+        showError((err as Error).message);
       }
     } finally {
       if (isMounted) {
@@ -319,7 +319,7 @@ export const CandidateImportUploadQueue: React.FC<{
       isFetchingRef.current = false;
 
     }
-  }, [page, pageSize, error, filter, statusFilter, dateRange, positionIdFilter]);
+  }, [page, pageSize, showError, filter, statusFilter, dateRange, positionIdFilter]);
 
   // Fetch status summary for static status cards (excludes status filter, includes date filter)
   const fetchStatusSummary = useCallback(async () => {
@@ -805,11 +805,11 @@ export const CandidateImportUploadQueue: React.FC<{
       setBulkDeleteIds([]);
       success('All error jobs retried!');
     } catch (err) {
-      error('Failed to retry all error jobs');
+      showError('Failed to retry all error jobs');
     } finally {
       setBulkRetryLoading(false);
     }
-  }, [jobs, fetchJobs, success, error]);
+  }, [jobs, fetchJobs, success, showError]);
 
   const handleDownloadCSV = useCallback(() => {
     const csvRows = [
@@ -1002,17 +1002,7 @@ export const CandidateImportUploadQueue: React.FC<{
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Queue Status</h3>
             <div className="flex items-center gap-2">
-              {isRealtimeActive ? (
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">Live Updates</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Polling</span>
-                </div>
-              )}
+             
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
@@ -1444,10 +1434,10 @@ export const CandidateImportUploadQueue: React.FC<{
                                 success('Job sent to webhook!');
                               } else {
                                 const data = await res.json();
-                                error(data.error || 'Failed to process job');
+                                showError(data.error || 'Failed to process job');
                               }
                             } catch (err) {
-                              error('Failed to process job');
+                              showError('Failed to process job');
                             }
                             fetchJobs();
                           }}
@@ -1566,7 +1556,7 @@ export const CandidateImportUploadQueue: React.FC<{
                   setBulkDeleteIds([]);
                   await fetchJobs();
                 } catch (err) {
-                  error('Failed to delete some jobs');
+                  showError('Failed to delete some jobs');
                 } finally {
                   setBulkDeleteLoading(false);
                   setShowBulkDeleteConfirm(false);
@@ -1600,7 +1590,7 @@ export const CandidateImportUploadQueue: React.FC<{
                   setBulkDeleteIds([]);
                   await fetchJobs();
                 } catch (err) {
-                  error('Failed to retry some jobs');
+                  showError('Failed to retry some jobs');
                 } finally {
                   setBulkRetryLoading(false);
                   setShowBulkRetryConfirm(false);
@@ -1632,7 +1622,7 @@ export const CandidateImportUploadQueue: React.FC<{
                     if (!res.ok) throw new Error('Cancel failed');
                     success('Job cancelled successfully');
                   } catch (err) {
-                    error('Failed to cancel job');
+                    showError('Failed to cancel job');
                   } finally {
                     setCancelLoading(false);
                     setCancelId(null);

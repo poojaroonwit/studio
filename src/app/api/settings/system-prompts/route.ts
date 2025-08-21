@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 const systemPromptSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -11,9 +11,6 @@ const systemPromptSchema = z.object({
   categoryId: z.string().min(1, 'Category ID is required'),
   isActive: z.boolean().default(true),
 });
-
-// Initialize Prisma client
-const prisma = new PrismaClient();
 
 // Function to ensure default category exists
 async function ensureDefaultCategory() {
@@ -66,7 +63,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to match the expected format
-    const transformedPrompts = systemPrompts.map(prompt => ({
+    const transformedPrompts = systemPrompts.map((prompt: any) => ({
       id: prompt.id,
       name: prompt.name,
       description: prompt.description,

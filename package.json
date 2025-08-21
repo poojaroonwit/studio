@@ -50,7 +50,9 @@
     "start:docker:ps": "powershell -ExecutionPolicy Bypass -File scripts/start-app.ps1",
     "stop:docker": "docker-compose down",
     "logs:docker": "docker-compose logs -f",
-    "migrate:merge-field-codes": "node scripts/migrate-merge-field-codes.cjs"
+    "migrate:merge-field-codes": "node scripts/migrate-merge-field-codes.cjs",
+    "add-toeic-field": "node scripts/add-toeic-custom-field.cjs",
+    "init-ai-prompt": "node scripts/init-ai-power-search-prompt.cjs"
   },
   "dependencies": {
     "@editorjs/checklist": "^1.6.0",

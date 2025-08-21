@@ -66,8 +66,8 @@ export async function checkAndNotifySLAViolations(): Promise<SLAViolationNotific
         violations.push({
           positionId: position.id,
           positionTitle: position.title,
-          recruiterId: position.recruiterId,
-          recruiterName: position.recruiterName,
+          recruiterId: position.recruiterId || null,
+          recruiterName: position.recruiterName || null,
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,
@@ -153,8 +153,8 @@ export async function getSLAViolationsForRecruiter(recruiterId: string): Promise
         violations.push({
           positionId: position.id,
           positionTitle: position.title,
-          recruiterId: position.recruiterId,
-          recruiterName: position.recruiterName,
+          recruiterId: position.recruiterId || null,
+          recruiterName: position.recruiterName || null,
           gradeName: slaResult.gradeName,
           daysOverdue: slaResult.daysOverdue,
           slaDays: slaResult.slaDays,

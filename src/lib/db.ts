@@ -31,18 +31,7 @@ export function getPool() {
       // process.exit(-1);
     });
     
-    // Add connection pool monitoring
-    pool.on('connect', (client) => {
-      console.log('New database connection established');
-    });
-    
-    pool.on('acquire', (client) => {
-      console.log('Database connection acquired from pool');
-    });
-    
-    pool.on('release', (client) => {
-      console.log('Database connection released back to pool');
-    });
+    // Connection pool monitoring (logs removed for cleaner output)
   }
   return pool;
 }

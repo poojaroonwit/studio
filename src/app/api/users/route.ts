@@ -11,6 +11,9 @@ import { authOptions, clearUserValidationCache } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/users:

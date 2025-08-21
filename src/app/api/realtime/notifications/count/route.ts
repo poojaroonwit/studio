@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { NotificationService } from '@/lib/notificationService';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/realtime/notifications/count:

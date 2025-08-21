@@ -597,7 +597,8 @@ export type SystemSettingKey =
   | 'appFontFamily'
   | 'loginPageContent'
   | 'loginPageFooter'
-  | 'maxConcurrentProcessors';
+  | 'maxConcurrentProcessors'
+  | 'aiPowerSearchSystemPrompt';
 
 
 export interface SystemSetting {

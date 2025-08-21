@@ -83,7 +83,7 @@ export function PositionMultiSelectDropdown({
         const data = await response.json();
         let fetchedPositions = data.data || [];
         
-        // Filter for open positions only if requested
+        // Filter for open headcount only if requested
         if (filterOpenOnly) {
           fetchedPositions = fetchedPositions.filter((pos: Position) => pos.isOpen);
         }

@@ -10,8 +10,6 @@ const searchRequestSchema = z.object({
   query: z.string(),
 });
 
-export const dynamic = "force-dynamic";
-
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

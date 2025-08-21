@@ -9,6 +9,9 @@ import { authOptions } from '@/lib/auth';
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_BASE_URL } from '@/lib/minio';
 import { Buffer } from 'buffer';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * @openapi
  * /api/settings/system-settings:
@@ -101,6 +104,8 @@ const systemSettingKeyEnum = z.enum([
     // Webhook Configuration
     'resumeProcessingWebhookResponseMode',
     'resumeProcessingWebhookTimeout',
+    // AI Configuration
+    'aiPowerSearchSystemPrompt',
 
 ]);
 

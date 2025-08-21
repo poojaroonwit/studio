@@ -35,7 +35,7 @@ function BulkUploadCVsModal({ isOpen, onOpenChange, onUploadSuccess }: BulkUploa
   const [fileBatchMap, setFileBatchMap] = useState<{ [fileName: string]: string }>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0);
-  const { successWithDescription, errorWithDescription, error } = useToast();
+  const { successWithDescription, errorWithDescription, error: showError } = useToast();
   const [fileViewerOpen, setFileViewerOpen] = useState(false);
   const [fileViewerFile, setFileViewerFile] = useState<{
     fileName: string;

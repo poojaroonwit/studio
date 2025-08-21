@@ -15,7 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Search, Filter, Kanban, List, Users, RotateCcw, Settings, ChevronDown, Wifi } from 'lucide-react';
-import { TaskBoard, Task, TaskStage } from '@/components/tasks/TaskBoard';
+import { TaskBoard, TaskStage } from '@/components/tasks/TaskBoard';
+import { Task } from '@/components/tasks/TaskCard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 import { useUserPreferences } from '@/hooks/use-user-preferences';
 import { CardCustomizationSettings } from '@/components/tasks/CardCustomizationSettings';

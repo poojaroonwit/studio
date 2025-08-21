@@ -176,7 +176,7 @@ export function CardCustomizationSettings({
 
   const handleSave = useCallback(() => {
     // Only pass the differences between local and original preferences
-    const changes: Partial<TaskBoardPreferences> = {};
+    const changes: Record<string, any> = {};
     const keys = Object.keys(localPreferences) as (keyof TaskBoardPreferences)[];
     
     keys.forEach(key => {

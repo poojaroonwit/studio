@@ -2,7 +2,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TaskBoard, Task, TaskStage } from '@/components/tasks/TaskBoard';
+import { TaskBoard, TaskStage } from '@/components/tasks/TaskBoard';
+import { Task } from '@/components/tasks/TaskCard';
 import { TaskDetailModal } from '@/components/tasks/TaskDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -6,6 +6,9 @@ import { authOptions, validateUserSession } from '@/lib/auth';
 // import { logAudit } from '@/lib/auditLog'; // Removed to avoid database logging
 import { processSingleUploadQueueJob } from './process/route';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {

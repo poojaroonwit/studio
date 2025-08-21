@@ -3,6 +3,9 @@ import { getSafeDbClient } from '@/lib/db';
 import { getSystemSetting } from '@/lib/settings';
 import { processSingleUploadQueueJob } from '../process/route';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
   if (apiKey !== process.env.PROCESSOR_API_KEY) {

@@ -574,6 +574,8 @@ export type SystemSettingKey =
   | 'loginPageBackgroundColor1'
   | 'loginPageBackgroundColor2'
   | 'loginPageLayoutType'
+  // Branding display settings
+  | 'showLogoOnly'
   // Sidebar Light Theme
   | 'sidebarBgStartL'
   | 'sidebarBgEndL'
@@ -696,7 +698,6 @@ export interface Headcount {
   type: HeadcountType;
   status: HeadcountStatus;
   candidateId?: string | null;
-  onboardingDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
@@ -712,7 +713,6 @@ export interface CreateHeadcountRequest {
   type: HeadcountType;
   status?: HeadcountStatus;
   candidateId?: string | null;
-  onboardingDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;
@@ -722,7 +722,6 @@ export interface UpdateHeadcountRequest {
   type?: HeadcountType;
   status?: HeadcountStatus;
   candidateId?: string | null;
-  onboardingDate?: string | null;
   notes?: string | null;
   memoId?: string | null;
   customFields?: Record<string, any>;

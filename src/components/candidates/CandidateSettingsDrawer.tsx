@@ -24,6 +24,7 @@ export interface CandidateSettings {
   showJobMatchesColumn: boolean;
   showFitScoreColumn: boolean;
   showRecruiterColumn: boolean;
+  showSourceColumn: boolean;
   showStatusColumn: boolean;
   showAppliedDateColumn: boolean;
   
@@ -41,6 +42,7 @@ const defaultSettings: CandidateSettings = {
   showJobMatchesColumn: true,
   showFitScoreColumn: true,
   showRecruiterColumn: true,
+  showSourceColumn: true,
   showStatusColumn: true,
   showAppliedDateColumn: true,
   showFilters: true,
@@ -157,6 +159,17 @@ export function CandidateSettingsDrawer({
                       id="showRecruiterColumn"
                       checked={localSettings.showRecruiterColumn}
                       onCheckedChange={(checked) => handleSettingChange('showRecruiterColumn', checked)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="showSourceColumn" className="text-sm font-medium">
+                      Source
+                    </Label>
+                    <Switch
+                      id="showSourceColumn"
+                      checked={localSettings.showSourceColumn}
+                      onCheckedChange={(checked) => handleSettingChange('showSourceColumn', checked)}
                     />
                   </div>
                   

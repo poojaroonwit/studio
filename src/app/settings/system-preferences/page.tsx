@@ -281,6 +281,10 @@ export default function SystemPreferencesPage() {
   const [sidebarLogoExpandedDarkModePreviewUrl, setSidebarLogoExpandedDarkModePreviewUrl] = useState<string | null>(null);
   const [savedSidebarLogoExpandedDarkModeUrl, setSavedSidebarLogoExpandedDarkModeUrl] = useState<string | null>(null);
   
+  // Branding display settings
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
+  const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48); // Default 48px (h-12 w-12)
+  
   // App Favicon state
   const [selectedFaviconFile, setSelectedFaviconFile] = useState<File | null>(null);
   const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
@@ -348,6 +352,10 @@ export default function SystemPreferencesPage() {
           setSidebarLogoCollapsedDarkModePreviewUrl(data.sidebarLogoCollapsedDarkMode || null);
           setSavedSidebarLogoExpandedDarkModeUrl(data.sidebarLogoExpandedDarkMode || null);
           setSidebarLogoExpandedDarkModePreviewUrl(data.sidebarLogoExpandedDarkMode || null);
+          
+          // Load branding display settings
+          setShowLogoOnly(data.showLogoOnly === 'true' || data.showLogoOnly === true);
+          setSidebarLogoSize(data.sidebarLogoSize ? parseInt(data.sidebarLogoSize) : 48);
           
           // Load login page design settings
           setLoginBackgroundType((data[LOGIN_BACKGROUND_TYPE_KEY] as LoginBackgroundType) || DEFAULT_LOGIN_BACKGROUND_TYPE);
@@ -419,7 +427,25 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
         setLogoPreviewUrl(url); // Update with MinIO URL
-        success('Logo uploaded!');
+        
+        // Immediately save the logo URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: 'appLogoDataUrl', value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedLogoUrl(url);
+          setSelectedLogoFile(null);
+          success('Logo uploaded and saved!');
+        } else {
+          throw new Error('Failed to save logo to database');
+        }
       } catch (e: any) {
         showError(e.message || 'Failed to upload logo');
         // Clear preview on error
@@ -431,6 +457,8 @@ export default function SystemPreferencesPage() {
   // Helper function to create logo upload handlers
   const createLogoUploadHandler = (
     setPreviewUrl: (url: string | null) => void,
+    setSavedUrl: (url: string | null) => void,
+    settingKey: string,
     successMessage: string
   ) => async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -455,7 +483,24 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload logo');
         const { url } = await res.json();
         setPreviewUrl(url); // Update with MinIO URL
-        success(successMessage);
+        
+        // Immediately save the logo URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: settingKey, value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedUrl(url);
+          success(successMessage);
+        } else {
+          throw new Error('Failed to save logo to database');
+        }
       } catch (e: any) {
         showError(e.message || 'Failed to upload logo');
         // Clear preview on error
@@ -467,32 +512,44 @@ export default function SystemPreferencesPage() {
   // Logo upload handlers for each variant
   const handleLoginPageLogoLightModeChange = createLogoUploadHandler(
     setLoginPageLogoLightModePreviewUrl,
-    'Login page light mode logo uploaded!'
+    setSavedLoginPageLogoLightModeUrl,
+    'loginPageLogoLightMode',
+    'Login page light mode logo uploaded and saved!'
   );
   
   const handleLoginPageLogoDarkModeChange = createLogoUploadHandler(
     setLoginPageLogoDarkModePreviewUrl,
-    'Login page dark mode logo uploaded!'
+    setSavedLoginPageLogoDarkModeUrl,
+    'loginPageLogoDarkMode',
+    'Login page dark mode logo uploaded and saved!'
   );
 
   const handleSidebarLogoCollapsedLightModeChange = createLogoUploadHandler(
     setSidebarLogoCollapsedLightModePreviewUrl,
-    'Sidebar collapsed light mode logo uploaded!'
+    setSavedSidebarLogoCollapsedLightModeUrl,
+    'sidebarLogoCollapsedLightMode',
+    'Sidebar collapsed light mode logo uploaded and saved!'
   );
 
   const handleSidebarLogoExpandedLightModeChange = createLogoUploadHandler(
     setSidebarLogoExpandedLightModePreviewUrl,
-    'Sidebar expanded light mode logo uploaded!'
+    setSavedSidebarLogoExpandedLightModeUrl,
+    'sidebarLogoExpandedLightMode',
+    'Sidebar expanded light mode logo uploaded and saved!'
   );
 
   const handleSidebarLogoCollapsedDarkModeChange = createLogoUploadHandler(
     setSidebarLogoCollapsedDarkModePreviewUrl,
-    'Sidebar collapsed dark mode logo uploaded!'
+    setSavedSidebarLogoCollapsedDarkModeUrl,
+    'sidebarLogoCollapsedDarkMode',
+    'Sidebar collapsed dark mode logo uploaded and saved!'
   );
 
   const handleSidebarLogoExpandedDarkModeChange = createLogoUploadHandler(
     setSidebarLogoExpandedDarkModePreviewUrl,
-    'Sidebar expanded dark mode logo uploaded!'
+    setSavedSidebarLogoExpandedDarkModeUrl,
+    'sidebarLogoExpandedDarkMode',
+    'Sidebar expanded dark mode logo uploaded and saved!'
   );
 
   const handleFaviconFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -519,7 +576,25 @@ export default function SystemPreferencesPage() {
         if (!res.ok) throw new Error('Failed to upload favicon');
         const { url } = await res.json();
         setFaviconPreviewUrl(url); // Only use MinIO URL
-        success('Favicon uploaded!');
+        
+        // Immediately save the favicon URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: 'appFaviconDataUrl', value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedFaviconUrl(url);
+          setSelectedFaviconFile(null);
+          success('Favicon uploaded and saved!');
+        } else {
+          throw new Error('Failed to save favicon to database');
+        }
       } catch (e: any) {
         showError(e.message || 'Failed to upload favicon');
       }
@@ -551,7 +626,7 @@ export default function SystemPreferencesPage() {
     }
   };
 
-  const handleLoginImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleLoginImageFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > 500 * 1024) { // 500KB limit
@@ -559,12 +634,42 @@ export default function SystemPreferencesPage() {
         return;
       }
       setSelectedLoginImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setLoginImagePreviewUrl(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      
+      // Upload to MinIO
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const res = await fetch('/api/settings/upload-image', {
+          method: 'PUT',
+          body: formData,
+        });
+        if (!res.ok) throw new Error('Failed to upload login background image');
+        const { url } = await res.json();
+        setLoginImagePreviewUrl(url);
+        
+        // Immediately save the login background image URL to the database
+        const saveRes = await fetch('/api/settings/system-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            { key: 'loginPageBackgroundImageUrl', value: url }
+          ]),
+        });
+        
+        if (saveRes.ok) {
+          setSavedLoginImageDataUrl(url);
+          setSelectedLoginImageFile(null);
+          success('Login background image uploaded and saved!');
+        } else {
+          throw new Error('Failed to save login background image to database');
+        }
+      } catch (e: any) {
+        showError(e.message || 'Failed to upload login background image');
+        // Clear preview on error
+        setLoginImagePreviewUrl(null);
+      }
     }
   };
 
@@ -597,6 +702,9 @@ export default function SystemPreferencesPage() {
         'sidebarLogoExpandedLightMode',
         'sidebarLogoCollapsedDarkMode',
         'sidebarLogoExpandedDarkMode',
+        // Branding display settings
+        'showLogoOnly',
+        'sidebarLogoSize',
         'loginBackgroundType',
         'loginBackgroundGradientStart',
         'loginBackgroundGradientEnd',
@@ -610,20 +718,22 @@ export default function SystemPreferencesPage() {
       let settingsToSave = [
         { key: 'themePreference', value: themePreference },
         { key: 'appName', value: appName },
-        { key: 'appLogoDataUrl', value: logoPreviewUrl || savedLogoUrl },
-        { key: 'appFaviconDataUrl', value: faviconPreviewUrl || savedFaviconUrl },
+        { key: 'appLogoDataUrl', value: savedLogoUrl },
+        { key: 'appFaviconDataUrl', value: savedFaviconUrl },
         // New contextual logo settings
-        { key: 'loginPageLogoLightMode', value: loginPageLogoLightModePreviewUrl || savedLoginPageLogoLightModeUrl },
-        { key: 'loginPageLogoDarkMode', value: loginPageLogoDarkModePreviewUrl || savedLoginPageLogoDarkModeUrl },
-        { key: 'sidebarLogoCollapsedLightMode', value: sidebarLogoCollapsedLightModePreviewUrl || savedSidebarLogoCollapsedLightModeUrl },
-        { key: 'sidebarLogoExpandedLightMode', value: sidebarLogoExpandedLightModePreviewUrl || savedSidebarLogoExpandedLightModeUrl },
-        { key: 'sidebarLogoCollapsedDarkMode', value: sidebarLogoCollapsedDarkModePreviewUrl || savedSidebarLogoCollapsedDarkModeUrl },
-        { key: 'sidebarLogoExpandedDarkMode', value: sidebarLogoExpandedDarkModePreviewUrl || savedSidebarLogoExpandedDarkModeUrl },
+        { key: 'loginPageLogoLightMode', value: savedLoginPageLogoLightModeUrl },
+        { key: 'loginPageLogoDarkMode', value: savedLoginPageLogoDarkModeUrl },
+        { key: 'sidebarLogoCollapsedLightMode', value: savedSidebarLogoCollapsedLightModeUrl },
+        { key: 'sidebarLogoExpandedLightMode', value: savedSidebarLogoExpandedLightModeUrl },
+        { key: 'sidebarLogoCollapsedDarkMode', value: savedSidebarLogoCollapsedDarkModeUrl },
+        { key: 'sidebarLogoExpandedDarkMode', value: savedSidebarLogoExpandedDarkModeUrl },
+        { key: 'showLogoOnly', value: showLogoOnly.toString() },
+        { key: 'sidebarLogoSize', value: sidebarLogoSize.toString() },
         { key: 'loginBackgroundType', value: loginBackgroundType },
         { key: 'loginBackgroundGradientStart', value: loginBackgroundGradientStart },
         { key: 'loginBackgroundGradientEnd', value: loginBackgroundGradientEnd },
         { key: 'loginBackgroundColor', value: loginBackgroundColor },
-        { key: 'loginPageBackgroundImageUrl', value: selectedLoginImageFile ? loginImagePreviewUrl : savedLoginImageDataUrl },
+        { key: 'loginPageBackgroundImageUrl', value: savedLoginImageDataUrl },
         // Always sync primaryGradientStart/End to sidebar active color
         { key: 'primaryGradientStart', value: primaryGradientStart || DEFAULT_PRIMARY_GRADIENT_START },
         { key: 'primaryGradientEnd', value: primaryGradientEnd || DEFAULT_PRIMARY_GRADIENT_END },
@@ -655,25 +765,11 @@ export default function SystemPreferencesPage() {
         throw new Error(errorData.message || 'Failed to save preferences');
       }
       
-      // Update saved states
-      if (logoPreviewUrl) {
-        setSavedLogoUrl(logoPreviewUrl);
-        setSelectedLogoFile(null);
-      }
-      
-      if (faviconPreviewUrl) {
-        setSavedFaviconUrl(faviconPreviewUrl);
-        setSelectedFaviconFile(null);
-      }
-      
-      if (selectedLoginImageFile) {
-        setSavedLoginImageDataUrl(loginImagePreviewUrl);
-        setSelectedLoginImageFile(null);
-      }
+
 
       // Trigger favicon update
       window.dispatchEvent(new CustomEvent('faviconUpdated', {
-        detail: { faviconDataUrl: faviconPreviewUrl }
+        detail: { faviconDataUrl: savedFaviconUrl }
       }));
       
       success('Preferences saved successfully!');
@@ -691,17 +787,18 @@ export default function SystemPreferencesPage() {
       window.dispatchEvent(new CustomEvent('appConfigChanged', {
         detail: {
           appName,
-          logoUrl: logoPreviewUrl || savedLogoUrl,
+          logoUrl: savedLogoUrl,
           themePreference,
           primaryGradientStart: primaryGradientStart || sidebarColors.sidebarActiveBgStartL || DEFAULT_PRIMARY_GRADIENT_START,
           primaryGradientEnd: primaryGradientEnd || sidebarColors.sidebarActiveBgEndL || DEFAULT_PRIMARY_GRADIENT_END,
           sidebarColors,
           sidebarActiveStyle,
+          sidebarLogoSize,
           contextualLogos: {
-            sidebarLogoCollapsedLightMode: sidebarLogoCollapsedLightModePreviewUrl || savedSidebarLogoCollapsedLightModeUrl,
-            sidebarLogoExpandedLightMode: sidebarLogoExpandedLightModePreviewUrl || savedSidebarLogoExpandedLightModeUrl,
-            sidebarLogoCollapsedDarkMode: sidebarLogoCollapsedDarkModePreviewUrl || savedSidebarLogoCollapsedDarkModeUrl,
-            sidebarLogoExpandedDarkMode: sidebarLogoExpandedDarkModePreviewUrl || savedSidebarLogoExpandedDarkModeUrl,
+            sidebarLogoCollapsedLightMode: savedSidebarLogoCollapsedLightModeUrl,
+            sidebarLogoExpandedLightMode: savedSidebarLogoExpandedLightModeUrl,
+            sidebarLogoCollapsedDarkMode: savedSidebarLogoCollapsedDarkModeUrl,
+            sidebarLogoExpandedDarkMode: savedSidebarLogoExpandedDarkModeUrl,
           },
         }
       }));
@@ -1500,6 +1597,82 @@ export default function SystemPreferencesPage() {
                          </div>
                        </div>
                        
+                      {/* Branding Display Settings */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-base font-semibold">Display Settings</Label>
+                            <p className="text-sm text-muted-foreground">Configure how logos and application names are displayed</p>
+                          </div>
+                          <Badge variant="outline">Optional</Badge>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="show-logo-only"
+                              checked={showLogoOnly}
+                              onChange={(e) => setShowLogoOnly(e.target.checked)}
+                              disabled={!canEdit}
+                              className="rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <Label htmlFor="show-logo-only" className="text-sm font-medium">
+                              Show logo only (hide application name)
+                            </Label>
+                          </div>
+                          <p className="text-xs text-muted-foreground ml-6">
+                            When enabled, only the logo will be displayed on the login page and sidebar navigation, without the application name.
+                          </p>
+                          
+                          {/* Logo Size Adjustment - Only show when "Show logo only" is enabled */}
+                          {showLogoOnly && (
+                            <div className="space-y-3 ml-6">
+                              <div className="space-y-2">
+                                <Label htmlFor="sidebar-logo-size" className="text-sm font-medium">
+                                  Sidebar Logo Size
+                                </Label>
+                                <div className="flex items-center gap-4">
+                                  <Input
+                                    id="sidebar-logo-size"
+                                    type="range"
+                                    min="24"
+                                    max="96"
+                                    step="8"
+                                    value={sidebarLogoSize}
+                                    onChange={(e) => setSidebarLogoSize(parseInt(e.target.value))}
+                                    disabled={!canEdit}
+                                    className="flex-1"
+                                  />
+                                  <div className="flex items-center gap-2 min-w-[60px]">
+                                    <span className="text-sm font-mono">{sidebarLogoSize}px</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-center p-4 bg-muted/30 rounded-lg border">
+                                  <div 
+                                    className="bg-background border rounded-lg p-2 flex items-center justify-center"
+                                    style={{ width: `${sidebarLogoSize}px`, height: `${sidebarLogoSize}px` }}
+                                  >
+                                    {logoPreviewUrl ? (
+                                      <img
+                                        src={logoPreviewUrl}
+                                        alt="Logo size preview"
+                                        className="max-w-full max-h-full object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-6 h-6 bg-muted rounded" />
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Adjust the size of the logo in the sidebar. Range: 24px - 96px
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
                       {/* Usage Guide */}
                       <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
                          <div className="flex items-start gap-3">

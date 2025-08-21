@@ -20,6 +20,7 @@ interface RecruiterCellProps {
     name: string;
     avatarUrl?: string;
     personalColor?: string;
+    vacantHeadcount?: number;
   }>;
   canManagePositions: boolean;
   isAssigning: boolean;
@@ -122,9 +123,16 @@ export function RecruiterCell({
                 {position.recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
-            <span className="text-sm font-medium text-foreground truncate">
-              {position.recruiterName}
-            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium text-foreground truncate">
+                {position.recruiterName}
+              </span>
+              {currentRecruiter?.vacantHeadcount !== undefined && (
+                <span className="text-xs text-muted-foreground">
+                  {currentRecruiter.vacantHeadcount} vacant
+                </span>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -172,9 +180,16 @@ export function RecruiterCell({
                   {position.recruiterName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium text-foreground truncate flex-1">
-                {position.recruiterName}
-              </span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium text-foreground truncate">
+                  {position.recruiterName}
+                </span>
+                {currentRecruiter?.vacantHeadcount !== undefined && (
+                  <span className="text-xs text-muted-foreground">
+                    {currentRecruiter.vacantHeadcount} vacant
+                  </span>
+                )}
+              </div>
               <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
             </div>
           ) : (
@@ -258,7 +273,9 @@ export function RecruiterCell({
                   </Avatar>
                   <div className="flex flex-col flex-1">
                     <span className="text-sm font-medium">{recruiter.name}</span>
-                    <span className="text-xs text-muted-foreground">Recruiter</span>
+                    <span className="text-xs text-muted-foreground">
+                      Recruiter • {recruiter.vacantHeadcount || 0} vacant
+                    </span>
                   </div>
                   {position.recruiterId === recruiter.id && (
                     <Check className="h-4 w-4 text-primary" />

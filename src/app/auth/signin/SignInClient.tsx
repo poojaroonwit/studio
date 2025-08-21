@@ -53,6 +53,12 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
     }
     return DEFAULT_APP_NAME;
   });
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(() => {
+    if (initialSettings) {
+      return initialSettings.find(s => s.key === 'showLogoOnly')?.value === 'true';
+    }
+    return false;
+  });
   const [isClient, setIsClient] = useState(false);
   const [loginPageStyle, setLoginPageStyle] = useState<React.CSSProperties>({});
   const [isThemeDark, setIsThemeDark] = useState(false);
@@ -125,6 +131,7 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
 
             setCurrentAppName(appName);
             setAppLogoUrl(logoUrl);
+            setShowLogoOnly(settings.showLogoOnly === 'true' || settings.showLogoOnly === true);
             setLoginLayoutType(loginLayoutTypeSetting);
 
             // Apply primary colors and theme dynamically for login page
@@ -505,12 +512,16 @@ export default function SignInClient({ initialSettings }: SignInClientProps) {
               </div>
             );
           })()}
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent mb-2">
-            {currentAppName}
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Professional Recruitment Management
-          </p>
+          {!showLogoOnly && (
+            <>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent mb-2">
+                {currentAppName}
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Professional Recruitment Management
+              </p>
+            </>
+          )}
         </div>
 
         <Card className="w-full bg-card/50 backdrop-blur-sm border border-border/50 pro-card-shadow login-transition">

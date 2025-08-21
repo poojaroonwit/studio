@@ -200,7 +200,7 @@ export const CandidateHeader: React.FC<CandidateHeaderProps> = ({
             </div>
 
             {/* Recruiter Assignment */}
-            <div>
+            <div className="border border-border rounded-lg">
               <CandidateRecruiterCell
                 candidate={candidate}
                 availableRecruiters={availableRecruiters}

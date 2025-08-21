@@ -13,7 +13,8 @@ import {
   Database,
   Zap,
   Target,
-  Kanban
+  Kanban,
+  AlertTriangle
 } from "lucide-react";
 
 export interface SidebarNavItem {
@@ -74,6 +75,12 @@ export const sidebarConfig: SidebarNavGroup[] = [
         icon: Kanban, 
         href: "/task-board",
         description: "General task management with drag & drop"
+      },
+      { 
+        label: "SLA Monitoring", 
+        icon: AlertTriangle, 
+        href: "/sla-monitoring",
+        description: "Monitor Service Level Agreement compliance"
       },
     ],
   },

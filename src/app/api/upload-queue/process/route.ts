@@ -473,12 +473,7 @@ export async function processSingleUploadQueueJob(job: any, client: any) {
       // file_path is just the object name, construct the full URL
       publicUrl = `${MINIO_PUBLIC_BASE_URL}/${MINIO_BUCKET}/${job.file_path}`;
     }
-    
-    console.log('[Webhook] File path debug:', {
-      originalFilePath: job.file_path,
-      constructedUrl: publicUrl,
-      isFullUrl: job.file_path && job.file_path.startsWith('http')
-    });
+
     
     // Get targetPositionId, candidate_id, sourceId, and additionalAttachment from webhook_payload if available
     let targetPositionId = null;

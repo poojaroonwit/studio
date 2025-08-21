@@ -22,13 +22,13 @@ export function FitScoreFilterTabs({
 
   const getCount = (letter: string) => {
     const count = candidateCounts.find(c => c.letter === letter)?.count || 0;
-    console.log(`FitScoreFilterTabs - getCount for ${letter}:`, count, 'candidateCounts:', candidateCounts);
+
     return count;
   };
 
   const getTotalCount = () => {
     const total = candidateCounts.reduce((total, item) => total + item.count, 0);
-    console.log('FitScoreFilterTabs - getTotalCount:', total, 'candidateCounts:', candidateCounts);
+
     return total;
   };
 
@@ -89,7 +89,7 @@ export function FitScoreFilterTabs({
               : "text-black hover:text-foreground hover:bg-muted/30 border-b-2 border-gray-300"
           )}
         >
-          All (0-100) {getTotalCount() > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center">{getTotalCount()}</Badge>}
+          All (0-100) {getTotalCount() > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getTotalCount()}</Badge>}
         </div>
         {scoreRanges.map((grade) => (
           <div
@@ -102,7 +102,7 @@ export function FitScoreFilterTabs({
                 : cn("hover:bg-muted/30", getGradeTextColor(grade.letter))
             )}
           >
-            {grade.letter} ({grade.min}-{grade.max}) {getCount(grade.letter) > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center">{getCount(grade.letter)}</Badge>}
+            {grade.letter} ({grade.min}-{grade.max}) {getCount(grade.letter) > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getCount(grade.letter)}</Badge>}
           </div>
         ))}
         <div
@@ -114,7 +114,7 @@ export function FitScoreFilterTabs({
               : cn("hover:bg-muted/30", getGradeTextColor('no-score'))
           )}
         >
-          No Score {getCount('no-score') > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center">{getCount('no-score')}</Badge>}
+          No Score {getCount('no-score') > 0 && <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0.5 h-5 min-w-5 flex items-center justify-center text-foreground">{getCount('no-score')}</Badge>}
         </div>
       </div>
     </div>

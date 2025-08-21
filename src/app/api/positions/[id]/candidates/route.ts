@@ -48,7 +48,7 @@ export async function GET(
     const searchTerm = searchParams.get('searchTerm') || '';
     
     // Filter by type (applied, matched, or all)
-    const type = searchParams.get('type') || 'all';
+    const type = searchParams.get('type') || 'applied';
 
     const client = await getPool().connect();
     try {
@@ -57,11 +57,15 @@ export async function GET(
       if (positionCheck.rows.length === 0) {
         return NextResponse.json({ error: 'Position not found' }, { status: 404 });
       }
+      
+
 
              // Build the query with proper ORDER BY clause
-       const baseQuery = `
-          WITH applied_candidates AS (
-            -- Candidates who applied to this position
+       let baseQuery = '';
+       
+       if (type === 'applied') {
+         // Only candidates who applied to this position
+         baseQuery = `
             SELECT 
               c.*, 
               p.id as "positionId", 
@@ -69,7 +73,7 @@ export async function GET(
               p.department as "positionDepartment", 
               p."positionLevel" as "positionLevel",
               r.id as "recruiterId", 
-              r.name as "recruiterName",
+              r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
               'applied' as association_type,
               COALESCE(th_data.history, '[]'::json) as "transitionHistory",
               COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
@@ -97,10 +101,13 @@ export async function GET(
               WHERE jm."candidateId" = c.id
             ) AS jm_data ON true
             WHERE c."positionId" = $1
-            AND ($6 = 'all' OR $6 = 'applied')
-          ),
-          matched_candidates AS (
-            -- Candidates who have job matches for this position but didn't apply
+            AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
+            LIMIT $4 OFFSET $5;
+          `;
+       } else if (type === 'matched') {
+         // Only candidates who have job matches but didn't apply
+         baseQuery = `
             SELECT 
               c.*, 
               p.id as "positionId", 
@@ -108,7 +115,7 @@ export async function GET(
               p.department as "positionDepartment", 
               p."positionLevel" as "positionLevel",
               r.id as "recruiterId", 
-              r.name as "recruiterName",
+              r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
               'matched' as association_type,
               COALESCE(th_data.history, '[]'::json) as "transitionHistory",
               COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
@@ -136,84 +143,161 @@ export async function GET(
               WHERE jm."candidateId" = c.id
             ) AS jm_data ON true
             WHERE (c."positionId" IS NULL OR c."positionId" != $1)
+            AND EXISTS (
+              SELECT 1 FROM "JobMatch" jm 
+              WHERE jm."candidateId" = c.id AND jm."jobId" = $1
+            )
+            AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            ORDER BY SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
+            LIMIT $4 OFFSET $5;
+          `;
+       } else {
+         // All candidates (applied + matched)
+         baseQuery = `
+            WITH applied_candidates AS (
+              SELECT 
+                c.*, 
+                p.id as "positionId", 
+                p.title as "positionTitle", 
+                p.department as "positionDepartment", 
+                p."positionLevel" as "positionLevel",
+                r.id as "recruiterId", 
+                r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
+                'applied' as association_type,
+                COALESCE(th_data.history, '[]'::json) as "transitionHistory",
+                COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
+              FROM "Candidate" c
+              LEFT JOIN "Position" p ON c."positionId" = p.id
+              LEFT JOIN "User" r ON c."recruiterId" = r.id
+              LEFT JOIN LATERAL (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
+                  ) ORDER BY th.date DESC
+                ) AS history
+                FROM "TransitionRecord" th
+                WHERE th."candidateId" = c.id
+              ) AS th_data ON true
+              LEFT JOIN LATERAL (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
+                    'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
+                    'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
+                  ) ORDER BY jm."fitScore" DESC
+                ) AS jobMatches
+                FROM "JobMatch" jm
+                WHERE jm."candidateId" = c.id
+              ) AS jm_data ON true
+              WHERE c."positionId" = $1
+              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            ),
+            matched_candidates AS (
+              SELECT 
+                c.*, 
+                p.id as "positionId", 
+                p.title as "positionTitle", 
+                p.department as "positionDepartment", 
+                p."positionLevel" as "positionLevel",
+                r.id as "recruiterId", 
+                r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
+                'matched' as association_type,
+                COALESCE(th_data.history, '[]'::json) as "transitionHistory",
+                COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
+              FROM "Candidate" c
+              LEFT JOIN "Position" p ON c."positionId" = p.id
+              LEFT JOIN "User" r ON c."recruiterId" = r.id
+              LEFT JOIN LATERAL (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
+                  ) ORDER BY th.date DESC
+                ) AS history
+                FROM "TransitionRecord" th
+                WHERE th."candidateId" = c.id
+              ) AS th_data ON true
+              LEFT JOIN LATERAL (
+                SELECT json_agg(
+                  json_build_object(
+                    'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
+                    'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
+                    'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
+                  ) ORDER BY jm."fitScore" DESC
+                ) AS jobMatches
+                FROM "JobMatch" jm
+                WHERE jm."candidateId" = c.id
+              ) AS jm_data ON true
+              WHERE (c."positionId" IS NULL OR c."positionId" != $1)
               AND EXISTS (
                 SELECT 1 FROM "JobMatch" jm 
                 WHERE jm."candidateId" = c.id AND jm."jobId" = $1
               )
-          ),
-          all_candidates AS (
-            -- First get all applied candidates
-            SELECT *, 1 as sort_order, association_type FROM applied_candidates
+              AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+            )
+            SELECT *, 1 as sort_order FROM applied_candidates
             UNION ALL
-            -- Then append matched candidates (excluding those who already applied)
-            SELECT mc.*, 2 as sort_order, mc.association_type
-            FROM matched_candidates mc
-            WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
-          )
-          SELECT *
-          FROM all_candidates
-          WHERE ($2 = '' OR name ILIKE $3 OR email ILIKE $3)
-          AND (
-            $6 = 'all' OR
-            ($6 = 'applied' AND association_type = 'applied') OR
-            ($6 = 'matched' AND association_type = 'matched')
-          )
-          ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
-          LIMIT $4 OFFSET $5;
-        `;
+            SELECT *, 2 as sort_order FROM matched_candidates
+            ORDER BY sort_order, SORT_COLUMN_PLACEHOLDER SORT_DIRECTION_PLACEHOLDER
+            LIMIT $4 OFFSET $5;
+          `;
+       }
 
        const candidatesQuery = baseQuery
          .replace('SORT_COLUMN_PLACEHOLDER', sortColumn)
          .replace('SORT_DIRECTION_PLACEHOLDER', sortDirection);
 
       // Count query for total
-      const countQuery = `
-         WITH applied_candidates AS (
-           -- Candidates who applied to this position
-           SELECT c.id, 'applied' as association_type
+      let countQuery = '';
+      
+      if (type === 'applied') {
+        countQuery = `
+           SELECT COUNT(*) as total
            FROM "Candidate" c
            WHERE c."positionId" = $1
-           AND ($4 = 'all' OR $4 = 'applied')
-         ),
-         matched_candidates AS (
-           -- Candidates who have job matches for this position but didn't apply
-           SELECT c.id, 'matched' as association_type
+           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+         `;
+      } else if (type === 'matched') {
+        countQuery = `
+           SELECT COUNT(*) as total
            FROM "Candidate" c
            WHERE (c."positionId" IS NULL OR c."positionId" != $1)
+           AND EXISTS (
+             SELECT 1 FROM "JobMatch" jm 
+             WHERE jm."candidateId" = c.id AND jm."jobId" = $1
+           )
+           AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3);
+         `;
+      } else {
+        countQuery = `
+           WITH applied_candidates AS (
+             SELECT c.id
+             FROM "Candidate" c
+             WHERE c."positionId" = $1
+             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+           ),
+           matched_candidates AS (
+             SELECT c.id
+             FROM "Candidate" c
+             WHERE (c."positionId" IS NULL OR c."positionId" != $1)
              AND EXISTS (
                SELECT 1 FROM "JobMatch" jm 
                WHERE jm."candidateId" = c.id AND jm."jobId" = $1
              )
-         ),
-         all_candidates AS (
-           -- First get all applied candidates
-           SELECT id, association_type FROM applied_candidates
-           UNION ALL
-           -- Then append matched candidates (excluding those who already applied)
-           SELECT mc.id, mc.association_type
-           FROM matched_candidates mc
-           WHERE mc.id NOT IN (SELECT id FROM applied_candidates)
-         )
-         SELECT COUNT(*) as total
-         FROM all_candidates ac
-         JOIN "Candidate" c ON c.id = ac.id
-         WHERE ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
-         AND (
-           $4 = 'all' OR
-           ($4 = 'applied' AND ac.association_type = 'applied') OR
-           ($4 = 'matched' AND ac.association_type = 'matched')
-         );
-       `;
+             AND ($2 = '' OR c.name ILIKE $3 OR c.email ILIKE $3)
+           )
+           SELECT (SELECT COUNT(*) FROM applied_candidates) + (SELECT COUNT(*) FROM matched_candidates) as total;
+         `;
+      }
 
       const searchPattern = `%${searchTerm}%`;
-      const queryParams = [positionId, searchTerm, searchPattern, limit, offset, type];
-      const countParams = [positionId, searchTerm, searchPattern, type];
-
+      const queryParams = [positionId, searchTerm, searchPattern, limit, offset];
+      const countParams = [positionId, searchTerm, searchPattern];
+      
       const [candidatesResult, countResult] = await Promise.all([
         client.query(candidatesQuery, queryParams),
         client.query(countQuery, countParams)
       ]);
-
+      
       const total = parseInt(countResult.rows[0].total, 10);
       const candidates = candidatesResult.rows.map(row => {
         let customAttributes = row.customAttributes || {};
@@ -271,6 +355,7 @@ export async function GET(
           recruiter: row.recruiterId ? {
             id: row.recruiterId,
             name: row.recruiterName,
+            avatarUrl: row.recruiterAvatarUrl || null,
             email: null
           } : null,
           createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),

@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPool } from '@/lib/db';
 import { authOptions } from '@/lib/auth';
 import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/lib/candidateSse';
+import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
 
 
 
@@ -121,40 +122,131 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'change_status':
-        const oldStatusesResult = await client.query('SELECT id, status FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
+        const oldStatusesResult = await client.query('SELECT id, status, "positionId" FROM "Candidate" WHERE id = ANY($1::uuid[])', [candidateIds]);
         const oldStatuses = oldStatusesResult.rows;
         
-        const updateStatusResult = await client.query(
-          'UPDATE "Candidate" SET status = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
-          [newStatus, candidateIds]
-        );
-
-        // Create transition records for status changes
-        for (const candidate of oldStatuses) {
-          if (candidate.status !== newStatus) {
-            const newTransitionId = uuidv4();
-            await client.query(
-              'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
-              [newTransitionId, candidate.id, newStatus, transitionNotes || null, actingUserId]
-            );
-            
-            // Get the created transition record to broadcast
-            const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
-            const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
-            if (transitionResult.rows.length > 0) {
-              const newTransition = transitionResult.rows[0];
-              // Broadcast the new transition
-              broadcastCandidateTransitionUpdate({
+        // If changing to "Hired" status, validate headcount availability for each candidate
+        const headcountValidationResults = [];
+        const candidatesToUpdate = [];
+        const candidatesToReject = [];
+        
+        if (newStatus === 'Hired') {
+          for (const candidate of oldStatuses) {
+            if (candidate.status !== newStatus && candidate.positionId) {
+              try {
+                const validation = await validateCandidateHiringStatus(candidate.id, candidate.positionId);
+                if (validation.canHire) {
+                  candidatesToUpdate.push(candidate);
+                  headcountValidationResults.push({
+                    candidateId: candidate.id,
+                    validation,
+                    willAutoAssign: validation.reason === 'VACANT_HEADCOUNT_AVAILABLE'
+                  });
+                } else {
+                  candidatesToReject.push({
+                    candidateId: candidate.id,
+                    reason: validation.reason,
+                    message: validation.message
+                  });
+                }
+              } catch (error) {
+                console.error(`Error validating headcount for candidate ${candidate.id}:`, error);
+                candidatesToReject.push({
+                  candidateId: candidate.id,
+                  reason: 'VALIDATION_ERROR',
+                  message: 'Error validating headcount availability'
+                });
+              }
+            } else if (candidate.status !== newStatus) {
+              // Candidate has no position, cannot be hired
+              candidatesToReject.push({
                 candidateId: candidate.id,
-                transition: newTransition,
-                action: 'add'
+                reason: 'NO_POSITION',
+                message: 'Candidate must be assigned to a position to be hired'
               });
+            } else {
+              // Status is already "Hired", no change needed
+              candidatesToUpdate.push(candidate);
+            }
+          }
+        } else {
+          // For non-"Hired" status changes, update all candidates
+          candidatesToUpdate.push(...oldStatuses);
+        }
+        
+        // Update candidates that passed validation
+        if (candidatesToUpdate.length > 0) {
+          const candidateIdsToUpdate = candidatesToUpdate.map(c => c.id);
+          const updateStatusResult = await client.query(
+            'UPDATE "Candidate" SET status = $1, "updatedAt" = NOW() WHERE id = ANY($2::uuid[]) RETURNING id',
+            [newStatus, candidateIdsToUpdate]
+          );
+
+          // Create transition records and handle headcount assignments for status changes
+          for (const candidate of candidatesToUpdate) {
+            if (candidate.status !== newStatus) {
+              const newTransitionId = uuidv4();
+              await client.query(
+                'INSERT INTO "TransitionRecord" (id, "candidateId", stage, notes, "actingUserId", date, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())',
+                [newTransitionId, candidate.id, newStatus, transitionNotes || null, actingUserId]
+              );
+              
+              // Get the created transition record to broadcast
+              const getTransitionQuery = 'SELECT * FROM "TransitionRecord" WHERE id = $1';
+              const transitionResult = await client.query(getTransitionQuery, [newTransitionId]);
+              if (transitionResult.rows.length > 0) {
+                const newTransition = transitionResult.rows[0];
+                // Broadcast the new transition
+                broadcastCandidateTransitionUpdate({
+                  candidateId: candidate.id,
+                  transition: newTransition,
+                  action: 'add'
+                });
+              }
             }
           }
         }
 
-        result = { updatedCount: updateStatusResult.rowCount };
-        auditMessage = `Bulk updated status to ${newStatus} for ${updateStatusResult.rowCount} candidates`;
+        // Handle headcount assignments for candidates changing to "Hired" status
+        const headcountAssignmentResults = [];
+        if (newStatus === 'Hired') {
+          for (const result of headcountValidationResults) {
+            if (result.willAutoAssign) {
+              try {
+                const assignmentResult = await assignCandidateToHeadcount(
+                  result.candidateId,
+                  candidatesToUpdate.find(c => c.id === result.candidateId)?.positionId!,
+                  actingUserId,
+                  actingUserName
+                );
+                headcountAssignmentResults.push({
+                  candidateId: result.candidateId,
+                  success: assignmentResult.success,
+                  message: assignmentResult.message,
+                  headcountId: assignmentResult.headcountId
+                });
+              } catch (error) {
+                console.error(`Error assigning headcount for candidate ${result.candidateId}:`, error);
+                headcountAssignmentResults.push({
+                  candidateId: result.candidateId,
+                  success: false,
+                  message: 'Error assigning headcount'
+                });
+              }
+            }
+          }
+        }
+
+        result = { 
+          updatedCount: candidatesToUpdate.length,
+          rejectedCount: candidatesToReject.length,
+          headcountAssignments: headcountAssignmentResults,
+          rejectedCandidates: candidatesToReject
+        };
+        
+        const successMessage = `Updated status to ${newStatus} for ${candidatesToUpdate.length} candidates`;
+        const rejectMessage = candidatesToReject.length > 0 ? `, rejected ${candidatesToReject.length} candidates due to headcount constraints` : '';
+        auditMessage = successMessage + rejectMessage;
         break;
 
       case 'assign_recruiter':

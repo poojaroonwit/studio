@@ -17,6 +17,8 @@ const preferenceSchema = z.object({
   sidebarLogoExpandedLightMode: z.string().nullable().optional(),
   sidebarLogoCollapsedDarkMode: z.string().nullable().optional(),
   sidebarLogoExpandedDarkMode: z.string().nullable().optional(),
+  // Branding display settings
+  showLogoOnly: z.boolean().optional(),
   loginBackgroundType: z.enum(["image", "gradient", "solid"]).optional(),
   loginBackgroundGradientStart: z.string().optional(),
   loginBackgroundGradientEnd: z.string().optional(),

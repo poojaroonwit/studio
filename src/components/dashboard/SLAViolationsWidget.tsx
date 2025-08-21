@@ -1,78 +1,59 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertTriangle, Clock, Users, Eye, TrendingUp, Calendar, Target, BarChart3, Filter, RefreshCw, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import type { SLAViolationNotification } from '@/lib/slaNotificationService';
+import type { SLAViolationNotification, SLAPositionData, SLAStatistics } from '@/lib/slaNotificationService';
 
 interface SLAViolationsWidgetProps {
   recruiterId?: string;
 }
 
-interface SLAStats {
-  total: number;
-  critical: number;
-  warning: number;
-  onTrack: number;
-  complianceRate: number;
-}
-
 export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
+  const { data: session } = useSession();
   const [violations, setViolations] = useState<SLAViolationNotification[]>([]);
+  const [allPositions, setAllPositions] = useState<SLAPositionData[]>([]);
+  const [statistics, setStatistics] = useState<SLAStatistics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
-  const [stats, setStats] = useState<SLAStats>({
-    total: 0,
-    critical: 0,
-    warning: 0,
-    onTrack: 0,
-    complianceRate: 0
-  });
   const router = useRouter();
 
-  const fetchViolations = async () => {
+  // Determine the actual recruiter ID to use
+  const actualRecruiterId = recruiterId === 'current' ? session?.user?.id : recruiterId;
+
+  const fetchSLAData = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = recruiterId 
-        ? `/api/sla-violations?recruiterId=${recruiterId}`
-        : '/api/sla-violations';
+      const url = new URL('/api/sla-violations', window.location.origin);
+      if (actualRecruiterId) {
+        url.searchParams.set('recruiterId', actualRecruiterId);
+      }
+      url.searchParams.set('includeAll', 'true');
+      url.searchParams.set('includeStats', 'true');
       
-      const response = await fetch(url);
+      const response = await fetch(url.toString());
       if (!response.ok) {
-        throw new Error('Failed to fetch SLA violations');
+        throw new Error('Failed to fetch SLA data');
       }
       
       const data = await response.json();
-      const violationsData = data.violations || [];
-      setViolations(violationsData);
-      
-      // Calculate stats
-      const critical = violationsData.filter((v: SLAViolationNotification) => v.daysOverdue > 30).length;
-      const warning = violationsData.filter((v: SLAViolationNotification) => v.daysOverdue <= 30 && v.daysOverdue > 7).length;
-      const total = violationsData.length;
-      const onTrack = Math.max(0, 100 - total); // Assuming we have 100 total positions for demo
-      const complianceRate = total > 0 ? Math.round(((onTrack) / (total + onTrack)) * 100) : 100;
-      
-      setStats({
-        total,
-        critical,
-        warning,
-        onTrack,
-        complianceRate
-      });
+      setViolations(data.violations || []);
+      setAllPositions(data.allPositions || []);
+      setStatistics(data.statistics || null);
     } catch (err) {
-      console.error('Error fetching SLA violations:', err);
+      console.error('Error fetching SLA data:', err);
       setError((err as Error).message);
     } finally {
       setIsLoading(false);
@@ -80,31 +61,46 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
   };
 
   useEffect(() => {
-    fetchViolations();
-  }, [recruiterId]);
+    if (recruiterId === 'current' && !session?.user?.id) {
+      // Wait for session to load
+      return;
+    }
+    fetchSLAData();
+  }, [actualRecruiterId, session]);
 
-  const getSeverityColor = (daysOverdue: number) => {
-    if (daysOverdue <= 7) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
-    if (daysOverdue <= 30) return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
-    return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+  const getSeverityColor = (status: string) => {
+    switch (status) {
+      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'critical': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300';
+      case 'warning': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      case 'on_track': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300';
+    }
   };
 
-  const getSeverityIcon = (daysOverdue: number) => {
-    if (daysOverdue <= 7) return '⚠️';
-    if (daysOverdue <= 30) return '🚨';
-    return '🔥';
+  const getSeverityIcon = (status: string) => {
+    switch (status) {
+      case 'urgent': return '🔥';
+      case 'critical': return '🚨';
+      case 'warning': return '⚠️';
+      case 'on_track': return '✅';
+      default: return '📊';
+    }
   };
 
-  const getSeverityLevel = (daysOverdue: number) => {
-    if (daysOverdue <= 7) return 'warning';
-    if (daysOverdue <= 30) return 'critical';
-    return 'urgent';
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'urgent': return 'Urgent';
+      case 'critical': return 'Critical';
+      case 'warning': return 'Warning';
+      case 'on_track': return 'On Track';
+      default: return 'Unknown';
+    }
   };
 
-  const filteredViolations = violations.filter(violation => {
+  const filteredPositions = allPositions.filter(position => {
     if (filterSeverity === 'all') return true;
-    const level = getSeverityLevel(violation.daysOverdue);
-    return level === filterSeverity;
+    return position.status === filterSeverity;
   });
 
   if (isLoading) {
@@ -137,7 +133,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
         <CardContent>
           <div className="text-center py-4">
             <p className="text-red-500 mb-2">Error loading SLA data</p>
-            <Button onClick={fetchViolations} variant="outline" size="sm">
+            <Button onClick={fetchSLAData} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
@@ -162,13 +158,13 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
               )}
             </CardTitle>
             <CardDescription>
-              {recruiterId ? 'Your positions with SLA violations' : 'All positions with SLA violations'}
+              {actualRecruiterId ? 'Your positions with SLA monitoring' : 'All positions with SLA monitoring'}
             </CardDescription>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchViolations}
+            onClick={fetchSLAData}
             className="h-8 w-8 p-0"
           >
             <RefreshCw className="h-4 w-4" />
@@ -191,6 +187,21 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
           Overview
         </div>
         <div
+          onClick={() => setActiveTab('positions')}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+            activeTab === 'positions'
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+          )}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          All Positions
+          <Badge variant="outline" className="ml-1 text-xs">
+            {allPositions.length}
+          </Badge>
+        </div>
+        <div
           onClick={() => setActiveTab('violations')}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 relative cursor-pointer",
@@ -199,7 +210,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
               : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
           )}
         >
-          <AlertTriangle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" />
           Violations
           {violations.length > 0 && (
             <Badge variant="destructive" className="ml-1 text-xs">
@@ -223,37 +234,179 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
 
       <CardContent className="flex-1 p-0">
         <div className="h-full">
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && statistics && (
             <ScrollArea className="h-full px-6 py-4">
               <div className="space-y-4">
                 {/* Compliance Rate */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">SLA Compliance Rate</span>
-                    <span className="text-sm text-muted-foreground">{stats.complianceRate}%</span>
+                    <span className="text-sm text-muted-foreground">{statistics.complianceRate}%</span>
                   </div>
-                  <Progress value={stats.complianceRate} className="h-2" />
+                  <Progress value={statistics.complianceRate} className="h-2" />
                   <p className="text-xs text-muted-foreground">
-                    {stats.onTrack} positions on track, {stats.total} violations
+                    {statistics.onTrack} positions on track, {statistics.total - statistics.onTrack} violations
                   </p>
                 </div>
 
                 {/* Severity Breakdown */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.critical}</div>
-                    <div className="text-xs text-red-600 dark:text-red-400">Critical</div>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{statistics.onTrack}</div>
+                    <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
+                  </div>
+                  <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{statistics.warning}</div>
+                    <div className="text-xs text-yellow-600 dark:text-yellow-400">Warning</div>
                   </div>
                   <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.warning}</div>
-                    <div className="text-xs text-orange-600 dark:text-orange-400">Warning</div>
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">{statistics.critical}</div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400">Critical</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.onTrack}</div>
-                    <div className="text-xs text-green-600 dark:text-green-400">On Track</div>
+                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{statistics.urgent}</div>
+                    <div className="text-xs text-red-600 dark:text-red-400">Urgent</div>
                   </div>
                 </div>
 
+                {/* Additional Stats */}
+                {statistics.averageDaysOverdue > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Overdue Statistics</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="p-2 bg-muted/30 rounded">
+                        <div className="font-medium">{statistics.averageDaysOverdue}</div>
+                        <div className="text-xs text-muted-foreground">Avg Days Overdue</div>
+                      </div>
+                      <div className="p-2 bg-muted/30 rounded">
+                        <div className="font-medium">{statistics.totalDaysOverdue}</div>
+                        <div className="text-xs text-muted-foreground">Total Days Overdue</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grade Breakdown */}
+                {Object.keys(statistics.byGrade).length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">By Grade</h4>
+                    <div className="space-y-2">
+                      {Object.entries(statistics.byGrade).map(([gradeName, gradeStats]) => (
+                        <div key={gradeName} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+                          <span className="text-sm">{gradeName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {gradeStats.violations}/{gradeStats.total}
+                            </span>
+                            <Badge variant={gradeStats.complianceRate >= 80 ? "default" : "destructive"} className="text-xs">
+                              {gradeStats.complianceRate}%
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+
+          {activeTab === 'positions' && (
+            <ScrollArea className="h-full px-6 py-4">
+              <div className="space-y-4">
+                {/* Filter */}
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={filterSeverity} onValueChange={setFilterSeverity}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="on_track">On Track</SelectItem>
+                      <SelectItem value="warning">Warning</SelectItem>
+                      <SelectItem value="critical">Critical</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Positions List */}
+                {filteredPositions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <p className="text-muted-foreground">No positions found</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {filterSeverity === 'all' 
+                        ? 'No positions with SLA monitoring found'
+                        : `No ${filterSeverity} positions found`
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredPositions.slice(0, 8).map((position) => (
+                      <div
+                        key={position.positionId}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{getSeverityIcon(position.status)}</span>
+                            <h4 className="font-medium text-sm truncate">
+                              {position.positionTitle}
+                            </h4>
+                            <Badge 
+                              variant={position.status === 'on_track' ? 'default' : 'destructive'} 
+                              className="text-xs"
+                            >
+                              {getStatusLabel(position.status)}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                              {position.gradeName}
+                            </Badge>
+                            <span>•</span>
+                            <span>{position.slaDays} days SLA</span>
+                            <span>•</span>
+                            {position.isViolated ? (
+                              <span className={getSeverityColor(position.status)}>
+                                {position.daysOverdue} days overdue
+                              </span>
+                            ) : (
+                              <span className="text-green-600 dark:text-green-400">
+                                {position.daysRemaining} days remaining
+                              </span>
+                            )}
+                          </div>
+                          {position.recruiterName && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              <span>{position.recruiterName}</span>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/positions/${position.positionId}`)}
+                          className="ml-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    {filteredPositions.length > 8 && (
+                      <div className="text-center pt-2">
+                        <Button variant="outline" size="sm" onClick={() => router.push('/positions')}>
+                          View all {filteredPositions.length} positions
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </ScrollArea>
           )}
@@ -278,64 +431,66 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                 </div>
 
                 {/* Violations List */}
-                {filteredViolations.length === 0 ? (
+                {violations.length === 0 ? (
                   <div className="text-center py-8">
-                    <Clock className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                     <p className="text-muted-foreground">No violations found</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {filterSeverity === 'all' 
-                        ? 'All positions are within their SLA timeline'
-                        : `No ${filterSeverity} violations found`
-                      }
+                      All positions are within their SLA timeline
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredViolations.slice(0, 8).map((violation) => (
-                      <div
-                        key={violation.positionId}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">{getSeverityIcon(violation.daysOverdue)}</span>
-                            <h4 className="font-medium text-sm truncate">
-                              {violation.positionTitle}
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Badge variant="outline" className="text-xs">
-                              {violation.gradeName}
-                            </Badge>
-                            <span>•</span>
-                            <span>{violation.slaDays} days SLA</span>
-                            <span>•</span>
-                            <span className={getSeverityColor(violation.daysOverdue)}>
-                              {violation.daysOverdue} days overdue
-                            </span>
-                          </div>
-                          {violation.recruiterName && (
-                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                              <Users className="h-3 w-3" />
-                              <span>{violation.recruiterName}</span>
-                            </div>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => router.push(`/positions/${violation.positionId}`)}
-                          className="ml-2"
+                    {violations.slice(0, 8).map((violation) => {
+                      const position = allPositions.find(p => p.positionId === violation.positionId);
+                      const status = position?.status || 'critical';
+                      
+                      return (
+                        <div
+                          key={violation.positionId}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-lg">{getSeverityIcon(status)}</span>
+                              <h4 className="font-medium text-sm truncate">
+                                {violation.positionTitle}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="text-xs">
+                                {violation.gradeName}
+                              </Badge>
+                              <span>•</span>
+                              <span>{violation.slaDays} days SLA</span>
+                              <span>•</span>
+                              <span className={getSeverityColor(status)}>
+                                {violation.daysOverdue} days overdue
+                              </span>
+                            </div>
+                            {violation.recruiterName && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                <span>{violation.recruiterName}</span>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/positions/${violation.positionId}`)}
+                            className="ml-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                     
-                    {filteredViolations.length > 8 && (
+                    {violations.length > 8 && (
                       <div className="text-center pt-2">
                         <Button variant="outline" size="sm" onClick={() => router.push('/positions')}>
-                          View all {filteredViolations.length} violations
+                          View all {violations.length} violations
                         </Button>
                       </div>
                     )}
@@ -356,7 +511,7 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                       <span className="text-sm font-medium">This Week</span>
                     </div>
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                      {Math.max(0, stats.total - 2)}
+                      {Math.max(0, violations.length - 2)}
                     </div>
                     <div className="text-xs text-blue-600 dark:text-blue-400">
                       New violations
@@ -397,13 +552,17 @@ export function SLAViolationsWidget({ recruiterId }: SLAViolationsWidgetProps) {
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Insights</h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                      <span>Most violations occur in Engineering roles</span>
-                    </div>
+                    {statistics && statistics.byGrade && Object.entries(statistics.byGrade).length > 0 && (
+                      <div className="flex items-center gap-2 p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <span>
+                          Most violations in {Object.entries(statistics.byGrade).sort((a, b) => b[1].violations - a[1].violations)[0][0]} roles
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
                       <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span>Compliance rate improved 15% this month</span>
+                      <span>Compliance rate: {statistics?.complianceRate || 0}%</span>
                     </div>
                   </div>
                 </div>

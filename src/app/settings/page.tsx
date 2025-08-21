@@ -29,8 +29,7 @@ import {
   Lock,
   Globe,
   BarChart3,
-  AlertTriangle,
-  CheckCircle
+  AlertTriangle
 } from 'lucide-react';
 import type { PlatformModuleId } from '@/lib/types';
 
@@ -113,13 +112,6 @@ const settingsItems = [
     description: "View system and audit logs.", 
     permissionId: 'LOGS_VIEW' as PlatformModuleId, 
     adminOnlyOrPermission: true
-  },
-  { 
-    href: "/settings/auto-close", 
-    label: "Auto-Close Positions", 
-    icon: CheckCircle, 
-    description: "Manage automatic position closure when all headcounts are filled.", 
-    adminOnly: true
   },
 ];
 

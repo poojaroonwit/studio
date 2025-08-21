@@ -12,9 +12,10 @@ interface RecruiterFilterSidebarProps {
   onRecruiterSelect: (recruiterId: string | null) => void;
   recruiterStats?: {
     unassigned?: number;
+    unassignedVacant?: number;
     [key: string]: any;
   };
-  recruiters?: { id: string; name: string; avatarUrl?: string; personalColor?: string }[];
+  recruiters?: { id: string; name: string; avatarUrl?: string; personalColor?: string; vacantHeadcount?: number }[];
 }
 
 export function RecruiterFilterSidebar({ 
@@ -25,20 +26,27 @@ export function RecruiterFilterSidebar({
 }: RecruiterFilterSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Debug logging
+  console.log('RecruiterFilterSidebar props:', { selectedRecruiterId, recruiterStats, recruiters });
+  
   // Get all recruiter IDs from the recruiters prop, not just from stats
   const recruiterIds = recruiters.map(r => r.id);
+  console.log('Recruiter IDs:', recruiterIds);
 
   // Filter recruiters based on search term
   const filteredRecruiters = useMemo(() => {
     if (!searchTerm.trim()) {
+      console.log('No search term, returning all recruiter IDs:', recruiterIds);
       return recruiterIds;
     }
     
     const searchLower = searchTerm.toLowerCase();
-    return recruiterIds.filter(recruiterId => {
+    const filtered = recruiterIds.filter(recruiterId => {
       const recruiter = recruiters.find(r => r.id === recruiterId);
       return recruiter?.name.toLowerCase().includes(searchLower);
     });
+    console.log('Filtered recruiters:', filtered);
+    return filtered;
   }, [recruiterIds, recruiters, searchTerm]);
 
   // Check if unassigned should be shown (only if there are unassigned positions and search is empty or matches)
@@ -146,11 +154,11 @@ export function RecruiterFilterSidebar({
                     <div className="mb-1">
                       <span className="truncate font-semibold text-base">No recruiter assign</span>
                     </div>
-                    <p className={cn(
+                                        <p className={cn(
                       "text-sm leading-relaxed break-words line-clamp-2 font-medium",
                       selectedRecruiterId === 'unassigned' ? "text-primary/80" : "text-muted-foreground/80"
                     )}>
-                      {recruiterStats.unassigned} positions without recruiter
+                      {recruiterStats.unassigned} positions without recruiter • {recruiterStats.unassignedVacant || 0} vacant
                     </p>
                   </div>
                 </div>
@@ -230,7 +238,7 @@ export function RecruiterFilterSidebar({
                             "text-sm leading-relaxed break-words line-clamp-2 font-medium",
                             isActive ? "text-primary/80" : "text-muted-foreground/80"
                           )}>
-                            {positionCount} active positions
+                            {positionCount} active positions • {recruiter?.vacantHeadcount || 0} vacant
                           </p>
                         </div>
                       </div>

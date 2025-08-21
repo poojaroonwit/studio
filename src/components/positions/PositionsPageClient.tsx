@@ -344,6 +344,8 @@ export default function PositionsPageClient() {
 
   // Calculate total pages for pagination
   const totalPages = Math.ceil(total / pageSize);
+  
+
 
   // Auto-reset search state if stuck for too long
   useEffect(() => {
@@ -469,7 +471,7 @@ export default function PositionsPageClient() {
       query.append('includeCandidateStats', 'true'); // Include candidate statistics for each position
       
       const url = `/api/positions?${query.toString()}`;
-      console.log('Fetching positions with URL:', url); // Debug log
+  
       
       const response = await fetch(url);
       if (!response.ok) {
@@ -591,66 +593,38 @@ export default function PositionsPageClient() {
   // Fetch recruiter statistics for all positions (regardless of current filter)
   const fetchRecruiterStats = useCallback(async () => {
     try {
-      // First, get all recruiters
-      const recruitersResponse = await fetch('/api/users?role=Recruiter');
+      console.log('Fetching recruiter stats...');
+      // Get recruiter headcount statistics
+      const recruiterStatsResponse = await fetch('/api/users/recruiter-headcount-stats');
       
-      if (!recruitersResponse.ok) {
-        const errorText = await recruitersResponse.text();
-        console.error('Recruiters API error:', errorText);
-        throw new Error(`Failed to fetch recruiters: ${recruitersResponse.status} ${errorText}`);
+      if (!recruiterStatsResponse.ok) {
+        const errorText = await recruiterStatsResponse.text();
+        console.error('Recruiter stats API error:', errorText);
+        throw new Error(`Failed to fetch recruiter stats: ${recruiterStatsResponse.status} ${errorText}`);
       }
       
-      const recruitersData = await recruitersResponse.json();
+      const recruiterStatsData = await recruiterStatsResponse.json();
+      console.log('Recruiter stats data:', recruiterStatsData);
       
-      // Handle the correct API response structure: { users: [...], pagination: {...} }
-      const recruitersArray = recruitersData?.users || [];
-      
-      if (!Array.isArray(recruitersArray)) {
-        console.error('Invalid recruiters data format:', recruitersData);
-        throw new Error('Invalid recruiters data format received from API');
-      }
-      
-      // Initialize stats with all recruiters set to 0 and set available recruiters
-      const stats: { [key: string]: number } = {};
-      recruitersArray.forEach((recruiter: any) => {
-        stats[recruiter.id] = 0;
-      });
-      stats.unassigned = 0; // Initialize unassigned count
-      
-      // Set available recruiters for dropdown
-      const availableRecruitersData = recruitersArray.map((r: any) => ({ 
+      // Set available recruiters with headcount data
+      const availableRecruitersData = recruiterStatsData.recruiters.map((r: any) => ({ 
         id: r.id, 
         name: r.name, 
-        avatarUrl: r.avatarUrl 
+        avatarUrl: r.avatarUrl,
+        vacantHeadcount: r.vacantHeadcount
       }));
+      console.log('Available recruiters data:', availableRecruitersData);
       setAvailableRecruiters(availableRecruitersData);
       
-      // Then get all positions to count them
-      const query = new URLSearchParams();
-      query.append('limit', '1000'); // Get all positions for stats
-      query.append('includeStats', 'false'); // Don't need position stats
-      query.append('includeCandidateStats', 'false'); // Don't need candidate stats
-      
-      const positionsResponse = await fetch(`/api/positions?${query.toString()}`);
-      if (!positionsResponse.ok) {
-        throw new Error('Failed to fetch positions for statistics');
-      }
-      
-      const positionsData = await positionsResponse.json();
-      const allPositions = positionsData.data || [];
-      
-      // Count OPEN headcount only for each recruiter
-      allPositions.forEach((position: Position) => {
-        // Only count positions that are open
-        if (position.isOpen) {
-          if (position.recruiterId) {
-            stats[position.recruiterId] = (stats[position.recruiterId] || 0) + 1;
-          } else {
-            stats.unassigned = (stats.unassigned || 0) + 1;
-          }
-        }
+      // Create stats object for backward compatibility
+      const stats: { [key: string]: number } = {};
+      recruiterStatsData.recruiters.forEach((recruiter: any) => {
+        stats[recruiter.id] = recruiter.totalPositions;
       });
+      stats.unassigned = recruiterStatsData.unassigned.totalPositions;
+      stats.unassignedVacant = recruiterStatsData.unassigned.vacantHeadcount;
       
+      console.log('Recruiter stats:', stats);
       setRecruiterStats(stats);
     } catch (error) {
       console.error('Error fetching recruiter statistics:', error);
@@ -662,18 +636,24 @@ export default function PositionsPageClient() {
 
   // Initial load
   useEffect(() => {
+    console.log('Initial load effect - session:', session?.user?.id);
     fetchPositions(false);
     fetchAllDepartments();
     // Only fetch recruiter stats if session is available
     if (session?.user?.id) {
+      console.log('Session available, fetching recruiter stats...');
       fetchRecruiterStats(); // Fetch recruiter stats independently
+    } else {
+      console.log('Session not available yet');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]); // Add session dependency
 
   // Fetch recruiter stats when session becomes available
   useEffect(() => {
+    console.log('Session/recruiters effect - session:', session?.user?.id, 'availableRecruiters.length:', availableRecruiters.length);
     if (session?.user?.id && availableRecruiters.length === 0) {
+      console.log('Fetching recruiter stats from second effect...');
       fetchRecruiterStats();
     }
   }, [session?.user?.id, availableRecruiters.length, fetchRecruiterStats]);
@@ -710,7 +690,7 @@ export default function PositionsPageClient() {
 
   // Improved debounced search effect with better performance and error handling
   useEffect(() => {
-    console.log('Search effect triggered with:', { searchTerm, statusFilter, departmentFilter, selectedRecruiterId }); // Debug log
+
     
     // Clear existing timeout
     if (searchTimeoutRef.current) {
@@ -720,7 +700,7 @@ export default function PositionsPageClient() {
     // Set new timeout for search with longer delay for better performance
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log('Executing search with filters:', { searchTerm, statusFilter, departmentFilter, selectedRecruiterId }); // Debug log
+
         // Reset to first page and fetch with page 1
         setPage(1);
         updateURL(1); // Update URL to reflect page reset
@@ -765,7 +745,7 @@ export default function PositionsPageClient() {
   // Handle search input change with better state management
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    console.log('Search input changed:', value); // Debug log
+
     setSearchTerm(value);
     
     // If search is stuck, force reset the search state
@@ -977,65 +957,8 @@ export default function PositionsPageClient() {
     }
   };
 
-  // Add refs for height calculation
+  // Add refs for content
   const contentRef = useRef<HTMLDivElement>(null);
-  const [tableHeight, setTableHeight] = useState<number>(300);
-
-  // Calculate table height based on available space
-  const calculateTableHeight = useCallback(() => {
-    if (!contentRef.current) return;
-    
-    const contentRect = contentRef.current.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const contentTop = contentRect.top;
-    
-    // Calculate available height for table
-    // Account for padding, margins, pagination, and other UI elements
-    const headerHeight = 64; // Header height
-    const padding = 48; // Top and bottom padding (24px each)
-    const paginationHeight = 60; // Pagination controls height
-    const bottomMargin = 24; // Bottom margin
-    
-    const availableHeight = viewportHeight - contentTop - headerHeight - padding - paginationHeight - bottomMargin;
-    
-    // Set minimum and maximum constraints with responsive values
-    const minHeight = Math.max(250, window.innerHeight * 0.2); // Further reduced minimum height (20% of viewport)
-    const maxHeight = Math.max(400, availableHeight * 0.5); // Further reduced to 50% for very compact layout
-    
-    const calculatedHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
-    
-    setTableHeight(calculatedHeight);
-  }, []);
-
-  // Recalculate height on window resize and content changes
-  useEffect(() => {
-    const handleResize = () => {
-      calculateTableHeight();
-    };
-
-    // Initial calculation with a small delay to ensure DOM is ready
-    const initialTimer = setTimeout(() => {
-      calculateTableHeight();
-    }, 100);
-
-    // Recalculate on window resize
-    window.addEventListener('resize', handleResize);
-    
-    // Recalculate when content changes (filters, stats, etc.)
-    const resizeObserver = new ResizeObserver(() => {
-      calculateTableHeight();
-    });
-
-    if (contentRef.current) {
-      resizeObserver.observe(contentRef.current);
-    }
-
-    return () => {
-      clearTimeout(initialTimer);
-      window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
-    };
-  }, [calculateTableHeight, searchTerm, statusFilter, departmentFilter, selectedRecruiterId, totalPositions]);
 
   if (isLoading) {
     return (
@@ -1046,7 +969,7 @@ export default function PositionsPageClient() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full positions-page-container">
       <div className="flex flex-1 overflow-hidden">
         {/* Recruiter Filter Sidebar */}
         <div className="w-80 flex-shrink-0 border-r border-border bg-background">
@@ -1061,10 +984,10 @@ export default function PositionsPageClient() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div ref={contentRef} className="p-6 space-y-6 flex-1 flex flex-col">
+        <div className="flex-1 positions-content-area">
+          <div ref={contentRef} className="p-6 flex flex-col overflow-hidden h-full">
           {/* Filters on top */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 flex-shrink-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
           <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1206,7 +1129,7 @@ export default function PositionsPageClient() {
 
       {/* Search Status Indicator */}
       {(searchTerm || statusFilter !== 'all' || departmentFilter !== 'all') && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex-shrink-0">
           <Filter className="h-4 w-4" />
           <span>Active filters:</span>
           {searchTerm && (
@@ -1250,8 +1173,8 @@ export default function PositionsPageClient() {
 
 
 
-      {/* Stats Card */}
-      <div className="grid grid-cols-1 gap-4">
+              {/* Stats Card */}
+        <div className="grid grid-cols-1 gap-4 flex-shrink-0 my-6">
         {/* Vacant Headcount from Open Positions Card - Blue */}
         <Card
           className="group relative overflow-hidden border-2 border-blue-200 dark:border-blue-800 hover:border-opacity-80 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 backdrop-blur-sm"
@@ -1293,6 +1216,7 @@ export default function PositionsPageClient() {
         </Card>
       </div>
       {/* Positions List */}
+      <div className="positions-table-container">
       {totalPositions === 0 ? (
         <div className="text-center py-12 empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -1311,8 +1235,7 @@ export default function PositionsPageClient() {
         </div>
       ) : (
         <div 
-          className="border rounded-lg shadow overflow-hidden relative min-h-[250px] lg:min-h-[300px] xl:min-h-[350px] flex-1"
-          style={{ height: `${tableHeight}px` }}
+          className="border rounded-lg shadow overflow-hidden relative table-container-responsive h-full"
         >
           
           {/* Table Loading Overlay */}
@@ -1339,11 +1262,12 @@ export default function PositionsPageClient() {
           )}
           
           {/* Scrollable Table Container */}
-          <div className="table-scroll-container">
-            <Table className="table-dynamic-width divide-y divide-border table-mobile-responsive">
+          <div className="positions-table-scroll table-scrollbar">
+            <Table className="min-w-full table-content-expandable">
             <TableHeader className="table-sticky-header">
               <TableRow>
-                <TableHead>
+                <TableHead key="row-number" className="w-8 min-w-[32px] text-center">#</TableHead>
+                <TableHead key="select-all" className="w-12 min-w-[48px]">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -1439,7 +1363,9 @@ export default function PositionsPageClient() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedPositions.map((position, index) => (
+              {sortedPositions.map((position, index) => {
+                const rowNumber = (page - 1) * pageSize + index + 1;
+                return (
                 <TableRow 
                   key={position.id} 
                   className="hover:bg-muted/50 transition-all duration-200 border-b border-border"
@@ -1448,7 +1374,10 @@ export default function PositionsPageClient() {
                     animation: 'fadeInUp 0.3s ease-out forwards'
                   }}
                 >
-                  <TableCell>
+                  <TableCell key={`${position.id}-row-number`} className="text-center font-mono text-xs text-muted-foreground">
+                    {rowNumber}
+                  </TableCell>
+                  <TableCell key={`${position.id}-select`}>
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(position.id)}
@@ -1585,17 +1514,19 @@ export default function PositionsPageClient() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );
+              })}
             </TableBody>
             </Table>
           </div>
         </div>
    
       )}
+      </div>
       
       {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
+      {positions.length > 0 && (
+        <div className="flex items-center justify-between mt-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -1672,7 +1603,7 @@ export default function PositionsPageClient() {
           </div>
         </div>
       )}
-          </div> {/* Close space-y-6 div */}
+          </div> {/* Close content div */}
         </div> {/* Close main content div */}
       </div> {/* Close flex container */}
       

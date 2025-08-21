@@ -186,11 +186,46 @@ export async function DELETE(request: NextRequest) {
     
     const client = await getPool().connect();
     try {
-        const result = await client.query('DELETE FROM "RecruitmentStage" WHERE id = $1 RETURNING name', [id]);
-
-        if (result.rowCount === 0) {
+        // First, get the stage name to check if it's protected
+        const stageResult = await client.query('SELECT name FROM "RecruitmentStage" WHERE id = $1', [id]);
+        
+        if (stageResult.rowCount === 0) {
             return NextResponse.json({ message: "Recruitment stage not found" }, { status: 404 });
         }
+        
+        const stageName = stageResult.rows[0].name;
+        
+        // Check if this stage has business logic dependencies that prevent deletion
+        const PROTECTED_STAGES = ['Applied', 'Hired', 'Rejected'];
+        if (PROTECTED_STAGES.includes(stageName)) {
+            return NextResponse.json({ 
+                message: `Cannot delete stage "${stageName}" as it has business logic dependencies. This stage is used in core system functionality.` 
+            }, { status: 400 });
+        }
+        
+        // Check if the stage is currently in use by candidates or transition records
+        const candidateCount = await client.query(
+            'SELECT COUNT(*) as count FROM "Candidate" WHERE status = $1',
+            [stageName]
+        );
+        
+        const transitionCount = await client.query(
+            'SELECT COUNT(*) as count FROM "TransitionRecord" WHERE stage = $1',
+            [stageName]
+        );
+        
+        const totalUsage = parseInt(candidateCount.rows[0].count) + parseInt(transitionCount.rows[0].count);
+        
+        if (totalUsage > 0) {
+            return NextResponse.json({ 
+                message: `Stage "${stageName}" is currently in use by ${totalUsage} record(s). Please migrate these records to another stage before deletion.`,
+                usageCount: totalUsage,
+                stageName: stageName
+            }, { status: 409 });
+        }
+        
+        // Proceed with deletion
+        const result = await client.query('DELETE FROM "RecruitmentStage" WHERE id = $1 RETURNING name', [id]);
         
         await logAudit('AUDIT', `Recruitment stage '${result.rows[0].name}' (ID: ${id}) deleted.`, 'API:RecruitmentStages:Delete', actingUserId, { stageId: id });
         

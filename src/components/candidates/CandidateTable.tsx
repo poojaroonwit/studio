@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal, FileEdit, Trash2, Eye, Users, UploadCloud, Briefcase, MoreVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatScoreWithGrade, getScoreColor, getScoreBgColor } from "@/lib/scoreUtils";
 import { formatCandidateName, formatCandidateNameWithLang } from "@/lib/candidateUtils";
-import type { Candidate, CandidateStatus, Position, RecruitmentStage } from '@/lib/types';
+import type { Candidate, CandidateStatus, Position, RecruitmentStage, CandidateSource } from '@/lib/types';
 import { ManageTransitionsModal } from './ManageTransitionsModal';
 import { format, formatDistanceToNow, parseISO, isValid, differenceInDays } from 'date-fns';
 import { formatDateInTimezone, convertUtcToTimezone } from '@/lib/dateUtils';
@@ -41,7 +41,7 @@ import { getScoreColorInfo, ScoreBadge } from '@/components/ui/score-color';
 import CandidateDetailModal from './CandidateDetailModal';
 import UploadResumeModal from './UploadResumeModal';
 import { CandidateRecruiterCell } from './CandidateRecruiterCell';
-
+import { CandidateSourceCell } from './CandidateSourceCell';
 
 
 interface CandidateTableProps {
@@ -49,7 +49,9 @@ interface CandidateTableProps {
   availablePositions: Position[];
   availableStages: RecruitmentStage[];
   availableRecruiters: { id: string; name: string }[];
+  availableSources: CandidateSource[];
   onAssignRecruiter: (candidateId: string, recruiterId: string | null) => void;
+  onAssignSource?: (candidateId: string, sourceId: string | null, subSource?: string | null) => void;
   onUpdateCandidate: (candidateId: string, status: CandidateStatus, notes?: string, suppressToast?: boolean) => Promise<void>;
   onDeleteCandidate: (candidateId: string) => Promise<void>;
   onEditPosition: (position: Position) => void;
@@ -74,9 +76,12 @@ interface CandidateTableProps {
     showJobMatchesColumn?: boolean;
     showFitScoreColumn?: boolean;
     showRecruiterColumn?: boolean;
+    showSourceColumn?: boolean;
     showStatusColumn?: boolean;
     showAppliedDateColumn?: boolean;
   };
+  // Dynamic height
+  tableHeight?: number;
 }
 
 const getStatusBadgeVariant = (status: CandidateStatus): "default" | "secondary" | "destructive" | "outline" => {
@@ -163,7 +168,9 @@ export function CandidateTable({
   availablePositions,
   availableStages,
   availableRecruiters,
+  availableSources,
   onAssignRecruiter,
+  onAssignSource,
   onUpdateCandidate,
   onDeleteCandidate,
   onEditPosition,
@@ -181,6 +188,7 @@ export function CandidateTable({
   onSort,
   canManageCandidates = false,
   settings,
+  tableHeight = 400,
 }: CandidateTableProps) {
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<Candidate | null>(null);
   const [candidateToDelete, setCandidateToDelete] = useState<Candidate | null>(null);
@@ -196,6 +204,7 @@ export function CandidateTable({
   const [isUploadResumeModalOpen, setIsUploadResumeModalOpen] = useState(false);
   const [selectedCandidateForUpload, setSelectedCandidateForUpload] = useState<Candidate | null>(null);
   const [assigningRecruiter, setAssigningRecruiter] = useState<string | null>(null);
+  const [assigningSource, setAssigningSource] = useState<string | null>(null);
 
   // Group candidates by email
   const candidatesByEmail = candidates.reduce((acc, candidate) => {
@@ -301,8 +310,25 @@ export function CandidateTable({
     }
   };
 
+  const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
+    if (!canManageCandidates || !onAssignSource) return;
+    
+    setAssigningSource(candidateId);
+    try {
+      await onAssignSource(candidateId, sourceId, subSource);
+    } catch (error) {
+      console.error('Failed to assign source:', error);
+    } finally {
+      // Reset after a short delay to allow for UI updates
+      setTimeout(() => {
+        setAssigningSource(null);
+      }, 1000);
+    }
+  };
+
   const handleResetAssigning = () => {
     setAssigningRecruiter(null);
+    setAssigningSource(null);
   };
 
   // Calculate the number of visible columns for proper colSpan
@@ -313,6 +339,7 @@ export function CandidateTable({
     if (!settings || settings.showJobMatchesColumn !== false) count++;
     if (!settings || settings.showFitScoreColumn !== false) count++;
     if (!settings || settings.showRecruiterColumn !== false) count++;
+    if (!settings || settings.showSourceColumn !== false) count++;
     if (!settings || settings.showStatusColumn !== false) count++;
     if (!settings || settings.showAppliedDateColumn !== false) count++;
     count++; // Actions column is always visible
@@ -346,7 +373,10 @@ export function CandidateTable({
 
   return (
     <>
-      <div className="border rounded-lg shadow overflow-hidden table-container-responsive">
+      <div 
+        className="border rounded-lg shadow overflow-hidden table-container-responsive"
+        style={{ height: `${tableHeight}px` }}
+      >
         <div className="h-full w-full overflow-auto table-scrollbar">
           <Table className="min-w-full table-content-expandable">
             <TableHeader>
@@ -499,6 +529,42 @@ export function CandidateTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => { onSort && onSort('recruiter', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { onSort && onSort('recruiter', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                </TableHead>
+              )}
+              {(!settings || settings.showSourceColumn !== false) && (
+                <TableHead key="source" className="cursor-pointer select-none group" onClick={() => { onSort && onSort('source'); setOpenMenu(null); }}>
+                  <span className="inline-flex items-center gap-1">
+                    Source
+                    <DropdownMenu open={openMenu === 'source'} onOpenChange={open => setOpenMenu(open ? 'source' : null)}>
+                      <DropdownMenuTrigger asChild>
+                        {sortColumn === 'source' ? (
+                          <button
+                            type="button"
+                            className="text-primary font-bold p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setOpenMenu('source'); }}
+                            aria-label="Sort options"
+                          >
+                            {sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="opacity-60 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-muted"
+                            onClick={e => { e.stopPropagation(); setOpenMenu('source'); }}
+                            aria-label="Sort options"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                        )}
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'asc'); setOpenMenu(null); }}>Sort Ascending ▲</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { onSort && onSort('source', 'desc'); setOpenMenu(null); }}>Sort Descending ▼</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => { onSort && onSort(null, null); setOpenMenu(null); }}>Clear Sort</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -712,6 +778,18 @@ export function CandidateTable({
                       />
                     </TableCell>
                   )}
+                  {(!settings || settings.showSourceColumn !== false) && (
+                    <TableCell key={`${candidate.id}-source`}>
+                                             <CandidateSourceCell
+                         candidate={candidate}
+                         availableSources={availableSources}
+                         canManageCandidates={canManageCandidates}
+                         isAssigning={assigningSource === candidate.id}
+                         onAssignSource={handleAssignSource}
+                         onResetAssigning={handleResetAssigning}
+                       />
+                    </TableCell>
+                  )}
                   {(!settings || settings.showStatusColumn !== false) && (
                     <TableCell key={`${candidate.id}-status`}>
                       {(() => {
@@ -884,6 +962,16 @@ export function CandidateTable({
                                 onResetAssigning={handleResetAssigning}
                               />
                             </TableCell>
+                                                         <TableCell key={`${candidate.id}-source`}>
+                               <CandidateSourceCell
+                                 candidate={candidate}
+                                 availableSources={availableSources}
+                                 canManageCandidates={canManageCandidates}
+                                 isAssigning={assigningSource === candidate.id}
+                                 onAssignSource={handleAssignSource}
+                                 onResetAssigning={handleResetAssigning}
+                               />
+                             </TableCell>
                             <TableCell key={`${candidate.id}-status`}>
                               {(() => {
                                 const stage = availableStages.find(s => s.name === candidate.status);

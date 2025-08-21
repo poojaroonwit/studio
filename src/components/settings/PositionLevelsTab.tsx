@@ -197,22 +197,27 @@ export function PositionLevelsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Position Level Management</h2>
-          <p className="text-muted-foreground">Manage the list of standardized position levels used across positions.</p>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 space-y-6 pb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold">Position Level Management</h2>
+            <p className="text-muted-foreground">Manage the list of standardized position levels used across positions.</p>
+          </div>
+          <Button onClick={() => handleOpenModal()}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add Position Level
+          </Button>
         </div>
-        <Button onClick={() => handleOpenModal()}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Add Position Level
-        </Button>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="position-levels">
-          {(provided) => (
-            <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-4 custom-scrollbar">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="position-levels">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3 pb-6">
               {levels.map((level, index) => (
                 <Draggable key={level.id} draggableId={level.id} index={index}>
                   {(provided) => (
@@ -257,6 +262,7 @@ export function PositionLevelsTab() {
           )}
         </Droppable>
       </DragDropContext>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md">

@@ -81,6 +81,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     sidebarLogoCollapsedDarkMode?: string | null;
     sidebarLogoExpandedDarkMode?: string | null;
   }>({});
+  const [showLogoOnly, setShowLogoOnly] = useState<boolean>(false);
+  const [sidebarLogoSize, setSidebarLogoSize] = useState<number>(48);
   const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   const { data: session, status } = useSession();
@@ -118,6 +120,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         
         setAppLogoUrl(prefs.appLogoDataUrl || null); // MinIO URL
         setCurrentAppName(prefs.appName || DEFAULT_APP_NAME);
+        setShowLogoOnly(prefs.showLogoOnly === 'true' || prefs.showLogoOnly === true);
+        setSidebarLogoSize(prefs.sidebarLogoSize ? parseInt(prefs.sidebarLogoSize) : 48);
         
         // Load contextual logos
         setContextualLogos({
@@ -179,6 +183,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         primaryGradientStart?: string; 
         primaryGradientEnd?: string; 
         sidebarColors?: Record<string,string>;
+        sidebarLogoSize?: number;
         contextualLogos?: {
           sidebarLogoCollapsedLightMode?: string | null;
           sidebarLogoExpandedLightMode?: string | null;
@@ -195,6 +200,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         }
         if (customEvent.detail.contextualLogos) {
           setContextualLogos(customEvent.detail.contextualLogos);
+        }
+        if (customEvent.detail.sidebarLogoSize !== undefined) {
+          setSidebarLogoSize(customEvent.detail.sidebarLogoSize);
         }
         
         // If sidebarColors are provided in the event, use them; otherwise fetch fresh data
@@ -273,6 +281,8 @@ export function AppLayout({ children }: AppLayoutProps) {
               appLogoUrl={appLogoUrl}
               isClient={isClient}
               isLogoLoading={isLogoLoading}
+              showLogoOnly={showLogoOnly}
+              sidebarLogoSize={sidebarLogoSize}
               contextualLogos={contextualLogos}
             />
           </SidebarHeader>

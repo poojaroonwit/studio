@@ -84,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const client = await getPool().connect();
   try {
     const candidateQuery = `
-      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName",
+      SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
              cs.name as "sourceName", cs.description as "sourceDescription", cs.logo as "sourceLogo"
       FROM "Candidate" c
       LEFT JOIN "Position" p ON c."positionId" = p.id
@@ -126,7 +126,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         title: candidate.positionTitle,
         department: candidate.positionDepartment
       } : null,
-      recruiter: candidate.recruiterId ? { name: candidate.recruiterName } : null,
+      recruiter: candidate.recruiterId ? { 
+        name: candidate.recruiterName,
+        avatarUrl: candidate.recruiterAvatarUrl || null
+      } : null,
       source: candidate.sourceId ? {
         id: candidate.sourceId,
         name: candidate.sourceName,

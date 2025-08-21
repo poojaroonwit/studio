@@ -301,23 +301,73 @@ function RecruitmentStagesTab() {
     }
   };
 
-  const attemptDeleteStage = (stage: RecruitmentStage) => {
-    setStageToDelete(stage);
-    setIsReplacementModalOpen(true);
+  // Check if a stage can be deleted (not protected by business logic)
+  const canDeleteStage = (stage: RecruitmentStage) => {
+    const PROTECTED_STAGES = ['Applied', 'Hired', 'Rejected'];
+    return !PROTECTED_STAGES.includes(stage.name);
+  };
+
+  const attemptDeleteStage = async (stage: RecruitmentStage) => {
+    try {
+      // First try to delete directly to check for protected stages or usage
+      const response = await fetch(`/api/settings/recruitment-stages/${stage.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        // Stage was deleted successfully
+        toast.success('Stage deleted successfully');
+        fetchStages();
+        return;
+      }
+
+      const errorData = await response.json();
+      
+      if (response.status === 400) {
+        // Protected stage - show error message
+        toast.error(errorData.message);
+        return;
+      }
+      
+      if (response.status === 409) {
+        // Stage in use - show replacement modal
+        setStageToDelete(stage);
+        setIsReplacementModalOpen(true);
+        return;
+      }
+      
+      // Other errors
+      throw new Error(errorData.message || 'Failed to delete stage');
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
   };
 
   const handleConfirmDeleteWithReplacement = async () => {
     if (!stageToDelete || !replacementStageName) return;
     
     try {
-      const response = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}`, {
-        method: 'DELETE',
+      // First, migrate all candidates and transition records to the replacement stage
+      const migrateResponse = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}/migrate`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ replacementStageName }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!migrateResponse.ok) {
+        const errorData = await migrateResponse.json();
+        throw new Error(errorData.message || 'Failed to migrate stage data');
+      }
+
+      // Now delete the stage
+      const deleteResponse = await fetch(`/api/settings/recruitment-stages/${stageToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json();
         throw new Error(errorData.message || 'Failed to delete stage');
       }
 
@@ -381,7 +431,7 @@ function RecruitmentStagesTab() {
           <div>
             <h2 className="text-lg font-semibold">Recruitment Stages</h2>
             <p className="text-sm text-muted-foreground">
-              Manage the stages in your recruitment pipeline. System stages cannot be deleted or renamed.
+              Manage the stages in your recruitment pipeline. Most stages can be deleted, except those with core business logic dependencies.
             </p>
           </div>
           <Button onClick={() => handleOpenModal()} variant="default">
@@ -458,7 +508,7 @@ function RecruitmentStagesTab() {
                                 >
                                   <Edit3 className="h-3 w-3" />
                                 </Button>
-                                {!stage.is_system && (
+                                {canDeleteStage(stage) && (
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -513,7 +563,7 @@ function RecruitmentStagesTab() {
                  <SelectValue placeholder="Choose a new stage..." />
                </SelectTrigger>
                <SelectContent>
-                 {stages.filter(s => s.id !== stageToDelete?.id && !s.is_system).map(s => (
+                 {stages.filter(s => s.id !== stageToDelete?.id).map(s => (
                    <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                  ))}
                </SelectContent>
@@ -1118,3 +1168,4 @@ export default function DataConfigurationPage() {
     </div>
   );
 }
+

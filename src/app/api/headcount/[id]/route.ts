@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import type { UpdateHeadcountRequest } from '@/lib/types';
+import { checkHeadcountUnassignWarning, unassignCandidateFromHeadcount } from '@/lib/headcountUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,7 +70,7 @@ export async function PUT(
     }
 
     const body: UpdateHeadcountRequest = await request.json();
-    const { type, status, candidateId, onboardingDate, notes, memoId } = body;
+    const { type, status, candidateId, notes, memoId } = body;
 
     // Check if headcount exists
     const existingHeadcount = await prisma.headcount.findUnique({
@@ -96,10 +97,7 @@ export async function PUT(
       data: {
         ...(type && { type }),
         ...(status && { status }),
-        ...(candidateId !== undefined && { candidateId }),
-        ...(onboardingDate !== undefined && { 
-          onboardingDate: onboardingDate ? new Date(onboardingDate) : null 
-        }),
+        ...(candidateId !== undefined && { candidateId: candidateId || null }),
         ...(notes !== undefined && { notes }),
         ...(memoId !== undefined && { memoId }),
         ...(body.customFields !== undefined && { customFields: body.customFields }),
@@ -165,6 +163,40 @@ export async function DELETE(
     return NextResponse.json({ message: 'Headcount deleted successfully' });
   } catch (error) {
     console.error('Error deleting headcount:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === 'check_unassign_warning') {
+      const warning = await checkHeadcountUnassignWarning(params.id);
+      return NextResponse.json(warning);
+    }
+
+    if (action === 'unassign_candidate') {
+      const result = await unassignCandidateFromHeadcount(
+        params.id,
+        session.user.id,
+        session.user.name || session.user.email || 'System'
+      );
+      return NextResponse.json(result);
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error) {
+    console.error('Error in headcount action:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

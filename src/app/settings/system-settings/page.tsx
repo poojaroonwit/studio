@@ -100,13 +100,12 @@ export default function SystemSettingsPage() {
     setIsSaving(true);
     const settingsToSave = [
       { key: 'maxConcurrentProcessors', value: maxConcurrentProcessors.toString() },
-      { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl },
-      { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken },
-      { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode },
+      { key: 'resumeProcessingWebhookUrl', value: resumeProcessingWebhookUrl || '' },
+      { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken || '' },
+      { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode || 'blocking' },
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
-
-       { key: 'geminiApiKey', value: geminiApiKey },
-      { key: 'defaultMatchCriteria', value: defaultMatchCriteria },
+      { key: 'geminiApiKey', value: geminiApiKey || '' },
+      { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
     ];
     try {
       const controller = new AbortController();
@@ -123,6 +122,13 @@ export default function SystemSettingsPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to save settings' }));
         console.error('Save settings error:', errorData);
+        // Log detailed validation errors for debugging
+        if (errorData.errors) {
+          console.error('Validation errors:', errorData.errors);
+        }
+        if (errorData.data) {
+          console.error('Data that failed validation:', errorData.data);
+        }
         throw new Error(errorData.message || 'Failed to save settings');
       }
       toast.success('Settings Saved');

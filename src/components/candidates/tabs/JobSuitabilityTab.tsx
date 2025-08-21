@@ -47,6 +47,21 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
     ? ((candidate.parsedData as any).job_suitable || [])
     : [];
 
+  // Filter out empty entries (objects with no content)
+  const filteredJobSuitable = jobSuitable.filter((job: any) => {
+    const hasContent = job.suitable_career || job.suitable_job_position || 
+                     job.suitable_job_level || job.suitable_salary_bath_month ||
+                     job.career || job.position || job.level || job.salary ||
+                     job.job_career || job.job_position || job.job_level || job.job_salary ||
+                     job.title || job.role || job.expected_salary || job.salary_expectation;
+    return hasContent;
+  });
+
+  // Debug: Log the full candidate parsedData to see the structure
+  console.log('Full candidate parsedData:', candidate.parsedData);
+  console.log('Original job suitable array:', jobSuitable);
+  console.log('Filtered job suitable array:', filteredJobSuitable);
+
   const handleAddJobSuitable = () => {
     if (appendJobSuitable) {
       appendJobSuitable({
@@ -161,45 +176,45 @@ export const JobSuitabilityTab: React.FC<JobSuitabilityTabProps> = ({
         <CardHeader>
           <CardTitle>Job Suitability</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {jobSuitable.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No job suitability information available.</p>
-            </div>
-          ) : (
-            jobSuitable.map((job: any, index: number) => (
-              <div key={index} className="border rounded-lg p-4 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {job.suitable_career && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Suitable Career</Label>
-                      <p className="text-sm">{job.suitable_career}</p>
-                    </div>
-                  )}
-                  {job.suitable_job_position && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Suitable Position</Label>
-                      <p className="text-sm">{job.suitable_job_position}</p>
-                    </div>
-                  )}
-                  {job.suitable_job_level && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Position Level</Label>
-                      <span className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded">
-                        {job.suitable_job_level}
-                      </span>
-                    </div>
-                  )}
-                  {job.suitable_salary_bath_month && (
-                    <div>
-                      <Label className="text-xs font-medium text-muted-foreground">Expected Salary</Label>
-                      <p className="text-sm">฿{job.suitable_salary_bath_month}/month</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
+                 <CardContent className="space-y-4">
+           {filteredJobSuitable.length === 0 ? (
+             <div className="text-center py-8 text-muted-foreground">
+               <p>No job suitability information available.</p>
+             </div>
+           ) : (
+             filteredJobSuitable.map((job: any, index: number) => (
+               <div key={index} className="border rounded-lg p-4 space-y-3">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {(job.suitable_career || job.career || job.job_career || job.title) && (
+                     <div>
+                       <Label className="text-xs font-medium text-muted-foreground">Suitable Career</Label>
+                       <p className="text-sm">{job.suitable_career || job.career || job.job_career || job.title}</p>
+                     </div>
+                   )}
+                   {(job.suitable_job_position || job.position || job.job_position || job.role) && (
+                     <div>
+                       <Label className="text-xs font-medium text-muted-foreground">Suitable Position</Label>
+                       <p className="text-sm">{job.suitable_job_position || job.position || job.job_position || job.role}</p>
+                     </div>
+                   )}
+                   {(job.suitable_job_level || job.level || job.job_level) && (
+                     <div>
+                       <Label className="text-xs font-medium text-muted-foreground">Position Level</Label>
+                       <span className="inline-block bg-primary/10 text-primary text-xs px-2 py-1 rounded">
+                         {job.suitable_job_level || job.level || job.job_level}
+                       </span>
+                     </div>
+                   )}
+                   {(job.suitable_salary_bath_month || job.salary || job.job_salary || job.expected_salary || job.salary_expectation) && (
+                     <div>
+                       <Label className="text-xs font-medium text-muted-foreground">Expected Salary</Label>
+                       <p className="text-sm">฿{job.suitable_salary_bath_month || job.salary || job.job_salary || job.expected_salary || job.salary_expectation}/month</p>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             ))
+           )}
         </CardContent>
       </Card>
     </div>

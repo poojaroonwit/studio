@@ -15,17 +15,20 @@ import {
   FileText, 
   Paperclip,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  UserX
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import type { Headcount, HeadcountType, HeadcountStatus, Candidate, CustomFieldDefinition } from '@/lib/types';
 import { HeadcountModal } from './HeadcountModal';
 import { HeadcountAttachmentModal } from './HeadcountAttachmentModal';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface HeadcountTabProps {
   positionId: string;
   candidates: Candidate[];
+  onHeadcountChange?: () => void;
 }
 
 const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: string }[] = [
@@ -33,7 +36,7 @@ const HEADCOUNT_STATUS_OPTIONS: { value: HeadcountStatus; label: string; color: 
   { value: 'filled', label: 'Filled', color: 'bg-purple-100 text-purple-800' },
 ];
 
-export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
+export function HeadcountTab({ positionId, candidates, onHeadcountChange }: HeadcountTabProps) {
   // Headcount type options will be fetched from API
   const [headcountTypeOptions, setHeadcountTypeOptions] = useState<{ value: HeadcountType; label: string; color: string }[]>([]);
   const [headcounts, setHeadcounts] = useState<Headcount[]>([]);
@@ -44,6 +47,9 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
   const [selectedHeadcount, setSelectedHeadcount] = useState<Headcount | null>(null);
   const [editingHeadcount, setEditingHeadcount] = useState<Headcount | null>(null);
   const [customFieldDefinitions, setCustomFieldDefinitions] = useState<CustomFieldDefinition[]>([]);
+  const [unassignWarning, setUnassignWarning] = useState<any>(null);
+  const [showUnassignDialog, setShowUnassignDialog] = useState(false);
+  const [headcountToUnassign, setHeadcountToUnassign] = useState<string | null>(null);
 
   useEffect(() => {
     if (positionId) {
@@ -133,9 +139,70 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
 
       toast.success('Headcount deleted successfully');
       fetchHeadcounts();
+      onHeadcountChange?.();
     } catch (error) {
       console.error('Error deleting headcount:', error);
       toast.error('Failed to delete headcount');
+    }
+  };
+
+  const handleUnassignCandidate = async (headcountId: string) => {
+    try {
+      // First check for warnings
+      const warningResponse = await fetch(`/api/headcount/${headcountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check_unassign_warning' }),
+      });
+
+      if (!warningResponse.ok) {
+        throw new Error('Failed to check unassign warning');
+      }
+
+      const warning = await warningResponse.json();
+
+      if (warning.hasWarning) {
+        setUnassignWarning(warning);
+        setHeadcountToUnassign(headcountId);
+        setShowUnassignDialog(true);
+        return;
+      }
+
+      // No warning, proceed with unassign
+      await performUnassign(headcountId);
+    } catch (error) {
+      console.error('Error checking unassign warning:', error);
+      toast.error('Failed to check unassign warning');
+    }
+  };
+
+  const performUnassign = async (headcountId: string) => {
+    try {
+      const response = await fetch(`/api/headcount/${headcountId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unassign_candidate' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unassign candidate');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('Candidate unassigned successfully');
+        if (result.statusUpdateResult?.statusChanged) {
+          toast.success(`Candidate status automatically changed from "${result.statusUpdateResult.oldStatus}" to "${result.statusUpdateResult.newStatus}"`);
+        }
+        fetchHeadcounts();
+        onHeadcountChange?.();
+      } else {
+        toast.error(result.message || 'Failed to unassign candidate');
+      }
+    } catch (error) {
+      console.error('Error unassigning candidate:', error);
+      toast.error('Failed to unassign candidate');
     }
   };
 
@@ -175,6 +242,7 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
       toast.success(editingHeadcount ? 'Headcount updated successfully' : 'Headcount created successfully');
       handleModalClose();
       fetchHeadcounts();
+      onHeadcountChange?.();
     } catch (error) {
       console.error('Error saving headcount:', error);
       toast.error('Failed to save headcount');
@@ -407,6 +475,16 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
                         >
                           <Paperclip className="h-3 w-3" />
                         </Button>
+                        {headcount.candidate && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnassignCandidate(headcount.id)}
+                            title="Unassign candidate"
+                          >
+                            <UserX className="h-3 w-3" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -430,6 +508,7 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
         onOpenChange={setIsModalOpen}
         headcount={editingHeadcount}
         candidates={candidates}
+        positionId={positionId}
         onSave={handleModalSave}
         onClose={handleModalClose}
       />
@@ -444,6 +523,37 @@ export function HeadcountTab({ positionId, candidates }: HeadcountTabProps) {
         }}
         onUpdate={fetchHeadcounts}
       />
+
+      {/* Unassign Warning Dialog */}
+      <AlertDialog open={showUnassignDialog} onOpenChange={setShowUnassignDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Warning: Candidate Status Will Change
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {unassignWarning?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (headcountToUnassign) {
+                  performUnassign(headcountToUnassign);
+                }
+                setShowUnassignDialog(false);
+                setUnassignWarning(null);
+                setHeadcountToUnassign(null);
+              }}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              Continue with Unassign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

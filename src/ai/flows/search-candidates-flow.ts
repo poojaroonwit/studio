@@ -215,7 +215,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         SELECT 
             c.*, 
             p.title as "positionTitle",
-            rec.name as "recruiterName",
+            rec.name as "recruiterName", rec."avatarUrl" as "recruiterAvatarUrl",
             COALESCE(th_data.history, '[]'::json) as "transitionHistory"
         FROM "Candidate" c 
         LEFT JOIN "Position" p ON c."positionId" = p.id
@@ -235,7 +235,12 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
         ...row,
         parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
         position: row.positionId ? { id: row.positionId, title: row.positionTitle } : null,
-        recruiter: row.recruiterId ? { id: row.recruiterId, name: row.recruiterName, email: null } : null,
+        recruiter: row.recruiterId ? { 
+          id: row.recruiterId, 
+          name: row.recruiterName, 
+          avatarUrl: row.recruiterAvatarUrl || null,
+          email: null 
+        } : null,
         transitionHistory: (row.transitionHistory || []) as TransitionRecord[],
         customAttributes: row.customAttributes || {},
         fitScore: row.fitScore || 0, // Convert null to 0 for consistency
@@ -253,18 +258,7 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     .map(c => `CANDIDATE_START\n${createCandidateSummary(c)}\nCANDIDATE_END`)
     .join('\n\n---\n\n');
   
-  // Debug logging for fit scores
-  console.log({
-    query: input.query,
-    totalCandidates: allCandidates.length,
-    fitScores: allCandidates.map(c => ({
-      id: c.id,
-      name: c.name,
-      originalFitScore: c.fitScore,
-      displayFitScore: c.fitScore < 1 ? Math.round(c.fitScore * 100) : c.fitScore,
-      hasJobMatches: (c.parsedData as any)?.job_matches?.length > 0
-    }))
-  });
+
   
   if (!candidateSummariesText.trim() && allCandidates.length > 0) {
       console.warn("AI Search: Candidate summaries text is empty even though candidates were fetched. This might indicate an issue with createCandidateSummary or empty candidate details.");

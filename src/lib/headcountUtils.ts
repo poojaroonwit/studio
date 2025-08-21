@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
 import { dispatchWebhooks } from '@/lib/webhookDispatcher';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Check if all headcounts for a position are filled
@@ -244,6 +245,335 @@ export async function checkAndAutoCloseAllPositions(
     return results;
   } catch (error) {
     console.error('Error checking and auto-closing positions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Validate if a candidate can be set to "Hired" status based on headcount availability
+ * @param candidateId - The candidate ID to validate
+ * @param positionId - The position ID to check headcounts for
+ * @returns Object with validation result and details
+ */
+export async function validateCandidateHiringStatus(candidateId: string, positionId: string) {
+  try {
+    // Check if position has any headcounts
+    const headcounts = await prisma.headcount.findMany({
+      where: { positionId },
+      select: {
+        id: true,
+        status: true,
+        candidateId: true,
+      },
+    });
+
+    if (headcounts.length === 0) {
+      return {
+        canHire: false,
+        reason: 'NO_HEADCOUNT',
+        message: 'This position has no headcount defined. Cannot hire candidate without available headcount.',
+        headcountStatus: {
+          hasHeadcounts: false,
+          totalHeadcounts: 0,
+          vacantHeadcounts: 0,
+          filledHeadcounts: 0,
+        },
+      };
+    }
+
+    const vacantHeadcounts = headcounts.filter(h => h.status === 'vacant');
+    const filledHeadcounts = headcounts.filter(h => h.status === 'filled');
+
+    if (vacantHeadcounts.length === 0) {
+      return {
+        canHire: false,
+        reason: 'NO_VACANT_HEADCOUNT',
+        message: 'All headcounts for this position are already filled. Cannot hire candidate without available headcount.',
+        headcountStatus: {
+          hasHeadcounts: true,
+          totalHeadcounts: headcounts.length,
+          vacantHeadcounts: 0,
+          filledHeadcounts: filledHeadcounts.length,
+        },
+      };
+    }
+
+    // Check if candidate is already assigned to a headcount
+    const existingAssignment = headcounts.find(h => h.candidateId === candidateId);
+    if (existingAssignment) {
+      return {
+        canHire: true,
+        reason: 'ALREADY_ASSIGNED',
+        message: 'Candidate is already assigned to a headcount.',
+        headcountId: existingAssignment.id,
+        headcountStatus: {
+          hasHeadcounts: true,
+          totalHeadcounts: headcounts.length,
+          vacantHeadcounts: vacantHeadcounts.length,
+          filledHeadcounts: filledHeadcounts.length,
+        },
+      };
+    }
+
+    return {
+      canHire: true,
+      reason: 'VACANT_HEADCOUNT_AVAILABLE',
+      message: 'Vacant headcount available for hiring.',
+      availableHeadcountId: vacantHeadcounts[0].id, // Return the first available headcount
+      headcountStatus: {
+        hasHeadcounts: true,
+        totalHeadcounts: headcounts.length,
+        vacantHeadcounts: vacantHeadcounts.length,
+        filledHeadcounts: filledHeadcounts.length,
+      },
+    };
+  } catch (error) {
+    console.error('Error validating candidate hiring status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if unassigning a candidate from headcount would affect their status
+ * @param headcountId - The headcount ID to check
+ * @returns Object with warning details if applicable
+ */
+export async function checkHeadcountUnassignWarning(headcountId: string) {
+  try {
+    const headcount = await prisma.headcount.findUnique({
+      where: { id: headcountId },
+      include: {
+        candidate: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!headcount || !headcount.candidate) {
+      return {
+        hasWarning: false,
+      };
+    }
+
+    // Check if candidate status is "Hired" and this is their only headcount assignment
+    if (headcount.candidate.status === 'Hired') {
+      const candidateHeadcounts = await prisma.headcount.findMany({
+        where: {
+          candidateId: headcount.candidate.id,
+          status: 'filled',
+        },
+      });
+
+      if (candidateHeadcounts.length <= 1) {
+        return {
+          hasWarning: true,
+          warningType: 'CANDIDATE_STATUS_WILL_CHANGE',
+          message: `Unassigning this candidate will change their status from "Hired" to "Applied" since they will no longer have an active headcount assignment.`,
+          candidate: headcount.candidate,
+          position: headcount.position,
+        };
+      }
+    }
+
+    return {
+      hasWarning: false,
+    };
+  } catch (error) {
+    console.error('Error checking headcount unassign warning:', error);
+    throw error;
+  }
+}
+
+/**
+ * Automatically assign candidate to headcount when status changes to "Hired"
+ * @param candidateId - The candidate ID
+ * @param positionId - The position ID
+ * @param actingUserId - The user ID performing the action
+ * @param actingUserName - The user name performing the action
+ * @returns Object with assignment result
+ */
+export async function assignCandidateToHeadcount(
+  candidateId: string,
+  positionId: string,
+  actingUserId: string,
+  actingUserName: string
+) {
+  try {
+    // Find vacant headcount for this position
+    const vacantHeadcount = await prisma.headcount.findFirst({
+      where: {
+        positionId,
+        status: 'vacant',
+      },
+      orderBy: {
+        createdAt: 'asc', // Get the oldest vacant headcount
+      },
+    });
+
+    if (!vacantHeadcount) {
+      return {
+        success: false,
+        message: 'No vacant headcount available for this position',
+      };
+    }
+
+    // Update the headcount to assign this candidate
+    await prisma.headcount.update({
+      where: { id: vacantHeadcount.id },
+      data: {
+        status: 'filled',
+        candidateId: candidateId,
+      },
+    });
+
+    // Log the assignment
+    await logAudit('AUDIT', `Candidate assigned to headcount automatically when status changed to "Hired" by ${actingUserName}.`, 'Headcount:AutoAssign', actingUserId, {
+      candidateId,
+      headcountId: vacantHeadcount.id,
+      positionId,
+    });
+
+    // Check if all headcounts are now filled and auto-close position if needed
+    let autoCloseResult = null;
+    try {
+      autoCloseResult = await autoClosePositionIfHeadcountFilled(
+        positionId,
+        actingUserId,
+        actingUserName
+      );
+    } catch (autoCloseError) {
+      console.error('Error auto-closing position:', autoCloseError);
+      // Don't fail the headcount assignment if auto-close fails
+    }
+
+    return {
+      success: true,
+      message: 'Candidate automatically assigned to headcount',
+      headcountId: vacantHeadcount.id,
+      autoCloseResult,
+    };
+  } catch (error) {
+    console.error('Error assigning candidate to headcount:', error);
+    throw error;
+  }
+}
+
+/**
+ * Unassign candidate from headcount and update their status if needed
+ * @param headcountId - The headcount ID
+ * @param actingUserId - The user ID performing the action
+ * @param actingUserName - The user name performing the action
+ * @returns Object with unassign result
+ */
+export async function unassignCandidateFromHeadcount(
+  headcountId: string,
+  actingUserId: string,
+  actingUserName: string
+) {
+  try {
+    const headcount = await prisma.headcount.findUnique({
+      where: { id: headcountId },
+      include: {
+        candidate: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!headcount || !headcount.candidate) {
+      return {
+        success: false,
+        message: 'Headcount not found or no candidate assigned',
+      };
+    }
+
+    const candidateId = headcount.candidate.id;
+    const wasHired = headcount.candidate.status === 'Hired';
+
+    // Update the headcount to remove candidate assignment
+    await prisma.headcount.update({
+      where: { id: headcountId },
+      data: {
+        status: 'vacant',
+        candidateId: null,
+      },
+    });
+
+    // Check if candidate has any other headcount assignments
+    const remainingHeadcounts = await prisma.headcount.findMany({
+      where: {
+        candidateId,
+        status: 'filled',
+      },
+    });
+
+    let statusUpdateResult = null;
+    // If candidate was "Hired" and has no other headcount assignments, change status to "Applied"
+    if (wasHired && remainingHeadcounts.length === 0) {
+      await prisma.candidate.update({
+        where: { id: candidateId },
+        data: { status: 'Applied' },
+      });
+
+      // Create transition record for status change
+      const newTransitionId = uuidv4();
+      await prisma.transitionRecord.create({
+        data: {
+          id: newTransitionId,
+          candidateId,
+          positionId: headcount.position.id,
+          stage: 'Applied',
+          notes: 'Status automatically changed from "Hired" to "Applied" due to headcount unassignment',
+          actingUserId,
+          date: new Date(),
+        },
+      });
+
+      statusUpdateResult = {
+        statusChanged: true,
+        oldStatus: 'Hired',
+        newStatus: 'Applied',
+        transitionId: newTransitionId,
+      };
+    }
+
+    // Log the unassignment
+    await logAudit('AUDIT', `Candidate unassigned from headcount by ${actingUserName}.`, 'Headcount:Unassign', actingUserId, {
+      candidateId,
+      headcountId,
+      positionId: headcount.position.id,
+      statusUpdateResult,
+    });
+
+    return {
+      success: true,
+      message: 'Candidate unassigned from headcount successfully',
+      statusUpdateResult,
+    };
+  } catch (error) {
+    console.error('Error unassigning candidate from headcount:', error);
     throw error;
   }
 }

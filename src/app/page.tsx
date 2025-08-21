@@ -32,7 +32,7 @@ export default async function DashboardPageServer() {
       // Fetch candidates
       const candidatesQuery = `
         SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel", p."isOpen" as "positionIsOpen",
-               r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail",
+               r.id as "recruiterId", r.name as "recruiterName", r.email as "recruiterEmail", r."avatarUrl" as "recruiterAvatarUrl",
                COALESCE(th_data.history, '[]'::json) as "transitionHistory"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
@@ -104,7 +104,8 @@ export default async function DashboardPageServer() {
           recruiter: row.recruiterId ? {
             id: row.recruiterId,
             name: row.recruiterName,
-            email: row.recruiterEmail || ''
+            email: row.recruiterEmail || '',
+            avatarUrl: row.recruiterAvatarUrl || null
           } : null,
           createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
           updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),

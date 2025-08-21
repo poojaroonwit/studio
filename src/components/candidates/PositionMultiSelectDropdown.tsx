@@ -218,7 +218,7 @@ export function PositionMultiSelectDropdown({
                 type="button"
                 onClick={(e) => {
                   if (disabled) {
-                    console.log('PositionMultiSelectDropdown is disabled, ignoring Not Applied remove');
+            
                     return;
                   }
                   handleRemovePosition('not-applied', e);

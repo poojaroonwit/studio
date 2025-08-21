@@ -102,6 +102,8 @@ export const CandidateImportUploadQueue: React.FC<{
   const [showErrorLogId, setShowErrorLogId] = useState<string | null>(null);
   const [showCombinedDialogId, setShowCombinedDialogId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
+  const [debouncedFilter, setDebouncedFilter] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
@@ -263,7 +265,7 @@ export const CandidateImportUploadQueue: React.FC<{
         limit: String(pageSize),
         offset: String((page - 1) * pageSize),
       });
-      if (filter) params.set('file_name', filter);
+      if (debouncedFilter) params.set('file_name', debouncedFilter);
       if (statusFilter) {
         // Convert display label to actual status codes for backend
         const codes = statusLabelToCodes[statusFilter] || [];
@@ -319,7 +321,21 @@ export const CandidateImportUploadQueue: React.FC<{
       isFetchingRef.current = false;
 
     }
-  }, [page, pageSize, showError, filter, statusFilter, dateRange, positionIdFilter]);
+  }, [page, pageSize, showError, debouncedFilter, statusFilter, dateRange, positionIdFilter]);
+
+  // Debounce filter changes
+  useEffect(() => {
+    if (filter !== debouncedFilter) {
+      setIsSearching(true);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      setDebouncedFilter(filter);
+      setIsSearching(false);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [filter, debouncedFilter]);
 
   // Fetch status summary for static status cards (excludes status filter, includes date filter)
   const fetchStatusSummary = useCallback(async () => {
@@ -486,7 +502,7 @@ export const CandidateImportUploadQueue: React.FC<{
       
       try {
         const params = new URLSearchParams();
-        if (filter) params.set('file_name', filter);
+        if (debouncedFilter) params.set('file_name', debouncedFilter);
         if (statusFilter) {
           // Convert display label to actual status codes for backend
           const codes = statusLabelToCodes[statusFilter] || [];
@@ -576,7 +592,7 @@ export const CandidateImportUploadQueue: React.FC<{
       }
       if (debounceTimeout) clearTimeout(debounceTimeout);
     };
-  }, [filter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection
+  }, [debouncedFilter, statusFilter, dateRange, page, pageSize, positionIdFilter, sessionStatus, session]); // Keep all dependencies as they affect the SSE connection
 
   useEffect(() => {
     async function fetchMaxConcurrent() {
@@ -860,12 +876,29 @@ export const CandidateImportUploadQueue: React.FC<{
       <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
         <div className="flex flex-wrap items-center gap-2 flex-1">
           {/* Filters */}
-          <Input
-            placeholder="Filter by file name..."
-            value={filter}
-            onChange={e => setFilter(e.target.value)}
-            className="min-w-[180px] max-w-xs"
-          />
+          <div className="relative min-w-[180px] max-w-xs">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filter by file name..."
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              className="pl-8 pr-8"
+            />
+            {isSearching && (
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {filter && !isSearching && (
+              <button
+                onClick={() => setFilter("")}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <Popover open={positionPopoverOpen} onOpenChange={setPositionPopoverOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -999,12 +1032,7 @@ export const CandidateImportUploadQueue: React.FC<{
         {/* Status Cards */}
         <div className="mb-6">
           {/* Real-time Status Indicator */}
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Queue Status</h3>
-            <div className="flex items-center gap-2">
-             
-            </div>
-          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
             {/* All Upload Jobs Card - Black */}
             <Card

@@ -37,6 +37,7 @@ import { UserX } from 'lucide-react';
 import { FitScoreFilterBadges } from './FitScoreFilterBadges';
 import { FitScoreFilterTabs } from './FitScoreFilterTabs';
 import { CandidateSettingsDrawer, type CandidateSettings } from './CandidateSettingsDrawer';
+import { useDynamicHeight } from '@/hooks/use-dynamic-height';
 
 
 interface CandidatesPageClientProps {
@@ -76,6 +77,21 @@ export function CandidatesPageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
+  // Add refs for height calculation
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sidebarFilterRef = useRef<HTMLElement>(null);
+  const activeFiltersBarRef = useRef<HTMLDivElement>(null);
+  
+  // Use dynamic height hook for responsive calculations
+  const { height: tableHeight, elementRef: dynamicContentRef, addFilterRef, removeFilterRef } = useDynamicHeight({
+    minHeight: 300,
+    maxHeight: 800,
+    buffer: 20,
+    debounceMs: 150
+  });
+
+
+
   const [filters, setFilters] = useState<CandidateFilterValues>(() => {
     const baseFilters = initialFilters || {
       minAppliedJobFitScore: undefined,
@@ -224,12 +240,34 @@ export function CandidatesPageClient({
     showJobMatchesColumn: true,
     showFitScoreColumn: true,
     showRecruiterColumn: true,
+    showSourceColumn: true,
     showStatusColumn: true,
     showAppliedDateColumn: true,
     showFilters: true,
     showHorizontalFitScoreFilters: true,
     fitScoreType: 'applied'
   });
+
+
+
+  // Add filter refs to the dynamic height hook
+  useEffect(() => {
+    if (sidebarFilterRef.current) {
+      addFilterRef(sidebarFilterRef.current);
+    }
+    if (activeFiltersBarRef.current) {
+      addFilterRef(activeFiltersBarRef.current);
+    }
+    
+    return () => {
+      if (sidebarFilterRef.current) {
+        removeFilterRef(sidebarFilterRef.current);
+      }
+      if (activeFiltersBarRef.current) {
+        removeFilterRef(activeFiltersBarRef.current);
+      }
+    };
+  }, [addFilterRef, removeFilterRef]);
 
   // Get candidates that match all other filters but NOT fit score filters
   // This prevents circular dependency where fit score counts would be affected by selected fit score filters
@@ -250,16 +288,7 @@ export function CandidatesPageClient({
       return true;
     });
     
-    console.log('CandidatesPageClient - candidatesForFitScoreCounts filtering:', {
-      totalCandidates: fullCandidatesForCounts.length,
-      filteredCandidates: filtered.length,
-      filters: {
-        selectedPositionIds: filters.selectedPositionIds,
-        selectedStatuses: filters.selectedStatuses,
-        selectedRecruiterIds: filters.selectedRecruiterIds,
-        selectedSourceIds: filters.selectedSourceIds
-      }
-    });
+
     
     return filtered;
   }, [fullCandidatesForCounts, filters.selectedPositionIds, filters.selectedStatuses, filters.selectedRecruiterIds, filters.selectedSourceIds]);
@@ -271,47 +300,35 @@ export function CandidatesPageClient({
     const appliedScoreRangeCounts: { [key: string]: number } = {};
     const matchingScoreRangeCounts: { [key: string]: number } = {};
     
-    // For debugging: temporarily use all candidates to see if counts work
     const candidatesToProcess = candidatesForFitScoreCounts;
-    console.log('Processing candidates for score counts:', candidatesToProcess.length);
     
     candidatesToProcess.forEach((candidate: Candidate) => {
       // Applied fit score (normalized)
       const appliedScore = normalizeFitScore(candidate.fitScore);
-      console.log(`Candidate ${candidate.name} (${candidate.id}):`, {
-        originalFitScore: candidate.fitScore,
-        normalizedAppliedScore: appliedScore,
-        candidateData: candidate
-      });
       
       if (appliedScore > 0) {
         scoreRanges.forEach(range => {
           if (appliedScore >= range.min && appliedScore <= range.max) {
             appliedScoreRangeCounts[range.letter] = (appliedScoreRangeCounts[range.letter] || 0) + 1;
-            console.log(`  -> Applied score ${appliedScore} falls in range ${range.letter} (${range.min}-${range.max})`);
           }
         });
       } else {
         // Count candidates with no applied fit score
         appliedScoreRangeCounts['no-score'] = (appliedScoreRangeCounts['no-score'] || 0) + 1;
-        console.log(`  -> Applied score ${appliedScore} -> no-score`);
       }
       
       // Matching fit score (simplified)
       const matchingScore = getBestMatchingFitScore(candidate);
-      console.log(`  Matching score for ${candidate.name}:`, matchingScore);
       
       if (matchingScore > 0) {
         scoreRanges.forEach(range => {
           if (matchingScore >= range.min && matchingScore <= range.max) {
             matchingScoreRangeCounts[range.letter] = (matchingScoreRangeCounts[range.letter] || 0) + 1;
-            console.log(`  -> Matching score ${matchingScore} falls in range ${range.letter} (${range.min}-${range.max})`);
           }
         });
       } else {
         // Count candidates with no matching fit score
         matchingScoreRangeCounts['no-score'] = (matchingScoreRangeCounts['no-score'] || 0) + 1;
-        console.log(`  -> Matching score ${matchingScore} -> no-score`);
       }
     });
     
@@ -338,10 +355,7 @@ export function CandidatesPageClient({
       ]
     };
     
-    console.log('CandidatesPageClient - candidateScoreCounts:', result);
-    console.log('CandidatesPageClient - candidatesForFitScoreCounts count:', candidatesForFitScoreCounts.length);
-    console.log('CandidatesPageClient - appliedScoreRangeCounts:', appliedScoreRangeCounts);
-    console.log('CandidatesPageClient - matchingScoreRangeCounts:', matchingScoreRangeCounts);
+
     
     return result;
   }, [candidatesForFitScoreCounts]);
@@ -1291,7 +1305,7 @@ export function CandidatesPageClient({
     }
     
     currentRequestRef.current = requestId;
-    console.log('Fetching candidates due to filter/sort change:', { filters, page, pageSize, sortColumn, sortDirection });
+
     
     // Call fetchTableData directly instead of through dependency
     const fetchCandidates = async () => {
@@ -1835,6 +1849,29 @@ export function CandidatesPageClient({
         throw new Error(errorMessage);
       }
 
+      const result = await response.json();
+      
+      // Handle headcount validation results
+      if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+        const rejectedCandidate = result.rejectedCandidates.find((c: any) => c.candidateId === candidateId);
+        if (rejectedCandidate) {
+          if (!suppressToast) {
+            toast.error(rejectedCandidate.message, { id: candidateId });
+          }
+          throw new Error(rejectedCandidate.message);
+        }
+      }
+
+      // Show success messages for headcount assignments
+      if (result.headcountAssignments && result.headcountAssignments.length > 0) {
+        const assignment = result.headcountAssignments.find((a: any) => a.candidateId === candidateId);
+        if (assignment && assignment.success) {
+          if (!suppressToast) {
+            toast.success(`Candidate automatically assigned to headcount`, { id: candidateId });
+          }
+        }
+      }
+
       // Fetch the updated candidate to ensure we have the latest data
       const candidateResponse = await fetch(`/api/candidates/${candidateId}`);
       if (!candidateResponse.ok) {
@@ -2152,6 +2189,61 @@ export function CandidatesPageClient({
     }
   };
 
+  // Add handler for assigning source inline
+  const handleAssignSource = async (candidateId: string, sourceId: string | null, subSource?: string | null) => {
+    // Find previous source for revert on error
+    const prevCandidate = allCandidates.find(c => c.id === candidateId);
+    const prevSource = prevCandidate?.source || null;
+    const prevSubSource = prevCandidate?.subSource || null;
+    
+    // Optimistically update source in UI
+    setAllCandidates(prev =>
+      prev.map(c =>
+        c.id === candidateId
+          ? {
+              ...c,
+              source: sourceId
+                ? (() => {
+                    const found = availableSources.find(s => s.id === sourceId);
+                    return found
+                      ? { id: found.id, name: found.name, description: found.description, logo: found.logo, allowSubSource: found.allowSubSource, sortOrder: found.sortOrder, isActive: found.isActive }
+                      : { id: sourceId, name: 'Unknown', description: null, logo: undefined, allowSubSource: false, sortOrder: 0, isActive: true };
+                  })()
+                : null,
+              subSource: subSource || null,
+            }
+          : c
+      )
+    );
+    try {
+      // Find the candidate's current status
+      const candidate = allCandidates.find(c => c.id === candidateId);
+      const status = candidate?.status || 'Applied';
+      const response = await fetch(`/api/candidates/${candidateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceId, subSource, status }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to assign source' }));
+        throw new Error(errorData.message || `Failed to assign source: ${response.status} ${response.statusText}`);
+      }
+      await refreshCandidateInList(candidateId);
+      toast.success('Source updated.');
+    } catch (error) {
+      // Revert source in UI
+      setAllCandidates(prev =>
+        prev.map(c =>
+          c.id === candidateId
+            ? { ...c, source: prevSource, subSource: prevSubSource }
+            : c
+        )
+      );
+      console.error('Error assigning source:', error);
+      toast.error((error as Error).message || 'Failed to assign source');
+    }
+  };
+
   useEffect(() => {
     const handleRefresh = () => {
       debouncedFetchPaginatedCandidates(filters, page, pageSize);
@@ -2385,8 +2477,8 @@ export function CandidatesPageClient({
     <div className="flex h-full relative">
       {/* Filter Sidebar */}
       {candidateSettings.showFilters && (
-        <aside className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen">
-          <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+        <aside ref={sidebarFilterRef} className="w-80 min-w-[250px] border-r bg-card dark:bg-background transition-all flex flex-col h-screen responsive-filter-sidebar">
+          <div className="flex justify-between items-center p-2 border-b flex-shrink-0">
             <span className="font-bold text-lg">Filters</span>
             <button
               className="ml-2 p-1 rounded hover:bg-muted"
@@ -2428,7 +2520,7 @@ export function CandidatesPageClient({
         </button>
       )}
       {/* Main Content */}
-      <main className="flex-1 w-full space-y-6 min-w-0 p-6">
+      <main ref={dynamicContentRef} className="flex-1 w-full space-y-6 min-w-0 p-6">
        
 
      
@@ -2445,22 +2537,6 @@ export function CandidatesPageClient({
             </span> */}
           </div>
         </div>
-            {/* AI Search Results */}
-        {aiSearchReasoning && (
-          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
-            <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
-            <AlertDescription className="text-blue-700 dark:text-blue-300">
-              AI search completed successfully.
-            </AlertDescription>
-          </Alert>
-        )}
-        {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
-            <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
-          </div>
-        )}
          
           {/* Fit Score Filter Tabs */}
           {candidateSettings.showHorizontalFitScoreFilters && (
@@ -2483,6 +2559,18 @@ export function CandidatesPageClient({
               )}
             </div>
           )}
+
+        
+          
+        
+          {isAiSearchActive && aiMatchedCandidateIds && aiRecordCount === 0 && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-blue-700 dark:text-blue-300">No candidates matched your AI search.</span>
+              <Button size="sm" variant="outline" onClick={handleClearAllFilters}>Clear AI Search</Button>
+            </div>
+          )}
+
+      
           
           {/* Action buttons on the right */}
           <div className="flex gap-2 items-center">
@@ -2558,7 +2646,7 @@ export function CandidatesPageClient({
           if (!hasActiveFilters) return null;
 
           return (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md filter-bar-container">
+            <div ref={activeFiltersBarRef} className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1.5 rounded-md filter-bar-container transition-all duration-200 ease-in-out">
               <Filter className="h-3 w-3" />
               <span>Active filters:</span>
               {filters.name && (
@@ -2710,7 +2798,16 @@ export function CandidatesPageClient({
             </div>
           );
         })()}
-
+        {/* AI Search Results - Now positioned after Fit Score Filter Tabs */}
+        {aiSearchReasoning && (
+            <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2 mt-4">
+              <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">AI Search Results</AlertTitle>
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                {aiSearchReasoning}
+              </AlertDescription>
+            </Alert>
+          )}
         {/* Bulk Actions - show when candidates are selected */}
         {selectedCandidateIds.size > 0 && canManageCandidates && (
           <div className="flex items-center gap-2 mt-2">
@@ -2820,7 +2917,9 @@ export function CandidatesPageClient({
                   availablePositions={availablePositions}
                   availableStages={availableStages}
                   availableRecruiters={availableRecruiters}
+                  availableSources={availableSources}
                   onAssignRecruiter={handleAssignRecruiter}
+                  onAssignSource={handleAssignSource}
                   onUpdateCandidate={updateCandidateStatus}
                   onDeleteCandidate={handleDeleteCandidate}
                   onEditPosition={handleOpenEditPositionModal}
@@ -2838,6 +2937,7 @@ export function CandidatesPageClient({
                   onSort={handleSort}
                   canManageCandidates={canManageCandidates}
                   settings={candidateSettings}
+                  tableHeight={tableHeight}
                 />
               </ErrorBoundary>
             );
@@ -3090,3 +3190,4 @@ export function CandidatesPageClient({
     </div>
   );
 }
+

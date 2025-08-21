@@ -85,7 +85,7 @@ export async function getAllUsers() {
 export async function getAllCandidates() {
   const pool = getPool();
   const result = await pool.query(`
-    SELECT c.*, p.title as "positionTitle", r.name as "recruiterName"
+    SELECT c.*, p.title as "positionTitle", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl"
     FROM "Candidate" c
     LEFT JOIN "Position" p ON c."positionId" = p.id
     LEFT JOIN "User" r ON c."recruiterId" = r.id
@@ -95,7 +95,10 @@ export async function getAllCandidates() {
     ...row,
     customAttributes: row.customAttributes || {},
     position: row.positionId ? { title: row.positionTitle } : null,
-    recruiter: row.recruiterId ? { name: row.recruiterName } : null,
+    recruiter: row.recruiterId ? { 
+      name: row.recruiterName,
+      avatarUrl: row.recruiterAvatarUrl || null
+    } : null,
   }));
 }
 

@@ -498,11 +498,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Handle sub source filter
-  if (filters.subSource) {
-    whereClauses.push(`c."subSource" ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.subSource}%`);
-  }
+
 
   // Handle text search (name)
   if (filters.searchTerm) {
@@ -797,13 +793,7 @@ export async function GET(request: NextRequest) {
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
   
-  // Ensure we have a valid WHERE clause
-  console.log('Query debugging:', {
-    whereClauses,
-    whereString,
-    queryParams,
-    paramIndex
-  });
+
 
 
 
@@ -811,7 +801,7 @@ export async function GET(request: NextRequest) {
   try {
     const candidatesQuery = `
       SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
-             r.id as "recruiterId", r.name as "recruiterName",
+             r.id as "recruiterId", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
              cs.id as "sourceId", cs.name as "sourceName", cs.description as "sourceDescription",
              COALESCE(th_data.history, '[]'::json) as "transitionHistory",
              COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
@@ -905,6 +895,7 @@ export async function GET(request: NextRequest) {
         recruiter: row.recruiterId ? {
           id: row.recruiterId,
           name: row.recruiterName,
+          avatarUrl: row.recruiterAvatarUrl || null,
           email: null
         } : null,
         sourceId: row.sourceId || null,

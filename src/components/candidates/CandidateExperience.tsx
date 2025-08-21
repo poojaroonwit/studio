@@ -290,7 +290,7 @@ const CandidateExperience: React.FC<CandidateExperienceProps> = ({ experience })
                         )}
                         
                         {/* Period and Duration */}
-                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-3">
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground mb-3">
                           {periodDisplay && (
                             <span dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                           )}

@@ -17,6 +17,8 @@ interface SidebarHeaderContentProps {
   appLogoUrl: string | null; // MinIO URL, not data URL
   isClient: boolean;
   isLogoLoading?: boolean;
+  showLogoOnly?: boolean;
+  sidebarLogoSize?: number;
   contextualLogos?: {
     sidebarLogoCollapsedLightMode?: string | null;
     sidebarLogoExpandedLightMode?: string | null;
@@ -25,7 +27,7 @@ interface SidebarHeaderContentProps {
   };
 }
 
-export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading, contextualLogos }: SidebarHeaderContentProps) {
+export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isLogoLoading, showLogoOnly = false, sidebarLogoSize = 48, contextualLogos }: SidebarHeaderContentProps) {
   const sidebarContext = useSidebar();
 
   // Function to determine which logo to use
@@ -72,7 +74,11 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
             alt="App Logo"
             width={100}
             height={100}
-            className="h-12 w-12 object-contain"
+            style={{
+              width: `${sidebarLogoSize}px`,
+              height: `${sidebarLogoSize}px`,
+            }}
+            className="object-contain"
             data-ai-hint="company logo"
           />
           {/* Fallback icon that shows if image fails to load */}
@@ -95,7 +101,7 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
                 {renderLogo(true)}
               </div>
             </TooltipTrigger>
-            <TooltipContent side="right">{currentAppName}</TooltipContent>
+            <TooltipContent side="right">{showLogoOnly ? 'Application' : currentAppName}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -107,7 +113,7 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
     <div className="flex items-center justify-between gap-2 px-2 py-1 min-h-[48px]">
       <div className="flex items-center gap-2">
         {renderLogo(false)}
-        <span className="font-semibold text-lg">{currentAppName}</span>
+        {!showLogoOnly && <span className="font-semibold text-lg">{currentAppName}</span>}
       </div>
       <Button
         variant="ghost"

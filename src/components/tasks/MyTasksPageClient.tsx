@@ -155,11 +155,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       if (currentPreferences.viewMode !== lastSaved.viewMode || 
           currentPreferences.selectedStages !== lastSaved.selectedStages) {
         
-        console.log('🔄 View mode changed, updating preferences:', {
-          from: lastSaved.viewMode,
-          to: currentPreferences.viewMode,
-          selectedStages: selectedStages
-        });
+
         
         // Clear any existing timeout
         if (preferenceUpdateTimeoutRef.current) {
@@ -168,7 +164,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
         
         // Debounce the preference update
         preferenceUpdateTimeoutRef.current = setTimeout(() => {
-          console.log('💾 Saving view mode preference:', currentPreferences.viewMode);
+
           updateTaskBoardPreferences({
             viewMode,
             selectedStages,
@@ -199,7 +195,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
   const handleViewModeChange = useCallback((newViewMode: string) => {
     // Prevent changes during initial load
     if (!isLoaded || !viewModeInitializedRef.current) {
-      console.log('⚠️ View mode change blocked during initial load');
+
       return;
     }
     
@@ -208,7 +204,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
       return;
     }
     
-    console.log('🎯 Manual view mode change:', { from: viewMode, to: newViewMode });
+
     setViewMode(newViewMode);
   }, [viewMode, isLoaded]);
 
@@ -369,7 +365,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
 
   // Handle task movement
   const handleMoveTask = (task: Task, newStatus: string) => {
-    console.log('🔄 Attempting to move task:', task.id, 'from', task.status, 'to', newStatus);
+
     
     // Find the original candidate
     const candidate = candidates.find(c => c.id === task.id);
@@ -392,7 +388,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     const updateCandidateStatus = async (): Promise<void> => {
       try {
         // Test API endpoint accessibility first
-        console.log('🔍 Testing API endpoint accessibility...');
+
         const testResponse = await fetch(`/api/candidates/${candidate.id}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
@@ -403,7 +399,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           throw new Error(`API endpoint not accessible: ${testResponse.status} ${testResponse.statusText}`);
         }
         
-        console.log('✅ API endpoint accessible, proceeding with status update...');
+        
         
         // Use retry logic for the actual update
         await retryWithBackoff(async () => {
@@ -437,7 +433,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           return updateResponse;
         }, 2, 1000); // 2 retries, 1 second base delay
         
-        console.log('✅ Status update successful, refreshing candidate data...');
+        
         
         // Re-fetch the candidate to ensure UI reflects the persisted status
         try {
@@ -449,7 +445,7 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
           if (refreshed.ok) {
             const refreshedCandidate = await refreshed.json();
             setCandidates((prev) => prev.map((c) => c.id === candidate.id ? { ...c, status: refreshedCandidate.status } : c));
-            console.log('✅ Candidate data refreshed successfully');
+
           } else {
             console.warn('⚠️ Could not refresh candidate data, but update was successful');
           }

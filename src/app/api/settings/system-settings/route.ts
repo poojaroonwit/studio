@@ -56,7 +56,7 @@ const systemSettingKeyEnum = z.enum([
     'loginPageLayoutType',
     // Alternative keys used by system preferences page
     'themePreference', 'loginBackgroundType', 'loginBackgroundGradientStart', 
-    'loginBackgroundGradientEnd', 'loginBackgroundColor',
+    'loginBackgroundGradientEnd', 'loginBackgroundColor', 'showLogoOnly', 'sidebarLogoSize',
     // Sidebar Light Theme - Background colors
     'sidebarBgStartL', 'sidebarBgEndL', 'sidebarTextL',
     'sidebarActiveBgStartL', 'sidebarActiveBgEndL', 'sidebarActiveTextL',
@@ -283,8 +283,13 @@ export async function POST(request: NextRequest) {
   const validationResult = saveSystemSettingsSchema.safeParse(settingsToSave);
   if (!validationResult.success) {
     console.error('System settings validation failed:', validationResult.error.flatten().fieldErrors);
+    console.error('Data that failed validation:', JSON.stringify(settingsToSave, null, 2));
     return NextResponse.json(
-      { message: "Invalid input for system settings", errors: validationResult.error.flatten().fieldErrors },
+      { 
+        message: "Invalid input for system settings", 
+        errors: validationResult.error.flatten().fieldErrors,
+        data: settingsToSave // Include the data that failed validation for debugging
+      },
       { status: 400 }
     );
   }

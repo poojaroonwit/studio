@@ -70,6 +70,10 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
   const [allCandidatesSortColumn, setAllCandidatesSortColumn] = useState<string | null>('applicationDate');
   const [allCandidatesSortDirection, setAllCandidatesSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  // State for headcount
+  const [headcounts, setHeadcounts] = useState<any[]>([]);
+  const [headcountsTotal, setHeadcountsTotal] = useState(0);
+
   // State for applied candidates
   const [appliedCandidates, setAppliedCandidates] = useState<Candidate[]>([]);
   const [appliedCandidatesPage, setAppliedCandidatesPage] = useState(1);
@@ -334,11 +338,18 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
         query.append('sortDirection', appliedCandidatesSortDirection);
       }
       
-      const response = await fetch(`/api/positions/${positionId}/candidates?${query.toString()}`);
+      const url = `/api/positions/${positionId}/candidates?${query.toString()}`;
+      console.log('Fetching applied candidates from:', url);
+      
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch applied candidates');
       
       const data = await response.json();
+      console.log('Applied candidates API response:', data);
+      
       const candidates = Array.isArray(data.data) ? data.data : [];
+      console.log('Parsed candidates:', candidates);
+      console.log('Total candidates found:', candidates.length);
       
       setAppliedCandidates(candidates);
       setAppliedCandidatesTotal(data.pagination?.total || candidates.length);
@@ -418,6 +429,23 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setPotentialCandidatesTotal(0);
     }
   }, [positionId, potentialCandidatesPage, potentialCandidatesPageSize, potentialCandidatesSearchTerm, potentialCandidatesSortColumn, potentialCandidatesSortDirection]);
+
+  // Fetch headcount count for this position
+  const fetchHeadcountCount = useCallback(async () => {
+    if (!positionId) return;
+    
+    try {
+      const response = await fetch(`/api/headcount?positionId=${positionId}`);
+      if (!response.ok) throw new Error('Failed to fetch headcount count');
+      
+      const data = await response.json();
+      const headcounts = Array.isArray(data) ? data : [];
+      setHeadcountsTotal(headcounts.length);
+    } catch (error) {
+      console.error('Error fetching headcount count:', error);
+      setHeadcountsTotal(0);
+    }
+  }, [positionId]);
 
   // Handle candidate click
   const handleCandidateClick = (candidateId: string) => {
@@ -607,8 +635,9 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       fetchAppliedCandidates();
       fetchAllCandidates();
       fetchPotentialCandidates();
+      fetchHeadcountCount();
     }
-  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates]);
+  }, [isOpen, positionId, sessionStatus, fetchPosition, fetchGrades, fetchAppliedCandidates, fetchAllCandidates, fetchPotentialCandidates, fetchHeadcountCount]);
 
   // Reset state when drawer closes
   useEffect(() => {
@@ -620,6 +649,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       setAppliedCandidatesTotal(0);
       setPotentialCandidates([]);
       setPotentialCandidatesTotal(0);
+      setHeadcountsTotal(0);
       setFetchError(null);
       setAllCandidatesSearchTerm('');
       setAllCandidatesPage(1);
@@ -1369,7 +1399,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                       )}
                     >
-                      Headcount
+                      Headcount ({headcountsTotal})
                     </div>
                   </div>
                   
@@ -1918,6 +1948,7 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
                       <HeadcountTab 
                         positionId={positionId!} 
                         candidates={allCandidates}
+                        onHeadcountChange={fetchHeadcountCount}
                       />
                     </div>
                   )}

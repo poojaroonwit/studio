@@ -10,6 +10,7 @@ import { broadcastCandidateUpdate, broadcastCandidateTransitionUpdate } from '@/
 import { normalizeFitScore } from '@/lib/scoreUtils';
 import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
+import { validateCandidateHiringStatus, assignCandidateToHeadcount } from '@/lib/headcountUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const optimizedQuery = `
       WITH candidate_data AS (
         SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", 
-               r.name as "recruiterName", cs.name as "sourceName", 
+               r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl", cs.name as "sourceName", 
                cs.description as "sourceDescription", cs.logo as "sourceLogo"
         FROM "Candidate" c
         LEFT JOIN "Position" p ON c."positionId" = p.id
@@ -158,7 +159,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         title: candidate.positionTitle || null,
         department: candidate.positionDepartment || null
       } : null,
-      recruiter: candidate.recruiterId ? { name: candidate.recruiterName || null } : null,
+      recruiter: candidate.recruiterId ? { 
+        name: candidate.recruiterName || null,
+        avatarUrl: candidate.recruiterAvatarUrl || null
+      } : null,
       source: candidate.sourceId ? {
         id: candidate.sourceId,
         name: candidate.sourceName,
@@ -300,6 +304,25 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         return NextResponse.json({ message: 'Candidate source not found.' }, { status: 400 });
       }
     }
+
+    // Validate headcount availability if changing status to "Hired"
+    if (status === 'Hired' && status !== oldStatus && existingCandidate.positionId) {
+      try {
+        const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
+        if (!validation.canHire) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ 
+            message: validation.message,
+            reason: validation.reason,
+            headcountStatus: validation.headcountStatus
+          }, { status: 400 });
+        }
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error validating headcount for hiring:', error);
+        return NextResponse.json({ message: 'Error validating headcount availability' }, { status: 500 });
+      }
+    }
     
     // Build dynamic update query based on provided fields
     const updateFields = [];
@@ -425,6 +448,25 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
+    // Handle headcount assignment if status changed to "Hired"
+    let headcountAssignmentResult = null;
+    if (status === 'Hired' && status !== oldStatus && existingCandidate.positionId) {
+      try {
+        const validation = await validateCandidateHiringStatus(id, existingCandidate.positionId);
+        if (validation.canHire && validation.reason === 'VACANT_HEADCOUNT_AVAILABLE') {
+          headcountAssignmentResult = await assignCandidateToHeadcount(
+            id,
+            existingCandidate.positionId,
+            actingUserId,
+            actingUserName
+          );
+        }
+      } catch (headcountError) {
+        console.error('Error assigning headcount:', headcountError);
+        // Don't fail the status update if headcount assignment fails
+      }
+    }
+
     // Create transition record if status changed
     if (status !== undefined && oldStatus !== status) {
       let safePositionId = positionId ?? existingCandidate.positionId ?? null; // Use existing position if not provided
@@ -471,7 +513,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             action: 'add'
           });
         }
-        
+
         // Send notification to recruiter about status change
         const candidateWithRecruiterQuery = `
           SELECT c.*, p.title as "positionTitle", u.id as "recruiterId", u.name as "recruiterName"
@@ -572,6 +614,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
+    // Initialize headcountAssignmentResult if not already set
+    if (typeof headcountAssignmentResult === 'undefined') {
+      headcountAssignmentResult = null;
+    }
+
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${existingCandidate.name}' updated by ${actingUserName}.`, 'API:Candidates:Update', actingUserId, { candidateId: id, oldStatus, newStatus: status ?? existingCandidate.status });
     
@@ -647,7 +694,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       } : null,
       jobMatches: jobMatchesResult.rows || [],
       attachmentHistory: attachmentsResult.rows || [],
-      recruiterSync: syncResult
+      recruiterSync: syncResult,
+      headcountAssignment: headcountAssignmentResult
     });
   } catch (error: any) {
     await client.query('ROLLBACK');

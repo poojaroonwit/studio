@@ -28,6 +28,7 @@ import { useCandidateDetail } from './hooks/useCandidateDetail';
 // Import utilities
 import { formatScoreWithGrade } from "@/lib/scoreUtils";
 import { updateCandidateStatusWithNotes } from '@/lib/candidateTransitionUtils';
+import { Badge } from '@/components/ui/badge';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
@@ -309,12 +310,34 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     : [];
 
   let appliedJobBadge = null;
-  if (appliedFitScore !== null && appliedFitScore !== undefined) {
-    appliedJobBadge = (
-      <div className="text-sm font-medium text-primary">
-        {formatScoreWithGrade(appliedFitScore)}
-      </div>
-    );
+  if (appliedJobId) {
+    const appliedPosition = allDbPositions.find(p => p.id === appliedJobId);
+    const hasFitScore = appliedFitScore !== null && appliedFitScore !== undefined;
+    const hasGrade = appliedPosition?.gradeId && appliedPosition?.grade;
+    
+    if (hasFitScore || hasGrade) {
+      appliedJobBadge = (
+        <div className="flex items-center gap-2">
+          {hasFitScore && (
+            <div className="text-sm font-medium text-primary">
+              {formatScoreWithGrade(appliedFitScore)}
+            </div>
+          )}
+          {hasGrade && appliedPosition?.grade && (
+            <Badge
+              variant="outline"
+              className="text-xs"
+              style={{
+                borderColor: appliedPosition.grade.color || '#3B82F6',
+                color: appliedPosition.grade.color || '#3B82F6'
+              }}
+            >
+              {appliedPosition.grade.name}
+            </Badge>
+          )}
+        </div>
+      );
+    }
   }
 
   return (
@@ -461,7 +484,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 Job Suitability
                  {(() => {
                   const jobSuitable = (candidate.parsedData as any)?.job_suitable || [];
-                  const suitabilityCount = jobSuitable.length;
+                  // Filter out empty entries (objects with no content)
+                  const filteredJobSuitable = jobSuitable.filter((job: any) => {
+                    const hasContent = job.suitable_career || job.suitable_job_position || 
+                                     job.suitable_job_level || job.suitable_salary_bath_month ||
+                                     job.career || job.position || job.level || job.salary ||
+                                     job.job_career || job.job_position || job.job_level || job.job_salary ||
+                                     job.title || job.role || job.expected_salary || job.salary_expectation;
+                    return hasContent;
+                  });
+                  const suitabilityCount = filteredJobSuitable.length;
                   return suitabilityCount > 0 ? ` (${suitabilityCount})` : '';
                  })()}
              </div>

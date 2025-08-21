@@ -15,13 +15,13 @@ interface CandidateRecruiterCellProps {
     recruiter?: {
       id: string;
       name: string;
-      avatar?: string;
+      avatarUrl?: string;
     } | null;
   };
   availableRecruiters: Array<{
     id: string;
     name: string;
-    avatar?: string;
+    avatarUrl?: string;
   }>;
   canManageCandidates: boolean;
   isAssigning: boolean;
@@ -57,7 +57,6 @@ export function CandidateRecruiterCell({
       recruiter.name.toLowerCase().includes(searchLower)
     );
     
-    console.log('Filtered recruiters:', { searchTerm, total: availableRecruiters.length, filtered: filtered.length }); // Debug log
     return filtered;
   }, [availableRecruiters, searchTerm]);
 
@@ -65,7 +64,6 @@ export function CandidateRecruiterCell({
   React.useEffect(() => {
     if (isAssigning) {
       const timeout = setTimeout(() => {
-        console.log('Auto-resetting stuck assigning state for candidate:', candidate.id);
         if (onResetAssigning) {
           onResetAssigning();
         }
@@ -73,7 +71,7 @@ export function CandidateRecruiterCell({
 
       return () => clearTimeout(timeout);
     }
-  }, [isAssigning, candidate.id]); // Removed onResetAssigning to prevent infinite loop
+  }, [isAssigning, candidate.id, onResetAssigning]);
 
   // Reset search when popover closes
   React.useEffect(() => {
@@ -90,22 +88,13 @@ export function CandidateRecruiterCell({
         if (searchInputRef.current) {
           searchInputRef.current.focus();
           searchInputRef.current.select(); // Select all text if any
-          console.log('Search input focused'); // Debug log
         }
       }, 100);
     }
   }, [open]);
 
   const handleSelect = async (recruiterId: string | null) => {
-    console.log('CandidateRecruiterCell handleSelect called:', {
-      candidateId: candidate.id,
-      recruiterId,
-      isAssigning,
-      canManageCandidates
-    });
-    
     if (isAssigning) {
-      console.log('Assignment in progress, ignoring selection');
       return;
     }
     
@@ -116,7 +105,6 @@ export function CandidateRecruiterCell({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    console.log('Search term changed:', value); // Debug log
   };
 
   const handleClearSearch = () => {
@@ -130,8 +118,8 @@ export function CandidateRecruiterCell({
         {displayRecruiter?.name ? (
           <>
             <Avatar className="h-6 w-6 rounded-full">
-              <AvatarImage src={displayRecruiter?.avatar} />
-              <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              <AvatarImage src={displayRecruiter?.avatarUrl} />
+              <AvatarFallback className="text-xs font-medium rounded-full">
                 {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </AvatarFallback>
             </Avatar>
@@ -165,7 +153,7 @@ export function CandidateRecruiterCell({
             role="combobox"
             aria-expanded={open && !isAssigning}
             className={cn(
-              "h-auto p-2 justify-start text-left w-full max-w-[200px]",
+              "h-auto p-2 justify-start text-left w-full max-w-[200px] border-0 shadow-none",
               "hover:bg-accent/50 transition-colors",
               isAssigning && "opacity-50 cursor-not-allowed"
             )}
@@ -180,8 +168,8 @@ export function CandidateRecruiterCell({
           ) : displayRecruiter?.name ? (
             <div className="flex items-center gap-2 min-w-0">
               <Avatar className="h-6 w-6 flex-shrink-0 rounded-full">
-                <AvatarImage src={displayRecruiter?.avatar} />
-                <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                <AvatarImage src={displayRecruiter?.avatarUrl} />
+                <AvatarFallback className="text-xs font-medium rounded-full">
                   {displayRecruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -213,17 +201,6 @@ export function CandidateRecruiterCell({
               placeholder="Search recruiters..."
               value={searchTerm}
               onChange={handleSearchChange}
-              onKeyDown={(e) => {
-                // Prevent popover from closing on Enter
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-              onClick={(e) => {
-                // Prevent popover from closing when clicking on input
-                e.stopPropagation();
-              }}
               className="pl-10 pr-10 h-8 text-sm focus:ring-2 focus:ring-primary/20"
               data-search-input
               autoComplete="off"
@@ -275,8 +252,8 @@ export function CandidateRecruiterCell({
                   className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-accent text-left"
                 >
                   <Avatar className="h-6 w-6 rounded-full">
-                    <AvatarImage src={recruiter.avatar} />
-                    <AvatarFallback className="text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                    <AvatarImage src={recruiter.avatarUrl} />
+                    <AvatarFallback className="text-xs font-medium rounded-full">
                       {recruiter.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>

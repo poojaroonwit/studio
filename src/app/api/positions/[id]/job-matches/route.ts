@@ -94,7 +94,7 @@ export async function GET(
           p.department as "positionDepartment", 
           p."positionLevel" as "positionLevel",
           r.id as "recruiterId", 
-          r.name as "recruiterName",
+          r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
           jm."fitScore" as "matchScore",
           jm."matchReasons" as "matchReasons",
           jm.id as "jobMatchId",
@@ -181,6 +181,7 @@ export async function GET(
           recruiter: row.recruiterId ? {
             id: row.recruiterId,
             name: row.recruiterName,
+            avatarUrl: row.recruiterAvatarUrl || null,
             email: null
           } : null,
           createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),

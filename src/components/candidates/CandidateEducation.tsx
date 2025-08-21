@@ -125,7 +125,7 @@ const CandidateEducation: React.FC<CandidateEducationProps> = ({ education }) =>
                           {entry.university || 'University not specified'}
                           {entry.campus && ` (${entry.campus})`}
                         </h4>
-                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                           {periodDisplay && (
                             <span dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                           )}

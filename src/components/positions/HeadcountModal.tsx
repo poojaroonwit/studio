@@ -7,18 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { 
-  CalendarIcon, 
   User, 
   Loader2,
   Check,
   X
 } from 'lucide-react';
-import { format } from 'date-fns';
+
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import type { Headcount, HeadcountType, HeadcountStatus, Candidate } from '@/lib/types';
@@ -29,6 +27,7 @@ interface HeadcountModalProps {
   onOpenChange: (open: boolean) => void;
   headcount?: Headcount | null;
   candidates: Candidate[];
+  positionId: string;
   onSave: (data: any) => Promise<void>;
   onClose: () => void;
 }
@@ -43,6 +42,7 @@ export function HeadcountModal({
   onOpenChange, 
   headcount, 
   candidates, 
+  positionId,
   onSave, 
   onClose 
 }: HeadcountModalProps) {
@@ -52,8 +52,7 @@ export function HeadcountModal({
   const [formData, setFormData] = useState({
     type: 'new' as HeadcountType,
     status: 'vacant' as HeadcountStatus,
-    candidateId: '',
-    onboardingDate: new Date() as Date | null, // Default to today
+    candidateId: null as string | null,
     notes: '',
     memoId: '',
     customFields: {} as Record<string, any>,
@@ -90,8 +89,7 @@ export function HeadcountModal({
       setFormData({
         type: headcount.type,
         status: headcount.status,
-        candidateId: headcount.candidateId || '',
-        onboardingDate: headcount.onboardingDate ? new Date(headcount.onboardingDate) : new Date(),
+        candidateId: headcount.candidateId || null,
         notes: headcount.notes || '',
         memoId: headcount.memoId || '',
         customFields: headcount.customFields || {},
@@ -101,8 +99,7 @@ export function HeadcountModal({
       setFormData({
         type: 'new',
         status: 'vacant', // Default to vacant
-        candidateId: '', // No candidate assignment for new headcount
-        onboardingDate: new Date(), // Default to today
+        candidateId: null, // No candidate assignment for new headcount
         notes: '',
         memoId: '',
         customFields: {},
@@ -122,7 +119,6 @@ export function HeadcountModal({
     try {
       await onSave({
         ...formData,
-        onboardingDate: formData.onboardingDate ? formData.onboardingDate.toISOString() : null,
       });
     } catch (error) {
       console.error('Error saving headcount:', error);
@@ -135,8 +131,7 @@ export function HeadcountModal({
     setFormData({
       type: 'new',
       status: 'vacant',
-      candidateId: '',
-      onboardingDate: new Date(), // Reset to today
+      candidateId: null,
       notes: '',
       memoId: '',
       customFields: {},
@@ -151,7 +146,7 @@ export function HeadcountModal({
     candidate.email.toLowerCase().includes(candidateSearchTerm.toLowerCase())
   );
 
-  const selectedCandidate = candidates.find(c => c.id === formData.candidateId);
+  const selectedCandidate = formData.candidateId ? candidates.find(c => c.id === formData.candidateId) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -240,7 +235,7 @@ export function HeadcountModal({
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setFormData(prev => ({ ...prev, candidateId: '' }));
+                          setFormData(prev => ({ ...prev, candidateId: null }));
                           setCandidateSearchTerm('');
                         }}
                       >
@@ -286,36 +281,7 @@ export function HeadcountModal({
             </div>
           )}
 
-          {/* Onboarding Date */}
-          <div className="space-y-2">
-            <Label>Hiring Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.onboardingDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.onboardingDate ? (
-                    format(formData.onboardingDate, "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.onboardingDate || undefined}
-                  onSelect={(date) => setFormData(prev => ({ ...prev, onboardingDate: date }))}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+
 
           {/* Notes */}
           <div className="space-y-2">
@@ -343,7 +309,8 @@ export function HeadcountModal({
           {/* Custom Fields */}
           <HeadcountCustomFields
             customFields={formData.customFields}
-            onChange={(customFields) => setFormData(prev => ({ ...prev, customFields }))}
+            onCustomFieldsChange={(customFields: Record<string, any>) => setFormData(prev => ({ ...prev, customFields }))}
+            positionId={positionId}
           />
 
           {/* Action Buttons */}

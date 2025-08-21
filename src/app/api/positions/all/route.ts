@@ -26,6 +26,16 @@ interface Position {
   customAttributes?: any;
   createdAt: string;
   updatedAt: string;
+  gradeId?: string; // Added for linking to Grade
+  grade?: { // Added for nested grade data
+    id: string;
+    name: string;
+    label: string;
+    color: string;
+    slaDays: number;
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 // Constants
@@ -48,16 +58,25 @@ function parseFilters(searchParams: URLSearchParams): PositionFilters {
 function buildQuery(filters: PositionFilters): { query: string; params: any[] } {
   let query = `
     SELECT 
-      id, 
-      title, 
-      department, 
-      description, 
-      "isOpen", 
-      "positionLevel", 
-      "customAttributes", 
-      "createdAt", 
-      "updatedAt" 
-    FROM "Position"
+      p.id, 
+      p.title, 
+      p.department, 
+      p.description, 
+      p."isOpen", 
+      p."positionLevel", 
+      p."customAttributes", 
+      p."createdAt", 
+      p."updatedAt",
+      p."gradeId",
+      g.id as "grade.id",
+      g.name as "grade.name",
+      g.label as "grade.label",
+      g.color as "grade.color",
+      g."sla_days" as "grade.slaDays",
+      g."createdAt" as "grade.createdAt",
+      g."updatedAt" as "grade.updatedAt"
+    FROM "Position" p
+    LEFT JOIN "Grade" g ON p."gradeId" = g.id
   `;
   
   const conditions: string[] = [];
@@ -65,23 +84,23 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
 
   // Add filters
   if (filters.title) {
-    conditions.push(`title ILIKE $${conditions.length + 1}`);
+    conditions.push(`p.title ILIKE $${conditions.length + 1}`);
     params.push(`%${filters.title}%`);
   }
 
   if (filters.department) {
-    conditions.push(`department = ANY($${conditions.length + 1}::text[])`);
+    conditions.push(`p.department = ANY($${conditions.length + 1}::text[])`);
     params.push(filters.department.split(','));
   }
 
   if (filters.isOpen === "true") {
-    conditions.push(`"isOpen" = TRUE`);
+    conditions.push(`p."isOpen" = TRUE`);
   } else if (filters.isOpen === "false") {
-    conditions.push(`"isOpen" = FALSE`);
+    conditions.push(`p."isOpen" = FALSE`);
   }
 
   if (filters.positionLevel) {
-    conditions.push(`"positionLevel" ILIKE $${conditions.length + 1}`);
+    conditions.push(`p."positionLevel" ILIKE $${conditions.length + 1}`);
     params.push(`%${filters.positionLevel}%`);
   }
 
@@ -91,15 +110,35 @@ function buildQuery(filters: PositionFilters): { query: string; params: any[] } 
   }
 
   // Add ORDER BY only - no pagination for "all" endpoint
-  query += ' ORDER BY "createdAt" DESC';
+  query += ' ORDER BY p."createdAt" DESC';
 
   return { query, params };
 }
 
 function mapPositionRow(row: any): Position {
+  // Extract grade data if it exists
+  const grade = row['grade.id'] ? {
+    id: row['grade.id'],
+    name: row['grade.name'],
+    label: row['grade.label'],
+    color: row['grade.color'],
+    slaDays: row['grade.slaDays'],
+    createdAt: row['grade.createdAt'],
+    updatedAt: row['grade.updatedAt']
+  } : undefined;
+
   return {
-    ...row,
+    id: row.id,
+    title: row.title,
+    department: row.department,
+    description: row.description,
+    isOpen: row.isOpen,
+    positionLevel: row.positionLevel,
     customAttributes: row.customAttributes || {},
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    gradeId: row.gradeId,
+    grade: grade
   };
 }
 

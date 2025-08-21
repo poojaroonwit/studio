@@ -34,12 +34,12 @@ const formatTimelinePeriod = (startMonth: any, startYear: any, endMonth: any, en
   
   const start = `${months[Number(startMonth) - 1] || ''} ${startYear}`;
   if (isCurrent) {
-    return `${start}<br/>Present`;
+    return `${start} - Present`;
   }
   
   if (endYear) {
     const end = `${months[Number(endMonth) - 1] || ''} ${endYear}`;
-    return `${start}<br/>${end}`;
+    return `${start} - ${end}`;
   }
   
   return start;
@@ -316,7 +316,7 @@ export const EducationTab: React.FC<EducationTabProps> = ({
                   <div className="grid grid-cols-[12rem_4rem_1fr] gap-x-2 items-stretch h-full">
                     <div className="text-right h-full flex flex-col items-end justify-start">
                       {periodDisplay && (
-                        <div className="text-xs text-muted-foreground whitespace-pre-line mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
+                        <div className="text-xs text-muted-foreground mb-1" dangerouslySetInnerHTML={{ __html: periodDisplay }} />
                       )}
                       {duration && (
                         <div className="text-xs text-muted-foreground">{duration}</div>

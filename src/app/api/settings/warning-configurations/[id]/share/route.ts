@@ -19,7 +19,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { userId, canEdit = false, canDelete = false } = body;
+    const { userId } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -54,24 +54,16 @@ export async function POST(
           userId: userId
         }
       },
-      update: {
-        canEdit,
-        canDelete,
-        updatedAt: new Date()
-      },
+      update: {}, // No fields to update since this is just a relationship
       create: {
         configurationId: params.id,
-        userId: userId,
-        canEdit,
-        canDelete
+        userId: userId
       }
     });
 
     await logAudit('AUDIT', `Warning configuration '${configuration.name}' shared with user ${targetUser.name} by ${actingUserName}`, 'API:Settings:WarningConfigurations:Share', actingUserId, {
       configurationId: params.id,
-      targetUserId: userId,
-      canEdit,
-      canDelete
+      targetUserId: userId
     });
 
     return NextResponse.json(shareRecord, { status: 201 });

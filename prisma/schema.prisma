@@ -8,42 +8,63 @@ datasource db {
 }
 
 model User {
-  id                   String                    @id @default(uuid()) @db.Uuid
-  name                 String
-  email                String                    @unique
-  password             String
-  role                 String
-  avatarUrl            String?
-  image                String?
-  dataAiHint           String?
-  authenticationMethod String?                   @default("basic") @map("authentication_method")
-  forcePasswordChange  Boolean                   @default(false) @map("force_password_change")
-  emailVerified        DateTime?
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  azure_oid            String?                   @unique
-  personalColor        String?                   @default("#3B82F6") @map("personal_color")
-  module_permissions   String[]                  @default([])
-  accounts             Account[]
-  attachments          Attachment[]              @relation("UserAttachments")
-  candidates           Candidate[]               @relation("RecruiterCandidates")
-  candidateComments    CandidateComment[]        @relation("UserComments")
-  Dashboard            Dashboard[]
-  DashboardShare       DashboardShare[]
-  logEntries           LogEntry[]                @relation("UserLogEntries")
-  notifications        Notification[]
-  positions            Position[]                @relation("RecruiterPositions")
-  transitionRecords    TransitionRecord[]        @relation("ActingUserTransitions")
-  userPreferences      UserUIDisplayPreference[]
-  userGroups           User_UserGroup[]
-  userTeams            User_UserTeam[]
-  uploadQueue          UploadQueue[]             @relation("UserUploadQueue")
-  warningConfigurations WarningConfiguration[]   @relation("UserWarningConfigurations")
-  sharedWarningConfigurations WarningConfigurationShare[]
+  id                         String                      @id @default(uuid()) @db.Uuid
+  name                       String
+  email                      String                      @unique
+  password                   String
+  role                       String
+  avatarUrl                  String?
+  image                      String?
+  dataAiHint                 String?
+  authenticationMethod       String?                     @default("basic") @map("authentication_method")
+  forcePasswordChange        Boolean                     @default(false) @map("force_password_change")
+  emailVerified              DateTime?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  azure_oid                  String?                     @unique
+  personalColor              String?                     @default("#3B82F6") @map("personal_color")
+  module_permissions         String[]                    @default([])
+  accounts                   Account[]
+  attachments                Attachment[]                @relation("UserAttachments")
+  candidates                 Candidate[]                 @relation("RecruiterCandidates")
+  candidateComments          CandidateComment[]          @relation("UserComments")
+  Dashboard                  Dashboard[]
+  DashboardShare             DashboardShare[]
+  logEntries                 LogEntry[]                  @relation("UserLogEntries")
+  notifications              Notification[]
+  positions                  Position[]                  @relation("RecruiterPositions")
+  transitionRecords          TransitionRecord[]          @relation("ActingUserTransitions")
+  userPreferences            UserUIDisplayPreference[]
+  userGroups                 User_UserGroup[]
+  userTeams                  User_UserTeam[]
+  warningConfigurations      WarningConfiguration[]      @relation("UserWarningConfigurations")
+  warningConfigurationShares WarningConfigurationShare[] @relation("UserWarningConfigurationShares")
+  uploadQueue                UploadQueue[]               @relation("UserUploadQueue")
 
   @@index([email])
   @@index([role])
   @@index([authenticationMethod])
+}
+
+model Grade {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @unique
+  description String?
+  label       String?
+  minLevel    Int        @map("min_level")
+  maxLevel    Int        @map("max_level")
+  slaDays     Int        @map("sla_days")
+  color       String     @default("#3B82F6")
+  isActive    Boolean    @default(true) @map("is_active")
+  sortOrder   Int        @default(0) @map("sort_order")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  positions   Position[]
+
+  @@index([minLevel])
+  @@index([maxLevel])
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model Position {
@@ -54,19 +75,18 @@ model Position {
   matchCriteria     String?
   isOpen            Boolean            @default(true)
   positionLevel     String?
-  positionAttribute String?
-  gradeId           String?            @db.Uuid
-  hiringDate        DateTime?
   recruiterId       String?            @db.Uuid
   customAttributes  Json?              @default("{}")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  gradeId           String?            @db.Uuid
+  hiringDate        DateTime?
+  positionAttribute String?
   candidates        Candidate[]
   headcounts        Headcount[]        @relation("PositionHeadcount")
-  recruiter         User?              @relation("RecruiterPositions", fields: [recruiterId], references: [id])
   grade             Grade?             @relation(fields: [gradeId], references: [id])
+  recruiter         User?              @relation("RecruiterPositions", fields: [recruiterId], references: [id])
   transitionRecords TransitionRecord[]
-  warnings          Warning[] @relation("WarningPosition")
 
   @@index([title])
   @@index([department])
@@ -74,6 +94,20 @@ model Position {
   @@index([recruiterId])
   @@index([gradeId])
   @@index([hiringDate])
+}
+
+model PositionLevel {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  color       String?  @default("#6B7280")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model Candidate {
@@ -106,7 +140,6 @@ model Candidate {
   headcounts              Headcount[]        @relation("CandidateHeadcount")
   jobMatches              JobMatch[]
   transitionRecords       TransitionRecord[]
-  warnings                Warning[] @relation("WarningCandidate")
 
   @@index([email])
   @@index([status])
@@ -386,7 +419,7 @@ model SystemPreference {
   key       String
   value     String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model CandidateComment {
@@ -633,92 +666,64 @@ model Headcount {
   @@index([status])
 }
 
-model Grade {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @unique
-  label       String?   // Display label for the grade
-  description String?
-  minLevel    Int       @map("min_level")
-  maxLevel    Int       @map("max_level")
-  slaDays     Int       @map("sla_days")
-  color       String?   @default("#3B82F6")
-  isActive    Boolean   @default(true) @map("is_active")
-  sortOrder   Int       @default(0) @map("sort_order")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  positions   Position[]
-
-  @@index([minLevel])
-  @@index([maxLevel])
-  @@index([isActive])
-  @@index([sortOrder])
-}
-
 model WarningConfiguration {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  entityType  String   @map("entity_type") // 'position', 'candidate', 'headcount', etc.
-  field       String   // The field to monitor
-  condition   String   // 'overdue', 'empty', 'threshold', 'date_range', etc.
-  operator    String   // 'gt', 'lt', 'eq', 'ne', 'contains', 'not_contains', etc.
-  value       String?  // The value to compare against
-  threshold   Int?     // Numeric threshold for conditions like 'overdue'
-  isActive    Boolean  @default(true) @map("is_active")
-  severity    String   @default("warning") // 'info', 'warning', 'error', 'critical'
-  isPublic    Boolean  @default(false) @map("is_public") // Whether this config is shared with all users
-  createdBy   String   @db.Uuid @map("created_by")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  warnings    Warning[]
-  createdByUser User   @relation("UserWarningConfigurations", fields: [createdBy], references: [id], onDelete: Cascade)
-  sharedWith  WarningConfigurationShare[]
+  id            String                      @id @default(uuid()) @db.Uuid
+  name          String
+  description   String?
+  entityType    String                      @map("entity_type")
+  field         String
+  condition     String
+  operator      String
+  value         String?
+  threshold     Int?
+  severity      String                      @default("warning")
+  isActive      Boolean                     @default(true) @map("is_active")
+  isPublic      Boolean                     @default(false) @map("is_public")
+  createdBy     String                      @map("created_by") @db.Uuid
+  createdAt     DateTime                    @default(now()) @map("created_at")
+  updatedAt     DateTime                    @updatedAt @map("updated_at")
+  warnings      Warning[]
+  createdByUser User                        @relation("UserWarningConfigurations", fields: [createdBy], references: [id], onDelete: Cascade)
+  sharedWith    WarningConfigurationShare[]
 
   @@index([entityType])
   @@index([field])
   @@index([isActive])
-  @@index([severity])
   @@index([createdBy])
-  @@index([isPublic])
+  @@index([createdAt])
+}
+
+model WarningConfigurationShare {
+  id              String               @id @default(uuid()) @db.Uuid
+  configurationId String               @map("configuration_id") @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at")
+  configuration   WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  user            User                 @relation("UserWarningConfigurationShares", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([configurationId, userId])
+  @@index([configurationId])
+  @@index([userId])
 }
 
 model Warning {
-  id                    String              @id @default(uuid()) @db.Uuid
-  configurationId       String              @db.Uuid
-  entityType            String              @map("entity_type")
-  entityId              String              @db.Uuid @map("entity_id")
-  field                 String
-  currentValue          String?             @map("current_value")
-  expectedValue         String?             @map("expected_value")
-  message               String
-  severity              String              @default("warning")
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  configuration         WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  candidate             Candidate?          @relation("WarningCandidate", fields: [entityId], references: [id], onDelete: Cascade, map: "Warning_candidate_entity_id_fkey")
-  position              Position?           @relation("WarningPosition", fields: [entityId], references: [id], onDelete: Cascade, map: "Warning_position_entity_id_fkey")
+  id              String               @id @default(uuid()) @db.Uuid
+  configurationId String               @map("configuration_id") @db.Uuid
+  entityType      String               @map("entity_type")
+  entityId        String               @map("entity_id")
+  field           String
+  currentValue    String?              @map("current_value")
+  expectedValue   String?              @map("expected_value")
+  message         String
+  severity        String               @default("warning")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  configuration   WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
 
+  @@unique([configurationId, entityType, entityId])
   @@index([configurationId])
   @@index([entityType])
   @@index([entityId])
   @@index([severity])
   @@index([createdAt])
-}
-
-model WarningConfigurationShare {
-  id                    String                @id @default(uuid()) @db.Uuid
-  configurationId       String                @db.Uuid
-  userId                String                @db.Uuid
-  canEdit               Boolean               @default(false) @map("can_edit")
-  canDelete             Boolean               @default(false) @map("can_delete")
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  configuration         WarningConfiguration  @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([configurationId, userId])
-  @@index([configurationId])
-  @@index([userId])
-  @@index([canEdit])
-  @@index([canDelete])
 }

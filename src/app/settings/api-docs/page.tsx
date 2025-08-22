@@ -54,7 +54,7 @@ export default function ApiDocsPage() {
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
 
   return (
-    <div className="h-full w-full bg-background p-0 overflow-hidden">
+    <div className="h-full w-full bg-background p-0 overflow-auto">
       <div className="p-4 bg-white border-b flex items-center gap-2">
         <label htmlFor="server-url" className="font-medium mr-2">Server:</label>
         <select

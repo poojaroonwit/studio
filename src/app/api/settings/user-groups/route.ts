@@ -133,6 +133,20 @@ export async function POST(request: NextRequest) {
     
     const client = await getPool().connect();
     try {
+        // Check if a group with this name already exists
+        const existingGroup = await client.query(
+            'SELECT id, name FROM "UserGroup" WHERE name = $1',
+            [name]
+        );
+        
+        if (existingGroup.rows.length > 0) {
+            return NextResponse.json({ 
+                message: "A user group with this name already exists", 
+                error: "DUPLICATE_NAME",
+                existingGroupId: existingGroup.rows[0].id 
+            }, { status: 409 });
+        }
+
         const result = await client.query(
             'INSERT INTO "UserGroup" (id, name, description, permissions) VALUES ($1, $2, $3, $4) RETURNING *',
             [newId, name, description, permissions ?? []]
@@ -141,8 +155,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(result.rows[0], { status: 201 });
     } catch (error: any) {
         console.error("Failed to create user group:", error);
+        
+        // Handle specific database errors
+        let errorMessage = "Error creating user group";
+        let statusCode = 500;
+        
+        if (error.code === '23505' && error.constraint === 'UserGroup_name_key') {
+            errorMessage = "A user group with this name already exists";
+            statusCode = 409;
+        } else if (error.code === '23502') {
+            errorMessage = "Required field is missing";
+            statusCode = 400;
+        } else if (error.code === '23514') {
+            errorMessage = "Data validation failed";
+            statusCode = 400;
+        }
+        
         await logAudit('ERROR', `Failed to create group '${name}'. Error: ${error.message}`, 'API:UserGroups:Create', actingUserId, { input: body });
-        return NextResponse.json({ message: "Error creating user group", error: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            message: errorMessage, 
+            error: error.message,
+            details: error.detail || null
+        }, { status: statusCode });
     } finally {
         client.release();
     }

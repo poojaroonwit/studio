@@ -59,7 +59,7 @@ export default function ApiDocsUIPage() {
     <div style={{ 
       height: '100%', 
       width: '100%',
-      overflow: 'hidden'
+      overflow: 'auto'
     }}>
       <style jsx global>{`
         /* Hide server selection dropdown since we only have one server */

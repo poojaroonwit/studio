@@ -4,7 +4,7 @@ import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 import type { UserGroup, PlatformModuleId } from '@/lib/types';
 import { PLATFORM_MODULES } from '@/lib/types';
-import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Save, Loader2, ServerCrash, ShieldAlert, Users, ShieldCheck, Settings2, X, MoreHorizontal, Info } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -132,6 +137,12 @@ export function UserGroupsTab() {
     const url = editingRole ? `/api/settings/user-groups/${editingRole.id}` : '/api/settings/user-groups';
     const method = editingRole ? 'PUT' : 'POST';
 
+    // Client-side validation: check if name already exists (for new groups only)
+    if (!editingRole && roles.some(role => role.name.toLowerCase() === data.name.toLowerCase())) {
+      toast.error(`A user group with the name "${data.name}" already exists.`);
+      return;
+    }
+
     try {
       const response = await fetch(url, {
         method: method,
@@ -200,6 +211,16 @@ export function UserGroupsTab() {
           </Button>
         )}
       </div>
+
+      {/* Info about default groups */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Default Groups</AlertTitle>
+        <AlertDescription>
+          The system includes three default groups: <strong>Admin</strong>, <strong>Recruiter</strong>, and <strong>Hiring Manager</strong>. 
+          These groups cannot be deleted and have predefined permissions. You can create additional custom groups as needed.
+        </AlertDescription>
+      </Alert>
 
              {/* Roles List */}
        <div className="border rounded-lg overflow-hidden">

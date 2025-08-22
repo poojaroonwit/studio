@@ -165,6 +165,6 @@ fi
 
 echo "✅ Database setup complete!"
 
-# Start the main application
-echo "🚀 Starting main application..."
-exec npm run start 
+# Start the main application with processor
+echo "🚀 Starting main application with upload queue processor..."
+exec npm run start:with-processor 

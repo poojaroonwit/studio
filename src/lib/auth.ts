@@ -184,7 +184,7 @@ export const authOptions: NextAuthOptions = {
           token.modulePermissions = user.modulePermissions as PlatformModuleId[];
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
-        if (typeof token.id === "string" && !isUuid(token.id)) {
+        if (typeof token.id === "string" && !validateUuid(token.id)) {
           console.log('[JWT CALLBACK] Non-UUID token.id detected:', token.id, 'profile:', profile?.email);
           const client = await getPool().connect();
           try {
@@ -206,7 +206,7 @@ export const authOptions: NextAuthOptions = {
           }
         }
         // Always fetch fresh group permissions if token.id is a UUID
-        if (typeof token.id === 'string' && isUuid(token.id)) {
+        if (typeof token.id === 'string' && validateUuid(token.id)) {
           try {
             token.modulePermissions = await getMergedUserPermissions(token.id as string) as PlatformModuleId[];
           } catch (e) {
@@ -219,7 +219,7 @@ export const authOptions: NextAuthOptions = {
       async session({ session, token }) {
         if (session.user) {
           // Validate that token.id is a valid UUID before setting it in session
-          if (typeof token.id === 'string' && !isUuid(token.id)) {
+          if (typeof token.id === 'string' && !validateUuid(token.id)) {
             console.error('[SESSION CALLBACK] Invalid UUID in token.id:', token.id);
             // Don't set an invalid UUID in the session
             session.user.id = '';

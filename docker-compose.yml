@@ -77,10 +77,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 4g
           cpus: '0.5'
         reservations:
-          memory: 512M
+          memory: 1g
           cpus: '0.25'
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
@@ -100,7 +100,7 @@ services:
       - /var/dockers/8021/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     # Resource limits
-    mem_limit: 1G
+    mem_limit: 1g
     cpus: 0.25
     networks:
       - docker_internal

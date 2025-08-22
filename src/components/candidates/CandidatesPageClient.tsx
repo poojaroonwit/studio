@@ -236,28 +236,7 @@ export function CandidatesPageClient({
   // Add at the top of the component
   const hasInitializedFilters = useRef(false);
   
-  // Add refs to track latest state and avoid stale closures
-  const filtersRef = useRef(filters);
-  const pageRef = useRef(page);
-  const pageSizeRef = useRef(pageSize);
-  const debouncedFetchTableDataRef = useRef(debouncedFetchTableData);
-  
-  // Update refs when state changes
-  useEffect(() => {
-    filtersRef.current = filters;
-  }, [filters]);
-  
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
-  
-  useEffect(() => {
-    pageSizeRef.current = pageSize;
-  }, [pageSize]);
-  
-  useEffect(() => {
-    debouncedFetchTableDataRef.current = debouncedFetchTableData;
-  }, [debouncedFetchTableData]);
+
 
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
 
@@ -997,6 +976,29 @@ export function CandidatesPageClient({
       currentFetchTableData(currentFilters, currentPage, currentPageSize);
     }, 150); // Reduced debounce for faster response
   }, [fetchTableData]);
+
+  // Add refs to track latest state and avoid stale closures
+  const filtersRef = useRef(filters);
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const debouncedFetchTableDataRef = useRef(debouncedFetchTableData);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+  
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  
+  useEffect(() => {
+    debouncedFetchTableDataRef.current = debouncedFetchTableData;
+  }, [debouncedFetchTableData]);
 
   const handleAiSearch = async (aiQuery: string) => {
     if (!aiQuery.trim()) {

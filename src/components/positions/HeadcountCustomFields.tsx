@@ -231,8 +231,8 @@ export function HeadcountCustomFields({
               {definition.is_required && <span className="text-red-500 ml-1">*</span>}
             </Label>
             {renderField(definition)}
-            {definition.attributeLabel && (
-              <p className="text-sm text-muted-foreground">{definition.attributeLabel}</p>
+            {definition.label && (
+              <p className="text-sm text-muted-foreground">{definition.label}</p>
             )}
           </div>
         ))}

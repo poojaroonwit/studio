@@ -348,15 +348,21 @@ export const useCandidateDetail = (candidateId: string) => {
         recruiterId: candidate.recruiterId || null,
         fitScore: candidate.fitScore || null,
         status: candidate.status || '',
-        assignmentJustification: candidate.assignmentJustification || [],
+        assignmentJustification: candidate.assignmentJustification
+          ? (Array.isArray(candidate.assignmentJustification)
+            ? candidate.assignmentJustification
+            : typeof candidate.assignmentJustification === 'string'
+            ? candidate.assignmentJustification.split(/[\n\r]+/).filter((item: string) => item.trim() !== '')
+            : [])
+          : [],
         parsedData: {
-          personal_info: candidate.parsedData?.personal_info || {},
-          contact_info: candidate.parsedData?.contact_info || {},
-          education: candidate.parsedData?.education || [],
-          experience: candidate.parsedData?.experience || [],
-          skills: candidate.parsedData?.skills || [],
-          job_suitable: candidate.parsedData?.job_suitable || [],
-          job_matches: candidate.parsedData?.job_matches || [],
+          personal_info: (candidate.parsedData as any)?.personal_info || {},
+          contact_info: (candidate.parsedData as any)?.contact_info || {},
+          education: (candidate.parsedData as any)?.education || [],
+          experience: (candidate.parsedData as any)?.experience || [],
+          skills: (candidate.parsedData as any)?.skills || [],
+          job_suitable: (candidate.parsedData as any)?.job_suitable || [],
+          job_matches: (candidate.parsedData as any)?.job_matches || [],
         },
       };
       

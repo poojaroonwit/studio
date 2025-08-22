@@ -67,7 +67,7 @@ export default async function DashboardPage() {
         avatarUrl: row.avatarUrl || null,
         dataAiHint: row.dataAiHint || null,
         resumePath: row.resumePath || null,
-        parsedData: safeJsonParse(row.parsedData, { personal_info: {}, contact_info: {} }),
+        parsedData: safeJsonParse(row.parsedData, { personal_info: { firstname: '', lastname: '' }, contact_info: { email: '' } }),
         customAttributes: safeJsonParse(row.customAttributes, {}),
         positionId: row.positionId || null,
         position: row.positionId ? {

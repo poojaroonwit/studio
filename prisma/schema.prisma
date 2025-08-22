@@ -38,6 +38,8 @@ model User {
   userGroups           User_UserGroup[]
   userTeams            User_UserTeam[]
   Warning              Warning[]
+  warningConfigurations WarningConfiguration[]   @relation("UserWarningConfiguration")
+  warningConfigurationShares WarningConfigurationShare[]
   uploadQueue          UploadQueue[]             @relation("UserUploadQueue")
 
   @@index([email])
@@ -662,15 +664,34 @@ model WarningConfiguration {
   value       String?
   threshold   Int?
   isActive    Boolean   @default(true) @map("is_active")
+  isPublic    Boolean   @default(false) @map("is_public")
   severity    String    @default("warning")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   Warning     Warning[]
+  createdByUser User    @relation("UserWarningConfiguration", fields: [createdBy], references: [id], onDelete: Cascade)
+  sharedWith  WarningConfigurationShare[]
 
   @@index([entityType])
   @@index([field])
   @@index([isActive])
   @@index([severity])
+  @@index([createdBy])
+  @@index([createdAt])
+}
+
+model WarningConfigurationShare {
+  id              String               @id @default(uuid()) @db.Uuid
+  configurationId String               @map("configuration_id") @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at")
+  configuration   WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([configurationId, userId])
+  @@index([configurationId])
+  @@index([userId])
 }
 
 model Warning {
@@ -687,7 +708,7 @@ model Warning {
   resolved_at          DateTime?
   resolvedBy           String?              @db.Uuid
   createdAt            DateTime             @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime             @updatedAt
   WarningConfiguration WarningConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
   User                 User?                @relation(fields: [resolvedBy], references: [id])
 

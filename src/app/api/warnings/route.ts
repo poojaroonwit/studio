@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const warnings = await prisma.warning.findMany({
       where,
       include: {
-        configuration: {
+        WarningConfiguration: {
           include: {
             createdByUser: {
               select: {
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date()
         },
         include: {
-          configuration: true
+          WarningConfiguration: true
         }
       });
 
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
           severity: severity || 'warning'
         },
         include: {
-          configuration: true
+          WarningConfiguration: true
         }
       });
 

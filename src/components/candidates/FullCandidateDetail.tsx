@@ -190,6 +190,10 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   // Event handlers
+  const handleEnterEditMode = () => {
+    setIsEditing(true);
+  };
+
   const openManageTransitionsModal = (stageName?: string) => {
     setPreselectedStage(stageName || candidate?.status || availableStages[0]?.name || null);
     setIsTransitionsModalOpen(true);

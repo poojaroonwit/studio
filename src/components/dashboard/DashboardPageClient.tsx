@@ -62,7 +62,7 @@ export default function DashboardPageClient({
   // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONAL RETURNS
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { slaHeight, slaRef } = useDynamicHeight();
+  const { height: slaHeight, elementRef: slaRef } = useDynamicHeight();
   
   const [allCandidates, setAllCandidates] = useState<Candidate[]>(initialCandidates || []);
   const [myAssignedCandidates, setMyAssignedCandidates] = useState<Candidate[]>(initialCandidates || []); // For Recruiter, initialCandidates *are* their assigned ones

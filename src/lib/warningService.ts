@@ -297,7 +297,7 @@ export class WarningService {
       where: {
         entityType,
         entityId,
-        configuration: {
+        WarningConfiguration: {
           OR: [
             { isPublic: true },
             ...(userId ? [{ createdBy: userId }] : []),

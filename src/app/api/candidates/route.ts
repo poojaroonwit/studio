@@ -706,6 +706,12 @@ export async function GET(request: NextRequest) {
 
   // Handle fit score range filter
   if (filters.minAppliedJobFitScore || filters.maxAppliedJobFitScore) {
+    console.log('🔍 DEBUG: API received fit score filters:', {
+      minAppliedJobFitScore: filters.minAppliedJobFitScore,
+      maxAppliedJobFitScore: filters.maxAppliedJobFitScore,
+      minMatchingJobFitScore: filters.minMatchingJobFitScore,
+      maxMatchingJobFitScore: filters.maxMatchingJobFitScore
+    });
     const minFit = parseInt(filters.minAppliedJobFitScore || '0');
     const maxFit = parseInt(filters.maxAppliedJobFitScore || '100');
     
@@ -767,8 +773,14 @@ export async function GET(request: NextRequest) {
       // Filter for candidates with no matching fit score (NULL or 0)
       whereClauses.push(`(jm_max.max_fit_score IS NULL OR jm_max.max_fit_score = 0)`);
     } else {
-      // Simplified matching fit score range filtering
-      const matchingFitScoreCondition = `COALESCE(jm_max.max_fit_score, 0)`;
+      // Simplified matching fit score range filtering - normalize all scores to 0-100 range
+      const matchingFitScoreCondition = `COALESCE(
+        CASE 
+          WHEN jm_max.max_fit_score IS NOT NULL AND jm_max.max_fit_score <= 1 THEN jm_max.max_fit_score * 100
+          ELSE jm_max.max_fit_score
+        END,
+        0
+      )`;
       
       if (filters.minMatchingJobFitScore && filters.maxMatchingJobFitScore) {
         whereClauses.push(`${matchingFitScoreCondition} >= $${paramIndex} AND ${matchingFitScoreCondition} <= $${paramIndex + 1}`);
@@ -793,6 +805,9 @@ export async function GET(request: NextRequest) {
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+  
+  console.log('🔍 DEBUG: Generated SQL where clause:', whereString);
+  console.log('🔍 DEBUG: Query parameters:', queryParams);
   
 
 

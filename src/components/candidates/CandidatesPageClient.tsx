@@ -800,10 +800,11 @@ export function CandidatesPageClient({
     }, 150); // Reduced debounce for faster response
   }, [fetchPaginatedCandidates]);
 
-  // Separate function to fetch only table data for optimized filtering
-  const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
-    const requestId = `${Date.now()}-${Math.random()}`;
-    latestRequestIdRef.current = requestId;
+      // Separate function to fetch only table data for optimized filtering
+    const fetchTableData = useCallback(async (currentFilters: CandidateFilterValues, currentPage: number, currentPageSize: number) => {
+      console.log('🔍 DEBUG: fetchTableData called with filters:', currentFilters);
+      const requestId = `${Date.now()}-${Math.random()}`;
+      latestRequestIdRef.current = requestId;
 
     if (sessionStatusRef.current !== 'authenticated') {
       setTableLoading(false);
@@ -1704,6 +1705,13 @@ export function CandidatesPageClient({
       minMatchingJobFitScore,
       maxMatchingJobFitScore,
     };
+
+    console.log('🔍 DEBUG: Horizontal fit score filters being applied:', {
+      horizontalSelectedFitScoreGrades: Array.from(horizontalSelectedFitScoreGrades),
+      horizontalSelectedMatchingFitScoreGrades: Array.from(horizontalSelectedMatchingFitScoreGrades),
+      newFilters,
+      scoreRanges
+    });
 
     setFilters(newFilters);
     setPage(1);

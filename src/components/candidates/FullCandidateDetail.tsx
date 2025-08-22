@@ -117,7 +117,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     handleAssignRecruiter,
     handleAssignSource,
     handleAvatarUpload,
-    fetchTransitionHistory,
     // Form field arrays
     educationFields,
     appendEducation,
@@ -669,7 +668,6 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onRefreshCandidateData={async (candidateId: string) => {
           // Refresh candidate data
           await onRefresh();
-          await fetchTransitionHistory();
         }}
         preselectedStage={preselectedStage}
         comments={comments}

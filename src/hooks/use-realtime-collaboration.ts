@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToastManager } from '@/hooks/use-toast-manager';
+import { useSession } from 'next-auth/react';
 
 interface RealtimeCollaborationOptions {
   onCandidateUpdate?: (candidate: any) => void;
@@ -12,6 +13,8 @@ interface RealtimeCollaborationOptions {
   onPositionListUpdate?: () => void;
   onPositionStatisticsUpdate?: (statistics: any) => void;
   showNotifications?: boolean;
+  /** Whether to show error toast notifications (defaults to showNotifications value) */
+  showErrorNotifications?: boolean;
   endpoint?: string;
   /** Minimum time between error toasts in milliseconds to avoid spam */
   errorToastCooldownMs?: number;
@@ -35,12 +38,16 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     onPositionListUpdate,
     onPositionStatisticsUpdate,
     showNotifications = true,
+    showErrorNotifications,
     endpoint = '/api/candidates/sse',
     errorToastCooldownMs = 60000,
     maxReconnectAttempts = 10,
     reconnectDelayMs = 1000,
     maxReconnectDelayMs = 30000
   } = options;
+
+  // Default showErrorNotifications to showNotifications value if not explicitly set
+  const shouldShowErrorNotifications = showErrorNotifications !== undefined ? showErrorNotifications : showNotifications;
 
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -53,6 +60,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageTimeRef = useRef<number>(Date.now());
+  const { data: session } = useSession();
 
   const showNotification = useCallback((message: string, icon: string = '🔄') => {
     if (showNotifications) {
@@ -69,7 +77,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
 
   const showErrorNotification = useCallback((message: string) => {
     const now = Date.now();
-    if (showNotifications && (now - lastErrorToastTimeRef.current > errorToastCooldownMs)) {
+    if (shouldShowErrorNotifications && (now - lastErrorToastTimeRef.current > errorToastCooldownMs)) {
       try {
         showErrorToast(message, {
           duration: 5000
@@ -79,7 +87,7 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
         console.error('Error showing error toast notification:', error);
       }
     }
-  }, [showNotifications, errorToastCooldownMs, showErrorToast]);
+  }, [shouldShowErrorNotifications, errorToastCooldownMs, showErrorToast]);
 
   const cleanupConnection = useCallback(() => {
     if (eventSourceRef.current) {
@@ -193,8 +201,8 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
               onCandidateUpdate(updatedCandidate);
             }
             
-            // Show notification
-            if (updatedCandidate.status) {
+            // Show notification (but not for user's own actions)
+            if (updatedCandidate.status && (!data.actingUserId || data.actingUserId !== session?.user?.id)) {
               showNotification(`Candidate ${updatedCandidate.name} moved to ${updatedCandidate.status}`, '🔄');
             }
             
@@ -218,8 +226,10 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
               onTransitionUpdate(transition);
             }
             
-            // Show notification
-            showNotification(`Status updated: ${transition.stage}`, '📋');
+            // Show notification (but not for user's own actions)
+            if (!data.actingUserId || data.actingUserId !== session?.user?.id) {
+              showNotification(`Status updated: ${transition.stage}`, '📋');
+            }
             
             setLastUpdate(new Date());
           }
@@ -259,8 +269,10 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
               onCommentUpdate(data.comment);
             }
             
-            // Show notification
-            showNotification(`New comment added by ${data.comment.createdBy || 'Team member'}`, '💬');
+            // Show notification (but not for user's own actions)
+            if (!data.actingUserId || data.actingUserId !== session?.user?.id) {
+              showNotification(`New comment added by ${data.comment.createdBy || 'Team member'}`, '💬');
+            }
             
             setLastUpdate(new Date());
           }
@@ -322,8 +334,10 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
               onPositionUpdate(data.position);
             }
             
-            // Show notification
-            showNotification(`Position "${data.position.title}" updated`, '💼');
+            // Show notification (but not for user's own actions)
+            if (!data.actingUserId || data.actingUserId !== session?.user?.id) {
+              showNotification(`Position "${data.position.title}" updated`, '💼');
+            }
             
             setLastUpdate(new Date());
           } else if (data.type === 'position_list_update') {
@@ -387,7 +401,8 @@ export function useRealtimeCollaboration(options: RealtimeCollaborationOptions =
     showErrorNotification,
     handleReconnect,
     startHealthCheck,
-    isReconnecting
+    isReconnecting,
+    session
   ]);
 
   useEffect(() => {

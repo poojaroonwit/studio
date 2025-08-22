@@ -117,6 +117,7 @@ function TaskBoardContent() {
       }
     },
     showNotifications: false, // Disable notifications to prevent conflicts
+    showErrorNotifications: false, // Disable error toast notifications
     maxReconnectAttempts: 15, // More reconnection attempts
     reconnectDelayMs: 500, // Faster initial reconnection
     maxReconnectDelayMs: 15000, // Shorter max delay

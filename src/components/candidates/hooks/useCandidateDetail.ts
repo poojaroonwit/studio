@@ -564,6 +564,8 @@ export const useCandidateDetail = (candidateId: string) => {
     setIsSaving,
     setIsAssigningRecruiter,
     setIsAssigningSource,
+    setCandidate,
+    setTransitionHistory,
     
     // Functions
     calculateTotalExperienceDuration,

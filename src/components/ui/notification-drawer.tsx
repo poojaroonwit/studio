@@ -55,7 +55,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkAllAsRead}
-                className="text-xs ml-4 -mt-1"
+                className="text-xs ml-6 -mt-1"
               >
                 Mark all read
               </Button>
@@ -65,6 +65,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
             variant="ghost"
             size="icon"
             onClick={onClose}
+            className="ml-2"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -144,7 +145,7 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                           variant="ghost"
                           size="sm"
                           onClick={handleMarkAllAsRead}
-                          className="text-xs"
+                          className="text-xs mr-2"
                         >
                           Mark all read
                         </Button>
@@ -154,7 +155,6 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                           key={notification.id}
                           className="notification-item flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300"
                           style={{ animationDelay: `${index * 0.05}s` }}
-                          onClick={() => handleMarkAsRead(notification.id)}
                         >
                           <div className="flex-shrink-0 mt-1">
                             <Bell className="h-4 w-4 text-muted-foreground" />
@@ -173,15 +173,16 @@ export function NotificationDrawer({ isOpen, onClose }: NotificationDrawerProps)
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                               </span>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     handleMarkAsRead(notification.id);
                                   }}
-                                  className="h-6 px-2 text-xs hover:bg-primary/10"
+                                  className="h-6 px-3 text-xs hover:bg-primary/10 ml-2"
                                 >
                                   <Check className="h-3 w-3 mr-1" />
                                   Mark read

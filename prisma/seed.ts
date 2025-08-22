@@ -361,22 +361,31 @@ Return ONLY a valid JSON object in this exact format:
 Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
 
     // Create AI Power Search system prompt in the Candidate Assessment category
-    await prisma.systemPrompt.upsert({
+    const existingPrompt = await prisma.systemPrompt.findFirst({
       where: { 
         name: 'AI Power Search - Candidate Matching'
-      },
-      update: {
-        content: DEFAULT_AI_POWER_SEARCH_PROMPT,
-        description: 'System prompt for AI Power Search to find candidates with exact matching criteria'
-      },
-      create: {
-        name: 'AI Power Search - Candidate Matching',
-        description: 'System prompt for AI Power Search to find candidates with exact matching criteria',
-        content: DEFAULT_AI_POWER_SEARCH_PROMPT,
-        categoryId: '550e8400-e29b-41d4-a716-446655440012', // Candidate Assessment category
-        isActive: true
       }
     });
+
+    if (existingPrompt) {
+      await prisma.systemPrompt.update({
+        where: { id: existingPrompt.id },
+        data: {
+          content: DEFAULT_AI_POWER_SEARCH_PROMPT,
+          description: 'System prompt for AI Power Search to find candidates with exact matching criteria'
+        }
+      });
+    } else {
+      await prisma.systemPrompt.create({
+        data: {
+          name: 'AI Power Search - Candidate Matching',
+          description: 'System prompt for AI Power Search to find candidates with exact matching criteria',
+          content: DEFAULT_AI_POWER_SEARCH_PROMPT,
+          categoryId: '550e8400-e29b-41d4-a716-446655440012', // Candidate Assessment category
+          isActive: true
+        }
+      });
+    }
     console.log('✅ AI Power Search system prompt initialized');
 
     // Create TOEIC custom field definition

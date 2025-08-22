@@ -116,6 +116,24 @@ export async function PUT(
       return NextResponse.json({ error: 'Warning configuration not found or access denied' }, { status: 404 });
     }
 
+    // Validate required fields
+    if (!name || !entityType || !field || !condition) {
+      await logAudit('WARN', `Warning configuration update attempted with missing fields by ${actingUserName}`, 'API:Settings:WarningConfigurations:Put', actingUserId, {
+        configurationId: params.id,
+        providedFields: { name, entityType, field, condition }
+      });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Require operator for all conditions except 'empty' and 'overdue'
+    if (condition !== 'empty' && condition !== 'overdue' && !operator) {
+      await logAudit('WARN', `Warning configuration update attempted without operator by ${actingUserName}`, 'API:Settings:WarningConfigurations:Put', actingUserId, {
+        configurationId: params.id,
+        providedFields: { condition, operator }
+      });
+      return NextResponse.json({ error: 'Operator is required for this condition type' }, { status: 400 });
+    }
+
     const configuration = await prisma.warningConfiguration.update({
       where: { id: params.id },
       data: {

@@ -141,7 +141,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for new comment
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: newComment, action: 'added' });
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: newComment, action: 'added' }, session.user.id);
     
     // Dispatch webhook for comment creation
     try {
@@ -255,7 +255,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       include: { author: { select: { id: true, name: true, email: true } } },
     });
     // Broadcast SSE event for updated comment
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: updatedComment, action: 'updated' });
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: updatedComment, action: 'updated' }, session.user.id);
     
     // Dispatch webhook for comment update
     try {
@@ -301,7 +301,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
     await prisma.candidateComment.delete({ where: { id: commentId, candidateId: id } });
     // After successful deletion
-    broadcastCandidateCommentUpdate({ candidateId: id, comment: { id: commentId }, action: 'deleted' });
+    broadcastCandidateCommentUpdate({ candidateId: id, comment: { id: commentId }, action: 'deleted' }, session.user.id);
     
     // Dispatch webhook for comment deletion
     try {

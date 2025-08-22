@@ -48,9 +48,9 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
   };
 
   return (
-    <div className="lg:col-span-3 bg-muted shadow-lg backdrop-blur-sm h-full">
+    <div className="h-full flex flex-col min-h-0">
       {/* Tab Navigation */}
-      <div className="grid w-full grid-cols-2 bg-background border-b border-border">
+      <div className="grid w-full grid-cols-2 bg-background border-b border-border flex-shrink-0">
         <div 
           className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'comments' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
           onClick={() => setActiveTab('comments')}
@@ -76,7 +76,7 @@ export const CandidateSidebar: React.FC<CandidateSidebarProps> = ({
       </div>
 
       {/* Tab Content */}
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto">
         {activeTab === 'comments' && (
           <CandidateCommentsSection 
             candidateId={candidate.id} 

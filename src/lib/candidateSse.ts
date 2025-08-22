@@ -51,8 +51,13 @@ export function removeSseController(controller: ReadableStreamDefaultController<
   }
 }
 
-export function broadcastCandidateUpdate(candidate: any) {
-  const data = `event: candidate\ndata: ${JSON.stringify({ type: 'candidate_update', candidateId: candidate.id, candidate })}\n\n`;
+export function broadcastCandidateUpdate(candidate: any, actingUserId?: string) {
+  const data = `event: candidate\ndata: ${JSON.stringify({ 
+    type: 'candidate_update', 
+    candidateId: candidate.id, 
+    candidate,
+    actingUserId 
+  })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {
@@ -81,8 +86,8 @@ export function broadcastCandidateListUpdate() {
   }
 }
 
-export function broadcastCandidateCommentUpdate(payload: { candidateId: string, comment: any, action: string }) {
-  const data = `event: comment\ndata: ${JSON.stringify(payload)}\n\n`;
+export function broadcastCandidateCommentUpdate(payload: { candidateId: string, comment: any, action: string }, actingUserId?: string) {
+  const data = `event: comment\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {
@@ -109,8 +114,8 @@ export function broadcastCandidateResumeUpdate(payload: { candidateId: string, r
   }
 }
 
-export function broadcastCandidateTransitionUpdate(payload: { candidateId: string, transition: any, action: string }) {
-  const data = `event: transition\ndata: ${JSON.stringify(payload)}\n\n`;
+export function broadcastCandidateTransitionUpdate(payload: { candidateId: string, transition: any, action: string }, actingUserId?: string) {
+  const data = `event: transition\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {
@@ -123,8 +128,8 @@ export function broadcastCandidateTransitionUpdate(payload: { candidateId: strin
   }
 }
 
-export function broadcastCandidateAttachmentUpdate(payload: { candidateId: string, attachment: any, action: string }) {
-  const data = `event: attachment\ndata: ${JSON.stringify(payload)}\n\n`;
+export function broadcastCandidateAttachmentUpdate(payload: { candidateId: string, attachment: any, action: string }, actingUserId?: string) {
+  const data = `event: attachment\ndata: ${JSON.stringify({ ...payload, actingUserId })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {
@@ -152,8 +157,13 @@ export function broadcastRecruitmentStagesUpdate(stages: any[]) {
   }
 }
 
-export function broadcastPositionUpdate(position: any) {
-  const data = `event: position\ndata: ${JSON.stringify({ type: 'position_update', positionId: position.id, position })}\n\n`;
+export function broadcastPositionUpdate(position: any, actingUserId?: string) {
+  const data = `event: position\ndata: ${JSON.stringify({ 
+    type: 'position_update', 
+    positionId: position.id, 
+    position,
+    actingUserId 
+  })}\n\n`;
   const encodedData = new TextEncoder().encode(data);
   
   for (const controller of controllers) {

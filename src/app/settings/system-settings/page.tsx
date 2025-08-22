@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { cn } from '@/lib/utils';
 import AutoCloseTab from '@/components/settings/AutoCloseTab';
+import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -276,6 +277,18 @@ export default function SystemSettingsPage() {
               <CheckCircle className="h-4 w-4" />
               Auto-Close
             </div>
+            <div
+              onClick={() => setActiveTab('ai-power-search')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'ai-power-search'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <BrainCircuit className="h-4 w-4" />
+              AI Power Search
+            </div>
           </div>
 
           <div className="flex-1 overflow-hidden">
@@ -527,6 +540,12 @@ export default function SystemSettingsPage() {
             {activeTab === 'auto-close' && (
               <ScrollArea className="h-full pr-4">
                 <AutoCloseTab />
+              </ScrollArea>
+            )}
+
+            {activeTab === 'ai-power-search' && (
+              <ScrollArea className="h-full pr-4">
+                <AIPowerSearchTab />
               </ScrollArea>
             )}
           </div>

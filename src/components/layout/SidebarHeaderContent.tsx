@@ -75,8 +75,10 @@ export function SidebarHeaderContent({ currentAppName, appLogoUrl, isClient, isL
             width={100}
             height={100}
             style={{
-              width: `${sidebarLogoSize}px`,
-              height: `${sidebarLogoSize}px`,
+              maxWidth: `${sidebarLogoSize}px`,
+              maxHeight: `${sidebarLogoSize}px`,
+              width: 'auto',
+              height: 'auto',
             }}
             className="object-contain"
             data-ai-hint="company logo"

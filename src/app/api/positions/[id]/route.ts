@@ -312,7 +312,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     // Broadcast real-time updates
     try {
-      broadcastPositionUpdate(positionWithCustomAttrs);
+      broadcastPositionUpdate(positionWithCustomAttrs, actingUserId || undefined);
       broadcastPositionListUpdate();
       // Broadcast statistics update
       const statsQuery = `

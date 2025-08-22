@@ -146,7 +146,8 @@ export async function POST(request: NextRequest) {
                   candidatesToReject.push({
                     candidateId: candidate.id,
                     reason: validation.reason,
-                    message: validation.message
+                    message: validation.message,
+                    headcountStatus: validation.headcountStatus
                   });
                 }
               } catch (error) {
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
                   candidateId: candidate.id,
                   transition: newTransition,
                   action: 'add'
-                });
+                }, actingUserId);
               }
             }
           }

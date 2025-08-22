@@ -28,15 +28,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get all open positions with their headcount data
-    const openPositions = await prisma.position.findMany({
-      where: {
-        isOpen: true,
-      },
+    // Get all positions with their headcount data (both open and closed)
+    const allPositions = await prisma.position.findMany({
       select: {
         id: true,
         title: true,
         recruiterId: true,
+        isOpen: true,
         headcounts: {
           select: {
             id: true,
@@ -45,6 +43,9 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    
+    // Filter for open positions for headcount calculations
+    const openPositions = allPositions.filter(position => position.isOpen);
 
     // Calculate vacant headcount for each recruiter
     const recruiterStats = recruiters.map(recruiter => {
@@ -66,8 +67,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Add unassigned positions stats
-    const unassignedPositions = openPositions.filter(position => !position.recruiterId);
+    // Add unassigned positions stats (include both open and closed positions)
+    const unassignedPositions = allPositions.filter(position => !position.recruiterId);
     let totalUnassignedVacant = 0;
     unassignedPositions.forEach(position => {
       const vacantHeadcounts = position.headcounts.filter(headcount => headcount.status === 'vacant');

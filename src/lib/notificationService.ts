@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { logAudit } from '@/lib/auditLog';
 import { broadcastUserNotification } from '@/lib/candidateSse';
+import { validate as validateUuid } from 'uuid';
 
 export interface NotificationData {
   type: string;
@@ -19,6 +20,27 @@ export class NotificationService {
     actingUserId?: string
   ) {
     try {
+      // Validate UUIDs before proceeding
+      if (!validateUuid(userId)) {
+        console.error('❌ Invalid userId UUID in createNotification:', userId);
+        throw new Error('Invalid user ID format');
+      }
+
+      if (actingUserId && !validateUuid(actingUserId)) {
+        console.error('❌ Invalid actingUserId UUID in createNotification:', actingUserId);
+        throw new Error('Invalid acting user ID format');
+      }
+
+      // Prevent self-notifications: don't notify users about their own actions
+      if (actingUserId && userId === actingUserId) {
+        await logAudit('AUDIT', `Self-notification prevented for user ${userId}`, 'NotificationService:Create', actingUserId, {
+          targetUserId: userId,
+          notificationType: notification.type,
+          title: notification.title
+        });
+        return null; // Return null to indicate no notification was created
+      }
+
       const newNotification = await prisma.notification.create({
         data: {
           userId,
@@ -146,6 +168,12 @@ export class NotificationService {
     isRead?: boolean
   ) {
     try {
+      // Validate UUID before proceeding
+      if (!validateUuid(userId)) {
+        console.error('❌ Invalid userId UUID in getNotifications:', userId);
+        throw new Error('Invalid user ID format');
+      }
+
       const whereClause: any = { userId };
       if (isRead !== undefined) {
         whereClause.isRead = isRead;
@@ -180,6 +208,12 @@ export class NotificationService {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     try {
+      // Validate UUID before proceeding
+      if (!validateUuid(userId)) {
+        console.error('❌ Invalid userId UUID in getUnreadCount:', userId);
+        return 0;
+      }
+
       const count = await prisma.notification.count({
         where: {
           userId,
@@ -199,6 +233,12 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string) {
     try {
+      // Validate UUID before proceeding
+      if (!validateUuid(userId)) {
+        console.error('❌ Invalid userId UUID in markAllAsRead:', userId);
+        throw new Error('Invalid user ID format');
+      }
+
       await prisma.notification.updateMany({
         where: {
           userId,

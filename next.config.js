@@ -47,7 +47,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Disable static generation for API routes that use dynamic features
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
   },
   // Disable Fast Refresh logs
   onDemandEntries: {
@@ -139,6 +139,11 @@ const nextConfig = {
         'pg-connection-string': 'commonjs pg-connection-string',
       });
     }
+
+    // Fix for NextAuth jose.js vendor chunk issue
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias['jose'] = require.resolve('jose');
 
     // Suppress Fast Refresh logs in development
     if (dev) {

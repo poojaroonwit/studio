@@ -102,6 +102,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Prevent self-notifications: don't notify users about their own actions
+    if (targetUserId && targetUserId === actingUserId) {
+      await logAudit('AUDIT', `Self-notification prevented for ${actingUserName}`, 'API:Realtime:Notifications:Post', actingUserId, {
+        notificationType: type,
+        title,
+        targetUserId,
+        hasData: !!data
+      });
+      return NextResponse.json({ success: true, message: 'Self-notification prevented' });
+    }
+
     // Create notification in database
     const newNotification = await prisma.notification.create({
       data: {

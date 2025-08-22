@@ -109,6 +109,20 @@ export async function POST(request: NextRequest) {
     const { type, title, message, targetUserId, data } = validationResult.data;
     const targetUser = targetUserId || user.id; // Default to current user if no target specified
 
+    // Prevent self-notifications: don't notify users about their own actions
+    if (targetUser === user.id) {
+      await logAudit('AUDIT', `Self-notification prevented for ${user.name}`, 'API:V1:Notifications:Create', user.id, {
+        notificationType: type,
+        title,
+        targetUserId: targetUser,
+        hasData: !!data
+      });
+      return createSuccessResponse(request, {
+        message: 'Self-notification prevented',
+        notification: null
+      });
+    }
+
     try {
       const notification = await NotificationService.createNotification(
         targetUser,

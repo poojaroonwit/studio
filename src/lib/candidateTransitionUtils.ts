@@ -20,6 +20,16 @@ export async function updateCandidatesStatusBulk(candidateIds: string[], status:
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.message || 'status update failed');
+    
+    // Check for rejected candidates due to headcount constraints
+    if (result.rejectedCandidates && result.rejectedCandidates.length > 0) {
+      const rejectedCandidate = result.rejectedCandidates[0]; // For single candidate updates
+      const headcountInfo = rejectedCandidate.headcountStatus 
+        ? ` (Total: ${rejectedCandidate.headcountStatus.totalHeadcounts}, Vacant: ${rejectedCandidate.headcountStatus.vacantHeadcounts}, Filled: ${rejectedCandidate.headcountStatus.filledHeadcounts})`
+        : '';
+      throw new Error(`Headcount constraint: ${rejectedCandidate.message || 'Cannot update status due to headcount limitations'}${headcountInfo}`);
+    }
+    
     if (!suppressToast) {
       toast.success(`${result.successCount || candidateIds.length} candidate(s) updated. ${result.failCount > 0 ? `${result.failCount} failed.` : ''}`);
     }

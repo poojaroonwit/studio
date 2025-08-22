@@ -129,7 +129,10 @@ export function CandidatesPageClient({
 
 
 
-  const [isLoading, setIsLoading] = useState(false); // Changed to false initially
+  const [isLoading, setIsLoading] = useState(() => {
+    // Start with loading true only if we don't have initial data
+    return safeInitialCandidates.length === 0;
+  });
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [isFetching, setIsFetching] = useState(false); // Track if we're currently fetching
   const [aiSearchReasoning, setAiSearchReasoning] = useState<string | null>(null);
@@ -212,7 +215,10 @@ export function CandidatesPageClient({
 
   // Add a separate state for table data to prevent full page refresh
   const [tableCandidates, setTableCandidates] = useState<Candidate[]>([]);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(() => {
+    // Start with loading true only if we don't have initial data
+    return safeInitialCandidates.length === 0;
+  });
   const [tableError, setTableError] = useState<string | null>(null);
 
 
@@ -1097,8 +1103,11 @@ export function CandidatesPageClient({
     if (sessionStatus === 'loading') {
       setIsLoading(true);
     } else if (sessionStatus === 'authenticated') {
-      // Only show loading if we don't have initial data and no errors
-      if (safeInitialCandidates.length === 0 && !initialFetchError && !serverAuthError && !serverPermissionError) {
+      // If we have initial data, don't show loading
+      if (safeInitialCandidates.length > 0) {
+        setIsLoading(false);
+      } else if (!initialFetchError && !serverAuthError && !serverPermissionError) {
+        // Show loading if we don't have initial data and no errors
         setIsLoading(true);
       } else {
         setIsLoading(false);
@@ -1149,6 +1158,14 @@ export function CandidatesPageClient({
       // Use a ref to avoid dependency issues
       const currentFetchTableData = fetchTableData;
       currentFetchTableData(filters, page, pageSize);
+    } else if (safeInitialCandidates.length > 0) {
+      // If we have initial data, set it immediately and clear loading
+      setAllCandidates(safeInitialCandidates);
+      setTableCandidates(safeInitialCandidates);
+      setTotal(safeInitialCandidates.length);
+      setIsLoading(false);
+      setTableLoading(false);
+      setHasInitialDataFetch(true); // Mark as fetched to prevent duplicate requests
     }
   }, [sessionStatus, serverAuthError, serverPermissionError, safeInitialCandidates.length, initialFetchError, hasInitialDataFetch, fetchTableData, filters, page, pageSize]);
 
@@ -1459,6 +1476,11 @@ export function CandidatesPageClient({
   useEffect(() => { 
     setAllCandidates(safeInitialCandidates || []); 
     setFullCandidatesForCounts(safeInitialCandidates || []); 
+    // Also set table candidates if we have initial data
+    if (safeInitialCandidates.length > 0) {
+      setTableCandidates(safeInitialCandidates);
+      setTableLoading(false);
+    }
   }, [safeInitialCandidates]);
   useEffect(() => { setAvailablePositions(safeInitialAvailablePositions || []); }, [safeInitialAvailablePositions]);
   useEffect(() => { setAvailableStages(safeInitialAvailableStages || []); }, [safeInitialAvailableStages]);
@@ -2864,15 +2886,31 @@ export function CandidatesPageClient({
           </div>
         )}
 
+        {/* Loading State - Show when server is starting up or initial data is being fetched */}
+        {String(sessionStatus) === 'authenticated' && (isLoading || tableLoading) && !isAiSearching && (
+          <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4 animate-pulse">
+              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Loading Candidates...</h3>
+            <p className="text-muted-foreground mb-4 max-w-md">
+              {isLoading ? 'Initializing...' : 'Fetching data...'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              If this takes too long, the server may be starting up. Please wait a moment.
+            </p>
+          </div>
+        )}
+
         {/* Empty State - Single conditional to prevent duplicates */}
-        {String(sessionStatus) === 'authenticated' && !isLoading && !isAiSearching && (() => {
+        {String(sessionStatus) === 'authenticated' && !isLoading && !tableLoading && !isAiSearching && (() => {
           // AI search is active and has results - don't show empty state
           if (isAiSearchActive && aiMatchedCandidateIds && aiMatchedCandidateIds.length > 0) {
             return null; // Don't show empty state when AI search has results
           }
           
           // No candidates in database at all
-          if (tableCandidates.length === 0 && !tableLoading) {
+          if (tableCandidates.length === 0) {
             return (
               <div className="flex flex-col items-center justify-center py-12 text-center transition-all duration-500 ease-in-out animate-in fade-in">
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">

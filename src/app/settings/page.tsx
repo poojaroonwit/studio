@@ -59,14 +59,7 @@ const settingsItems = [
     permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
     adminOnlyOrPermission: true
   },
-  { 
-    href: "/settings/ai-power-search-config", 
-    label: "AI Power Search Config", 
-    icon: BrainCircuit, 
-    description: "Configure AI Power Search system prompt for precise candidate matching.", 
-    permissionId: 'SYSTEM_SETTINGS_MANAGE' as PlatformModuleId, 
-    adminOnlyOrPermission: true
-  },
+
   { 
     href: "/settings/data-configuration", 
     label: "Data Configuration", 

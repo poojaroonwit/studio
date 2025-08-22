@@ -396,7 +396,7 @@ export default function WarningConfigurationsPage() {
                           <p className="font-medium">{configuration.operator}</p>
                         </div>
                       </div>
-                      {(configuration.value || configuration.threshold) && (
+                      {(configuration.value || configuration.threshold !== undefined) && (
                         <div className="mt-4 pt-4 border-t border-border/50">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             {configuration.value && (
@@ -405,10 +405,19 @@ export default function WarningConfigurationsPage() {
                                 <p className="font-medium">{configuration.value}</p>
                               </div>
                             )}
-                            {configuration.threshold && (
+                            {configuration.threshold !== undefined && (
                               <div>
                                 <span className="text-muted-foreground">Threshold:</span>
-                                <p className="font-medium">{configuration.threshold}</p>
+                                {configuration.threshold === null ? (
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-blue-600 dark:text-blue-400">Dynamic (Grade SLA)</p>
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                      Auto-adjusts
+                                    </Badge>
+                                  </div>
+                                ) : (
+                                  <p className="font-medium">{configuration.threshold} days</p>
+                                )}
                               </div>
                             )}
                           </div>

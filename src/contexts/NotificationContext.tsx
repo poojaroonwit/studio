@@ -57,6 +57,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [session?.user]);
 
   const markAsRead = useCallback(async (notificationId: string) => {
+    // Check if this is a frontend-generated notification (has timestamp-like ID)
+    const isFrontendNotification = /^\d{13,}$/.test(notificationId);
+    
+    if (isFrontendNotification) {
+      // For frontend-generated notifications, just update the local state
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId ? { ...n, isRead: true } : n
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      return;
+    }
+    
+    // For database notifications, call the API
     try {
       const response = await fetch(`/api/realtime/notifications/${notificationId}/read`, {
         method: 'POST',
@@ -166,6 +181,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 return; // Skip notifications not meant for this user
               }
               
+              // Prevent self-notifications: don't show notifications about user's own actions
+              if (data.notification.data?.actingUserId && data.notification.data.actingUserId === session?.user?.id) {
+                return; // Skip notifications about user's own actions
+              }
+              
               addNotification({
                 type: data.notification.type,
                 title: data.notification.title,
@@ -183,6 +203,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'candidate_update' && data.candidate) {
+              // Prevent self-notifications: don't show notifications about user's own actions
+              if (data.actingUserId && data.actingUserId === session?.user?.id) {
+                return; // Skip notifications about user's own actions
+              }
+              
               addNotification({
                 type: 'candidate_update',
                 title: 'Candidate Updated',
@@ -199,6 +224,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'position_update' && data.position) {
+              // Prevent self-notifications: don't show notifications about user's own actions
+              if (data.actingUserId && data.actingUserId === session?.user?.id) {
+                return; // Skip notifications about user's own actions
+              }
+              
               addNotification({
                 type: 'position_update',
                 title: 'Position Updated',
@@ -215,6 +245,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'new_comment') {
+              // Prevent self-notifications: don't show notifications about user's own actions
+              if (data.actingUserId && data.actingUserId === session?.user?.id) {
+                return; // Skip notifications about user's own actions
+              }
+              
               addNotification({
                 type: 'new_comment',
                 title: 'New Comment',
@@ -231,6 +266,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'candidate_transition') {
+              // Prevent self-notifications: don't show notifications about user's own actions
+              if (data.actingUserId && data.actingUserId === session?.user?.id) {
+                return; // Skip notifications about user's own actions
+              }
+              
               addNotification({
                 type: 'candidate_transition',
                 title: 'Candidate Moved',

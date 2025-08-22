@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     ]);
     await client.query('COMMIT');
     await logAudit('AUDIT', `New candidate '${name}' created by ${actingUserName}.`, 'API:Candidates:Create', actingUserId, { candidateId: newCandidateId });
-    broadcastCandidateUpdate(newCandidate); // Broadcast to SSE clients
+    broadcastCandidateUpdate(newCandidate, actingUserId); // Broadcast to SSE clients
     
     // Auto-assign recruiter if candidate has a position and no recruiter
     if (positionId && !newCandidate.recruiterId) {

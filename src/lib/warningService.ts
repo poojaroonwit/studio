@@ -65,10 +65,10 @@ export class WarningService {
       }
 
       const fieldValue = this.getFieldValue(entity, config.field);
-      const hasWarning = this.evaluateCondition(config, fieldValue);
+      const hasWarning = this.evaluateCondition(config, fieldValue, entity);
 
       if (hasWarning) {
-        const message = this.generateWarningMessage(config, fieldValue);
+        const message = this.generateWarningMessage(config, fieldValue, entity);
         return {
           hasWarning: true,
           message,
@@ -132,12 +132,12 @@ export class WarningService {
   /**
    * Evaluate warning condition
    */
-  private static evaluateCondition(config: any, fieldValue: any): boolean {
+  private static evaluateCondition(config: any, fieldValue: any, entity?: any): boolean {
     const { condition, operator, value, threshold } = config;
 
     switch (condition) {
       case 'overdue':
-        return this.checkOverdue(fieldValue, threshold);
+        return this.checkOverdue(fieldValue, threshold, entity);
       case 'empty':
         return this.checkEmpty(fieldValue);
       case 'threshold':
@@ -154,15 +154,28 @@ export class WarningService {
   /**
    * Check if date is overdue
    */
-  private static checkOverdue(dateValue: any, thresholdDays: number): boolean {
-    if (!dateValue || !thresholdDays) return false;
+  private static checkOverdue(dateValue: any, thresholdDays: number | null, entity?: any): boolean {
+    if (!dateValue) return false;
+
+    // If threshold is null/undefined, use the position's grade SLA
+    let actualThreshold = thresholdDays;
+    if (actualThreshold === null || actualThreshold === undefined) {
+      if (entity && entity.grade && entity.grade.slaDays) {
+        actualThreshold = entity.grade.slaDays;
+      } else {
+        // Fallback to a default threshold if no grade SLA is available
+        actualThreshold = 30;
+      }
+    }
+
+    if (!actualThreshold) return false;
 
     const date = new Date(dateValue);
     const now = new Date();
     const diffTime = now.getTime() - date.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays > thresholdDays;
+    return diffDays > actualThreshold;
   }
 
   /**
@@ -240,12 +253,26 @@ export class WarningService {
   /**
    * Generate warning message
    */
-  private static generateWarningMessage(config: any, currentValue: any): string {
+  private static generateWarningMessage(config: any, currentValue: any, entity?: any): string {
     const { name, field, condition, value, threshold } = config;
 
     switch (condition) {
       case 'overdue':
-        return `${name}: ${field} is overdue by ${threshold} days`;
+        // Calculate the actual threshold used (dynamic or fixed)
+        let actualThreshold = threshold;
+        if (actualThreshold === null || actualThreshold === undefined) {
+          if (entity && entity.grade && entity.grade.slaDays) {
+            actualThreshold = entity.grade.slaDays;
+          } else {
+            actualThreshold = 30; // Default fallback
+          }
+        }
+        
+        if (threshold === null || threshold === undefined) {
+          return `${name}: ${field} is overdue (${actualThreshold} days SLA from ${entity?.grade?.name || 'grade'} exceeded)`;
+        } else {
+          return `${name}: ${field} is overdue by ${actualThreshold} days`;
+        }
       case 'empty':
         return `${name}: ${field} is required but empty`;
       case 'threshold':

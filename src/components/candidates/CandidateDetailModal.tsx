@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Candidate, TransitionRecord, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, PersonalInfo, AutomationJobMatch, UserProfile, Position, positionLevel, RecruitmentStage } from '@/lib/types';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -40,10 +41,18 @@ interface CandidateDetailModalProps {
 }
 
 export default function CandidateDetailModal({ candidateId, open, onClose }: CandidateDetailModalProps) {
-  if (!open || !candidateId) return null;
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!open || !candidateId || !mounted) return null;
+
+  const modalContent = (
     <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
       onClick={(e) => {
         // Prevent event from bubbling up to parent components
         e.stopPropagation();
@@ -65,4 +74,7 @@ export default function CandidateDetailModal({ candidateId, open, onClose }: Can
       </div>
     </div>
   );
+
+  // Use Portal to render outside the current component tree
+  return createPortal(modalContent, document.body);
 }

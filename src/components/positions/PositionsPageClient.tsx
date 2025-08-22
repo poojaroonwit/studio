@@ -117,7 +117,8 @@ export default function PositionsPageClient() {
     },
     onPositionStatisticsUpdate: (updatedStatistics) => {
       setStatistics(updatedStatistics);
-    }
+    },
+    showErrorNotifications: false // Disable error toast notifications
   });
   
   // Debounce/search refs
@@ -593,7 +594,6 @@ export default function PositionsPageClient() {
   // Fetch recruiter statistics for all positions (regardless of current filter)
   const fetchRecruiterStats = useCallback(async () => {
     try {
-      console.log('Fetching recruiter stats...');
       // Get recruiter headcount statistics
       const recruiterStatsResponse = await fetch('/api/users/recruiter-headcount-stats');
       
@@ -604,7 +604,6 @@ export default function PositionsPageClient() {
       }
       
       const recruiterStatsData = await recruiterStatsResponse.json();
-      console.log('Recruiter stats data:', recruiterStatsData);
       
       // Set available recruiters with headcount data
       const availableRecruitersData = recruiterStatsData.recruiters.map((r: any) => ({ 
@@ -613,7 +612,6 @@ export default function PositionsPageClient() {
         avatarUrl: r.avatarUrl,
         vacantHeadcount: r.vacantHeadcount
       }));
-      console.log('Available recruiters data:', availableRecruitersData);
       setAvailableRecruiters(availableRecruitersData);
       
       // Create stats object for backward compatibility
@@ -624,7 +622,6 @@ export default function PositionsPageClient() {
       stats.unassigned = recruiterStatsData.unassigned.totalPositions;
       stats.unassignedVacant = recruiterStatsData.unassigned.vacantHeadcount;
       
-      console.log('Recruiter stats:', stats);
       setRecruiterStats(stats);
     } catch (error) {
       console.error('Error fetching recruiter statistics:', error);
@@ -636,24 +633,18 @@ export default function PositionsPageClient() {
 
   // Initial load
   useEffect(() => {
-    console.log('Initial load effect - session:', session?.user?.id);
     fetchPositions(false);
     fetchAllDepartments();
     // Only fetch recruiter stats if session is available
     if (session?.user?.id) {
-      console.log('Session available, fetching recruiter stats...');
       fetchRecruiterStats(); // Fetch recruiter stats independently
-    } else {
-      console.log('Session not available yet');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]); // Add session dependency
 
   // Fetch recruiter stats when session becomes available
   useEffect(() => {
-    console.log('Session/recruiters effect - session:', session?.user?.id, 'availableRecruiters.length:', availableRecruiters.length);
     if (session?.user?.id && availableRecruiters.length === 0) {
-      console.log('Fetching recruiter stats from second effect...');
       fetchRecruiterStats();
     }
   }, [session?.user?.id, availableRecruiters.length, fetchRecruiterStats]);

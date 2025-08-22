@@ -44,6 +44,7 @@ export function StagePipeline({
   const [localTransitionHistory, setLocalTransitionHistory] = useState<TransitionRecord[]>(transitionHistory);
   const [localCurrentStatus, setLocalCurrentStatus] = useState<string>(currentStatus);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
+  const [isTransitioning, setIsTransitioning] = useState(false);
   // Removed: const [isConnected, setIsConnected] = useState(false);
   // Removed: const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -59,6 +60,13 @@ export function StagePipeline({
   useEffect(() => {
     setLocalCurrentStatus(currentStatus);
   }, [currentStatus]);
+
+  // Clear loading state when status changes (indicating successful transition)
+  useEffect(() => {
+    if (isTransitioning && localCurrentStatus !== currentStatus) {
+      setIsTransitioning(false);
+    }
+  }, [currentStatus, localCurrentStatus, isTransitioning]);
 
   // Removed: useEffect for SSE setup and cleanup
 
@@ -91,13 +99,16 @@ export function StagePipeline({
     }
   }, [onNoteEdit]);
 
-  // Enhanced stage click handler with visual feedback
+  // Enhanced stage click handler with real-time feedback
   const handleStageClick = useCallback((stageName: string) => {
-    const isCompleted = localTransitionHistory.some(r => r.stage === stageName);
-    if (!isCompleted) {
-      onStageClick(stageName);
+    // Show loading state if clicking on a different stage
+    if (stageName !== localCurrentStatus) {
+      setIsTransitioning(true);
+      // Hide loading state after a reasonable timeout (in case the transition fails)
+      setTimeout(() => setIsTransitioning(false), 10000);
     }
-  }, [localTransitionHistory, onStageClick]);
+    onStageClick(stageName);
+  }, [localTransitionHistory, onStageClick, localCurrentStatus]);
 
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
@@ -154,6 +165,7 @@ export function StagePipeline({
                             ? 'bg-red-500 border-red-700 text-white font-bold shadow-red-400 shadow-lg'
                             : '')
                         : 'bg-muted/10 text-muted-foreground hover:bg-muted/20'}
+                    ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                   `}
                   onClick={() => handleStageClick(stage.name)}
                 >
@@ -174,11 +186,17 @@ export function StagePipeline({
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
+                    ) : isCurrent && isTransitioning ? (
+                      <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <span className="w-2 h-2 rounded-full bg-card block"></span>
                     )}
                   </div>
                   <span className="transition-all duration-300">{stage.name}</span>
+                  {/* Show loading indicator for current stage during transition */}
+                  {isCurrent && isTransitioning && (
+                    <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                  )}
                 </button>
               </PopoverTrigger>
               <PopoverContent 

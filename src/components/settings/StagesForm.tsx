@@ -29,6 +29,9 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
     defaultValues: { name: '', description: '', sort_order: 0, color_complete: '', color_badge: '' },
   });
 
+  // Check if the stage is a protected stage that cannot have its name changed
+  const isProtectedStage = stage && ['Applied', 'Hired', 'Rejected'].includes(stage.name);
+
   useEffect(() => {
     if (stage) {
       reset({
@@ -52,7 +55,16 @@ const StagesForm: React.FC<StagesFormProps> = ({ open, stage, onClose, onSubmit 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block font-medium mb-1">Name<span className="text-destructive">*</span></label>
-            <Input {...register('name')} placeholder="Stage name" disabled={isSubmitting} />
+            <Input 
+              {...register('name')} 
+              placeholder="Stage name" 
+              disabled={isSubmitting || isProtectedStage} 
+            />
+            {isProtectedStage && (
+              <div className="text-xs text-muted-foreground mt-1">
+                This stage name cannot be changed as it is used for core system functionality.
+              </div>
+            )}
             {errors.name && <div className="text-destructive text-xs mt-1">{errors.name.message}</div>}
           </div>
           <div>

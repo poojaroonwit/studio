@@ -339,17 +339,13 @@ export function PositionDetailDrawer({ isOpen, onOpenChange, positionId, initial
       }
       
       const url = `/api/positions/${positionId}/candidates?${query.toString()}`;
-      console.log('Fetching applied candidates from:', url);
       
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch applied candidates');
       
       const data = await response.json();
-      console.log('Applied candidates API response:', data);
       
       const candidates = Array.isArray(data.data) ? data.data : [];
-      console.log('Parsed candidates:', candidates);
-      console.log('Total candidates found:', candidates.length);
       
       setAppliedCandidates(candidates);
       setAppliedCandidatesTotal(data.pagination?.total || candidates.length);

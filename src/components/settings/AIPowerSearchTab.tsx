@@ -1,22 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'react-hot-toast';
 import { 
   BrainCircuit, 
   Save, 
   Loader2, 
   AlertTriangle,
-  Shield,
-  Eye,
   Edit,
   RotateCcw,
   CheckCircle,
@@ -131,46 +127,16 @@ Return ONLY a valid JSON object in this exact format:
 
 Do not include any markdown formatting, code blocks, or additional text. Only return the JSON object.`;
 
-export default function AIPowerSearchConfigPage() {
-  const { data: session, status: sessionStatus } = useSession();
+export default function AIPowerSearchTab() {
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasPermission, setHasPermission] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      checkPermissions();
-      fetchCurrentPrompt();
-    }
-  }, [sessionStatus]);
-
-  const checkPermissions = async () => {
-    try {
-      const response = await fetch('/api/auth/check-permissions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          permissions: ['SYSTEM_SETTINGS_MANAGE']
-        }),
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setHasPermission(data.hasPermission);
-      } else {
-        setHasPermission(false);
-      }
-    } catch (error) {
-      console.error('Error checking permissions:', error);
-      setHasPermission(false);
-    }
-  };
+    fetchCurrentPrompt();
+  }, []);
 
   const fetchCurrentPrompt = async () => {
     try {
@@ -235,179 +201,124 @@ export default function AIPowerSearchConfigPage() {
     }
   };
 
-  if (sessionStatus === 'loading') {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (sessionStatus === 'unauthenticated') {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground">You need to be logged in to access this page.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasPermission) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center max-w-md">
-          <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-          <p className="text-muted-foreground mb-4">
-            You don't have permission to configure AI Power Search system prompts. 
-            Please contact your administrator for access.
-          </p>
-          <Badge variant="outline" className="flex items-center gap-2 mx-auto w-fit">
-            <AlertTriangle className="h-4 w-4" />
-            Requires: SYSTEM_SETTINGS_MANAGE permission
-          </Badge>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full flex flex-col p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">AI Power Search Configuration</h1>
-          <p className="text-muted-foreground">
-            Configure the system prompt used by AI Power Search for precise candidate matching
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Admin Access
-          </Badge>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Info Alert */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Important:</strong> This system prompt controls how AI Power Search interprets and matches candidate queries. 
+          Changes here will affect all AI-powered candidate searches across the platform. 
+          The prompt uses placeholders <code className="bg-muted px-1 rounded">{"{query}"}</code> and <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> 
+          which are automatically replaced with actual search queries and candidate data.
+        </AlertDescription>
+      </Alert>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col">
-          {/* Info Alert */}
-          <Alert className="mb-6">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Important:</strong> This system prompt controls how AI Power Search interprets and matches candidate queries. 
-              Changes here will affect all AI-powered candidate searches across the platform. 
-              The prompt uses placeholders <code className="bg-muted px-1 rounded">{"{query}"}</code> and <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> 
-              which are automatically replaced with actual search queries and candidate data.
-            </AlertDescription>
-          </Alert>
-
-          {/* Configuration Card */}
-          <Card className="flex-1">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <BrainCircuit className="h-5 w-5" />
-                    System Prompt Configuration
-                  </CardTitle>
-                  <CardDescription>
-                    Define the exact behavior and matching rules for AI Power Search
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  {!isEditing ? (
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit Prompt
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={handleReset}
-                        className="flex items-center gap-2"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        Reset to Default
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsEditing(false);
-                          fetchCurrentPrompt(); // Reload original
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="flex items-center gap-2"
-                      >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4" />
-                        )}
-                        Save Changes
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : error ? (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+      {/* Configuration Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5" />
+                System Prompt Configuration
+              </CardTitle>
+              <CardDescription>
+                Define the exact behavior and matching rules for AI Power Search
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Admin Access
+              </Badge>
+              {!isEditing ? (
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Prompt
+                </Button>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>System Prompt Content</Label>
-                    {isEditing ? (
-                      <TiptapEditor
-                        value={currentPrompt}
-                        onChange={setCurrentPrompt}
-                        placeholder="Enter the system prompt content..."
-                        className="min-h-[600px] border rounded-md"
-                      />
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset to Default
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      fetchCurrentPrompt(); // Reload original
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <div className="border rounded-md p-4 bg-muted/30 min-h-[600px] overflow-auto">
-                        <pre className="whitespace-pre-wrap text-sm font-mono">
-                          {currentPrompt}
-                        </pre>
-                      </div>
+                      <Save className="h-4 w-4" />
                     )}
+                    Save Changes
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>System Prompt Content</Label>
+                {isEditing ? (
+                  <TiptapEditor
+                    value={currentPrompt}
+                    onChange={setCurrentPrompt}
+                    placeholder="Enter the system prompt content..."
+                    className="min-h-[600px] border rounded-md"
+                  />
+                ) : (
+                  <div className="border rounded-md p-4 bg-muted/30 min-h-[600px] overflow-auto">
+                    <pre className="whitespace-pre-wrap text-sm font-mono">
+                      {currentPrompt}
+                    </pre>
                   </div>
+                )}
+              </div>
 
-                  {isEditing && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Info className="h-4 w-4" />
-                      <span>
-                        Use <code className="bg-muted px-1 rounded">{"{query}"}</code> for the user's search query and 
-                        <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> for the candidate data.
-                      </span>
-                    </div>
-                  )}
+              {isEditing && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Info className="h-4 w-4" />
+                  <span>
+                    Use <code className="bg-muted px-1 rounded">{"{query}"}</code> for the user's search query and 
+                    <code className="bg-muted px-1 rounded">{"{candidateData}"}</code> for the candidate data.
+                  </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

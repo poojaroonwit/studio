@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
     
     // Broadcast real-time updates
     try {
-      broadcastPositionUpdate(newPosition);
+      broadcastPositionUpdate(newPosition, actingUserId || undefined);
       broadcastPositionListUpdate();
       // Broadcast statistics update
       const statsQuery = `

@@ -116,7 +116,8 @@ export function MyTasksPageClient({ userSession }: MyTasksPageClientProps) {
     },
     onRecruitmentStagesUpdate: (updatedStages) => {
       setStages(updatedStages.map((s: any) => s.name));
-    }
+    },
+    showErrorNotifications: false // Disable error toast notifications
   });
 
   // Permission check: can view all recruiters?

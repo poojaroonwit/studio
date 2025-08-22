@@ -511,7 +511,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             candidateId: id,
             transition: newTransition,
             action: 'add'
-          });
+          }, actingUserId);
         }
 
         // Send notification to recruiter about status change
@@ -587,7 +587,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             candidateId: id,
             transition: newTransition,
             action: 'add'
-          });
+          }, actingUserId);
         }
       } catch (transitionError) {
         console.error('Error creating recruiter change transition record:', transitionError);
@@ -673,7 +673,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     
     // Broadcast update with safe candidate data
-    broadcastCandidateUpdate({ ...candidate, customAttributes });
+    broadcastCandidateUpdate({ ...candidate, customAttributes }, actingUserId);
     
     console.log('Successfully updated candidate:', id, 'new status:', status ?? existingCandidate.status);
     
@@ -753,7 +753,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const candidateName = result.rows[0].name;
     await client.query('COMMIT');
     await logAudit('AUDIT', `Candidate '${candidateName}' deleted by ${actingUserName}.`, 'API:Candidates:Delete', actingUserId, { candidateId: id });
-    broadcastCandidateUpdate({ id, deleted: true }); // Broadcast removal
+    broadcastCandidateUpdate({ id, deleted: true }, actingUserId); // Broadcast removal
     return NextResponse.json({ message: 'Candidate deleted successfully' });
   } catch (error: any) {
     await client.query('ROLLBACK');

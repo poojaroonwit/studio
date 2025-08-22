@@ -91,7 +91,6 @@ export function HeadcountTab({ positionId, candidates, onHeadcountChange }: Head
 
   const fetchHeadcounts = async () => {
     if (!positionId) {
-      console.log('No positionId available, skipping headcount fetch');
       return;
     }
     

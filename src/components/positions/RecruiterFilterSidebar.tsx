@@ -26,17 +26,12 @@ export function RecruiterFilterSidebar({
 }: RecruiterFilterSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Debug logging
-  console.log('RecruiterFilterSidebar props:', { selectedRecruiterId, recruiterStats, recruiters });
-  
   // Get all recruiter IDs from the recruiters prop, not just from stats
   const recruiterIds = recruiters.map(r => r.id);
-  console.log('Recruiter IDs:', recruiterIds);
 
   // Filter recruiters based on search term
   const filteredRecruiters = useMemo(() => {
     if (!searchTerm.trim()) {
-      console.log('No search term, returning all recruiter IDs:', recruiterIds);
       return recruiterIds;
     }
     
@@ -45,13 +40,11 @@ export function RecruiterFilterSidebar({
       const recruiter = recruiters.find(r => r.id === recruiterId);
       return recruiter?.name.toLowerCase().includes(searchLower);
     });
-    console.log('Filtered recruiters:', filtered);
     return filtered;
   }, [recruiterIds, recruiters, searchTerm]);
 
-  // Check if unassigned should be shown (only if there are unassigned positions and search is empty or matches)
-  const showUnassigned = recruiterStats?.unassigned && recruiterStats.unassigned > 0 && 
-    (!searchTerm.trim() || 'no recruiter assign'.includes(searchTerm.toLowerCase()) || 'unassigned'.includes(searchTerm.toLowerCase()));
+  // Always show unassigned if there are unassigned positions, regardless of search
+  const showUnassigned = recruiterStats?.unassigned && recruiterStats.unassigned > 0;
 
   return (
     <div className="h-full flex flex-col">
@@ -152,7 +145,7 @@ export function RecruiterFilterSidebar({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="mb-1">
-                      <span className="truncate font-semibold text-base">No recruiter assign</span>
+                      <span className="truncate font-semibold text-base">No Recruiter Assigned</span>
                     </div>
                                         <p className={cn(
                       "text-sm leading-relaxed break-words line-clamp-2 font-medium",

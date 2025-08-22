@@ -39,6 +39,7 @@ export function RecruitmentPipelineCard({
   // Track which popover is open by index
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null);
   const [isUpdating, setIsUpdating] = useState<Set<string>>(new Set());
+  const [isTransitioning, setIsTransitioning] = useState(false);
   // Removed: const [isConnected, setIsConnected] = useState(false);
   
   // Real-time state management
@@ -60,6 +61,13 @@ export function RecruitmentPipelineCard({
   useEffect(() => {
     setLocalCurrentStatus(currentStatus);
   }, [currentStatus]);
+
+  // Clear loading state when status changes (indicating successful transition)
+  useEffect(() => {
+    if (isTransitioning && localCurrentStatus !== currentStatus) {
+      setIsTransitioning(false);
+    }
+  }, [currentStatus, localCurrentStatus, isTransitioning]);
 
   // Enhanced note edit handler with real-time feedback
   const handleNoteEdit = useCallback(async (transitionId: string, newNote: string) => {
@@ -92,8 +100,14 @@ export function RecruitmentPipelineCard({
 
   // Enhanced stage click handler with visual feedback
   const handleStageClick = useCallback((stageName: string) => {
+    // Show loading state if clicking on a different stage
+    if (stageName !== localCurrentStatus) {
+      setIsTransitioning(true);
+      // Hide loading state after a reasonable timeout (in case the transition fails)
+      setTimeout(() => setIsTransitioning(false), 10000);
+    }
     onStageClick(stageName);
-  }, [onStageClick]);
+  }, [onStageClick, localCurrentStatus]);
 
   // Rebuild stage to records mapping when transition history changes
   const currentStageToRecords: Record<string, TransitionRecord[]> = {};
@@ -189,6 +203,7 @@ export function RecruitmentPipelineCard({
                          w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold z-10 transition-all duration-300
                          ${isCompleted && !isCurrent ? 'bg-green-500 text-white' : ''}
                          ${isFuture ? 'bg-muted text-muted-foreground' : ''}
+                         ${isCurrent && isTransitioning ? 'animate-pulse' : ''}
                        `}
                        style={
                          isCurrent
@@ -202,7 +217,11 @@ export function RecruitmentPipelineCard({
                        }>
                          {isCurrent ? (
                            <div className="w-4 h-4 flex items-center justify-center">
-                             <div className="w-2 h-2 bg-current rounded-full" />
+                             {isTransitioning ? (
+                               <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                             ) : (
+                               <div className="w-2 h-2 bg-current rounded-full" />
+                             )}
                            </div>
                          ) : isCompleted ? (
                            <CheckCircle className="w-4 h-4" />
@@ -217,6 +236,10 @@ export function RecruitmentPipelineCard({
                           <h4 className={`text-xs font-medium ${isCurrent ? 'text-primary' : ''} truncate`}>
                             {stage.name}
                           </h4>
+                          {/* Show loading indicator for current stage during transition */}
+                          {isCurrent && isTransitioning && (
+                            <div className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                          )}
                           {/* Show info popover for passed nodes on hover */}
                           {(isCompleted || isCurrent) && (
                             <Popover open={openPopoverIdx === index}>

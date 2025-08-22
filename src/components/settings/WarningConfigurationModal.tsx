@@ -144,13 +144,14 @@ export function WarningConfigurationModal({
     entityType: 'position',
     field: '',
     condition: 'overdue',
-    operator: '',
+    operator: 'gt', // Default operator for overdue
     value: '',
     threshold: undefined,
     severity: 'warning',
     isActive: true,
     isPublic: false,
   });
+  const [useGradeSLA, setUseGradeSLA] = useState(false);
 
   useEffect(() => {
     if (configuration) {
@@ -161,13 +162,15 @@ export function WarningConfigurationModal({
         entityType: configuration.entityType,
         field: configuration.field,
         condition: configuration.condition,
-        operator: configuration.operator,
+        operator: configuration.condition === 'overdue' && !configuration.operator ? 'gt' : configuration.operator,
         value: configuration.value,
         threshold: configuration.threshold,
         severity: configuration.severity,
         isActive: configuration.isActive,
         isPublic: configuration.isPublic || false,
       });
+      // Check if this configuration uses grade SLA (threshold is null/undefined for overdue)
+      setUseGradeSLA(configuration.condition === 'overdue' && !configuration.threshold);
     } else {
       setFormData({
         name: '',
@@ -175,13 +178,14 @@ export function WarningConfigurationModal({
         entityType: 'position',
         field: '',
         condition: 'overdue',
-        operator: '',
+        operator: 'gt', // Default operator for overdue
         value: '',
         threshold: undefined,
         severity: 'warning',
         isActive: true,
         isPublic: false,
       });
+      setUseGradeSLA(false);
     }
   }, [configuration, isOpen]);
 
@@ -193,13 +197,14 @@ export function WarningConfigurationModal({
       return;
     }
 
-    if (formData.condition !== 'empty' && !formData.operator) {
+    if (formData.condition !== 'empty' && formData.condition !== 'overdue' && !formData.operator) {
       showError("Please select an operator");
       return;
     }
 
-    if (formData.condition === 'overdue' && !formData.threshold) {
-      showError("Please set a threshold for overdue condition");
+    // For overdue condition, either use grade SLA or require threshold
+    if (formData.condition === 'overdue' && !useGradeSLA && !formData.threshold) {
+      showError("Please set a threshold for overdue condition or use grade SLA");
       return;
     }
 
@@ -217,12 +222,19 @@ export function WarningConfigurationModal({
       
       const method = configuration ? 'PUT' : 'POST';
 
+      // If using grade SLA for overdue, set threshold to null
+      const submitData = {
+        ...formData,
+        operator: formData.condition === 'overdue' ? 'gt' : formData.operator, // Set default operator for overdue
+        threshold: formData.condition === 'overdue' && useGradeSLA ? null : formData.threshold
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
@@ -231,8 +243,9 @@ export function WarningConfigurationModal({
           : "Warning configuration created successfully");
         onSave();
       } else {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save configuration');
+        const errorData = await response.json();
+        const errorMessage = errorData.details || errorData.error || errorData.message || 'Failed to save configuration';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error saving warning configuration:', error);
@@ -253,7 +266,7 @@ export function WarningConfigurationModal({
       setFormData(prev => ({
         ...prev,
         [field]: value,
-        operator: '',
+        operator: value === 'overdue' ? 'gt' : '', // Set default operator for overdue
       }));
     }
 
@@ -265,6 +278,11 @@ export function WarningConfigurationModal({
         field: '',
       }));
     }
+
+    // Reset useGradeSLA when condition changes
+    if (field === 'condition') {
+      setUseGradeSLA(false);
+    }
   };
 
   const getAvailableOperators = () => {
@@ -275,7 +293,7 @@ export function WarningConfigurationModal({
     return FIELD_SUGGESTIONS[formData.entityType as keyof typeof FIELD_SUGGESTIONS] || [];
   };
 
-  const shouldShowOperator = formData.condition && formData.condition !== 'empty';
+  const shouldShowOperator = formData.condition && formData.condition !== 'empty' && formData.condition !== 'overdue';
   const shouldShowValue = formData.condition && formData.condition !== 'empty' && formData.condition !== 'overdue';
   const shouldShowThreshold = formData.condition === 'overdue';
 
@@ -448,16 +466,54 @@ export function WarningConfigurationModal({
             </div>
 
             {shouldShowThreshold && (
-              <div className="space-y-2">
-                <Label htmlFor="threshold">Threshold (days) *</Label>
-                <Input
-                  id="threshold"
-                  type="number"
-                  value={formData.threshold || ''}
-                  onChange={(e) => handleInputChange('threshold', parseInt(e.target.value) || undefined)}
-                  placeholder="Enter threshold in days"
-                  min="1"
-                />
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="useGradeSLA"
+                    checked={useGradeSLA}
+                    onCheckedChange={(checked) => {
+                      setUseGradeSLA(checked);
+                      if (checked) {
+                        setFormData(prev => ({ ...prev, threshold: undefined }));
+                      }
+                    }}
+                  />
+                  <Label htmlFor="useGradeSLA">Use position grade SLA (dynamic threshold)</Label>
+                </div>
+                
+                {!useGradeSLA && (
+                  <div className="space-y-2">
+                    <Label htmlFor="threshold">Threshold (days) *</Label>
+                    <Input
+                      id="threshold"
+                      type="number"
+                      value={formData.threshold || ''}
+                      onChange={(e) => handleInputChange('threshold', parseInt(e.target.value) || undefined)}
+                      placeholder="Enter threshold in days"
+                      min="1"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enter a fixed number of days for the overdue threshold
+                    </p>
+                  </div>
+                )}
+                
+                {useGradeSLA && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>Dynamic Threshold:</strong> The warning will use the SLA days from each position's grade:
+                    </p>
+                    <ul className="text-xs text-blue-600 dark:text-blue-400 mt-2 space-y-1">
+                      <li>• Junior: 30 days SLA</li>
+                      <li>• Mid-Level: 45 days SLA</li>
+                      <li>• Senior: 60 days SLA</li>
+                      <li>• Lead: 90 days SLA</li>
+                    </ul>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      The threshold will automatically adjust based on the position's assigned grade.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -104,8 +104,8 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-2">
+    <div className="h-full flex flex-col min-h-0">
+      <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <span className="font-semibold">Attachments</span>
         <div className="flex gap-2">
           <Button
@@ -125,11 +125,11 @@ const CandidateResumesSection: React.FC<CandidateResumesSectionProps> = ({ candi
       </div>
 
       {uploadError && (
-        <p className="text-sm text-red-500">{uploadError}</p>
+        <p className="text-sm text-red-500 flex-shrink-0">{uploadError}</p>
       )}
 
       {/* Existing Attachments List */}
-      <div className="space-y-3">
+      <div className="flex-1 overflow-y-auto space-y-3">
         {sortedAttachments.length === 0 && (
           <div className="text-muted-foreground text-sm text-center py-8">
             No attachments uploaded yet.

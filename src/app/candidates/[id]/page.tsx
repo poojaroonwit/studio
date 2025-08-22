@@ -44,17 +44,19 @@ export default function CandidateDetailPage() {
   }
 
     return (
-      <ErrorBoundary>
-        <SafeComponentWrapper 
-          fallbackTitle="Candidate Page Error"
-          fallbackDescription="There was an issue loading the candidate details. This may be due to a temporary initialization problem."
-        >
-          <CandidateDetailView
-            candidateId={candidateId}
-            isModal={false}
-            onClose={() => router.push('/candidates')}
-          />
-        </SafeComponentWrapper>
-      </ErrorBoundary>
+      <div className="h-full">
+        <ErrorBoundary>
+          <SafeComponentWrapper 
+            fallbackTitle="Candidate Page Error"
+            fallbackDescription="There was an issue loading the candidate details. This may be due to a temporary initialization problem."
+          >
+            <CandidateDetailView
+              candidateId={candidateId}
+              isModal={false}
+              onClose={() => router.push('/candidates')}
+            />
+          </SafeComponentWrapper>
+        </ErrorBoundary>
+      </div>
     );
 }

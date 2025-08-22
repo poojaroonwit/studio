@@ -185,13 +185,19 @@ export const authOptions: NextAuthOptions = {
         }
         // If token.id is not a valid UUID (e.g., Azure AD providerAccountId), fetch the user by email or azure_oid
         if (typeof token.id === "string" && !isUuid(token.id)) {
+          console.log('[JWT CALLBACK] Non-UUID token.id detected:', token.id, 'profile:', profile?.email);
           const client = await getPool().connect();
           try {
             const oid = (profile as any)?.oid ?? (profile as any)?.sub ?? profile?.email;
+            console.log('[JWT CALLBACK] Looking up user with oid:', oid, 'email:', profile?.email);
             const res = await client.query('SELECT id FROM "User" WHERE email = $1 OR "azure_oid" = $2', [profile?.email, oid]);
             const dbUser = res.rows[0];
             if (dbUser) {
+              console.log('[JWT CALLBACK] Found user with UUID:', dbUser.id);
               token.id = dbUser.id;
+            } else {
+              console.error('[JWT CALLBACK] No user found for oid:', oid, 'email:', profile?.email);
+              // Don't set token.id to null, let it remain as the original value
             }
           } catch (e) {
             console.error('[JWT CALLBACK] Error fetching user UUID for Azure AD:', e);
@@ -212,7 +218,14 @@ export const authOptions: NextAuthOptions = {
       },
       async session({ session, token }) {
         if (session.user) {
-          session.user.id = token.id as string;
+          // Validate that token.id is a valid UUID before setting it in session
+          if (typeof token.id === 'string' && !isUuid(token.id)) {
+            console.error('[SESSION CALLBACK] Invalid UUID in token.id:', token.id);
+            // Don't set an invalid UUID in the session
+            session.user.id = '';
+          } else {
+            session.user.id = token.id as string;
+          }
           session.user.role = token.role as UserProfile['role'];
           session.user.modulePermissions = token.modulePermissions as PlatformModuleId[];
           

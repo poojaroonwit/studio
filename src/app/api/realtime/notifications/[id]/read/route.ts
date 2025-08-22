@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/auditLog';
 import prisma from '@/lib/prisma';
+import { validate as validateUuid } from 'uuid';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,38 @@ export async function POST(
   const actingUserId = session.user.id;
   const actingUserName = session.user.name || session.user.email || 'System';   
   const notificationId = params.id;
+
+  // Check if user ID is empty (invalid session)
+  if (!actingUserId) {
+    console.error('❌ Empty user ID in session for user:', actingUserName);
+    return NextResponse.json({ 
+      error: 'Invalid session. Please sign in again.',
+      details: 'User ID is missing from session'
+    }, { status: 401 });
+  }
+
+  // Debug logging to identify UUID issues
+  console.log('🔍 Debug - Notification read request:');
+  console.log('  - actingUserId:', actingUserId, 'type:', typeof actingUserId);
+  console.log('  - notificationId:', notificationId, 'type:', typeof notificationId);
+  console.log('  - actingUserName:', actingUserName);
+
+  // Validate UUIDs before proceeding
+  if (!validateUuid(actingUserId)) {
+    console.error('❌ Invalid actingUserId UUID:', actingUserId);
+    return NextResponse.json({ 
+      error: 'Invalid user ID format',
+      details: 'User ID is not a valid UUID'
+    }, { status: 400 });
+  }
+
+  if (!validateUuid(notificationId)) {
+    console.error('❌ Invalid notificationId UUID:', notificationId);
+    return NextResponse.json({ 
+      error: 'Invalid notification ID format',
+      details: 'Notification ID is not a valid UUID'
+    }, { status: 400 });
+  }
 
   try {
     // Update the notification to mark it as read

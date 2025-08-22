@@ -354,9 +354,9 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
   };
 
   return (
-    <div>
+    <div className="h-full flex flex-col min-h-0">
       {/* Combined Activity and Comments List */}
-      <div className="space-y-0">
+      <div className="flex-1 overflow-y-auto space-y-0">
         {logsLoading ? (
           <div className="text-muted-foreground text-sm py-4 text-center">Loading activities...</div>
         ) : combinedActivities.length === 0 ? (
@@ -554,7 +554,7 @@ const CandidateCommentsSection: React.FC<CandidateCommentsSectionProps> = ({ can
       )}
       
       {/* Chat-like Comment Input */}
-      <div className="border rounded-lg bg-background">
+      <div className="border rounded-lg bg-background flex-shrink-0">
         {/* File previews */}
         {(Array.isArray(files) ? files : []).length > 0 && (
           <div className="p-3 border-b border-border bg-muted/30">

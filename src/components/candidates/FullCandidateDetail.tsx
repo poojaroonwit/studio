@@ -21,6 +21,7 @@ import JobMatchModal from './JobMatchModal';
 import ReprocessModal from './ReprocessModal';
 import { GenerativeAIModal } from './GenerativeAIModal';
 import CandidateAttachmentUploadModal from './CandidateAttachmentUploadModal';
+import { HeadcountWarningModal } from './HeadcountWarningModal';
 
 // Import hooks
 import { useCandidateDetail } from './hooks/useCandidateDetail';
@@ -32,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 
 // Types
 import type { Candidate, Position } from '@/lib/types';
+import type { TransitionRecord } from '@/lib/types';
 
 interface FullCandidateDetailProps {
   candidateId: string;
@@ -63,6 +65,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
   const [isReprocessModalOpen, setIsReprocessModalOpen] = useState(false);
   const [isGenerativeAIModalOpen, setIsGenerativeAIModalOpen] = useState(false);
+  const [isHeadcountWarningModalOpen, setIsHeadcountWarningModalOpen] = useState(false);
+  
+  // Headcount warning state
+  const [headcountWarningData, setHeadcountWarningData] = useState<{
+    candidateName: string;
+    positionTitle?: string;
+    errorMessage: string;
+  } | null>(null);
   
   // Selection states
   const [preselectedStage, setPreselectedStage] = useState<string | null>(null);
@@ -124,6 +134,8 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
     jobMatchesFields,
     appendJobMatch,
     removeJobMatch,
+    setCandidate,
+    setTransitionHistory,
   } = useCandidateDetail(candidateId);
 
   // Validate candidateId
@@ -341,7 +353,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
   }
 
   return (
-    <div className={isModal ? "h-full overflow-y-auto" : "h-full"}>
+    <div className={isModal ? "h-full overflow-y-auto" : "h-full flex flex-col"}>
       {/* Header */}
       <CandidateHeader
         candidate={candidate}
@@ -367,39 +379,39 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         onAvatarUpload={handleAvatarUpload}
       />
       
-                  {/* Pipeline Section - Above main content and sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card">
+      {/* Pipeline Section - Above main content and sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-shrink-0">
         <div className="lg:col-span-10">
           <CandidatePipelineSection
             candidate={candidate}
             availableStages={availableStages}
-                  transitionHistory={transitionHistory}
-                  onStageClick={openManageTransitionsModal}
-                  onNoteEdit={async (transitionId, newNote) => {
-                    await fetch(`/api/transitions/${transitionId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ notes: newNote }),
-                      credentials: 'include',
-                    });
-                    // Refresh transition history
-                    const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
-                    if (res.ok) {
-                      const data = await res.json();
+            transitionHistory={transitionHistory}
+            onStageClick={openManageTransitionsModal}
+            onNoteEdit={async (transitionId, newNote) => {
+              await fetch(`/api/transitions/${transitionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: newNote }),
+                credentials: 'include',
+              });
+              // Refresh transition history
+              const res = await fetch(`/api/transitions?candidateId=${candidateId}`, { credentials: 'include' });
+              if (res.ok) {
+                const data = await res.json();
                 // Update transition history in the hook
-                    }
-                  }}
-                  candidateId={candidateId}
-                />
-              </div>
-                      </div>
+              }
+            }}
+            candidateId={candidateId}
+          />
+        </div>
+      </div>
                       
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card">
+      <div className="grid grid-cols-1 lg:grid-cols-10 border-t bg-card flex-1 min-h-0">
         {/* Main Content with Tabs */}
-        <div className="lg:col-span-7 border-r border-border bg-muted/50">
-          <div className="w-full h-full">
-            <div className="grid w-full grid-cols-5 bg-background border-b border-border">
+        <div className="lg:col-span-7 border-r border-border bg-muted/50 flex flex-col min-h-0">
+          <div className="w-full h-full flex flex-col min-h-0">
+            <div className="grid w-full grid-cols-5 bg-background border-b border-border flex-shrink-0">
               <div 
                 className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'jobs' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('jobs')}
@@ -411,14 +423,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   const matchCount = jobMatches.length;
                   return matchCount > 0 ? ` (${matchCount})` : '';
                 })()}
-                            </div>
+              </div>
               <div 
                 className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'candidate-info' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('candidate-info')}
               >
                 <User className="w-4 h-4" />
                 Candidate Info
-                        </div>
+              </div>
               <div 
                 className={`text-xs flex items-center justify-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'education' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('education')}
@@ -430,14 +442,14 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   const educationCount = education.length;
                   return educationCount > 0 ? ` (${educationCount})` : '';
                 })()}
-                           </div>
+              </div>
               <div 
                 className={`text-xs flex items-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'experience' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('experience')}
               >
                 <Clock className="w-4 h-4" />
                 Experience
-                 {(() => {
+                {(() => {
                   const experience = (candidate.parsedData as any)?.experience || [];
                   const totalDuration = (() => {
                     let totalMonths = 0;
@@ -473,16 +485,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                     if (months > 0) parts.push(`${months}M`);
                     return parts.join(' ');
                   })();
-           return totalDuration ? ` (${totalDuration})` : '';
-         })()}
-                  </div>
+                  return totalDuration ? ` (${totalDuration})` : '';
+                })()}
+              </div>
               <div 
                 className={`text-xs flex items-center gap-2 px-3 py-4 cursor-pointer transition-colors ${activeTab === 'job-suitability' ? 'border-b-2 border-primary bg-background' : 'bg-transparent'}`}
                 onClick={() => setActiveTab('job-suitability')}
               >
                 <Target className="w-4 h-4" />
                 Job Suitability
-                 {(() => {
+                {(() => {
                   const jobSuitable = (candidate.parsedData as any)?.job_suitable || [];
                   // Filter out empty entries (objects with no content)
                   const filteredJobSuitable = jobSuitable.filter((job: any) => {
@@ -495,17 +507,16 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                   });
                   const suitabilityCount = filteredJobSuitable.length;
                   return suitabilityCount > 0 ? ` (${suitabilityCount})` : '';
-                 })()}
-             </div>
+                })()}
+              </div>
+            </div>
              
-             </div>
-             
-            <div className="p-8 h-full">
+            <div className="p-8 flex-1 overflow-y-auto">
               <CandidateTabsContent
                 activeTab={activeTab}
                 candidate={candidate}
                 allDbPositions={allDbPositions}
-                 isEditing={isEditing} 
+                isEditing={isEditing} 
                 candidateJobMatches={candidateJobMatches}
                 onJobMatchClick={handleJobMatchClick}
                 onCopyJobMatch={copyJobMatchToClipboard}
@@ -517,7 +528,7 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 appliedJustification={appliedJustification}
                 appliedJobBadge={appliedJobBadge}
                 // Pass form control and field arrays to tabs for editing
-                                control={control}
+                control={control}
                 register={register}
                 errors={errors}
                 watch={watch}
@@ -541,23 +552,25 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
                 calculateTotalExperienceDuration={calculateTotalExperienceDuration}
                 // Pass comments and resumes for new tabs
                 comments={comments}
-                   resumes={resumes} 
+                resumes={resumes} 
                 onRefresh={onRefresh}
-                 />
-                 </div>
-                 </div>
-               </div>
+              />
+            </div>
+          </div>
+        </div>
         
         {/* Sidebar */}
-        <CandidateSidebar
-          candidate={candidate}
-          comments={comments} 
-                   resumes={resumes} 
-                   isEditing={isEditing} 
-          onRefresh={onRefresh}
-          calculateTotalExperienceDuration={calculateTotalExperienceDuration}
-          calculateAverageDurationPerCompany={calculateAverageDurationPerCompany}
-                 />
+        <div className="lg:col-span-3 flex flex-col min-h-0">
+          <CandidateSidebar
+            candidate={candidate}
+            comments={comments} 
+            resumes={resumes} 
+            isEditing={isEditing} 
+            onRefresh={onRefresh}
+            calculateTotalExperienceDuration={calculateTotalExperienceDuration}
+            calculateAverageDurationPerCompany={calculateAverageDurationPerCompany}
+          />
+        </div>
       </div>
  
       {/* Modals */}
@@ -579,14 +592,72 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
         candidate={candidate}
         availableStages={availableStages}
         onUpdateCandidate={async (candidateId: string, status: string, notes?: string, suppressToast?: boolean) => {
+          // Store original state for potential reversion
+          const originalCandidate = candidate;
+          const originalTransitionHistory = transitionHistory;
+          
           try {
+            // Apply optimistic update immediately
+            if (candidate) {
+              // Optimistically update the candidate status
+              setCandidate(prev => prev ? {
+                ...prev,
+                status: status,
+                updatedAt: new Date().toISOString()
+              } : null);
+
+              // Optimistically add a new transition record
+              const optimisticTransition: TransitionRecord = {
+                id: `temp-${Date.now()}`,
+                candidateId: candidateId,
+                stage: status,
+                notes: notes || undefined,
+                actingUserId: session?.user?.id || '',
+                actingUserName: session?.user?.name || session?.user?.email || 'Unknown',
+                date: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+
+              // Update transition history optimistically
+              setTransitionHistory(prev => [optimisticTransition, ...(Array.isArray(prev) ? prev : [])]);
+            }
+
+            // Make the actual API call
             await updateCandidateStatusWithNotes(candidateId, status, notes, suppressToast);
+            
             if (!suppressToast) {
               toast.success(`Candidate status updated to "${status}".`);
             }
           } catch (error: any) {
             console.error('Error updating candidate status:', error);
-            if (!suppressToast) {
+            
+            // Check if it's a headcount constraint error
+            if (error.message && error.message.includes('Headcount constraint:')) {
+              // Get position title for the warning
+              const positionTitle = candidate?.positionId 
+                ? allDbPositions.find(p => p.id === candidate.positionId)?.title 
+                : undefined;
+              
+              // Set warning data and show modal
+              setHeadcountWarningData({
+                candidateName: candidate?.name || 'Unknown Candidate',
+                positionTitle,
+                errorMessage: error.message.replace('Headcount constraint: ', '')
+              });
+              setIsHeadcountWarningModalOpen(true);
+            }
+            
+            // Revert optimistic updates on error
+            if (originalCandidate) {
+              // Revert candidate status to original
+              setCandidate(originalCandidate);
+
+              // Revert transition history to original
+              setTransitionHistory(originalTransitionHistory);
+            }
+            
+            if (!suppressToast && !error.message?.includes('Headcount constraint:')) {
               toast.error(error?.message || 'Failed to update status.');
             }
           }
@@ -644,6 +715,19 @@ const FullCandidateDetail: React.FC<FullCandidateDetailProps> = ({
           candidateId={candidate.id}
           candidateName={candidate.name || 'Unknown Candidate'}
           onRefresh={onRefresh}
+        />
+      )}
+
+      {candidate && headcountWarningData && (
+        <HeadcountWarningModal
+          isOpen={isHeadcountWarningModalOpen}
+          onClose={() => {
+            setIsHeadcountWarningModalOpen(false);
+            setHeadcountWarningData(null);
+          }}
+          candidateName={headcountWarningData.candidateName}
+          positionTitle={headcountWarningData.positionTitle}
+          errorMessage={headcountWarningData.errorMessage}
         />
       )}
  

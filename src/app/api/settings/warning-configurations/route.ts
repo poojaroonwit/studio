@@ -109,11 +109,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, description, entityType, field, condition, operator, value, threshold, severity, isPublic } = body;
 
-    if (!name || !entityType || !field || !condition || !operator) {
+    if (!name || !entityType || !field || !condition) {
       await logAudit('WARN', `Warning configuration creation attempted with missing fields by ${actingUserName}`, 'API:Settings:WarningConfigurations:Post', actingUserId, {
-        providedFields: { name, entityType, field, condition, operator }
+        providedFields: { name, entityType, field, condition }
       });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Require operator for all conditions except 'empty' and 'overdue'
+    if (condition !== 'empty' && condition !== 'overdue' && !operator) {
+      await logAudit('WARN', `Warning configuration creation attempted without operator by ${actingUserName}`, 'API:Settings:WarningConfigurations:Post', actingUserId, {
+        providedFields: { condition, operator }
+      });
+      return NextResponse.json({ error: 'Operator is required for this condition type' }, { status: 400 });
     }
 
     const configuration = await prisma.warningConfiguration.create({

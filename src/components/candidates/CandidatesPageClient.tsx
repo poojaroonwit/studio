@@ -235,6 +235,29 @@ export function CandidatesPageClient({
 
   // Add at the top of the component
   const hasInitializedFilters = useRef(false);
+  
+  // Add refs to track latest state and avoid stale closures
+  const filtersRef = useRef(filters);
+  const pageRef = useRef(page);
+  const pageSizeRef = useRef(pageSize);
+  const debouncedFetchTableDataRef = useRef(debouncedFetchTableData);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+  
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+  
+  useEffect(() => {
+    pageSizeRef.current = pageSize;
+  }, [pageSize]);
+  
+  useEffect(() => {
+    debouncedFetchTableDataRef.current = debouncedFetchTableData;
+  }, [debouncedFetchTableData]);
 
   const [missingPositions, setMissingPositions] = useState<string[]>([]);
 
@@ -1673,7 +1696,7 @@ export function CandidatesPageClient({
     }
 
     const newFilters = {
-      ...filters,
+      ...filtersRef.current,
       minAppliedJobFitScore,
       maxAppliedJobFitScore,
       minMatchingJobFitScore,
@@ -1682,7 +1705,7 @@ export function CandidatesPageClient({
 
     setFilters(newFilters);
     setPage(1);
-    debouncedFetchTableData(newFilters, 1, pageSize);
+    debouncedFetchTableDataRef.current(newFilters, 1, pageSizeRef.current);
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 
   // Apply horizontal filters when selections change
@@ -1693,14 +1716,14 @@ export function CandidatesPageClient({
     } else {
       // If no horizontal selections, clear fit score filters from main filters
       const newFilters = {
-        ...filters,
+        ...filtersRef.current,
         minAppliedJobFitScore: undefined,
         maxAppliedJobFitScore: undefined,
         minMatchingJobFitScore: undefined,
         maxMatchingJobFitScore: undefined,
       };
       setFilters(newFilters);
-      debouncedFetchTableData(newFilters, page, pageSize);
+      debouncedFetchTableDataRef.current(newFilters, pageRef.current, pageSizeRef.current);
     }
   }, [horizontalSelectedFitScoreGrades, horizontalSelectedMatchingFitScoreGrades]);
 

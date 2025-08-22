@@ -8,6 +8,8 @@
 
 import { z } from 'zod';
 import { getPool } from '@/lib/db';
+import { logAudit } from '@/lib/auditLog';
+import { executeWithApiKeyFallback } from '@/lib/aiApiKeyManager';
 import type { Candidate, CandidateDetails, EducationEntry, ExperienceEntry, SkillEntry, JobSuitableEntry, TransitionRecord } from '@/lib/types';
 
 // Input Schema
@@ -201,14 +203,6 @@ export async function searchCandidatesAIChat(input: SearchCandidatesInput): Prom
     }
   }
 
-  const dbApiKey = await getSystemSetting('geminiApiKey');
-
-  const apiKey = dbApiKey || process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    console.error('AI Search: Gemini API Key not configured. AI features unavailable.');
-    return { matchedCandidateIds: [], aiReasoning: 'AI features are not available due to missing API Key configuration.', recordCount: 0 };
-  }
-
   let allCandidates: Candidate[] = [];
   try {
     const candidatesResult = await getPool().query(`
@@ -384,33 +378,48 @@ Do not include any markdown formatting, code blocks, or additional text. Only re
       .replace(/\{query\}/g, input.query)
       .replace(/\{candidateData\}/g, effectiveCandidateData);
 
-    // Direct Gemini API call
-    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    // Call Google Gemini API with fallback
+    const apiResult = await executeWithApiKeyFallback(async (apiKey) => {
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-    const fetchRes = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ]
-      }),
-    });
+      const fetchRes = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ]
+        }),
+      });
 
-    if (!fetchRes.ok) {
-      const errorText = await fetchRes.text();
-      throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
+      if (!fetchRes.ok) {
+        const errorText = await fetchRes.text();
+        throw new Error(`Gemini API error: ${fetchRes.status} ${fetchRes.statusText} - ${errorText}`);
+      }
+
+      const data = await fetchRes.json();
+      // Gemini API returns candidates[0].content.parts[0].text
+      const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      return modelText;
+    }, 'AI Search');
+
+    if (!apiResult.success) {
+      console.error('AI Search: All API keys failed');
+      return {
+        matchedCandidateIds: [],
+        aiReasoning: `AI features are not available due to API key failures. Please check your API key configuration. Attempts: ${apiResult.attempts}, Last error: ${apiResult.error}`,
+        recordCount: 0
+      };
     }
 
-    const data = await fetchRes.json();
-    // Gemini API returns candidates[0].content.parts[0].text
-    const modelText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const modelText = apiResult.data;
 
     let result;
     try {

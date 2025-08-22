@@ -177,6 +177,8 @@ GENERAL_PDF_WEBHOOK_TOKEN=your_bearer_token_here
 
 # AI Integration
 GOOGLE_API_KEY=your-google-ai-key
+
+> **New**: AI API Key Fallback System - Configure multiple API keys with automatic failover for high availability. See [AI API Key Fallback System Documentation](docs/ai-api-key-fallback-system.md) for details.
 ```
 
 ### Port Configuration

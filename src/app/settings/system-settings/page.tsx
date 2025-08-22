@@ -16,6 +16,7 @@ import { TiptapEditor } from '@/components/ui/wysiwyg-editors';
 import { cn } from '@/lib/utils';
 import AutoCloseTab from '@/components/settings/AutoCloseTab';
 import AIPowerSearchTab from '@/components/settings/AIPowerSearchTab';
+import AiApiKeysTab from '@/components/settings/AiApiKeysTab';
 
 export default function SystemSettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -24,7 +25,7 @@ export default function SystemSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('ai');
+  const [activeTab, setActiveTab] = useState('automation');
 
   // System/Integration settings state
   const [maxConcurrentProcessors, setMaxConcurrentProcessors] = useState(5);
@@ -33,7 +34,7 @@ export default function SystemSettingsPage() {
   const [resumeProcessingWebhookResponseMode, setResumeProcessingWebhookResponseMode] = useState('blocking');
   const [resumeProcessingWebhookTimeout, setResumeProcessingWebhookTimeout] = useState(1800);
 
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+
 
 
 
@@ -66,9 +67,8 @@ export default function SystemSettingsPage() {
       setResumeProcessingWebhookUrl(settings.resumeProcessingWebhookUrl || '');
       setResumeProcessingWebhookToken(settings.resumeProcessingWebhookToken || '');
       setResumeProcessingWebhookResponseMode(settings.resumeProcessingWebhookResponseMode || 'blocking');
-      setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '1800', 10));
+             setResumeProcessingWebhookTimeout(parseInt(settings.resumeProcessingWebhookTimeout || '1800', 10));
 
-       setGeminiApiKey(settings.geminiApiKey || '');
       // Load default match criteria
       setDefaultMatchCriteria(settings.defaultMatchCriteria || '');
     } catch (error) {
@@ -105,7 +105,6 @@ export default function SystemSettingsPage() {
       { key: 'resumeProcessingWebhookToken', value: resumeProcessingWebhookToken || '' },
       { key: 'resumeProcessingWebhookResponseMode', value: resumeProcessingWebhookResponseMode || 'blocking' },
       { key: 'resumeProcessingWebhookTimeout', value: resumeProcessingWebhookTimeout.toString() },
-      { key: 'geminiApiKey', value: geminiApiKey || '' },
       { key: 'defaultMatchCriteria', value: defaultMatchCriteria || '' },
     ];
     try {
@@ -229,18 +228,7 @@ export default function SystemSettingsPage() {
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
           <div className="flex w-full border-b border-border/50 mb-6">
-            <div
-              onClick={() => setActiveTab('ai')}
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
-                activeTab === 'ai'
-                  ? "text-primary border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-              )}
-            >
-              <BrainCircuit className="h-4 w-4" />
-              AI Services
-            </div>
+
             <div
               onClick={() => setActiveTab('automation')}
               className={cn(
@@ -289,44 +277,21 @@ export default function SystemSettingsPage() {
               <BrainCircuit className="h-4 w-4" />
               AI Power Search
             </div>
+            <div
+              onClick={() => setActiveTab('ai-api-keys')}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-200 relative cursor-pointer",
+                activeTab === 'ai-api-keys'
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              )}
+            >
+              <BrainCircuit className="h-4 w-4" />
+              AI API Keys
+            </div>
           </div>
 
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'ai' && (
-              <ScrollArea className="h-full pr-4">
-                <div className="space-y-6">
-                  {/* AI Configuration */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BrainCircuit className="h-5 w-5 text-primary" />
-                        Gemini AI Configuration
-                      </CardTitle>
-                      <CardDescription>
-                        Configure Google Gemini AI for advanced candidate analysis and processing
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="gemini-api-key">Gemini API Key</Label>
-                        <Input 
-                          id="gemini-api-key" 
-                          type="password" 
-                          placeholder="Enter your Gemini API Key" 
-                          value={geminiApiKey} 
-                          onChange={(e) => setGeminiApiKey(e.target.value)} 
-                          disabled={isSaving}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          This key is stored securely on the server. For Genkit to use this, ensure it&apos;s also available as the GOOGLE_API_KEY environment variable where your Next.js server runs, or ensure your Genkit flows dynamically fetch it.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
-            )}
-
             {activeTab === 'automation' && (
               <ScrollArea className="h-full pr-4">
                 <div className="space-y-6">
@@ -546,6 +511,12 @@ export default function SystemSettingsPage() {
             {activeTab === 'ai-power-search' && (
               <ScrollArea className="h-full pr-4">
                 <AIPowerSearchTab />
+              </ScrollArea>
+            )}
+
+            {activeTab === 'ai-api-keys' && (
+              <ScrollArea className="h-full pr-4">
+                <AiApiKeysTab />
               </ScrollArea>
             )}
           </div>

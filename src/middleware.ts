@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from 'next-auth/jwt';
-import prisma from "@/lib/prisma";
 
 const protectedRoutes = [
   "/api/protected", // Add your protected endpoints here

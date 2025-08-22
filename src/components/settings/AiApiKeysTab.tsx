@@ -1,0 +1,345 @@
+"use client";
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, Save, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'react-hot-toast';
+import { cn } from '@/lib/utils';
+
+interface ApiKey {
+  key: string;
+  priority: number;
+  isActive: boolean;
+  source: string;
+  errorCount: number;
+  lastError?: string;
+  lastUsed?: Date;
+}
+
+interface ApiKeyStats {
+  apiKeys: ApiKey[];
+  totalKeys: number;
+  activeKeys: number;
+  environmentKey: boolean;
+}
+
+export default function AiApiKeysTab() {
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [newApiKey, setNewApiKey] = useState('');
+  const [newPriority, setNewPriority] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [stats, setStats] = useState<ApiKeyStats | null>(null);
+
+  const fetchApiKeys = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/settings/ai-api-keys');
+      if (!response.ok) {
+        throw new Error('Failed to fetch API keys');
+      }
+      const data = await response.json();
+      setApiKeys(data.apiKeys);
+      setStats(data);
+    } catch (error) {
+      toast.error('Failed to load API keys');
+      console.error('Error fetching API keys:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApiKeys();
+  }, []);
+
+  const addApiKey = () => {
+    if (!newApiKey.trim()) {
+      toast.error('Please enter an API key');
+      return;
+    }
+
+    if (newPriority <= 0) {
+      toast.error('Priority must be greater than 0');
+      return;
+    }
+
+    // Check for duplicate priority
+    if (apiKeys.some(key => key.priority === newPriority)) {
+      toast.error('Priority already exists');
+      return;
+    }
+
+    const newKey: ApiKey = {
+      key: newApiKey.trim(),
+      priority: newPriority,
+      isActive: true,
+      source: `Priority ${newPriority}`,
+      errorCount: 0
+    };
+
+    setApiKeys([...apiKeys, newKey].sort((a, b) => a.priority - b.priority));
+    setNewApiKey('');
+    setNewPriority(Math.max(...apiKeys.map(k => k.priority), 0) + 1);
+  };
+
+  const removeApiKey = (priority: number) => {
+    setApiKeys(apiKeys.filter(key => key.priority !== priority));
+  };
+
+  const saveApiKeys = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/settings/ai-api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apiKeys: apiKeys.map(key => ({
+            key: key.key,
+            priority: key.priority
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save API keys');
+      }
+
+      const data = await response.json();
+      toast.success(data.message);
+      await fetchApiKeys(); // Refresh data
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save API keys');
+      console.error('Error saving API keys:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getStatusIcon = (apiKey: ApiKey) => {
+    if (apiKey.errorCount > 0) {
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    }
+    if (apiKey.lastUsed) {
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+    return <Clock className="h-4 w-4 text-gray-400" />;
+  };
+
+  const getStatusText = (apiKey: ApiKey) => {
+    if (apiKey.errorCount > 0) {
+      return `Error count: ${apiKey.errorCount}`;
+    }
+    if (apiKey.lastUsed) {
+      return `Last used: ${new Date(apiKey.lastUsed).toLocaleString()}`;
+    }
+    return 'Never used';
+  };
+
+  const formatApiKey = (key: string) => {
+    if (key.length <= 12) return key;
+    return `${key.substring(0, 8)}...${key.substring(key.length - 4)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Statistics Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-primary" />
+            API Key Statistics
+          </CardTitle>
+          <CardDescription>
+            Overview of your AI API key configuration and usage
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{stats?.totalKeys || 0}</div>
+              <div className="text-sm text-muted-foreground">Total Keys</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats?.activeKeys || 0}</div>
+              <div className="text-sm text-muted-foreground">Active Keys</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {apiKeys.filter(k => k.errorCount > 0).length}
+              </div>
+              <div className="text-sm text-muted-foreground">Keys with Errors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {stats?.environmentKey ? 'Yes' : 'No'}
+              </div>
+              <div className="text-sm text-muted-foreground">Env Key Available</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add New API Key */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New API Key</CardTitle>
+          <CardDescription>
+            Add a new Gemini API key with priority. Lower priority numbers are used first.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Label htmlFor="new-api-key">API Key</Label>
+              <Input
+                id="new-api-key"
+                type="password"
+                placeholder="Enter your Gemini API Key"
+                value={newApiKey}
+                onChange={(e) => setNewApiKey(e.target.value)}
+              />
+            </div>
+            <div className="w-32">
+              <Label htmlFor="new-priority">Priority</Label>
+              <Input
+                id="new-priority"
+                type="number"
+                min="1"
+                value={newPriority}
+                onChange={(e) => setNewPriority(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button onClick={addApiKey} disabled={!newApiKey.trim()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* API Keys List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configured API Keys</CardTitle>
+          <CardDescription>
+            Manage your API keys. Keys are used in priority order (1 = highest priority).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {apiKeys.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No API keys configured. Add your first API key above.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {apiKeys.map((apiKey) => (
+                <div
+                  key={apiKey.priority}
+                  className={cn(
+                    "flex items-center justify-between p-4 border rounded-lg",
+                    apiKey.errorCount > 0 ? "border-red-200 bg-red-50" : "border-border"
+                  )}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(apiKey)}
+                      <Badge variant={apiKey.priority === 1 ? "default" : "secondary"}>
+                        Priority {apiKey.priority}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="font-mono text-sm">
+                        {formatApiKey(apiKey.key)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {getStatusText(apiKey)}
+                      </div>
+                      {apiKey.lastError && (
+                        <div className="text-xs text-red-600 mt-1">
+                          Last error: {apiKey.lastError}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeApiKey(apiKey.priority)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Save Button */}
+      <div className="flex justify-end gap-4">
+        <Button
+          variant="outline"
+          onClick={fetchApiKeys}
+          disabled={isSaving}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
+        <Button
+          onClick={saveApiKeys}
+          disabled={isSaving || apiKeys.length === 0}
+        >
+          {isSaving ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Information */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="space-y-2">
+              <h4 className="font-medium text-blue-900">How Fallback Works</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• API keys are used in priority order (1 = highest priority)</li>
+                <li>• If a key fails, the system automatically tries the next key</li>
+                <li>• Error counts and last error messages are tracked for each key</li>
+                <li>• Environment variable GOOGLE_API_KEY is used as final fallback</li>
+                <li>• All attempts and failures are logged for monitoring</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

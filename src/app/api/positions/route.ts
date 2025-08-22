@@ -42,6 +42,9 @@ import { dispatchWebhooks } from '@/lib/webhookDispatcher';
 import { getDefaultMatchCriteria } from '@/lib/systemSettings';
 import { broadcastPositionUpdate, broadcastPositionListUpdate, broadcastPositionStatisticsUpdate } from '@/lib/candidateSse';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   

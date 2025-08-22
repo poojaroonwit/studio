@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from 'next-auth/jwt';
 
 const protectedRoutes = [
   "/api/protected", // Add your protected endpoints here
@@ -25,24 +24,14 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    // Check for authentication token
-    const token = await getToken({ 
-      req: req, 
-      secret: process.env.NEXTAUTH_SECRET 
-    });
+    // Check for authentication token in cookies
+    const token = req.cookies.get('next-auth.session-token')?.value || 
+                  req.cookies.get('__Secure-next-auth.session-token')?.value;
 
     // If no token and trying to access protected routes, redirect to sign in
     if (!token && !pathname.startsWith('/auth/signin')) {
       const signInUrl = new URL('/auth/signin', req.url);
       signInUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(signInUrl);
-    }
-
-    // If token exists but user ID is missing, redirect to sign in
-    if (token && !token.id && !pathname.startsWith('/auth/signin')) {
-      const signInUrl = new URL('/auth/signin', req.url);
-      signInUrl.searchParams.set('callbackUrl', pathname);
-      signInUrl.searchParams.set('error', 'SessionExpired');
       return NextResponse.redirect(signInUrl);
     }
 

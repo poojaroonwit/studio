@@ -49,6 +49,15 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'pg', 'jose'],
   },
+  // Force Node.js runtime for all API routes to avoid Edge Runtime issues
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
   // Disable Fast Refresh logs
   onDemandEntries: {
     // period (in ms) where the server will keep pages in the buffer

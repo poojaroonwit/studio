@@ -12,6 +12,7 @@ import prisma from '@/lib/prisma';
 import { dispatchWebhooks } from '@/lib/webhooks';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 
 /**

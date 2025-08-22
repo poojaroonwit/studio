@@ -14,6 +14,7 @@ import { syncRecruiterForCandidate } from '@/lib/recruiterSync';
 import { NotificationService } from '@/lib/notificationService';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 
 /**

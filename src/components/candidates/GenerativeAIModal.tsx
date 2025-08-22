@@ -492,7 +492,7 @@ export function GenerativeAIModal({
                             <ChevronDown className="h-3 w-3" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="z-[9999] relative" style={{ zIndex: 9999 }}>
+                        <DropdownMenuContent align="end" className="z-[10001] relative" style={{ zIndex: 10001 }}>
                           <DropdownMenuItem onClick={handleDownloadPDF}>
                             <Download className="h-4 w-4 mr-2" />
                             Download as PDF

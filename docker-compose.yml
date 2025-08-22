@@ -72,16 +72,16 @@ services:
       - postgres
       - minio
     restart: unless-stopped
-    mem_limit: 1g
+    mem_limit: 4g
     cpus: 0.5
     deploy:
       resources:
         limits:
-          memory: 4g
-          cpus: '0.5'
+          memory: 8g
+          cpus: '4'
         reservations:
-          memory: 1g
-          cpus: '0.25'
+          memory: 4g
+          cpus: '4'
     # The command to run the application is defined in the Dockerfile's CMD instruction
     # which uses wait-for-db.sh for optimized startup
     networks:
@@ -100,8 +100,8 @@ services:
       - /var/dockers/8021/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     # Resource limits
-    mem_limit: 1g
-    cpus: 0.25
+    mem_limit: 8g
+    cpus: 4
     networks:
       - docker_internal
 
@@ -130,8 +130,8 @@ services:
       - /var/dockers/8021/minio:/data
     restart: unless-stopped
     # Resource limits
-    mem_limit: 512m
-    cpus: 0.25
+    mem_limit: 1g
+    cpus: 4
     networks:
       - docker_internal
 
@@ -153,8 +153,8 @@ services:
       - postgres
       - app
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.25
+    mem_limit: 4g
+    cpus: 4
     networks:
       - docker_internal
 

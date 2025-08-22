@@ -208,7 +208,7 @@ export default function ReprocessModal({
               >
                 <SelectValue placeholder="Select an attachment to re-process..." />
               </SelectTrigger>
-              <SelectContent className="z-[210]">
+              <SelectContent className="z-[10001]">
                 {validAttachments.map((attachment) => (
                   <SelectItem key={attachment.id} value={attachment.id}>
                     <div className="flex items-center gap-2">
@@ -303,7 +303,7 @@ export default function ReprocessModal({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select position to apply for..." />
               </SelectTrigger>
-              <SelectContent className="z-[210]">
+              <SelectContent className="z-[10001]">
                 <div className="flex items-center px-3 pb-2 border-b">
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   <input

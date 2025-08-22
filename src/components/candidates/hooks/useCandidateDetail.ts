@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-hot-toast';
@@ -53,6 +53,14 @@ export const useCandidateDetail = (candidateId: string) => {
   const [copiedJobMatchIndex, setCopiedJobMatchIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Add refs for cleanup and caching
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const cacheRef = useRef<Map<string, { data: any; timestamp: number }>>(new Map());
+  const lastFetchRef = useRef<number>(0);
+
+  // Cache duration: 30 seconds
+  const CACHE_DURATION = 30000;
+
   // Safe default values to prevent temporal dead zone issues
   const getDefaultFormValues = (): EditCandidateFormValues => ({
     name: '',
@@ -84,12 +92,10 @@ export const useCandidateDetail = (candidateId: string) => {
     watch,
     setValue,
   } = useForm<EditCandidateFormValues>({
-    resolver: zodResolver(editCandidateDetailSchema),
     defaultValues: getDefaultFormValues(),
     mode: 'onChange',
   });
 
-  // Defensive useFieldArray hooks with safe initialization
   const {
     fields: educationFields,
     append: appendEducation,
@@ -140,202 +146,216 @@ export const useCandidateDetail = (candidateId: string) => {
     keyName: 'field_id',
   });
 
-  // Fetch candidate data with robust error handling
-  useEffect(() => {
-    const fetchCandidate = async () => {
-      if (!candidateId) {
-        setError('No candidate ID provided');
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      
-      // Retry configuration
-      const maxRetries = 3;
-      const baseDelay = 1000; // 1 second
-      
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30 seconds
-          
-          const res = await fetch(`/api/candidates/${candidateId}`, {
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-            },
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!res.ok) {
-            if (res.status === 404) {
-              throw new Error('Candidate not found');
-            } else if (res.status === 403) {
-              throw new Error('Access denied to candidate');
-            } else if (res.status >= 500) {
-              throw new Error('Server error occurred');
-            } else {
-              throw new Error(`Failed to fetch candidate: ${res.status}`);
-            }
-          }
-          
-          const data = await res.json();
-          
-          // Validate basic candidate data structure
-          if (!data || typeof data !== 'object' || !data.id) {
-            throw new Error('Invalid candidate data received');
-          }
-          
-          // Safely process candidate data
-          setCandidate({
-            ...data,
-            fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
-            parsedData: data.parsedData || {
-              personal_info: {},
-              contact_info: {},
-              education: [],
-              experience: [],
-              skills: [],
-              job_suitable: [],
-              job_matches: [],
-            },
-          });
-          
-          // Success - break out of retry loop
-          break;
-          
-        } catch (err) {
-          console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
-          
-          if (err instanceof Error) {
-            if (err.name === 'AbortError') {
-              if (attempt === maxRetries) {
-                setError('Request timed out. Please try again.');
-                break;
-              }
-              // Retry on timeout
-              console.log(`Timeout on attempt ${attempt + 1}, retrying...`);
-            } else if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
-              // Don't retry on these errors
-              setError(err.message);
-              break;
-            } else if (attempt === maxRetries) {
-              setError(err.message);
-              break;
-            } else {
-              // Retry on other errors
-              console.log(`Error on attempt ${attempt + 1}, retrying...`);
-            }
+  // Memoized fetch function with caching
+  const fetchCandidate = useCallback(async (forceRefresh = false) => {
+    if (!candidateId) {
+      setError('No candidate ID provided');
+      setLoading(false);
+      return;
+    }
+
+    // Check cache first
+    const cacheKey = `candidate:${candidateId}`;
+    const cached = cacheRef.current.get(cacheKey);
+    const now = Date.now();
+
+    if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_DURATION) {
+      setCandidate(cached.data);
+      setLoading(false);
+      return;
+    }
+
+    // Prevent multiple simultaneous requests
+    if (now - lastFetchRef.current < 1000) {
+      return;
+    }
+    lastFetchRef.current = now;
+
+    setLoading(true);
+    setError(null);
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    abortControllerRef.current = new AbortController();
+
+    // Retry configuration
+    const maxRetries = 2; // Reduced from 3
+    const baseDelay = 1000;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 15000); // Reduced timeout
+
+        const res = await fetch(`/api/candidates/${candidateId}`, {
+          signal: abortControllerRef.current.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'max-age=30',
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error('Candidate not found');
+          } else if (res.status === 403) {
+            throw new Error('Access denied to candidate');
+          } else if (res.status >= 500) {
+            throw new Error('Server error occurred');
           } else {
-            if (attempt === maxRetries) {
-              setError('Failed to fetch candidate');
-              break;
-            }
-            console.log(`Unknown error on attempt ${attempt + 1}, retrying...`);
-          }
-          
-          // Wait before retrying (exponential backoff)
-          if (attempt < maxRetries) {
-            const delay = baseDelay * Math.pow(2, attempt);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            throw new Error(`Failed to fetch candidate: ${res.status}`);
           }
         }
-      }
-      
-      setLoading(false);
-    };
 
-    fetchCandidate();
+        const data = await res.json();
+
+        // Validate basic candidate data structure
+        if (!data || typeof data !== 'object' || !data.id) {
+          throw new Error('Invalid candidate data received');
+        }
+
+        // Cache the result
+        cacheRef.current.set(cacheKey, { data, timestamp: now });
+
+        // Safely process candidate data
+        setCandidate({
+          ...data,
+          fitScore: data.fitScore !== undefined && data.fitScore !== null ? Number(data.fitScore) : null,
+          parsedData: data.parsedData || {
+            personal_info: {},
+            contact_info: {},
+            education: [],
+            experience: [],
+            skills: [],
+            job_suitable: [],
+            job_matches: [],
+          },
+        });
+
+        // Success - break out of retry loop
+        break;
+
+      } catch (err) {
+        console.error(`Error fetching candidate (attempt ${attempt + 1}/${maxRetries + 1}):`, err);
+
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            if (attempt === maxRetries) {
+              setError('Request timed out. Please try again.');
+              break;
+            }
+            console.log(`Timeout on attempt ${attempt + 1}, retrying...`);
+          } else if (err.message === 'Candidate not found' || err.message === 'Access denied to candidate') {
+            setError(err.message);
+            break;
+          } else if (attempt === maxRetries) {
+            setError(err.message);
+            break;
+          } else {
+            console.log(`Error on attempt ${attempt + 1}, retrying...`);
+          }
+        } else {
+          if (attempt === maxRetries) {
+            setError('Failed to fetch candidate');
+            break;
+          }
+          console.log(`Unknown error on attempt ${attempt + 1}, retrying...`);
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    setLoading(false);
   }, [candidateId]);
 
-  // Fetch all positions
+  // Fetch candidate data with optimized dependencies
   useEffect(() => {
-    const fetchPositions = async () => {
-      try {
-        const res = await fetch('/api/positions/all');
-        if (res.ok) {
-          const data = await res.json();
-          setAllDbPositions(data.data || []);
-        }
-      } catch (e) {
-        console.error('Error fetching positions:', e);
-      }
-    };
-    fetchPositions();
-  }, []);
+    fetchCandidate();
+  }, [fetchCandidate]);
 
-  // Fetch recruiters
-  useEffect(() => {
-    const fetchRecruiters = async () => {
-      try {
-        const res = await fetch('/api/users?role=Recruiter');
-        if (res.ok) {
-          const responseData = await res.json();
-          // Handle the correct API response structure: { users: [...], pagination: {...} }
-          const recruitersArray = responseData?.users || [];
-          setAvailableRecruiters(recruitersArray);
-        }
-      } catch (e) {
-        console.error('Error fetching recruiters:', e);
-      }
-    };
-    fetchRecruiters();
-  }, []);
-
-  // Fetch sources
-  useEffect(() => {
-    const fetchSources = async () => {
-      try {
-        const res = await fetch('/api/settings/candidate-sources');
-        if (res.ok) {
-          const data = await res.json();
-          setAvailableSources(data || []);
-        }
-      } catch (e) {
-        console.error('Error fetching sources:', e);
-      }
-    };
-    fetchSources();
-  }, []);
-
-  // Fetch stages
-  useEffect(() => {
-    const fetchStages = async () => {
-      try {
-        const res = await fetch('/api/recruitment-stages');
-        if (res.ok) {
-          const stagesData = await res.json();
-          setAvailableStages(Array.isArray(stagesData) ? stagesData : []);
-        }
-      } catch (e) {
-        setAvailableStages([]);
-      }
-    };
-    fetchStages();
-  }, []);
-
-  // Fetch transition history
-  const fetchTransitionHistory = useCallback(async () => {
-    if (!candidateId) return;
-    
+  // Memoized fetch functions for static data
+  const fetchPositions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/transitions?candidateId=${candidateId}`);
+      const res = await fetch('/api/positions/all', {
+        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+      });
       if (res.ok) {
         const data = await res.json();
-        setTransitionHistory(Array.isArray(data) ? data : (data.data || []));
+        setAllDbPositions(data.data || []);
       }
-    } catch (error) {
-      console.error('Error fetching transition history:', error);
+    } catch (e) {
+      console.error('Error fetching positions:', e);
     }
-  }, [candidateId]);
+  }, []);
 
+  const fetchRecruiters = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users?role=Recruiter', {
+        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+      });
+      if (res.ok) {
+        const responseData = await res.json();
+        const recruitersArray = responseData?.users || [];
+        setAvailableRecruiters(recruitersArray);
+      }
+    } catch (e) {
+      console.error('Error fetching recruiters:', e);
+    }
+  }, []);
+
+  const fetchSources = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings/candidate-sources', {
+        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSources(data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching sources:', e);
+    }
+  }, []);
+
+  const fetchStages = useCallback(async () => {
+    try {
+      const res = await fetch('/api/recruitment-stages', {
+        headers: { 'Cache-Control': 'max-age=300' } // Cache for 5 minutes
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableStages(data || []);
+      }
+    } catch (e) {
+      console.error('Error fetching stages:', e);
+    }
+  }, []);
+
+  // Fetch static data only once on mount
   useEffect(() => {
-    fetchTransitionHistory();
-  }, [fetchTransitionHistory]);
+    fetchPositions();
+    fetchRecruiters();
+    fetchSources();
+    fetchStages();
+  }, [fetchPositions, fetchRecruiters, fetchSources, fetchStages]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Populate form with candidate data when entering edit mode
   useEffect(() => {
@@ -614,6 +634,6 @@ export const useCandidateDetail = (candidateId: string) => {
     handleAssignRecruiter,
     handleAssignSource,
     handleAvatarUpload,
-    fetchTransitionHistory,
+    fetchCandidate, // Expose the memoized fetch function
   };
 };

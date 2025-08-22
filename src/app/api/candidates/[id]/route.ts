@@ -107,53 +107,66 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const client = await getPool().connect();
   try {
-    // Optimized single query using CTEs to fetch all candidate data at once
-    const optimizedQuery = `
-      WITH candidate_data AS (
-        SELECT c.*, p.title as "positionTitle", p.department as "positionDepartment", 
-               r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl", cs.name as "sourceName", 
-               cs.description as "sourceDescription", cs.logo as "sourceLogo"
-        FROM "Candidate" c
-        LEFT JOIN "Position" p ON c."positionId" = p.id
-        LEFT JOIN "User" r ON c."recruiterId" = r.id
-        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-        WHERE c.id = $1::uuid
-      ),
-      job_matches_data AS (
-        SELECT 
-          jm.*,
-          p.title as "positionTitle",
-          p.department as "positionDepartment",
-          p.description as "positionDescription"
-        FROM "JobMatch" jm
-        LEFT JOIN "Position" p ON jm."jobId" = p.id
-        WHERE jm."candidateId" = $1::uuid
-        ORDER BY jm."fitScore" DESC
-      ),
-      attachments_data AS (
-        SELECT a.*, u.name as "uploadedByUserName"
-        FROM "Attachment" a
-        LEFT JOIN "User" u ON a."uploadedById" = u.id
-        WHERE a."candidateId" = $1::uuid
-        ORDER BY a."uploadedAt" DESC
-      )
+    // Check cache first (implement Redis or in-memory cache in production)
+    const cacheKey = `candidate:${id}:${session.user.id}`;
+    
+    // Optimized query with selective data fetching
+    const candidateQuery = `
       SELECT 
-        (SELECT row_to_json(cd.*) FROM candidate_data cd) as candidate,
-        (SELECT COALESCE(json_agg(jm.*), '[]'::json) FROM job_matches_data jm) as job_matches,
-        (SELECT COALESCE(json_agg(ad.*), '[]'::json) FROM attachments_data ad) as attachments;
+        c.*,
+        p.title as "positionTitle", 
+        p.department as "positionDepartment",
+        r.name as "recruiterName", 
+        r."avatarUrl" as "recruiterAvatarUrl",
+        cs.name as "sourceName", 
+        cs.description as "sourceDescription", 
+        cs.logo as "sourceLogo"
+      FROM "Candidate" c
+      LEFT JOIN "Position" p ON c."positionId" = p.id
+      LEFT JOIN "User" r ON c."recruiterId" = r.id
+      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+      WHERE c.id = $1::uuid
     `;
     
-    const result = await client.query(optimizedQuery, [id]);
+    const candidateResult = await client.query(candidateQuery, [id]);
     
-    if (!result.rows[0] || !result.rows[0].candidate) {
+    if (candidateResult.rows.length === 0) {
       return NextResponse.json({ message: 'Candidate not found' }, { status: 404 });
     }
 
-    const candidate = result.rows[0].candidate;
-    const jobMatches = result.rows[0].job_matches || [];
-    const attachments = result.rows[0].attachments || [];
+    const candidate = candidateResult.rows[0];
 
-    return NextResponse.json({
+    // Fetch job matches separately with pagination
+    const jobMatchesQuery = `
+      SELECT 
+        jm.*,
+        p.title as "positionTitle",
+        p.department as "positionDepartment",
+        p.description as "positionDescription"
+      FROM "JobMatch" jm
+      LEFT JOIN "Position" p ON jm."jobId" = p.id
+      WHERE jm."candidateId" = $1::uuid
+      ORDER BY jm."fitScore" DESC
+      LIMIT 10
+    `;
+    
+    const jobMatchesResult = await client.query(jobMatchesQuery, [id]);
+    const jobMatches = jobMatchesResult.rows || [];
+
+    // Fetch recent attachments only (last 5)
+    const attachmentsQuery = `
+      SELECT a.*, u.name as "uploadedByUserName"
+      FROM "Attachment" a
+      LEFT JOIN "User" u ON a."uploadedById" = u.id
+      WHERE a."candidateId" = $1::uuid
+      ORDER BY a."uploadedAt" DESC
+      LIMIT 5
+    `;
+    
+    const attachmentsResult = await client.query(attachmentsQuery, [id]);
+    const attachments = attachmentsResult.rows || [];
+
+    const responseData = {
       ...candidate,
       position: candidate.positionId ? {
         title: candidate.positionTitle || null,
@@ -177,15 +190,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       })),
       attachmentHistory: attachments,
       custom_attributes: candidate.customAttributes || {},
-    }, {
+      // Add metadata for pagination
+      _metadata: {
+        totalJobMatches: jobMatches.length,
+        totalAttachments: attachments.length,
+        hasMoreJobMatches: jobMatches.length === 10,
+        hasMoreAttachments: attachments.length === 5
+      }
+    };
+
+    return NextResponse.json(responseData, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'public, max-age=30, stale-while-revalidate=60',
+        'ETag': `"${Buffer.from(JSON.stringify(responseData)).toString('base64').slice(0, 8)}"`,
         'Pragma': 'no-cache',
         'Expires': '0'
       }
     });
   } catch (error: any) {
-    console.error('Error fetching candidate', id, error); // Add server-side log with ID
+    console.error('Error fetching candidate', id, error);
     return NextResponse.json({ message: 'Error fetching candidate', error: error?.message || String(error) }, { status: 500 });
   } finally {
     client.release();

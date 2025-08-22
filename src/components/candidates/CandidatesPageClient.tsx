@@ -794,10 +794,10 @@ export function CandidatesPageClient({
       clearTimeout(fetchTimeoutRef.current);
     }
     
-    // Set a new timeout - reduced from 300ms to 150ms for smoother updates
+    // Set a new timeout - reduced for faster response
     fetchTimeoutRef.current = setTimeout(() => {
       fetchPaginatedCandidates(currentFilters, page, pageSize);
-    }, 150); // Reduced debounce for faster response
+    }, 50); // Reduced debounce for faster response
   }, [fetchPaginatedCandidates]);
 
       // Separate function to fetch only table data for optimized filtering
@@ -971,11 +971,11 @@ export function CandidatesPageClient({
       clearTimeout(fetchTimeoutRef.current);
     }
     
-    // Set a new timeout - reduced from 300ms to 150ms for smoother updates
+    // Set a new timeout - reduced for faster response
     fetchTimeoutRef.current = setTimeout(() => {
       const currentFetchTableData = fetchTableData;
       currentFetchTableData(currentFilters, currentPage, currentPageSize);
-    }, 150); // Reduced debounce for faster response
+    }, 50); // Reduced debounce for faster response
   }, [fetchTableData]);
 
   // Add refs to track latest state and avoid stale closures
@@ -1583,50 +1583,66 @@ export function CandidatesPageClient({
   // Add a ref to track the debounce timeout
   const filterChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastAppliedFiltersRef = useRef<string>('');
+  const optimisticUpdateRef = useRef<boolean>(false);
 
   const handleFilterChange = (newFilters: CandidateFilterValues) => {
     // Skip if we're currently clearing filters
     if (isClearingFilters) {
       return;
     }
+
     // Clear any existing timeout
     if (filterChangeTimeoutRef.current) {
       clearTimeout(filterChangeTimeoutRef.current);
       filterChangeTimeoutRef.current = null;
     }
     
-    // Determine debounce time based on filter type
+    const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
+    
+    // Check if filters have actually changed to prevent unnecessary updates
+    const currentFiltersString = JSON.stringify(filters);
+    const newFiltersString = JSON.stringify(combinedFilters);
+    if (currentFiltersString === newFiltersString) {
+      return;
+    }
+
+    // Always clear AI search state if filters are changed
+    if (isAiSearchActive) {
+      setAiMatchedCandidateIds(null);
+      setAiSearchReasoning(null);
+      setAiRecordCount(0);
+      setIsAiSearchActive(false);
+    }
+    
+    // Clear horizontal fit score filters when other filters change to avoid conflicts
+    setHorizontalSelectedFitScoreGrades(new Set());
+    setHorizontalSelectedMatchingFitScoreGrades(new Set());
+    
+    // Immediate UI update for better responsiveness
+    setPage(1);
+    setFilters(combinedFilters);
+    
+    // Show loading state immediately
+    setTableLoading(true);
+    optimisticUpdateRef.current = true;
+    
+    // Determine debounce time based on filter type - reduced for faster response
     const isFitScoreFilter = newFilters.minAppliedJobFitScore !== undefined || 
                             newFilters.maxAppliedJobFitScore !== undefined ||
                             newFilters.minMatchingJobFitScore !== undefined ||
                             newFilters.maxMatchingJobFitScore !== undefined;
     
-    const debounceTime = isFitScoreFilter ? 50 : 150; // Faster response for fit score filters
+    const isTextFilter = newFilters.name || newFilters.email || newFilters.phone || newFilters.location;
+    const isDateFilter = newFilters.applicationDateStart || newFilters.applicationDateEnd;
     
-    // Debounce the filter change to prevent rapid successive calls
+    // Faster response for different filter types
+    let debounceTime = 100; // Default
+    if (isFitScoreFilter) debounceTime = 25; // Very fast for score filters
+    else if (isTextFilter) debounceTime = 50; // Fast for text filters
+    else if (isDateFilter) debounceTime = 75; // Medium for date filters
+    
+    // Debounce the actual API call to prevent rapid successive calls
     filterChangeTimeoutRef.current = setTimeout(() => {
-      const combinedFilters = { ...filters, ...newFilters, aiSearchQuery: undefined };
-      // Check if filters have actually changed to prevent unnecessary updates
-      const currentFiltersString = JSON.stringify(filters);
-      const newFiltersString = JSON.stringify(combinedFilters);
-      if (currentFiltersString === newFiltersString) {
-        return;
-      }
-      // Always clear AI search state if filters are changed
-      if (isAiSearchActive) {
-        setAiMatchedCandidateIds(null);
-        setAiSearchReasoning(null);
-        setAiRecordCount(0);
-        setIsAiSearchActive(false);
-      }
-      
-      // Clear horizontal fit score filters when other filters change to avoid conflicts
-      setHorizontalSelectedFitScoreGrades(new Set());
-      setHorizontalSelectedMatchingFitScoreGrades(new Set());
-      
-      setPage(1);
-      setFilters(combinedFilters);
-      
       // Use the optimized table fetch function instead of the full page refresh
       debouncedFetchTableData(combinedFilters, 1, pageSize);
     }, debounceTime);

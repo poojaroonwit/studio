@@ -250,722 +250,377 @@ export async function GET(request: NextRequest) {
     const { session, error } = await requireSessionAndPermission('CANDIDATES_VIEW', request);
     if (error) return error;
 
-  const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
-  const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
-  const offset = (page - 1) * limit;
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '20', 10)));
+    const offset = (page - 1) * limit;
 
-  // Sorting
-  const allowedSortColumns = {
-    name: 'c.name',
-    email: 'c.email',
-    fitScore: 'c."fitScore"',
-    applicationDate: 'c."applicationDate"',
-    status: 'c.status',
-    lastUpdate: 'c."updatedAt"',
-  };
-  const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
-  const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
-  const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
-  const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
+    // Sorting
+    const allowedSortColumns = {
+      name: 'c.name',
+      email: 'c.email',
+      fitScore: 'c."fitScore"',
+      applicationDate: 'c."applicationDate"',
+      status: 'c.status',
+      lastUpdate: 'c."updatedAt"',
+    };
+    const sortColumnParam = searchParams.get('sortColumn') || 'lastUpdate';
+    const sortDirectionParam = (searchParams.get('sortDirection') || 'desc').toLowerCase();
+    const sortColumn = allowedSortColumns[sortColumnParam as keyof typeof allowedSortColumns] || 'c."updatedAt"';
+    const sortDirection = sortDirectionParam === 'asc' ? 'ASC' : 'DESC';
 
-  // Parse advanced query parameter if present
-  const advancedQuery = searchParams.get('query');
-  let advancedFilters: { [key: string]: string | undefined } = {};
-  
-  if (advancedQuery) {
-    const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
+    // Parse advanced query parameter if present
+    const advancedQuery = searchParams.get('query');
+    let advancedFilters: { [key: string]: string | undefined } = {};
     
-    parts.forEach(part => {
-      const colonIndex = part.indexOf(':');
-      if (colonIndex === -1) return;
+    if (advancedQuery) {
+      const parts = advancedQuery.split(' ').filter(part => part.includes(':'));
       
-      const key = part.substring(0, colonIndex);
-      const value = part.substring(colonIndex + 1);
-      if (!key || !value) return;
-      
-      switch (key.toLowerCase()) {
-        case 'name':
-          advancedFilters.searchTerm = value;
-          break;
-        case 'email':
-          advancedFilters.email = value;
-          break;
-        case 'phone':
-          advancedFilters.phone = value;
-          break;
-        case 'skills':
-          advancedFilters.skills = value;
-          break;
-        case 'location':
-          advancedFilters.location = value;
-          break;
-        case 'minfitscore':
-        case 'minappliedjobfitscore':
-          advancedFilters.minAppliedJobFitScore = value;
-          break;
-        case 'maxfitscore':
-        case 'maxappliedjobfitscore':
-          advancedFilters.maxAppliedJobFitScore = value;
-          break;
-        case 'matchingfitscoremin':
-        case 'minmatchingjobfitscore':
-          advancedFilters.minMatchingJobFitScore = value;
-          break;
-        case 'matchingfitscoremax':
-        case 'maxmatchingjobfitscore':
-          advancedFilters.maxMatchingJobFitScore = value;
-          break;
-        case 'applicationdatestart':
-          advancedFilters.applicationDateStart = value;
-          break;
-        case 'applicationdateend':
-          advancedFilters.applicationDateEnd = value;
-          break;
-        case 'positionid':
-          advancedFilters.positionId = value;
-          break;
-        case 'status':
-          advancedFilters.status = value;
-          break;
-        case 'recruiterid':
-          advancedFilters.recruiterId = value;
-          break;
-      }
-    });
-  }
-
-  // Filters - merge with advanced query filters, giving priority to individual parameters
-  const filters: { [key: string]: string | undefined } = {
-    status: searchParams.get('status') || advancedFilters.status || undefined,
-    positionId: searchParams.get('positionId') || advancedFilters.positionId || undefined,
-    recruiterId: searchParams.get('recruiterId') || searchParams.get('assignedRecruiterId') || advancedFilters.recruiterId || undefined,
-    searchTerm: searchParams.get('searchTerm') || searchParams.get('name') || advancedFilters.searchTerm || undefined,
-    email: searchParams.get('email') || advancedFilters.email || undefined,
-    phone: searchParams.get('phone') || advancedFilters.phone || undefined,
-    education: searchParams.get('education') || undefined,
-    skills: searchParams.get('skills') || advancedFilters.skills || undefined,
-    location: searchParams.get('location') || advancedFilters.location || undefined,
-    cvLanguage: searchParams.get('cvLanguage') || undefined,
-    jobSuitableCareer: searchParams.get('jobSuitableCareer') || undefined,
-    jobSuitableLevel: searchParams.get('jobSuitableLevel') || undefined,
-    jobSuitablePosition: searchParams.get('jobSuitablePosition') || undefined,
-    minExperienceYears: searchParams.get('minExperienceYears') || undefined,
-    maxExperienceYears: searchParams.get('maxExperienceYears') || undefined,
-    applicationDateStart: searchParams.get('applicationDateStart') || advancedFilters.applicationDateStart || undefined,
-    applicationDateEnd: searchParams.get('applicationDateEnd') || advancedFilters.applicationDateEnd || undefined,
-    minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') || advancedFilters.minAppliedJobFitScore || undefined,
-    maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') || advancedFilters.maxAppliedJobFitScore || undefined,
-    minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') || advancedFilters.minMatchingJobFitScore || undefined,
-    maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') || advancedFilters.maxMatchingJobFitScore || undefined,
-    sourceId: searchParams.get('sourceId') || undefined,
-    subSource: searchParams.get('subSource') || undefined,
-  };
-
-
-
-  // Filter out undefined values to prevent PostgreSQL errors
-  Object.keys(filters).forEach(key => {
-    if (filters[key] === undefined || filters[key] === '') {
-      delete filters[key];
+      parts.forEach(part => {
+        const colonIndex = part.indexOf(':');
+        if (colonIndex === -1) return;
+        
+        const key = part.substring(0, colonIndex);
+        const value = part.substring(colonIndex + 1);
+        if (!key || !value) return;
+        
+        switch (key.toLowerCase()) {
+          case 'name':
+            advancedFilters.searchTerm = value;
+            break;
+          case 'email':
+            advancedFilters.email = value;
+            break;
+          case 'phone':
+            advancedFilters.phone = value;
+            break;
+          case 'skills':
+            advancedFilters.skills = value;
+            break;
+          case 'location':
+            advancedFilters.location = value;
+            break;
+          case 'status':
+            advancedFilters.status = value;
+            break;
+          case 'position':
+            advancedFilters.position = value;
+            break;
+          case 'recruiter':
+            advancedFilters.recruiter = value;
+            break;
+        }
+      });
     }
-  });
-  
 
+    // Build filters object
+    const filters = {
+      name: searchParams.get('name') || advancedFilters.searchTerm,
+      nameOperator: searchParams.get('nameOperator') || 'contains',
+      email: searchParams.get('email') || advancedFilters.email,
+      emailOperator: searchParams.get('emailOperator') || 'contains',
+      phone: searchParams.get('phone') || advancedFilters.phone,
+      phoneOperator: searchParams.get('phoneOperator') || 'contains',
+      positionId: searchParams.get('positionId'),
+      status: searchParams.get('status') || advancedFilters.status,
+      education: searchParams.get('education'),
+      minAppliedJobFitScore: searchParams.get('minAppliedJobFitScore') ? parseFloat(searchParams.get('minAppliedJobFitScore')!) : undefined,
+      maxAppliedJobFitScore: searchParams.get('maxAppliedJobFitScore') ? parseFloat(searchParams.get('maxAppliedJobFitScore')!) : undefined,
+      minMatchingJobFitScore: searchParams.get('minMatchingJobFitScore') ? parseFloat(searchParams.get('minMatchingJobFitScore')!) : undefined,
+      maxMatchingJobFitScore: searchParams.get('maxMatchingJobFitScore') ? parseFloat(searchParams.get('maxMatchingJobFitScore')!) : undefined,
+      minExperienceYears: searchParams.get('minExperienceYears') ? parseInt(searchParams.get('minExperienceYears')!, 10) : undefined,
+      maxExperienceYears: searchParams.get('maxExperienceYears') ? parseInt(searchParams.get('maxExperienceYears')!, 10) : undefined,
+      applicationDateStart: searchParams.get('applicationDateStart') ? new Date(searchParams.get('applicationDateStart')!) : undefined,
+      applicationDateEnd: searchParams.get('applicationDateEnd') ? new Date(searchParams.get('applicationDateEnd')!) : undefined,
+      recruiterId: searchParams.get('recruiterId'),
+      sourceId: searchParams.get('sourceId'),
+      location: searchParams.get('location') || advancedFilters.location,
+      locationOperator: searchParams.get('locationOperator') || 'contains',
+      skills: searchParams.get('skills') || advancedFilters.skills,
+    };
 
-  let whereClauses: string[] = [];
-  let queryParams: any[] = [];
-  let paramIndex = 1;
+    const client = await getPool().connect();
 
-  // Handle status filter (supports multiple statuses and 'select-all')
-  if (filters.status) {
-    const statuses = filters.status.split(',').map(s => s.trim());
-    
-    // Check if "select-all" is selected - if so, don't filter by status (show all)
-    if (statuses.includes('select-all')) {
-      // Don't add any status filter - show all stages
-    } else {
-      // Check if "no-status" or "Off" is one of the selected statuses (supporting both for backwards compatibility)
-      const hasNoStatus = statuses.includes('no-status') || statuses.includes('Off');
-      const regularStatuses = statuses.filter(s => s !== 'no-status' && s !== 'Off');
-      
-      if (hasNoStatus && regularStatuses.length === 0) {
-        // Only "no-status" selected - filter for candidates with no status
-        whereClauses.push(`(c.status = '' OR c.status = 'null')`);
-      } else if (hasNoStatus && regularStatuses.length > 0) {
-        // Mixed selection - include both "no-status" and regular statuses
-        if (regularStatuses.length === 1) {
-          whereClauses.push(`(c.status = $${paramIndex++} OR c.status = '' OR c.status = 'null')`);
-          queryParams.push(regularStatuses[0]);
-        } else {
+    try {
+      // Build WHERE clauses and parameters
+      const whereClauses: string[] = [];
+      const queryParams: any[] = [];
+      let paramIndex = 1;
+
+      // Handle name filter
+      if (filters.name) {
+        const operator = filters.nameOperator === 'exact' ? '=' : 'ILIKE';
+        const value = filters.nameOperator === 'exact' ? filters.name : `%${filters.name}%`;
+        whereClauses.push(`c.name ${operator} $${paramIndex++}`);
+        queryParams.push(value);
+      }
+
+      // Handle email filter
+      if (filters.email) {
+        const operator = filters.emailOperator === 'exact' ? '=' : 'ILIKE';
+        const value = filters.emailOperator === 'exact' ? filters.email : `%${filters.email}%`;
+        whereClauses.push(`c.email ${operator} $${paramIndex++}`);
+        queryParams.push(value);
+      }
+
+      // Handle phone filter
+      if (filters.phone) {
+        const operator = filters.phoneOperator === 'exact' ? '=' : 'ILIKE';
+        const value = filters.phoneOperator === 'exact' ? filters.phone : `%${filters.phone}%`;
+        whereClauses.push(`c.phone ${operator} $${paramIndex++}`);
+        queryParams.push(value);
+      }
+
+      // Handle location filter
+      if (filters.location) {
+        const operator = filters.locationOperator === 'exact' ? '=' : 'ILIKE';
+        const value = filters.locationOperator === 'exact' ? filters.location : `%${filters.location}%`;
+        whereClauses.push(`c.location ${operator} $${paramIndex++}`);
+        queryParams.push(value);
+      }
+
+      // Handle status filter
+      if (filters.status) {
+        const statuses = filters.status.split(',').map(s => s.trim()).filter(s => s !== '');
+        const nullStatuses = statuses.filter(s => s === 'null' || s === '');
+        const regularStatuses = statuses.filter(s => s !== 'null' && s !== '');
+        
+        if (nullStatuses.length > 0 && regularStatuses.length > 0) {
+          // Mixed null and regular statuses
           whereClauses.push(`(c.status = ANY($${paramIndex++}) OR c.status = '' OR c.status = 'null')`);
           queryParams.push(regularStatuses);
-        }
-      } else {
-        // Only regular statuses selected
-        if (regularStatuses.length === 1) {
-          whereClauses.push(`c.status = $${paramIndex++}`);
-          queryParams.push(regularStatuses[0]);
+        } else if (nullStatuses.length > 0) {
+          // Only null statuses
+          whereClauses.push(`(c.status = '' OR c.status = 'null' OR c.status IS NULL)`);
         } else {
-          whereClauses.push(`c.status = ANY($${paramIndex++})`);
-          queryParams.push(regularStatuses);
+          // Only regular statuses selected
+          if (regularStatuses.length === 1) {
+            whereClauses.push(`c.status = $${paramIndex++}`);
+            queryParams.push(regularStatuses[0]);
+          } else {
+            whereClauses.push(`c.status = ANY($${paramIndex++})`);
+            queryParams.push(regularStatuses);
+          }
         }
       }
-    }
-  }
 
-  // Handle position filter (supports multiple positions and 'not-applied')
-  if (filters.positionId) {
-    const positionIds = filters.positionId.split(',').map(id => id.trim()).filter(id => id !== '');
-    
-    // Check if "not-applied" is one of the selected positions
-    const hasNotApplied = positionIds.includes('not-applied');
-    const regularPositions = positionIds.filter(id => id !== 'not-applied');
-    
-
-    
-    if (hasNotApplied && regularPositions.length === 0) {
-      // Only "not-applied" selected - filter for candidates with no position
-      whereClauses.push(`c."positionId" IS NULL`);
-    } else if (hasNotApplied && regularPositions.length > 0) {
-      // Mixed selection - include both "not-applied" and regular positions
-      if (regularPositions.length === 1) {
-        whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL)`);
-        queryParams.push(regularPositions[0]);
-      } else {
-        whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL)`);
-        queryParams.push(regularPositions);
-      }
-    } else {
-      // Only regular positions selected
-      if (regularPositions.length === 1) {
-        whereClauses.push(`c."positionId" = $${paramIndex++}`);
-        queryParams.push(regularPositions[0]);
-      } else if (regularPositions.length > 1) {
-        whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
-        queryParams.push(regularPositions);
-      }
-    }
-  }
-
-  // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
-  if (filters.recruiterId) {
-    const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
-    
-    // Check if "select-all" is selected - if so, don't filter by recruiter (show all)
-    if (recruiterIds.includes('select-all')) {
-      // Don't add any recruiter filter - show all recruiters
-    } else {
-      if (recruiterIds.length === 1 && recruiterIds[0] === 'unassigned') {
-        whereClauses.push(`c."recruiterId" IS NULL`);
-      } else if (recruiterIds.length === 1) {
-        whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-        queryParams.push(recruiterIds[0]);
-      } else {
-        // Handle mixed case: some unassigned, some assigned
-        const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
-        const hasUnassigned = recruiterIds.includes('unassigned');
+      // Handle position filter (supports multiple positions and 'not-applied')
+      if (filters.positionId) {
+        const positionIds = filters.positionId.split(',').map(id => id.trim()).filter(id => id !== '');
         
-        if (assignedIds.length > 0 && hasUnassigned) {
-          whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
-          queryParams.push(assignedIds);
-        } else if (assignedIds.length > 0) {
-          whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
-          queryParams.push(assignedIds);
-        } else if (hasUnassigned) {
-          whereClauses.push(`c."recruiterId" IS NULL`);
+        // Check if "not-applied" is one of the selected positions
+        const hasNotApplied = positionIds.includes('not-applied');
+        const regularPositions = positionIds.filter(id => id !== 'not-applied');
+        
+        if (hasNotApplied && regularPositions.length === 0) {
+          // Only "not-applied" selected - filter for candidates with no position
+          whereClauses.push(`c."positionId" IS NULL`);
+        } else if (hasNotApplied && regularPositions.length > 0) {
+          // Mixed selection - include both "not-applied" and regular positions
+          if (regularPositions.length === 1) {
+            whereClauses.push(`(c."positionId" = $${paramIndex++} OR c."positionId" IS NULL)`);
+            queryParams.push(regularPositions[0]);
+          } else {
+            whereClauses.push(`(c."positionId" = ANY($${paramIndex++}) OR c."positionId" IS NULL)`);
+            queryParams.push(regularPositions);
+          }
+        } else {
+          // Only regular positions selected
+          if (regularPositions.length === 1) {
+            whereClauses.push(`c."positionId" = $${paramIndex++}`);
+            queryParams.push(regularPositions[0]);
+          } else if (regularPositions.length > 1) {
+            whereClauses.push(`c."positionId" = ANY($${paramIndex++})`);
+            queryParams.push(regularPositions);
+          }
         }
       }
-    }
-  }
 
-  // Recruiter auto-filter: If user is a Recruiter, only show their assigned candidates unless recruiterId is explicitly set
-  const isRecruiter = session.user.role === 'Recruiter';
-  const recruiterIdFromFilter = filters.recruiterId;
-  if (isRecruiter && !recruiterIdFromFilter) {
-    whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
-    queryParams.push(session.user.id);
-  }
+      // Handle recruiter filter (supports multiple recruiters, 'unassigned', and 'select-all')
+      if (filters.recruiterId) {
+        const recruiterIds = filters.recruiterId.split(',').map(id => id.trim());
+        
+        // Check if "select-all" is selected - if so, don't filter by recruiter (show all)
+        if (recruiterIds.includes('select-all')) {
+          // Don't add any recruiter filter - show all recruiters
+        } else {
+          if (recruiterIds.length === 1 && recruiterIds[0] === 'unassigned') {
+            whereClauses.push(`c."recruiterId" IS NULL`);
+          } else if (recruiterIds.length === 1) {
+            whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
+            queryParams.push(recruiterIds[0]);
+          } else {
+            // Handle mixed case: some unassigned, some assigned
+            const assignedIds = recruiterIds.filter(id => id !== 'unassigned');
+            const hasUnassigned = recruiterIds.includes('unassigned');
+            
+            if (assignedIds.length > 0 && hasUnassigned) {
+              whereClauses.push(`(c."recruiterId" IS NULL OR c."recruiterId" = ANY($${paramIndex++}))`);
+              queryParams.push(assignedIds);
+            } else if (assignedIds.length > 0) {
+              whereClauses.push(`c."recruiterId" = ANY($${paramIndex++})`);
+              queryParams.push(assignedIds);
+            } else if (hasUnassigned) {
+              whereClauses.push(`c."recruiterId" IS NULL`);
+            }
+          }
+        }
+      }
 
-  // Handle source filter
-  if (filters.sourceId) {
-    const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
-    if (sourceIds.length === 1) {
-      whereClauses.push(`c."sourceId" = $${paramIndex++}`);
-      queryParams.push(sourceIds[0]);
-    } else if (sourceIds.length > 1) {
-      whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
-      queryParams.push(sourceIds);
-    }
-  }
+      // Recruiter auto-filter: If user is a Recruiter, only show their assigned candidates unless recruiterId is explicitly set
+      const isRecruiter = session.user.role === 'Recruiter';
+      const recruiterIdFromFilter = filters.recruiterId;
+      if (isRecruiter && !recruiterIdFromFilter) {
+        whereClauses.push(`c."recruiterId" = $${paramIndex++}`);
+        queryParams.push(session.user.id);
+      }
 
+      // Handle source filter
+      if (filters.sourceId) {
+        const sourceIds = filters.sourceId.split(',').map(id => id.trim()).filter(id => id !== '');
+        if (sourceIds.length === 1) {
+          whereClauses.push(`c."sourceId" = $${paramIndex++}`);
+          queryParams.push(sourceIds[0]);
+        } else if (sourceIds.length > 1) {
+          whereClauses.push(`c."sourceId" = ANY($${paramIndex++})`);
+          queryParams.push(sourceIds);
+        }
+      }
 
+      // Handle fit score filters
+      if (filters.minAppliedJobFitScore !== undefined) {
+        whereClauses.push(`c."fitScore" >= $${paramIndex++}`);
+        queryParams.push(filters.minAppliedJobFitScore);
+      }
+      if (filters.maxAppliedJobFitScore !== undefined) {
+        whereClauses.push(`c."fitScore" <= $${paramIndex++}`);
+        queryParams.push(filters.maxAppliedJobFitScore);
+      }
 
-  // Handle text search (name)
-  if (filters.searchTerm) {
-    whereClauses.push(`(c.name ILIKE $${paramIndex} OR c.email ILIKE $${paramIndex})`);
-    queryParams.push(`%${filters.searchTerm}%`);
-    paramIndex++;
-  }
+      // Handle experience filters
+      if (filters.minExperienceYears !== undefined) {
+        if (filters.minExperienceYears === -1) {
+          // No experience filter
+          whereClauses.push(`(c."parsedData"->>'experience' IS NULL OR c."parsedData"->>'experience' = '[]' OR c."parsedData"->>'experience' = '')`);
+        } else {
+          whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) >= $${paramIndex++}`);
+          queryParams.push(filters.minExperienceYears);
+        }
+      }
+      if (filters.maxExperienceYears !== undefined) {
+        whereClauses.push(`CAST(c."parsedData"->>'totalExperienceYears' AS DECIMAL) <= $${paramIndex++}`);
+        queryParams.push(filters.maxExperienceYears);
+      }
 
-  // Handle name filter with operator
-  const name = searchParams.get('name');
-  const nameOperator = searchParams.get('nameOperator') || 'contains';
-  if (name) {
-    if (nameOperator === 'is') {
-      whereClauses.push(`c.name = $${paramIndex++}`);
-      queryParams.push(name);
-    } else if (nameOperator === 'startsWith') {
-      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
-      queryParams.push(`${name}%`);
-    } else if (nameOperator === 'endsWith') {
-      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
-      queryParams.push(`%${name}`);
-    } else if (nameOperator === 'contains' || !nameOperator) {
-      whereClauses.push(`c.name ILIKE $${paramIndex++}`);
-      queryParams.push(`%${name}%`);
-    }
-    // If 'other', skip filtering by name
-  }
+      // Handle application date filters
+      if (filters.applicationDateStart) {
+        whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
+        queryParams.push(filters.applicationDateStart.toISOString());
+      }
+      if (filters.applicationDateEnd) {
+        whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
+        queryParams.push(filters.applicationDateEnd.toISOString());
+      }
 
-  // Handle email filter with operator
-  const email = searchParams.get('email');
-  const emailOperator = searchParams.get('emailOperator') || 'contains';
-  if (email) {
-    if (emailOperator === 'is') {
-      whereClauses.push(`c.email = $${paramIndex++}`);
-      queryParams.push(email);
-    } else if (emailOperator === 'startsWith') {
-      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
-      queryParams.push(`${email}%`);
-    } else if (emailOperator === 'endsWith') {
-      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
-      queryParams.push(`%${email}`);
-    } else if (emailOperator === 'contains' || !emailOperator) {
-      whereClauses.push(`c.email ILIKE $${paramIndex++}`);
-      queryParams.push(`%${email}%`);
-    }
-    // If 'other', skip filtering by email
-  }
+      // Handle skills filter
+      if (filters.skills) {
+        const skills = filters.skills.split(',').map(s => s.trim().toLowerCase()).filter(s => s !== '');
+        if (skills.length > 0) {
+          const skillsConditions = skills.map((_, index) => 
+            `LOWER(c."parsedData"->>'skills') LIKE $${paramIndex + index}`
+          ).join(' AND ');
+          whereClauses.push(`(${skillsConditions})`);
+          queryParams.push(...skills.map(skill => `%${skill}%`));
+          paramIndex += skills.length;
+        }
+      }
 
-  // Handle phone filter with operator
-  const phone = searchParams.get('phone');
-  const phoneOperator = searchParams.get('phoneOperator') || 'contains';
-  if (phone) {
-    if (phoneOperator === 'is') {
-      whereClauses.push(`c.phone = $${paramIndex++}`);
-      queryParams.push(phone);
-    } else if (phoneOperator === 'startsWith') {
-      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
-      queryParams.push(`${phone}%`);
-    } else if (phoneOperator === 'endsWith') {
-      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
-      queryParams.push(`%${phone}`);
-    } else if (phoneOperator === 'contains' || !phoneOperator) {
-      whereClauses.push(`c.phone ILIKE $${paramIndex++}`);
-      queryParams.push(`%${phone}%`);
-    }
-    // If 'other', skip filtering by phone
-  }
+      // Build the WHERE clause
+      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-  // Handle location filter with operator
-  const location = searchParams.get('location');
-  const locationOperator = searchParams.get('locationOperator') || 'contains';
-  if (location) {
-    if (locationOperator === 'is') {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%\"location\":\"${location}\"%`);
-    } else if (locationOperator === 'startsWith') {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%\"location\":\"${location}%`);
-    } else if (locationOperator === 'endsWith') {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`${location}\"%`);
-    } else if (locationOperator === 'contains' || !locationOperator) {
-      whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-      queryParams.push(`%${location}%`);
-    }
-    // If 'other', skip filtering by location
-  }
-
-  // Handle education filter (search in parsed data)
-  if (filters.education) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.education}%`);
-  }
-
-  // Handle skills filter (search in parsed data)
-  if (filters.skills) {
-    const skillsArray = filters.skills.split(',').map(s => s.trim());
-    const skillsConditions = skillsArray.map(() => `c."parsedData"::text ILIKE $${paramIndex++}`);
-    skillsArray.forEach(skill => queryParams.push(`%${skill}%`));
-    whereClauses.push(`(${skillsConditions.join(' OR ')})`);
-  }
-
-  // Handle CV language filter (search in parsed data)
-  if (filters.cvLanguage) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.cvLanguage}%`);
-  }
-
-  // Handle job suitable career filter (search in parsed data)
-  if (filters.jobSuitableCareer) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.jobSuitableCareer}%`);
-  }
-
-  // Handle job suitable level filter (search in parsed data)
-  if (filters.jobSuitableLevel) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.jobSuitableLevel}%`);
-  }
-
-  // Handle job suitable position filter (search in parsed data)
-  if (filters.jobSuitablePosition) {
-    whereClauses.push(`c."parsedData"::text ILIKE $${paramIndex++}`);
-    queryParams.push(`%${filters.jobSuitablePosition}%`);
-  }
-
-  // Handle experience years filter (calculate from experienceData)
-  if (filters.minExperienceYears !== undefined || filters.maxExperienceYears !== undefined) {
-    const minExp = parseInt(filters.minExperienceYears || '0');
-    const maxExp = parseInt(filters.maxExperienceYears || '50');
-    
-    // Check for special "no experience" case (minExperienceYears = -1)
-    if (minExp === -1) {
-      // Filter for candidates with no experience data or empty experience data
-      whereClauses.push(`(c."experienceData" IS NULL OR c."experienceData" = '[]'::jsonb OR jsonb_array_length(c."experienceData") = 0)`);
-    } else {
-      // Calculate total experience years from experienceData array
-      const experienceCalculation = `
-        COALESCE(
-          (
-            SELECT SUM(
-              CASE 
-                WHEN exp->>'startYear' IS NOT NULL AND exp->>'startMonth' IS NOT NULL THEN
-                  CASE 
-                    WHEN (exp->>'isCurrent')::boolean = true OR exp->>'endYear' IS NULL OR exp->>'endMonth' IS NULL THEN
-                      EXTRACT(YEAR FROM AGE(CURRENT_DATE, 
-                        MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
-                      ))
-                    ELSE
-                      EXTRACT(YEAR FROM AGE(
-                        MAKE_DATE((exp->>'endYear')::int, (exp->>'endMonth')::int, 1),
-                        MAKE_DATE((exp->>'startYear')::int, (exp->>'startMonth')::int, 1)
-                      ))
-                  END
-                ELSE 0
-              END
-            )::float
-            FROM jsonb_array_elements(COALESCE(c."experienceData", '[]'::jsonb)) AS exp
-          ), 0
-        )
+      // Optimized query with reduced joins and selective data fetching
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM "Candidate" c
+        ${whereClause}
       `;
-      
-      if (filters.minExperienceYears !== undefined && filters.maxExperienceYears !== undefined) {
-        whereClauses.push(`${experienceCalculation} >= $${paramIndex} AND ${experienceCalculation} <= $${paramIndex + 1}`);
-        if (!isNaN(minExp) && !isNaN(maxExp)) {
-          queryParams.push(minExp, maxExp);
-        } else {
-          console.error('Skipping invalid experience years parameters');
-        }
-        paramIndex += 2;
-      } else if (filters.minExperienceYears !== undefined) {
-        whereClauses.push(`${experienceCalculation} >= $${paramIndex}`);
-        if (!isNaN(minExp)) {
-          queryParams.push(minExp);
-        } else {
-          console.error('Skipping invalid min experience years parameter');
-        }
-        paramIndex++;
-      } else if (filters.maxExperienceYears !== undefined) {
-        whereClauses.push(`${experienceCalculation} <= $${paramIndex}`);
-        if (!isNaN(maxExp)) {
-          queryParams.push(maxExp);
-        } else {
-          console.error('Skipping invalid max experience years parameter');
-        }
-        paramIndex++;
-      }
-    }
-  }
 
-  // Handle date range filter
-  if (filters.applicationDateStart || filters.applicationDateEnd) {
-    if (filters.applicationDateStart && filters.applicationDateEnd) {
-      whereClauses.push(`c."applicationDate" >= $${paramIndex++} AND c."applicationDate" <= $${paramIndex++}`);
-      queryParams.push(filters.applicationDateStart, filters.applicationDateEnd);
-    } else if (filters.applicationDateStart) {
-      whereClauses.push(`c."applicationDate" >= $${paramIndex++}`);
-      queryParams.push(filters.applicationDateStart);
-    } else if (filters.applicationDateEnd) {
-      whereClauses.push(`c."applicationDate" <= $${paramIndex++}`);
-      queryParams.push(filters.applicationDateEnd);
-    }
-  }
+      const dataQuery = `
+        SELECT 
+          c.id,
+          c.name,
+          c.email,
+          c.phone,
+          c."fitScore",
+          c.status,
+          c."applicationDate",
+          c."updatedAt",
+          c."positionId",
+          c."recruiterId",
+          c."sourceId",
+          c."parsedData",
+          p.title as "positionTitle",
+          u.name as "recruiterName",
+          cs.name as "sourceName"
+        FROM "Candidate" c
+        LEFT JOIN "Position" p ON c."positionId" = p.id
+        LEFT JOIN "User" u ON c."recruiterId" = u.id
+        LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
+        ${whereClause}
+        ORDER BY ${sortColumn} ${sortDirection}
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+      `;
 
-  // Handle fit score range filter
-  if (filters.minAppliedJobFitScore || filters.maxAppliedJobFitScore) {
-    console.log('🔍 DEBUG: API received fit score filters:', {
-      minAppliedJobFitScore: filters.minAppliedJobFitScore,
-      maxAppliedJobFitScore: filters.maxAppliedJobFitScore,
-      minMatchingJobFitScore: filters.minMatchingJobFitScore,
-      maxMatchingJobFitScore: filters.maxMatchingJobFitScore
-    });
-    const minFit = parseInt(filters.minAppliedJobFitScore || '0');
-    const maxFit = parseInt(filters.maxAppliedJobFitScore || '100');
-    
-    // Check for special "no fit score" case (minAppliedJobFitScore = -1)
-    if (minFit === -1) {
-      // Filter for candidates with no fit score (NULL, 0, or missing from parsedData)
-      whereClauses.push(`(
-        c."fitScore" IS NULL OR 
-        c."fitScore" = 0 OR 
-        (c."parsedData"->'job_applied'->>'fitScore') IS NULL OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float = 0 OR 
-        (c."parsedData"->'job_applied'->>'fitScore')::float IS NULL
-      )`);
-    } else {
-      // Simplified fit score range filtering - normalize all scores to 0-100 range
-      const fitScoreCondition = `COALESCE(
-        CASE 
-          WHEN c."fitScore" IS NOT NULL AND c."fitScore" <= 1 THEN c."fitScore" * 100
-          ELSE c."fitScore"
-        END,
-        CASE 
-          WHEN (c."parsedData"->'job_applied'->>'fitScore') IS NOT NULL 
-          AND (c."parsedData"->'job_applied'->>'fitScore')::float <= 1 
-          THEN (c."parsedData"->'job_applied'->>'fitScore')::float * 100
-          ELSE (c."parsedData"->'job_applied'->>'fitScore')::float
-        END,
-        0
-      )`;
-      
-      if (filters.minAppliedJobFitScore && filters.maxAppliedJobFitScore) {
-        whereClauses.push(`${fitScoreCondition} >= $${paramIndex} AND ${fitScoreCondition} <= $${paramIndex + 1}`);
-        if (!isNaN(minFit) && !isNaN(maxFit)) {
-          queryParams.push(minFit, maxFit);
-          paramIndex += 2;
-        }
-      } else if (filters.minAppliedJobFitScore) {
-        whereClauses.push(`${fitScoreCondition} >= $${paramIndex}`);
-        if (!isNaN(minFit)) {
-          queryParams.push(minFit);
-          paramIndex++;
-        }
-      } else if (filters.maxAppliedJobFitScore) {
-        whereClauses.push(`${fitScoreCondition} <= $${paramIndex}`);
-        if (!isNaN(maxFit)) {
-          queryParams.push(maxFit);
-          paramIndex++;
-        }
-      }
-    }
-  }
+      // Execute queries in parallel for better performance
+      const [countResult, dataResult] = await Promise.all([
+        client.query(countQuery, queryParams),
+        client.query(dataQuery, [...queryParams, limit, offset])
+      ]);
 
-  // Handle matching fit score range filter (best job match)
-  if (filters.minMatchingJobFitScore || filters.maxMatchingJobFitScore) {
-    const minMatchingFit = parseInt(filters.minMatchingJobFitScore || '0');
-    const maxMatchingFit = parseInt(filters.maxMatchingJobFitScore || '100');
-    
-    // Check for special "no matching fit score" case (minMatchingJobFitScore = -1)
-    if (minMatchingFit === -1) {
-      // Filter for candidates with no matching fit score (NULL or 0)
-      whereClauses.push(`(jm_max.max_fit_score IS NULL OR jm_max.max_fit_score = 0)`);
-    } else {
-      // Simplified matching fit score range filtering - normalize all scores to 0-100 range
-      const matchingFitScoreCondition = `COALESCE(
-        CASE 
-          WHEN jm_max.max_fit_score IS NOT NULL AND jm_max.max_fit_score <= 1 THEN jm_max.max_fit_score * 100
-          ELSE jm_max.max_fit_score
-        END,
-        0
-      )`;
-      
-      if (filters.minMatchingJobFitScore && filters.maxMatchingJobFitScore) {
-        whereClauses.push(`${matchingFitScoreCondition} >= $${paramIndex} AND ${matchingFitScoreCondition} <= $${paramIndex + 1}`);
-        if (!isNaN(minMatchingFit) && !isNaN(maxMatchingFit)) {
-          queryParams.push(minMatchingFit, maxMatchingFit);
-          paramIndex += 2;
-        }
-      } else if (filters.minMatchingJobFitScore) {
-        whereClauses.push(`${matchingFitScoreCondition} >= $${paramIndex}`);
-        if (!isNaN(minMatchingFit)) {
-          queryParams.push(minMatchingFit);
-          paramIndex++;
-        }
-      } else if (filters.maxMatchingJobFitScore) {
-        whereClauses.push(`${matchingFitScoreCondition} <= $${paramIndex}`);
-        if (!isNaN(maxMatchingFit)) {
-          queryParams.push(maxMatchingFit);
-          paramIndex++;
-        }
-      }
-    }
-  }
-
-  const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-  
-  console.log('🔍 DEBUG: Generated SQL where clause:', whereString);
-  console.log('🔍 DEBUG: Query parameters:', queryParams);
-  
-
-
-
-
-  const client = await getPool().connect();
-  try {
-    const candidatesQuery = `
-      SELECT c.*, p.id as "positionId", p.title as "positionTitle", p.department as "positionDepartment", p."positionLevel" as "positionLevel",
-             r.id as "recruiterId", r.name as "recruiterName", r."avatarUrl" as "recruiterAvatarUrl",
-             cs.id as "sourceId", cs.name as "sourceName", cs.description as "sourceDescription",
-             COALESCE(th_data.history, '[]'::json) as "transitionHistory",
-             COALESCE(jm_data.jobMatches, '[]'::json) as "jobMatches"
-      FROM "Candidate" c
-      LEFT JOIN "Position" p ON c."positionId" = p.id
-      LEFT JOIN "User" r ON c."recruiterId" = r.id
-      LEFT JOIN "CandidateSource" cs ON c."sourceId" = cs.id
-      LEFT JOIN LATERAL (
-        SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
-      ) AS jm_max ON true
-      LEFT JOIN LATERAL (
-        SELECT json_agg(
-          json_build_object(
-            'id', th.id, 'date', th.date, 'stage', th.stage, 'notes', th.notes
-          ) ORDER BY th.date DESC
-        ) AS history
-        FROM "TransitionRecord" th
-        WHERE th."candidateId" = c.id
-      ) AS th_data ON true
-      LEFT JOIN LATERAL (
-        SELECT json_agg(
-          json_build_object(
-            'id', jm.id, 'jobId', jm."jobId", 'jobTitle', jm."jobTitle", 'fitScore', jm."fitScore", 
-                            'matchReasons', jm."matchReasons", 'jobDescriptionSummary', jm."job_description_summary",
-            'createdAt', jm."createdAt", 'updatedAt', jm."updatedAt"
-          ) ORDER BY jm."fitScore" DESC
-        ) AS jobMatches
-        FROM "JobMatch" jm
-        WHERE jm."candidateId" = c.id
-      ) AS jm_data ON true
-      ${whereString}
-      ORDER BY ${sortColumn} ${sortDirection}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
-    `;
-    
-
-    // Use query parameters directly without validation that might cause issues
-    const finalQueryParams = [...queryParams, limit, offset];
-    
-    const candidatesResult = await client.query(candidatesQuery, finalQueryParams);
-    const totalQuery = `
-      SELECT COUNT(*) 
-      FROM "Candidate" c
-      LEFT JOIN LATERAL (
-        SELECT MAX(jm."fitScore") as max_fit_score FROM "JobMatch" jm WHERE jm."candidateId" = c.id
-      ) AS jm_max ON true
-      ${whereString};
-    `;
-    const totalResult = await client.query(totalQuery, finalQueryParams.slice(0, -2)); // Remove limit and offset for count query
-    const total = parseInt(totalResult.rows[0].count, 10);
-    const candidates = candidatesResult.rows.map(row => {
-      let customAttributes = row.customAttributes || {};
-      if (typeof customAttributes === 'string') {
-        try {
-          customAttributes = JSON.parse(customAttributes);
-        } catch {
-          customAttributes = {};
-        }
-      }
-      
-      // Extract fit score from job_applied if available, otherwise use the database fitScore
-      let fitScore = row.fitScore || 0;
-      // Always use the top-level fitScore column for filtering and returning
-      if (row.parsedData && typeof row.parsedData === 'object' && 'job_applied' in row.parsedData) {
-        const jobApplied = (row.parsedData as any).job_applied;
-        if (jobApplied && typeof jobApplied === 'object' && 'fitScore' in jobApplied) {
-          fitScore = jobApplied.fitScore || fitScore;
-        }
-      }
-      
-      return {
+      const total = parseInt(countResult.rows[0].total);
+      const candidates = dataResult.rows.map(row => ({
         id: row.id,
         name: row.name,
         email: row.email,
-        phone: row.phone || null,
-        avatarUrl: row.avatarUrl || null,
-        dataAiHint: row.dataAiHint || null,
-        resumePath: row.resumePath || null,
-        parsedData: row.parsedData || { personal_info: {}, contact_info: {} },
-        customAttributes,
-        position: row.positionId ? {
-          id: row.positionId,
-          title: row.positionTitle,
-          department: row.positionDepartment,
-          positionLevel: row.positionLevel
-        } : null,
-        fitScore: normalizeFitScore(fitScore), // Use the normalized fit score
+        phone: row.phone,
+        fitScore: row.fitScore,
         status: row.status,
-        applicationDate: row.applicationDate ? row.applicationDate.toISOString() : new Date().toISOString(),
-        recruiterId: row.recruiterId || null,
-        recruiter: row.recruiterId ? {
-          id: row.recruiterId,
-          name: row.recruiterName,
-          avatarUrl: row.recruiterAvatarUrl || null,
-          email: null
-        } : null,
-        sourceId: row.sourceId || null,
-        source: row.sourceId ? {
-          id: row.sourceId,
-          name: row.sourceName,
-          description: row.sourceDescription
-        } : null,
-        subSource: row.subSource || null,
-        createdAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
-        updatedAt: row.updatedAt ? row.updatedAt.toISOString() : new Date().toISOString(),
-        transitionHistory: row.transitionHistory || [],
-        jobMatches: row.jobMatches || [],
-      };
-    });
-    return NextResponse.json({
-      data: candidates,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    }, { 
-      status: 200,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+        applicationDate: row.applicationDate,
+        updatedAt: row.updatedAt,
+        positionId: row.positionId,
+        recruiterId: row.recruiterId,
+        sourceId: row.sourceId,
+        parsedData: row.parsedData,
+        position: row.positionTitle ? { title: row.positionTitle } : null,
+        recruiter: row.recruiterName ? { name: row.recruiterName } : null,
+        source: row.sourceName ? { name: row.sourceName } : null,
+      }));
+
+      return NextResponse.json({
+        data: candidates,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page < Math.ceil(total / limit),
+          hasPrev: page > 1
+        }
+      }, {
+        headers: {
+          'Cache-Control': 'public, max-age=10, stale-while-revalidate=30',
+          'ETag': `"${Buffer.from(JSON.stringify({ filters, page, limit, total })).toString('base64').slice(0, 8)}"`
+        }
+      });
+
+    } finally {
+      client.release();
+    }
   } catch (error: any) {
     console.error('Error fetching candidates:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint,
-      position: error.position,
-      where: error.where
-    });
     return NextResponse.json({ 
       message: 'Error fetching candidates', 
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, { status: 500 });
-  } finally {
-    client.release();
-  }
-  } catch (outerError: any) {
-    console.error('Candidates API: Outer error:', outerError);
-    return NextResponse.json({ 
-      message: 'Error in candidates API', 
-      error: outerError.message
+      error: error.message 
     }, { status: 500 });
   }
 }

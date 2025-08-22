@@ -281,7 +281,7 @@ export function PositionMultiSelectDropdown({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[500]" align="start">
+      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg z-[10001]" align="start">
         <div className="bg-popover text-popover-foreground">
           {/* Search Input */}
           <div className="flex items-center border-b border-border px-3 bg-popover">
